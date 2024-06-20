@@ -5,5 +5,15 @@
 			"quoteStyle": "single",
 			"semicolons": "asNeeded"
 		}
+	},
+	"linter": {
+		"rules": {
+			"style": {
+				"noNonNullAssertion": "warn"
+			},
+			"suspicious": {
+				"noExplicitAny": "warn"
+			}
+		}
 	}
 }
