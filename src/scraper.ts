@@ -11,5 +11,5 @@ export type ScraperOptions = {
 }
 
 export interface Scraper<T> {
-	scrape(options: ScraperOptions, document?: Document): T
+	scrape(options: ScraperOptions, document: Document): T
 }
