@@ -1,4 +1,4 @@
-import type { Kysely } from 'kysely'
+import { type Kysely, sql } from 'kysely'
 
 export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
@@ -34,9 +34,35 @@ export async function up(db: Kysely<any>): Promise<void> {
 			'entry_id',
 		])
 		.execute()
+
+	await db.schema
+		.createTable('users')
+		.addColumn('id', 'text', (col) => col.primaryKey())
+		.addColumn('email', 'text', (col) => col.notNull().unique())
+		.addColumn('password', 'text', (col) => col.notNull())
+		.addColumn('created_at', 'timestamptz', (col) =>
+			col.notNull().defaultTo(sql`now()`),
+		)
+		.addColumn('updated_at', 'timestamptz', (col) =>
+			col.notNull().defaultTo(sql`now()`),
+		)
+		.execute()
+
+	await db.schema
+		.createTable('sessions')
+		.addColumn('id', 'text', (col) => col.primaryKey())
+		.addColumn('expires_at', 'timestamptz', (col) => col.notNull())
+		.addColumn('user_id', 'text', (col) =>
+			col.notNull().references('users.id').onDelete('cascade'),
+		)
+		.execute()
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+	await db.schema.dropTable('sessions').execute()
+
+	await db.schema.dropTable('users').execute()
+
 	await db.schema.dropTable('feed_entries').execute()
 
 	await db.schema.dropTable('entries').execute()
