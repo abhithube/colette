@@ -16,7 +16,22 @@ export type ParsedEntry = {
 	thumbnail?: string
 }
 
-export class FeedScraper implements Scraper<ParsedFeed> {
+export type ProcessedFeed = {
+	link: string
+	title: string
+	entries: ProcessedEntry[]
+}
+
+export type ProcessedEntry = {
+	link: string
+	title: string
+	published?: Date
+	description?: string
+	author?: string
+	thumbnail?: string
+}
+
+export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 	parse(options: ParseOptions, document: Document) {
 		const link = evaluateString(options.linkExpr, document)
 		const title = evaluateString(options.titleExpr, document)
@@ -59,6 +74,25 @@ export class FeedScraper implements Scraper<ParsedFeed> {
 			link,
 			title,
 			entries,
+		}
+	}
+
+	postprocess(feedUrl: string, parsed: ParsedFeed): ProcessedFeed {
+		return {
+			link: new URL(parsed.link).href,
+			title: parsed.title,
+			entries: parsed.entries.map((parsed) => {
+				return {
+					link: new URL(parsed.link).href,
+					title: parsed.title,
+					published: parsed.published ? new Date(parsed.published) : undefined,
+					description: parsed.description,
+					author: parsed.author,
+					thumbnail: parsed.thumbnail
+						? new URL(parsed.thumbnail).href
+						: undefined,
+				}
+			}),
 		}
 	}
 }

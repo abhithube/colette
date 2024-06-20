@@ -10,6 +10,7 @@ export type ParseOptions = {
 	entryThumbnailExpr?: string
 }
 
-export interface Scraper<T> {
+export interface Scraper<T, U> {
 	parse(options: ParseOptions, document: Document): T
+	postprocess(feedUrl: string, parsed: T): U
 }
