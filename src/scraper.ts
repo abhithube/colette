@@ -1,4 +1,4 @@
-export type ScraperOptions = {
+export type ParseOptions = {
 	linkExpr: string
 	titleExpr: string
 	entriesExpr: string
@@ -11,5 +11,5 @@ export type ScraperOptions = {
 }
 
 export interface Scraper<T> {
-	scrape(options: ScraperOptions, document: Document): T
+	parse(options: ParseOptions, document: Document): T
 }

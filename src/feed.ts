@@ -1,13 +1,13 @@
-import type { Scraper, ScraperOptions } from './scraper'
+import type { ParseOptions, Scraper } from './scraper'
 import { evaluate, evaluateString } from './utils'
 
-export type Feed = {
+export type ParsedFeed = {
 	link: string
 	title: string
-	entries: Entry[]
+	entries: ParsedEntry[]
 }
 
-export type Entry = {
+export type ParsedEntry = {
 	link: string
 	title: string
 	published?: string
@@ -16,13 +16,13 @@ export type Entry = {
 	thumbnail?: string
 }
 
-export class FeedScraper implements Scraper<Feed> {
-	scrape(options: ScraperOptions, document: Document) {
+export class FeedScraper implements Scraper<ParsedFeed> {
+	parse(options: ParseOptions, document: Document) {
 		const link = evaluateString(options.linkExpr, document)
 		const title = evaluateString(options.titleExpr, document)
 		const entryNodes = evaluate(options.entriesExpr, document)
 
-		const entries: Entry[] = []
+		const entries: ParsedEntry[] = []
 
 		let node = entryNodes.iterateNext()
 		while (node) {

@@ -1,6 +1,6 @@
-import type { ScraperOptions } from './scraper'
+import type { ParseOptions } from './scraper'
 
-export const ATOM_OPTIONS: ScraperOptions = {
+export const ATOM_OPTIONS: ParseOptions = {
 	linkExpr: "/feed/link[@rel='alternate']/@href",
 	titleExpr: '/feed/title/text()',
 	entriesExpr: '/feed/entry',
