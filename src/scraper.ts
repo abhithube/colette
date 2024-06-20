@@ -1,5 +1,5 @@
 export type ParseOptions = {
-	linkExpr: string
+	linkExpr?: string
 	titleExpr: string
 	entriesExpr: string
 	entryLinkExpr: string
@@ -11,6 +11,6 @@ export type ParseOptions = {
 }
 
 export interface Scraper<T, U> {
-	parse(document: Document): T
+	parse(feedUrl: string, document: Document): T
 	postprocess(feedUrl: string, parsed: T): U
 }
