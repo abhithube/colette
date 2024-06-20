@@ -3,5 +3,5 @@ export function evaluate(expr: string, document: Document, node?: Node) {
 }
 
 export function evaluateString(expr: string, document: Document, node?: Node) {
-	return document.evaluate(expr, node ?? document, null, 2).stringValue
+	return document.evaluate(expr, node ?? document, null, 2).stringValue.trim()
 }
