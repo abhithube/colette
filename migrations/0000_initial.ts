@@ -1,5 +1,24 @@
 import { type Kysely, sql } from 'kysely'
 
+const handleUpdatedAt = sql`
+CREATE FUNCTION handle_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+	NEW.updated_at = CURRENT_TIMESTAMP;
+	RETURN NEW;
+END;
+$$ language 'plpgsql';`
+
+function createUpdatedAtTrigger(table: string) {
+	const t = sql.raw(table)
+
+	return sql`
+CREATE TRIGGER ${t}_updated_at
+BEFORE UPDATE ON ${t}
+FOR EACH ROW
+EXECUTE FUNCTION handle_updated_at();`
+}
+
 export async function up(db: Kysely<any>): Promise<void> {
 	await db.schema
 		.createTable('feeds')
@@ -41,10 +60,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('email', 'text', (col) => col.notNull().unique())
 		.addColumn('password', 'text', (col) => col.notNull())
 		.addColumn('created_at', 'timestamptz', (col) =>
-			col.notNull().defaultTo(sql`now()`),
+			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
 		.addColumn('updated_at', 'timestamptz', (col) =>
-			col.notNull().defaultTo(sql`now()`),
+			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
 		.execute()
 
@@ -67,16 +86,21 @@ export async function up(db: Kysely<any>): Promise<void> {
 			col.notNull().references('users.id').onDelete('cascade'),
 		)
 		.addColumn('created_at', 'timestamptz', (col) =>
-			col.notNull().defaultTo(sql`now()`),
+			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
 		.addColumn('updated_at', 'timestamptz', (col) =>
-			col.notNull().defaultTo(sql`now()`),
+			col.notNull().defaultTo(sql`CURRENT_TIMESTAMP`),
 		)
 		.addUniqueConstraint('profiles_user_id_is_default_unq', [
 			'user_id',
 			'is_default',
 		])
 		.execute()
+
+	await handleUpdatedAt.execute(db)
+
+	await createUpdatedAtTrigger('users').execute(db)
+	await createUpdatedAtTrigger('profiles').execute(db)
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
