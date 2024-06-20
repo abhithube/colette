@@ -29,6 +29,10 @@ export async function up(db: Kysely<any>): Promise<void> {
 		.addColumn('entry_id', 'integer', (col) =>
 			col.notNull().references('entries.id').onDelete('cascade'),
 		)
+		.addUniqueConstraint('feed_entries_feed_id_entry_id_unq', [
+			'feed_id',
+			'entry_id',
+		])
 		.execute()
 }
 
