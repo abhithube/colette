@@ -11,6 +11,6 @@ export type ParseOptions = {
 }
 
 export interface Scraper<T, U> {
-	parse(options: ParseOptions, document: Document): T
+	parse(document: Document): T
 	postprocess(feedUrl: string, parsed: T): U
 }

@@ -32,31 +32,33 @@ export type ProcessedEntry = {
 }
 
 export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
-	parse(options: ParseOptions, document: Document) {
-		const link = evaluateString(options.linkExpr, document)
-		const title = evaluateString(options.titleExpr, document)
-		const entryNodes = evaluate(options.entriesExpr, document)
+	constructor(private options: ParseOptions) {}
+
+	parse(document: Document) {
+		const link = evaluateString(this.options.linkExpr, document)
+		const title = evaluateString(this.options.titleExpr, document)
+		const entryNodes = evaluate(this.options.entriesExpr, document)
 
 		const entries: ParsedEntry[] = []
 
 		let node = entryNodes.iterateNext()
 		while (node) {
-			const link = evaluateString(options.entryLinkExpr, document, node)
-			const title = evaluateString(options.entryTitleExpr, document, node)
+			const link = evaluateString(this.options.entryLinkExpr, document, node)
+			const title = evaluateString(this.options.entryTitleExpr, document, node)
 			const published = evaluateString(
-				options.entryPublishedExpr,
+				this.options.entryPublishedExpr,
 				document,
 				node,
 			)
 			const description =
-				options.entryDescriptionExpr &&
-				evaluateString(options.entryDescriptionExpr, document, node)
+				this.options.entryDescriptionExpr &&
+				evaluateString(this.options.entryDescriptionExpr, document, node)
 			const author =
-				options.entryAuthorExpr &&
-				evaluateString(options.entryAuthorExpr, document, node)
+				this.options.entryAuthorExpr &&
+				evaluateString(this.options.entryAuthorExpr, document, node)
 			const thumbnail =
-				options.entryThumbnailExpr &&
-				evaluateString(options.entryThumbnailExpr, document, node)
+				this.options.entryThumbnailExpr &&
+				evaluateString(this.options.entryThumbnailExpr, document, node)
 
 			entries.push({
 				link,
