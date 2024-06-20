@@ -34,6 +34,10 @@ export type ProcessedEntry = {
 export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 	constructor(private options: ParseOptions) {}
 
+	prepare(feedUrl: string): Request {
+		return new Request(feedUrl)
+	}
+
 	parse(feedUrl: string, document: Document) {
 		let link = feedUrl
 		if (this.options.linkExpr) {
