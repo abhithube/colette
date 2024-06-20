@@ -56,9 +56,32 @@ export async function up(db: Kysely<any>): Promise<void> {
 			col.notNull().references('users.id').onDelete('cascade'),
 		)
 		.execute()
+
+	await db.schema
+		.createTable('profiles')
+		.addColumn('id', 'text', (col) => col.primaryKey())
+		.addColumn('title', 'text', (col) => col.notNull())
+		.addColumn('image_url', 'text')
+		.addColumn('is_default', 'boolean', (col) => col.notNull().defaultTo(false))
+		.addColumn('user_id', 'text', (col) =>
+			col.notNull().references('users.id').onDelete('cascade'),
+		)
+		.addColumn('created_at', 'timestamptz', (col) =>
+			col.notNull().defaultTo(sql`now()`),
+		)
+		.addColumn('updated_at', 'timestamptz', (col) =>
+			col.notNull().defaultTo(sql`now()`),
+		)
+		.addUniqueConstraint('profiles_user_id_is_default_unq', [
+			'user_id',
+			'is_default',
+		])
+		.execute()
 }
 
 export async function down(db: Kysely<any>): Promise<void> {
+	await db.schema.dropTable('profiles').execute()
+
 	await db.schema.dropTable('sessions').execute()
 
 	await db.schema.dropTable('users').execute()
