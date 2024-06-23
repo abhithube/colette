@@ -15,6 +15,13 @@
       "when": 1719164743894,
       "tag": "0001_yellow_madelyne_pryor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1719166933341,
+      "tag": "0002_plain_romulus",
+      "breakpoints": true
     }
   ]
 }

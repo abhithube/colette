@@ -4,6 +4,8 @@ import {
 	entriesTable,
 	feedEntriesTable,
 	feedsTable,
+	profileFeedEntriesTable,
+	profileFeedsTable,
 	profilesTable,
 	usersTable,
 } from './schema'
@@ -12,8 +14,10 @@ const schema = {
 	entries: entriesTable,
 	feedEntries: feedEntriesTable,
 	feeds: feedsTable,
-	users: usersTable,
+	profileFeedEntries: profileFeedEntriesTable,
+	profileFeeds: profileFeedsTable,
 	profiles: profilesTable,
+	users: usersTable,
 }
 
 export function createPostgresClient(connectionString: string) {
