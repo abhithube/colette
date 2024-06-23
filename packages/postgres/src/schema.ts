@@ -45,3 +45,25 @@ export const feedEntriesTable = pgTable(
 )
 
 export type FeedEntryInsert = typeof feedEntriesTable.$inferInsert
+
+export const usersTable = pgTable('users', {
+	id: text('id').primaryKey(),
+	email: text('email').notNull().unique(),
+	password: text('password').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.notNull()
+		.defaultNow(),
+})
+
+export type UserInsert = typeof usersTable.$inferInsert
+
+export const sessionsTable = pgTable('sessions', {
+	id: text('id').primaryKey(),
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => usersTable.id, { onDelete: 'cascade' }),
+})
