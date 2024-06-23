@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import type { Database } from '../client'
-import { type FeedInsert, feedsTable } from '../schema'
+import { feedsTable } from '../schema'
+import type { FeedInsert } from '../types'
 
 export async function insertFeed(db: Database, data: FeedInsert) {
 	return db

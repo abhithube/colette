@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import type { Database } from '../client'
-import { type EntryInsert, entriesTable } from '../schema'
+import { entriesTable } from '../schema'
+import type { EntryInsert } from '../types'
 
 export async function insertEntry(db: Database, data: EntryInsert) {
 	return db

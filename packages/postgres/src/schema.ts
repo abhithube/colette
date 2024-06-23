@@ -14,8 +14,6 @@ export const feedsTable = pgTable('feeds', {
 	url: text('url'),
 })
 
-export type FeedInsert = typeof feedsTable.$inferInsert
-
 export const entriesTable = pgTable('entries', {
 	id: serial('id').primaryKey(),
 	link: text('link').notNull().unique(),
@@ -25,8 +23,6 @@ export const entriesTable = pgTable('entries', {
 	author: text('author'),
 	thumbnailUrl: text('thumbnail_url'),
 })
-
-export type EntryInsert = typeof entriesTable.$inferInsert
 
 export const feedEntriesTable = pgTable(
 	'feed_entries',
@@ -44,8 +40,6 @@ export const feedEntriesTable = pgTable(
 	}),
 )
 
-export type FeedEntryInsert = typeof feedEntriesTable.$inferInsert
-
 export const usersTable = pgTable('users', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
@@ -57,8 +51,6 @@ export const usersTable = pgTable('users', {
 		.notNull()
 		.defaultNow(),
 })
-
-export type UserInsert = typeof usersTable.$inferInsert
 
 export const sessionsTable = pgTable('sessions', {
 	id: text('id').primaryKey(),
