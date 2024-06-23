@@ -1,4 +1,5 @@
 import {
+	boolean,
 	integer,
 	pgTable,
 	serial,
@@ -36,7 +37,7 @@ export const feedEntriesTable = pgTable(
 			.references(() => entriesTable.id, { onDelete: 'cascade' }),
 	},
 	(t) => ({
-		feedId_EntryIdUnq: unique().on(t.feedId, t.entryId),
+		feedIdEntryIdUnq: unique().on(t.feedId, t.entryId),
 	}),
 )
 
@@ -59,3 +60,27 @@ export const sessionsTable = pgTable('sessions', {
 		.notNull()
 		.references(() => usersTable.id, { onDelete: 'cascade' }),
 })
+
+export const profilesTable = pgTable(
+	'profiles',
+	{
+		id: text('id').primaryKey(),
+		title: text('title').notNull(),
+		imageUrl: text('image_url'),
+		userId: text('user_id')
+			.notNull()
+			.references(() => usersTable.id, {
+				onDelete: 'cascade',
+			}),
+		isDefault: boolean('is_default').notNull().default(false),
+		createdAt: timestamp('created_at', { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => ({
+		userIdIsDefaultUnq: unique().on(t.userId, t.isDefault),
+	}),
+)
