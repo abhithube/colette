@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres'
-import { Pool } from 'pg'
+import type { Client, Pool } from 'pg'
 import {
 	entriesTable,
 	feedEntriesTable,
@@ -20,14 +20,10 @@ const schema = {
 	users: usersTable,
 }
 
-export function createPostgresClient(connectionString: string) {
-	const client = new Pool({
-		connectionString,
-	})
-
+export function createDatabase(client: Client | Pool) {
 	return drizzle(client, {
 		schema,
 	})
 }
 
-export type Database = ReturnType<typeof createPostgresClient>
+export type Database = ReturnType<typeof createDatabase>
