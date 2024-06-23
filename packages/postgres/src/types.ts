@@ -12,3 +12,7 @@ export type FeedInsert = typeof feedsTable.$inferInsert
 export type FeedEntryInsert = typeof feedEntriesTable.$inferInsert
 
 export type UserInsert = typeof usersTable.$inferInsert
+export type UserSelectByEmailParams = Pick<
+	typeof usersTable.$inferSelect,
+	'email'
+>
