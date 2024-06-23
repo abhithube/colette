@@ -8,6 +8,11 @@ import type {
 	usersTable,
 } from './schema'
 
+export type SelectParams = {
+	id: string
+	profileId: string
+}
+
 export type EntryInsert = typeof entriesTable.$inferInsert
 
 export type FeedInsert = typeof feedsTable.$inferInsert
