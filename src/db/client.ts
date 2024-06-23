@@ -1,9 +1,4 @@
-import {
-	Kysely,
-	PostgresDialect,
-	type QueryCreator,
-	type SelectQueryBuilder,
-} from 'kysely'
+import { Kysely, PostgresDialect, type QueryCreator } from 'kysely'
 import type { DB } from 'kysely-codegen'
 import { Pool } from 'pg'
 
@@ -20,7 +15,3 @@ export const db = new Kysely<DB>({
 })
 
 export type Database = QueryCreator<DB>
-
-export type Select<TB extends keyof DB> = Parameters<
-	SelectQueryBuilder<DB, TB, unknown>['select']
->[0]
