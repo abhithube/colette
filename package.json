@@ -2,6 +2,9 @@
   "name": "colette",
   "module": "index.ts",
   "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun run --hot src/index.ts",
     "check": "biome check --write ./src"
@@ -17,6 +20,7 @@
   },
   "dependencies": {
     "@lucia-auth/adapter-postgresql": "^3.1.2",
+    "colette-postgres": "workspace:*",
     "kysely": "^0.27.3",
     "lucia": "^3.2.0",
     "pg": "^8.12.0"
