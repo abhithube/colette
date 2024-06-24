@@ -13,6 +13,7 @@
 		"typescript": "^5.0.0"
 	},
 	"dependencies": {
+		"@colette/core": "workspace:*",
 		"drizzle-orm": "^0.31.2"
 	}
 }
