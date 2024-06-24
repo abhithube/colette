@@ -5,7 +5,12 @@ export interface UsersRepository {
 }
 
 export type UserCreateData = {
-	id: string
-	email: string
-	password: string
+	user: {
+		id: string
+		email: string
+		password: string
+	}
+	profile: {
+		id: string
+	}
 }
