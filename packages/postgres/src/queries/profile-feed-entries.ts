@@ -20,7 +20,7 @@ const columns = {
 	feedId: profileFeedEntriesTable.profileFeedId,
 }
 
-export async function selectProfileFeedById(
+export async function selectProfileFeedEntryById(
 	db: Database,
 	params: SelectParams,
 ) {
