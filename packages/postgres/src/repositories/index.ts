@@ -1,1 +1,2 @@
-export * from './feeds'
+export * from './profiles'
+export * from './users'
