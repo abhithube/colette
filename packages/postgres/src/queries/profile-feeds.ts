@@ -14,7 +14,6 @@ const columns = {
 	title: feedsTable.title,
 	url: feedsTable.url,
 	customTitle: profileFeedsTable.customTitle,
-	feedId: profileFeedsTable.feedId,
 	createdAt: profileFeedsTable.createdAt,
 	updatedAt: profileFeedsTable.updatedAt,
 	unreadCount: count(profileFeedEntriesTable.id),
