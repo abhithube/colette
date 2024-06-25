@@ -1,4 +1,4 @@
-import { and, count, eq } from 'drizzle-orm'
+import { and, asc, count, eq } from 'drizzle-orm'
 import type { Database } from '../client'
 import {
 	feedEntriesTable,
@@ -18,6 +18,33 @@ const columns = {
 	createdAt: profileFeedsTable.createdAt,
 	updatedAt: profileFeedsTable.updatedAt,
 	unreadCount: count(profileFeedEntriesTable.id),
+}
+
+export type ProfileFeedSelectParams = {
+	profileId: string
+}
+
+export async function selectProfileFeeds(
+	db: Database,
+	params: ProfileFeedSelectParams,
+) {
+	return db
+		.select(columns)
+		.from(profileFeedsTable)
+		.innerJoin(feedsTable, eq(feedsTable.id, profileFeedsTable.feedId))
+		.leftJoin(
+			feedEntriesTable,
+			eq(feedEntriesTable.feedId, profileFeedsTable.feedId),
+		)
+		.leftJoin(
+			profileFeedEntriesTable,
+			and(
+				eq(profileFeedEntriesTable.feedEntryId, feedEntriesTable.id),
+				eq(profileFeedEntriesTable.hasRead, false),
+			),
+		)
+		.where(eq(profileFeedsTable.profileId, params.profileId))
+		.orderBy(asc(profileFeedsTable.customTitle), asc(feedsTable.title))
 }
 
 export async function selectProfileFeedById(

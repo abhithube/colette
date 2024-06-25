@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, lt } from 'drizzle-orm'
 import type { Database } from '../client'
 import {
 	entriesTable,
@@ -22,6 +22,47 @@ const columns = {
 	thumbnailUrl: entriesTable.thumbnailUrl,
 	hasRead: profileFeedEntriesTable.hasRead,
 	feedId: profileFeedEntriesTable.profileFeedId,
+}
+
+export type ProfileFeedEntrySelectParams = {
+	profileId: string
+	publishedAt?: Date
+	profileFeedId?: string
+}
+
+export async function selectProfileFeedEntries(
+	db: Database,
+	params: ProfileFeedEntrySelectParams,
+) {
+	let query = db
+		.select(columns)
+		.from(profileFeedEntriesTable)
+		.innerJoin(
+			feedEntriesTable,
+			eq(feedEntriesTable.id, profileFeedEntriesTable.feedEntryId),
+		)
+		.innerJoin(entriesTable, eq(entriesTable.id, feedEntriesTable.entryId))
+		.limit(25)
+		.orderBy(desc(entriesTable.publishedAt), asc(entriesTable.title))
+		.$dynamic()
+
+	const publishedAtFilter =
+		params.publishedAt && lt(entriesTable.publishedAt, params.publishedAt)
+
+	if (params.profileFeedId) {
+		query = query
+			.innerJoin(
+				profileFeedsTable,
+				eq(profileFeedsTable.feedId, feedEntriesTable.feedId),
+			)
+			.where(
+				and(eq(profileFeedsTable.id, params.profileFeedId), publishedAtFilter),
+			)
+	} else {
+		query = query.where(publishedAtFilter)
+	}
+
+	return query
 }
 
 export async function selectProfileFeedEntryById(
