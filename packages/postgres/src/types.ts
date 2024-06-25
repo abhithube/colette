@@ -10,6 +10,10 @@ import type {
 
 export type SelectParams = {
 	id: string
+}
+
+export type SelectWithProfileParams = {
+	id: string
 	profileId: string
 }
 
@@ -32,6 +36,10 @@ export type ProfileSelectByIdParams = Pick<
 export type ProfileFeedInsert = typeof profileFeedsTable.$inferInsert
 
 export type ProfileFeedEntryInsert = typeof profileFeedEntriesTable.$inferInsert
+export type ProfileFeedEntryDeleteParams = Pick<
+	typeof profileFeedEntriesTable.$inferSelect,
+	'profileFeedId'
+>
 
 export type UserInsert = typeof usersTable.$inferInsert
 export type UserSelectByEmailParams = Pick<

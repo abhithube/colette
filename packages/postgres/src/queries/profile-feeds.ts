@@ -6,7 +6,7 @@ import {
 	profileFeedEntriesTable,
 	profileFeedsTable,
 } from '../schema'
-import type { ProfileFeedInsert, SelectParams } from '../types'
+import type { ProfileFeedInsert, SelectWithProfileParams } from '../types'
 
 const columns = {
 	id: profileFeedsTable.id,
@@ -22,7 +22,7 @@ const columns = {
 
 export async function selectProfileFeedById(
 	db: Database,
-	params: SelectParams,
+	params: SelectWithProfileParams,
 ) {
 	return db
 		.select(columns)
@@ -51,4 +51,18 @@ export async function insertProfileFeed(db: Database, data: ProfileFeedInsert) {
 		.returning({
 			id: profileFeedsTable.id,
 		})
+}
+
+export async function deleteProfileFeed(
+	db: Database,
+	params: SelectWithProfileParams,
+) {
+	return db
+		.delete(profileFeedsTable)
+		.where(
+			and(
+				eq(profileFeedsTable.id, params.id),
+				eq(profileFeedsTable.profileId, params.profileId),
+			),
+		)
 }
