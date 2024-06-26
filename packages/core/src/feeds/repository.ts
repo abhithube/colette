@@ -1,5 +1,5 @@
 import type { FindOneParams } from '../common'
-import type { Feed } from './model'
+import type { Feed, FindManyFeedsParams } from './types'
 
 export interface FeedsRepository {
 	findMany(params: FindManyFeedsParams): Promise<Feed[]>
@@ -7,8 +7,4 @@ export interface FeedsRepository {
 	findOne(params: FindOneParams): Promise<Feed | null>
 
 	delete(params: FindOneParams): Promise<boolean>
-}
-
-export type FindManyFeedsParams = {
-	profileId: string
 }

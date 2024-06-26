@@ -8,3 +8,7 @@ export type Feed = {
 	updatedAt: Date
 	unreadCount?: number
 }
+
+export type FindManyFeedsParams = {
+	profileId: string
+}

@@ -1,4 +1,10 @@
-import type { Profile } from './model'
+import type {
+	FindManyProfilesParams,
+	FindOneProfileOrDefaultParams,
+	FindOneProfileParams,
+	Profile,
+	ProfileCreateData,
+} from './types'
 
 export interface ProfilesRepository {
 	findMany(params: FindManyProfilesParams): Promise<Profile[]>
@@ -8,25 +14,4 @@ export interface ProfilesRepository {
 	create(data: ProfileCreateData): Promise<Profile>
 
 	delete(params: FindOneProfileParams): Promise<boolean>
-}
-
-export type FindManyProfilesParams = {
-	userId: string
-}
-
-export type FindOneProfileParams = {
-	id: string
-	userId: string
-}
-
-export type FindOneProfileOrDefaultParams = Omit<FindOneProfileParams, 'id'> & {
-	id?: string
-}
-
-export type ProfileCreateData = {
-	id: string
-	title: string
-	imageUrl?: string
-	isDefault?: boolean
-	userId: string
 }

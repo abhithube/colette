@@ -9,3 +9,9 @@ export type Entry = {
 	hasRead: boolean
 	feedId: string
 }
+
+export type FindManyEntriesParams = {
+	profileId: string
+	publishedAt?: Date
+	profileFeedId?: string
+}
