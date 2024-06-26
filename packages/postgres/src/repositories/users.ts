@@ -6,22 +6,23 @@ export class UsersPostgresRepository implements UsersRepository {
 	constructor(private db: Database) {}
 
 	async create(data: UserCreateData): Promise<User> {
-		const userRows = await insertUser(this.db, data.user)
-		if (userRows.length === 0) {
-			throw new Error('User not created')
-		}
-		const user = userRows[0]
+		return this.db.transaction(async (tx) => {
+			const [user] = await insertUser(tx, data.user)
+			if (!user) {
+				throw new Error('User not created')
+			}
 
-		const profileRows = await insertProfile(this.db, {
-			id: data.profile.id,
-			title: 'Default',
-			isDefault: true,
-			userId: user.id,
+			const [profile] = await insertProfile(tx, {
+				id: data.profile.id,
+				title: 'Default',
+				isDefault: true,
+				userId: user.id,
+			})
+			if (!profile) {
+				throw new Error('Profile not created')
+			}
+
+			return user
 		})
-		if (profileRows.length === 0) {
-			throw new Error('Profile not created')
-		}
-
-		return user
 	}
 }
