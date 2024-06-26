@@ -1,3 +1,8 @@
+import {
+	AppError,
+	NotFoundError,
+	UserNotAuthenticatedError,
+} from '@colette/core'
 import swagger from '@elysiajs/swagger'
 import Elysia from 'elysia'
 import entries from './entries'
@@ -19,4 +24,29 @@ new Elysia()
 	.use(entries)
 	.use(feeds)
 	.use(profiles)
+	.onError((ctx) => {
+		let status = 500
+		let message = 'Internal server error'
+
+		if (ctx.error instanceof AppError) {
+			message = ctx.error.toString()
+
+			if (ctx.error instanceof UserNotAuthenticatedError) {
+				status = 401
+			} else if (ctx.error instanceof NotFoundError) {
+				status = 404
+			} else {
+				status = 500
+			}
+		}
+
+		return new Response(
+			JSON.stringify({
+				message,
+			}),
+			{
+				status,
+			},
+		)
+	})
 	.listen(process.env.PORT ?? 3000)
