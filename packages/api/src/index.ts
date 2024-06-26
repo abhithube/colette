@@ -1,5 +1,6 @@
 import swagger from '@elysiajs/swagger'
 import Elysia from 'elysia'
+import entries from './entries'
 import feeds from './feeds'
 import profiles from './profiles'
 
@@ -15,6 +16,7 @@ new Elysia()
 			},
 		}),
 	)
+	.use(entries)
 	.use(feeds)
 	.use(profiles)
 	.listen(process.env.PORT ?? 3000)
