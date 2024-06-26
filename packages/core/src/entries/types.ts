@@ -2,7 +2,7 @@ export type Entry = {
 	id: string
 	link: string
 	title: string
-	publishedAt: Date | null
+	publishedAt: string | null
 	description: string | null
 	author: string | null
 	thumbnailUrl: string | null
@@ -12,6 +12,6 @@ export type Entry = {
 
 export type FindManyEntriesParams = {
 	profileId: string
-	publishedAt?: Date
+	publishedAt?: string
 	profileFeedId?: string
 }

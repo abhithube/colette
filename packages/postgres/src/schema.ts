@@ -45,10 +45,10 @@ export const usersTable = pgTable('users', {
 	id: text('id').primaryKey(),
 	email: text('email').notNull().unique(),
 	password: text('password').notNull(),
-	createdAt: timestamp('created_at', { withTimezone: true })
+	createdAt: timestamp('created_at', { mode: 'string', withTimezone: true })
 		.notNull()
 		.defaultNow(),
-	updatedAt: timestamp('updated_at', { withTimezone: true })
+	updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true })
 		.notNull()
 		.defaultNow(),
 })
@@ -65,10 +65,10 @@ export const profilesTable = pgTable(
 				onDelete: 'cascade',
 			}),
 		isDefault: boolean('is_default').notNull().default(false),
-		createdAt: timestamp('created_at', { withTimezone: true })
+		createdAt: timestamp('created_at', { mode: 'string', withTimezone: true })
 			.notNull()
 			.defaultNow(),
-		updatedAt: timestamp('updated_at', { withTimezone: true })
+		updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true })
 			.notNull()
 			.defaultNow(),
 	},
@@ -99,10 +99,10 @@ export const profileFeedsTable = pgTable(
 		feedId: integer('feed_id')
 			.notNull()
 			.references(() => feedsTable.id, { onDelete: 'restrict' }),
-		createdAt: timestamp('created_at', { withTimezone: true })
+		createdAt: timestamp('created_at', { mode: 'string', withTimezone: true })
 			.notNull()
 			.defaultNow(),
-		updatedAt: timestamp('updated_at', { withTimezone: true })
+		updatedAt: timestamp('updated_at', { mode: 'string', withTimezone: true })
 			.notNull()
 			.defaultNow(),
 	},

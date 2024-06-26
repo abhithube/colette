@@ -4,8 +4,8 @@ export type Feed = {
 	title: string
 	url: string | null
 	customTitle: string | null
-	createdAt: Date
-	updatedAt: Date
+	createdAt: string
+	updatedAt: string
 	unreadCount?: number
 }
 
