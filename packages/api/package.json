@@ -3,13 +3,18 @@
   "module": "src/index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/pg": "^8.11.6"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@colette/core": "workspace:*",
     "@elysiajs/swagger": "^1.0.5",
-    "elysia": "^1.0.25"
+    "@lucia-auth/adapter-postgresql": "^3.1.2",
+    "elysia": "^1.0.25",
+    "lucia": "^3.2.0",
+    "pg": "^8.12.0"
   }
 }
