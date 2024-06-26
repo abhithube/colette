@@ -20,24 +20,26 @@ export class FeedsPostgresRepository implements FeedsRepository {
 	}
 
 	async findOne(params: FindOneParams): Promise<Feed | null> {
-		const rows = await selectProfileFeedById(this.db, params)
-		if (rows.length === 0) {
+		const [feed] = await selectProfileFeedById(this.db, params)
+		if (!feed) {
 			return null
 		}
 
-		return rows[0]
+		return feed
 	}
 
 	async delete(params: FindOneParams): Promise<boolean> {
-		const feedResult = await deleteProfileFeed(this.db, params)
-		if (feedResult.rowCount !== 1) {
-			return false
-		}
+		return this.db.transaction(async (tx) => {
+			const result = await deleteProfileFeed(tx, params)
+			if (result.rowCount !== 1) {
+				return false
+			}
 
-		await deleteProfileFeedEntries(this.db, {
-			profileFeedId: params.id,
+			await deleteProfileFeedEntries(tx, {
+				profileFeedId: params.id,
+			})
+
+			return true
 		})
-
-		return true
 	}
 }
