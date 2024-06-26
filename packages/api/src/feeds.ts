@@ -33,15 +33,10 @@ export default new Elysia()
 		{
 			type: 'application/json',
 			response: {
-				200: t.Object(
-					{
-						hasMore: t.Boolean(),
-						data: t.Array(t.Ref(FeedSchema)),
-					},
-					{
-						description: 'Paginated list of feeds',
-					},
-				),
+				200: t.Object({
+					hasMore: t.Boolean(),
+					data: t.Array(t.Ref(FeedSchema)),
+				}),
 			},
 		},
 	)
@@ -56,15 +51,10 @@ export default new Elysia()
 			params: t.Object({
 				id: t.String(),
 			}),
+			type: 'application/json',
 			response: {
-				200: {
-					description: 'Feed by ID',
-					...FeedSchema,
-				},
-				404: {
-					description: 'Feed not found',
-					...ErrorSchema,
-				},
+				200: 'Feed',
+				404: 'Error',
 			},
 		},
 	)
@@ -79,14 +69,12 @@ export default new Elysia()
 			params: t.Object({
 				id: t.String(),
 			}),
+			type: 'application/json',
 			response: {
 				204: t.Null({
 					description: 'Feed deleted successfully',
 				}),
-				404: {
-					description: 'Feed not found',
-					...ErrorSchema,
-				},
+				404: 'Error',
 			},
 		},
 	)

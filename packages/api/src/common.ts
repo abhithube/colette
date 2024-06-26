@@ -6,6 +6,11 @@ export const Nullable = <T extends TSchema>(schema: T) =>
 		nullable: true,
 	})
 
-export const ErrorSchema = t.Object({
-	message: t.String(),
-})
+export const ErrorSchema = t.Object(
+	{
+		message: t.String(),
+	},
+	{
+		$id: '#/components/schemas/Error',
+	},
+)

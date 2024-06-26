@@ -30,15 +30,10 @@ export default new Elysia()
 		{
 			type: 'application/json',
 			response: {
-				200: t.Object(
-					{
-						hasMore: t.Boolean(),
-						data: t.Array(t.Ref(ProfileSchema)),
-					},
-					{
-						description: 'Paginated list of profiles',
-					},
-				),
+				200: t.Object({
+					hasMore: t.Boolean(),
+					data: t.Array(t.Ref(ProfileSchema)),
+				}),
 			},
 		},
 	)
@@ -53,15 +48,10 @@ export default new Elysia()
 			params: t.Object({
 				id: t.String(),
 			}),
+			type: 'application/json',
 			response: {
-				200: {
-					description: 'Profile by ID',
-					...ProfileSchema,
-				},
-				404: {
-					description: 'Profile not found',
-					...ErrorSchema,
-				},
+				200: 'Profile',
+				404: 'Error',
 			},
 		},
 	)
@@ -76,14 +66,12 @@ export default new Elysia()
 			params: t.Object({
 				id: t.String(),
 			}),
+			type: 'application/json',
 			response: {
 				204: t.Null({
 					description: 'Profile deleted successfully',
 				}),
-				404: {
-					description: 'Profile not found',
-					...ErrorSchema,
-				},
+				404: 'Error',
 			},
 		},
 	)
