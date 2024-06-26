@@ -12,7 +12,7 @@ export class FeedsService {
 	}
 
 	async get(id: string, session: Session) {
-		const feed = this.repo.findOne({
+		const feed = await this.repo.findOne({
 			id,
 			profileId: session.profileId,
 		})
@@ -24,7 +24,7 @@ export class FeedsService {
 	}
 
 	async delete(id: string, session: Session) {
-		const deleted = this.repo.delete({
+		const deleted = await this.repo.delete({
 			id,
 			profileId: session.profileId,
 		})
