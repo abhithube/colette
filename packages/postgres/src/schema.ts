@@ -53,14 +53,6 @@ export const usersTable = pgTable('users', {
 		.defaultNow(),
 })
 
-export const sessionsTable = pgTable('sessions', {
-	id: text('id').primaryKey(),
-	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-	userId: text('user_id')
-		.notNull()
-		.references(() => usersTable.id, { onDelete: 'cascade' }),
-})
-
 export const profilesTable = pgTable(
 	'profiles',
 	{
@@ -84,6 +76,17 @@ export const profilesTable = pgTable(
 		userIdIsDefaultUnq: unique().on(t.userId, t.isDefault),
 	}),
 )
+
+export const sessionsTable = pgTable('sessions', {
+	id: text('id').primaryKey(),
+	expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+	userId: text('user_id')
+		.notNull()
+		.references(() => usersTable.id, { onDelete: 'cascade' }),
+	profileId: text('profile_id')
+		.notNull()
+		.references(() => profilesTable.id, { onDelete: 'cascade' }),
+})
 
 export const profileFeedsTable = pgTable(
 	'profile_feeds',
