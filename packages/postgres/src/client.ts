@@ -7,6 +7,7 @@ import {
 	profileFeedEntriesTable,
 	profileFeedsTable,
 	profilesTable,
+	sessionsTable,
 	usersTable,
 } from './schema'
 
@@ -17,6 +18,7 @@ const schema = {
 	profileFeedEntries: profileFeedEntriesTable,
 	profileFeeds: profileFeedsTable,
 	profiles: profilesTable,
+	sessions: sessionsTable,
 	users: usersTable,
 }
 
