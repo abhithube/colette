@@ -18,8 +18,8 @@ import {
 
 export class ProfilesPostgresRepository implements ProfilesRepository {
 	constructor(
-		private db: Database,
-		private idGenerator: ValueGenerator<string>,
+		private readonly db: Database,
+		private readonly idGenerator: ValueGenerator<string>,
 	) {}
 
 	async findMany(params: FindManyProfilesParams): Promise<Profile[]> {

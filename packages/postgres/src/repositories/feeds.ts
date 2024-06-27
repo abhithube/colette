@@ -21,8 +21,8 @@ import {
 
 export class FeedsPostgresRepository implements FeedsRepository {
 	constructor(
-		private db: Database,
-		private idGenerator: ValueGenerator<string>,
+		private readonly db: Database,
+		private readonly idGenerator: ValueGenerator<string>,
 	) {}
 
 	async findMany(data: FindManyFeedsParams): Promise<Feed[]> {

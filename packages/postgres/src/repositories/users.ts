@@ -9,8 +9,8 @@ import { insertProfile, insertUser } from '../queries'
 
 export class UsersPostgresRepository implements UsersRepository {
 	constructor(
-		private db: Database,
-		private idGenerator: ValueGenerator<string>,
+		private readonly db: Database,
+		private readonly idGenerator: ValueGenerator<string>,
 	) {}
 
 	async create(data: UserCreateData): Promise<User> {

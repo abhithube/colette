@@ -5,7 +5,7 @@ import type { ProfilesRepository } from './repository'
 import type { Profile, ProfileDto } from './types'
 
 export class ProfilesService {
-	constructor(private repo: ProfilesRepository) {}
+	constructor(private readonly repo: ProfilesRepository) {}
 
 	async list(session: Session): Promise<Paginated<Profile>> {
 		const profiles = await this.repo.findMany({

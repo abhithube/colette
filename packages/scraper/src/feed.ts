@@ -8,7 +8,7 @@ import type {
 import { evaluate, evaluateString } from './utils'
 
 export class FeedScraper implements Scraper<ExtractedFeed, ProcessedFeed> {
-	constructor(private options: ParseOptions) {}
+	constructor(private readonly options: ParseOptions) {}
 
 	prepare(feedUrl: string): Request {
 		return new Request(feedUrl)
