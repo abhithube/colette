@@ -19,9 +19,19 @@ const FeedSchema = t.Object(
 	},
 )
 
+const CreateFeedSchema = t.Object(
+	{
+		url: t.String({ format: 'uri' }),
+	},
+	{
+		$id: '#/components/schemas/CreateFeed',
+	},
+)
+
 export default new Elysia()
 	.model({
 		Feed: FeedSchema,
+		CreateFeed: CreateFeedSchema,
 		Error: ErrorSchema,
 	})
 	.decorate({
@@ -51,6 +61,14 @@ export default new Elysia()
 			},
 		},
 	)
+	.post('/feeds', (ctx) => ctx.feedsService.create(ctx.body, ctx.session), {
+		body: 'CreateFeed',
+		type: 'application/json',
+		response: {
+			201: 'Feed',
+			400: 'Error',
+		},
+	})
 	.delete(
 		'/feeds/:id',
 		(ctx) => ctx.feedsService.delete(ctx.params.id, ctx.session),
