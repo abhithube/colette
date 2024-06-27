@@ -31,13 +31,13 @@ export type ParseOptions = {
 	entryThumbnailExpr?: string
 }
 
-export type ParsedFeed = {
+export type ExtractedFeed = {
 	link: string
 	title: string
-	entries: ParsedEntry[]
+	entries: ExtractedEntry[]
 }
 
-export type ParsedEntry = {
+export type ExtractedEntry = {
 	link: string
 	title: string
 	published?: string

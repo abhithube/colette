@@ -1,20 +1,20 @@
 import type {
+	ExtractedEntry,
+	ExtractedFeed,
 	ParseOptions,
-	ParsedEntry,
-	ParsedFeed,
 	ProcessedFeed,
 	Scraper,
 } from '@colette/core'
 import { evaluate, evaluateString } from './utils'
 
-export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
+export class FeedScraper implements Scraper<ExtractedFeed, ProcessedFeed> {
 	constructor(private options: ParseOptions) {}
 
 	prepare(feedUrl: string): Request {
 		return new Request(feedUrl)
 	}
 
-	parse(feedUrl: string, document: Document): ParsedFeed {
+	extract(feedUrl: string, document: Document): ExtractedFeed {
 		let link = feedUrl
 		if (this.options.feedLinkExpr) {
 			link = evaluateString(this.options.feedLinkExpr, document)
@@ -22,7 +22,7 @@ export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 		const title = evaluateString(this.options.feedTitleExpr, document)
 		const entryNodes = evaluate(this.options.feedEntriesExpr, document)
 
-		const entries: ParsedEntry[] = []
+		const entries: ExtractedEntry[] = []
 
 		let node = entryNodes.iterateNext()
 		while (node) {
@@ -62,7 +62,7 @@ export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 		}
 	}
 
-	postprocess(feedUrl: string, parsed: ParsedFeed): ProcessedFeed {
+	postprocess(feedUrl: string, parsed: ExtractedFeed): ProcessedFeed {
 		return {
 			link: new URL(parsed.link),
 			title: parsed.title,
