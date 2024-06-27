@@ -1,7 +1,7 @@
 import { type Session, UserNotAuthenticatedError } from '@colette/core'
 import Elysia, { t } from 'elysia'
 import { CookieSchema, ErrorSchema, Nullable } from './common'
-import { lucia } from './deps'
+import { feedsService, lucia } from './deps'
 
 const FeedSchema = t.Object(
 	{
@@ -23,6 +23,9 @@ export default new Elysia()
 	.model({
 		Feed: FeedSchema,
 		Error: ErrorSchema,
+	})
+	.decorate({
+		feedsService,
 	})
 	.guard({
 		cookie: CookieSchema,
@@ -65,31 +68,18 @@ export default new Elysia()
 			session,
 		}
 	})
-	.get(
-		'/feeds',
-		async () => {
-			return {
-				hasMore: false,
-				data: [],
-			}
+	.get('/feeds', (ctx) => ctx.feedsService.list(ctx.session), {
+		type: 'application/json',
+		response: {
+			200: t.Object({
+				hasMore: t.Boolean(),
+				data: t.Array(t.Ref(FeedSchema)),
+			}),
 		},
-		{
-			type: 'application/json',
-			response: {
-				200: t.Object({
-					hasMore: t.Boolean(),
-					data: t.Array(t.Ref(FeedSchema)),
-				}),
-			},
-		},
-	)
+	})
 	.get(
 		'/feeds/:id',
-		async ({ params: { id } }) => {
-			return {
-				message: `Feed not found with id: ${id}`,
-			}
-		},
+		(ctx) => ctx.feedsService.get(ctx.params.id, ctx.session),
 		{
 			params: t.Object({
 				id: t.String(),
@@ -103,18 +93,14 @@ export default new Elysia()
 	)
 	.delete(
 		'/feeds/:id',
-		async ({ params: { id } }) => {
-			return {
-				message: `Feed not found with id: ${id}`,
-			}
-		},
+		(ctx) => ctx.feedsService.delete(ctx.params.id, ctx.session),
 		{
 			params: t.Object({
 				id: t.String(),
 			}),
 			type: 'application/json',
 			response: {
-				204: t.Null({
+				204: t.Void({
 					description: 'Feed deleted successfully',
 				}),
 				404: 'Error',
