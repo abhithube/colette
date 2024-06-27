@@ -7,8 +7,10 @@ import type {
 } from '@colette/core'
 import { evaluate, evaluateString } from './utils'
 
-export class FeedScraper implements Scraper<ExtractedFeed, ProcessedFeed> {
-	constructor(private readonly options: ParseOptions) {}
+export abstract class FeedScraper
+	implements Scraper<ExtractedFeed, ProcessedFeed>
+{
+	constructor(protected options: ParseOptions) {}
 
 	prepare(feedUrl: string): Request {
 		return new Request(feedUrl)
