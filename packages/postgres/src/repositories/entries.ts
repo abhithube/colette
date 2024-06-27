@@ -6,7 +6,7 @@ import type {
 import type { Database } from '../client'
 import { selectProfileFeedEntries } from '../queries'
 
-export class EntrysPostgresRepository implements EntriesRepository {
+export class EntriesPostgresRepository implements EntriesRepository {
 	constructor(private readonly db: Database) {}
 
 	async findMany(data: FindManyEntriesParams): Promise<Entry[]> {
