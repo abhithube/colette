@@ -7,7 +7,9 @@
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"@colette/core": "workspace:*",
 		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@colette/core": "workspace:*"
 	}
 }
