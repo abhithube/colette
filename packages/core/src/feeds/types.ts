@@ -9,6 +9,10 @@ export type Feed = {
 	unreadCount?: number
 }
 
+export type FeedDto = {
+	url: string
+}
+
 export type FindManyFeedsParams = {
 	profileId: string
 }
