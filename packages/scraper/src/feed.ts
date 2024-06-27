@@ -28,11 +28,9 @@ export class FeedScraper implements Scraper<ExtractedFeed, ProcessedFeed> {
 		while (node) {
 			const link = evaluateString(this.options.entryLinkExpr, document, node)
 			const title = evaluateString(this.options.entryTitleExpr, document, node)
-			const published = evaluateString(
-				this.options.entryPublishedExpr,
-				document,
-				node,
-			)
+			const published =
+				this.options.entryPublishedExpr &&
+				evaluateString(this.options.entryPublishedExpr, document, node)
 			const description =
 				this.options.entryDescriptionExpr &&
 				evaluateString(this.options.entryDescriptionExpr, document, node)

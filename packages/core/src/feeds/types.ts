@@ -25,7 +25,7 @@ export type ParseOptions = {
 	feedEntriesExpr: string
 	entryLinkExpr: string
 	entryTitleExpr: string
-	entryPublishedExpr: string
+	entryPublishedExpr?: string
 	entryDescriptionExpr?: string
 	entryAuthorExpr?: string
 	entryThumbnailExpr?: string
