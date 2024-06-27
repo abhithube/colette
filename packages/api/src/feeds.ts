@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia'
 import { ErrorSchema, Nullable } from './common'
 import { feedsService } from './deps'
-import auth from './plugins/auth'
+import session from './plugins/session'
 
 const FeedSchema = t.Object(
 	{
@@ -27,7 +27,7 @@ export default new Elysia()
 	.decorate({
 		feedsService,
 	})
-	.use(auth)
+	.use(session)
 	.get('/feeds', (ctx) => ctx.feedsService.list(ctx.session), {
 		type: 'application/json',
 		response: {

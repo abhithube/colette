@@ -1,7 +1,7 @@
 import Elysia, { t } from 'elysia'
 import { ErrorSchema, Nullable } from './common'
 import { profilesService } from './deps'
-import auth from './plugins/auth'
+import session from './plugins/session'
 
 const ProfileSchema = t.Object(
 	{
@@ -24,7 +24,7 @@ export default new Elysia()
 	.decorate({
 		profilesService,
 	})
-	.use(auth)
+	.use(session)
 	.get('/profiles', (ctx) => ctx.profilesService.list(ctx.session), {
 		type: 'application/json',
 		response: {
