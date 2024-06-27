@@ -8,7 +8,7 @@ export type Profile = {
 
 export type ProfileDto = {
 	title: string
-	imageUrl?: string
+	imageUrl?: string | null
 }
 
 export type FindManyProfilesParams = {
@@ -27,7 +27,7 @@ export type FindOneProfileOrDefaultParams = Omit<FindOneProfileParams, 'id'> & {
 export type ProfileCreateData = {
 	id: string
 	title: string
-	imageUrl?: string
+	imageUrl?: string | null
 	isDefault?: boolean
 	userId: string
 }
