@@ -26,7 +26,7 @@ const columns = {
 
 export type ProfileFeedEntrySelectParams = {
 	profileId: string
-	publishedAt?: Date
+	publishedAt?: string
 	profileFeedId?: string
 }
 
@@ -46,8 +46,9 @@ export async function selectProfileFeedEntries(
 		.orderBy(desc(entriesTable.publishedAt), asc(entriesTable.title))
 		.$dynamic()
 
-	const publishedAtFilter =
-		params.publishedAt && lt(entriesTable.publishedAt, params.publishedAt)
+	const publishedAtFilter = params.publishedAt
+		? lt(entriesTable.publishedAt, params.publishedAt)
+		: undefined
 
 	if (params.profileFeedId) {
 		query = query
