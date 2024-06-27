@@ -1,5 +1,7 @@
 import Elysia, { t } from 'elysia'
 import { ErrorSchema, Nullable } from './common'
+import { entriesService } from './deps'
+import session from './plugins/session'
 
 const EntrySchema = t.Object(
 	{
@@ -23,21 +25,20 @@ export default new Elysia()
 		Entry: EntrySchema,
 		Error: ErrorSchema,
 	})
-	.get(
-		'/entries',
-		async () => {
-			return {
-				hasMore: false,
-				data: [],
-			}
+	.decorate({
+		entriesService,
+	})
+	.use(session)
+	.get('/entries', (ctx) => ctx.entriesService.list(ctx.params, ctx.session), {
+		query: t.Object({
+			publishedAt: t.Optional(t.String({ format: 'date-time' })),
+			feedId: t.Optional(t.String()),
+		}),
+		type: 'application/json',
+		response: {
+			200: t.Object({
+				hasMore: t.Boolean(),
+				data: t.Array(t.Ref(EntrySchema)),
+			}),
 		},
-		{
-			type: 'application/json',
-			response: {
-				200: t.Object({
-					hasMore: t.Boolean(),
-					data: t.Array(t.Ref(EntrySchema)),
-				}),
-			},
-		},
-	)
+	})

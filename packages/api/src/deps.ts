@@ -1,4 +1,5 @@
 import {
+	EntriesService,
 	type ExtractedFeed,
 	FeedsService,
 	PluginRegistry,
@@ -7,6 +8,7 @@ import {
 } from '@colette/core'
 import { DefaultFeedScraper } from '@colette/plugins'
 import {
+	EntriesPostgresRepository,
 	FeedsPostgresRepository,
 	ProfilesPostgresRepository,
 	createDatabase,
@@ -46,9 +48,11 @@ const jsdomParser = new JSDOMParser()
 const feedRegistry = new PluginRegistry<ExtractedFeed, ProcessedFeed>({})
 const feedScraper = new DefaultFeedScraper()
 
+const entriesRepository = new EntriesPostgresRepository(db)
 const feedsRepository = new FeedsPostgresRepository(db, nanoidGenerator)
 const profilesRepository = new ProfilesPostgresRepository(db, nanoidGenerator)
 
+export const entriesService = new EntriesService(entriesRepository)
 export const feedsService = new FeedsService(
 	feedsRepository,
 	fetchClient,
