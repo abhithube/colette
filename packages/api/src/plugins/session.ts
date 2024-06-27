@@ -2,7 +2,7 @@ import { type Session, UserNotAuthenticatedError } from '@colette/core'
 import Elysia, { t } from 'elysia'
 import { lucia } from '../deps'
 
-export default new Elysia({ name: 'auth' })
+export default new Elysia()
 	.guard({
 		cookie: t.Cookie({
 			auth_session: t.Optional(t.String()),
