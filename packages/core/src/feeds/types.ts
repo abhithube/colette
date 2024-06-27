@@ -13,6 +13,12 @@ export type FindManyFeedsParams = {
 	profileId: string
 }
 
+export type FeedCreateData = {
+	feedUrl: string
+	processed: ProcessedFeed
+	profileId: string
+}
+
 export type ParseOptions = {
 	feedLinkExpr?: string
 	feedTitleExpr: string
