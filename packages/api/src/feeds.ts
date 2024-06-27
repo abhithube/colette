@@ -1,7 +1,7 @@
-import { type Session, UserNotAuthenticatedError } from '@colette/core'
 import Elysia, { t } from 'elysia'
-import { CookieSchema, ErrorSchema, Nullable } from './common'
-import { feedsService, lucia } from './deps'
+import { ErrorSchema, Nullable } from './common'
+import { feedsService } from './deps'
+import auth from './plugins/auth'
 
 const FeedSchema = t.Object(
 	{
@@ -27,47 +27,7 @@ export default new Elysia()
 	.decorate({
 		feedsService,
 	})
-	.guard({
-		cookie: CookieSchema,
-	})
-	.derive(async (ctx) => {
-		const cookie = ctx.cookie.auth_session.value
-		if (!cookie) {
-			throw new UserNotAuthenticatedError()
-		}
-
-		const sessionId = lucia.readSessionCookie(cookie)
-		if (!sessionId) {
-			throw new UserNotAuthenticatedError()
-		}
-
-		const { session: luciaSession } = await lucia.validateSession(sessionId)
-		if (!luciaSession) {
-			const sessionCookie = lucia.createBlankSessionCookie()
-			ctx.cookie[sessionCookie.name].set({
-				value: sessionCookie.value,
-				...sessionCookie.attributes,
-			})
-
-			throw new UserNotAuthenticatedError()
-		}
-		if (luciaSession.fresh) {
-			const sessionCookie = lucia.createSessionCookie(luciaSession.id)
-			ctx.cookie[sessionCookie.name].set({
-				value: sessionCookie.value,
-				...sessionCookie.attributes,
-			})
-		}
-
-		const session: Session = {
-			userId: luciaSession.userId,
-			profileId: luciaSession.profileId,
-		}
-
-		return {
-			session,
-		}
-	})
+	.use(auth)
 	.get('/feeds', (ctx) => ctx.feedsService.list(ctx.session), {
 		type: 'application/json',
 		response: {

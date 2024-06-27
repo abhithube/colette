@@ -14,7 +14,3 @@ export const ErrorSchema = t.Object(
 		$id: '#/components/schemas/Error',
 	},
 )
-
-export const CookieSchema = t.Cookie({
-	auth_session: t.Optional(t.String()),
-})
