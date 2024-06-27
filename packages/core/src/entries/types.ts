@@ -12,6 +12,7 @@ export type Entry = {
 
 export type FindManyEntriesParams = {
 	profileId: string
+	limit: number
 	publishedAt?: string
 	profileFeedId?: string
 }

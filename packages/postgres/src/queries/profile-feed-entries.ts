@@ -26,6 +26,7 @@ const columns = {
 
 export type ProfileFeedEntrySelectParams = {
 	profileId: string
+	limit: number
 	publishedAt?: string
 	profileFeedId?: string
 }
@@ -42,7 +43,7 @@ export async function selectProfileFeedEntries(
 			eq(feedEntriesTable.id, profileFeedEntriesTable.feedEntryId),
 		)
 		.innerJoin(entriesTable, eq(entriesTable.id, feedEntriesTable.entryId))
-		.limit(25)
+		.limit(params.limit)
 		.orderBy(desc(entriesTable.publishedAt), asc(entriesTable.title))
 		.$dynamic()
 
