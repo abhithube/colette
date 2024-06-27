@@ -1,5 +1,10 @@
-import { FeedsService } from '@colette/core'
-import { FeedsPostgresRepository, createDatabase } from '@colette/postgres'
+import { FeedsService, ProfilesService } from '@colette/core'
+import {
+	FeedsPostgresRepository,
+	ProfilesPostgresRepository,
+	createDatabase,
+} from '@colette/postgres'
+import { NanoidGenerator } from '@colette/utils'
 import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql'
 import { Lucia } from 'lucia'
 import { Pool } from 'pg'
@@ -29,8 +34,15 @@ export const lucia = new Lucia(adapter, {
 })
 
 const feedsRepository = new FeedsPostgresRepository(db)
+const profilesRepository = new ProfilesPostgresRepository(db)
+
+const nanoidGenerator = new NanoidGenerator()
 
 export const feedsService = new FeedsService(feedsRepository)
+export const profilesService = new ProfilesService(
+	profilesRepository,
+	nanoidGenerator,
+)
 
 declare module 'lucia' {
 	interface Register {

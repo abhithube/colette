@@ -1,5 +1,7 @@
 import Elysia, { t } from 'elysia'
 import { ErrorSchema, Nullable } from './common'
+import { profilesService } from './deps'
+import auth from './plugins/auth'
 
 const ProfileSchema = t.Object(
 	{
@@ -19,31 +21,22 @@ export default new Elysia()
 		Profile: ProfileSchema,
 		Error: ErrorSchema,
 	})
-	.get(
-		'/profiles',
-		async () => {
-			return {
-				hasMore: false,
-				data: [],
-			}
+	.decorate({
+		profilesService,
+	})
+	.use(auth)
+	.get('/profiles', (ctx) => ctx.profilesService.list(ctx.session), {
+		type: 'application/json',
+		response: {
+			200: t.Object({
+				hasMore: t.Boolean(),
+				data: t.Array(t.Ref(ProfileSchema)),
+			}),
 		},
-		{
-			type: 'application/json',
-			response: {
-				200: t.Object({
-					hasMore: t.Boolean(),
-					data: t.Array(t.Ref(ProfileSchema)),
-				}),
-			},
-		},
-	)
+	})
 	.get(
 		'/profiles/:id',
-		async ({ params: { id } }) => {
-			return {
-				message: `Profile not found with id: ${id}`,
-			}
-		},
+		(ctx) => ctx.profilesService.get(ctx.params.id, ctx.session),
 		{
 			params: t.Object({
 				id: t.String(),
@@ -57,18 +50,14 @@ export default new Elysia()
 	)
 	.delete(
 		'/profiles/:id',
-		async ({ params: { id } }) => {
-			return {
-				message: `Profile not found with id: ${id}`,
-			}
-		},
+		(ctx) => ctx.profilesService.delete(ctx.params.id, ctx.session),
 		{
 			params: t.Object({
 				id: t.String(),
 			}),
 			type: 'application/json',
 			response: {
-				204: t.Null({
+				204: t.Void({
 					description: 'Profile deleted successfully',
 				}),
 				404: 'Error',
