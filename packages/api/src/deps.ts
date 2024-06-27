@@ -33,16 +33,13 @@ export const lucia = new Lucia(adapter, {
 	},
 })
 
-const feedsRepository = new FeedsPostgresRepository(db)
-const profilesRepository = new ProfilesPostgresRepository(db)
-
 const nanoidGenerator = new NanoidGenerator()
 
+const feedsRepository = new FeedsPostgresRepository(db)
+const profilesRepository = new ProfilesPostgresRepository(db, nanoidGenerator)
+
 export const feedsService = new FeedsService(feedsRepository)
-export const profilesService = new ProfilesService(
-	profilesRepository,
-	nanoidGenerator,
-)
+export const profilesService = new ProfilesService(profilesRepository)
 
 declare module 'lucia' {
 	interface Register {

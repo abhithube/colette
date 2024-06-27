@@ -25,7 +25,6 @@ export type FindOneProfileOrDefaultParams = Omit<FindOneProfileParams, 'id'> & {
 }
 
 export type ProfileCreateData = {
-	id: string
 	title: string
 	imageUrl?: string | null
 	isDefault?: boolean

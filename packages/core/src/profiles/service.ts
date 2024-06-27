@@ -1,15 +1,11 @@
 import type { Session } from '../auth'
 import type { Paginated } from '../common'
-import type { ValueGenerator } from '../utils'
 import { ProfileNotFoundError } from './error'
 import type { ProfilesRepository } from './repository'
 import type { Profile, ProfileDto } from './types'
 
 export class ProfilesService {
-	constructor(
-		private repo: ProfilesRepository,
-		private idGenerator: ValueGenerator<string>,
-	) {}
+	constructor(private repo: ProfilesRepository) {}
 
 	async list(session: Session): Promise<Paginated<Profile>> {
 		const profiles = await this.repo.findMany({
@@ -36,7 +32,6 @@ export class ProfilesService {
 
 	async create(dto: ProfileDto, session: Session): Promise<Profile> {
 		const profile = await this.repo.create({
-			id: this.idGenerator.generate(),
 			title: dto.title,
 			imageUrl: dto.imageUrl,
 			isDefault: false,

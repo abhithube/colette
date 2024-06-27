@@ -5,6 +5,7 @@ import type {
 	Profile,
 	ProfileCreateData,
 	ProfilesRepository,
+	ValueGenerator,
 } from '@colette/core'
 import type { Database } from '../client'
 import {
@@ -16,7 +17,10 @@ import {
 } from '../queries'
 
 export class ProfilesPostgresRepository implements ProfilesRepository {
-	constructor(private db: Database) {}
+	constructor(
+		private db: Database,
+		private idGenerator: ValueGenerator<string>,
+	) {}
 
 	async findMany(params: FindManyProfilesParams): Promise<Profile[]> {
 		return selectProfiles(this.db, params)
@@ -39,7 +43,10 @@ export class ProfilesPostgresRepository implements ProfilesRepository {
 	}
 
 	async create(data: ProfileCreateData): Promise<Profile> {
-		const [profile] = await insertProfile(this.db, data)
+		const [profile] = await insertProfile(this.db, {
+			...data,
+			id: this.idGenerator.generate(),
+		})
 		if (!profile) {
 			throw new Error('Profile not created')
 		}
