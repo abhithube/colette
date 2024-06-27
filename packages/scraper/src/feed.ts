@@ -1,35 +1,11 @@
-import type { ParseOptions, Scraper } from './scraper'
+import type {
+	ParseOptions,
+	ParsedEntry,
+	ParsedFeed,
+	ProcessedFeed,
+	Scraper,
+} from '@colette/core'
 import { evaluate, evaluateString } from './utils'
-
-export type ParsedFeed = {
-	link: string
-	title: string
-	entries: ParsedEntry[]
-}
-
-export type ParsedEntry = {
-	link: string
-	title: string
-	published?: string
-	description?: string
-	author?: string
-	thumbnail?: string
-}
-
-export type ProcessedFeed = {
-	link: string
-	title: string
-	entries: ProcessedEntry[]
-}
-
-export type ProcessedEntry = {
-	link: string
-	title: string
-	published?: Date
-	description?: string
-	author?: string
-	thumbnail?: string
-}
 
 export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 	constructor(private options: ParseOptions) {}
@@ -38,13 +14,13 @@ export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 		return new Request(feedUrl)
 	}
 
-	parse(feedUrl: string, document: Document) {
+	parse(feedUrl: string, document: Document): ParsedFeed {
 		let link = feedUrl
-		if (this.options.linkExpr) {
-			link = evaluateString(this.options.linkExpr, document)
+		if (this.options.feedLinkExpr) {
+			link = evaluateString(this.options.feedLinkExpr, document)
 		}
-		const title = evaluateString(this.options.titleExpr, document)
-		const entryNodes = evaluate(this.options.entriesExpr, document)
+		const title = evaluateString(this.options.feedTitleExpr, document)
+		const entryNodes = evaluate(this.options.feedEntriesExpr, document)
 
 		const entries: ParsedEntry[] = []
 
@@ -88,18 +64,16 @@ export class FeedScraper implements Scraper<ParsedFeed, ProcessedFeed> {
 
 	postprocess(feedUrl: string, parsed: ParsedFeed): ProcessedFeed {
 		return {
-			link: new URL(parsed.link).href,
+			link: new URL(parsed.link),
 			title: parsed.title,
 			entries: parsed.entries.map((parsed) => {
 				return {
-					link: new URL(parsed.link).href,
+					link: new URL(parsed.link),
 					title: parsed.title,
 					published: parsed.published ? new Date(parsed.published) : undefined,
 					description: parsed.description,
 					author: parsed.author,
-					thumbnail: parsed.thumbnail
-						? new URL(parsed.thumbnail).href
-						: undefined,
+					thumbnail: parsed.thumbnail ? new URL(parsed.thumbnail) : undefined,
 				}
 			}),
 		}

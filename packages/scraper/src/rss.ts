@@ -1,9 +1,9 @@
-import type { ParseOptions } from './scraper'
+import type { ParseOptions } from '@colette/core'
 
 export const RSS_OPTIONS: ParseOptions = {
-	linkExpr: '/rss/channel/link/text()',
-	titleExpr: '/rss/channel/title/text()',
-	entriesExpr: '/rss/channel/item',
+	feedLinkExpr: '/rss/channel/link/text()',
+	feedTitleExpr: '/rss/channel/title/text()',
+	feedEntriesExpr: '/rss/channel/item',
 	entryLinkExpr: '/link/text()',
 	entryTitleExpr: '/title/text()',
 	entryPublishedExpr: '/pubDate/text()',

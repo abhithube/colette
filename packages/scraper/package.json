@@ -1,0 +1,12 @@
+{
+	"name": "@colette/scraper",
+	"type": "module",
+	"module": "./src/index.ts",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"@colette/core": "workspace:*",
+		"typescript": "^5.0.0"
+	}
+}
