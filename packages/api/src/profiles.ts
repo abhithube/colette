@@ -16,9 +16,20 @@ const ProfileSchema = t.Object(
 	},
 )
 
+const CreateProfileSchema = t.Object(
+	{
+		title: t.String(),
+		imageUrl: t.Optional(Nullable(t.String({ format: 'uri' }))),
+	},
+	{
+		$id: '#/components/schemas/CreateProfile',
+	},
+)
+
 export default new Elysia()
 	.model({
 		Profile: ProfileSchema,
+		CreateProfile: CreateProfileSchema,
 		Error: ErrorSchema,
 	})
 	.decorate({
@@ -45,6 +56,18 @@ export default new Elysia()
 			response: {
 				200: 'Profile',
 				404: 'Error',
+			},
+		},
+	)
+	.post(
+		'/profiles',
+		(ctx) => ctx.profilesService.create(ctx.body, ctx.session),
+		{
+			type: 'application/json',
+			body: 'CreateProfile',
+			response: {
+				201: 'Profile',
+				400: 'Error',
 			},
 		},
 	)
