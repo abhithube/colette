@@ -1,19 +1,30 @@
-import type { User, UserCreateData, UsersRepository } from '@colette/core'
+import type {
+	User,
+	UserCreateData,
+	UsersRepository,
+	ValueGenerator,
+} from '@colette/core'
 import type { Database } from '../client'
 import { insertProfile, insertUser } from '../queries'
 
 export class UsersPostgresRepository implements UsersRepository {
-	constructor(private db: Database) {}
+	constructor(
+		private db: Database,
+		private idGenerator: ValueGenerator<string>,
+	) {}
 
 	async create(data: UserCreateData): Promise<User> {
 		return this.db.transaction(async (tx) => {
-			const [user] = await insertUser(tx, data.user)
+			const [user] = await insertUser(tx, {
+				...data,
+				id: this.idGenerator.generate(),
+			})
 			if (!user) {
 				throw new Error('User not created')
 			}
 
 			const [profile] = await insertProfile(tx, {
-				id: data.profile.id,
+				id: this.idGenerator.generate(),
 				title: 'Default',
 				isDefault: true,
 				userId: user.id,

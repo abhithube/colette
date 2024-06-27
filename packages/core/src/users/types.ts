@@ -7,12 +7,6 @@ export type User = {
 }
 
 export type UserCreateData = {
-	user: {
-		id: string
-		email: string
-		password: string
-	}
-	profile: {
-		id: string
-	}
+	email: string
+	password: string
 }
