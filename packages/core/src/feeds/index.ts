@@ -1,4 +1,4 @@
-export * from './types'
+export * from './error'
 export * from './repository'
 export * from './service'
-export * from './error'
+export * from './types'

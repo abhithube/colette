@@ -1,2 +1,2 @@
-export * from './hash'
 export * from './generate'
+export * from './hash'
