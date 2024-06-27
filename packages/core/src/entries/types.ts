@@ -10,6 +10,11 @@ export type Entry = {
 	feedId: string
 }
 
+export type ListParams = {
+	publishedAt?: string
+	feedId?: string
+}
+
 export type FindManyEntriesParams = {
 	profileId: string
 	limit: number
