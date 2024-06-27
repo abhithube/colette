@@ -1,22 +1,12 @@
 {
-  "name": "colette",
-  "module": "index.ts",
-  "type": "module",
-  "workspaces": ["packages/*"],
-  "scripts": {
-    "dev": "bun run --hot src/index.ts",
-    "check": "biome check --write ./src"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^1.8.1",
-    "@types/bun": "latest",
-    "@types/pg": "^8.11.6"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "@colette/postgres": "workspace:*",
-    "pg": "^8.12.0"
-  }
+	"name": "colette",
+	"type": "module",
+	"workspaces": ["packages/*"],
+	"devDependencies": {
+		"@biomejs/biome": "^1.8.1",
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	}
 }
