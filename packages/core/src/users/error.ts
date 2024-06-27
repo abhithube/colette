@@ -1,4 +1,4 @@
-import { NotFoundError } from '../common/error'
+import { NotFoundError } from '../common'
 
 export class UserNotFoundError extends NotFoundError {
 	constructor(email: string) {

@@ -1,4 +1,4 @@
-import { NotFoundError } from '../common/error'
+import { NotFoundError } from '../common'
 
 export class EntryNotFoundError extends NotFoundError {
 	constructor(id: string) {
