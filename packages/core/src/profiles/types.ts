@@ -6,6 +6,11 @@ export type Profile = {
 	updatedAt: string
 }
 
+export type ProfileDto = {
+	title: string
+	imageUrl?: string
+}
+
 export type FindManyProfilesParams = {
 	userId: string
 }
