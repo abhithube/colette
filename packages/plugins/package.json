@@ -1,0 +1,15 @@
+{
+	"name": "@colette/plugins",
+	"module": "./src/index.ts",
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest"
+	},
+	"peerDependencies": {
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@colette/core": "workspace:*",
+		"@colette/scraper": "workspace:*"
+	}
+}
