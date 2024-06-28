@@ -10,3 +10,7 @@ export type UserCreateData = {
 	email: string
 	password: string
 }
+
+export type FindOneUserParams = {
+	email: string
+}
