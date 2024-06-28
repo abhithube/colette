@@ -5,3 +5,9 @@ export class UserNotFoundError extends NotFoundError {
 		super(`User not found with email: ${email}`)
 	}
 }
+
+export class UserAlreadyExistsError extends NotFoundError {
+	constructor(email: string) {
+		super(`User already exists with email: ${email}`)
+	}
+}
