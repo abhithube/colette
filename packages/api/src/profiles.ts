@@ -3,11 +3,12 @@ import { ErrorSchema, Nullable } from './common'
 import { profilesService } from './deps'
 import session from './plugins/session'
 
-const ProfileSchema = t.Object(
+export const ProfileSchema = t.Object(
 	{
 		id: t.String(),
 		title: t.String(),
 		imageUrl: Nullable(t.String({ format: 'uri' })),
+		userId: t.String(),
 		createdAt: t.String({ format: 'date-time' }),
 		updatedAt: t.String({ format: 'date-time' }),
 	},
