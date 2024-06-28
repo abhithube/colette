@@ -11,6 +11,7 @@ const columns = {
 	id: profilesTable.id,
 	title: profilesTable.title,
 	imageUrl: profilesTable.imageUrl,
+	userId: profilesTable.userId,
 	createdAt: profilesTable.createdAt,
 	updatedAt: profilesTable.updatedAt,
 }

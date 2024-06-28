@@ -2,6 +2,7 @@ export type Profile = {
 	id: string
 	title: string
 	imageUrl: string | null
+	userId: string
 	createdAt: string
 	updatedAt: string
 }

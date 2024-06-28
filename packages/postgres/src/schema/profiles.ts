@@ -7,12 +7,12 @@ export const profilesTable = pgTable(
 		id: text('id').primaryKey(),
 		title: text('title').notNull(),
 		imageUrl: text('image_url'),
+		isDefault: boolean('is_default').notNull().default(false),
 		userId: text('user_id')
 			.notNull()
 			.references(() => usersTable.id, {
 				onDelete: 'cascade',
 			}),
-		isDefault: boolean('is_default').notNull().default(false),
 		createdAt: timestamp('created_at', { mode: 'string', withTimezone: true })
 			.notNull()
 			.defaultNow(),
