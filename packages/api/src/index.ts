@@ -5,6 +5,7 @@ import {
 } from '@colette/core'
 import swagger from '@elysiajs/swagger'
 import Elysia from 'elysia'
+import auth from './auth'
 import entries from './entries'
 import feeds from './feeds'
 import profiles from './profiles'
@@ -21,6 +22,7 @@ new Elysia()
 			},
 		}),
 	)
+	.use(auth)
 	.use(entries)
 	.use(feeds)
 	.use(profiles)
