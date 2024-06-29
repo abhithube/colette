@@ -43,6 +43,12 @@ export async function selectProfileFeeds(
 			),
 		)
 		.where(eq(profileFeedsTable.profileId, params.profileId))
+		.groupBy(
+			profileFeedsTable.id,
+			feedsTable.link,
+			feedsTable.title,
+			feedsTable.url,
+		)
 		.orderBy(asc(profileFeedsTable.customTitle), asc(feedsTable.title))
 }
 
