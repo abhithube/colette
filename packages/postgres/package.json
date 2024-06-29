@@ -14,6 +14,7 @@
 	},
 	"dependencies": {
 		"@colette/core": "workspace:*",
+		"@lucia-auth/adapter-drizzle": "^1.0.7",
 		"drizzle-orm": "^0.31.2"
 	}
 }
