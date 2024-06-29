@@ -4,7 +4,7 @@ use time::OffsetDateTime;
 use crate::Error;
 
 #[derive(Debug)]
-pub struct CreateData {
+pub struct InsertData {
     pub link: String,
     pub title: String,
     pub published_at: OffsetDateTime,
@@ -13,7 +13,7 @@ pub struct CreateData {
     pub thumbnail_url: Option<String>,
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: &CreateData) -> Result<i32, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: &InsertData) -> Result<i32, Error> {
     let row = sqlx::query_file!(
         "queries/entries/insert.sql",
         data.link,
