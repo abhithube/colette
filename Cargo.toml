@@ -1,11 +1,12 @@
 [workspace]
-members = ["crates/api", "crates/core", "crates/postgres"]
+members = ["crates/api", "crates/core", "crates/password", "crates/postgres"]
 resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.80"
 colette-core.path = "crates/core"
+colette-password.path = "crates/password"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
 time = { version = "0.3.36", features = ["serde"] }

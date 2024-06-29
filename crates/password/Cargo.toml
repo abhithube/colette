@@ -1,0 +1,9 @@
+[package]
+name = "colette-password"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+argon2 = "0.5.3"
+async-trait.workspace = true
+colette-core.workspace = true
