@@ -1,7 +1,5 @@
 use colette_core::users::User;
-use sqlx::PgExecutor;
-
-use crate::Error;
+use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
 pub struct InsertData {
@@ -10,7 +8,7 @@ pub struct InsertData {
     pub password: String,
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: &InsertData) -> Result<User, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<User, Error> {
     let row = sqlx::query_file_as!(
         User,
         "queries/users/insert.sql",

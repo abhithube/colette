@@ -1,7 +1,5 @@
-use sqlx::PgExecutor;
+use sqlx::{Error, PgExecutor};
 use time::OffsetDateTime;
-
-use crate::Error;
 
 #[derive(Debug)]
 pub struct InsertData {

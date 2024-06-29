@@ -1,6 +1,4 @@
-use sqlx::PgExecutor;
-
-use crate::Error;
+use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
 pub struct InsertData {
