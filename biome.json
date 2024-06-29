@@ -1,7 +1,7 @@
 {
 	"$schema": "https://biomejs.dev/schemas/1.8.1/schema.json",
 	"files": {
-		"ignore": ["./packages/postgres/drizzle"]
+		"ignore": ["./node_modules/**/*", "./packages/postgres/drizzle/**/*"]
 	},
 	"javascript": {
 		"formatter": {
