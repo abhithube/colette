@@ -8,6 +8,7 @@ export const Nullable = <T extends TSchema>(schema: T) =>
 
 export const ErrorSchema = t.Object(
 	{
+		name: t.String(),
 		message: t.String(),
 	},
 	{

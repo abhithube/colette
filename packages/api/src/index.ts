@@ -29,10 +29,12 @@ new Elysia()
 	.use(profiles)
 	.onError((ctx) => {
 		let status = 500
+		let name = 'Error'
 		let message = 'Internal server error'
 
 		if (ctx.error instanceof AppError) {
-			message = ctx.error.toString()
+			name = ctx.error.name
+			message = ctx.error.message
 
 			if (ctx.error instanceof UserNotAuthenticatedError) {
 				status = 401
@@ -47,6 +49,7 @@ new Elysia()
 
 		return new Response(
 			JSON.stringify({
+				name,
 				message,
 			}),
 			{
