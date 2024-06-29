@@ -11,3 +11,8 @@ pub struct User {
     pub created_at: OffsetDateTime,
     pub updated_at: OffsetDateTime,
 }
+
+pub struct CreateData {
+    pub email: String,
+    pub password: String,
+}

@@ -1,3 +1,7 @@
+mod error;
+mod repository;
 mod types;
 
-pub use types::User;
+pub use error::Error;
+pub use repository::Repository;
+pub use types::{CreateData, User};

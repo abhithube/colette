@@ -3,6 +3,8 @@
 members = ["crates/core", "crates/postgres"]
 
 [workspace.dependencies]
+anyhow = "1.0.86"
+async-trait = "0.1.80"
 colette-core.path = "crates/core"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
