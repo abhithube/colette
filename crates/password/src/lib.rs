@@ -5,13 +5,13 @@ use argon2::{
 use async_trait::async_trait;
 use colette_core::password::{Error, PasswordHasher};
 
-#[derive(Debug, Default)]
-pub struct ArgonHasher<'a> {
+#[derive(Default)]
+pub struct Argon2Hasher<'a> {
     argon2: Argon2<'a>,
 }
 
 #[async_trait]
-impl PasswordHasher for ArgonHasher<'_> {
+impl PasswordHasher for Argon2Hasher<'_> {
     async fn hash(&self, password: &str) -> Result<String, Error> {
         let salt = SaltString::generate(&mut OsRng);
         let password_hash = self
