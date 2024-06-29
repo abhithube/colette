@@ -11,7 +11,7 @@ import entries from './entries'
 import feeds from './feeds'
 import profiles from './profiles'
 
-new Elysia()
+new Elysia({ aot: false })
 	.use(
 		swagger({
 			documentation: {
@@ -27,6 +27,8 @@ new Elysia()
 		let status = 500
 		let name = 'Error'
 		let message = 'Internal server error'
+
+		console.log(ctx.error)
 
 		if (ctx.error instanceof AppError) {
 			name = ctx.error.name
