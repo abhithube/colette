@@ -1,0 +1,9 @@
+[package]
+name = "colette-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+axum = { version = "0.7.5", features = ["macros"] }
+serde.workspace = true
+tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
