@@ -4,8 +4,8 @@ import type {
 	FeedsRepository,
 	FindManyFeedsParams,
 	FindOneParams,
-	ValueGenerator,
 } from '@colette/core'
+import { nanoid } from 'nanoid'
 import type { Database } from '../client'
 import {
 	deleteProfileFeed,
@@ -20,10 +20,7 @@ import {
 } from '../queries'
 
 export class FeedsPostgresRepository implements FeedsRepository {
-	constructor(
-		private readonly db: Database,
-		private readonly idGenerator: ValueGenerator<string>,
-	) {}
+	constructor(private readonly db: Database) {}
 
 	async findMany(data: FindManyFeedsParams): Promise<Feed[]> {
 		return selectProfileFeeds(this.db, data)
@@ -51,7 +48,7 @@ export class FeedsPostgresRepository implements FeedsRepository {
 			}
 
 			const [profileFeed] = await insertProfileFeed(tx, {
-				id: this.idGenerator.generate(),
+				id: nanoid(),
 				profileId: data.profileId,
 				feedId: feed.id,
 			})
@@ -81,7 +78,7 @@ export class FeedsPostgresRepository implements FeedsRepository {
 				}
 
 				const [profileFeedEntry] = await insertProfileFeedEntry(tx, {
-					id: this.idGenerator.generate(),
+					id: nanoid(),
 					profileFeedId: profileFeed.id,
 					feedEntryId: feedEntry.id,
 				})

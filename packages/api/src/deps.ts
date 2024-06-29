@@ -16,12 +16,7 @@ import {
 	createAuthAdapter,
 	createDatabase,
 } from '@colette/postgres'
-import {
-	ArgonHasher,
-	FetchClient,
-	JSDOMParser,
-	NanoidGenerator,
-} from '@colette/utils'
+import { ArgonHasher, FetchClient, JSDOMParser } from '@colette/utils'
 import { Lucia } from 'lucia'
 import { Pool } from 'pg'
 
@@ -44,7 +39,6 @@ export const lucia = new Lucia(createAuthAdapter(db), {
 	},
 })
 
-const nanoidGenerator = new NanoidGenerator()
 const argonHasher = new ArgonHasher()
 const fetchClient = new FetchClient()
 const jsdomParser = new JSDOMParser()
@@ -52,9 +46,9 @@ const feedRegistry = new PluginRegistry<ExtractedFeed, ProcessedFeed>({})
 const feedScraper = new DefaultFeedScraper()
 
 const entriesRepository = new EntriesPostgresRepository(db)
-const feedsRepository = new FeedsPostgresRepository(db, nanoidGenerator)
-const profilesRepository = new ProfilesPostgresRepository(db, nanoidGenerator)
-const usersRepository = new UsersPostgresRepository(db, nanoidGenerator)
+const feedsRepository = new FeedsPostgresRepository(db)
+const profilesRepository = new ProfilesPostgresRepository(db)
+const usersRepository = new UsersPostgresRepository(db)
 
 export const entriesService = new EntriesService(entriesRepository)
 export const feedsService = new FeedsService(

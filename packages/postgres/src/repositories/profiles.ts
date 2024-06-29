@@ -5,8 +5,8 @@ import type {
 	Profile,
 	ProfileCreateData,
 	ProfilesRepository,
-	ValueGenerator,
 } from '@colette/core'
+import { nanoid } from 'nanoid'
 import type { Database } from '../client'
 import {
 	deleteProfile,
@@ -17,10 +17,7 @@ import {
 } from '../queries'
 
 export class ProfilesPostgresRepository implements ProfilesRepository {
-	constructor(
-		private readonly db: Database,
-		private readonly idGenerator: ValueGenerator<string>,
-	) {}
+	constructor(private readonly db: Database) {}
 
 	async findMany(params: FindManyProfilesParams): Promise<Profile[]> {
 		return selectProfiles(this.db, params)
@@ -45,7 +42,7 @@ export class ProfilesPostgresRepository implements ProfilesRepository {
 	async create(data: ProfileCreateData): Promise<Profile> {
 		const [profile] = await insertProfile(this.db, {
 			...data,
-			id: this.idGenerator.generate(),
+			id: nanoid(),
 		})
 		if (!profile) {
 			throw new Error('Profile not created')

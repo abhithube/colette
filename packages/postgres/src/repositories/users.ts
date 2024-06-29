@@ -3,16 +3,13 @@ import type {
 	User,
 	UserCreateData,
 	UsersRepository,
-	ValueGenerator,
 } from '@colette/core'
+import { nanoid } from 'nanoid'
 import type { Database } from '../client'
 import { insertProfile, insertUser, selectUserByEmail } from '../queries'
 
 export class UsersPostgresRepository implements UsersRepository {
-	constructor(
-		private readonly db: Database,
-		private readonly idGenerator: ValueGenerator<string>,
-	) {}
+	constructor(private readonly db: Database) {}
 
 	async findOne(params: FindOneUserParams): Promise<User | null> {
 		const [user] = await selectUserByEmail(this.db, params)
@@ -27,14 +24,14 @@ export class UsersPostgresRepository implements UsersRepository {
 		return this.db.transaction(async (tx) => {
 			const [user] = await insertUser(tx, {
 				...data,
-				id: this.idGenerator.generate(),
+				id: nanoid(),
 			})
 			if (!user) {
 				throw new Error('User not created')
 			}
 
 			const [profile] = await insertProfile(tx, {
-				id: this.idGenerator.generate(),
+				id: nanoid(),
 				title: 'Default',
 				isDefault: true,
 				userId: user.id,
