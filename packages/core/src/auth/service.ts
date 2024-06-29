@@ -1,5 +1,6 @@
 import type { Profile, ProfilesRepository } from '../profiles'
 import {
+	type User,
 	UserAlreadyExistsError,
 	UserNotFoundError,
 	type UsersRepository,
@@ -38,7 +39,7 @@ export class AuthService {
 		return profile
 	}
 
-	async register(dto: AuthDto): Promise<Profile> {
+	async register(dto: AuthDto): Promise<User> {
 		const hashed = await this.hasher.hash(dto.password)
 
 		try {
@@ -54,7 +55,7 @@ export class AuthService {
 				throw new Error('Profile not created')
 			}
 
-			return profile
+			return user
 		} catch (error) {
 			throw new UserAlreadyExistsError(dto.email)
 		}

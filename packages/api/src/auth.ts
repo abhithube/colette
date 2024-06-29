@@ -3,6 +3,18 @@ import { ErrorSchema } from './common'
 import { authService, lucia } from './deps'
 import { ProfileSchema } from './profiles'
 
+const UserSchema = t.Object(
+	{
+		id: t.String(),
+		email: t.String({ format: 'email' }),
+		createdAt: t.String({ format: 'date-time' }),
+		updatedAt: t.String({ format: 'date-time' }),
+	},
+	{
+		$id: '#/components/schemas/User',
+	},
+)
+
 const RegisterSchema = t.Object(
 	{
 		email: t.String({ format: 'email' }),
@@ -25,6 +37,7 @@ const LoginSchema = t.Object(
 
 export default new Elysia()
 	.model({
+		User: UserSchema,
 		Profile: ProfileSchema,
 		Register: RegisterSchema,
 		Login: LoginSchema,
@@ -37,7 +50,7 @@ export default new Elysia()
 		body: 'Register',
 		type: 'application/json',
 		response: {
-			201: 'Profile',
+			201: 'User',
 			400: 'Error',
 			409: 'Error',
 		},
