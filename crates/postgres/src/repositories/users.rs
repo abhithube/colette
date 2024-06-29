@@ -22,14 +22,14 @@ impl UsersRepository for UsersPostgresRepository {
     async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         let email = params.email.clone();
 
-        users::select_by_email(&self.pool, params.into())
+        let user = users::select_by_email(&self.pool, params.into())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(email),
                 _ => Error::Unknown(e.into()),
             })?;
 
-        todo!()
+        Ok(user)
     }
 
     async fn create(&self, data: UserCreateData) -> Result<User, Error> {
