@@ -1,6 +1,6 @@
 [workspace]
-
 members = ["crates/api", "crates/core", "crates/postgres"]
+resolver = "2"
 
 [workspace.dependencies]
 anyhow = "1.0.86"
