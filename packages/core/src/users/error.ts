@@ -1,4 +1,4 @@
-import { NotFoundError } from '../common'
+import { ConflictError, NotFoundError } from '../common'
 
 export class UserNotFoundError extends NotFoundError {
 	constructor(email: string) {
@@ -6,7 +6,7 @@ export class UserNotFoundError extends NotFoundError {
 	}
 }
 
-export class UserAlreadyExistsError extends NotFoundError {
+export class UserAlreadyExistsError extends ConflictError {
 	constructor(email: string) {
 		super(`User already exists with email: ${email}`)
 	}

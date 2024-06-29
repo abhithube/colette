@@ -9,3 +9,9 @@ export class NotFoundError extends AppError {
 		super(message ?? 'Resource not found')
 	}
 }
+
+export class ConflictError extends AppError {
+	constructor(message?: string) {
+		super(message ?? 'Resource already exists')
+	}
+}
