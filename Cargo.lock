@@ -138,6 +138,7 @@ dependencies = [
 name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
+ "colette-core",
  "sqlx",
  "time",
 ]

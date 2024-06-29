@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+colette-core.workspace = true
 sqlx = { version = "0.7.4", features = ["postgres", "runtime-tokio", "time"] }
-time = { version = "0.3.36", features = ["macros"] }
+time.workspace = true
