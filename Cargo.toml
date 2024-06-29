@@ -1,5 +1,7 @@
 [workspace]
 
-members = ["crates/postgres"]
+members = ["crates/core", "crates/postgres"]
 
 [workspace.dependencies]
+serde = { version = "1.0.203", features = ["derive"] }
+time = { version = "0.3.36", features = ["serde"] }
