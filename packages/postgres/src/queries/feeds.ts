@@ -11,6 +11,7 @@ export async function insertFeed(db: Database, data: FeedInsert) {
 			target: feedsTable.link,
 			set: {
 				title: sql`excluded.title`,
+				url: sql`excluded.url`,
 			},
 		})
 		.returning({
