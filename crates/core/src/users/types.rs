@@ -16,3 +16,7 @@ pub struct CreateData {
     pub email: String,
     pub password: String,
 }
+
+pub struct FindOneParams {
+    pub email: String,
+}

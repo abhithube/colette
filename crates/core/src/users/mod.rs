@@ -4,4 +4,4 @@ mod types;
 
 pub use error::Error;
 pub use repository::Repository;
-pub use types::{CreateData, User};
+pub use types::{CreateData, FindOneParams, User};
