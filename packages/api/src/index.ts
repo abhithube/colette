@@ -11,7 +11,7 @@ import entries from './entries'
 import feeds from './feeds'
 import profiles from './profiles'
 
-new Elysia({ aot: false })
+new Elysia({ aot: false, prefix: '/api' })
 	.use(
 		swagger({
 			documentation: {
