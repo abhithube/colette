@@ -1,4 +1,4 @@
-use colette_core::users::{CreateData, FindOneParams, User};
+use colette_core::users::{UserFindOneParams, User, UserCreateData};
 use nanoid::nanoid;
 use sqlx::{Error, PgExecutor};
 
@@ -14,14 +14,14 @@ pub struct InsertData {
     pub password: String,
 }
 
-impl From<FindOneParams> for SelectByEmailParams {
-    fn from(value: FindOneParams) -> Self {
+impl From<UserFindOneParams> for SelectByEmailParams {
+    fn from(value: UserFindOneParams) -> Self {
         Self { email: value.email }
     }
 }
 
-impl From<CreateData> for InsertData {
-    fn from(value: CreateData) -> Self {
+impl From<UserCreateData> for InsertData {
+    fn from(value: UserCreateData) -> Self {
         Self {
             id: nanoid!(),
             email: value.email,

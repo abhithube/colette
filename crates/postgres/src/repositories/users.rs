@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use colette_core::{
-    users::{CreateData, Error, FindOneParams, Repository},
+    users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
 };
 use sqlx::PgPool;
@@ -12,8 +12,8 @@ pub struct UsersPostgresRepository<'a> {
 }
 
 #[async_trait]
-impl Repository for UsersPostgresRepository<'_> {
-    async fn find_one(&self, params: FindOneParams) -> Result<User, Error> {
+impl UsersRepository for UsersPostgresRepository<'_> {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         let email = params.email.clone();
 
         users::select_by_email(self.pool, params.into())
@@ -26,7 +26,7 @@ impl Repository for UsersPostgresRepository<'_> {
         todo!()
     }
 
-    async fn create(&self, data: CreateData) -> Result<User, Error> {
+    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
         let email = data.email.clone();
 
         let user = users::insert(self.pool, data.into())

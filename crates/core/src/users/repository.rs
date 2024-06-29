@@ -1,9 +1,9 @@
-use super::{types::FindOneParams, CreateData, Error, User};
+use super::{types::UserFindOneParams, Error, User, UserCreateData};
 use async_trait::async_trait;
 
 #[async_trait]
-pub trait Repository {
-    async fn find_one(&self, params: FindOneParams) -> Result<User, Error>;
+pub trait UsersRepository {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error>;
 
-    async fn create(&self, data: CreateData) -> Result<User, Error>;
+    async fn create(&self, data: UserCreateData) -> Result<User, Error>;
 }
