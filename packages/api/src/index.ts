@@ -23,10 +23,6 @@ new Elysia()
 			},
 		}),
 	)
-	.use(auth)
-	.use(entries)
-	.use(feeds)
-	.use(profiles)
 	.onError((ctx) => {
 		let status = 500
 		let name = 'Error'
@@ -57,4 +53,8 @@ new Elysia()
 			},
 		)
 	})
+	.use(auth)
+	.use(entries)
+	.use(feeds)
+	.use(profiles)
 	.listen(process.env.PORT ?? 3000)
