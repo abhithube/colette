@@ -13,6 +13,7 @@ import {
 	FeedsPostgresRepository,
 	ProfilesPostgresRepository,
 	UsersPostgresRepository,
+	createAuthAdapter,
 	createDatabase,
 } from '@colette/postgres'
 import {
@@ -21,7 +22,6 @@ import {
 	JSDOMParser,
 	NanoidGenerator,
 } from '@colette/utils'
-import { NodePostgresAdapter } from '@lucia-auth/adapter-postgresql'
 import { Lucia } from 'lucia'
 import { Pool } from 'pg'
 
@@ -31,12 +31,7 @@ const pool = new Pool({
 
 export const db = createDatabase(pool)
 
-const adapter = new NodePostgresAdapter(pool, {
-	user: 'users',
-	session: 'sessions',
-})
-
-export const lucia = new Lucia(adapter, {
+export const lucia = new Lucia(createAuthAdapter(db), {
 	sessionCookie: {
 		attributes: {
 			secure: process.env.NODE_ENV === 'production',
@@ -44,7 +39,7 @@ export const lucia = new Lucia(adapter, {
 	},
 	getSessionAttributes: (attributes) => {
 		return {
-			profileId: attributes.profile_id,
+			profileId: attributes.profileId,
 		}
 	},
 })
@@ -83,6 +78,6 @@ declare module 'lucia' {
 	}
 
 	interface DatabaseSessionAttributes {
-		profile_id: string
+		profileId: string
 	}
 }

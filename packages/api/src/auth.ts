@@ -61,7 +61,7 @@ export default new Elysia()
 			const profile = await ctx.authService.login(ctx.body)
 
 			const session = await lucia.createSession(profile.userId, {
-				profile_id: profile.id,
+				profileId: profile.id,
 			})
 			const sessionCookie = lucia.createSessionCookie(session.id)
 			ctx.cookie[sessionCookie.name].set({
