@@ -1,5 +1,6 @@
 import {
 	AppError,
+	ConflictError,
 	NotFoundError,
 	UserNotAuthenticatedError,
 } from '@colette/core'
@@ -37,6 +38,8 @@ new Elysia()
 				status = 401
 			} else if (ctx.error instanceof NotFoundError) {
 				status = 404
+			} else if (ctx.error instanceof ConflictError) {
+				status = 409
 			} else {
 				status = 500
 			}
