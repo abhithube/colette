@@ -59,4 +59,11 @@ new Elysia({ aot: false })
 	.use(entries)
 	.use(feeds)
 	.use(profiles)
+	.onStart((ctx) => {
+		if (!ctx.server) {
+			return
+		}
+
+		console.log(`Server started on port ${ctx.server.port}...`)
+	})
 	.listen(process.env.PORT ?? 3000)
