@@ -1,7 +1,6 @@
 import Elysia, { t } from 'elysia'
 import { ErrorSchema } from './common'
 import { authService, lucia } from './deps'
-import session from './plugins/session'
 import { ProfileSchema } from './profiles'
 
 const RegisterSchema = t.Object(
@@ -34,7 +33,6 @@ export default new Elysia()
 	.decorate({
 		authService,
 	})
-	.use(session)
 	.post('/auth/register', (ctx) => ctx.authService.register(ctx.body), {
 		body: 'Register',
 		type: 'application/json',
