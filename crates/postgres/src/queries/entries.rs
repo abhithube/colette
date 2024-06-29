@@ -1,5 +1,7 @@
-use sqlx::{Error, PgExecutor};
+use sqlx::PgExecutor;
 use time::OffsetDateTime;
+
+use crate::Error;
 
 #[derive(Debug)]
 pub struct CreateData {

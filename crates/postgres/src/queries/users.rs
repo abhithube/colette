@@ -1,5 +1,7 @@
 use colette_core::users::User;
-use sqlx::{Error, PgExecutor};
+use sqlx::PgExecutor;
+
+use crate::Error;
 
 #[derive(Debug)]
 pub struct InsertData {
