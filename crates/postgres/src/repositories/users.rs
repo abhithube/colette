@@ -7,12 +7,12 @@ use sqlx::PgPool;
 
 use crate::queries::users;
 
-pub struct UsersRepository<'a> {
+pub struct UsersPostgresRepository<'a> {
     pool: &'a PgPool,
 }
 
 #[async_trait]
-impl Repository for UsersRepository<'_> {
+impl Repository for UsersPostgresRepository<'_> {
     async fn find_one(&self, params: FindOneParams) -> Result<User, Error> {
         let email = params.email.clone();
 
