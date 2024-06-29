@@ -7,5 +7,5 @@ edition = "2021"
 async-trait.workspace = true
 colette-core.workspace = true
 nanoid = "0.4.0"
-sqlx = { version = "0.7.4", features = ["postgres", "runtime-tokio", "time"] }
-time.workspace = true
+sqlx = { version = "0.7.4", features = ["chrono", "postgres", "runtime-tokio"] }
+chrono.workspace = true

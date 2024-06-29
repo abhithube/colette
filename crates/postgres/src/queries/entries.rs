@@ -1,11 +1,11 @@
+use chrono::{DateTime, Utc};
 use sqlx::{Error, PgExecutor};
-use time::OffsetDateTime;
 
 #[derive(Debug)]
 pub struct InsertData {
     pub link: String,
     pub title: String,
-    pub published_at: OffsetDateTime,
+    pub published_at: DateTime<Utc>,
     pub description: String,
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,
