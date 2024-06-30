@@ -12,11 +12,11 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
+pub struct UserFindOneParams {
+    pub email: String,
+}
+
 pub struct UserCreateData {
     pub email: String,
     pub password: String,
-}
-
-pub struct UserFindOneParams {
-    pub email: String,
 }

@@ -1,4 +1,4 @@
-use super::{types::UserFindOneParams, Error, User, UserCreateData};
+use super::{Error, User, UserCreateData, UserFindOneParams};
 use async_trait::async_trait;
 
 #[async_trait]
