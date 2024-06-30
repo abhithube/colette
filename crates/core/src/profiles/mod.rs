@@ -9,3 +9,4 @@ pub use repository::{
     ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams, ProfileFindOneParams,
     ProfileUpdateData, ProfilesRepository,
 };
+pub use service::ProfilesService;
