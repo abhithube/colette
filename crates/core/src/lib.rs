@@ -1,4 +1,5 @@
 pub mod auth;
+pub mod common;
 pub mod password;
 pub mod profiles;
 pub mod users;
