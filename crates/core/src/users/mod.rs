@@ -1,7 +1,7 @@
 mod error;
+mod model;
 mod repository;
-mod types;
 
 pub use error::Error;
-pub use repository::UsersRepository;
-pub use types::{User, UserCreateData, UserFindOneParams};
+pub use model::User;
+pub use repository::{UserCreateData, UserFindOneParams, UsersRepository};
