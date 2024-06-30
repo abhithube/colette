@@ -1,4 +1,10 @@
-use colette_core::Profile;
+use colette_core::{
+    profiles::{
+        ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams, ProfileUpdateData,
+    },
+    Profile,
+};
+use nanoid::nanoid;
 use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
@@ -30,6 +36,44 @@ pub struct InsertData {
 pub struct UpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
+}
+
+impl From<ProfileFindManyParams> for SelectManyParams {
+    fn from(value: ProfileFindManyParams) -> Self {
+        Self {
+            user_id: value.user_id,
+        }
+    }
+}
+
+impl From<ProfileFindByIdParams> for SelectByIdParams {
+    fn from(value: ProfileFindByIdParams) -> Self {
+        Self {
+            id: value.id,
+            user_id: value.user_id,
+        }
+    }
+}
+
+impl From<ProfileCreateData> for InsertData {
+    fn from(value: ProfileCreateData) -> Self {
+        Self {
+            id: nanoid!(),
+            title: value.title,
+            image_url: value.image_url,
+            is_default: false,
+            user_id: value.user_id,
+        }
+    }
+}
+
+impl From<ProfileUpdateData> for UpdateData {
+    fn from(value: ProfileUpdateData) -> Self {
+        Self {
+            title: value.title,
+            image_url: value.image_url,
+        }
+    }
 }
 
 pub async fn select_many(
