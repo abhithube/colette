@@ -1,10 +1,11 @@
 mod error;
+mod model;
 mod repository;
-mod types;
+mod service;
 
 pub use error::Error;
-pub use repository::ProfilesRepository;
-pub use types::{
-    Profile, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams, ProfileFindOneParams,
-    ProfileUpdateData,
+pub use model::Profile;
+pub use repository::{
+    ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams, ProfileFindOneParams,
+    ProfileUpdateData, ProfilesRepository,
 };

@@ -1,7 +1,4 @@
-use super::{
-    Error, Profile, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
-    ProfileFindOneParams, ProfileUpdateData,
-};
+use super::{Error, Profile};
 use async_trait::async_trait;
 
 #[async_trait]
@@ -19,4 +16,29 @@ pub trait ProfilesRepository {
     ) -> Result<Profile, Error>;
 
     async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error>;
+}
+
+pub struct ProfileFindManyParams {
+    pub user_id: String,
+}
+
+pub struct ProfileFindByIdParams {
+    pub id: String,
+    pub user_id: String,
+}
+
+pub enum ProfileFindOneParams {
+    ById(ProfileFindByIdParams),
+    Default { user_id: String },
+}
+
+pub struct ProfileCreateData {
+    pub title: String,
+    pub image_url: Option<String>,
+    pub user_id: String,
+}
+
+pub struct ProfileUpdateData {
+    pub title: Option<String>,
+    pub image_url: Option<String>,
 }
