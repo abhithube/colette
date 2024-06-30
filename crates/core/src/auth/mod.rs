@@ -1,7 +1,7 @@
 mod error;
+mod model;
 mod service;
-mod types;
 
 pub use error::Error;
+pub use model::{LoginDto, RegisterDto};
 pub use service::AuthService;
-pub use types::{LoginDto, RegisterDto};
