@@ -3,9 +3,7 @@ use std::{env, error::Error, sync::Arc};
 use axum::Router;
 use colette_core::{auth::AuthService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
-use colette_postgres::repositories::{
-    profiles::ProfilesPostgresRepository, users::UsersPostgresRepository,
-};
+use colette_postgres::{ProfilesPostgresRepository, UsersPostgresRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,

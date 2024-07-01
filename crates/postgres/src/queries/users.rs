@@ -1,4 +1,7 @@
-use colette_core::users::{UserFindOneParams, User, UserCreateData};
+use colette_core::{
+    users::{UserCreateData, UserFindOneParams},
+    User,
+};
 use nanoid::nanoid;
 use sqlx::{Error, PgExecutor};
 
