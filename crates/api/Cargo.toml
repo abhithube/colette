@@ -11,3 +11,5 @@ colette-postgres.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio = { version = "1.38.0", features = ["rt-multi-thread"] }
+tower-sessions = "0.12.2"
+tower-sessions-sqlx-store = { version = "0.12.0", features = ["postgres"] }
