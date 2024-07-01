@@ -36,9 +36,9 @@ impl IntoResponse for Error {
             Error::Auth(auth::Error::NotAuthenticated) => {
                 (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
             }
-            Error::Users(users::Error::NotFound(e))
-            | Error::Profiles(profiles::Error::NotFound(e)) => {
-                (StatusCode::NOT_FOUND, e.to_string()).into_response()
+            Error::Users(users::Error::NotFound(_))
+            | Error::Profiles(profiles::Error::NotFound(_)) => {
+                (StatusCode::NOT_FOUND, self.to_string()).into_response()
             }
             Error::Auth(auth::Error::Users(e)) => match e {
                 users::Error::Conflict(_) => (StatusCode::CONFLICT, e.to_string()).into_response(),
