@@ -2,23 +2,30 @@ use std::sync::Arc;
 
 use crate::{
     password::PasswordHasher,
+    profiles::{ProfileFindOneParams, ProfilesRepository},
     users::{UserCreateData, UserFindOneParams, UsersRepository},
-    User,
+    Profile, User,
 };
 
 use super::{Error, LoginDto, RegisterDto};
 
 pub struct AuthService {
     users_repo: Arc<dyn UsersRepository + Send + Sync>,
+    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
     hasher: Arc<dyn PasswordHasher + Send + Sync>,
 }
 
 impl AuthService {
     pub fn new(
         users_repo: Arc<dyn UsersRepository + Send + Sync>,
+        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
         hasher: Arc<dyn PasswordHasher + Send + Sync>,
     ) -> Self {
-        Self { users_repo, hasher }
+        Self {
+            users_repo,
+            profiles_repo,
+            hasher,
+        }
     }
 
     pub async fn register(&self, dto: RegisterDto) -> Result<User, Error> {
@@ -37,7 +44,7 @@ impl AuthService {
         Ok(user)
     }
 
-    pub async fn login(&self, dto: LoginDto) -> Result<User, Error> {
+    pub async fn login(&self, dto: LoginDto) -> Result<Profile, Error> {
         let params = UserFindOneParams { email: dto.email };
         let user = self.users_repo.find_one(params).await?;
 
@@ -50,6 +57,9 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        Ok(user)
+        let params = ProfileFindOneParams::Default { user_id: user.id };
+        let profile = self.profiles_repo.find_one(params).await?;
+
+        Ok(profile)
     }
 }

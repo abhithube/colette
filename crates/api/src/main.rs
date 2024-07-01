@@ -3,7 +3,9 @@ use std::{env, error::Error, sync::Arc};
 use axum::Router;
 use colette_core::auth::AuthService;
 use colette_password::Argon2Hasher;
-use colette_postgres::repositories::users::UsersPostgresRepository;
+use colette_postgres::repositories::{
+    profiles::ProfilesPostgresRepository, users::UsersPostgresRepository,
+};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
@@ -36,9 +38,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
     let users_repository = Arc::new(UsersPostgresRepository::new(pool.clone()));
+    let profiles_repository = Arc::new(ProfilesPostgresRepository::new(pool.clone()));
 
     let argon_hasher = Arc::new(Argon2Hasher::default());
-    let auth_service = Arc::new(AuthService::new(users_repository, argon_hasher));
+    let auth_service = Arc::new(AuthService::new(
+        users_repository,
+        profiles_repository,
+        argon_hasher,
+    ));
 
     let state = api::Context { auth_service };
 
