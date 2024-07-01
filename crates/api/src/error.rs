@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{auth, users};
+use colette_core::{auth, profiles, users};
 use thiserror::Error;
 use tower_sessions::session;
 
@@ -22,6 +22,9 @@ pub enum Error {
     Auth(#[from] auth::Error),
 
     #[error(transparent)]
+    Profiles(#[from] profiles::Error),
+
+    #[error(transparent)]
     Users(#[from] users::Error),
 }
 
@@ -33,7 +36,8 @@ impl IntoResponse for Error {
             Error::Auth(auth::Error::NotAuthenticated) => {
                 (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
             }
-            Error::Users(users::Error::NotFound(e)) => {
+            Error::Users(users::Error::NotFound(e))
+            | Error::Profiles(profiles::Error::NotFound(e)) => {
                 (StatusCode::NOT_FOUND, e.to_string()).into_response()
             }
             Error::Auth(auth::Error::Users(e)) => match e {

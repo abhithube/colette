@@ -1,7 +1,7 @@
 use std::{env, error::Error, sync::Arc};
 
 use axum::Router;
-use colette_core::auth::AuthService;
+use colette_core::{auth::AuthService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
 use colette_postgres::repositories::{
     profiles::ProfilesPostgresRepository, users::UsersPostgresRepository,
@@ -43,16 +43,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let argon_hasher = Arc::new(Argon2Hasher::default());
     let auth_service = Arc::new(AuthService::new(
         users_repository,
-        profiles_repository,
+        profiles_repository.clone(),
         argon_hasher,
     ));
+    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
 
-    let state = api::Context { auth_service };
+    let state = api::Context {
+        auth_service,
+        profiles_service,
+    };
 
     let app = Router::new()
         .nest(
             "/api",
-            Router::new().merge(auth::router()).with_state(state),
+            Router::new()
+                .merge(auth::router())
+                .merge(profiles::router())
+                .with_state(state),
         )
         .layer(session_layer);
 
