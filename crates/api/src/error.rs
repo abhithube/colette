@@ -44,6 +44,9 @@ impl IntoResponse for Error {
                 users::Error::Conflict(_) => (StatusCode::CONFLICT, e.to_string()).into_response(),
                 _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
             },
+            Error::Profiles(profiles::Error::DeletingDefault) => {
+                (StatusCode::CONFLICT, self.to_string()).into_response()
+            }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
         }
     }
