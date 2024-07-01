@@ -5,6 +5,7 @@ use axum::{
 };
 use colette_core::{auth, users};
 use thiserror::Error;
+use tower_sessions::session;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -13,6 +14,9 @@ pub enum Error {
 
     #[error(transparent)]
     JsonRejection(#[from] JsonRejection),
+
+    #[error(transparent)]
+    Session(#[from] session::Error),
 
     #[error(transparent)]
     Auth(#[from] auth::Error),

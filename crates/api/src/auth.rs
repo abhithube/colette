@@ -1,9 +1,13 @@
-use std::sync::Arc;
-
+use crate::{
+    api::{Context, SESSION_KEY},
+    error::Error,
+};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing, Json, Router};
-use colette_core::auth::{AuthService, LoginDto, RegisterDto};
-
-use crate::{api::Context, error::Error};
+use colette_core::{
+    auth::{AuthService, LoginDto, RegisterDto},
+    common::Session,
+};
+use std::sync::Arc;
 
 pub fn router() -> Router<Context> {
     Router::new()
@@ -24,9 +28,16 @@ async fn register(
 #[axum::debug_handler]
 async fn login(
     State(service): State<Arc<AuthService>>,
+    session_store: tower_sessions::Session,
     Json(body): Json<LoginDto>,
 ) -> Result<impl IntoResponse, Error> {
-    let user = service.login(body).await?;
+    let profile = service.login(body).await?;
 
-    Ok(Json(user))
+    let session = Session {
+        user_id: profile.user_id.clone(),
+        profile_id: profile.id.clone(),
+    };
+    session_store.insert(SESSION_KEY, session).await?;
+
+    Ok(Json(profile))
 }
