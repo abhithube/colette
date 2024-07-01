@@ -32,6 +32,10 @@ impl IntoResponse for Error {
             Error::Users(users::Error::NotFound(e)) => {
                 (StatusCode::NOT_FOUND, e.to_string()).into_response()
             }
+            Error::Auth(auth::Error::Users(e)) => match e {
+                users::Error::Conflict(_) => (StatusCode::CONFLICT, e.to_string()).into_response(),
+                _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+            },
             _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
         }
     }
