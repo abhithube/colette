@@ -9,6 +9,7 @@ pub struct Profile {
     pub id: String,
     pub title: String,
     pub image_url: Option<String>,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
