@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod common;
+pub mod feeds;
 pub mod password;
 pub mod profiles;
 pub mod users;
