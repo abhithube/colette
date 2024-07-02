@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-    password::PasswordHasher,
     profiles::{ProfileFindOneParams, ProfilesRepository},
     users::{UserCreateData, UserFindOneParams, UsersRepository},
+    utils::password::PasswordHasher,
     Profile, User,
 };
 

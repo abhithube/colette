@@ -3,7 +3,7 @@ use argon2::{
     Argon2, PasswordVerifier,
 };
 use async_trait::async_trait;
-use colette_core::password::{Error, PasswordHasher};
+use colette_core::utils::password::{Error, PasswordHasher};
 
 #[derive(Default)]
 pub struct Argon2Hasher<'a> {
