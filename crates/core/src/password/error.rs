@@ -7,7 +7,4 @@ pub enum Error {
 
     #[error("failed to verify password")]
     Verify,
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
 }
