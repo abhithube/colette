@@ -5,10 +5,12 @@ resolver = "2"
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.80"
+bytes = "1.6.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 colette-core.path = "crates/core"
 colette-password.path = "crates/password"
 colette-postgres.path = "crates/postgres"
+http = "1.1.0"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
 
