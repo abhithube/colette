@@ -6,4 +6,4 @@ pub use error::Error;
 pub use model::{
     ExtractedEntry, ExtractedFeed, ExtractorOptions, Feed, ProcessedEntry, ProcessedFeed,
 };
-pub use repository::FeedsRepository;
+pub use repository::{FeedCreateData, FeedsRepository};
