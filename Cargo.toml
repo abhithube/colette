@@ -1,5 +1,11 @@
 [workspace]
-members = ["crates/api", "crates/core", "crates/password", "crates/postgres"]
+members = [
+  "crates/api",
+  "crates/core",
+  "crates/password",
+  "crates/postgres",
+  "crates/sqlite",
+]
 resolver = "2"
 
 [workspace.dependencies]
