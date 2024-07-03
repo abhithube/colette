@@ -4,11 +4,13 @@ use axum::Router;
 use colette_core::{auth::AuthService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
 use colette_postgres::{ProfilesPostgresRepository, UsersPostgresRepository};
+// use colette_sqlite::{ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
 use tower_sessions_sqlx_store::PostgresStore;
+// use tower_sessions_sqlx_store::SqliteStore;
 
 mod api;
 mod auth;
@@ -21,8 +23,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let database_url = env::var("DATABASE_URL")?;
 
     let pool = colette_postgres::create_database(&database_url).await?;
+    // let pool = colette_sqlite::create_database(&database_url).await?;
 
     let session_store = PostgresStore::new(pool.clone());
+    // let session_store = SqliteStore::new(pool.clone());
     session_store.migrate().await?;
 
     let deletion_task = task::spawn(
@@ -37,6 +41,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let users_repository = Arc::new(UsersPostgresRepository::new(pool.clone()));
     let profiles_repository = Arc::new(ProfilesPostgresRepository::new(pool.clone()));
+
+    // let users_repository = Arc::new(UsersSqliteRepository::new(pool.clone()));
+    // let profiles_repository = Arc::new(ProfilesSqliteRepository::new(pool.clone()));
 
     let argon_hasher = Arc::new(Argon2Hasher::default());
     let auth_service = Arc::new(AuthService::new(

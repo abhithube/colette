@@ -282,6 +282,7 @@ dependencies = [
  "colette-core",
  "colette-password",
  "colette-postgres",
+ "colette-sqlite",
  "serde",
  "thiserror",
  "tokio",
