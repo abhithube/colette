@@ -4,7 +4,7 @@ use colette_core::{
     feeds::{Error, FeedCreateData, FeedsRepository},
     Feed,
 };
-use colette_database::{feed_entries, feeds, profile_feed_entries, profile_feeds, FindOneParams};
+use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
 use sqlx::PgPool;
 
 pub struct FeedsPostgresRepository {
@@ -26,27 +26,22 @@ impl FeedsRepository for FeedsPostgresRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let link = data.feed.link.as_str();
-        let url = data.url.as_str();
-        let x = feeds::InsertData {
-            link,
-            title: data.feed.title.as_str(),
-            url: if url == link { None } else { Some(url) },
-        };
-
-        let feed_id = queries::feeds::insert(&mut *tx, x)
+        let feed_id = queries::feeds::insert(&mut *tx, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
+
+        let profile_id = data.profile_id.as_str();
 
         let profile_feed_id = queries::profile_feeds::insert(
             &mut *tx,
             profile_feeds::InsertData {
-                profile_id: data.profile_id.as_str(),
+                profile_id,
                 feed_id,
             },
         )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
+        let profile_feed_id = profile_feed_id.as_str();
 
         for e in data.feed.entries {
             let entry_id = queries::entries::insert(&mut *tx, (&e).into())
@@ -63,7 +58,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             queries::profile_feed_entries::insert(
                 &mut *tx,
                 profile_feed_entries::InsertData {
-                    profile_feed_id: profile_feed_id.as_str(),
+                    profile_feed_id,
                     feed_entry_id,
                 },
             )
@@ -74,8 +69,8 @@ impl FeedsRepository for FeedsPostgresRepository {
         let feed = queries::profile_feeds::select_by_id(
             &mut *tx,
             FindOneParams {
-                id: profile_feed_id.as_str(),
-                profile_id: data.profile_id.as_str(),
+                id: profile_feed_id,
+                profile_id,
             },
         )
         .await
