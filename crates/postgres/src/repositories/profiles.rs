@@ -6,9 +6,10 @@ use colette_core::{
     },
     Profile,
 };
+use colette_database::profiles::SelectDefaultParams;
 use sqlx::PgPool;
 
-use crate::queries::profiles::{self, SelectDefaultParams};
+use crate::queries::profiles;
 
 pub struct ProfilesPostgresRepository {
     pool: PgPool,

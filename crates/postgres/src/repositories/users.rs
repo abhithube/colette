@@ -3,7 +3,7 @@ use colette_core::{
     users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
 };
-use nanoid::nanoid;
+use colette_database::profiles::InsertData;
 use sqlx::PgPool;
 
 use crate::queries::{profiles, users};
@@ -47,13 +47,7 @@ impl UsersRepository for UsersPostgresRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let data = profiles::InsertData {
-            id: nanoid!(),
-            title: "Default",
-            image_url: None,
-            is_default: true,
-            user_id: user.id.as_str(),
-        };
+        let data = InsertData::default_with_user(user.id.as_str());
         profiles::insert(&mut *tx, data)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

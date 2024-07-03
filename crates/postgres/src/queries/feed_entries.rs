@@ -1,10 +1,5 @@
+use colette_database::feed_entries::InsertData;
 use sqlx::{Error, PgExecutor};
-
-#[derive(Debug)]
-pub struct InsertData {
-    pub feed_id: i32,
-    pub entry_id: i32,
-}
 
 pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<i32, Error> {
     let row = sqlx::query_file!(

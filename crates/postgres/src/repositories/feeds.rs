@@ -1,13 +1,11 @@
+use crate::queries;
 use async_trait::async_trait;
 use colette_core::{
     feeds::{Error, FeedCreateData, FeedsRepository},
     Feed,
 };
+use colette_database::{feed_entries, feeds, profile_feed_entries, profile_feeds, FindOneParams};
 use sqlx::PgPool;
-
-use crate::queries::{
-    entries, feed_entries, feeds, profile_feed_entries, profile_feeds, FindOneParams,
-};
 
 pub struct FeedsPostgresRepository {
     pool: PgPool,
@@ -36,11 +34,11 @@ impl FeedsRepository for FeedsPostgresRepository {
             url: if url == link { None } else { Some(url) },
         };
 
-        let feed_id = feeds::insert(&mut *tx, x)
+        let feed_id = queries::feeds::insert(&mut *tx, x)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let profile_feed_id = profile_feeds::create(
+        let profile_feed_id = queries::profile_feeds::create(
             &mut *tx,
             profile_feeds::InsertData {
                 profile_id: data.profile_id.as_str(),
@@ -51,16 +49,18 @@ impl FeedsRepository for FeedsPostgresRepository {
         .map_err(|e| Error::Unknown(e.into()))?;
 
         for e in data.feed.entries {
-            let entry_id = entries::insert(&mut *tx, (&e).into())
+            let entry_id = queries::entries::insert(&mut *tx, (&e).into())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-            let feed_entry_id =
-                feed_entries::insert(&mut *tx, feed_entries::InsertData { feed_id, entry_id })
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+            let feed_entry_id = queries::feed_entries::insert(
+                &mut *tx,
+                feed_entries::InsertData { feed_id, entry_id },
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            profile_feed_entries::insert(
+            queries::profile_feed_entries::insert(
                 &mut *tx,
                 profile_feed_entries::InsertData {
                     profile_feed_id: profile_feed_id.as_str(),
@@ -71,7 +71,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = profile_feeds::find_one(
+        let feed = queries::profile_feeds::find_one(
             &mut *tx,
             FindOneParams {
                 id: profile_feed_id.as_str(),

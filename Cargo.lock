@@ -329,7 +329,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "colette-core",
- "nanoid",
+ "colette-database",
  "sqlx",
 ]
 

@@ -1,13 +1,6 @@
 use colette_core::Feed;
+use colette_database::{profile_feeds::InsertData, FindOneParams};
 use sqlx::{Error, PgExecutor};
-
-use super::FindOneParams;
-
-#[derive(Debug)]
-pub struct InsertData<'a> {
-    pub profile_id: &'a str,
-    pub feed_id: i32,
-}
 
 pub async fn create(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
     let row = sqlx::query_file!(
