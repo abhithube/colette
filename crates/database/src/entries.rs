@@ -16,10 +16,10 @@ impl<'a> From<&'a ProcessedEntry<'_>> for InsertData<'a> {
         Self {
             link: value.link.as_str(),
             title: value.title,
-            published_at: value.published,
+            published_at: value.published.as_ref(),
             description: value.description,
             author: value.author,
-            thumbnail_url: value.thumbnail.map(|e| e.as_str()),
+            thumbnail_url: value.thumbnail.as_ref().map(|e| e.as_str()),
         }
     }
 }

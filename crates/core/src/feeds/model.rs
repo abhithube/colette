@@ -47,17 +47,17 @@ pub struct ExtractedEntry {
 
 #[derive(Debug)]
 pub struct ProcessedFeed<'a> {
-    pub link: &'a Url,
+    pub link: Url,
     pub title: &'a str,
     pub entries: &'a [ProcessedEntry<'a>],
 }
 
 #[derive(Debug)]
 pub struct ProcessedEntry<'a> {
-    pub link: &'a Url,
+    pub link: Url,
     pub title: &'a str,
-    pub published: Option<&'a DateTime<Utc>>,
+    pub published: Option<DateTime<Utc>>,
     pub description: Option<&'a str>,
     pub author: Option<&'a str>,
-    pub thumbnail: Option<&'a Url>,
+    pub thumbnail: Option<Url>,
 }
