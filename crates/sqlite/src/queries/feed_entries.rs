@@ -3,8 +3,8 @@ use sqlx::{Error, SqliteExecutor};
 
 #[derive(Debug)]
 pub struct SelectParams {
-    pub feed_id: i32,
-    pub entry_id: i32,
+    pub feed_id: i64,
+    pub entry_id: i64,
 }
 
 pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams) -> Result<i64, Error> {
