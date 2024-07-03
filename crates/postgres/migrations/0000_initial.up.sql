@@ -1,12 +1,12 @@
 CREATE TABLE feeds (
-  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   link text NOT NULL UNIQUE,
   title text NOT NULL,
   url text
 );
 
 CREATE TABLE entries (
-  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
   link text NOT NULL UNIQUE,
   title text NOT NULL,
   published_at timestamptz,
@@ -16,9 +16,9 @@ CREATE TABLE entries (
 );
 
 CREATE TABLE feed_entries (
-  id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-  feed_id integer NOT NULL REFERENCES feeds (id) ON DELETE cascade,
-  entry_id integer NOT NULL REFERENCES entries (id) ON DELETE cascade,
+  id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  feed_id bigint NOT NULL REFERENCES feeds (id) ON DELETE cascade,
+  entry_id bigint NOT NULL REFERENCES entries (id) ON DELETE cascade,
   UNIQUE (feed_id, entry_id)
 );
 
@@ -45,7 +45,7 @@ CREATE TABLE profile_feeds (
   id text NOT NULL PRIMARY KEY,
   custom_title text,
   profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
-  feed_id integer NOT NULL REFERENCES feeds (id) ON DELETE restrict,
+  feed_id bigint NOT NULL REFERENCES feeds (id) ON DELETE restrict,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (profile_id, feed_id)
@@ -55,6 +55,6 @@ CREATE TABLE profile_feed_entries (
   id text NOT NULL PRIMARY KEY,
   has_read boolean NOT NULL DEFAULT FALSE,
   profile_feed_id text NOT NULL REFERENCES profile_feeds (id) ON DELETE cascade,
-  feed_entry_id integer NOT NULL REFERENCES feed_entries (id) ON DELETE restrict,
+  feed_entry_id bigint NOT NULL REFERENCES feed_entries (id) ON DELETE restrict,
   UNIQUE (profile_feed_id, feed_entry_id)
 );

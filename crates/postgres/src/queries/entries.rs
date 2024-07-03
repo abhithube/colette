@@ -1,7 +1,7 @@
 use colette_database::entries::InsertData;
 use sqlx::{Error, PgExecutor};
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<i32, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<i64, Error> {
     let row = sqlx::query_file!(
         "queries/entries/insert.sql",
         data.link,
