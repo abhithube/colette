@@ -81,21 +81,21 @@ pub async fn update(
     Ok(row)
 }
 
-pub async fn update_default(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
-        Profile,
-        "queries/profiles/update_default.sql",
-        params.id,
-        params.user_id
-    )
-    .fetch_one(ex)
-    .await?;
+// pub async fn update_default(
+//     ex: impl PgExecutor<'_>,
+//     params: SelectByIdParams<'_>,
+// ) -> Result<Profile, Error> {
+//     let row = sqlx::query_file_as!(
+//         Profile,
+//         "queries/profiles/update_default.sql",
+//         params.id,
+//         params.user_id
+//     )
+//     .fetch_one(ex)
+//     .await?;
 
-    Ok(row)
-}
+//     Ok(row)
+// }
 
 pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams<'_>) -> Result<(), Error> {
     sqlx::query_file_as!(

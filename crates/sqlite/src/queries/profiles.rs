@@ -4,10 +4,10 @@ use colette_database::profiles::{
 };
 use sqlx::{Error, SqliteExecutor};
 
-#[derive(Debug)]
-pub struct UpdateDefaultUnsetParams<'a> {
-    pub user_id: &'a str,
-}
+// #[derive(Debug)]
+// pub struct UpdateDefaultUnsetParams<'a> {
+//     pub user_id: &'a str,
+// }
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
@@ -86,32 +86,32 @@ pub async fn update(
     Ok(row)
 }
 
-pub async fn update_default_set(
-    ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
-        Profile,
-        "queries/profiles/update_default_set.sql",
-        params.id,
-        params.user_id
-    )
-    .fetch_one(ex)
-    .await?;
+// pub async fn update_default_set(
+//     ex: impl SqliteExecutor<'_>,
+//     params: SelectByIdParams<'_>,
+// ) -> Result<Profile, Error> {
+//     let row = sqlx::query_file_as!(
+//         Profile,
+//         "queries/profiles/update_default_set.sql",
+//         params.id,
+//         params.user_id
+//     )
+//     .fetch_one(ex)
+//     .await?;
 
-    Ok(row)
-}
+//     Ok(row)
+// }
 
-pub async fn update_default_unset(
-    ex: impl SqliteExecutor<'_>,
-    params: UpdateDefaultUnsetParams<'_>,
-) -> Result<String, Error> {
-    let row = sqlx::query_file!("queries/profiles/update_default_unset.sql", params.user_id)
-        .fetch_one(ex)
-        .await?;
+// pub async fn update_default_unset(
+//     ex: impl SqliteExecutor<'_>,
+//     params: UpdateDefaultUnsetParams<'_>,
+// ) -> Result<String, Error> {
+//     let row = sqlx::query_file!("queries/profiles/update_default_unset.sql", params.user_id)
+//         .fetch_one(ex)
+//         .await?;
 
-    Ok(row.id)
-}
+//     Ok(row.id)
+// }
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
