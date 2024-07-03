@@ -38,7 +38,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let profile_feed_id = queries::profile_feeds::create(
+        let profile_feed_id = queries::profile_feeds::insert(
             &mut *tx,
             profile_feeds::InsertData {
                 profile_id: data.profile_id.as_str(),
@@ -71,7 +71,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = queries::profile_feeds::find_one(
+        let feed = queries::profile_feeds::select_by_id(
             &mut *tx,
             FindOneParams {
                 id: profile_feed_id.as_str(),
