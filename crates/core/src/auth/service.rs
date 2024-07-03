@@ -59,7 +59,9 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        let params = ProfileFindOneParams::Default { user_id: user.id };
+        let params = ProfileFindOneParams::Default {
+            user_id: user.id.as_str(),
+        };
         let profile = self.profiles_repo.find_one(params).await?;
 
         Ok(profile)

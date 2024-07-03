@@ -34,19 +34,19 @@ pub struct UpdateData<'a> {
     pub image_url: Option<&'a str>,
 }
 
-impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
-    fn from(value: &'a ProfileFindManyParams) -> Self {
+impl<'a> From<&'a ProfileFindManyParams<'_>> for SelectManyParams<'a> {
+    fn from(value: &'a ProfileFindManyParams<'_>) -> Self {
         Self {
-            user_id: value.user_id.as_str(),
+            user_id: value.user_id,
         }
     }
 }
 
-impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
-    fn from(value: &'a ProfileFindByIdParams) -> Self {
+impl<'a> From<&'a ProfileFindByIdParams<'_>> for SelectByIdParams<'a> {
+    fn from(value: &'a ProfileFindByIdParams<'_>) -> Self {
         Self {
-            id: value.id.as_str(),
-            user_id: value.user_id.as_str(),
+            id: value.id,
+            user_id: value.user_id,
         }
     }
 }
@@ -63,23 +63,23 @@ impl<'a> InsertData<'a> {
     }
 }
 
-impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
-    fn from(value: &'a ProfileCreateData) -> Self {
+impl<'a> From<&'a ProfileCreateData<'_>> for InsertData<'a> {
+    fn from(value: &'a ProfileCreateData<'_>) -> Self {
         Self {
             id: nanoid!(),
-            title: value.title.as_str(),
-            image_url: value.image_url.as_deref(),
+            title: value.title,
+            image_url: value.image_url,
             is_default: false,
-            user_id: value.user_id.as_str(),
+            user_id: value.user_id,
         }
     }
 }
 
-impl<'a> From<&'a ProfileUpdateData> for UpdateData<'a> {
-    fn from(value: &'a ProfileUpdateData) -> Self {
+impl<'a> From<&'a ProfileUpdateData<'_>> for UpdateData<'a> {
+    fn from(value: &'a ProfileUpdateData<'_>) -> Self {
         Self {
-            title: value.title.as_deref(),
-            image_url: value.image_url.as_deref(),
+            title: value.title,
+            image_url: value.image_url,
         }
     }
 }

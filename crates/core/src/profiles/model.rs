@@ -28,11 +28,11 @@ pub struct UpdateProfileDto {
     pub image_url: Option<String>,
 }
 
-impl From<UpdateProfileDto> for ProfileUpdateData {
-    fn from(value: UpdateProfileDto) -> Self {
+impl<'a> From<&'a UpdateProfileDto> for ProfileUpdateData<'a> {
+    fn from(value: &'a UpdateProfileDto) -> Self {
         Self {
-            title: value.title,
-            image_url: value.image_url,
+            title: value.title.as_deref(),
+            image_url: value.image_url.as_deref(),
         }
     }
 }

@@ -21,7 +21,7 @@ impl ProfilesService {
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
         let params = ProfileFindManyParams {
-            user_id: session.user_id,
+            user_id: session.user_id.as_str(),
         };
         let profiles = self.profiles_repo.find_many(params).await?;
 
@@ -35,8 +35,8 @@ impl ProfilesService {
 
     pub async fn get(&self, id: String, session: Session) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
-            id,
-            user_id: session.user_id,
+            id: id.as_str(),
+            user_id: session.user_id.as_str(),
         };
         let params = ProfileFindOneParams::ById(params);
         let profile = self.profiles_repo.find_one(params).await?;
@@ -46,9 +46,9 @@ impl ProfilesService {
 
     pub async fn create(&self, dto: CreateProfileDto, session: Session) -> Result<Profile, Error> {
         let data = ProfileCreateData {
-            title: dto.title,
-            image_url: dto.image_url,
-            user_id: session.user_id,
+            title: dto.title.as_str(),
+            image_url: dto.image_url.as_deref(),
+            user_id: session.user_id.as_str(),
         };
         let profile = self.profiles_repo.create(data).await?;
 
@@ -62,18 +62,18 @@ impl ProfilesService {
         session: Session,
     ) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
-            id,
-            user_id: session.user_id,
+            id: id.as_str(),
+            user_id: session.user_id.as_str(),
         };
-        let profile = self.profiles_repo.update(params, dto.into()).await?;
+        let profile = self.profiles_repo.update(params, (&dto).into()).await?;
 
         Ok(profile)
     }
 
     pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
         let params = ProfileFindByIdParams {
-            id,
-            user_id: session.user_id,
+            id: id.as_str(),
+            user_id: session.user_id.as_str(),
         };
         self.profiles_repo.delete(params).await?;
 

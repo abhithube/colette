@@ -19,7 +19,7 @@ impl FeedsSqliteRepository {
 
 #[async_trait]
 impl FeedsRepository for FeedsSqliteRepository {
-    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error> {
+    async fn create(&self, data: FeedCreateData<'_>) -> Result<Feed, Error> {
         let mut tx = self
             .pool
             .begin()
@@ -30,12 +30,10 @@ impl FeedsRepository for FeedsSqliteRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let profile_id = data.profile_id.as_str();
-
         let result = queries::profile_feeds::insert(
             &mut *tx,
             profile_feeds::InsertData {
-                profile_id,
+                profile_id: data.profile_id,
                 feed_id,
             },
         )
@@ -45,7 +43,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             Err(_) => queries::profile_feeds::select(
                 &mut *tx,
                 queries::profile_feeds::SelectParams {
-                    profile_id,
+                    profile_id: data.profile_id,
                     feed_id,
                 },
             )
@@ -89,7 +87,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             &mut *tx,
             FindOneParams {
                 id: profile_feed_id,
-                profile_id,
+                profile_id: data.profile_id,
             },
         )
         .await

@@ -23,7 +23,7 @@ impl ProfilesPostgresRepository {
 
 #[async_trait]
 impl ProfilesRepository for ProfilesPostgresRepository {
-    async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
+    async fn find_many(&self, params: ProfileFindManyParams<'_>) -> Result<Vec<Profile>, Error> {
         let results = profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -31,10 +31,10 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         Ok(results)
     }
 
-    async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error> {
+    async fn find_one(&self, params: ProfileFindOneParams<'_>) -> Result<Profile, Error> {
         let profile = match params {
             ProfileFindOneParams::ById(params) => {
-                let id = params.id.clone();
+                let id = params.id.to_owned();
 
                 profiles::select_by_id(&self.pool, (&params).into())
                     .await
@@ -43,20 +43,17 @@ impl ProfilesRepository for ProfilesPostgresRepository {
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfileFindOneParams::Default { user_id } => profiles::select_default(
-                &self.pool,
-                SelectDefaultParams {
-                    user_id: user_id.as_str(),
-                },
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?,
+            ProfileFindOneParams::Default { user_id } => {
+                profiles::select_default(&self.pool, SelectDefaultParams { user_id })
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            }
         };
 
         Ok(profile)
     }
 
-    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
+    async fn create(&self, data: ProfileCreateData<'_>) -> Result<Profile, Error> {
         let profile = profiles::insert(&self.pool, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -66,10 +63,10 @@ impl ProfilesRepository for ProfilesPostgresRepository {
 
     async fn update(
         &self,
-        params: ProfileFindByIdParams,
-        data: ProfileUpdateData,
+        params: ProfileFindByIdParams<'_>,
+        data: ProfileUpdateData<'_>,
     ) -> Result<Profile, Error> {
-        let id = params.id.clone();
+        let id = params.id.to_owned();
 
         let profile = profiles::update(&self.pool, (&params).into(), (&data).into())
             .await
@@ -81,10 +78,10 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         Ok(profile)
     }
 
-    async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error> {
+    async fn delete(&self, params: ProfileFindByIdParams<'_>) -> Result<(), Error> {
         let profile = self
             .find_one(ProfileFindOneParams::Default {
-                user_id: params.user_id.clone(),
+                user_id: params.user_id,
             })
             .await?;
 
@@ -92,7 +89,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
             return Err(Error::DeletingDefault);
         }
 
-        let id = params.id.clone();
+        let id = params.id.to_owned();
 
         profiles::delete(&self.pool, (&params).into())
             .await

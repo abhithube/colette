@@ -7,15 +7,18 @@ pub struct InsertData<'a> {
     pub url: Option<&'a str>,
 }
 
-impl<'a> From<&'a FeedCreateData> for InsertData<'a> {
-    fn from(value: &'a FeedCreateData) -> Self {
+impl<'a> From<&'a FeedCreateData<'_>> for InsertData<'a> {
+    fn from(value: &'a FeedCreateData<'_>) -> Self {
         let link = value.feed.link.as_str();
-        let url = value.url.as_str();
 
         Self {
             link,
             title: value.feed.title.as_str(),
-            url: if url == link { None } else { Some(url) },
+            url: if value.url == link {
+                None
+            } else {
+                Some(value.url)
+            },
         }
     }
 }
