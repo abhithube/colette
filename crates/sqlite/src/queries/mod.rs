@@ -1,5 +1,5 @@
 mod entries;
 mod feed_entries;
 mod feeds;
-mod profiles;
-mod users;
+pub mod profiles;
+pub mod users;

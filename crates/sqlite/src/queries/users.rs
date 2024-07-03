@@ -1,4 +1,8 @@
-use colette_core::User;
+use colette_core::{
+    users::{UserCreateData, UserFindOneParams},
+    User,
+};
+use nanoid::nanoid;
 use sqlx::{Error, SqliteExecutor};
 
 #[derive(Debug)]
@@ -11,6 +15,22 @@ pub struct InsertData {
     pub id: String,
     pub email: String,
     pub password: String,
+}
+
+impl From<UserFindOneParams> for SelectByEmailParams {
+    fn from(value: UserFindOneParams) -> Self {
+        Self { email: value.email }
+    }
+}
+
+impl From<UserCreateData> for InsertData {
+    fn from(value: UserCreateData) -> Self {
+        Self {
+            id: nanoid!(),
+            email: value.email,
+            password: value.password,
+        }
+    }
 }
 
 pub async fn select_by_email(

@@ -326,8 +326,10 @@ dependencies = [
 name = "colette-sqlite"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "chrono",
  "colette-core",
+ "nanoid",
  "sqlx",
 ]
 
