@@ -3,10 +3,10 @@ use colette_core::{
     users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
 };
-use nanoid::nanoid;
+use colette_database::profiles::InsertData;
 use sqlx::SqlitePool;
 
-use crate::queries::{profiles, users};
+use crate::queries;
 
 pub struct UsersSqliteRepository {
     pool: SqlitePool,
@@ -20,43 +20,35 @@ impl UsersSqliteRepository {
 
 #[async_trait]
 impl UsersRepository for UsersSqliteRepository {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
-        let email = params.email.clone();
-
-        let user = users::select_by_email(&self.pool, params.into())
+    async fn find_one(&self, params: UserFindOneParams<'_>) -> Result<User, Error> {
+        let user = queries::users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(email),
+                sqlx::Error::RowNotFound => Error::NotFound(params.email.to_owned()),
                 _ => Error::Unknown(e.into()),
             })?;
 
         Ok(user)
     }
 
-    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
-        let email = data.email.clone();
-
+    async fn create(&self, data: UserCreateData<'_>) -> Result<User, Error> {
         let mut tx = self
             .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let user = users::insert(&mut *tx, data.into())
+        let user = queries::users::insert(&mut *tx, (&data).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(email),
+                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                    Error::Conflict(data.email.to_owned())
+                }
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let data = profiles::InsertData {
-            id: nanoid!(),
-            title: String::from("Default"),
-            image_url: None,
-            is_default: true,
-            user_id: user.id.clone(),
-        };
-        profiles::insert(&mut *tx, data)
+        let data = InsertData::default_with_user(user.id.as_str());
+        queries::profiles::insert(&mut *tx, data)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

@@ -1,3 +1,4 @@
+use crate::queries;
 use async_trait::async_trait;
 use colette_core::{
     profiles::{
@@ -6,9 +7,8 @@ use colette_core::{
     },
     Profile,
 };
+use colette_database::profiles::SelectDefaultParams;
 use sqlx::SqlitePool;
-
-use crate::queries::profiles::{self, SelectDefaultParams};
 
 pub struct ProfilesSqliteRepository {
     pool: SqlitePool,
@@ -23,7 +23,7 @@ impl ProfilesSqliteRepository {
 #[async_trait]
 impl ProfilesRepository for ProfilesSqliteRepository {
     async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
-        let results = profiles::select_many(&self.pool, params.into())
+        let results = queries::profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -35,25 +35,28 @@ impl ProfilesRepository for ProfilesSqliteRepository {
             ProfileFindOneParams::ById(params) => {
                 let id = params.id.clone();
 
-                profiles::select_by_id(&self.pool, params.into())
+                queries::profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(id),
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfileFindOneParams::Default { user_id } => {
-                profiles::select_default(&self.pool, SelectDefaultParams { user_id })
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-            }
+            ProfileFindOneParams::Default { user_id } => queries::profiles::select_default(
+                &self.pool,
+                SelectDefaultParams {
+                    user_id: user_id.as_str(),
+                },
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?,
         };
 
         Ok(profile)
     }
 
     async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
-        let profile = profiles::insert(&self.pool, data.into())
+        let profile = queries::profiles::insert(&self.pool, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -67,7 +70,7 @@ impl ProfilesRepository for ProfilesSqliteRepository {
     ) -> Result<Profile, Error> {
         let id = params.id.clone();
 
-        let profile = profiles::update(&self.pool, params.into(), data.into())
+        let profile = queries::profiles::update(&self.pool, (&params).into(), (&data).into())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(id),
@@ -90,7 +93,7 @@ impl ProfilesRepository for ProfilesSqliteRepository {
 
         let id = params.id.clone();
 
-        profiles::delete(&self.pool, params.into())
+        queries::profiles::delete(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(id),
