@@ -1,3 +1,20 @@
+use chrono::{DateTime, Utc};
+use serde::Serialize;
+use url::Url;
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Feed {
+    pub id: String,
+    pub title: String,
+    pub link: String,
+    pub url: Option<String>,
+    pub custom_title: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub unread_count: Option<i64>,
+}
+
 #[derive(Debug)]
 pub struct ExtractorOptions {
     pub feed_link_expr: Option<&'static str>,
@@ -26,4 +43,21 @@ pub struct ExtractedEntry {
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail: Option<String>,
+}
+
+#[derive(Debug)]
+pub struct ProcessedFeed {
+    pub link: Url,
+    pub title: String,
+    pub entries: Vec<ProcessedEntry>,
+}
+
+#[derive(Debug)]
+pub struct ProcessedEntry {
+    pub link: Url,
+    pub title: String,
+    pub published: Option<DateTime<Utc>>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<Url>,
 }

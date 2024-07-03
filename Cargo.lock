@@ -301,6 +301,7 @@ dependencies = [
  "http",
  "serde",
  "thiserror",
+ "url",
 ]
 
 [[package]]

@@ -20,6 +20,7 @@ colette-sqlite.path = "crates/sqlite"
 http = "1.1.0"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
+url = "2.5.2"
 
 [profile.release]
 codegen-units = 1

@@ -6,5 +6,6 @@ pub mod scraper;
 pub mod users;
 pub mod utils;
 
+pub use feeds::Feed;
 pub use profiles::Profile;
 pub use users::User;
