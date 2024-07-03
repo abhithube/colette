@@ -4,7 +4,7 @@ use http::Response;
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-pub struct Error(#[from] anyhow::Error);
+pub struct Error(#[from] pub anyhow::Error);
 
 #[async_trait]
 pub trait Downloader {
