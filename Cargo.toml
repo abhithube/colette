@@ -2,6 +2,7 @@
 members = [
   "crates/api",
   "crates/core",
+  "crates/database",
   "crates/password",
   "crates/postgres",
   "crates/sqlite",
@@ -14,6 +15,7 @@ async-trait = "0.1.80"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 colette-core.path = "crates/core"
+colette-database.path = "crates/database"
 colette-password.path = "crates/password"
 colette-postgres.path = "crates/postgres"
 colette-sqlite.path = "crates/sqlite"

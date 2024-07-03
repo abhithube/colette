@@ -305,6 +305,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-database"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colette-core",
+ "nanoid",
+]
+
+[[package]]
 name = "colette-password"
 version = "0.1.0"
 dependencies = [
