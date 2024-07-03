@@ -51,6 +51,18 @@ impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
     }
 }
 
+impl<'a> InsertData<'a> {
+    pub fn default_with_user(user_id: &'a str) -> Self {
+        Self {
+            id: nanoid!(),
+            title: "Default",
+            image_url: None,
+            is_default: true,
+            user_id,
+        }
+    }
+}
+
 impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
     fn from(value: &'a ProfileCreateData) -> Self {
         Self {
