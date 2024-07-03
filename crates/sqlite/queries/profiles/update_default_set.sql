@@ -1,6 +1,6 @@
 UPDATE profiles
 SET
-  is_default = true
+  is_default = 1
 WHERE
   id = ?1
   AND user_id = ?2 RETURNING id,
