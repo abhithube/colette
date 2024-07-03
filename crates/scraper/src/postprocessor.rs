@@ -9,7 +9,11 @@ use url::Url;
 pub struct DefaultFeedPostprocessor {}
 
 impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPostprocessor {
-    fn postprocess(_url: String, extracted: &'a ExtractedFeed) -> Result<ProcessedFeed<'a>, Error> {
+    fn postprocess(
+        &self,
+        _url: String,
+        extracted: &'a ExtractedFeed,
+    ) -> Result<ProcessedFeed<'a>, Error> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
             return Err(Error(anyhow!("could not process feed link")));
         };

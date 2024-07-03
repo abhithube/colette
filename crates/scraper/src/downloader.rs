@@ -7,7 +7,7 @@ pub struct DefaultDownloader {}
 
 #[async_trait]
 impl Downloader for DefaultDownloader {
-    async fn download(url: String) -> Result<Response<Bytes>, Error> {
+    async fn download(&self, url: String) -> Result<Response<Bytes>, Error> {
         let resp = reqwest::get(url).await.map_err(|e| Error(e.into()))?;
         let bytes = resp.bytes().await.map_err(|e| Error(e.into()))?;
 

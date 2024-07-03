@@ -8,5 +8,5 @@ pub struct Error(#[from] pub anyhow::Error);
 
 #[async_trait]
 pub trait Downloader {
-    async fn download(url: String) -> Result<Response<Bytes>, Error>;
+    async fn download(&self, url: String) -> Result<Response<Bytes>, Error>;
 }
