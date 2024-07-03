@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  profile_feeds (profile_id, feed_id)\nVALUES\n  ($1, $2)\nON CONFLICT (profile_id, feed_id) DO nothing\nRETURNING\n  id;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1daf9b74d2d9ded098888ecb7ef87008cc74451548e7708f9b3645547c0c7747"
+}

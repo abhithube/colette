@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n  id\nFROM\n  feed_entries\nWHERE\n  feed_id = ?1\n  AND entry_id = ?2;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "392637af3bd6842b2b046fafd384dc617534fb8828cfca5e8f7d51538a1bc1f4"
+}

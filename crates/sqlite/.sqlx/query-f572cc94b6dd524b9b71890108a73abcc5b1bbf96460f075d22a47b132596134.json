@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n  id\nFROM\n  profile_feeds\nWHERE\n  profile_id = ?1\n  AND feed_id = ?2;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f572cc94b6dd524b9b71890108a73abcc5b1bbf96460f075d22a47b132596134"
+}

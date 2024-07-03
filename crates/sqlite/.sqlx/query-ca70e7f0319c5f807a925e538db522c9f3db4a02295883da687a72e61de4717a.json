@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n  pf.id,\n  f.link,\n  f.title,\n  f.url,\n  pf.custom_title,\n  pf.created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  pf.updated_at \"updated_at: chrono::DateTime<chrono::Utc>\",\n  count(pfe.id) unread_count\nFROM\n  profile_feeds pf\n  JOIN feeds f ON f.id = pf.feed_id\n  JOIN feed_entries fe ON fe.feed_id = f.id\n  LEFT JOIN profile_feed_entries pfe ON pfe.feed_entry_id = fe.id\n  AND pfe.has_read = 0\nWHERE\n  pf.id = ?1\n  AND pf.profile_id = ?2\nGROUP BY\n  pf.id,\n  f.url,\n  f.link,\n  f.title;\n",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "link",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "url",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "custom_title",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "unread_count",
+        "ordinal": 7,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "ca70e7f0319c5f807a925e538db522c9f3db4a02295883da687a72e61de4717a"
+}
