@@ -36,8 +36,8 @@ impl AuthService {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let data = UserCreateData {
-            email: dto.email,
-            password: hashed,
+            email: dto.email.as_str(),
+            password: hashed.as_str(),
         };
         let user = self.users_repo.create(data).await?;
 
@@ -45,7 +45,9 @@ impl AuthService {
     }
 
     pub async fn login(&self, dto: LoginDto) -> Result<Profile, Error> {
-        let params = UserFindOneParams { email: dto.email };
+        let params = UserFindOneParams {
+            email: dto.email.as_str(),
+        };
         let user = self.users_repo.find_one(params).await?;
 
         let valid = self

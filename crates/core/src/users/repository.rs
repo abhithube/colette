@@ -3,16 +3,16 @@ use async_trait::async_trait;
 
 #[async_trait]
 pub trait UsersRepository {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error>;
+    async fn find_one(&self, params: UserFindOneParams<'_>) -> Result<User, Error>;
 
-    async fn create(&self, data: UserCreateData) -> Result<User, Error>;
+    async fn create(&self, data: UserCreateData<'_>) -> Result<User, Error>;
 }
 
-pub struct UserFindOneParams {
-    pub email: String,
+pub struct UserFindOneParams<'a> {
+    pub email: &'a str,
 }
 
-pub struct UserCreateData {
-    pub email: String,
-    pub password: String,
+pub struct UserCreateData<'a> {
+    pub email: &'a str,
+    pub password: &'a str,
 }
