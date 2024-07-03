@@ -4,12 +4,12 @@ use sqlx::{Error, PgExecutor};
 use super::FindOneParams;
 
 #[derive(Debug)]
-pub struct CreateData {
+pub struct InsertData {
     pub profile_id: String,
     pub feed_id: i32,
 }
 
-pub async fn create(ex: impl PgExecutor<'_>, data: CreateData) -> Result<String, Error> {
+pub async fn create(ex: impl PgExecutor<'_>, data: InsertData) -> Result<String, Error> {
     let row = sqlx::query_file!(
         "queries/profile_feeds/create.sql",
         data.profile_id,
