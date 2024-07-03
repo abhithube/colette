@@ -46,18 +46,18 @@ pub struct ExtractedEntry {
 }
 
 #[derive(Debug)]
-pub struct ProcessedFeed {
-    pub link: Url,
-    pub title: String,
-    pub entries: Vec<ProcessedEntry>,
+pub struct ProcessedFeed<'a> {
+    pub link: &'a Url,
+    pub title: &'a str,
+    pub entries: &'a [ProcessedEntry<'a>],
 }
 
 #[derive(Debug)]
-pub struct ProcessedEntry {
-    pub link: Url,
-    pub title: String,
-    pub published: Option<DateTime<Utc>>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail: Option<Url>,
+pub struct ProcessedEntry<'a> {
+    pub link: &'a Url,
+    pub title: &'a str,
+    pub published: Option<&'a DateTime<Utc>>,
+    pub description: Option<&'a str>,
+    pub author: Option<&'a str>,
+    pub thumbnail: Option<&'a Url>,
 }

@@ -8,6 +8,6 @@ pub trait FeedsRepository {
 
 pub struct FeedCreateData<'a> {
     pub url: &'a str,
-    pub feed: ProcessedFeed,
+    pub feed: ProcessedFeed<'a>,
     pub profile_id: &'a str,
 }

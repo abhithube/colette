@@ -11,15 +11,15 @@ pub struct InsertData<'a> {
     pub thumbnail_url: Option<&'a str>,
 }
 
-impl<'a> From<&'a ProcessedEntry> for InsertData<'a> {
-    fn from(value: &'a ProcessedEntry) -> Self {
+impl<'a> From<&'a ProcessedEntry<'_>> for InsertData<'a> {
+    fn from(value: &'a ProcessedEntry<'_>) -> Self {
         Self {
             link: value.link.as_str(),
-            title: value.title.as_str(),
-            published_at: value.published.as_ref(),
-            description: value.description.as_deref(),
-            author: value.author.as_deref(),
-            thumbnail_url: value.thumbnail.as_ref().map(|e| e.as_str()),
+            title: value.title,
+            published_at: value.published,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail.map(|e| e.as_str()),
         }
     }
 }
