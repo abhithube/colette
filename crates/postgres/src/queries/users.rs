@@ -6,36 +6,38 @@ use nanoid::nanoid;
 use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
-pub struct SelectByEmailParams {
-    pub email: String,
+pub struct SelectByEmailParams<'a> {
+    pub email: &'a str,
 }
 
 #[derive(Debug)]
-pub struct InsertData {
+pub struct InsertData<'a> {
     pub id: String,
-    pub email: String,
-    pub password: String,
+    pub email: &'a str,
+    pub password: &'a str,
 }
 
-impl From<UserFindOneParams> for SelectByEmailParams {
-    fn from(value: UserFindOneParams) -> Self {
-        Self { email: value.email }
+impl<'a> From<&'a UserFindOneParams> for SelectByEmailParams<'a> {
+    fn from(value: &'a UserFindOneParams) -> Self {
+        Self {
+            email: value.email.as_str(),
+        }
     }
 }
 
-impl From<UserCreateData> for InsertData {
-    fn from(value: UserCreateData) -> Self {
+impl<'a> From<&'a UserCreateData> for InsertData<'a> {
+    fn from(value: &'a UserCreateData) -> Self {
         Self {
             id: nanoid!(),
-            email: value.email,
-            password: value.password,
+            email: value.email.as_str(),
+            password: value.password.as_str(),
         }
     }
 }
 
 pub async fn select_by_email(
     ex: impl PgExecutor<'_>,
-    params: SelectByEmailParams,
+    params: SelectByEmailParams<'_>,
 ) -> Result<User, Error> {
     let row = sqlx::query_file_as!(User, "queries/users/select_by_email.sql", params.email)
         .fetch_one(ex)
@@ -44,7 +46,7 @@ pub async fn select_by_email(
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<User, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<User, Error> {
     let row = sqlx::query_file_as!(
         User,
         "queries/users/insert.sql",

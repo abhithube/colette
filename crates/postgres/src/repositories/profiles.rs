@@ -23,7 +23,7 @@ impl ProfilesPostgresRepository {
 #[async_trait]
 impl ProfilesRepository for ProfilesPostgresRepository {
     async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
-        let results = profiles::select_many(&self.pool, params.into())
+        let results = profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -35,25 +35,28 @@ impl ProfilesRepository for ProfilesPostgresRepository {
             ProfileFindOneParams::ById(params) => {
                 let id = params.id.clone();
 
-                profiles::select_by_id(&self.pool, params.into())
+                profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(id),
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfileFindOneParams::Default { user_id } => {
-                profiles::select_default(&self.pool, SelectDefaultParams { user_id })
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-            }
+            ProfileFindOneParams::Default { user_id } => profiles::select_default(
+                &self.pool,
+                SelectDefaultParams {
+                    user_id: user_id.as_str(),
+                },
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?,
         };
 
         Ok(profile)
     }
 
     async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
-        let profile = profiles::insert(&self.pool, data.into())
+        let profile = profiles::insert(&self.pool, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -67,7 +70,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
     ) -> Result<Profile, Error> {
         let id = params.id.clone();
 
-        let profile = profiles::update(&self.pool, params.into(), data.into())
+        let profile = profiles::update(&self.pool, (&params).into(), (&data).into())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(id),
@@ -90,7 +93,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
 
         let id = params.id.clone();
 
-        profiles::delete(&self.pool, params.into())
+        profiles::delete(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(id),

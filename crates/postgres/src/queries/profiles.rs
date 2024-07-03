@@ -8,77 +8,77 @@ use nanoid::nanoid;
 use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
-pub struct SelectManyParams {
-    pub user_id: String,
+pub struct SelectManyParams<'a> {
+    pub user_id: &'a str,
 }
 
 #[derive(Debug)]
-pub struct SelectByIdParams {
+pub struct SelectByIdParams<'a> {
+    pub id: &'a str,
+    pub user_id: &'a str,
+}
+
+#[derive(Debug)]
+pub struct SelectDefaultParams<'a> {
+    pub user_id: &'a str,
+}
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
     pub id: String,
-    pub user_id: String,
-}
-
-#[derive(Debug)]
-pub struct SelectDefaultParams {
-    pub user_id: String,
-}
-
-#[derive(Debug)]
-pub struct InsertData {
-    pub id: String,
-    pub title: String,
-    pub image_url: Option<String>,
+    pub title: &'a str,
+    pub image_url: Option<&'a str>,
     pub is_default: bool,
-    pub user_id: String,
+    pub user_id: &'a str,
 }
 
 #[derive(Debug)]
-pub struct UpdateData {
-    pub title: Option<String>,
-    pub image_url: Option<String>,
+pub struct UpdateData<'a> {
+    pub title: Option<&'a str>,
+    pub image_url: Option<&'a str>,
 }
 
-impl From<ProfileFindManyParams> for SelectManyParams {
-    fn from(value: ProfileFindManyParams) -> Self {
+impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a ProfileFindManyParams) -> Self {
         Self {
-            user_id: value.user_id,
+            user_id: value.user_id.as_str(),
         }
     }
 }
 
-impl From<ProfileFindByIdParams> for SelectByIdParams {
-    fn from(value: ProfileFindByIdParams) -> Self {
+impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
+    fn from(value: &'a ProfileFindByIdParams) -> Self {
         Self {
-            id: value.id,
-            user_id: value.user_id,
+            id: value.id.as_str(),
+            user_id: value.user_id.as_str(),
         }
     }
 }
 
-impl From<ProfileCreateData> for InsertData {
-    fn from(value: ProfileCreateData) -> Self {
+impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
+    fn from(value: &'a ProfileCreateData) -> Self {
         Self {
             id: nanoid!(),
-            title: value.title,
-            image_url: value.image_url,
+            title: value.title.as_str(),
+            image_url: value.image_url.as_deref(),
             is_default: false,
-            user_id: value.user_id,
+            user_id: value.user_id.as_str(),
         }
     }
 }
 
-impl From<ProfileUpdateData> for UpdateData {
-    fn from(value: ProfileUpdateData) -> Self {
+impl<'a> From<&'a ProfileUpdateData> for UpdateData<'a> {
+    fn from(value: &'a ProfileUpdateData) -> Self {
         Self {
-            title: value.title,
-            image_url: value.image_url,
+            title: value.title.as_deref(),
+            image_url: value.image_url.as_deref(),
         }
     }
 }
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
-    params: SelectManyParams,
+    params: SelectManyParams<'_>,
 ) -> Result<Vec<Profile>, Error> {
     let rows = sqlx::query_file_as!(Profile, "queries/profiles/select_many.sql", params.user_id)
         .fetch_all(ex)
@@ -89,7 +89,7 @@ pub async fn select_many(
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams,
+    params: SelectByIdParams<'_>,
 ) -> Result<Profile, Error> {
     let row = sqlx::query_file_as!(
         Profile,
@@ -105,7 +105,7 @@ pub async fn select_by_id(
 
 pub async fn select_default(
     ex: impl PgExecutor<'_>,
-    params: SelectDefaultParams,
+    params: SelectDefaultParams<'_>,
 ) -> Result<Profile, Error> {
     let row = sqlx::query_file_as!(
         Profile,
@@ -118,7 +118,7 @@ pub async fn select_default(
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<Profile, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Profile, Error> {
     let row = sqlx::query_file_as!(
         Profile,
         "queries/profiles/insert.sql",
@@ -136,8 +136,8 @@ pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<Profile
 
 pub async fn update(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams,
-    data: UpdateData,
+    params: SelectByIdParams<'_>,
+    data: UpdateData<'_>,
 ) -> Result<Profile, Error> {
     let row = sqlx::query_file_as!(
         Profile,
@@ -155,7 +155,7 @@ pub async fn update(
 
 pub async fn update_default(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams,
+    params: SelectByIdParams<'_>,
 ) -> Result<Profile, Error> {
     let row = sqlx::query_file_as!(
         Profile,
@@ -169,7 +169,7 @@ pub async fn update_default(
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams) -> Result<(), Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams<'_>) -> Result<(), Error> {
     sqlx::query_file_as!(
         Profile,
         "queries/profiles/delete.sql",
