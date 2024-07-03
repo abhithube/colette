@@ -3,29 +3,29 @@ use colette_core::feeds::ProcessedEntry;
 use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
-pub struct InsertData {
-    pub link: String,
-    pub title: String,
-    pub published_at: Option<DateTime<Utc>>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<String>,
+pub struct InsertData<'a> {
+    pub link: &'a str,
+    pub title: &'a str,
+    pub published_at: Option<&'a DateTime<Utc>>,
+    pub description: Option<&'a str>,
+    pub author: Option<&'a str>,
+    pub thumbnail_url: Option<&'a str>,
 }
 
-impl From<ProcessedEntry> for InsertData {
-    fn from(value: ProcessedEntry) -> Self {
+impl<'a> From<&'a ProcessedEntry> for InsertData<'a> {
+    fn from(value: &'a ProcessedEntry) -> Self {
         Self {
-            link: value.link.as_str().to_owned(),
-            title: value.title,
-            published_at: value.published,
-            description: value.description,
-            author: value.author,
-            thumbnail_url: value.thumbnail.map(|e| e.as_str().to_owned()),
+            link: value.link.as_str(),
+            title: value.title.as_str(),
+            published_at: value.published.as_ref(),
+            description: value.description.as_deref(),
+            author: value.author.as_deref(),
+            thumbnail_url: value.thumbnail.as_ref().map(|e| e.as_str()),
         }
     }
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<i32, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<i32, Error> {
     let row = sqlx::query_file!(
         "queries/entries/insert.sql",
         data.link,

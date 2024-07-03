@@ -1,12 +1,12 @@
 use sqlx::{Error, PgExecutor};
 
 #[derive(Debug)]
-pub struct InsertData {
-    pub profile_feed_id: String,
+pub struct InsertData<'a> {
+    pub profile_feed_id: &'a str,
     pub feed_entry_id: i32,
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<String, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
     let row = sqlx::query_file!(
         "queries/profile_feed_entries/create.sql",
         data.profile_feed_id,

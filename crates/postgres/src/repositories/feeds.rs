@@ -28,17 +28,12 @@ impl FeedsRepository for FeedsPostgresRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let profile_id = data.profile_id.clone();
-
-        let link = data.feed.link.as_str().to_owned();
+        let link = data.feed.link.as_str();
+        let url = data.url.as_str();
         let x = feeds::InsertData {
-            link: link.clone(),
-            title: data.feed.title,
-            url: if data.url == link {
-                None
-            } else {
-                Some(data.url)
-            },
+            link,
+            title: data.feed.title.as_str(),
+            url: if url == link { None } else { Some(url) },
         };
 
         let feed_id = feeds::insert(&mut *tx, x)
@@ -48,7 +43,7 @@ impl FeedsRepository for FeedsPostgresRepository {
         let profile_feed_id = profile_feeds::create(
             &mut *tx,
             profile_feeds::InsertData {
-                profile_id: data.profile_id.clone(),
+                profile_id: data.profile_id.as_str(),
                 feed_id,
             },
         )
@@ -56,7 +51,7 @@ impl FeedsRepository for FeedsPostgresRepository {
         .map_err(|e| Error::Unknown(e.into()))?;
 
         for e in data.feed.entries {
-            let entry_id = entries::insert(&mut *tx, e.into())
+            let entry_id = entries::insert(&mut *tx, (&e).into())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -68,7 +63,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             profile_feed_entries::insert(
                 &mut *tx,
                 profile_feed_entries::InsertData {
-                    profile_feed_id: profile_feed_id.clone(),
+                    profile_feed_id: profile_feed_id.as_str(),
                     feed_entry_id,
                 },
             )
@@ -79,8 +74,8 @@ impl FeedsRepository for FeedsPostgresRepository {
         let feed = profile_feeds::find_one(
             &mut *tx,
             FindOneParams {
-                id: profile_feed_id,
-                profile_id,
+                id: profile_feed_id.as_str(),
+                profile_id: data.profile_id.as_str(),
             },
         )
         .await

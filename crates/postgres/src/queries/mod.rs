@@ -7,7 +7,7 @@ pub mod profiles;
 pub mod users;
 
 #[derive(Debug)]
-pub struct FindOneParams {
-    pub id: String,
-    pub profile_id: String,
+pub struct FindOneParams<'a> {
+    pub id: &'a str,
+    pub profile_id: &'a str,
 }
