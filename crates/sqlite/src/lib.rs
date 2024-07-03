@@ -1,4 +1,4 @@
 mod queries;
 mod repositories;
 
-pub use repositories::users::UsersSqliteRepository;
+pub use repositories::{profiles::ProfilesSqliteRepository, users::UsersSqliteRepository};
