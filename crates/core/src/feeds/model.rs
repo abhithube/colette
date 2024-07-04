@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 #[derive(Debug, Serialize)]
@@ -13,6 +13,12 @@ pub struct Feed {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub unread_count: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFeedDto {
+    pub url: Url,
 }
 
 #[derive(Debug)]
