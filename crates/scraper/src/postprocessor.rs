@@ -8,26 +8,22 @@ use url::Url;
 
 pub struct DefaultFeedPostprocessor {}
 
-impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
-    fn postprocess(
-        &self,
-        _url: &str,
-        extracted: &'a ExtractedFeed,
-    ) -> Result<ProcessedFeed, Error> {
+impl Postprocessor<ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
+    fn postprocess(&self, _url: &str, extracted: ExtractedFeed) -> Result<ProcessedFeed, Error> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
             return Err(Error(anyhow!("could not process feed link")));
         };
-        let Some(title) = extracted.title.clone() else {
+        let Some(title) = extracted.title else {
             return Err(Error(anyhow!("could not process feed title")));
         };
 
         let mut entries: Vec<ProcessedEntry> = vec![];
 
-        for e in extracted.entries.iter() {
+        for e in extracted.entries.into_iter() {
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
                 return Err(Error(anyhow!("could not process entry link")));
             };
-            let Some(title) = e.title.clone() else {
+            let Some(title) = e.title else {
                 return Err(Error(anyhow!("could not process entry title")));
             };
             let published = e
@@ -40,8 +36,8 @@ impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed> for DefaultFeedPostproc
                 link,
                 title,
                 published,
-                description: e.description.clone(),
-                author: e.author.clone(),
+                description: e.description,
+                author: e.author,
                 thumbnail,
             };
             entries.push(entry);
