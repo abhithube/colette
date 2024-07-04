@@ -20,3 +20,7 @@ pub enum Error {
     #[error(transparent)]
     Postprocess(#[from] postprocessor::Error),
 }
+
+pub use downloader::Downloader;
+pub use extractor::Extractor;
+pub use postprocessor::Postprocessor;

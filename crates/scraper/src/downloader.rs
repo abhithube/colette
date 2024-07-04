@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use bytes::Bytes;
-use colette_core::scraper::downloader::{Downloader, Error};
+use colette_core::scraper::{downloader::Error, Downloader};
 use http::Response;
 
 pub struct DefaultDownloader {}
