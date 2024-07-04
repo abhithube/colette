@@ -21,6 +21,7 @@ use tower_sessions_sqlx_store::PostgresStore;
 mod api;
 mod auth;
 mod error;
+mod feeds;
 mod profiles;
 mod session;
 
@@ -71,6 +72,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // let users_repository = Arc::new(UsersSqliteRepository::new(pool.clone()));
     // let profiles_repository = Arc::new(ProfilesSqliteRepository::new(pool.clone()));
+    // let feeds_repository = Arc::new(FeedsSqliteRepository::new(pool.clone()));
 
     let argon_hasher = Arc::new(Argon2Hasher::default());
     let auth_service = Arc::new(AuthService::new(
@@ -79,11 +81,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         argon_hasher,
     ));
     let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
-    let _ = Arc::new(FeedsService::new(feeds_repository, Arc::new(scraper)));
+    let feeds_service = Arc::new(FeedsService::new(feeds_repository, Arc::new(scraper)));
 
     let state = api::Context {
         auth_service,
         profiles_service,
+        feeds_service,
     };
 
     let app = Router::new()
@@ -91,6 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "/api",
             Router::new()
                 .merge(auth::router())
+                .merge(feeds::router())
                 .merge(profiles::router())
                 .with_state(state),
         )

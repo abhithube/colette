@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
-use colette_core::{auth::AuthService, profiles::ProfilesService};
+use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
 
 pub const SESSION_KEY: &str = "session";
 
@@ -9,4 +9,5 @@ pub const SESSION_KEY: &str = "session";
 pub struct Context {
     pub auth_service: Arc<AuthService>,
     pub profiles_service: Arc<ProfilesService>,
+    pub feeds_service: Arc<FeedsService>,
 }
