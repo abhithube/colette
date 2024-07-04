@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  pf AS (\n    INSERT INTO\n      profile_feeds (id, profile_id, feed_id)\n    VALUES\n      ($1, $2, $3)\n    ON CONFLICT (profile_id, feed_id) DO nothing\n    RETURNING\n      id\n  )\nSELECT\n  id \"id!\"\nFROM\n  pf\nUNION ALL\nSELECT\n  id\nFROM\n  profile_feeds\nWHERE\n  profile_id = $2\n  AND feed_id = $3;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "cd42f16895bf780b2838823a424ab9b0f3afaf3ab90594da3469ea6ccfef427b"
+}
