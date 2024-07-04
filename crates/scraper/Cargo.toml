@@ -11,4 +11,5 @@ chrono.workspace = true
 colette-core.workspace = true
 http.workspace = true
 reqwest = "0.12.5"
+skyscraper = "0.7.0-beta.1"
 url.workspace = true
