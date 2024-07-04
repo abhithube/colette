@@ -1,11 +1,29 @@
 use colette_core::Feed;
-use colette_database::{profile_feeds::InsertData, FindOneParams};
+use colette_database::{
+    profile_feeds::{InsertData, SelectManyParams},
+    FindOneParams,
+};
 use sqlx::{Error, SqliteExecutor};
 
 #[derive(Debug)]
 pub struct SelectParams<'a> {
     pub profile_id: &'a str,
     pub feed_id: i64,
+}
+
+pub async fn select_many(
+    ex: impl SqliteExecutor<'_>,
+    params: SelectManyParams<'_>,
+) -> Result<Vec<Feed>, Error> {
+    let rows = sqlx::query_file_as!(
+        Feed,
+        "queries/profile_feeds/select_many.sql",
+        params.profile_id
+    )
+    .fetch_all(ex)
+    .await?;
+
+    Ok(rows)
 }
 
 pub async fn select_by_id(
