@@ -1,16 +1,15 @@
 use super::{model::CreateFeedDto, Error, FeedsRepository, ProcessedFeed};
 use crate::{common::Session, feeds::FeedCreateData, scraper::Scraper, Feed};
-use std::sync::Arc;
 
 pub struct FeedsService {
-    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-    scraper: Arc<dyn for<'a> Scraper<ProcessedFeed> + Send + Sync>,
+    feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
+    scraper: Box<dyn Scraper<ProcessedFeed> + Send + Sync>,
 }
 
 impl FeedsService {
     pub fn new(
-        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-        scraper: Arc<dyn for<'a> Scraper<ProcessedFeed> + Send + Sync>,
+        feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
+        scraper: Box<dyn Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
             feeds_repo,

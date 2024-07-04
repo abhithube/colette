@@ -11,6 +11,7 @@ use sqlx::PgPool;
 
 use crate::queries::profiles;
 
+#[derive(Clone)]
 pub struct ProfilesPostgresRepository {
     pool: PgPool,
 }

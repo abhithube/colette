@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     let postprocessor = Box::new(DefaultFeedPostprocessor {});
 
-    let scraper = FeedScraper {
+    let scraper = Box::new(FeedScraper {
         registry: PluginRegistry {
             downloaders: HashMap::new(),
             extractors: HashMap::new(),
@@ -44,7 +44,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         default_downloader: downloader,
         default_extractor: extractor,
         default_postprocessor: postprocessor,
-    };
+    });
 
     let database_url = env::var("DATABASE_URL")?;
 
@@ -66,22 +66,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_secure(false)
         .with_expiry(Expiry::OnInactivity(Duration::days(1)));
 
-    let users_repository = Arc::new(UsersPostgresRepository::new(pool.clone()));
-    let profiles_repository = Arc::new(ProfilesPostgresRepository::new(pool.clone()));
-    let feeds_repository = Arc::new(FeedsPostgresRepository::new(pool.clone()));
+    let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
+    let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
+    let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
 
     // let users_repository = Arc::new(UsersSqliteRepository::new(pool.clone()));
     // let profiles_repository = Arc::new(ProfilesSqliteRepository::new(pool.clone()));
     // let feeds_repository = Arc::new(FeedsSqliteRepository::new(pool.clone()));
-
-    let argon_hasher = Arc::new(Argon2Hasher::default());
-    let auth_service = Arc::new(AuthService::new(
-        users_repository,
-        profiles_repository.clone(),
-        argon_hasher,
-    ));
+    let argon_hasher = Box::new(Argon2Hasher::default());
+    let a = AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
+    let auth_service = Arc::new(a);
     let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
-    let feeds_service = Arc::new(FeedsService::new(feeds_repository, Arc::new(scraper)));
+    let feeds_service = Arc::new(FeedsService::new(feeds_repository, scraper));
 
     let state = api::Context {
         auth_service,

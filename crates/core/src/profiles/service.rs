@@ -1,21 +1,18 @@
-use std::sync::Arc;
-
+use super::{
+    CreateProfileDto, Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
+    ProfileFindOneParams, ProfilesRepository, UpdateProfileDto,
+};
 use crate::{
     common::{Paginated, Session},
     Profile,
 };
 
-use super::{
-    CreateProfileDto, Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
-    ProfileFindOneParams, ProfilesRepository, UpdateProfileDto,
-};
-
 pub struct ProfilesService {
-    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+    profiles_repo: Box<dyn ProfilesRepository + Send + Sync>,
 }
 
 impl ProfilesService {
-    pub fn new(profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>) -> Self {
+    pub fn new(profiles_repo: Box<dyn ProfilesRepository + Send + Sync>) -> Self {
         Self { profiles_repo }
     }
 
