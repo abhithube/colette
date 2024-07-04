@@ -338,6 +338,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "colette-database",
+ "nanoid",
  "sqlx",
 ]
 
@@ -364,6 +365,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "colette-database",
+ "nanoid",
  "sqlx",
 ]
 

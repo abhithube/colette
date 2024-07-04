@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO\n  profile_feeds (id, profile_id, feed_id)\nVALUES\n  (?1, ?2, ?3)\nON CONFLICT (profile_id, feed_id) DO NOTHING RETURNING id;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "171a56fa1977d5be44b330b5bc8f2982fef01750ad0eb7aa3ea51e4e5557ad76"
+}

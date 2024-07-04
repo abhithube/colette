@@ -4,6 +4,7 @@ use sqlx::{Error, PgExecutor};
 pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
     let row = sqlx::query_file!(
         "queries/profile_feed_entries/insert.sql",
+        data.id,
         data.profile_feed_id,
         data.feed_entry_id
     )

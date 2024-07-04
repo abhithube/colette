@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  profile_feeds (profile_id, feed_id)\nVALUES\n  ($1, $2)\nON CONFLICT (profile_id, feed_id) DO nothing\nRETURNING\n  id;",
+  "query": "INSERT INTO\n  profile_feeds (id, profile_id, feed_id)\nVALUES\n  ($1, $2, $3)\nON CONFLICT (profile_id, feed_id) DO nothing\nRETURNING\n  id;",
   "describe": {
     "columns": [
       {
@@ -12,6 +12,7 @@
     "parameters": {
       "Left": [
         "Text",
+        "Text",
         "Int8"
       ]
     },
@@ -19,5 +20,5 @@
       false
     ]
   },
-  "hash": "1daf9b74d2d9ded098888ecb7ef87008cc74451548e7708f9b3645547c0c7747"
+  "hash": "142eef58ffd2e498d4e200a628f11ade0a70a42b9984a7687e048de514347d7e"
 }

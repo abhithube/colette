@@ -5,6 +5,7 @@ use colette_core::{
     Feed,
 };
 use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
+use nanoid::nanoid;
 use sqlx::SqlitePool;
 
 pub struct FeedsSqliteRepository {
@@ -33,6 +34,7 @@ impl FeedsRepository for FeedsSqliteRepository {
         let result = queries::profile_feeds::insert(
             &mut *tx,
             profile_feeds::InsertData {
+                id: nanoid!(),
                 profile_id: data.profile_id,
                 feed_id,
             },
@@ -75,6 +77,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             queries::profile_feed_entries::insert(
                 &mut *tx,
                 profile_feed_entries::InsertData {
+                    id: nanoid!(),
                     profile_feed_id,
                     feed_entry_id,
                 },

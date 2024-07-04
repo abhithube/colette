@@ -42,6 +42,7 @@ pub async fn select(
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
     let row = sqlx::query_file!(
         "queries/profile_feeds/insert.sql",
+        data.id,
         data.profile_id,
         data.feed_id
     )
