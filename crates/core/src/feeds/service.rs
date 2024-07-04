@@ -1,5 +1,10 @@
-use super::{model::CreateFeedDto, Error, FeedsRepository, ProcessedFeed};
-use crate::{common::Session, feeds::FeedCreateData, scraper::Scraper, Feed};
+use super::{model::CreateFeedDto, Error, FeedFindManyParams, FeedsRepository, ProcessedFeed};
+use crate::{
+    common::{FindOneParams, Paginated, Session},
+    feeds::FeedCreateData,
+    scraper::Scraper,
+    Feed,
+};
 
 pub struct FeedsService {
     feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
@@ -15,6 +20,30 @@ impl FeedsService {
             feeds_repo,
             scraper,
         }
+    }
+
+    pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
+        let params = FeedFindManyParams {
+            profile_id: session.profile_id.as_str(),
+        };
+        let feeds = self.feeds_repo.find_many(params).await?;
+
+        let paginated = Paginated::<Feed> {
+            has_more: false,
+            data: feeds,
+        };
+
+        Ok(paginated)
+    }
+
+    pub async fn get(&self, id: String, session: Session) -> Result<Feed, Error> {
+        let params = FindOneParams {
+            id: id.as_str(),
+            profile_id: session.profile_id.as_str(),
+        };
+        let feed = self.feeds_repo.find_one(params).await?;
+
+        Ok(feed)
     }
 
     pub async fn create(&self, dto: CreateFeedDto, session: Session) -> Result<Feed, Error> {
