@@ -2,8 +2,14 @@ pub mod downloader;
 pub mod extractor;
 pub mod postprocessor;
 
+use async_trait::async_trait;
+pub use downloader::Downloader;
+pub use extractor::Extractor;
+pub use postprocessor::Postprocessor;
+
+#[async_trait]
 pub trait Scraper<T> {
-    fn scrape(&self, url: &str) -> Result<T, Error>;
+    async fn scrape(&self, url: &str) -> Result<T, Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -20,7 +26,3 @@ pub enum Error {
     #[error(transparent)]
     Postprocess(#[from] postprocessor::Error),
 }
-
-pub use downloader::Downloader;
-pub use extractor::Extractor;
-pub use postprocessor::Postprocessor;
