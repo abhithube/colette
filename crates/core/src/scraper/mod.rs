@@ -3,7 +3,7 @@ pub mod extractor;
 pub mod postprocessor;
 
 pub trait Scraper<T> {
-    fn scrape(url: String) -> Result<T, Error>;
+    fn scrape(&self, url: &str) -> Result<T, Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
