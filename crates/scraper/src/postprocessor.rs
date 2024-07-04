@@ -21,9 +21,9 @@ impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPost
             return Err(Error(anyhow!("could not process feed title")));
         };
 
-        let entries: &mut [ProcessedEntry] = &mut [];
+        let mut entries: Vec<ProcessedEntry> = vec![];
 
-        for (i, e) in extracted.entries.iter().enumerate() {
+        for e in extracted.entries.iter() {
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
                 return Err(Error(anyhow!("could not process entry link")));
             };
@@ -44,7 +44,7 @@ impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPost
                 author: e.author.as_deref(),
                 thumbnail,
             };
-            entries[i] = entry
+            entries.push(entry);
         }
 
         let feed = ProcessedFeed {

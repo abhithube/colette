@@ -42,7 +42,7 @@ impl FeedsRepository for FeedsPostgresRepository {
         let profile_feed_id = profile_feed_id.as_str();
 
         for e in data.feed.entries {
-            let entry_id = queries::entries::insert(&mut *tx, e.into())
+            let entry_id = queries::entries::insert(&mut *tx, (&e).into())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 

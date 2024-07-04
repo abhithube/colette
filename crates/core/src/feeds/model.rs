@@ -49,7 +49,7 @@ pub struct ExtractedEntry {
 pub struct ProcessedFeed<'a> {
     pub link: Url,
     pub title: &'a str,
-    pub entries: &'a [ProcessedEntry<'a>],
+    pub entries: Vec<ProcessedEntry<'a>>,
 }
 
 #[derive(Debug)]
