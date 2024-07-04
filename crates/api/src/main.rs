@@ -1,9 +1,15 @@
-use std::{env, error::Error, sync::Arc};
+use std::{collections::HashMap, env, error::Error, sync::Arc};
 
 use axum::Router;
-use colette_core::{auth::AuthService, profiles::ProfilesService};
+use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
-use colette_postgres::{ProfilesPostgresRepository, UsersPostgresRepository};
+use colette_postgres::{
+    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
+};
+use colette_scraper::{
+    AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
+    ExtractorOptions, FeedScraper, PluginRegistry,
+};
 // use colette_sqlite::{ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
@@ -20,6 +26,25 @@ mod session;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let downloader = Box::new(DefaultDownloader {});
+    let extractor = Box::new(DefaultFeedExtractor {
+        options: ExtractorOptions {
+            ..AtomExtractorOptions::default().inner()
+        },
+    });
+    let postprocessor = Box::new(DefaultFeedPostprocessor {});
+
+    let scraper = FeedScraper {
+        registry: PluginRegistry {
+            downloaders: HashMap::new(),
+            extractors: HashMap::new(),
+            postprocessors: HashMap::new(),
+        },
+        default_downloader: downloader,
+        default_extractor: extractor,
+        default_postprocessor: postprocessor,
+    };
+
     let database_url = env::var("DATABASE_URL")?;
 
     let pool = colette_postgres::create_database(&database_url).await?;
@@ -27,6 +52,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let session_store = PostgresStore::new(pool.clone());
     // let session_store = SqliteStore::new(pool.clone());
+
     session_store.migrate().await?;
 
     let deletion_task = task::spawn(
@@ -41,6 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let users_repository = Arc::new(UsersPostgresRepository::new(pool.clone()));
     let profiles_repository = Arc::new(ProfilesPostgresRepository::new(pool.clone()));
+    let feeds_repository = Arc::new(FeedsPostgresRepository::new(pool.clone()));
 
     // let users_repository = Arc::new(UsersSqliteRepository::new(pool.clone()));
     // let profiles_repository = Arc::new(ProfilesSqliteRepository::new(pool.clone()));
@@ -52,6 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         argon_hasher,
     ));
     let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
+    let _ = Arc::new(FeedsService::new(feeds_repository, Arc::new(scraper)));
 
     let state = api::Context {
         auth_service,

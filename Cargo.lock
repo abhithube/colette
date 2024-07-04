@@ -285,9 +285,11 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "colette-core",
  "colette-password",
  "colette-postgres",
+ "colette-scraper",
  "colette-sqlite",
  "serde",
  "thiserror",

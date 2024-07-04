@@ -5,9 +5,11 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["macros"] }
+bytes.workspace = true
 colette-core.workspace = true
 colette-password.workspace = true
 colette-postgres.workspace = true
+colette-scraper.workspace = true
 colette-sqlite.workspace = true
 serde.workspace = true
 thiserror.workspace = true
