@@ -7,6 +7,11 @@ pub struct Paginated<T: Serialize> {
     pub data: Vec<T>,
 }
 
+pub struct FindOneParams<'a> {
+    pub id: &'a str,
+    pub profile_id: &'a str,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
     pub user_id: String,

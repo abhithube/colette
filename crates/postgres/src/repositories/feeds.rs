@@ -1,7 +1,8 @@
 use crate::queries;
 use async_trait::async_trait;
 use colette_core::{
-    feeds::{Error, FeedCreateData, FeedsRepository},
+    common,
+    feeds::{Error, FeedCreateData, FeedFindManyParams, FeedsRepository},
     Feed,
 };
 use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
@@ -20,6 +21,27 @@ impl FeedsPostgresRepository {
 
 #[async_trait]
 impl FeedsRepository for FeedsPostgresRepository {
+    async fn find_many(&self, params: FeedFindManyParams<'_>) -> Result<Vec<Feed>, Error> {
+        let feeds = queries::profile_feeds::select_many(&self.pool, (&params).into())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(feeds)
+    }
+
+    async fn find_one(&self, params: common::FindOneParams<'_>) -> Result<Feed, Error> {
+        let id = params.id.to_owned();
+
+        let feed = queries::profile_feeds::select_by_id(&self.pool, (&params).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        Ok(feed)
+    }
+
     async fn create(&self, data: FeedCreateData<'_>) -> Result<Feed, Error> {
         let mut tx = self
             .pool
