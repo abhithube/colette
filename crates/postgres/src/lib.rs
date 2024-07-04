@@ -9,5 +9,9 @@ pub use repositories::{
 };
 
 pub async fn create_database(url: &str) -> Result<PgPool, Error> {
-    PgPool::connect(url).await
+    let pool = PgPool::connect(url).await?;
+
+    sqlx::migrate!().run(&pool).await?;
+
+    Ok(pool)
 }

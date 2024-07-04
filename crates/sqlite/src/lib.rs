@@ -7,5 +7,9 @@ pub use repositories::{
 use sqlx::{Error, SqlitePool};
 
 pub async fn create_database(url: &str) -> Result<SqlitePool, Error> {
-    SqlitePool::connect(url).await
+    let pool = SqlitePool::connect(url).await?;
+
+    sqlx::migrate!().run(&pool).await?;
+
+    Ok(pool)
 }
