@@ -8,16 +8,16 @@ use url::Url;
 
 pub struct DefaultFeedPostprocessor {}
 
-impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPostprocessor {
+impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
     fn postprocess(
         &self,
         _url: &str,
         extracted: &'a ExtractedFeed,
-    ) -> Result<ProcessedFeed<'a>, Error> {
+    ) -> Result<ProcessedFeed, Error> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
             return Err(Error(anyhow!("could not process feed link")));
         };
-        let Some(title) = extracted.title.as_ref() else {
+        let Some(title) = extracted.title.clone() else {
             return Err(Error(anyhow!("could not process feed title")));
         };
 
@@ -27,7 +27,7 @@ impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPost
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
                 return Err(Error(anyhow!("could not process entry link")));
             };
-            let Some(title) = e.title.as_ref() else {
+            let Some(title) = e.title.clone() else {
                 return Err(Error(anyhow!("could not process entry title")));
             };
             let published = e
@@ -40,8 +40,8 @@ impl<'a> Postprocessor<'a, ExtractedFeed, ProcessedFeed<'a>> for DefaultFeedPost
                 link,
                 title,
                 published,
-                description: e.description.as_deref(),
-                author: e.author.as_deref(),
+                description: e.description.clone(),
+                author: e.author.clone(),
                 thumbnail,
             };
             entries.push(entry);

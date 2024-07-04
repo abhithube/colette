@@ -13,7 +13,7 @@ impl<'a> From<&'a FeedCreateData<'_>> for InsertData<'a> {
 
         Self {
             link,
-            title: value.feed.title,
+            title: value.feed.title.as_str(),
             url: if value.url == link {
                 None
             } else {

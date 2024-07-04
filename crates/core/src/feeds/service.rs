@@ -4,13 +4,13 @@ use std::sync::Arc;
 
 pub struct FeedsService {
     feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-    scraper: Arc<dyn for<'a> Scraper<ProcessedFeed<'a>> + Send + Sync>,
+    scraper: Arc<dyn for<'a> Scraper<ProcessedFeed> + Send + Sync>,
 }
 
 impl FeedsService {
     pub fn new(
         feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-        scraper: Arc<dyn for<'a> Scraper<ProcessedFeed<'a>> + Send + Sync>,
+        scraper: Arc<dyn for<'a> Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
             feeds_repo,
