@@ -1,10 +1,10 @@
-mod queries;
-mod repositories;
-
 pub use repositories::{
     feeds::FeedsSqliteRepository, profiles::ProfilesSqliteRepository, users::UsersSqliteRepository,
 };
 use sqlx::{Error, SqlitePool};
+
+mod queries;
+mod repositories;
 
 pub async fn create_database(url: &str) -> Result<SqlitePool, Error> {
     let pool = SqlitePool::connect(url).await?;

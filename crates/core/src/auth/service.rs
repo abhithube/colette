@@ -1,11 +1,10 @@
+use super::{Error, LoginDto, RegisterDto};
 use crate::{
     profiles::{ProfileFindOneParams, ProfilesRepository},
     users::{UserCreateData, UserFindOneParams, UsersRepository},
     utils::password::PasswordHasher,
     Profile, User,
 };
-
-use super::{Error, LoginDto, RegisterDto};
 
 pub struct AuthService {
     users_repo: Box<dyn UsersRepository + Send + Sync>,

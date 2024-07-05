@@ -1,5 +1,6 @@
-use super::{Error, Profile};
 use async_trait::async_trait;
+
+use super::{Error, Profile};
 
 #[async_trait]
 pub trait ProfilesRepository {

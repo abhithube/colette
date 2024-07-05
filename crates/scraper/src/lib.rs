@@ -1,9 +1,3 @@
-mod downloader;
-mod extractor;
-mod options;
-mod postprocessor;
-mod registry;
-
 use async_trait::async_trait;
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions};
 use colette_core::{
@@ -16,6 +10,12 @@ pub use options::{AtomExtractorOptions, RssExtractorOptions};
 pub use postprocessor::DefaultFeedPostprocessor;
 pub use registry::PluginRegistry;
 use url::Url;
+
+mod downloader;
+mod extractor;
+mod options;
+mod postprocessor;
+mod registry;
 
 pub struct FeedScraper {
     pub registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,

@@ -1,4 +1,3 @@
-use crate::queries;
 use async_trait::async_trait;
 use colette_core::{
     profiles::{
@@ -9,6 +8,8 @@ use colette_core::{
 };
 use colette_database::profiles::SelectDefaultParams;
 use sqlx::SqlitePool;
+
+use crate::queries;
 
 pub struct ProfilesSqliteRepository {
     pool: SqlitePool,

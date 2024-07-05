@@ -1,7 +1,7 @@
-use crate::common::FindOneParams;
+use async_trait::async_trait;
 
 use super::{Error, Feed, ProcessedFeed};
-use async_trait::async_trait;
+use crate::common::FindOneParams;
 
 #[async_trait]
 pub trait FeedsRepository {

@@ -8,9 +8,8 @@ use axum::{
 };
 use colette_core::profiles::ProfilesService;
 
-use crate::{api::Paginated, error::Error, session::SessionAuth};
-
 use super::model::CreateProfile;
+use crate::{api::Paginated, error::Error, session::SessionAuth};
 
 #[axum::debug_handler]
 #[utoipa::path(

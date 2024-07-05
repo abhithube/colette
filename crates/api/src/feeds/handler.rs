@@ -1,13 +1,14 @@
-use crate::{api::Paginated, error::Error, session::SessionAuth};
+use std::sync::Arc;
+
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
     Json,
 };
 use colette_core::feeds::FeedsService;
-use std::sync::Arc;
 
 use super::model::CreateFeed;
+use crate::{api::Paginated, error::Error, session::SessionAuth};
 
 #[axum::debug_handler]
 #[utoipa::path(

@@ -1,5 +1,6 @@
-use super::{Error, User};
 use async_trait::async_trait;
+
+use super::{Error, User};
 
 #[async_trait]
 pub trait UsersRepository {

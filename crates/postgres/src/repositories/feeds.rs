@@ -1,4 +1,3 @@
-use crate::queries;
 use async_trait::async_trait;
 use colette_core::{
     common,
@@ -8,6 +7,8 @@ use colette_core::{
 use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
 use nanoid::nanoid;
 use sqlx::PgPool;
+
+use crate::queries;
 
 pub struct FeedsPostgresRepository {
     pool: PgPool,
