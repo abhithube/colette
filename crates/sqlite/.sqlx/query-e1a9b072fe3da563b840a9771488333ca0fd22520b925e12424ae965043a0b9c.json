@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO\n  profiles (id, title, image_url, is_default, user_id)\nVALUES\n  ($1, $2, $3, $4, $5)\nRETURNING\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\";\n",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "image_url",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "user_id",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 5,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e1a9b072fe3da563b840a9771488333ca0fd22520b925e12424ae965043a0b9c"
+}

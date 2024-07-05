@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\"\nFROM\n  profiles\nWHERE\n  user_id = ?1;",
+  "query": "SELECT\n  id,\n  email,\n  password,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\"\nFROM\n  users\nWHERE\n  email = $1;",
   "describe": {
     "columns": [
       {
@@ -9,28 +9,23 @@
         "type_info": "Text"
       },
       {
-        "name": "title",
+        "name": "email",
         "ordinal": 1,
         "type_info": "Text"
       },
       {
-        "name": "image_url",
+        "name": "password",
         "ordinal": 2,
         "type_info": "Text"
       },
       {
-        "name": "user_id",
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
         "ordinal": 3,
         "type_info": "Text"
       },
       {
-        "name": "created_at: chrono::DateTime<chrono::Utc>",
-        "ordinal": 4,
-        "type_info": "Text"
-      },
-      {
         "name": "updated_at: chrono::DateTime<chrono::Utc>",
-        "ordinal": 5,
+        "ordinal": 4,
         "type_info": "Text"
       }
     ],
@@ -40,11 +35,10 @@
     "nullable": [
       false,
       false,
-      true,
       false,
       false,
       false
     ]
   },
-  "hash": "76f54b6103267fa3ccb1cffb00764bb2cb8874eea4379e638969cbb55405af35"
+  "hash": "5aaaf03602d1f939e716dad5ddf4fe71bd51590b807955ab0cccaa6f82d5e404"
 }

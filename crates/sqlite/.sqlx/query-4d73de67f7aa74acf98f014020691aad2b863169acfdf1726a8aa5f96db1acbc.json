@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO\n  users (id, email, password)\nVALUES\n  (?1, ?2, ?3) RETURNING id,\n  email,\n  password,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\";\n",
+  "query": "INSERT INTO\n  users (id, email, password)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id,\n  email,\n  password,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\";\n",
   "describe": {
     "columns": [
       {
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "471609dd484750f2430a107700f21e4326febf52cfd905198d7cbef1423d087c"
+  "hash": "4d73de67f7aa74acf98f014020691aad2b863169acfdf1726a8aa5f96db1acbc"
 }

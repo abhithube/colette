@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO\n  feed_entries (feed_id, entry_id)\nVALUES\n  (?1, ?2)\nON CONFLICT (feed_id, entry_id) DO NOTHING RETURNING id;",
+  "query": "INSERT INTO\n  feed_entries (feed_id, entry_id)\nVALUES\n  ($1, $2)\nON CONFLICT (feed_id, entry_id) DO nothing\nRETURNING\n  id;",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "a53a718c028da1e0a68dce9d9a50fb90694ec2118d1166b6d27f7034dad6881e"
+  "hash": "2c8a0466472451fa34bc078a442818f1a48d207121491583759500692a8d0a6c"
 }

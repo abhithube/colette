@@ -14,7 +14,7 @@ FROM
   LEFT JOIN profile_feed_entries pfe ON pfe.feed_entry_id = fe.id
   AND pfe.has_read = 0
 WHERE
-  pf.profile_id = ?1
+  pf.profile_id = $1
 GROUP BY
   pf.id,
   f.link,

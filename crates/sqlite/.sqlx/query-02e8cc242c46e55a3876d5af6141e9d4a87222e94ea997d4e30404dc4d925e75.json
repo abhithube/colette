@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "UPDATE profiles\nSET\n  title = coalesce(?3, title),\n  image_url = coalesce(?4, image_url)\nWHERE\n  id = ?1\n  AND user_id = ?2 RETURNING id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\";",
+  "query": "SELECT\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\"\nFROM\n  profiles\nWHERE\n  user_id = $1\n  AND is_default = 1;\n",
   "describe": {
     "columns": [
       {
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 4
+      "Right": 1
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "a1cbb0962e61e70fd88145e0e7ccfe60ba45222f7cb2834877a87254c9a9c51d"
+  "hash": "02e8cc242c46e55a3876d5af6141e9d4a87222e94ea997d4e30404dc4d925e75"
 }

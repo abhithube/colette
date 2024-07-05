@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM profiles\nWHERE\n  id = $1\n  AND user_id = $2;\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "5e1a91f934d760e44e5d34b5f46d05ea99cd5dc76ae86e422e4d0b595f45cd1e"
+}

@@ -3,5 +3,5 @@ SELECT
 FROM
   profile_feeds
 WHERE
-  profile_id = ?1
-  AND feed_id = ?2;
+  profile_id = $1
+  AND feed_id = $2;

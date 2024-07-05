@@ -2,8 +2,10 @@ UPDATE profiles
 SET
   is_default = 1
 WHERE
-  id = ?1
-  AND user_id = ?2 RETURNING id,
+  id = $1
+  AND user_id = $2
+RETURNING
+  id,
   title,
   image_url,
   user_id,

@@ -8,5 +8,5 @@ SELECT
 FROM
   profiles
 WHERE
-  user_id = ?1
+  user_id = $1
   AND is_default = 1;

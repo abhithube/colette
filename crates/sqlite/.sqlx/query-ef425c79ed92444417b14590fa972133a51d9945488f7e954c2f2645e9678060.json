@@ -1,12 +1,12 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  id\nFROM\n  profile_feeds\nWHERE\n  profile_id = ?1\n  AND feed_id = ?2;",
+  "query": "SELECT\n  id\nFROM\n  feed_entries\nWHERE\n  feed_id = $1\n  AND entry_id = $2;",
   "describe": {
     "columns": [
       {
         "name": "id",
         "ordinal": 0,
-        "type_info": "Text"
+        "type_info": "Int64"
       }
     ],
     "parameters": {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "f572cc94b6dd524b9b71890108a73abcc5b1bbf96460f075d22a47b132596134"
+  "hash": "ef425c79ed92444417b14590fa972133a51d9945488f7e954c2f2645e9678060"
 }

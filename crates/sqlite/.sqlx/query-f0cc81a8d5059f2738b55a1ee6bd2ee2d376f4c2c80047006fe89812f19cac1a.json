@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO\n  feeds (link, title, url)\nVALUES\n  ($1, $2, $3)\nON CONFLICT (link) DO\nUPDATE\nSET\n  title = excluded.title,\n  url = excluded.url\nRETURNING\n  id;",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f0cc81a8d5059f2738b55a1ee6bd2ee2d376f4c2c80047006fe89812f19cac1a"
+}
