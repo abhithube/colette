@@ -1,10 +1,8 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 
 use super::ProfileUpdateData;
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct Profile {
     pub id: String,
     pub title: String,
@@ -14,15 +12,13 @@ pub struct Profile {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct CreateProfileDto {
     pub title: String,
     pub image_url: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug)]
 pub struct UpdateProfileDto {
     pub title: Option<String>,
     pub image_url: Option<String>,
