@@ -47,11 +47,7 @@ impl FeedsService {
     }
 
     pub async fn create(&self, data: CreateFeed<'_>, session: Session<'_>) -> Result<Feed, Error> {
-        let scraped = self
-            .scraper
-            .scrape(data.url)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let scraped = self.scraper.scrape(data.url).await?;
 
         let data = FeedCreateData {
             url: data.url,
