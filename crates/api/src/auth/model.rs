@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::auth::{LoginDto, RegisterDto};
+use colette_core::auth;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -43,20 +43,20 @@ impl From<colette_core::User> for User {
     }
 }
 
-impl From<Register> for RegisterDto {
-    fn from(value: Register) -> Self {
+impl<'a> From<&'a Register> for auth::Register<'a> {
+    fn from(value: &'a Register) -> Self {
         Self {
-            email: value.email,
-            password: value.password,
+            email: value.email.as_str(),
+            password: value.password.as_str(),
         }
     }
 }
 
-impl From<Login> for LoginDto {
-    fn from(value: Login) -> Self {
+impl<'a> From<&'a Login> for auth::Login<'a> {
+    fn from(value: &'a Login) -> Self {
         Self {
-            email: value.email,
-            password: value.password,
+            email: value.email.as_str(),
+            password: value.password.as_str(),
         }
     }
 }

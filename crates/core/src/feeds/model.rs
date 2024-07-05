@@ -14,8 +14,8 @@ pub struct Feed {
 }
 
 #[derive(Debug)]
-pub struct CreateFeedDto {
-    pub url: Url,
+pub struct CreateFeed<'a> {
+    pub url: &'a str,
 }
 
 #[derive(Debug)]

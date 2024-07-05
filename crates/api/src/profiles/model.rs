@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::profiles::CreateProfileDto;
+use colette_core::profiles;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::ToSchema;
@@ -38,11 +38,11 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-impl From<CreateProfile> for CreateProfileDto {
-    fn from(value: CreateProfile) -> Self {
+impl<'a> From<&'a CreateProfile> for profiles::CreateProfile<'a> {
+    fn from(value: &'a CreateProfile) -> Self {
         Self {
-            title: value.title,
-            image_url: value.image_url.map(|e| e.to_string()),
+            title: value.title.as_str(),
+            image_url: value.image_url.as_ref().map(|e| e.as_str()),
         }
     }
 }

@@ -72,7 +72,7 @@ pub async fn create_profile(
     Json(body): Json<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
-        .create(body.into(), (&session).into())
+        .create((&body).into(), (&session).into())
         .await
         .map(Profile::from)?;
 

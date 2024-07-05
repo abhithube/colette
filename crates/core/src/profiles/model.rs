@@ -13,22 +13,22 @@ pub struct Profile {
 }
 
 #[derive(Debug)]
-pub struct CreateProfileDto {
-    pub title: String,
-    pub image_url: Option<String>,
+pub struct CreateProfile<'a> {
+    pub title: &'a str,
+    pub image_url: Option<&'a str>,
 }
 
 #[derive(Debug)]
-pub struct UpdateProfileDto {
-    pub title: Option<String>,
-    pub image_url: Option<String>,
+pub struct UpdateProfile<'a> {
+    pub title: Option<&'a str>,
+    pub image_url: Option<&'a str>,
 }
 
-impl<'a> From<&'a UpdateProfileDto> for ProfileUpdateData<'a> {
-    fn from(value: &'a UpdateProfileDto) -> Self {
+impl<'a> From<UpdateProfile<'a>> for ProfileUpdateData<'a> {
+    fn from(value: UpdateProfile<'a>) -> Self {
         Self {
-            title: value.title.as_deref(),
-            image_url: value.image_url.as_deref(),
+            title: value.title,
+            image_url: value.image_url,
         }
     }
 }

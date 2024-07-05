@@ -1,6 +1,6 @@
 use super::{
-    CreateProfileDto, Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
-    ProfileFindOneParams, ProfilesRepository, UpdateProfileDto,
+    CreateProfile, Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
+    ProfileFindOneParams, ProfilesRepository, UpdateProfile,
 };
 use crate::{
     common::{Paginated, Session},
@@ -43,12 +43,12 @@ impl ProfilesService {
 
     pub async fn create(
         &self,
-        dto: CreateProfileDto,
+        data: CreateProfile<'_>,
         session: Session<'_>,
     ) -> Result<Profile, Error> {
         let data = ProfileCreateData {
-            title: dto.title.as_str(),
-            image_url: dto.image_url.as_deref(),
+            title: data.title,
+            image_url: data.image_url,
             user_id: session.user_id,
         };
         let profile = self.profiles_repo.create(data).await?;
@@ -59,14 +59,14 @@ impl ProfilesService {
     pub async fn update(
         &self,
         id: String,
-        dto: UpdateProfileDto,
+        data: UpdateProfile<'_>,
         session: Session<'_>,
     ) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
             id: id.as_str(),
             user_id: session.user_id,
         };
-        let profile = self.profiles_repo.update(params, (&dto).into()).await?;
+        let profile = self.profiles_repo.update(params, data.into()).await?;
 
         Ok(profile)
     }

@@ -1,4 +1,4 @@
-use super::{Error, LoginDto, RegisterDto};
+use super::{Error, Login, Register};
 use crate::{
     profiles::{ProfileFindOneParams, ProfilesRepository},
     users::{UserCreateData, UserFindOneParams, UsersRepository},
@@ -25,15 +25,15 @@ impl AuthService {
         }
     }
 
-    pub async fn register(&self, dto: RegisterDto) -> Result<User, Error> {
+    pub async fn register(&self, data: Register<'_>) -> Result<User, Error> {
         let hashed = self
             .hasher
-            .hash(&dto.password)
+            .hash(data.password)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let data = UserCreateData {
-            email: dto.email.as_str(),
+            email: data.email,
             password: hashed.as_str(),
         };
         let user = self.users_repo.create(data).await?;
@@ -41,15 +41,13 @@ impl AuthService {
         Ok(user)
     }
 
-    pub async fn login(&self, dto: LoginDto) -> Result<Profile, Error> {
-        let params = UserFindOneParams {
-            email: dto.email.as_str(),
-        };
+    pub async fn login(&self, data: Login<'_>) -> Result<Profile, Error> {
+        let params = UserFindOneParams { email: data.email };
         let user = self.users_repo.find_one(params).await?;
 
         let valid = self
             .hasher
-            .verify(&dto.password, &user.password)
+            .verify(data.password, user.password.as_str())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if !valid {

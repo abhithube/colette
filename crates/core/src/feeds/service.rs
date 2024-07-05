@@ -1,4 +1,4 @@
-use super::{model::CreateFeedDto, Error, FeedFindManyParams, FeedsRepository, ProcessedFeed};
+use super::{model::CreateFeed, Error, FeedFindManyParams, FeedsRepository, ProcessedFeed};
 use crate::{
     common::{FindOneParams, Paginated, Session},
     feeds::FeedCreateData,
@@ -46,16 +46,15 @@ impl FeedsService {
         Ok(feed)
     }
 
-    pub async fn create(&self, dto: CreateFeedDto, session: Session<'_>) -> Result<Feed, Error> {
-        let url = dto.url.as_str();
+    pub async fn create(&self, data: CreateFeed<'_>, session: Session<'_>) -> Result<Feed, Error> {
         let scraped = self
             .scraper
-            .scrape(url)
+            .scrape(data.url)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let data = FeedCreateData {
-            url,
+            url: data.url,
             feed: scraped,
             profile_id: session.profile_id,
         };

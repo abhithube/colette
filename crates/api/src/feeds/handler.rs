@@ -72,7 +72,7 @@ pub async fn create_feed(
     Json(body): Json<CreateFeed>,
 ) -> Result<impl IntoResponse, Error> {
     let feed = service
-        .create(body.into(), (&session).into())
+        .create((&body).into(), (&session).into())
         .await
         .map(Feed::from)?;
 

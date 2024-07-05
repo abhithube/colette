@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::feeds::CreateFeedDto;
+use colette_core::feeds;
 use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::ToSchema;
@@ -40,8 +40,10 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-impl From<CreateFeed> for CreateFeedDto {
-    fn from(value: CreateFeed) -> Self {
-        Self { url: value.url }
+impl<'a> From<&'a CreateFeed> for feeds::CreateFeed<'a> {
+    fn from(value: &'a CreateFeed) -> Self {
+        Self {
+            url: value.url.as_str(),
+        }
     }
 }

@@ -26,7 +26,7 @@ pub async fn register(
     State(service): State<Arc<AuthService>>,
     Json(body): Json<Register>,
 ) -> Result<impl IntoResponse, Error> {
-    let user = service.register(body.into()).await.map(User::from)?;
+    let user = service.register((&body).into()).await.map(User::from)?;
 
     Ok((StatusCode::CREATED, Json(user)))
 }
@@ -47,7 +47,7 @@ pub async fn login(
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service.login(body.into()).await.map(Profile::from)?;
+    let profile = service.login((&body).into()).await.map(Profile::from)?;
 
     let session = Session {
         user_id: profile.user_id.clone(),
