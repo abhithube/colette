@@ -49,6 +49,7 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created profile")]
     Created(Profile),
 
+    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(Error),
 }

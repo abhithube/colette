@@ -52,6 +52,7 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]
     Created(Feed),
 
+    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(Error),
 

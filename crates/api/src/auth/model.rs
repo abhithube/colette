@@ -44,6 +44,7 @@ pub enum RegisterResponse {
     #[response(status = 409, description = "Email already registered")]
     Conflict(Error),
 
+    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(Error),
 }
@@ -56,6 +57,7 @@ pub enum LoginResponse {
     #[response(status = 401, description = "Bad credentials")]
     Unauthorized(Error),
 
+    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(Error),
 }
