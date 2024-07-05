@@ -25,7 +25,7 @@ pub async fn list_feeds(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let feeds = service
-        .list(session.into())
+        .list((&session).into())
         .await
         .map(Paginated::<Feed>::from)?;
 
@@ -50,7 +50,7 @@ pub async fn get_feed(
     Path(id): Path<String>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service.get(id, session.into()).await.map(Feed::from)?;
+    let feed = service.get(id, (&session).into()).await.map(Feed::from)?;
 
     Ok(Json(feed))
 }
@@ -72,7 +72,7 @@ pub async fn create_feed(
     Json(body): Json<CreateFeed>,
 ) -> Result<impl IntoResponse, Error> {
     let feed = service
-        .create(body.into(), session.into())
+        .create(body.into(), (&session).into())
         .await
         .map(Feed::from)?;
 

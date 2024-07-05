@@ -26,7 +26,7 @@ pub async fn list_profiles(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let profiles = service
-        .list(session.into())
+        .list((&session).into())
         .await
         .map(Paginated::<Profile>::from)?;
 
@@ -48,7 +48,7 @@ pub async fn get_active_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
-        .get(session.profile_id.clone(), session.into())
+        .get(session.profile_id.clone(), (&session).into())
         .await
         .map(Profile::from)?;
 
@@ -72,7 +72,7 @@ pub async fn create_profile(
     Json(body): Json<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
-        .create(body.into(), session.into())
+        .create(body.into(), (&session).into())
         .await
         .map(Profile::from)?;
 
@@ -97,7 +97,7 @@ pub async fn delete_profile(
     Path(id): Path<String>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    service.delete(id, session.into()).await?;
+    service.delete(id, (&session).into()).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

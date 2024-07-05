@@ -22,9 +22,9 @@ impl FeedsService {
         }
     }
 
-    pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
+    pub async fn list(&self, session: Session<'_>) -> Result<Paginated<Feed>, Error> {
         let params = FeedFindManyParams {
-            profile_id: session.profile_id.as_str(),
+            profile_id: session.profile_id,
         };
         let feeds = self.feeds_repo.find_many(params).await?;
 
@@ -36,17 +36,17 @@ impl FeedsService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session) -> Result<Feed, Error> {
+    pub async fn get(&self, id: String, session: Session<'_>) -> Result<Feed, Error> {
         let params = FindOneParams {
             id: id.as_str(),
-            profile_id: session.profile_id.as_str(),
+            profile_id: session.profile_id,
         };
         let feed = self.feeds_repo.find_one(params).await?;
 
         Ok(feed)
     }
 
-    pub async fn create(&self, dto: CreateFeedDto, session: Session) -> Result<Feed, Error> {
+    pub async fn create(&self, dto: CreateFeedDto, session: Session<'_>) -> Result<Feed, Error> {
         let url = dto.url.as_str();
         let scraped = self
             .scraper
@@ -57,7 +57,7 @@ impl FeedsService {
         let data = FeedCreateData {
             url,
             feed: scraped,
-            profile_id: session.profile_id.as_str(),
+            profile_id: session.profile_id,
         };
         let feed = self.feeds_repo.create(data).await?;
 
