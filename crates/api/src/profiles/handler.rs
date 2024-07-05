@@ -8,8 +8,8 @@ use axum::{
 };
 use colette_core::profiles::ProfilesService;
 
-use super::{model::CreateProfile, Profile};
-use crate::{api::Paginated, error::Error, session::Session};
+use super::{model::CreateProfileDto, ProfileDto};
+use crate::{api::Paginated, error::Error, session::SessionDto};
 
 #[axum::debug_handler]
 #[utoipa::path(
@@ -23,12 +23,12 @@ use crate::{api::Paginated, error::Error, session::Session};
 )]
 pub async fn list_profiles(
     State(service): State<Arc<ProfilesService>>,
-    session: Session,
+    session: SessionDto,
 ) -> Result<impl IntoResponse, Error> {
     let profiles = service
         .list((&session).into())
         .await
-        .map(Paginated::<Profile>::from)?;
+        .map(Paginated::<ProfileDto>::from)?;
 
     Ok(Json(profiles))
 }
@@ -45,12 +45,12 @@ pub async fn list_profiles(
 #[axum::debug_handler]
 pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
-    session: Session,
+    session: SessionDto,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
         .get(session.profile_id.clone(), (&session).into())
         .await
-        .map(Profile::from)?;
+        .map(ProfileDto::from)?;
 
     Ok(Json(profile))
 }
@@ -68,13 +68,13 @@ pub async fn get_active_profile(
 #[axum::debug_handler]
 pub async fn create_profile(
     State(service): State<Arc<ProfilesService>>,
-    session: Session,
-    Json(body): Json<CreateProfile>,
+    session: SessionDto,
+    Json(body): Json<CreateProfileDto>,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
         .create((&body).into(), (&session).into())
         .await
-        .map(Profile::from)?;
+        .map(ProfileDto::from)?;
 
     Ok((StatusCode::CREATED, Json(profile)))
 }
@@ -95,7 +95,7 @@ pub async fn create_profile(
 pub async fn delete_profile(
     State(service): State<Arc<ProfilesService>>,
     Path(id): Path<String>,
-    session: Session,
+    session: SessionDto,
 ) -> Result<impl IntoResponse, Error> {
     service.delete(id, (&session).into()).await?;
 

@@ -7,8 +7,8 @@ use axum::{
 };
 use colette_core::feeds::FeedsService;
 
-use super::model::CreateFeed;
-use crate::{api::Paginated, error::Error, feeds::Feed, session::Session};
+use super::model::CreateFeedDto;
+use crate::{api::Paginated, error::Error, feeds::FeedDto, session::SessionDto};
 
 #[axum::debug_handler]
 #[utoipa::path(
@@ -22,12 +22,12 @@ use crate::{api::Paginated, error::Error, feeds::Feed, session::Session};
 )]
 pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
-    session: Session,
+    session: SessionDto,
 ) -> Result<impl IntoResponse, Error> {
     let feeds = service
         .list((&session).into())
         .await
-        .map(Paginated::<Feed>::from)?;
+        .map(Paginated::<FeedDto>::from)?;
 
     Ok(Json(feeds))
 }
@@ -48,9 +48,12 @@ pub async fn list_feeds(
 pub async fn get_feed(
     State(service): State<Arc<FeedsService>>,
     Path(id): Path<String>,
-    session: Session,
+    session: SessionDto,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service.get(id, (&session).into()).await.map(Feed::from)?;
+    let feed = service
+        .get(id, (&session).into())
+        .await
+        .map(FeedDto::from)?;
 
     Ok(Json(feed))
 }
@@ -68,13 +71,13 @@ pub async fn get_feed(
 )]
 pub async fn create_feed(
     State(service): State<Arc<FeedsService>>,
-    session: Session,
-    Json(body): Json<CreateFeed>,
+    session: SessionDto,
+    Json(body): Json<CreateFeedDto>,
 ) -> Result<impl IntoResponse, Error> {
     let feed = service
         .create((&body).into(), (&session).into())
         .await
-        .map(Feed::from)?;
+        .map(FeedDto::from)?;
 
     Ok(Json(feed))
 }

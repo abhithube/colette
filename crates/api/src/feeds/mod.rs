@@ -1,5 +1,5 @@
 use axum::{routing, Router};
-pub use model::Feed;
+pub use model::FeedDto;
 use utoipa::OpenApi;
 
 use crate::api::Context;
@@ -10,7 +10,7 @@ mod model;
 #[derive(OpenApi)]
 #[openapi(
     paths(handler::list_feeds, handler::get_feed, handler::create_feed),
-    components(schemas(model::Feed, model::CreateFeed))
+    components(schemas(model::FeedDto, model::CreateFeedDto))
 )]
 pub struct Api;
 

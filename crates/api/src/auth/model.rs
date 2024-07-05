@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::auth;
+use colette_core::auth::{Login, Register};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -16,7 +16,8 @@ pub struct User {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct Register {
+#[schema(title = "Register")]
+pub struct RegisterDto {
     #[schema(format = "email")]
     pub email: String,
     #[schema(min_length = 1)]
@@ -24,7 +25,8 @@ pub struct Register {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
-pub struct Login {
+#[schema(title = "Login")]
+pub struct LoginDto {
     #[schema(format = "email")]
     pub email: String,
     #[schema(min_length = 1)]
@@ -43,8 +45,8 @@ impl From<colette_core::User> for User {
     }
 }
 
-impl<'a> From<&'a Register> for auth::Register<'a> {
-    fn from(value: &'a Register) -> Self {
+impl<'a> From<&'a RegisterDto> for Register<'a> {
+    fn from(value: &'a RegisterDto) -> Self {
         Self {
             email: value.email.as_str(),
             password: value.password.as_str(),
@@ -52,8 +54,8 @@ impl<'a> From<&'a Register> for auth::Register<'a> {
     }
 }
 
-impl<'a> From<&'a Login> for auth::Login<'a> {
-    fn from(value: &'a Login) -> Self {
+impl<'a> From<&'a LoginDto> for Login<'a> {
+    fn from(value: &'a LoginDto) -> Self {
         Self {
             email: value.email.as_str(),
             password: value.password.as_str(),

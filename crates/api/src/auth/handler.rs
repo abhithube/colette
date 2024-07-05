@@ -5,10 +5,10 @@ use colette_core::auth::AuthService;
 
 use crate::{
     api::SESSION_KEY,
-    auth::model::{Login, Register, User},
+    auth::model::{LoginDto, RegisterDto, User},
     error::Error,
-    profiles::Profile,
-    session::Session,
+    profiles::ProfileDto,
+    session::SessionDto,
 };
 
 #[axum::debug_handler]
@@ -24,7 +24,7 @@ use crate::{
 )]
 pub async fn register(
     State(service): State<Arc<AuthService>>,
-    Json(body): Json<Register>,
+    Json(body): Json<RegisterDto>,
 ) -> Result<impl IntoResponse, Error> {
     let user = service.register((&body).into()).await.map(User::from)?;
 
@@ -45,11 +45,11 @@ pub async fn register(
 pub async fn login(
     State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
-    Json(body): Json<Login>,
+    Json(body): Json<LoginDto>,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service.login((&body).into()).await.map(Profile::from)?;
+    let profile = service.login((&body).into()).await.map(ProfileDto::from)?;
 
-    let session = Session {
+    let session = SessionDto {
         user_id: profile.user_id.clone(),
         profile_id: profile.id.clone(),
     };

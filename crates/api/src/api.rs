@@ -5,7 +5,7 @@ use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesSer
 use serde::Serialize;
 use utoipa::ToSchema;
 
-use crate::{feeds::Feed, profiles::Profile};
+use crate::{feeds::FeedDto, profiles::ProfileDto};
 
 pub const SESSION_KEY: &str = "session";
 
@@ -17,7 +17,7 @@ pub struct Context {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-#[aliases(FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
+#[aliases(FeedList = Paginated<FeedDto>, ProfileList = Paginated<ProfileDto>)]
 pub struct Paginated<T: Serialize> {
     pub has_more: bool,
     pub data: Vec<T>,

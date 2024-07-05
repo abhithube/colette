@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
-use colette_core::feeds;
+use colette_core::{feeds::CreateFeed, Feed};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Feed {
+#[schema(title = "Feed")]
+pub struct FeedDto {
     pub id: String,
     #[schema(format = "uri")]
     pub link: String,
@@ -21,12 +22,13 @@ pub struct Feed {
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateFeed {
+#[schema(title = "CreateFeed")]
+pub struct CreateFeedDto {
     pub url: Url,
 }
 
-impl From<colette_core::Feed> for Feed {
-    fn from(value: colette_core::Feed) -> Self {
+impl From<Feed> for FeedDto {
+    fn from(value: Feed) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -40,8 +42,8 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-impl<'a> From<&'a CreateFeed> for feeds::CreateFeed<'a> {
-    fn from(value: &'a CreateFeed) -> Self {
+impl<'a> From<&'a CreateFeedDto> for CreateFeed<'a> {
+    fn from(value: &'a CreateFeedDto) -> Self {
         Self {
             url: value.url.as_str(),
         }

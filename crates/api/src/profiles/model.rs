@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
-use colette_core::profiles;
+use colette_core::{profiles::CreateProfile, Profile};
 use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::ToSchema;
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Profile {
+#[schema(title = "Profile")]
+pub struct ProfileDto {
     pub id: String,
     pub title: String,
     #[schema(format = "uri")]
@@ -18,15 +19,16 @@ pub struct Profile {
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateProfile {
+#[schema(title = "CreateProfile")]
+pub struct CreateProfileDto {
     #[schema(min_length = 1)]
     pub title: String,
     #[schema(nullable = false)]
     pub image_url: Option<Url>,
 }
 
-impl From<colette_core::Profile> for Profile {
-    fn from(value: colette_core::Profile) -> Self {
+impl From<Profile> for ProfileDto {
+    fn from(value: Profile) -> Self {
         Self {
             id: value.id,
             title: value.title,
@@ -38,8 +40,8 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-impl<'a> From<&'a CreateProfile> for profiles::CreateProfile<'a> {
-    fn from(value: &'a CreateProfile) -> Self {
+impl<'a> From<&'a CreateProfileDto> for CreateProfile<'a> {
+    fn from(value: &'a CreateProfileDto) -> Self {
         Self {
             title: value.title.as_str(),
             image_url: value.image_url.as_ref().map(|e| e.as_str()),

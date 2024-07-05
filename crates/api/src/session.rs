@@ -1,17 +1,17 @@
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
-use colette_core::{auth, common};
+use colette_core::{auth, common::Session};
 use serde::{Deserialize, Serialize};
 
 use crate::{api::SESSION_KEY, error::Error};
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Session {
+pub struct SessionDto {
     pub user_id: String,
     pub profile_id: String,
 }
 
-impl<'a> From<&'a Session> for common::Session<'a> {
-    fn from(value: &'a Session) -> Self {
+impl<'a> From<&'a SessionDto> for Session<'a> {
+    fn from(value: &'a SessionDto) -> Self {
         Self {
             user_id: value.user_id.as_str(),
             profile_id: value.profile_id.as_str(),
@@ -20,7 +20,7 @@ impl<'a> From<&'a Session> for common::Session<'a> {
 }
 
 #[async_trait]
-impl<S> FromRequestParts<S> for Session
+impl<S> FromRequestParts<S> for SessionDto
 where
     S: Send + Sync,
 {
@@ -32,7 +32,7 @@ where
             .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
 
         let session = session_store
-            .get::<Session>(SESSION_KEY)
+            .get::<SessionDto>(SESSION_KEY)
             .await
             .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?
             .ok_or(Error::Auth(auth::Error::NotAuthenticated))?;
