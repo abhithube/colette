@@ -123,4 +123,17 @@ impl FeedsRepository for FeedsSqliteRepository {
 
         Ok(feed)
     }
+
+    async fn delete(&self, params: common::FindOneParams<'_>) -> Result<(), Error> {
+        let id = params.id.to_owned();
+
+        queries::profile_feeds::delete(&self.pool, (&params).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        Ok(())
+    }
 }

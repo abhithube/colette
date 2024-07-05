@@ -10,6 +10,8 @@ pub trait FeedsRepository {
     async fn find_one(&self, params: FindOneParams<'_>) -> Result<Feed, Error>;
 
     async fn create(&self, data: FeedCreateData<'_>) -> Result<Feed, Error>;
+
+    async fn delete(&self, params: FindOneParams<'_>) -> Result<(), Error>;
 }
 
 pub struct FeedFindManyParams<'a> {
