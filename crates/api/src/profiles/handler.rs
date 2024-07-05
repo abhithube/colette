@@ -9,7 +9,7 @@ use axum::{
 use colette_core::profiles::ProfilesService;
 
 use super::{model::CreateProfile, Profile};
-use crate::{api::Paginated, error::Error, session::SessionAuth};
+use crate::{api::Paginated, error::Error, session::Session};
 
 #[axum::debug_handler]
 #[utoipa::path(
@@ -23,10 +23,10 @@ use crate::{api::Paginated, error::Error, session::SessionAuth};
 )]
 pub async fn list_profiles(
     State(service): State<Arc<ProfilesService>>,
-    SessionAuth(session): SessionAuth,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let profiles = service
-        .list(session)
+        .list(session.into())
         .await
         .map(Paginated::<Profile>::from)?;
 
@@ -45,10 +45,10 @@ pub async fn list_profiles(
 #[axum::debug_handler]
 pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
-    SessionAuth(session): SessionAuth,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
-        .get(session.profile_id.clone(), session)
+        .get(session.profile_id.clone(), session.into())
         .await
         .map(Profile::from)?;
 
@@ -68,11 +68,11 @@ pub async fn get_active_profile(
 #[axum::debug_handler]
 pub async fn create_profile(
     State(service): State<Arc<ProfilesService>>,
-    SessionAuth(session): SessionAuth,
+    session: Session,
     Json(body): Json<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
     let profile = service
-        .create(body.into(), session)
+        .create(body.into(), session.into())
         .await
         .map(Profile::from)?;
 
@@ -95,9 +95,9 @@ pub async fn create_profile(
 pub async fn delete_profile(
     State(service): State<Arc<ProfilesService>>,
     Path(id): Path<String>,
-    SessionAuth(session): SessionAuth,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    service.delete(id, session).await?;
+    service.delete(id, session.into()).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

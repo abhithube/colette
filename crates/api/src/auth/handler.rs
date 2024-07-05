@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use colette_core::{auth::AuthService, common::Session};
+use colette_core::auth::AuthService;
 
 use crate::{
     api::SESSION_KEY,
     auth::model::{Login, Register, User},
     error::Error,
     profiles::Profile,
+    session::Session,
 };
 
 #[axum::debug_handler]
