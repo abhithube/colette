@@ -14,10 +14,21 @@ args = ["run", "--release", "-p", "colette-api"]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-api"]
 
+[tasks.prepare-pg]
+cwd = "./crates/postgres"
+command = "cargo"
+args = ["sqlx", "prepare"]
+
 [tasks.reset-pg]
 cwd = "./crates/postgres"
 command = "sqlx"
 args = ["database", "reset"]
+
+[tasks.prepare-sqlite]
+env_files = [".env.sqlite"]
+cwd = "./crates/sqlite"
+command = "cargo"
+args = ["sqlx", "prepare"]
 
 [tasks.reset-sqlite]
 env_files = [".env.sqlite"]
