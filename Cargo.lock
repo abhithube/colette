@@ -299,6 +299,7 @@ dependencies = [
  "tower-sessions-sqlx-store",
  "url",
  "utoipa",
+ "utoipa-scalar",
 ]
 
 [[package]]
@@ -2512,6 +2513,18 @@ dependencies = [
  "quote",
  "syn 2.0.68",
  "url",
+]
+
+[[package]]
+name = "utoipa-scalar"
+version = "0.2.0-alpha.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c851bc855ea797c92d61de0cd4d36195c01657bc92e42a02fd1373897d6bfe7"
+dependencies = [
+ "axum",
+ "serde",
+ "serde_json",
+ "utoipa",
 ]
 
 [[package]]

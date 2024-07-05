@@ -17,6 +17,7 @@ use tower_sessions::{
 };
 use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::OpenApi;
+use utoipa_scalar::{Scalar, Servable};
 // use tower_sessions_sqlx_store::SqliteStore;
 
 mod api;
@@ -102,6 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nest(
             "/api/v1",
             Router::new()
+                .merge(Scalar::with_url("/doc", ApiDoc::openapi()))
                 .route("/openapi.json", routing::get(doc))
                 .merge(auth::Api::router())
                 .merge(feeds::Api::router())
