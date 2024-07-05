@@ -81,3 +81,26 @@ pub async fn create_feed(
 
     Ok(Json(feed))
 }
+
+#[axum::debug_handler]
+#[utoipa::path(
+  delete,
+  path = "/{id}",
+  params(
+    ("id", description = "Feed ID")
+  ),
+  responses(
+    (status = 204, description = "Successfully deleted feed")
+  ),
+  operation_id = "deleteFeed",
+  tag = "Feeds"
+)]
+pub async fn delete_feed(
+    State(service): State<Arc<FeedsService>>,
+    Path(id): Path<String>,
+    session: SessionDto,
+) -> Result<impl IntoResponse, Error> {
+    service.delete(id, (&session).into()).await?;
+
+    Ok(())
+}

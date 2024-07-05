@@ -62,4 +62,14 @@ impl FeedsService {
 
         Ok(feed)
     }
+
+    pub async fn delete(&self, id: String, session: Session<'_>) -> Result<(), Error> {
+        let params = FindOneParams {
+            id: id.as_str(),
+            profile_id: session.profile_id,
+        };
+        self.feeds_repo.delete(params).await?;
+
+        Ok(())
+    }
 }
