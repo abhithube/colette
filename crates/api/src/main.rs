@@ -1,6 +1,5 @@
-use std::{collections::HashMap, env, error::Error, sync::Arc};
-
-use axum::Router;
+use api::{FeedList, ProfileList};
+use axum::{routing, Router};
 use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
 use colette_postgres::{
@@ -10,12 +9,14 @@ use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
+use std::{collections::HashMap, env, error::Error, sync::Arc};
 // use colette_sqlite::{ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
 use tower_sessions_sqlx_store::PostgresStore;
+use utoipa::OpenApi;
 // use tower_sessions_sqlx_store::SqliteStore;
 
 mod api;
@@ -24,6 +25,18 @@ mod error;
 mod feeds;
 mod profiles;
 mod session;
+
+#[derive(OpenApi)]
+#[openapi(
+    servers(),
+    nest(
+        (path = "/api/v1/auth", api = auth::Api),
+        (path = "/api/v1/feeds", api = feeds::Api),
+        (path = "/api/v1/profiles", api = profiles::Api)
+    ),
+    components(schemas(FeedList, ProfileList))
+)]
+struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -87,11 +100,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app = Router::new()
         .nest(
-            "/api",
+            "/api/v1",
             Router::new()
-                .merge(auth::router())
-                .merge(feeds::router())
-                .merge(profiles::router())
+                .route("/openapi.json", routing::get(doc))
+                .merge(auth::Api::router())
+                .merge(feeds::Api::router())
+                .merge(profiles::Api::router())
                 .with_state(state),
         )
         .layer(session_layer);
@@ -102,4 +116,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     deletion_task.await??;
 
     Ok(())
+}
+
+async fn doc() -> Result<String, error::Error> {
+    ApiDoc::openapi()
+        .to_pretty_json()
+        .map_err(|_| error::Error::Unknown)
 }

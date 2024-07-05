@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.7.5", features = ["macros"] }
 bytes.workspace = true
+chrono.workspace = true
 colette-core.workspace = true
 colette-password.workspace = true
 colette-postgres.workspace = true
@@ -18,4 +19,11 @@ tower-sessions = "0.12.2"
 tower-sessions-sqlx-store = { version = "0.12.0", features = [
   "postgres",
   "sqlite",
+] }
+url.workspace = true
+utoipa = { version = "5.0.0-alpha.0", features = [
+  "chrono",
+  "preserve_order",
+  "preserve_path_order",
+  "url",
 ] }

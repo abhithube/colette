@@ -1,0 +1,28 @@
+use crate::api::Context;
+use axum::{routing, Router};
+pub use model::Feed;
+use utoipa::OpenApi;
+
+mod handler;
+mod model;
+
+#[derive(OpenApi)]
+#[openapi(
+    paths(handler::list_feeds, handler::get_feed, handler::create_feed),
+    components(schemas(model::Feed, model::CreateFeed))
+)]
+pub struct Api;
+
+impl Api {
+    pub fn router() -> Router<Context> {
+        Router::new().nest(
+            "/feeds",
+            Router::new()
+                .route(
+                    "/",
+                    routing::get(handler::list_feeds).post(handler::create_feed),
+                )
+                .route("/:id", routing::get(handler::get_feed)),
+        )
+    }
+}

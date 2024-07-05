@@ -29,6 +29,9 @@ pub enum Error {
 
     #[error(transparent)]
     Users(#[from] users::Error),
+
+    #[error("Unknown error")]
+    Unknown,
 }
 
 impl IntoResponse for Error {
