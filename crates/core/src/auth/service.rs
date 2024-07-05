@@ -1,7 +1,7 @@
 use super::{Error, Login, Register};
 use crate::{
     profiles::{ProfileFindOneParams, ProfilesRepository},
-    users::{UserCreateData, UserFindOneParams, UsersRepository},
+    users::{self, UserCreateData, UserFindOneParams, UsersRepository},
     utils::password::PasswordHasher,
     Profile, User,
 };
@@ -43,7 +43,14 @@ impl AuthService {
 
     pub async fn login(&self, data: Login<'_>) -> Result<Profile, Error> {
         let params = UserFindOneParams { email: data.email };
-        let user = self.users_repo.find_one(params).await?;
+        let user = self
+            .users_repo
+            .find_one(params)
+            .await
+            .map_err(|e| match e {
+                users::Error::NotFound(_) => Error::NotAuthenticated,
+                _ => Error::Users(e),
+            })?;
 
         let valid = self
             .hasher
