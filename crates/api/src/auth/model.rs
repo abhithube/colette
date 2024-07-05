@@ -16,8 +16,6 @@ pub struct User {
     pub id: String,
     #[schema(format = "email")]
     pub email: String,
-    #[serde(skip_serializing)]
-    pub password: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -67,7 +65,6 @@ impl From<colette_core::User> for User {
         Self {
             id: value.id,
             email: value.email,
-            password: value.password,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
