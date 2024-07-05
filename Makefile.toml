@@ -1,0 +1,26 @@
+env_files = [".env", ".env.sqlite"]
+
+config.default_to_workspace = false
+
+[tasks.dev]
+command = "cargo"
+args = ["run", "-p", "colette-api"]
+
+[tasks.run]
+command = "cargo"
+args = ["run", "--release", "-p", "colette-api"]
+
+[tasks.build]
+command = "cargo"
+args = ["build", "--release", "-p", "colette-api"]
+
+[tasks.reset-pg]
+cwd = "./crates/postgres"
+command = "sqlx"
+args = ["database", "reset"]
+
+[tasks.reset-sqlite]
+env_files = [".env.sqlite"]
+cwd = "./crates/sqlite"
+command = "sqlx"
+args = ["database", "reset"]
