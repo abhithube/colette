@@ -30,13 +30,20 @@ mod session;
 
 #[derive(OpenApi)]
 #[openapi(
-    servers(),
+    servers(
+        (url = "http://localhost:3001")
+    ),
     nest(
         (path = "/api/v1/auth", api = auth::Api),
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(api::Error, FeedList, ProfileList))
+    components(schemas(api::Error, FeedList, ProfileList)),
+    tags(
+        (name = "Auth"),
+        (name = "Feeds"),
+        (name = "Profiles")
+    )
 )]
 struct ApiDoc;
 

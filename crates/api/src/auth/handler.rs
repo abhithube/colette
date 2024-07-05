@@ -22,6 +22,7 @@ use crate::{
   request_body = Register,
   responses(RegisterResponse),
   operation_id = "register",
+  description = "Register a user account",
   tag = "Auth"
 )]
 pub async fn register(
@@ -50,6 +51,7 @@ pub async fn register(
   request_body = Login,
   responses(LoginResponse),
   operation_id = "login",
+  description = "Login to a user account",
   tag = "Auth"
 )]
 pub async fn login(

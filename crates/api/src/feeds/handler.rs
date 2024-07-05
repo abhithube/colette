@@ -20,6 +20,7 @@ use crate::{
     path = "",
     responses(ListResponse),
     operation_id = "listFeeds",
+    description = "List the active profile feeds",
     tag = "Feeds"
 )]
 #[axum::debug_handler]
@@ -44,6 +45,7 @@ pub async fn list_feeds(
     params(Id),
     responses(GetResponse),
     operation_id = "getFeed",
+    description = "Get a feed by ID",
     tag = "Feeds"
 )]
 #[axum::debug_handler]
@@ -71,6 +73,7 @@ pub async fn get_feed(
   request_body = CreateFeed,
   responses(CreateResponse),
   operation_id = "createFeed",
+  description = "Subscribe to a web feed",
   tag = "Feeds"
 )]
 #[axum::debug_handler]
@@ -101,6 +104,7 @@ pub async fn create_feed(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteFeed",
+    description = "Delete a feed by ID",
     tag = "Feeds"
 )]
 #[axum::debug_handler]

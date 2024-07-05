@@ -23,7 +23,8 @@ use crate::{
     path = "",
     responses(ListResponse),
     operation_id = "listProfiles",
-    tag = "Profile"
+    description = "List the user profiles",
+    tag = "Profiles"
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
@@ -46,7 +47,8 @@ pub async fn list_profiles(
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveProfile",
-    tag = "Profile"
+    description = "Get the active profile",
+    tag = "Profiles"
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
@@ -70,7 +72,8 @@ pub async fn get_active_profile(
   request_body = CreateProfile,
   responses(CreateResponse),
   operation_id = "createProfile",
-  tag = "Profile"
+  description = "Create a user profile",
+  tag = "Profiles"
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
@@ -95,7 +98,8 @@ pub async fn create_profile(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteProfile",
-    tag = "Profile"
+    description = "Delete a profile by ID",
+    tag = "Profiles"
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
