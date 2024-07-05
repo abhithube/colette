@@ -48,3 +48,15 @@ pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Str
 
     Ok(row.id)
 }
+
+pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+    sqlx::query_file!(
+        "queries/profile_feeds/delete.sql",
+        params.id,
+        params.profile_id
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(())
+}

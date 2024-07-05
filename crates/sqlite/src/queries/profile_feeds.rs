@@ -69,3 +69,15 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
 
     Ok(row.id)
 }
+
+pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+    sqlx::query_file!(
+        "queries/profile_feeds/delete.sql",
+        params.id,
+        params.profile_id
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(())
+}
