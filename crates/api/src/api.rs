@@ -19,18 +19,18 @@ pub struct Context {
 #[derive(Debug, Serialize, ToSchema)]
 #[aliases(FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
 pub struct Paginated<T: Serialize> {
-    has_more: bool,
-    data: Vec<T>,
+    pub has_more: bool,
+    pub data: Vec<T>,
 }
 
-impl<T> From<colette_core::common::Paginated<T>> for Paginated<T>
+impl<T, U> From<colette_core::common::Paginated<U>> for Paginated<T>
 where
-    T: Serialize,
+    T: From<U> + Serialize,
 {
-    fn from(value: colette_core::common::Paginated<T>) -> Self {
+    fn from(value: colette_core::common::Paginated<U>) -> Self {
         Self {
             has_more: value.has_more,
-            data: value.data,
+            data: value.data.into_iter().map(T::from).collect(),
         }
     }
 }

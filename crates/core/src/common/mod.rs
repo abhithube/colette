@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Paginated<T: Serialize> {
+#[derive(Debug)]
+pub struct Paginated<T> {
     pub has_more: bool,
     pub data: Vec<T>,
 }

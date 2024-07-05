@@ -8,7 +8,7 @@ use axum::{
 use colette_core::feeds::FeedsService;
 
 use super::model::CreateFeed;
-use crate::{api::Paginated, error::Error, session::SessionAuth};
+use crate::{api::Paginated, error::Error, feeds::Feed, session::SessionAuth};
 
 #[axum::debug_handler]
 #[utoipa::path(
@@ -24,8 +24,7 @@ pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
     SessionAuth(session): SessionAuth,
 ) -> Result<impl IntoResponse, Error> {
-    let feeds = service.list(session).await?;
-    let feeds = Paginated::from(feeds);
+    let feeds = service.list(session).await.map(Paginated::<Feed>::from)?;
 
     Ok(Json(feeds))
 }
@@ -48,7 +47,7 @@ pub async fn get_feed(
     Path(id): Path<String>,
     SessionAuth(session): SessionAuth,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service.get(id, session).await?;
+    let feed = service.get(id, session).await.map(Feed::from)?;
 
     Ok(Json(feed))
 }
@@ -69,7 +68,7 @@ pub async fn create_feed(
     SessionAuth(session): SessionAuth,
     Json(body): Json<CreateFeed>,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service.create(body.into(), session).await?;
+    let feed = service.create(body.into(), session).await.map(Feed::from)?;
 
     Ok(Json(feed))
 }

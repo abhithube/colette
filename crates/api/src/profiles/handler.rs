@@ -8,7 +8,7 @@ use axum::{
 };
 use colette_core::profiles::ProfilesService;
 
-use super::model::CreateProfile;
+use super::{model::CreateProfile, Profile};
 use crate::{api::Paginated, error::Error, session::SessionAuth};
 
 #[axum::debug_handler]
@@ -25,8 +25,10 @@ pub async fn list_profiles(
     State(service): State<Arc<ProfilesService>>,
     SessionAuth(session): SessionAuth,
 ) -> Result<impl IntoResponse, Error> {
-    let profiles = service.list(session).await?;
-    let profiles = Paginated::from(profiles);
+    let profiles = service
+        .list(session)
+        .await
+        .map(Paginated::<Profile>::from)?;
 
     Ok(Json(profiles))
 }
@@ -45,7 +47,10 @@ pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
     SessionAuth(session): SessionAuth,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service.get(session.profile_id.clone(), session).await?;
+    let profile = service
+        .get(session.profile_id.clone(), session)
+        .await
+        .map(Profile::from)?;
 
     Ok(Json(profile))
 }
@@ -66,7 +71,10 @@ pub async fn create_profile(
     SessionAuth(session): SessionAuth,
     Json(body): Json<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service.create(body.into(), session).await?;
+    let profile = service
+        .create(body.into(), session)
+        .await
+        .map(Profile::from)?;
 
     Ok((StatusCode::CREATED, Json(profile)))
 }
