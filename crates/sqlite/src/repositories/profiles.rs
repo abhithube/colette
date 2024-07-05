@@ -11,6 +11,7 @@ use sqlx::SqlitePool;
 
 use crate::queries;
 
+#[derive(Clone)]
 pub struct ProfilesSqliteRepository {
     pool: SqlitePool,
 }

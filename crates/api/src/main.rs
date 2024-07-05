@@ -11,15 +11,15 @@ use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
-// use colette_sqlite::{ProfilesSqliteRepository, UsersSqliteRepository};
+// use colette_sqlite::{FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
+// use tower_sessions_sqlx_store::SqliteStore;
 use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-// use tower_sessions_sqlx_store::SqliteStore;
 
 mod api;
 mod auth;
@@ -91,10 +91,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
     let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
     let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
+    // let users_repository = Box::new(UsersSqliteRepository::new(pool.clone()));
+    // let profiles_repository = Box::new(ProfilesSqliteRepository::new(pool.clone()));
+    // let feeds_repository = Box::new(FeedsSqliteRepository::new(pool.clone()));
 
-    // let users_repository = Arc::new(UsersSqliteRepository::new(pool.clone()));
-    // let profiles_repository = Arc::new(ProfilesSqliteRepository::new(pool.clone()));
-    // let feeds_repository = Arc::new(FeedsSqliteRepository::new(pool.clone()));
     let argon_hasher = Box::new(Argon2Hasher::default());
     let a = AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
     let auth_service = Arc::new(a);
