@@ -3,7 +3,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{auth, feeds, profiles, users};
+use colette_core::auth;
 use thiserror::Error;
 use tower_sessions::session;
 
@@ -21,15 +21,6 @@ pub enum Error {
     #[error(transparent)]
     Auth(#[from] auth::Error),
 
-    #[error(transparent)]
-    Feeds(#[from] feeds::Error),
-
-    #[error(transparent)]
-    Profiles(#[from] profiles::Error),
-
-    #[error(transparent)]
-    Users(#[from] users::Error),
-
     #[error("Unknown error")]
     Unknown,
 }
@@ -41,18 +32,6 @@ impl IntoResponse for Error {
             Error::JsonRejection(e) => (StatusCode::BAD_REQUEST, e).into_response(),
             Error::Auth(auth::Error::NotAuthenticated) => {
                 (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
-            }
-            Error::Profiles(profiles::Error::NotFound(_))
-            | Error::Feeds(feeds::Error::NotFound(_))
-            | Error::Users(users::Error::NotFound(_)) => {
-                (StatusCode::NOT_FOUND, self.to_string()).into_response()
-            }
-            Error::Auth(auth::Error::Users(e)) => match e {
-                users::Error::Conflict(_) => (StatusCode::CONFLICT, e.to_string()).into_response(),
-                _ => (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
-            },
-            Error::Profiles(profiles::Error::DeletingDefault) => {
-                (StatusCode::CONFLICT, self.to_string()).into_response()
             }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
         }

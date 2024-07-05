@@ -1,14 +1,18 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
-use colette_core::auth::AuthService;
+use axum::{extract::State, response::IntoResponse, Json};
+use colette_core::{
+    auth::{self, AuthService},
+    users,
+};
 
+use super::model::{LoginResponse, RegisterResponse};
 use crate::{
-    api::SESSION_KEY,
-    auth::model::{LoginDto, RegisterDto, User},
+    api::{self, SESSION_KEY},
+    auth::model::{Login, Register, User},
     error::Error,
-    profiles::ProfileDto,
-    session::SessionDto,
+    profiles::Profile,
+    session::Session,
 };
 
 #[axum::debug_handler]
@@ -16,19 +20,27 @@ use crate::{
   post,
   path = "/register",
   request_body = Register,
-  responses(
-    (status = 201, description = "Registered user", body = User)
-  ),
+  responses(RegisterResponse),
   operation_id = "register",
   tag = "Auth"
 )]
 pub async fn register(
     State(service): State<Arc<AuthService>>,
-    Json(body): Json<RegisterDto>,
+    Json(body): Json<Register>,
 ) -> Result<impl IntoResponse, Error> {
-    let user = service.register((&body).into()).await.map(User::from)?;
+    let result = service.register((&body).into()).await.map(User::from);
 
-    Ok((StatusCode::CREATED, Json(user)))
+    match result {
+        Ok(data) => Ok(RegisterResponse::Created(data)),
+        Err(e) => match e {
+            auth::Error::Users(users::Error::Conflict(_)) => {
+                Ok(RegisterResponse::Conflict(api::Error {
+                    message: e.to_string(),
+                }))
+            }
+            _ => Err(Error::Unknown),
+        },
+    }
 }
 
 #[axum::debug_handler]
@@ -36,24 +48,32 @@ pub async fn register(
   post,
   path = "/login",
   request_body = Login,
-  responses(
-    (status = 200, description = "Active profile", body = Profile)
-  ),
+  responses(LoginResponse),
   operation_id = "login",
   tag = "Auth"
 )]
 pub async fn login(
     State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
-    Json(body): Json<LoginDto>,
+    Json(body): Json<Login>,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service.login((&body).into()).await.map(ProfileDto::from)?;
+    let result = service.login((&body).into()).await.map(Profile::from);
 
-    let session = SessionDto {
-        user_id: profile.user_id.clone(),
-        profile_id: profile.id.clone(),
-    };
-    session_store.insert(SESSION_KEY, session).await?;
+    match result {
+        Ok(data) => {
+            let session = Session {
+                user_id: data.user_id.clone(),
+                profile_id: data.id.clone(),
+            };
+            session_store.insert(SESSION_KEY, session).await?;
 
-    Ok(Json(profile))
+            Ok(LoginResponse::Ok(data))
+        }
+        Err(e) => match e {
+            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(api::Error {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
 }

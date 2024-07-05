@@ -5,102 +5,119 @@ use axum::{
     response::IntoResponse,
     Json,
 };
-use colette_core::feeds::FeedsService;
+use colette_core::feeds::{self, FeedsService};
 
-use super::model::CreateFeedDto;
-use crate::{api::Paginated, error::Error, feeds::FeedDto, session::SessionDto};
+use super::model::{CreateFeed, CreateResponse, DeleteResponse, GetResponse, ListResponse};
+use crate::{
+    api::{self, Id, Paginated},
+    error::Error,
+    feeds::Feed,
+    session::Session,
+};
 
-#[axum::debug_handler]
 #[utoipa::path(
-  get,
-  path = "",
-  responses(
-    (status = 200, description = "Paginated list of feeds", body = FeedList)
-  ),
-  operation_id = "listFeeds",
-  tag = "Feeds"
+    get,
+    path = "",
+    responses(ListResponse),
+    operation_id = "listFeeds",
+    tag = "Feeds"
 )]
+#[axum::debug_handler]
 pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
-    session: SessionDto,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let feeds = service
+    let result = service
         .list((&session).into())
         .await
-        .map(Paginated::<FeedDto>::from)?;
+        .map(Paginated::<Feed>::from);
 
-    Ok(Json(feeds))
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
+    }
 }
 
-#[axum::debug_handler]
 #[utoipa::path(
-  get,
-  path = "/{id}",
-  params(
-    ("id", description = "Feed ID")
-  ),
-  responses(
-    (status = 200, description = "Feed by ID", body = Feed)
-  ),
-  operation_id = "getFeed",
-  tag = "Feeds"
+    get,
+    path = "/{id}",
+    params(Id),
+    responses(GetResponse),
+    operation_id = "getFeed",
+    tag = "Feeds"
 )]
+#[axum::debug_handler]
 pub async fn get_feed(
     State(service): State<Arc<FeedsService>>,
-    Path(id): Path<String>,
-    session: SessionDto,
+    Path(Id(id)): Path<Id>,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service
-        .get(id, (&session).into())
-        .await
-        .map(FeedDto::from)?;
+    let result = service.get(id, (&session).into()).await.map(Feed::from);
 
-    Ok(Json(feed))
+    match result {
+        Ok(data) => Ok(GetResponse::Ok(data)),
+        Err(e) => match e {
+            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(api::Error {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
 }
 
-#[axum::debug_handler]
 #[utoipa::path(
   post,
   path = "",
   request_body = CreateFeed,
-  responses(
-    (status = 201, description = "Created feed", body = Feed)
-  ),
+  responses(CreateResponse),
   operation_id = "createFeed",
   tag = "Feeds"
 )]
+#[axum::debug_handler]
 pub async fn create_feed(
     State(service): State<Arc<FeedsService>>,
-    session: SessionDto,
-    Json(body): Json<CreateFeedDto>,
+    session: Session,
+    Json(body): Json<CreateFeed>,
 ) -> Result<impl IntoResponse, Error> {
-    let feed = service
+    let result = service
         .create((&body).into(), (&session).into())
         .await
-        .map(FeedDto::from)?;
+        .map(Feed::from);
 
-    Ok(Json(feed))
+    match result {
+        Ok(data) => Ok(CreateResponse::Created(data)),
+        Err(e) => match e {
+            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(api::Error {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
 }
 
-#[axum::debug_handler]
 #[utoipa::path(
-  delete,
-  path = "/{id}",
-  params(
-    ("id", description = "Feed ID")
-  ),
-  responses(
-    (status = 204, description = "Successfully deleted feed")
-  ),
-  operation_id = "deleteFeed",
-  tag = "Feeds"
+    delete,
+    path = "/{id}",
+    params(Id),
+    responses(DeleteResponse),
+    operation_id = "deleteFeed",
+    tag = "Feeds"
 )]
+#[axum::debug_handler]
 pub async fn delete_feed(
     State(service): State<Arc<FeedsService>>,
-    Path(id): Path<String>,
-    session: SessionDto,
+    Path(Id(id)): Path<Id>,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    service.delete(id, (&session).into()).await?;
+    let result = service.delete(id, (&session).into()).await;
 
-    Ok(())
+    match result {
+        Ok(()) => Ok(DeleteResponse::NoContent),
+        Err(e) => match e {
+            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(api::Error {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
 }

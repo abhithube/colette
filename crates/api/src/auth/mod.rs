@@ -9,7 +9,7 @@ mod model;
 #[derive(OpenApi)]
 #[openapi(
     paths(handler::register, handler::login),
-    components(schemas(model::RegisterDto, model::LoginDto, model::User))
+    components(schemas(model::Register, model::Login, model::User))
 )]
 pub struct Api;
 

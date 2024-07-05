@@ -1,5 +1,5 @@
 use axum::{routing, Router};
-pub use model::ProfileDto;
+pub use model::Profile;
 use utoipa::OpenApi;
 
 use crate::api::Context;
@@ -15,7 +15,7 @@ mod model;
         handler::create_profile,
         handler::delete_profile
     ),
-    components(schemas(model::ProfileDto, model::CreateProfileDto))
+    components(schemas(model::Profile, model::CreateProfile))
 )]
 pub struct Api;
 

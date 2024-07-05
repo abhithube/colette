@@ -1,3 +1,5 @@
+use std::{collections::HashMap, env, error::Error, sync::Arc};
+
 use api::{FeedList, ProfileList};
 use axum::{routing, Router};
 use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
@@ -9,7 +11,6 @@ use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
-use std::{collections::HashMap, env, error::Error, sync::Arc};
 // use colette_sqlite::{ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
@@ -35,7 +36,7 @@ mod session;
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(FeedList, ProfileList))
+    components(schemas(api::Error, FeedList, ProfileList))
 )]
 struct ApiDoc;
 

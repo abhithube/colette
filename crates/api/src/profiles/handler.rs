@@ -2,102 +2,119 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::IntoResponse,
     Json,
 };
-use colette_core::profiles::ProfilesService;
+use colette_core::profiles::{self, ProfilesService};
 
-use super::{model::CreateProfileDto, ProfileDto};
-use crate::{api::Paginated, error::Error, session::SessionDto};
+use super::{
+    model::{CreateProfile, CreateResponse, DeleteResponse, GetActiveResponse},
+    Profile,
+};
+use crate::{
+    api::{self, Id, Paginated},
+    error::Error,
+    profiles::model::ListResponse,
+    session::Session,
+};
 
-#[axum::debug_handler]
 #[utoipa::path(
-  get,
-  path = "",
-  responses(
-    (status = 200, description = "Paginated list of profiles", body = ProfileList)
-  ),
-  operation_id = "listProfiles",
-  tag = "Profile"
+    get,
+    path = "",
+    responses(ListResponse),
+    operation_id = "listProfiles",
+    tag = "Profile"
 )]
+#[axum::debug_handler]
 pub async fn list_profiles(
     State(service): State<Arc<ProfilesService>>,
-    session: SessionDto,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let profiles = service
+    let result = service
         .list((&session).into())
         .await
-        .map(Paginated::<ProfileDto>::from)?;
+        .map(Paginated::<Profile>::from);
 
-    Ok(Json(profiles))
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        Err(_) => Err(Error::Unknown),
+    }
 }
 
 #[utoipa::path(
-  get,
-  path = "/@me",
-  responses(
-    (status = 200, description = "Active profile", body = Profile)
-  ),
-  operation_id = "getActiveProfile",
-  tag = "Profile"
+    get,
+    path = "/@me",
+    responses(GetActiveResponse),
+    operation_id = "getActiveProfile",
+    tag = "Profile"
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
-    session: SessionDto,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service
+    let result = service
         .get(session.profile_id.clone(), (&session).into())
         .await
-        .map(ProfileDto::from)?;
+        .map(Profile::from);
 
-    Ok(Json(profile))
+    match result {
+        Ok(data) => Ok(GetActiveResponse::Ok(data)),
+        Err(_) => Err(Error::Unknown),
+    }
 }
 
 #[utoipa::path(
   post,
   path = "",
   request_body = CreateProfile,
-  responses(
-    (status = 201, description = "Created profile", body = Profile)
-  ),
+  responses(CreateResponse),
   operation_id = "createProfile",
   tag = "Profile"
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
     State(service): State<Arc<ProfilesService>>,
-    session: SessionDto,
-    Json(body): Json<CreateProfileDto>,
+    session: Session,
+    Json(body): Json<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
-    let profile = service
+    let result = service
         .create((&body).into(), (&session).into())
         .await
-        .map(ProfileDto::from)?;
+        .map(Profile::from);
 
-    Ok((StatusCode::CREATED, Json(profile)))
+    match result {
+        Ok(data) => Ok(CreateResponse::Created(data)),
+        Err(_) => Err(Error::Unknown),
+    }
 }
 
 #[utoipa::path(
-  delete,
-  path = "/{id}",
-  params(
-    ("id", description = "Profile ID")
-  ),
-  responses(
-    (status = 204, description = "Successfully deleted profile")
-  ),
-  operation_id = "deleteProfile",
-  tag = "Profile"
+    delete,
+    path = "/{id}",
+    params(Id),
+    responses(DeleteResponse),
+    operation_id = "deleteProfile",
+    tag = "Profile"
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
     State(service): State<Arc<ProfilesService>>,
-    Path(id): Path<String>,
-    session: SessionDto,
+    Path(Id(id)): Path<Id>,
+    session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    service.delete(id, (&session).into()).await?;
+    let result = service.delete(id, (&session).into()).await;
 
-    Ok(StatusCode::NO_CONTENT)
+    match result {
+        Ok(()) => Ok(DeleteResponse::NoContent),
+        Err(e) => match e {
+            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(api::Error {
+                message: e.to_string(),
+            })),
+            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(api::Error {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
 }
