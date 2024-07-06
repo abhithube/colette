@@ -281,28 +281,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-api"
-version = "0.1.0"
-dependencies = [
- "axum",
- "bytes",
- "chrono",
- "colette-core",
- "colette-password",
- "colette-postgres",
- "colette-scraper",
- "colette-sqlite",
- "serde",
- "thiserror",
- "tokio",
- "tower-sessions",
- "tower-sessions-sqlx-store",
- "url",
- "utoipa",
- "utoipa-scalar",
-]
-
-[[package]]
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
@@ -358,6 +336,28 @@ dependencies = [
  "reqwest",
  "skyscraper",
  "url",
+]
+
+[[package]]
+name = "colette-server"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bytes",
+ "chrono",
+ "colette-core",
+ "colette-password",
+ "colette-postgres",
+ "colette-scraper",
+ "colette-sqlite",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tower-sessions",
+ "tower-sessions-sqlx-store",
+ "url",
+ "utoipa",
+ "utoipa-scalar",
 ]
 
 [[package]]

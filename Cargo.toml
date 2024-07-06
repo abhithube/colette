@@ -1,11 +1,11 @@
 [workspace]
 members = [
-  "crates/api",
   "crates/core",
   "crates/database",
   "crates/password",
   "crates/postgres",
   "crates/scraper",
+  "crates/server",
   "crates/sqlite",
 ]
 resolver = "2"

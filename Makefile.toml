@@ -4,15 +4,15 @@ config.default_to_workspace = false
 
 [tasks.dev]
 command = "cargo"
-args = ["run", "-p", "colette-api"]
+args = ["run", "-p", "colette-server"]
 
 [tasks.run]
 command = "cargo"
-args = ["run", "--release", "-p", "colette-api"]
+args = ["run", "--release", "-p", "colette-server"]
 
 [tasks.build]
 command = "cargo"
-args = ["build", "--release", "-p", "colette-api"]
+args = ["build", "--release", "-p", "colette-server"]
 
 [tasks.prepare-pg]
 cwd = "./crates/postgres"
