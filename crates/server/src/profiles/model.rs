@@ -79,11 +79,11 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-impl<'a> From<&'a CreateProfile> for profiles::CreateProfile<'a> {
-    fn from(value: &'a CreateProfile) -> Self {
+impl From<CreateProfile> for profiles::CreateProfile {
+    fn from(value: CreateProfile) -> Self {
         Self {
-            title: value.title.as_str(),
-            image_url: value.image_url.as_ref().map(|e| e.as_str()),
+            title: value.title,
+            image_url: value.image_url.map(String::from),
         }
     }
 }

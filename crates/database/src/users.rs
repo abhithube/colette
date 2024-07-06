@@ -13,18 +13,20 @@ pub struct InsertData<'a> {
     pub password: &'a str,
 }
 
-impl<'a> From<&'a UserFindOneParams<'_>> for SelectByEmailParams<'a> {
-    fn from(value: &'a UserFindOneParams<'_>) -> Self {
-        Self { email: value.email }
+impl<'a> From<&'a UserFindOneParams> for SelectByEmailParams<'a> {
+    fn from(value: &'a UserFindOneParams) -> Self {
+        Self {
+            email: &value.email,
+        }
     }
 }
 
-impl<'a> From<&'a UserCreateData<'_>> for InsertData<'a> {
-    fn from(value: &'a UserCreateData<'_>) -> Self {
+impl<'a> From<&'a UserCreateData> for InsertData<'a> {
+    fn from(value: &'a UserCreateData) -> Self {
         Self {
             id: nanoid!(),
-            email: value.email,
-            password: value.password,
+            email: &value.email,
+            password: &value.password,
         }
     }
 }

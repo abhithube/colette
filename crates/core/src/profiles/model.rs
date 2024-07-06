@@ -13,19 +13,19 @@ pub struct Profile {
 }
 
 #[derive(Debug)]
-pub struct CreateProfile<'a> {
-    pub title: &'a str,
-    pub image_url: Option<&'a str>,
+pub struct CreateProfile {
+    pub title: String,
+    pub image_url: Option<String>,
 }
 
 #[derive(Debug)]
-pub struct UpdateProfile<'a> {
-    pub title: Option<&'a str>,
-    pub image_url: Option<&'a str>,
+pub struct UpdateProfile {
+    pub title: Option<String>,
+    pub image_url: Option<String>,
 }
 
-impl<'a> From<UpdateProfile<'a>> for ProfileUpdateData<'a> {
-    fn from(value: UpdateProfile<'a>) -> Self {
+impl From<UpdateProfile> for ProfileUpdateData {
+    fn from(value: UpdateProfile) -> Self {
         Self {
             title: value.title,
             image_url: value.image_url,

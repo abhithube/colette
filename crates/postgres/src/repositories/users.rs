@@ -20,7 +20,7 @@ impl UsersPostgresRepository {
 
 #[async_trait]
 impl UsersRepository for UsersPostgresRepository {
-    async fn find_one(&self, params: UserFindOneParams<'_>) -> Result<User, Error> {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         let user = users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
@@ -31,7 +31,7 @@ impl UsersRepository for UsersPostgresRepository {
         Ok(user)
     }
 
-    async fn create(&self, data: UserCreateData<'_>) -> Result<User, Error> {
+    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
         let mut tx = self
             .pool
             .begin()
@@ -47,7 +47,7 @@ impl UsersRepository for UsersPostgresRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let data = InsertData::default_with_user(user.id.as_str());
+        let data = InsertData::default_with_user(&user.id);
         profiles::insert(&mut *tx, data)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

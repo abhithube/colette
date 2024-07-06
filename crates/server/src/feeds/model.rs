@@ -84,10 +84,10 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-impl<'a> From<&'a CreateFeed> for feeds::CreateFeed<'a> {
-    fn from(value: &'a CreateFeed) -> Self {
+impl From<CreateFeed> for feeds::CreateFeed {
+    fn from(value: CreateFeed) -> Self {
         Self {
-            url: value.url.as_str(),
+            url: value.url.into(),
         }
     }
 }

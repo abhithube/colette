@@ -20,7 +20,7 @@ impl UsersSqliteRepository {
 
 #[async_trait]
 impl UsersRepository for UsersSqliteRepository {
-    async fn find_one(&self, params: UserFindOneParams<'_>) -> Result<User, Error> {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         let user = queries::users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
@@ -31,7 +31,7 @@ impl UsersRepository for UsersSqliteRepository {
         Ok(user)
     }
 
-    async fn create(&self, data: UserCreateData<'_>) -> Result<User, Error> {
+    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
         let mut tx = self
             .pool
             .begin()
@@ -47,7 +47,7 @@ impl UsersRepository for UsersSqliteRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let data = InsertData::default_with_user(user.id.as_str());
+        let data = InsertData::default_with_user(&user.id);
         queries::profiles::insert(&mut *tx, data)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

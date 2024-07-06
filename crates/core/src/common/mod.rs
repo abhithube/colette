@@ -5,13 +5,13 @@ pub struct Paginated<T> {
 }
 
 #[derive(Debug)]
-pub struct FindOneParams<'a> {
-    pub id: &'a str,
-    pub profile_id: &'a str,
+pub struct FindOneParams {
+    pub id: String,
+    pub profile_id: String,
 }
 
 #[derive(Debug)]
-pub struct Session<'a> {
-    pub user_id: &'a str,
-    pub profile_id: &'a str,
+pub struct Session {
+    pub user_id: String,
+    pub profile_id: String,
 }

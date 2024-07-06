@@ -16,7 +16,7 @@ impl ProfilesService {
         Self { profiles_repo }
     }
 
-    pub async fn list(&self, session: Session<'_>) -> Result<Paginated<Profile>, Error> {
+    pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
         let params = ProfileFindManyParams {
             user_id: session.user_id,
         };
@@ -30,9 +30,9 @@ impl ProfilesService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session<'_>) -> Result<Profile, Error> {
+    pub async fn get(&self, id: String, session: Session) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
-            id: id.as_str(),
+            id,
             user_id: session.user_id,
         };
         let params = ProfileFindOneParams::ById(params);
@@ -41,11 +41,7 @@ impl ProfilesService {
         Ok(profile)
     }
 
-    pub async fn create(
-        &self,
-        data: CreateProfile<'_>,
-        session: Session<'_>,
-    ) -> Result<Profile, Error> {
+    pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
         let data = ProfileCreateData {
             title: data.title,
             image_url: data.image_url,
@@ -59,11 +55,11 @@ impl ProfilesService {
     pub async fn update(
         &self,
         id: String,
-        data: UpdateProfile<'_>,
-        session: Session<'_>,
+        data: UpdateProfile,
+        session: Session,
     ) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
-            id: id.as_str(),
+            id,
             user_id: session.user_id,
         };
         let profile = self.profiles_repo.update(params, data.into()).await?;
@@ -71,9 +67,9 @@ impl ProfilesService {
         Ok(profile)
     }
 
-    pub async fn delete(&self, id: String, session: Session<'_>) -> Result<(), Error> {
+    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
         let params = ProfileFindByIdParams {
-            id: id.as_str(),
+            id,
             user_id: session.user_id,
         };
         self.profiles_repo.delete(params).await?;

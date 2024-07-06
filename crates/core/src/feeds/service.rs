@@ -22,7 +22,7 @@ impl FeedsService {
         }
     }
 
-    pub async fn list(&self, session: Session<'_>) -> Result<Paginated<Feed>, Error> {
+    pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
         let params = FeedFindManyParams {
             profile_id: session.profile_id,
         };
@@ -36,9 +36,9 @@ impl FeedsService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session<'_>) -> Result<Feed, Error> {
+    pub async fn get(&self, id: String, session: Session) -> Result<Feed, Error> {
         let params = FindOneParams {
-            id: id.as_str(),
+            id,
             profile_id: session.profile_id,
         };
         let feed = self.feeds_repo.find_one(params).await?;
@@ -46,8 +46,8 @@ impl FeedsService {
         Ok(feed)
     }
 
-    pub async fn create(&self, data: CreateFeed<'_>, session: Session<'_>) -> Result<Feed, Error> {
-        let scraped = self.scraper.scrape(data.url).await?;
+    pub async fn create(&self, data: CreateFeed, session: Session) -> Result<Feed, Error> {
+        let scraped = self.scraper.scrape(&data.url).await?;
 
         let data = FeedCreateData {
             url: data.url,
@@ -59,9 +59,9 @@ impl FeedsService {
         Ok(feed)
     }
 
-    pub async fn delete(&self, id: String, session: Session<'_>) -> Result<(), Error> {
+    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
         let params = FindOneParams {
-            id: id.as_str(),
+            id,
             profile_id: session.profile_id,
         };
         self.feeds_repo.delete(params).await?;

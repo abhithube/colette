@@ -14,11 +14,11 @@ pub struct FindOneParams<'a> {
     pub profile_id: &'a str,
 }
 
-impl<'a> From<&'a common::FindOneParams<'_>> for FindOneParams<'a> {
-    fn from(value: &'a common::FindOneParams<'_>) -> Self {
+impl<'a> From<&'a common::FindOneParams> for FindOneParams<'a> {
+    fn from(value: &'a common::FindOneParams) -> Self {
         Self {
-            id: value.id,
-            profile_id: value.profile_id,
+            id: &value.id,
+            profile_id: &value.profile_id,
         }
     }
 }

@@ -10,11 +10,11 @@ pub struct Session {
     pub profile_id: String,
 }
 
-impl<'a> From<&'a Session> for common::Session<'a> {
-    fn from(value: &'a Session) -> Self {
+impl From<Session> for common::Session {
+    fn from(value: Session) -> Self {
         Self {
-            user_id: value.user_id.as_str(),
-            profile_id: value.profile_id.as_str(),
+            user_id: value.user_id,
+            profile_id: value.profile_id,
         }
     }
 }

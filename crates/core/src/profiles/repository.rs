@@ -4,42 +4,42 @@ use super::{Error, Profile};
 
 #[async_trait]
 pub trait ProfilesRepository {
-    async fn find_many(&self, params: ProfileFindManyParams<'_>) -> Result<Vec<Profile>, Error>;
+    async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error>;
 
-    async fn find_one(&self, params: ProfileFindOneParams<'_>) -> Result<Profile, Error>;
+    async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error>;
 
-    async fn create(&self, data: ProfileCreateData<'_>) -> Result<Profile, Error>;
+    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error>;
 
     async fn update(
         &self,
-        params: ProfileFindByIdParams<'_>,
-        data: ProfileUpdateData<'_>,
+        params: ProfileFindByIdParams,
+        data: ProfileUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete(&self, params: ProfileFindByIdParams<'_>) -> Result<(), Error>;
+    async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error>;
 }
 
-pub struct ProfileFindManyParams<'a> {
-    pub user_id: &'a str,
+pub struct ProfileFindManyParams {
+    pub user_id: String,
 }
 
-pub struct ProfileFindByIdParams<'a> {
-    pub id: &'a str,
-    pub user_id: &'a str,
+pub struct ProfileFindByIdParams {
+    pub id: String,
+    pub user_id: String,
 }
 
-pub enum ProfileFindOneParams<'a> {
-    ById(ProfileFindByIdParams<'a>),
-    Default { user_id: &'a str },
+pub enum ProfileFindOneParams {
+    ById(ProfileFindByIdParams),
+    Default { user_id: String },
 }
 
-pub struct ProfileCreateData<'a> {
-    pub title: &'a str,
-    pub image_url: Option<&'a str>,
-    pub user_id: &'a str,
+pub struct ProfileCreateData {
+    pub title: String,
+    pub image_url: Option<String>,
+    pub user_id: String,
 }
 
-pub struct ProfileUpdateData<'a> {
-    pub title: Option<&'a str>,
-    pub image_url: Option<&'a str>,
+pub struct ProfileUpdateData {
+    pub title: Option<String>,
+    pub image_url: Option<String>,
 }

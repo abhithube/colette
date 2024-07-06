@@ -73,20 +73,20 @@ impl From<colette_core::User> for User {
     }
 }
 
-impl<'a> From<&'a Register> for auth::Register<'a> {
-    fn from(value: &'a Register) -> Self {
+impl From<Register> for auth::Register {
+    fn from(value: Register) -> Self {
         Self {
-            email: value.email.as_str(),
-            password: value.password.as_str(),
+            email: value.email,
+            password: value.password,
         }
     }
 }
 
-impl<'a> From<&'a Login> for auth::Login<'a> {
-    fn from(value: &'a Login) -> Self {
+impl From<Login> for auth::Login {
+    fn from(value: Login) -> Self {
         Self {
-            email: value.email.as_str(),
-            password: value.password.as_str(),
+            email: value.email,
+            password: value.password,
         }
     }
 }

@@ -25,23 +25,23 @@ impl AuthService {
         }
     }
 
-    pub async fn register(&self, data: Register<'_>) -> Result<User, Error> {
+    pub async fn register(&self, data: Register) -> Result<User, Error> {
         let hashed = self
             .hasher
-            .hash(data.password)
+            .hash(&data.password)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let data = UserCreateData {
             email: data.email,
-            password: hashed.as_str(),
+            password: hashed,
         };
         let user = self.users_repo.create(data).await?;
 
         Ok(user)
     }
 
-    pub async fn login(&self, data: Login<'_>) -> Result<Profile, Error> {
+    pub async fn login(&self, data: Login) -> Result<Profile, Error> {
         let params = UserFindOneParams { email: data.email };
         let user = self
             .users_repo
@@ -54,16 +54,14 @@ impl AuthService {
 
         let valid = self
             .hasher
-            .verify(data.password, user.password.as_str())
+            .verify(&data.password, &user.password)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if !valid {
             return Err(Error::NotAuthenticated);
         }
 
-        let params = ProfileFindOneParams::Default {
-            user_id: user.id.as_str(),
-        };
+        let params = ProfileFindOneParams::Default { user_id: user.id };
         let profile = self.profiles_repo.find_one(params).await?;
 
         Ok(profile)

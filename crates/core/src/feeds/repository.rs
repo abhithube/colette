@@ -5,21 +5,21 @@ use crate::common::FindOneParams;
 
 #[async_trait]
 pub trait FeedsRepository {
-    async fn find_many(&self, params: FeedFindManyParams<'_>) -> Result<Vec<Feed>, Error>;
+    async fn find_many(&self, params: FeedFindManyParams) -> Result<Vec<Feed>, Error>;
 
-    async fn find_one(&self, params: FindOneParams<'_>) -> Result<Feed, Error>;
+    async fn find_one(&self, params: FindOneParams) -> Result<Feed, Error>;
 
-    async fn create(&self, data: FeedCreateData<'_>) -> Result<Feed, Error>;
+    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error>;
 
-    async fn delete(&self, params: FindOneParams<'_>) -> Result<(), Error>;
+    async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
-pub struct FeedFindManyParams<'a> {
-    pub profile_id: &'a str,
+pub struct FeedFindManyParams {
+    pub profile_id: String,
 }
 
-pub struct FeedCreateData<'a> {
-    pub url: &'a str,
+pub struct FeedCreateData {
+    pub url: String,
     pub feed: ProcessedFeed,
-    pub profile_id: &'a str,
+    pub profile_id: String,
 }

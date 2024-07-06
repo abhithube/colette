@@ -1,11 +1,11 @@
 #[derive(Debug)]
-pub struct Register<'a> {
-    pub email: &'a str,
-    pub password: &'a str,
+pub struct Register {
+    pub email: String,
+    pub password: String,
 }
 
 #[derive(Debug)]
-pub struct Login<'a> {
-    pub email: &'a str,
-    pub password: &'a str,
+pub struct Login {
+    pub email: String,
+    pub password: String,
 }

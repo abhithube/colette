@@ -12,10 +12,10 @@ pub struct InsertData<'a> {
     pub feed_id: i64,
 }
 
-impl<'a> From<&'a FeedFindManyParams<'_>> for SelectManyParams<'a> {
-    fn from(value: &'a FeedFindManyParams<'_>) -> Self {
+impl<'a> From<&'a FeedFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a FeedFindManyParams) -> Self {
         Self {
-            profile_id: value.profile_id,
+            profile_id: &value.profile_id,
         }
     }
 }
