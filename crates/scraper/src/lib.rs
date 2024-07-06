@@ -18,10 +18,26 @@ mod postprocessor;
 mod registry;
 
 pub struct FeedScraper {
-    pub registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
-    pub default_downloader: Box<dyn Downloader + Send + Sync>,
-    pub default_extractor: Box<dyn Extractor<ExtractedFeed> + Send + Sync>,
-    pub default_postprocessor: Box<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+    registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
+    default_downloader: Box<dyn Downloader + Send + Sync>,
+    default_extractor: Box<dyn Extractor<ExtractedFeed> + Send + Sync>,
+    default_postprocessor: Box<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+}
+
+impl FeedScraper {
+    pub fn new(
+        registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
+        default_downloader: Box<dyn Downloader + Send + Sync>,
+        default_extractor: Box<dyn Extractor<ExtractedFeed> + Send + Sync>,
+        default_postprocessor: Box<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+    ) -> Self {
+        Self {
+            registry,
+            default_downloader,
+            default_extractor,
+            default_postprocessor,
+        }
+    }
 }
 
 #[async_trait]

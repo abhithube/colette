@@ -50,23 +50,24 @@ struct ApiDoc;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let downloader = Box::new(DefaultDownloader {});
-    let extractor = Box::new(DefaultFeedExtractor {
+    let feed_extractor = Box::new(DefaultFeedExtractor {
         options: ExtractorOptions {
             ..AtomExtractorOptions::default().inner()
         },
     });
-    let postprocessor = Box::new(DefaultFeedPostprocessor {});
+    let feed_postprocessor = Box::new(DefaultFeedPostprocessor {});
 
-    let feed_scraper = Box::new(FeedScraper {
-        registry: PluginRegistry {
-            downloaders: HashMap::new(),
-            extractors: HashMap::new(),
-            postprocessors: HashMap::new(),
-        },
-        default_downloader: downloader,
-        default_extractor: extractor,
-        default_postprocessor: postprocessor,
-    });
+    let feed_registry = PluginRegistry {
+        downloaders: HashMap::new(),
+        extractors: HashMap::new(),
+        postprocessors: HashMap::new(),
+    };
+    let feed_scraper = Box::new(FeedScraper::new(
+        feed_registry,
+        downloader,
+        feed_extractor,
+        feed_postprocessor,
+    ));
 
     let database_url = env::var("DATABASE_URL")?;
 
