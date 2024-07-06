@@ -1,6 +1,5 @@
 use std::{collections::HashMap, env, error::Error, sync::Arc};
 
-use api::{FeedList, ProfileList};
 use axum::{routing, Router};
 use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
 use colette_password::Argon2Hasher;
@@ -11,6 +10,7 @@ use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
+use common::{FeedList, ProfileList};
 // use colette_sqlite::{FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
@@ -21,8 +21,8 @@ use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
-mod api;
 mod auth;
+mod common;
 mod error;
 mod feeds;
 mod profiles;
@@ -38,7 +38,7 @@ mod session;
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(api::Error, FeedList, ProfileList)),
+    components(schemas(common::Error, FeedList, ProfileList)),
     tags(
         (name = "Auth"),
         (name = "Feeds"),
@@ -57,7 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     });
     let postprocessor = Box::new(DefaultFeedPostprocessor {});
 
-    let scraper = Box::new(FeedScraper {
+    let feed_scraper = Box::new(FeedScraper {
         registry: PluginRegistry {
             downloaders: HashMap::new(),
             extractors: HashMap::new(),
@@ -73,6 +73,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pool = colette_postgres::create_database(&database_url).await?;
     // let pool = colette_sqlite::create_database(&database_url).await?;
 
+    let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
+    let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
+    let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
+    // let users_repository = Box::new(UsersSqliteRepository::new(pool.clone()));
+    // let profiles_repository = Box::new(ProfilesSqliteRepository::new(pool.clone()));
+    // let feeds_repository = Box::new(FeedsSqliteRepository::new(pool.clone()));
+
+    let argon_hasher = Box::new(Argon2Hasher::default());
+
+    let auth_service = Arc::new(AuthService::new(
+        users_repository,
+        profiles_repository.clone(),
+        argon_hasher,
+    ));
+    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
+    let feeds_service = Arc::new(FeedsService::new(feeds_repository, feed_scraper));
+
     let session_store = PostgresStore::new(pool.clone());
     // let session_store = SqliteStore::new(pool.clone());
 
@@ -84,24 +101,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
 
-    let session_layer = SessionManagerLayer::new(session_store)
-        .with_secure(false)
-        .with_expiry(Expiry::OnInactivity(Duration::days(1)));
-
-    let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
-    let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
-    let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
-    // let users_repository = Box::new(UsersSqliteRepository::new(pool.clone()));
-    // let profiles_repository = Box::new(ProfilesSqliteRepository::new(pool.clone()));
-    // let feeds_repository = Box::new(FeedsSqliteRepository::new(pool.clone()));
-
-    let argon_hasher = Box::new(Argon2Hasher::default());
-    let a = AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
-    let auth_service = Arc::new(a);
-    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
-    let feeds_service = Arc::new(FeedsService::new(feeds_repository, scraper));
-
-    let state = api::Context {
+    let state = common::Context {
         auth_service,
         profiles_service,
         feeds_service,
@@ -118,7 +118,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .merge(profiles::Api::router())
                 .with_state(state),
         )
-        .layer(session_layer);
+        .layer(
+            SessionManagerLayer::new(session_store)
+                .with_secure(false)
+                .with_expiry(Expiry::OnInactivity(Duration::days(1))),
+        );
 
     let listener = TcpListener::bind("localhost:3001").await?;
     axum::serve(listener, app).await?;

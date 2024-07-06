@@ -8,23 +8,23 @@ use colette_core::{
 
 use super::model::{LoginResponse, RegisterResponse};
 use crate::{
-    api::{self, SESSION_KEY},
     auth::model::{Login, Register, User},
+    common,
     error::Error,
     profiles::Profile,
-    session::Session,
+    session::{Session, SESSION_KEY},
 };
 
-#[axum::debug_handler]
 #[utoipa::path(
-  post,
-  path = "/register",
-  request_body = Register,
-  responses(RegisterResponse),
-  operation_id = "register",
-  description = "Register a user account",
-  tag = "Auth"
+    post,
+    path = "/register",
+    request_body = Register,
+    responses(RegisterResponse),
+    operation_id = "register",
+    description = "Register a user account",
+    tag = "Auth"
 )]
+#[axum::debug_handler]
 pub async fn register(
     State(service): State<Arc<AuthService>>,
     Json(body): Json<Register>,
@@ -35,7 +35,7 @@ pub async fn register(
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
             auth::Error::Users(users::Error::Conflict(_)) => {
-                Ok(RegisterResponse::Conflict(api::Error {
+                Ok(RegisterResponse::Conflict(common::Error {
                     message: e.to_string(),
                 }))
             }
@@ -44,16 +44,16 @@ pub async fn register(
     }
 }
 
-#[axum::debug_handler]
 #[utoipa::path(
-  post,
-  path = "/login",
-  request_body = Login,
-  responses(LoginResponse),
-  operation_id = "login",
-  description = "Login to a user account",
-  tag = "Auth"
+    post,
+    path = "/login",
+    request_body = Login,
+    responses(LoginResponse),
+    operation_id = "login",
+    description = "Login to a user account",
+    tag = "Auth"
 )]
+#[axum::debug_handler]
 pub async fn login(
     State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
@@ -72,7 +72,7 @@ pub async fn login(
             Ok(LoginResponse::Ok(data))
         }
         Err(e) => match e {
-            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(api::Error {
+            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(common::Error {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::{IntoResponses, ToSchema};
 
-use crate::api::{Error, FeedList};
+use crate::common::{Error, FeedList};
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -24,49 +24,6 @@ pub struct Feed {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub unread_count: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateFeed {
-    pub url: Url,
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(FeedList),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Feed by ID")]
-    Ok(Feed),
-
-    #[response(status = 404, description = "Feed not found")]
-    NotFound(Error),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created feed")]
-    Created(Feed),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(Error),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum DeleteResponse {
-    #[response(status = 204, description = "Successfully deleted feed")]
-    NoContent,
-
-    #[response(status = 404, description = "Feed not found")]
-    NotFound(Error),
 }
 
 impl From<colette_core::Feed> for Feed {
@@ -84,6 +41,12 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFeed {
+    pub url: Url,
+}
+
 impl From<CreateFeed> for feeds::CreateFeed {
     fn from(value: CreateFeed) -> Self {
         Self {
@@ -92,12 +55,27 @@ impl From<CreateFeed> for feeds::CreateFeed {
     }
 }
 
+#[derive(Debug, IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of profiles")]
+    Ok(FeedList),
+}
+
 impl IntoResponse for ListResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
         }
     }
+}
+
+#[derive(Debug, IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Feed by ID")]
+    Ok(Feed),
+
+    #[response(status = 404, description = "Feed not found")]
+    NotFound(Error),
 }
 
 impl IntoResponse for GetResponse {
@@ -109,6 +87,19 @@ impl IntoResponse for GetResponse {
     }
 }
 
+#[derive(Debug, IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created feed")]
+    Created(Feed),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(Error),
+
+    #[response(status = 502, description = "Failed to fetch or parse feed")]
+    BadGateway(Error),
+}
+
 impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
@@ -117,6 +108,15 @@ impl IntoResponse for CreateResponse {
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }
+}
+
+#[derive(Debug, IntoResponses)]
+pub enum DeleteResponse {
+    #[response(status = 204, description = "Successfully deleted feed")]
+    NoContent,
+
+    #[response(status = 404, description = "Feed not found")]
+    NotFound(Error),
 }
 
 impl IntoResponse for DeleteResponse {

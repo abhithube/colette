@@ -9,7 +9,7 @@ use colette_core::feeds::{self, FeedsService};
 
 use super::model::{CreateFeed, CreateResponse, DeleteResponse, GetResponse, ListResponse};
 use crate::{
-    api::{self, Id, Paginated},
+    common::{self, Id, Paginated},
     error::Error,
     feeds::Feed,
     session::Session,
@@ -59,7 +59,7 @@ pub async fn get_feed(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(api::Error {
+            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(common::Error {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -90,7 +90,7 @@ pub async fn create_feed(
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(api::Error {
+            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(common::Error {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -118,7 +118,7 @@ pub async fn delete_feed(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(api::Error {
+            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::Error {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

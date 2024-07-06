@@ -2,7 +2,7 @@ use axum::{routing, Router};
 pub use model::Profile;
 use utoipa::OpenApi;
 
-use crate::api::Context;
+use crate::common::Context;
 
 mod handler;
 mod model;

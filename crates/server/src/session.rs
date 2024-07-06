@@ -2,7 +2,9 @@ use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use colette_core::{auth, common};
 use serde::{Deserialize, Serialize};
 
-use crate::{api::SESSION_KEY, error::Error};
+use crate::error::Error;
+
+pub const SESSION_KEY: &str = "session";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {

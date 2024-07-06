@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use url::Url;
 use utoipa::{IntoResponses, ToSchema};
 
-use crate::api::{Error, ProfileList};
+use crate::common::{Error, ProfileList};
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -21,49 +21,6 @@ pub struct Profile {
     pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateProfile {
-    #[schema(min_length = 1)]
-    pub title: String,
-    #[schema(nullable = false)]
-    pub image_url: Option<Url>,
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(ProfileList),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum GetActiveResponse {
-    #[response(status = 200, description = "Active profile")]
-    Ok(Profile),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created profile")]
-    Created(Profile),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
-}
-
-#[derive(Debug, IntoResponses)]
-pub enum DeleteResponse {
-    #[response(status = 204, description = "Successfully deleted profile")]
-    NoContent,
-
-    #[response(status = 404, description = "Profile not found")]
-    NotFound(Error),
-
-    #[response(status = 409, description = "Deleting default profile")]
-    Conflict(Error),
 }
 
 impl From<colette_core::Profile> for Profile {
@@ -79,6 +36,15 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateProfile {
+    #[schema(min_length = 1)]
+    pub title: String,
+    #[schema(nullable = false)]
+    pub image_url: Option<Url>,
+}
+
 impl From<CreateProfile> for profiles::CreateProfile {
     fn from(value: CreateProfile) -> Self {
         Self {
@@ -86,6 +52,12 @@ impl From<CreateProfile> for profiles::CreateProfile {
             image_url: value.image_url.map(String::from),
         }
     }
+}
+
+#[derive(Debug, IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of profiles")]
+    Ok(ProfileList),
 }
 
 impl IntoResponse for ListResponse {
@@ -96,12 +68,28 @@ impl IntoResponse for ListResponse {
     }
 }
 
+#[derive(Debug, IntoResponses)]
+pub enum GetActiveResponse {
+    #[response(status = 200, description = "Active profile")]
+    Ok(Profile),
+}
+
 impl IntoResponse for GetActiveResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
         }
     }
+}
+
+#[derive(Debug, IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created profile")]
+    Created(Profile),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(Error),
 }
 
 impl IntoResponse for CreateResponse {
@@ -111,6 +99,18 @@ impl IntoResponse for CreateResponse {
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
+}
+
+#[derive(Debug, IntoResponses)]
+pub enum DeleteResponse {
+    #[response(status = 204, description = "Successfully deleted profile")]
+    NoContent,
+
+    #[response(status = 404, description = "Profile not found")]
+    NotFound(Error),
+
+    #[response(status = 409, description = "Deleting default profile")]
+    Conflict(Error),
 }
 
 impl IntoResponse for DeleteResponse {

@@ -12,7 +12,7 @@ use super::{
     Profile,
 };
 use crate::{
-    api::{self, Id, Paginated},
+    common::{self, Id, Paginated},
     error::Error,
     profiles::model::ListResponse,
     session::Session,
@@ -112,10 +112,10 @@ pub async fn delete_profile(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(api::Error {
+            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::Error {
                 message: e.to_string(),
             })),
-            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(api::Error {
+            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(common::Error {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

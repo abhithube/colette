@@ -1,7 +1,7 @@
 use axum::{routing, Router};
 use utoipa::OpenApi;
 
-use crate::api::Context;
+use crate::common::Context;
 
 mod handler;
 mod model;
