@@ -1,4 +1,4 @@
-env_files = [".env", ".env.sqlite"]
+env_files = [{ path = ".env" }, { path = ".env.sqlite", profile = "sqlite" }]
 
 config.default_to_workspace = false
 
@@ -18,20 +18,22 @@ args = ["build", "--release", "-p", "colette-api"]
 cwd = "./crates/postgres"
 command = "cargo"
 args = ["sqlx", "prepare"]
+env_files = [".env"]
 
 [tasks.reset-pg]
 cwd = "./crates/postgres"
 command = "sqlx"
 args = ["database", "reset"]
+env_files = [".env"]
 
 [tasks.prepare-sqlite]
-env_files = [".env.sqlite"]
 cwd = "./crates/sqlite"
 command = "cargo"
 args = ["sqlx", "prepare"]
+env_files = [".env.sqlite"]
 
 [tasks.reset-sqlite]
-env_files = [".env.sqlite"]
 cwd = "./crates/sqlite"
 command = "sqlx"
 args = ["database", "reset"]
+env_files = [".env.sqlite"]
