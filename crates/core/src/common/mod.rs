@@ -1,4 +1,4 @@
-pub const PAGINATION_LIMIT: i64 = 24;
+pub const PAGINATION_LIMIT: usize = 24;
 
 #[derive(Debug)]
 pub struct Paginated<T> {
