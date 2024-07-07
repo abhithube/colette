@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
-    Json,
 };
 use colette_core::profiles::{self, ProfilesService};
 
@@ -16,6 +15,7 @@ use crate::{
     error::Error,
     profiles::model::ListResponse,
     session::Session,
+    validation::ValidatedJson,
 };
 
 #[utoipa::path(
@@ -79,7 +79,7 @@ pub async fn get_active_profile(
 pub async fn create_profile(
     State(service): State<Arc<ProfilesService>>,
     session: Session,
-    Json(body): Json<CreateProfile>,
+    ValidatedJson(body): ValidatedJson<CreateProfile>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())

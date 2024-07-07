@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{extract::State, response::IntoResponse, Json};
+use axum::{extract::State, response::IntoResponse};
 use colette_core::{
     auth::{self, AuthService},
     users,
@@ -13,6 +13,7 @@ use crate::{
     error::Error,
     profiles::Profile,
     session::{Session, SESSION_KEY},
+    validation::ValidatedJson,
 };
 
 #[utoipa::path(
@@ -27,7 +28,7 @@ use crate::{
 #[axum::debug_handler]
 pub async fn register(
     State(service): State<Arc<AuthService>>,
-    Json(body): Json<Register>,
+    ValidatedJson(body): ValidatedJson<Register>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service.register(body.into()).await.map(User::from);
 
@@ -57,7 +58,7 @@ pub async fn register(
 pub async fn login(
     State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
-    Json(body): Json<Login>,
+    ValidatedJson(body): ValidatedJson<Login>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service.login(body.into()).await.map(Profile::from);
 
