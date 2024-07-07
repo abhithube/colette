@@ -1,17 +1,22 @@
 use std::{collections::HashMap, env, error::Error, sync::Arc};
 
 use axum::{routing, Router};
-use colette_core::{auth::AuthService, feeds::FeedsService, profiles::ProfilesService};
+use colette_core::{
+    auth::AuthService, entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
+};
 use colette_password::Argon2Hasher;
 use colette_postgres::{
-    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
+    EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
+    UsersPostgresRepository,
 };
 use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
-use common::{FeedList, ProfileList};
-// use colette_sqlite::{FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository};
+// use colette_sqlite::{
+//     EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
+// };
+use common::{EntryList, FeedList, ProfileList};
 use tokio::{net::TcpListener, task};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
@@ -23,6 +28,7 @@ use utoipa_scalar::{Scalar, Servable};
 
 mod auth;
 mod common;
+mod entries;
 mod error;
 mod feeds;
 mod profiles;
@@ -36,12 +42,14 @@ mod validation;
     ),
     nest(
         (path = "/api/v1/auth", api = auth::Api),
+        (path = "/api/v1/entries", api = entries::Api),
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(common::Error, FeedList, ProfileList)),
+    components(schemas(common::Error, EntryList, FeedList, ProfileList)),
     tags(
         (name = "Auth"),
+        (name = "Entries"),
         (name = "Feeds"),
         (name = "Profiles")
     )
@@ -78,9 +86,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
     let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
     let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
+    let entries_repository = Box::new(EntriesPostgresRepository::new(pool.clone()));
     // let users_repository = Box::new(UsersSqliteRepository::new(pool.clone()));
     // let profiles_repository = Box::new(ProfilesSqliteRepository::new(pool.clone()));
     // let feeds_repository = Box::new(FeedsSqliteRepository::new(pool.clone()));
+    // let entries_repository = Box::new(EntriesSqliteRepository::new(pool.clone()));
 
     let argon_hasher = Box::new(Argon2Hasher::default());
 
@@ -89,8 +99,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profiles_repository.clone(),
         argon_hasher,
     ));
-    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
+    let entries_service = Arc::new(EntriesService::new(entries_repository));
     let feeds_service = Arc::new(FeedsService::new(feeds_repository, feed_scraper));
+    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
 
     let session_store = PostgresStore::new(pool.clone());
     // let session_store = SqliteStore::new(pool.clone());
@@ -105,8 +116,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let state = common::Context {
         auth_service,
-        profiles_service,
+        entries_service,
         feeds_service,
+        profiles_service,
     };
 
     let app = Router::new()
@@ -116,6 +128,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .merge(Scalar::with_url("/doc", ApiDoc::openapi()))
                 .route("/openapi.json", routing::get(doc))
                 .merge(auth::Api::router())
+                .merge(entries::Api::router())
                 .merge(feeds::Api::router())
                 .merge(profiles::Api::router())
                 .with_state(state),
