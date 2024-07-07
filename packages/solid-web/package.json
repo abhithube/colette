@@ -12,7 +12,9 @@
 		"vite-plugin-solid": "^2.8.2"
 	},
 	"dependencies": {
+		"@modular-forms/solid": "^0.22.1",
 		"@solidjs/router": "^0.13.6",
-		"solid-js": "^1.8.11"
+		"solid-js": "^1.8.11",
+		"valibot": "^0.36.0"
 	}
 }
