@@ -1882,9 +1882,9 @@ dependencies = [
 
 [[package]]
 name = "skyscraper"
-version = "0.7.0-beta.1"
+version = "0.7.0-beta.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e21e93ac246433f21d6cd4d7edef1a0cd6ccf0b718ebbe7ad4904323bec4294"
+checksum = "a05c399e86f9e1ccf8864f643161b523e027228d8d25199184215c0d40b7b28e"
 dependencies = [
  "enum-extract-error",
  "enum-extract-macro",
