@@ -1,5 +1,5 @@
 pub use repositories::{
-    feeds::FeedsSqliteRepository, profiles::ProfilesSqliteRepository, users::UsersSqliteRepository,
+    EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 };
 use sqlx::{Error, SqlitePool};
 

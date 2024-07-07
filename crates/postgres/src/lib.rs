@@ -1,6 +1,6 @@
 pub use repositories::{
-    feeds::FeedsPostgresRepository, profiles::ProfilesPostgresRepository,
-    users::UsersPostgresRepository,
+    EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
+    UsersPostgresRepository,
 };
 use sqlx::{Error, PgPool};
 
