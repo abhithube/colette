@@ -8,10 +8,27 @@ pub struct SelectManyParams<'a> {
     pub user_id: &'a str,
 }
 
+impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a ProfileFindManyParams) -> Self {
+        Self {
+            user_id: &value.user_id,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct SelectByIdParams<'a> {
     pub id: &'a str,
     pub user_id: &'a str,
+}
+
+impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
+    fn from(value: &'a ProfileFindByIdParams) -> Self {
+        Self {
+            id: &value.id,
+            user_id: &value.user_id,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -26,29 +43,6 @@ pub struct InsertData<'a> {
     pub image_url: Option<&'a str>,
     pub is_default: bool,
     pub user_id: &'a str,
-}
-
-#[derive(Debug)]
-pub struct UpdateData<'a> {
-    pub title: Option<&'a str>,
-    pub image_url: Option<&'a str>,
-}
-
-impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
-    fn from(value: &'a ProfileFindManyParams) -> Self {
-        Self {
-            user_id: &value.user_id,
-        }
-    }
-}
-
-impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
-    fn from(value: &'a ProfileFindByIdParams) -> Self {
-        Self {
-            id: &value.id,
-            user_id: &value.user_id,
-        }
-    }
 }
 
 impl<'a> InsertData<'a> {
@@ -73,6 +67,12 @@ impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
             user_id: &value.user_id,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct UpdateData<'a> {
+    pub title: Option<&'a str>,
+    pub image_url: Option<&'a str>,
 }
 
 impl<'a> From<&'a ProfileUpdateData> for UpdateData<'a> {
