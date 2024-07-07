@@ -1,3 +1,5 @@
+pub const PAGINATION_LIMIT: i64 = 24;
+
 #[derive(Debug)]
 pub struct Paginated<T> {
     pub has_more: bool,

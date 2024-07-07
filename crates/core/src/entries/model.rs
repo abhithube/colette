@@ -12,3 +12,10 @@ pub struct Entry {
     pub has_read: bool,
     pub feed_id: String,
 }
+
+#[derive(Debug)]
+pub struct ListEntriesParams {
+    pub published_at: Option<DateTime<Utc>>,
+    pub feed_id: Option<String>,
+    pub has_read: Option<bool>,
+}
