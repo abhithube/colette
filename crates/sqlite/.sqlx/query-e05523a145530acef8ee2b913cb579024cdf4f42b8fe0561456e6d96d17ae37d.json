@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at \"published_at: chrono::DateTime<chrono::Utc>\",\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read \"has_read: bool\",\n  pfe.profile_feed_id feed_id\nFROM\n  profile_feed_entries pfe\n  JOIN profile_feeds pf ON pf.id = pfe.profile_feed_id\n  JOIN feed_entries fe ON fe.id = pfe.feed_entry_id\n  JOIN entries e ON e.id = fe.entry_id\nWHERE\n  pf.profile_id = ?1\n  AND (\n    ?3 IS NULL\n    OR e.published_at < ?3\n  )\n  -- AND (\n  --   $4 IS NULL\n  --   OR pfe.profile_feed_id = $4\n  -- )\n  -- AND (\n  --   $5 IS NULL\n  --   OR pfe.has_read = $5\n  -- )\nORDER BY\n  e.published_at DESC,\n  pfe.id DESC\nLIMIT\n  ?2;\n",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "link",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "published_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "author",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "thumbnail_url",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "has_read: bool",
+        "ordinal": 7,
+        "type_info": "Int64"
+      },
+      {
+        "name": "feed_id",
+        "ordinal": 8,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "e05523a145530acef8ee2b913cb579024cdf4f42b8fe0561456e6d96d17ae37d"
+}

@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id feed_id\nFROM\n  profile_feed_entries pfe\n  JOIN profile_feeds pf ON pf.id = pfe.profile_feed_id\n  JOIN feed_entries fe ON fe.id = pfe.feed_entry_id\n  JOIN entries e ON e.id = fe.entry_id\nWHERE\n  pf.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::text IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\nORDER BY\n  e.published_at DESC,\n  pfe.id DESC\nLIMIT\n  $2;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "feed_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Timestamptz",
+        "Text",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "6893dc27b22970d5d1d9f15896da09993da7466f70e3c7ca43c5eac6362fd6e1"
+}
