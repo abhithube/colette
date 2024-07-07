@@ -1,0 +1,17 @@
+{
+	"name": "@colette/solid-web",
+	"scripts": {
+		"start": "vite",
+		"dev": "vite",
+		"build": "vite build",
+		"serve": "vite preview"
+	},
+	"devDependencies": {
+		"typescript": "^5.3.3",
+		"vite": "^5.0.11",
+		"vite-plugin-solid": "^2.8.2"
+	},
+	"dependencies": {
+		"solid-js": "^1.8.11"
+	}
+}
