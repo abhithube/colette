@@ -1,13 +1,17 @@
-/* @refresh reload */
+import { Route, Router } from '@solidjs/router'
 import { render } from 'solid-js/web'
-
 import './index.css'
-import App from './App'
+import { Home } from './routes/home'
+import { Login } from './routes/login'
+import { Register } from './routes/register'
 
-const root = document.getElementById('root')
-
-if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
-	throw new Error('Root element not found')
-}
-
-render(() => <App />, root!)
+render(
+	() => (
+		<Router>
+			<Route path="/login" component={Login} />
+			<Route path="/register" component={Register} />
+			<Route path="/" component={Home} />
+		</Router>
+	),
+	document.getElementById('root')!,
+)
