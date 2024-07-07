@@ -7,6 +7,7 @@ use chrono::{DateTime, Utc};
 use colette_core::auth;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoResponses, ToSchema};
+use validator::Validate;
 
 use crate::{common::Error, profiles::Profile};
 
@@ -31,11 +32,14 @@ impl From<colette_core::User> for User {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct Register {
     #[schema(format = "email")]
+    #[validate(email(message = "not a valid email"))]
     pub email: String,
+
     #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
     pub password: String,
 }
 
@@ -48,11 +52,14 @@ impl From<Register> for auth::Register {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 pub struct Login {
     #[schema(format = "email")]
+    #[validate(email(message = "not a valid email"))]
     pub email: String,
+
     #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
     pub password: String,
 }
 

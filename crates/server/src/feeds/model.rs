@@ -6,8 +6,8 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::feeds;
 use serde::{Deserialize, Serialize};
-use url::Url;
 use utoipa::{IntoResponses, ToSchema};
+use validator::Validate;
 
 use crate::common::{Error, FeedList};
 
@@ -41,17 +41,16 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFeed {
-    pub url: Url,
+    #[validate(url(message = "not a valid URL"))]
+    pub url: String,
 }
 
 impl From<CreateFeed> for feeds::CreateFeed {
     fn from(value: CreateFeed) -> Self {
-        Self {
-            url: value.url.into(),
-        }
+        Self { url: value.url }
     }
 }
 

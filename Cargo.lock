@@ -364,7 +364,6 @@ dependencies = [
  "tokio",
  "tower-sessions",
  "tower-sessions-sqlx-store",
- "url",
  "utoipa",
  "utoipa-scalar",
  "validator",
@@ -2621,7 +2620,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.68",
- "url",
 ]
 
 [[package]]

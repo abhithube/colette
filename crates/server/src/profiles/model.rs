@@ -6,8 +6,8 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::profiles;
 use serde::{Deserialize, Serialize};
-use url::Url;
 use utoipa::{IntoResponses, ToSchema};
+use validator::Validate;
 
 use crate::common::{Error, ProfileList};
 
@@ -36,20 +36,23 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProfile {
     #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
+
     #[schema(nullable = false)]
-    pub image_url: Option<Url>,
+    #[validate(url(message = "not a valid URL"))]
+    pub image_url: Option<String>,
 }
 
 impl From<CreateProfile> for profiles::CreateProfile {
     fn from(value: CreateProfile) -> Self {
         Self {
             title: value.title,
-            image_url: value.image_url.map(String::from),
+            image_url: value.image_url,
         }
     }
 }
