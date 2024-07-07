@@ -27,6 +27,7 @@ mod error;
 mod feeds;
 mod profiles;
 mod session;
+mod validation;
 
 #[derive(OpenApi)]
 #[openapi(

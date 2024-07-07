@@ -6,6 +6,9 @@ use axum::{
 use colette_core::auth;
 use thiserror::Error;
 use tower_sessions::session;
+use validator::ValidationErrors;
+
+use crate::common;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -14,6 +17,9 @@ pub enum Error {
 
     #[error(transparent)]
     JsonRejection(#[from] JsonRejection),
+
+    #[error(transparent)]
+    Validation(#[from] ValidationErrors),
 
     #[error(transparent)]
     Session(#[from] session::Error),
@@ -30,6 +36,13 @@ impl IntoResponse for Error {
         match self {
             Error::QueryRejection(e) => (StatusCode::BAD_REQUEST, e).into_response(),
             Error::JsonRejection(e) => (StatusCode::BAD_REQUEST, e).into_response(),
+            Error::Validation(e) => (
+                StatusCode::UNPROCESSABLE_ENTITY,
+                common::Error {
+                    message: e.to_string(),
+                },
+            )
+                .into_response(),
             Error::Auth(auth::Error::NotAuthenticated) => {
                 (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
             }
