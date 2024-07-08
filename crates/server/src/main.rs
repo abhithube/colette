@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .map(|e| e.parse::<u32>())
         .unwrap_or(Ok(DEFAULT_PORT))?;
     let database_url = env::var("DATABASE_URL")?;
-    let frontend_url = env::var("FRONTEND_URL").ok();
+    let origin_urls = env::var("ORIGIN_URLS").ok();
 
     let pool = colette_postgres::create_database(&database_url).await?;
     // let pool = colette_sqlite::create_database(&database_url).await?;
@@ -155,11 +155,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .with_expiry(Expiry::OnInactivity(Duration::days(1))),
         );
 
-    if let Some(origin) = frontend_url {
+    if let Some(origin_urls) = origin_urls {
+        let mut origins: Vec<HeaderValue> = vec![];
+        for part in origin_urls.split(",") {
+            let origin = part.parse::<HeaderValue>()?;
+            origins.push(origin);
+        }
+
         app = app.layer(
             CorsLayer::new()
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-                .allow_origin(origin.parse::<HeaderValue>()?)
+                .allow_origin(origins)
                 .allow_headers([header::CONTENT_TYPE])
                 .allow_credentials(true),
         )
