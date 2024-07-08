@@ -5,7 +5,7 @@ use axum::{
 use rust_embed::Embed;
 
 #[derive(Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../packages/solid-web/dist"]
+#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
 struct Asset;
 
 pub struct StaticFile(pub String);
