@@ -138,7 +138,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             "/api/v1",
             Router::new()
                 .merge(Scalar::with_url("/doc", ApiDoc::openapi()))
-                .route("/openapi.json", routing::get(doc))
+                .route(
+                    "/openapi.json",
+                    routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
+                )
                 .merge(auth::Api::router())
                 .merge(entries::Api::router())
                 .merge(feeds::Api::router())
@@ -168,10 +171,4 @@ async fn main() -> Result<(), Box<dyn Error>> {
     deletion_task.await??;
 
     Ok(())
-}
-
-async fn doc() -> Result<String, error::Error> {
-    ApiDoc::openapi()
-        .to_pretty_json()
-        .map_err(|_| error::Error::Unknown)
 }
