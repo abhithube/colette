@@ -15,9 +15,11 @@ client.use({
 				throw new AuthError(body)
 			}
 
-			throw new Error(body)
+			throw new APIError(body)
 		}
 	},
 })
 
-export class AuthError extends Error {}
+export class APIError extends Error {}
+
+export class AuthError extends APIError {}

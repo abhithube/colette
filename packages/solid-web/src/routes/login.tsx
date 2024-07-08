@@ -1,48 +1,44 @@
 import { type SubmitHandler, createForm, valiForm } from '@modular-forms/solid'
-import { action, useAction, useNavigate, useSubmission } from '@solidjs/router'
+import {
+	type Navigator,
+	action,
+	useAction,
+	useNavigate,
+	useSubmission,
+} from '@solidjs/router'
 import { type Component, Show } from 'solid-js'
-import * as v from 'valibot'
+import { APIError } from '../lib/client'
+import { type LoginDTO, authAPI, loginSchema } from '../lib/core/login'
 
-const loginSchema = v.object({
-	email: v.pipe(
-		v.string(),
-		v.nonEmpty('Please enter your email.'),
-		v.email('The email provided is not valid.'),
-	),
-	password: v.pipe(
-		v.string(),
-		v.nonEmpty('Please enter a password.'),
-		v.minLength(8, 'Your password must have at least 8 characters.'),
-	),
-})
+const loginAction = action(async (data: LoginDTO, navigate: Navigator) => {
+	try {
+		const profile = await authAPI.login(data)
 
-type LoginData = v.InferInput<typeof loginSchema>
+		navigate('/', {
+			replace: true,
+			state: profile,
+		})
+	} catch (error) {
+		if (error instanceof APIError) {
+			return error.message
+		}
 
-const login = action(async (data: LoginData) => {
-	const message: string | undefined = 'error'
-
-	await new Promise((resolve) => setTimeout(resolve, 1000))
-
-	return message
+		throw new Error()
+	}
 })
 
 export const Login: Component = () => {
 	const navigate = useNavigate()
 
-	const doLogin = useAction(login)
-	const submission = useSubmission(login)
+	const login = useAction(loginAction)
+	const submission = useSubmission(loginAction)
 
-	const [loginForm, { Form, Field }] = createForm<LoginData>({
+	const [loginForm, { Form, Field }] = createForm<LoginDTO>({
 		validate: valiForm(loginSchema),
 	})
 
-	const handleSubmit: SubmitHandler<LoginData> = async (values) => {
-		const error = await doLogin(values)
-		if (!error) {
-			navigate('/', {
-				replace: true,
-			})
-		}
+	const handleSubmit: SubmitHandler<LoginDTO> = async (values) => {
+		await login(values, navigate)
 	}
 
 	return (
