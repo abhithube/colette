@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         app = app.fallback_service(serve_dir);
     }
 
-    let listener = TcpListener::bind(format!("localhost:{}", port)).await?;
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
     axum::serve(listener, app).await?;
 
     deletion_task.await??;
