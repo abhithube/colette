@@ -52,7 +52,7 @@ struct Asset;
 #[derive(OpenApi)]
 #[openapi(
     servers(
-        (url = "http://localhost:3001")
+        (url = "http://localhost:8000")
     ),
     nest(
         (path = "/api/v1/auth", api = auth::Api),
@@ -92,6 +92,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_postprocessor,
     ));
 
+    let port = env::var("PORT").map(|e| e.parse::<u32>())??;
     let database_url = env::var("DATABASE_URL")?;
     let frontend_url = env::var("FRONTEND_URL").ok();
     let is_prod = env::var("MODE").ok() == Some(String::from("production"));
@@ -171,7 +172,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         app = app.fallback_service(serve_dir);
     }
 
-    let listener = TcpListener::bind("localhost:3001").await?;
+    let listener = TcpListener::bind(format!("localhost:{}", port)).await?;
     axum::serve(listener, app).await?;
 
     deletion_task.await??;
