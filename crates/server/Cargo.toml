@@ -12,10 +12,11 @@ colette-password.workspace = true
 colette-postgres.workspace = true
 colette-scraper.workspace = true
 colette-sqlite.workspace = true
+rust-embed = "8.4.0"
 serde.workspace = true
 thiserror.workspace = true
 tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
-tower-http = { version = "0.5.2", features = ["cors"] }
+tower-http = { version = "0.5.2", features = ["cors", "fs"] }
 tower-sessions = "0.12.2"
 tower-sessions-sqlx-store = { version = "0.12.0", features = [
   "postgres",

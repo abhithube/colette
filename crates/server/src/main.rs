@@ -20,8 +20,12 @@ use colette_scraper::{
 //     EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 // };
 use common::{EntryList, FeedList, ProfileList};
+use rust_embed::Embed;
 use tokio::{net::TcpListener, task};
-use tower_http::cors::CorsLayer;
+use tower_http::{
+    cors::CorsLayer,
+    services::{ServeDir, ServeFile},
+};
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
@@ -38,6 +42,12 @@ mod feeds;
 mod profiles;
 mod session;
 mod validation;
+
+const DIST_PATH: &str = "packages/solid-web/dist/";
+
+#[derive(Embed)]
+#[folder = "../../packages/solid-web/dist"]
+struct Asset;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -84,6 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let database_url = env::var("DATABASE_URL")?;
     let frontend_url = env::var("FRONTEND_URL").ok();
+    let is_prod = env::var("MODE").ok() == Some(String::from("production"));
 
     let pool = colette_postgres::create_database(&database_url).await?;
     // let pool = colette_sqlite::create_database(&database_url).await?;
@@ -152,6 +163,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .allow_headers([header::CONTENT_TYPE])
                 .allow_credentials(true),
         )
+    }
+
+    if is_prod {
+        let serve_dir = ServeDir::new(DIST_PATH)
+            .not_found_service(ServeFile::new(format!("{DIST_PATH}index.html")));
+        app = app.fallback_service(serve_dir);
     }
 
     let listener = TcpListener::bind("localhost:3001").await?;
