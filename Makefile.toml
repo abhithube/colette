@@ -1,4 +1,8 @@
-env_files = [{ path = ".env" }, { path = ".env.sqlite", profile = "sqlite" }]
+env_files = [
+  { path = ".env" },
+  { path = ".env.production" },
+  { path = ".env.sqlite", profile = "sqlite" },
+]
 
 config.default_to_workspace = false
 
@@ -9,6 +13,7 @@ args = ["run", "-p", "colette-server"]
 [tasks.run]
 command = "cargo"
 args = ["run", "--release", "-p", "colette-server"]
+env_files = [".env.production"]
 
 [tasks.build]
 command = "cargo"
