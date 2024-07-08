@@ -1,6 +1,9 @@
 use std::{collections::HashMap, env, error::Error, sync::Arc};
 
-use axum::{routing, Router};
+use axum::{
+    http::{header, HeaderValue, Method},
+    routing, Router,
+};
 use colette_core::{
     auth::AuthService, entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
 };
@@ -18,6 +21,7 @@ use colette_scraper::{
 // };
 use common::{EntryList, FeedList, ProfileList};
 use tokio::{net::TcpListener, task};
+use tower_http::cors::CorsLayer;
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
@@ -79,6 +83,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
 
     let database_url = env::var("DATABASE_URL")?;
+    let frontend_url = env::var("FRONTEND_URL").ok();
 
     let pool = colette_postgres::create_database(&database_url).await?;
     // let pool = colette_sqlite::create_database(&database_url).await?;
@@ -121,7 +126,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profiles_service,
     };
 
-    let app = Router::new()
+    let mut app = Router::new()
         .nest(
             "/api/v1",
             Router::new()
@@ -138,6 +143,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .with_secure(false)
                 .with_expiry(Expiry::OnInactivity(Duration::days(1))),
         );
+
+    if let Some(origin) = frontend_url {
+        app = app.layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+                .allow_origin(origin.parse::<HeaderValue>().unwrap())
+                .allow_headers([header::CONTENT_TYPE])
+                .allow_credentials(true),
+        )
+    }
 
     let listener = TcpListener::bind("localhost:3001").await?;
     axum::serve(listener, app).await?;
