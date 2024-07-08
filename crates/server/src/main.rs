@@ -20,12 +20,8 @@ use colette_scraper::{
 //     EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 // };
 use common::{EntryList, FeedList, ProfileList};
-use rust_embed::Embed;
 use tokio::{net::TcpListener, task};
-use tower_http::{
-    cors::CorsLayer,
-    services::{ServeDir, ServeFile},
-};
+use tower_http::cors::CorsLayer;
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
@@ -33,6 +29,7 @@ use tower_sessions::{
 use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
+use web::static_handler;
 
 mod auth;
 mod common;
@@ -42,13 +39,9 @@ mod feeds;
 mod profiles;
 mod session;
 mod validation;
+mod web;
 
 const DEFAULT_PORT: u32 = 8000;
-const DIST_PATH: &str = "packages/solid-web/dist/";
-
-#[derive(Embed)]
-#[folder = "../../packages/solid-web/dist"]
-struct Asset;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -98,7 +91,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(Ok(DEFAULT_PORT))?;
     let database_url = env::var("DATABASE_URL")?;
     let frontend_url = env::var("FRONTEND_URL").ok();
-    let is_prod = env::var("MODE").ok() == Some(String::from("production"));
 
     let pool = colette_postgres::create_database(&database_url).await?;
     // let pool = colette_sqlite::create_database(&database_url).await?;
@@ -153,6 +145,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .merge(profiles::Api::router())
                 .with_state(state),
         )
+        .fallback_service(routing::get(static_handler))
         .layer(
             SessionManagerLayer::new(session_store)
                 .with_secure(false)
@@ -167,12 +160,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .allow_headers([header::CONTENT_TYPE])
                 .allow_credentials(true),
         )
-    }
-
-    if is_prod {
-        let serve_dir =
-            ServeDir::new(DIST_PATH).fallback(ServeFile::new(format!("{DIST_PATH}index.html")));
-        app = app.fallback_service(serve_dir);
     }
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
