@@ -159,15 +159,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         app = app.layer(
             CorsLayer::new()
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-                .allow_origin(origin.parse::<HeaderValue>().unwrap())
+                .allow_origin(origin.parse::<HeaderValue>()?)
                 .allow_headers([header::CONTENT_TYPE])
                 .allow_credentials(true),
         )
     }
 
     if is_prod {
-        let serve_dir = ServeDir::new(DIST_PATH)
-            .not_found_service(ServeFile::new(format!("{DIST_PATH}index.html")));
+        let serve_dir =
+            ServeDir::new(DIST_PATH).fallback(ServeFile::new(format!("{DIST_PATH}index.html")));
         app = app.fallback_service(serve_dir);
     }
 
