@@ -43,6 +43,7 @@ mod profiles;
 mod session;
 mod validation;
 
+const DEFAULT_PORT: u32 = 8000;
 const DIST_PATH: &str = "packages/solid-web/dist/";
 
 #[derive(Embed)]
@@ -92,7 +93,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_postprocessor,
     ));
 
-    let port = env::var("PORT").map(|e| e.parse::<u32>())??;
+    let port = env::var("PORT")
+        .map(|e| e.parse::<u32>())
+        .unwrap_or(Ok(DEFAULT_PORT))?;
     let database_url = env::var("DATABASE_URL")?;
     let frontend_url = env::var("FRONTEND_URL").ok();
     let is_prod = env::var("MODE").ok() == Some(String::from("production"));
