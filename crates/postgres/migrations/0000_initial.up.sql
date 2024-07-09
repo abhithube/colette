@@ -26,8 +26,8 @@ CREATE TABLE users (
   id text NOT NULL PRIMARY KEY,
   email text NOT NULL UNIQUE,
   password text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE profiles (
@@ -36,8 +36,8 @@ CREATE TABLE profiles (
   image_url text,
   is_default boolean NOT NULL DEFAULT FALSE,
   user_id text NOT NULL REFERENCES users (id) ON DELETE cascade,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, is_default)
 );
 
@@ -46,8 +46,8 @@ CREATE TABLE profile_feeds (
   custom_title text,
   profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
   feed_id bigint NOT NULL REFERENCES feeds (id) ON DELETE restrict,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (profile_id, feed_id)
 );
 
@@ -58,3 +58,23 @@ CREATE TABLE profile_feed_entries (
   feed_entry_id bigint NOT NULL REFERENCES feed_entries (id) ON DELETE restrict,
   UNIQUE (profile_feed_id, feed_entry_id)
 );
+
+CREATE
+OR REPLACE function handle_updated_at () returns trigger AS $$
+BEGIN
+  NEW.updated_at = CURRENT_TIMESTAMP;
+  RETURN NEW;
+END;
+$$ language plpgsql;
+
+CREATE TRIGGER users_updated_at before
+UPDATE ON users FOR each ROW
+EXECUTE procedure handle_updated_at ();
+
+CREATE TRIGGER profiles_updated_at before
+UPDATE ON profiles FOR each ROW
+EXECUTE procedure handle_updated_at ();
+
+CREATE TRIGGER profile_feeds_updated_at before
+UPDATE ON profile_feeds FOR each ROW
+EXECUTE procedure handle_updated_at ();

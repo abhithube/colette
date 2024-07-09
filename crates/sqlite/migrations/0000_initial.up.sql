@@ -58,3 +58,39 @@ CREATE TABLE profile_feed_entries (
   feed_entry_id integer NOT NULL REFERENCES feed_entries (id) ON DELETE restrict,
   UNIQUE (profile_feed_id, feed_entry_id)
 );
+
+CREATE TRIGGER users_updated_at
+AFTER
+UPDATE ON users FOR each ROW
+BEGIN
+UPDATE users
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
+
+CREATE TRIGGER profiles_updated_at
+AFTER
+UPDATE ON profiles FOR each ROW
+BEGIN
+UPDATE profiles
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
+
+CREATE TRIGGER profile_feeds_updated_at
+AFTER
+UPDATE ON profile_feeds FOR each ROW
+BEGIN
+UPDATE profile_feeds
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
