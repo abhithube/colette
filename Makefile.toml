@@ -31,16 +31,10 @@ args = [
   "colette-server",
 ]
 
-[tasks.prepare-pg]
+[tasks.prepare]
 cwd = "./crates/postgres"
 command = "cargo"
 args = ["sqlx", "prepare"]
-env_files = [".env"]
-
-[tasks.reset-pg]
-cwd = "./crates/postgres"
-command = "sqlx"
-args = ["database", "reset"]
 env_files = [".env"]
 
 [tasks.prepare-sqlite]
@@ -48,6 +42,12 @@ cwd = "./crates/sqlite"
 command = "cargo"
 args = ["sqlx", "prepare"]
 env_files = [".env.sqlite"]
+
+[tasks.reset]
+cwd = "./crates/postgres"
+command = "sqlx"
+args = ["database", "reset"]
+env_files = [".env"]
 
 [tasks.reset-sqlite]
 cwd = "./crates/sqlite"
