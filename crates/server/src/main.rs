@@ -8,6 +8,7 @@ use colette_core::{
     auth::AuthService, entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
 };
 use colette_password::Argon2Hasher;
+#[cfg(feature = "postgres")]
 use colette_postgres::{
     EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
     UsersPostgresRepository,
@@ -16,17 +17,20 @@ use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
     ExtractorOptions, FeedScraper, PluginRegistry,
 };
-// use colette_sqlite::{
-//     EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
-// };
+#[cfg(feature = "sqlite")]
+use colette_sqlite::{
+    EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
+};
 use common::{EntryList, FeedList, ProfileList};
 use tokio::{net::TcpListener, task};
 use tower_http::cors::CorsLayer;
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
 };
-// use tower_sessions_sqlx_store::SqliteStore;
+#[cfg(feature = "postgres")]
 use tower_sessions_sqlx_store::PostgresStore;
+#[cfg(feature = "sqlite")]
+use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 use web::static_handler;
@@ -66,6 +70,37 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    let port = env::var("PORT")
+        .map(|e| e.parse::<u32>())
+        .unwrap_or(Ok(DEFAULT_PORT))?;
+    let database_url = env::var("DATABASE_URL")?;
+    let origin_urls = env::var("ORIGIN_URLS").ok();
+
+    #[cfg(feature = "postgres")]
+    let pool = colette_postgres::create_database(&database_url).await?;
+    #[cfg(feature = "sqlite")]
+    let pool = colette_sqlite::create_database(&database_url).await?;
+
+    #[cfg(feature = "postgres")]
+    let session_store = PostgresStore::new(pool.clone());
+    #[cfg(feature = "sqlite")]
+    let session_store = SqliteStore::new(pool.clone());
+
+    #[cfg(feature = "postgres")]
+    let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
+        Box::new(UsersPostgresRepository::new(pool.clone())),
+        Box::new(ProfilesPostgresRepository::new(pool.clone())),
+        Box::new(FeedsPostgresRepository::new(pool.clone())),
+        Box::new(EntriesPostgresRepository::new(pool.clone())),
+    );
+    #[cfg(feature = "sqlite")]
+    let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
+        Box::new(UsersSqliteRepository::new(pool.clone())),
+        Box::new(ProfilesSqliteRepository::new(pool.clone())),
+        Box::new(FeedsSqliteRepository::new(pool.clone())),
+        Box::new(EntriesSqliteRepository::new(pool.clone())),
+    );
+
     let downloader = Box::new(DefaultDownloader {});
     let feed_extractor = Box::new(DefaultFeedExtractor {
         options: ExtractorOptions {
@@ -86,24 +121,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_postprocessor,
     ));
 
-    let port = env::var("PORT")
-        .map(|e| e.parse::<u32>())
-        .unwrap_or(Ok(DEFAULT_PORT))?;
-    let database_url = env::var("DATABASE_URL")?;
-    let origin_urls = env::var("ORIGIN_URLS").ok();
-
-    let pool = colette_postgres::create_database(&database_url).await?;
-    // let pool = colette_sqlite::create_database(&database_url).await?;
-
-    let users_repository = Box::new(UsersPostgresRepository::new(pool.clone()));
-    let profiles_repository = Box::new(ProfilesPostgresRepository::new(pool.clone()));
-    let feeds_repository = Box::new(FeedsPostgresRepository::new(pool.clone()));
-    let entries_repository = Box::new(EntriesPostgresRepository::new(pool.clone()));
-    // let users_repository = Box::new(UsersSqliteRepository::new(pool.clone()));
-    // let profiles_repository = Box::new(ProfilesSqliteRepository::new(pool.clone()));
-    // let feeds_repository = Box::new(FeedsSqliteRepository::new(pool.clone()));
-    // let entries_repository = Box::new(EntriesSqliteRepository::new(pool.clone()));
-
     let argon_hasher = Box::new(Argon2Hasher::default());
 
     let auth_service = Arc::new(AuthService::new(
@@ -114,9 +131,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let entries_service = Arc::new(EntriesService::new(entries_repository));
     let feeds_service = Arc::new(FeedsService::new(feeds_repository, feed_scraper));
     let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
-
-    let session_store = PostgresStore::new(pool.clone());
-    // let session_store = SqliteStore::new(pool.clone());
 
     session_store.migrate().await?;
 

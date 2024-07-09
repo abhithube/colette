@@ -9,9 +9,9 @@ bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 colette-password.workspace = true
-colette-postgres.workspace = true
+colette-postgres = { workspace = true, optional = true }
 colette-scraper.workspace = true
-colette-sqlite.workspace = true
+colette-sqlite = { workspace = true, optional = true }
 mime = "0.3.17"
 mime_guess = "2.0.5"
 rust-embed = { version = "8.4.0", features = ["interpolate-folder-path"] }
@@ -31,3 +31,8 @@ utoipa = { version = "5.0.0-alpha.0", features = [
 ] }
 utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"] }
 validator = { version = "0.17", features = ["derive"] }
+
+[features]
+default = ["postgres"]
+postgres = ["colette-postgres"]
+sqlite = ["colette-sqlite"]
