@@ -1,4 +1,4 @@
-use std::{collections::HashMap, env, error::Error, sync::Arc};
+use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
 
 use axum::{
     http::{header, HeaderValue, Method},
@@ -10,7 +10,7 @@ use colette_core::{
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
 use colette_postgres::{
-    EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
+    iterate_feeds, EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
     UsersPostgresRepository,
 };
 use colette_scraper::{
@@ -19,10 +19,14 @@ use colette_scraper::{
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
-    EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
+    iterate_feeds, EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository,
+    UsersSqliteRepository,
 };
 use common::{EntryList, FeedList, ProfileList};
+use cron::Schedule;
+use futures::stream::StreamExt;
 use tokio::{net::TcpListener, task};
+use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
 use tower_sessions::{
     cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
@@ -46,6 +50,7 @@ mod validation;
 mod web;
 
 const DEFAULT_PORT: u32 = 8000;
+const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";
 
 #[derive(OpenApi)]
 #[openapi(
@@ -75,6 +80,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .unwrap_or(Ok(DEFAULT_PORT))?;
     let database_url = env::var("DATABASE_URL")?;
     let origin_urls = env::var("ORIGIN_URLS").ok();
+    let cron_refresh = env::var("CRON_REFRESH").unwrap_or(String::from(DEFAULT_CRON_REFRESH));
 
     #[cfg(feature = "postgres")]
     let pool = colette_postgres::create_database(&database_url).await?;
@@ -100,6 +106,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Box::new(FeedsSqliteRepository::new(pool.clone())),
         Box::new(EntriesSqliteRepository::new(pool.clone())),
     );
+
+    let schedule = Schedule::from_str(&cron_refresh)?;
+    let scheduler = JobScheduler::new().await?;
+
+    scheduler
+        .add(Job::new_async(schedule, move |_id, _scheduler| {
+            let pool = pool.clone();
+
+            Box::pin(async move {
+                let mut stream = iterate_feeds(&pool);
+                while let Some(row) = stream.next().await {
+                    let url = row.unwrap();
+                    println!("{}", url);
+                }
+            })
+        })?)
+        .await?;
+
+    scheduler.start().await?;
 
     let downloader = Box::new(DefaultDownloader {});
     let feed_extractor = Box::new(DefaultFeedExtractor {
