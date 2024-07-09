@@ -19,6 +19,18 @@ env_files = [".env.production"]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
 
+[tasks.build-sqlite]
+command = "cargo"
+args = [
+  "build",
+  "--release",
+  "--no-default-features",
+  "--features",
+  "sqlite",
+  "-p",
+  "colette-server",
+]
+
 [tasks.prepare-pg]
 cwd = "./crates/postgres"
 command = "cargo"
