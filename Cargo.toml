@@ -21,6 +21,7 @@ colette-password.path = "crates/password"
 colette-postgres.path = "crates/postgres"
 colette-scraper.path = "crates/scraper"
 colette-sqlite.path = "crates/sqlite"
+futures = "0.3.30"
 http = "1.1.0"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"

@@ -1,3 +1,4 @@
+pub use queries::feeds::iterate as iterate_feeds;
 pub use repositories::{
     EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
     UsersPostgresRepository,

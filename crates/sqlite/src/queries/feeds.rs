@@ -1,4 +1,5 @@
 use colette_database::feeds::InsertData;
+use futures::{Stream, StreamExt};
 use sqlx::{Error, SqliteExecutor};
 
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<i64, Error> {
@@ -7,4 +8,12 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
         .await?;
 
     Ok(row.id)
+}
+
+pub fn iterate<'a>(
+    ex: impl SqliteExecutor<'a> + 'a,
+) -> impl Stream<Item = Result<String, Error>> + 'a {
+    sqlx::query_file!("queries/feeds/iterate.sql")
+        .fetch(ex)
+        .map(|e| e.map(|e| e.url))
 }
