@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM profile_feeds\nWHERE\n  id = $1\n  AND profile_id = $2;\n",
+  "query": "DELETE FROM profile_feeds WHERE id = $1 AND profile_id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "5b0d97be5e12a5ac7e0c926ed219d5b78e3a5fc466070dd079ef9c6f6c05ba57"
+  "hash": "3b66620080e7bc873423d94898e84be1f00cde6e0c336f23baebed3d4b81a792"
 }

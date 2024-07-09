@@ -72,8 +72,8 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
 }
 
 pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
-    sqlx::query_file!(
-        "queries/profile_feeds/delete.sql",
+    sqlx::query!(
+        "DELETE FROM profile_feeds WHERE id = $1 AND profile_id = $2",
         params.id,
         params.profile_id
     )

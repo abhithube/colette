@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM profile_feeds WHERE id = $1 AND profile_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "3b66620080e7bc873423d94898e84be1f00cde6e0c336f23baebed3d4b81a792"
+}

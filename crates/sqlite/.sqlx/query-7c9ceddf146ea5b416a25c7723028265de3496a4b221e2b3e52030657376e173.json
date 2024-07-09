@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  id,\n  coalesce(url, link) \"url!: String\"\nFROM\n  feeds;",
+  "query": "SELECT id, coalesce(url, link) \"url!: String\" FROM feeds",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "26da5543087e33aa23c2e894a8087e8cb7c60e72065f13b20ff81da0d8fdf2fe"
+  "hash": "7c9ceddf146ea5b416a25c7723028265de3496a4b221e2b3e52030657376e173"
 }

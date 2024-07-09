@@ -117,9 +117,8 @@ pub async fn delete(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
 ) -> Result<(), Error> {
-    sqlx::query_file_as!(
-        Profile,
-        "queries/profiles/delete.sql",
+    sqlx::query!(
+        "DELETE FROM profiles WHERE id = $1 AND user_id = $2",
         params.id,
         params.user_id
     )
