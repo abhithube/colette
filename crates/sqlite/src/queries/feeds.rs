@@ -12,8 +12,8 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
 
 pub fn iterate<'a>(
     ex: impl SqliteExecutor<'a> + 'a,
-) -> impl Stream<Item = Result<String, Error>> + 'a {
+) -> impl Stream<Item = Result<(i64, String), Error>> + 'a {
     sqlx::query_file!("queries/feeds/iterate.sql")
         .fetch(ex)
-        .map(|e| e.map(|e| e.url))
+        .map(|e| e.map(|e| (e.id, e.url)))
 }
