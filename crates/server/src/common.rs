@@ -28,6 +28,7 @@ pub struct Id(pub String);
 
 #[derive(Debug, Serialize, ToSchema)]
 #[aliases(EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
+#[serde(rename_all = "camelCase")]
 pub struct Paginated<T: Serialize> {
     pub has_more: bool,
     pub data: Vec<T>,
