@@ -192,6 +192,6 @@ SELECT p.id
  WHERE pf.feed_id = $1",
     )
     .bind(feed_id)
-    .map(|e: PgRow| e.get("id"))
+    .map(|e: PgRow| e.get(0))
     .fetch(ex)
 }

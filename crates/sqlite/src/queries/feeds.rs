@@ -28,9 +28,9 @@ pub fn iterate<'a>(
     sqlx::query(
         "
 SELECT id,
-       coalesce(url, link) AS \"url!: String\"
+       coalesce(url, link) AS url
   FROM feeds",
     )
-    .map(|e: SqliteRow| (e.get("id"), e.get("url")))
+    .map(|e: SqliteRow| (e.get(0), e.get(0)))
     .fetch(ex)
 }
