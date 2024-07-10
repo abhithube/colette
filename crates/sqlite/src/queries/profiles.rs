@@ -2,7 +2,8 @@ use colette_core::Profile;
 use colette_database::profiles::{
     InsertData, SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
-use sqlx::{Error, SqliteExecutor};
+use futures::Stream;
+use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
 
 // #[derive(Debug)]
 // pub struct UpdateDefaultUnsetParams<'a> {
@@ -126,4 +127,20 @@ pub async fn delete(
     .await?;
 
     Ok(())
+}
+
+pub fn iterate<'a>(
+    ex: impl SqliteExecutor<'a> + 'a,
+    feed_id: i64,
+) -> impl Stream<Item = Result<String, Error>> + 'a {
+    sqlx::query(
+        "
+SELECT p.id
+FROM profiles p
+JOIN profile_feeds pf ON pf.profile_id = p.id
+WHERE pf.feed_id = $1",
+    )
+    .bind(feed_id)
+    .map(|row: SqliteRow| row.get(0))
+    .fetch(ex)
 }

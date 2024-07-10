@@ -2,6 +2,7 @@ use colette_core::Profile;
 use colette_database::profiles::{
     InsertData, SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
+use futures::{Stream, StreamExt};
 use sqlx::{Error, PgExecutor};
 
 pub async fn select_many(
@@ -107,4 +108,20 @@ pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams<'_>) -> Re
     .await?;
 
     Ok(())
+}
+
+pub fn iterate<'a>(
+    ex: impl PgExecutor<'a> + 'a,
+    feed_id: i64,
+) -> impl Stream<Item = Result<String, Error>> + 'a {
+    sqlx::query!(
+        "
+SELECT p.id
+FROM profiles p
+JOIN profile_feeds pf ON pf.profile_id = p.id
+WHERE pf.feed_id = $1",
+        feed_id
+    )
+    .fetch(ex)
+    .map(|e| e.map(|e| e.id))
 }

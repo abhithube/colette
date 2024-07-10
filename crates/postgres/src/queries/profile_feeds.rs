@@ -3,7 +3,6 @@ use colette_database::{
     profile_feeds::{InsertData, SelectManyParams},
     FindOneParams,
 };
-use futures::{Stream, StreamExt};
 use sqlx::{Error, PgExecutor};
 
 pub async fn select_many(
@@ -60,13 +59,4 @@ pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Resul
     .await?;
 
     Ok(())
-}
-
-pub fn iterate<'a>(
-    ex: impl PgExecutor<'a> + 'a,
-    feed_id: i64,
-) -> impl Stream<Item = Result<String, Error>> + 'a {
-    sqlx::query!("SELECT id FROM profile_feeds WHERE feed_id = $1", feed_id)
-        .fetch(ex)
-        .map(|e| e.map(|e| e.id))
 }

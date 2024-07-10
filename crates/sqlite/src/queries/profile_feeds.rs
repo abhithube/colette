@@ -3,8 +3,7 @@ use colette_database::{
     profile_feeds::{InsertData, SelectManyParams},
     FindOneParams,
 };
-use futures::Stream;
-use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
+use sqlx::{Error, SqliteExecutor};
 
 #[derive(Debug)]
 pub struct SelectParams<'a> {
@@ -81,14 +80,4 @@ pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> R
     .await?;
 
     Ok(())
-}
-
-pub fn iterate<'a>(
-    ex: impl SqliteExecutor<'a> + 'a,
-    feed_id: String,
-) -> impl Stream<Item = Result<String, Error>> + 'a {
-    sqlx::query("SELECT id FROM profile_feeds WHERE feed_id = $1")
-        .bind(feed_id)
-        .map(|row: SqliteRow| row.get(0))
-        .fetch(ex)
 }

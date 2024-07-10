@@ -1,6 +1,4 @@
-pub use queries::{
-    feeds::iterate as iterate_feeds, profile_feeds::iterate as iterate_profile_feeds,
-};
+pub use queries::{feeds::iterate as iterate_feeds, profiles::iterate as iterate_profiles};
 pub use repositories::{
     EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
     UsersPostgresRepository,
