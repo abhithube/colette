@@ -1,17 +1,24 @@
 use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
 
 use axum::{
+    async_trait,
     http::{header, HeaderValue, Method},
     routing, Router,
 };
+use chrono::Utc;
 use colette_core::{
-    auth::AuthService, entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
+    auth::AuthService,
+    entries::EntriesService,
+    feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
+    profiles::ProfilesService,
+    scraper::Scraper,
+    utils::task::Task,
 };
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
 use colette_postgres::{
-    iterate_feeds, EntriesPostgresRepository, FeedsPostgresRepository, ProfilesPostgresRepository,
-    UsersPostgresRepository,
+    iterate_feeds, iterate_profiles, EntriesPostgresRepository, FeedsPostgresRepository, Pool,
+    ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
@@ -19,8 +26,8 @@ use colette_scraper::{
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
-    iterate_feeds, EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository,
-    UsersSqliteRepository,
+    iterate_feeds, iterate_profiles, EntriesSqliteRepository, FeedsSqliteRepository, Pool,
+    ProfilesSqliteRepository, UsersSqliteRepository,
 };
 use common::{EntryList, FeedList, ProfileList};
 use cron::Schedule;
@@ -107,25 +114,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Box::new(EntriesSqliteRepository::new(pool.clone())),
     );
 
-    let schedule = Schedule::from_str(&cron_refresh)?;
-    let scheduler = JobScheduler::new().await?;
-
-    scheduler
-        .add(Job::new_async(schedule, move |_id, _scheduler| {
-            let pool = pool.clone();
-
-            Box::pin(async move {
-                let mut stream = iterate_feeds(&pool);
-                while let Some(row) = stream.next().await {
-                    let url = row.unwrap();
-                    println!("{}", url);
-                }
-            })
-        })?)
-        .await?;
-
-    scheduler.start().await?;
-
     let downloader = Box::new(DefaultDownloader {});
     let feed_extractor = Box::new(DefaultFeedExtractor {
         options: ExtractorOptions {
@@ -139,12 +127,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
         extractors: HashMap::new(),
         postprocessors: HashMap::new(),
     };
-    let feed_scraper = Box::new(FeedScraper::new(
+    let feed_scraper = Arc::new(FeedScraper::new(
         feed_registry,
         downloader,
         feed_extractor,
         feed_postprocessor,
     ));
+
+    let schedule = Schedule::from_str(&cron_refresh)?;
+    let scheduler = JobScheduler::new().await?;
+
+    let fs = feed_scraper.clone();
+    let fr = feeds_repository.clone();
+
+    scheduler
+        .add(Job::new_async(schedule, move |_id, _scheduler| {
+            let refresh_task = RefreshTask::new(pool.clone(), fs.clone(), fr.clone());
+
+            Box::pin(async move {
+                let _ = refresh_task.run().await;
+            })
+        })?)
+        .await?;
+
+    scheduler.start().await?;
 
     let argon_hasher = Box::new(Argon2Hasher::default());
 
@@ -216,4 +222,45 @@ async fn main() -> Result<(), Box<dyn Error>> {
     deletion_task.await??;
 
     Ok(())
+}
+
+pub struct RefreshTask {
+    pool: Pool,
+    scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
+    repo: Box<dyn FeedsRepository + Send + Sync>,
+}
+
+impl RefreshTask {
+    pub fn new(
+        pool: Pool,
+        scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
+        repo: Box<dyn FeedsRepository + Send + Sync>,
+    ) -> RefreshTask {
+        RefreshTask {
+            pool,
+            scraper,
+            repo,
+        }
+    }
+}
+
+#[async_trait]
+impl Task for RefreshTask {
+    async fn run(&self) {
+        let mut feeds_stream = iterate_feeds(&self.pool);
+        while let Some(Ok((feed_id, url))) = feeds_stream.next().await {
+            println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
+            let feed = self.scraper.scrape(&url).await.unwrap();
+
+            let mut profiles_stream = iterate_profiles(&self.pool, feed_id);
+            while let Some(Ok(profile_id)) = profiles_stream.next().await {
+                let data = FeedCreateData {
+                    url: url.clone(),
+                    feed: feed.clone(),
+                    profile_id,
+                };
+                self.repo.create(data).await.unwrap();
+            }
+        }
+    }
 }

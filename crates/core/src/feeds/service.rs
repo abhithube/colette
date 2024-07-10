@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{model::CreateFeed, Error, FeedFindManyParams, FeedsRepository, ProcessedFeed};
 use crate::{
     common::{FindOneParams, Paginated, Session},
@@ -8,13 +10,13 @@ use crate::{
 
 pub struct FeedsService {
     feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
-    scraper: Box<dyn Scraper<ProcessedFeed> + Send + Sync>,
+    scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
 }
 
 impl FeedsService {
     pub fn new(
         feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
-        scraper: Box<dyn Scraper<ProcessedFeed> + Send + Sync>,
+        scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
             feeds_repo,

@@ -48,14 +48,14 @@ pub struct ExtractedEntry {
     pub thumbnail: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessedFeed {
     pub link: Url,
     pub title: String,
     pub entries: Vec<ProcessedEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessedEntry {
     pub link: Url,
     pub title: String,
