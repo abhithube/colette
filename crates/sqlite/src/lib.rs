@@ -7,6 +7,8 @@ use sqlx::{Error, SqlitePool};
 mod queries;
 mod repositories;
 
+pub type Pool = SqlitePool;
+
 pub async fn create_database(url: &str) -> Result<SqlitePool, Error> {
     let pool = SqlitePool::connect(url).await?;
 

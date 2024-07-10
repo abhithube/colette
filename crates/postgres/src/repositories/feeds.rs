@@ -53,7 +53,6 @@ impl FeedsRepository for FeedsPostgresRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        println!("{}, {}", data.profile_id, feed_id);
         let profile_feed_id = queries::profile_feeds::insert(
             &mut *tx,
             profile_feeds::InsertData {
