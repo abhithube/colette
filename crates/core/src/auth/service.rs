@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{Error, Login, Register};
 use crate::{
     profiles::{ProfileFindOneParams, ProfilesRepository},
@@ -7,16 +9,16 @@ use crate::{
 };
 
 pub struct AuthService {
-    users_repo: Box<dyn UsersRepository + Send + Sync>,
-    profiles_repo: Box<dyn ProfilesRepository + Send + Sync>,
-    hasher: Box<dyn PasswordHasher + Send + Sync>,
+    users_repo: Arc<dyn UsersRepository + Send + Sync>,
+    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+    hasher: Arc<dyn PasswordHasher + Send + Sync>,
 }
 
 impl AuthService {
     pub fn new(
-        users_repo: Box<dyn UsersRepository + Send + Sync>,
-        profiles_repo: Box<dyn ProfilesRepository + Send + Sync>,
-        hasher: Box<dyn PasswordHasher + Send + Sync>,
+        users_repo: Arc<dyn UsersRepository + Send + Sync>,
+        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+        hasher: Arc<dyn PasswordHasher + Send + Sync>,
     ) -> Self {
         Self {
             users_repo,

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions};
 use colette_core::{
@@ -19,17 +21,17 @@ mod registry;
 
 pub struct FeedScraper {
     registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
-    default_downloader: Box<dyn Downloader + Send + Sync>,
-    default_extractor: Box<dyn Extractor<ExtractedFeed> + Send + Sync>,
-    default_postprocessor: Box<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+    default_downloader: Arc<dyn Downloader + Send + Sync>,
+    default_extractor: Arc<dyn Extractor<ExtractedFeed> + Send + Sync>,
+    default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
 }
 
 impl FeedScraper {
     pub fn new(
         registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
-        default_downloader: Box<dyn Downloader + Send + Sync>,
-        default_extractor: Box<dyn Extractor<ExtractedFeed> + Send + Sync>,
-        default_postprocessor: Box<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+        default_downloader: Arc<dyn Downloader + Send + Sync>,
+        default_extractor: Arc<dyn Extractor<ExtractedFeed> + Send + Sync>,
+        default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
             registry,

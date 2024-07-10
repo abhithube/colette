@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{EntriesRepository, EntryFindManyParams, Error, ListEntriesParams};
 use crate::{
     common::{Paginated, Session, PAGINATION_LIMIT},
@@ -5,11 +7,11 @@ use crate::{
 };
 
 pub struct EntriesService {
-    repo: Box<dyn EntriesRepository + Send + Sync>,
+    repo: Arc<dyn EntriesRepository + Send + Sync>,
 }
 
 impl EntriesService {
-    pub fn new(repo: Box<dyn EntriesRepository + Send + Sync>) -> Self {
+    pub fn new(repo: Arc<dyn EntriesRepository + Send + Sync>) -> Self {
         Self { repo }
     }
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use super::{
     CreateProfile, Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
     ProfileFindOneParams, ProfilesRepository, UpdateProfile,
@@ -8,11 +10,11 @@ use crate::{
 };
 
 pub struct ProfilesService {
-    profiles_repo: Box<dyn ProfilesRepository + Send + Sync>,
+    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
 }
 
 impl ProfilesService {
-    pub fn new(profiles_repo: Box<dyn ProfilesRepository + Send + Sync>) -> Self {
+    pub fn new(profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>) -> Self {
         Self { profiles_repo }
     }
 

@@ -101,44 +101,46 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(feature = "postgres")]
     let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
-        Box::new(UsersPostgresRepository::new(pool.clone())),
-        Box::new(ProfilesPostgresRepository::new(pool.clone())),
-        Box::new(FeedsPostgresRepository::new(pool.clone())),
-        Box::new(EntriesPostgresRepository::new(pool.clone())),
+        UsersPostgresRepository::new(pool.clone()),
+        ProfilesPostgresRepository::new(pool.clone()),
+        FeedsPostgresRepository::new(pool.clone()),
+        EntriesPostgresRepository::new(pool.clone()),
     );
     #[cfg(feature = "sqlite")]
     let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
-        Box::new(UsersSqliteRepository::new(pool.clone())),
-        Box::new(ProfilesSqliteRepository::new(pool.clone())),
-        Box::new(FeedsSqliteRepository::new(pool.clone())),
-        Box::new(EntriesSqliteRepository::new(pool.clone())),
+        UsersSqliteRepository::new(pool.clone()),
+        ProfilesSqliteRepository::new(pool.clone()),
+        FeedsSqliteRepository::new(pool.clone()),
+        EntriesSqliteRepository::new(pool.clone()),
     );
 
-    let downloader = Box::new(DefaultDownloader {});
-    let feed_extractor = Box::new(DefaultFeedExtractor {
+    let downloader = DefaultDownloader {};
+    let feed_extractor = DefaultFeedExtractor {
         options: ExtractorOptions {
             ..AtomExtractorOptions::default().inner()
         },
-    });
-    let feed_postprocessor = Box::new(DefaultFeedPostprocessor {});
+    };
+    let feed_postprocessor = DefaultFeedPostprocessor {};
 
     let feed_registry = PluginRegistry {
         downloaders: HashMap::new(),
         extractors: HashMap::new(),
         postprocessors: HashMap::new(),
     };
-    let feed_scraper = Arc::new(FeedScraper::new(
+    let feed_scraper = FeedScraper::new(
         feed_registry,
-        downloader,
-        feed_extractor,
-        feed_postprocessor,
-    ));
+        Arc::new(downloader),
+        Arc::new(feed_extractor),
+        Arc::new(feed_postprocessor),
+    );
 
     let schedule = Schedule::from_str(&cron_refresh)?;
     let scheduler = JobScheduler::new().await?;
 
-    let fs = feed_scraper.clone();
-    let fr = feeds_repository.clone();
+    let fs = Arc::new(feed_scraper);
+    let fs2 = Arc::clone(&fs);
+    let fr = Arc::new(feeds_repository);
+    let fr2 = Arc::clone(&fr);
 
     scheduler
         .add(Job::new_async(schedule, move |_id, _scheduler| {
@@ -152,16 +154,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     scheduler.start().await?;
 
-    let argon_hasher = Box::new(Argon2Hasher::default());
+    let argon_hasher = Argon2Hasher::default();
 
-    let auth_service = Arc::new(AuthService::new(
-        users_repository,
-        profiles_repository.clone(),
-        argon_hasher,
-    ));
-    let entries_service = Arc::new(EntriesService::new(entries_repository));
-    let feeds_service = Arc::new(FeedsService::new(feeds_repository, feed_scraper));
-    let profiles_service = Arc::new(ProfilesService::new(profiles_repository));
+    let pr = Arc::new(profiles_repository);
+    let pr2 = Arc::clone(&pr);
+
+    let auth_service = AuthService::new(Arc::new(users_repository), pr, Arc::new(argon_hasher));
+    let entries_service = EntriesService::new(Arc::new(entries_repository));
+    let feeds_service = FeedsService::new(fr2, fs2);
+    let profiles_service = ProfilesService::new(pr2);
 
     session_store.migrate().await?;
 
@@ -172,10 +173,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let state = common::Context {
-        auth_service,
-        entries_service,
-        feeds_service,
-        profiles_service,
+        auth_service: auth_service.into(),
+        entries_service: entries_service.into(),
+        feeds_service: feeds_service.into(),
+        profiles_service: profiles_service.into(),
     };
 
     let mut app = Router::new()
@@ -227,14 +228,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 pub struct RefreshTask {
     pool: Pool,
     scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    repo: Box<dyn FeedsRepository + Send + Sync>,
+    repo: Arc<dyn FeedsRepository + Send + Sync>,
 }
 
 impl RefreshTask {
     pub fn new(
         pool: Pool,
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-        repo: Box<dyn FeedsRepository + Send + Sync>,
+        repo: Arc<dyn FeedsRepository + Send + Sync>,
     ) -> RefreshTask {
         RefreshTask {
             pool,

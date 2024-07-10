@@ -9,13 +9,13 @@ use crate::{
 };
 
 pub struct FeedsService {
-    feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
+    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
     scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
 }
 
 impl FeedsService {
     pub fn new(
-        feeds_repo: Box<dyn FeedsRepository + Send + Sync>,
+        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
