@@ -14,9 +14,21 @@ pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
 ) -> Result<Vec<Profile>, Error> {
-    let rows = sqlx::query_file_as!(Profile, "queries/profiles/select_many.sql", params.user_id)
-        .fetch_all(ex)
-        .await?;
+    let rows = sqlx::query_as!(
+        Profile,
+        "
+SELECT id,
+       title,
+       image_url,
+       user_id,
+       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
+  FROM profiles
+ WHERE user_id = $1",
+        params.user_id
+    )
+    .fetch_all(ex)
+    .await?;
 
     Ok(rows)
 }
@@ -25,9 +37,18 @@ pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
 ) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
+    let row = sqlx::query_as!(
         Profile,
-        "queries/profiles/select_by_id.sql",
+        "
+SELECT id,
+       title,
+       image_url,
+       user_id,
+       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
+  FROM profiles
+ WHERE id = $1
+   AND user_id = $2",
         params.id,
         params.user_id
     )
@@ -41,9 +62,18 @@ pub async fn select_default(
     ex: impl SqliteExecutor<'_>,
     params: SelectDefaultParams<'_>,
 ) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
+    let row = sqlx::query_as!(
         Profile,
-        "queries/profiles/select_default.sql",
+        "
+SELECT id,
+       title,
+       image_url,
+       user_id,
+       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
+  FROM profiles
+ WHERE user_id = $1
+   AND is_default = 1",
         params.user_id
     )
     .fetch_one(ex)
@@ -53,9 +83,17 @@ pub async fn select_default(
 }
 
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
+    let row = sqlx::query_as!(
         Profile,
-        "queries/profiles/insert.sql",
+        "
+   INSERT INTO profiles (id, title, image_url, is_default, user_id)
+   VALUES ($1, $2, $3, $4, $5)
+RETURNING id,
+          title,
+          image_url,
+          user_id,
+          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
         data.id,
         data.title,
         data.image_url,
@@ -73,9 +111,20 @@ pub async fn update(
     params: SelectByIdParams<'_>,
     data: UpdateData<'_>,
 ) -> Result<Profile, Error> {
-    let row = sqlx::query_file_as!(
+    let row = sqlx::query_as!(
         Profile,
-        "queries/profiles/update.sql",
+        "
+   UPDATE profiles
+      SET title = coalesce($3, title),
+          image_url = coalesce($4, image_url)
+    WHERE id = $1
+      AND user_id = $2
+RETURNING id,
+          title,
+          image_url,
+          user_id,
+          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
         params.id,
         params.user_id,
         data.title,
@@ -91,9 +140,19 @@ pub async fn update(
 //     ex: impl SqliteExecutor<'_>,
 //     params: SelectByIdParams<'_>,
 // ) -> Result<Profile, Error> {
-//     let row = sqlx::query_file_as!(
+//     let row = sqlx::query_as!(
 //         Profile,
-//         "queries/profiles/update_default_set.sql",
+//         "
+//    UPDATE profiles
+//       SET is_default = 1
+//     WHERE id = $1
+//       AND user_id = $2
+// RETURNING id,
+//           title,
+//           image_url,
+//           user_id,
+//           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+//           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
 //         params.id,
 //         params.user_id
 //     )
@@ -107,9 +166,17 @@ pub async fn update(
 //     ex: impl SqliteExecutor<'_>,
 //     params: UpdateDefaultUnsetParams<'_>,
 // ) -> Result<String, Error> {
-//     let row = sqlx::query_file!("queries/profiles/update_default_unset.sql", params.user_id)
-//         .fetch_one(ex)
-//         .await?;
+//     let row = sqlx::query!(
+//         "
+//    UPDATE profiles
+//       SET is_default = 0
+//     WHERE user_id = $1
+//       AND is_default = 1
+// RETURNING id",
+//         params.user_id
+//     )
+//     .fetch_one(ex)
+//     .await?;
 
 //     Ok(row.id)
 // }
@@ -119,7 +186,10 @@ pub async fn delete(
     params: SelectByIdParams<'_>,
 ) -> Result<(), Error> {
     sqlx::query!(
-        "DELETE FROM profiles WHERE id = $1 AND user_id = $2",
+        "
+DELETE FROM profiles
+ WHERE id = $1
+   AND user_id = $2",
         params.id,
         params.user_id
     )
@@ -136,9 +206,10 @@ pub fn iterate<'a>(
     sqlx::query(
         "
 SELECT p.id
-FROM profiles p
-JOIN profile_feeds pf ON pf.profile_id = p.id
-WHERE pf.feed_id = $1",
+  FROM profiles AS p
+  JOIN profile_feeds AS pf
+    ON pf.profile_id = p.id
+ WHERE pf.feed_id = $1",
     )
     .bind(feed_id)
     .map(|row: SqliteRow| row.get(0))

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\"\nFROM\n  profiles\nWHERE\n  id = $1\n  AND user_id = $2;\n",
+  "query": "\nSELECT id,\n       title,\n       image_url,\n       user_id,\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM profiles\n WHERE user_id = $1",
   "describe": {
     "columns": [
       {
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "2271de8ae8f9989e4de8c2483cd3032e308348973379f7d916c8babe25541ba4"
+  "hash": "536624a2941d3ff6688fd92280bf2ea3bc75edb4671983a3e3773f00ca411a2d"
 }

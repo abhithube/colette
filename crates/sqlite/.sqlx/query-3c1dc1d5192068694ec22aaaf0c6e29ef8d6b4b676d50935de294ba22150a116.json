@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at \"published_at: chrono::DateTime<chrono::Utc>\",\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read \"has_read: bool\",\n  pfe.profile_feed_id feed_id\nFROM\n  profile_feed_entries pfe\n  JOIN profile_feeds pf ON pf.id = pfe.profile_feed_id\n  JOIN feed_entries fe ON fe.id = pfe.feed_entry_id\n  JOIN entries e ON e.id = fe.entry_id\nWHERE\n  pf.profile_id = $1\n  AND (\n    $3 IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4 IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5 IS NULL\n    OR pfe.has_read = $5\n  )\nORDER BY\n  e.published_at DESC,\n  pfe.id DESC\nLIMIT\n  $2;\n",
+  "query": "\nSELECT pfe.id,\n       e.link,\n       e.title,\n       e.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",\n       e.description,\n       e.author,\n       e.thumbnail_url,\n       pfe.has_read AS \"has_read: bool\",\n       pfe.profile_feed_id AS feed_id\n  FROM profile_feed_entries AS pfe\n  JOIN profile_feeds AS pf\n    ON pf.id = pfe.profile_feed_id\n  JOIN feed_entries AS fe\n    ON fe.id = pfe.feed_entry_id\n  JOIN entries AS e\n    ON e.id = fe.entry_id\n WHERE pf.profile_id = $1\n   AND ($3 IS NULL OR e.published_at < $3)\n   AND ($4 IS NULL OR pfe.profile_feed_id = $4)\n   AND ($5 IS NULL OR pfe.has_read = $5)\n ORDER BY e.published_at DESC, pfe.id DESC\n LIMIT $2",
   "describe": {
     "columns": [
       {
@@ -64,5 +64,5 @@
       false
     ]
   },
-  "hash": "ca6b46d632f819e8dbb468beb7908300adeaa7fa977add87ffb8d3a8feb50e1b"
+  "hash": "3c1dc1d5192068694ec22aaaf0c6e29ef8d6b4b676d50935de294ba22150a116"
 }

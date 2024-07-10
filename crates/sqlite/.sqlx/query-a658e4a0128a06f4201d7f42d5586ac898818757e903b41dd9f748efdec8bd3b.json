@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO\n  profiles (id, title, image_url, is_default, user_id)\nVALUES\n  ($1, $2, $3, $4, $5)\nRETURNING\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  updated_at \"updated_at: chrono::DateTime<chrono::Utc>\";\n",
+  "query": "\nSELECT id,\n       title,\n       image_url,\n       user_id,\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM profiles\n WHERE id = $1\n   AND user_id = $2",
   "describe": {
     "columns": [
       {
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 5
+      "Right": 2
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "e1a9b072fe3da563b840a9771488333ca0fd22520b925e12424ae965043a0b9c"
+  "hash": "a658e4a0128a06f4201d7f42d5586ac898818757e903b41dd9f748efdec8bd3b"
 }

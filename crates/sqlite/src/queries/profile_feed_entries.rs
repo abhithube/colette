@@ -6,9 +6,31 @@ pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
 ) -> Result<Vec<Entry>, Error> {
-    let row = sqlx::query_file_as!(
+    let row = sqlx::query_as!(
         Entry,
-        "queries/profile_feed_entries/select_many.sql",
+        "
+SELECT pfe.id,
+       e.link,
+       e.title,
+       e.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",
+       e.description,
+       e.author,
+       e.thumbnail_url,
+       pfe.has_read AS \"has_read: bool\",
+       pfe.profile_feed_id AS feed_id
+  FROM profile_feed_entries AS pfe
+  JOIN profile_feeds AS pf
+    ON pf.id = pfe.profile_feed_id
+  JOIN feed_entries AS fe
+    ON fe.id = pfe.feed_entry_id
+  JOIN entries AS e
+    ON e.id = fe.entry_id
+ WHERE pf.profile_id = $1
+   AND ($3 IS NULL OR e.published_at < $3)
+   AND ($4 IS NULL OR pfe.profile_feed_id = $4)
+   AND ($5 IS NULL OR pfe.has_read = $5)
+ ORDER BY e.published_at DESC, pfe.id DESC
+ LIMIT $2",
         params.profile_id,
         params.limit,
         params.published_at,
@@ -22,8 +44,12 @@ pub async fn select_many(
 }
 
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
-    let row = sqlx::query_file!(
-        "queries/profile_feed_entries/insert.sql",
+    let row = sqlx::query!(
+        "
+   INSERT INTO profile_feed_entries (id, profile_feed_id, feed_entry_id)
+   VALUES ($1, $2, $3)
+       ON CONFLICT (profile_feed_id, feed_entry_id) DO NOTHING
+RETURNING id",
         data.id,
         data.profile_feed_id,
         data.feed_entry_id

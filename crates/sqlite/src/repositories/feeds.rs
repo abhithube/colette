@@ -10,6 +10,7 @@ use sqlx::SqlitePool;
 
 use crate::queries;
 
+#[derive(Clone)]
 pub struct FeedsSqliteRepository {
     pool: SqlitePool,
 }

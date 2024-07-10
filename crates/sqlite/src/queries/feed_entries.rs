@@ -8,8 +8,12 @@ pub struct SelectParams {
 }
 
 pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams) -> Result<i64, Error> {
-    let row = sqlx::query_file!(
-        "queries/feed_entries/select.sql",
+    let row = sqlx::query!(
+        "
+SELECT id
+  FROM feed_entries
+ WHERE feed_id = $1
+   AND entry_id = $2",
         params.feed_id,
         params.entry_id
     )
@@ -20,8 +24,12 @@ pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams) -> Result
 }
 
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData) -> Result<i64, Error> {
-    let row = sqlx::query_file!(
-        "queries/feed_entries/insert.sql",
+    let row = sqlx::query!(
+        "
+   INSERT INTO feed_entries (feed_id, entry_id)
+   VALUES ($1, $2)
+       ON CONFLICT (feed_id, entry_id) DO NOTHING
+RETURNING id",
         data.feed_id,
         data.entry_id
     )

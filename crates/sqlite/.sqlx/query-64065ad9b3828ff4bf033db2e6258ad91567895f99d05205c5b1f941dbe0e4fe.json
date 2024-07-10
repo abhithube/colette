@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n  pf.id,\n  f.link,\n  f.title,\n  f.url,\n  pf.custom_title,\n  pf.created_at \"created_at: chrono::DateTime<chrono::Utc>\",\n  pf.updated_at \"updated_at: chrono::DateTime<chrono::Utc>\",\n  count(pfe.id) unread_count\nFROM\n  profile_feeds pf\n  JOIN feeds f ON f.id = pf.feed_id\n  JOIN feed_entries fe ON fe.feed_id = f.id\n  LEFT JOIN profile_feed_entries pfe ON pfe.feed_entry_id = fe.id\n  AND pfe.has_read = 0\nWHERE\n  pf.id = $1\n  AND pf.profile_id = $2\nGROUP BY\n  pf.id,\n  f.url,\n  f.link,\n  f.title;\n",
+  "query": "\nSELECT pf.id,\n       f.link,\n       f.title,\n       f.url,\n       pf.custom_title,\n       pf.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       pf.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n       count(pfe.id) AS unread_count\n  FROM profile_feeds AS pf\n  JOIN feeds f\n    ON f.id = pf.feed_id\n  JOIN feed_entries AS fe\n    ON fe.feed_id = f.id\n       LEFT JOIN profile_feed_entries AS pfe\n       ON pfe.feed_entry_id = fe.id\n          AND pfe.has_read = FALSE\n WHERE pf.id = $1\n   AND pf.profile_id = $2\n GROUP BY pf.id, f.url, f.link, f.title",
   "describe": {
     "columns": [
       {
@@ -58,5 +58,5 @@
       false
     ]
   },
-  "hash": "655057a2e26fcd0cca6007edd32a6ff482a40bd3aaa8017199b7ab6f973c8471"
+  "hash": "64065ad9b3828ff4bf033db2e6258ad91567895f99d05205c5b1f941dbe0e4fe"
 }

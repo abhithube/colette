@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "\n   INSERT INTO entries (link, title, published_at, description, author, thumbnail_url)\n   VALUES ($1, $2, $3, $4, $5, $6)\n       ON CONFLICT (link) DO\n   UPDATE\n      SET title = excluded.title,\n          published_at = excluded.published_at,\n          description = excluded.description,\n          author = excluded.author,\n          thumbnail_url = excluded.thumbnail_url\nRETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b2740c8dc6be871925bdb754bc1c52057620b1dd13bd723eb2addb16fc7619a9"
+}
