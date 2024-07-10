@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pf.id,\n  f.link,\n  f.title,\n  f.url,\n  pf.custom_title,\n  pf.created_at,\n  pf.updated_at,\n  count(pfe.id) unread_count\nFROM\n  profile_feeds pf\n  JOIN feeds f ON f.id = pf.feed_id\n  JOIN feed_entries fe ON fe.feed_id = f.id\n  LEFT JOIN profile_feed_entries pfe ON pfe.feed_entry_id = fe.id\n  AND pfe.has_read = FALSE\nWHERE\n  pf.id = $1\n  AND pf.profile_id = $2\nGROUP BY\n  pf.id,\n  f.url,\n  f.link,\n  f.title;\n",
+  "query": "\nSELECT pf.id,\n       f.link,\n       f.title,\n       f.url,\n       pf.custom_title,\n       pf.created_at,\n       pf.updated_at,\n       count(pfe.id) AS unread_count\n  FROM profile_feeds AS pf\n  JOIN feeds AS f\n    ON f.id = pf.feed_id\n  JOIN feed_entries AS fe\n    ON fe.feed_id = f.id\n       LEFT JOIN profile_feed_entries AS pfe\n       ON pfe.feed_entry_id = fe.id\n          AND pfe.has_read = FALSE\n WHERE pf.profile_id = $1\n GROUP BY pf.id, f.link, f.title, f.url\n ORDER BY pf.custom_title ASC, f.title ASC",
   "describe": {
     "columns": [
       {
@@ -46,7 +46,6 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
         "Text"
       ]
     },
@@ -61,5 +60,5 @@
       null
     ]
   },
-  "hash": "7e7b7f6c552fdd3b4c77d04a7f370abdb5be001bfdabdd9c46abc51ef825a396"
+  "hash": "2d47250ad6df34ba6dd513c7faa96fd0733c38bd2e0aeae3eb0a547c3fa79885"
 }

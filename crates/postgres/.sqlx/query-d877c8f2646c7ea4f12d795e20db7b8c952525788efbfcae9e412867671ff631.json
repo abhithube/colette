@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n     WITH\n          u AS (\n            UPDATE profiles\n               SET is_default = FALSE\n             WHERE user_id = $2\n               AND is_default = TRUE\n          )\n   UPDATE profiles\n      SET is_default = TRUE\n    WHERE id = $1\n      AND user_id = $2\nRETURNING id,\n          title,\n          image_url,\n          user_id,\n          created_at,\n          updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "image_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d877c8f2646c7ea4f12d795e20db7b8c952525788efbfcae9e412867671ff631"
+}

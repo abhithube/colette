@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at,\n  updated_at\nFROM\n  profiles\nWHERE\n  user_id = $1;",
+  "query": "\nSELECT id,\n       title,\n       image_url,\n       user_id,\n       created_at,\n       updated_at\n  FROM profiles\n WHERE user_id = $1",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       false
     ]
   },
-  "hash": "43f2e22b01fa5dffbaa741edc416ba84daea3feabb9731ed361d5f26b414fac0"
+  "hash": "1e90d84f8befd62cf036eba99410df1c57a7358b743e961db91982da3bdf90cc"
 }

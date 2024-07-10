@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE profiles\nSET\n  title = coalesce($3, title),\n  image_url = coalesce($4, image_url)\nWHERE\n  id = $1\n  AND user_id = $2\nRETURNING\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at,\n  updated_at;",
+  "query": "\n   UPDATE profiles\n      SET title = coalesce($3, title),\n          image_url = coalesce($4, image_url)\n    WHERE id = $1\n      AND user_id = $2\nRETURNING id,\n          title,\n          image_url,\n          user_id,\n          created_at,\n          updated_at",
   "describe": {
     "columns": [
       {
@@ -51,5 +51,5 @@
       false
     ]
   },
-  "hash": "95f5c5c18ebc4115cb8d2580f62dbfa899fbce20185a18ce64f35c5bc72737ea"
+  "hash": "e7284db874074490162552df4f5e04bfb032cd4303c4fc078160138f33855687"
 }

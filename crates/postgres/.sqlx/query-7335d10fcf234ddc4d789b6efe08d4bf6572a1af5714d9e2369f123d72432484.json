@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  feeds (link, title, url)\nVALUES\n  ($1, $2, $3)\nON CONFLICT (link) DO\nUPDATE\nSET\n  title = excluded.title,\n  url = excluded.url\nRETURNING\n  id;",
+  "query": "\n   INSERT INTO feeds (link, title, url)\n   VALUES ($1, $2, $3)\n       ON CONFLICT (link) DO\n   UPDATE\n      SET title = excluded.title,\n          url = excluded.url\nRETURNING id",
   "describe": {
     "columns": [
       {
@@ -20,5 +20,5 @@
       false
     ]
   },
-  "hash": "f0cc81a8d5059f2738b55a1ee6bd2ee2d376f4c2c80047006fe89812f19cac1a"
+  "hash": "7335d10fcf234ddc4d789b6efe08d4bf6572a1af5714d9e2369f123d72432484"
 }

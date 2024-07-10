@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  profiles (id, title, image_url, is_default, user_id)\nVALUES\n  ($1, $2, $3, $4, $5)\nRETURNING\n  id,\n  title,\n  image_url,\n  user_id,\n  created_at,\n  updated_at;\n",
+  "query": "\nSELECT id,\n       title,\n       image_url,\n       user_id,\n       created_at,\n       updated_at\n  FROM profiles\n WHERE user_id = $1\n   AND is_default = TRUE",
   "describe": {
     "columns": [
       {
@@ -36,10 +36,6 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
-        "Text",
-        "Bool",
         "Text"
       ]
     },
@@ -52,5 +48,5 @@
       false
     ]
   },
-  "hash": "909fa928b4af96cf002c87c0dafa17724144db9e02b0312ff4c5966b86e313ce"
+  "hash": "c19623bbb170db7c7b4766c05e116e167f06ae593f57bcc17ec04e01471e9c36"
 }

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n  WITH\n       fe AS (\n             INSERT INTO feed_entries (feed_id, entry_id)\n             VALUES ($1, $2)\n                 ON CONFLICT (feed_id, entry_id) DO NOTHING\n          RETURNING id\n       )\nSELECT id AS \"id!\"\n  FROM fe\n UNION ALL\nSELECT id\n  FROM feed_entries\n WHERE feed_id = $1\n   AND entry_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d3f2b396c078836451d12b6e83164291d2e16a2773725f6763ff99f72b3b9f49"
+}
