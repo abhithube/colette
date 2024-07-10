@@ -131,38 +131,38 @@ RETURNING id,
     Ok(row)
 }
 
-pub async fn update_default(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<Profile, Error> {
-    let row = sqlx::query_as!(
-        Profile,
-        "
-     WITH
-          u AS (
-            UPDATE profiles
-               SET is_default = FALSE
-             WHERE user_id = $2
-               AND is_default = TRUE
-          )
-   UPDATE profiles
-      SET is_default = TRUE
-    WHERE id = $1
-      AND user_id = $2
-RETURNING id,
-          title,
-          image_url,
-          user_id,
-          created_at,
-          updated_at",
-        params.id,
-        params.user_id
-    )
-    .fetch_one(ex)
-    .await?;
+// pub async fn update_default(
+//     ex: impl PgExecutor<'_>,
+//     params: SelectByIdParams<'_>,
+// ) -> Result<Profile, Error> {
+//     let row = sqlx::query_as!(
+//         Profile,
+//         "
+//      WITH
+//           u AS (
+//             UPDATE profiles
+//                SET is_default = FALSE
+//              WHERE user_id = $2
+//                AND is_default = TRUE
+//           )
+//    UPDATE profiles
+//       SET is_default = TRUE
+//     WHERE id = $1
+//       AND user_id = $2
+// RETURNING id,
+//           title,
+//           image_url,
+//           user_id,
+//           created_at,
+//           updated_at",
+//         params.id,
+//         params.user_id
+//     )
+//     .fetch_one(ex)
+//     .await?;
 
-    Ok(row)
-}
+//     Ok(row)
+// }
 
 pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams<'_>) -> Result<(), Error> {
     sqlx::query!(
