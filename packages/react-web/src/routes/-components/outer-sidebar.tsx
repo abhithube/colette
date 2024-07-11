@@ -1,14 +1,24 @@
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
+import type { Profile } from '@/lib/types'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
+import { useState } from 'react'
+import { ProfileModal } from './profile-modal'
 import { SidebarButton } from './sidebar-button'
 import { SidebarLink } from './sidebar-link'
 
-export const OuterSidebar = () => {
+type Props = {
+	profile: Profile
+}
+
+export const OuterSidebar = ({ profile }: Props) => {
+	const [isProfileModalOpen, setProfileModalOpen] = useState(false)
+
 	return (
 		<nav className="flex h-full flex-col space-y-4 border-r p-4">
 			<TooltipProvider>
@@ -52,16 +62,24 @@ export const OuterSidebar = () => {
 				</Tooltip>
 			</TooltipProvider>
 			<div className="flex-grow" />
-			<TooltipProvider>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<SidebarButton>
-							<User className="h-5 w-5 shrink-0" />
-						</SidebarButton>
-					</TooltipTrigger>
-					<TooltipContent side="right">Profile</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
+			<Dialog open={isProfileModalOpen} onOpenChange={setProfileModalOpen}>
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<DialogTrigger asChild>
+								<SidebarButton>
+									<User className="h-5 w-5 shrink-0" />
+								</SidebarButton>
+							</DialogTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right">Profile</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+				<ProfileModal
+					profile={profile}
+					close={() => setProfileModalOpen(false)}
+				/>
+			</Dialog>
 			<TooltipProvider>
 				<Tooltip>
 					<TooltipTrigger asChild>

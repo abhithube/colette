@@ -19,7 +19,7 @@ function Component() {
 
 	return (
 		<div className="flex h-screen">
-			<OuterSidebar />
+			<OuterSidebar profile={profile} />
 			<div className="w-full overflow-y-auto">
 				<Outlet />
 			</div>
