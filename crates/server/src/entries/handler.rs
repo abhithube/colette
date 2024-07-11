@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
-use axum::{extract::State, response::IntoResponse};
+use axum::{
+    extract::{Query, State},
+    response::IntoResponse,
+};
+use axum_valid::Valid;
 use colette_core::entries::EntriesService;
 
 use super::{model::ListEntriesQuery, Entry};
-use crate::{
-    common::Paginated, entries::model::ListResponse, error::Error, session::Session,
-    validation::ValidatedQuery,
-};
+use crate::{common::Paginated, entries::model::ListResponse, error::Error, session::Session};
 
 #[utoipa::path(
     get,
@@ -21,7 +22,7 @@ use crate::{
 #[axum::debug_handler]
 pub async fn list_entries(
     State(service): State<Arc<EntriesService>>,
-    ValidatedQuery(query): ValidatedQuery<ListEntriesQuery>,
+    Valid(Query(query)): Valid<Query<ListEntriesQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = service

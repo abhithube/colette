@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["macros"] }
+axum-valid = { version = "0.18.0", features = ["422"] }
 bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
@@ -33,7 +34,7 @@ utoipa = { version = "5.0.0-alpha.0", features = [
   "preserve_path_order",
 ] }
 utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"] }
-validator = { version = "0.17", features = ["derive"] }
+validator = { version = "0.18.1", features = ["derive"] }
 
 [features]
 default = ["postgres"]

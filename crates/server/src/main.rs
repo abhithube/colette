@@ -53,7 +53,6 @@ mod error;
 mod feeds;
 mod profiles;
 mod session;
-mod validation;
 mod web;
 
 const DEFAULT_PORT: u32 = 8000;

@@ -3,7 +3,9 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
+    Json,
 };
+use axum_valid::Valid;
 use colette_core::feeds::{self, FeedsService};
 
 use super::model::{CreateFeed, CreateResponse, DeleteResponse, GetResponse, ListResponse};
@@ -12,7 +14,6 @@ use crate::{
     error::Error,
     feeds::Feed,
     session::Session,
-    validation::ValidatedJson,
 };
 
 #[utoipa::path(
@@ -80,7 +81,7 @@ pub async fn get_feed(
 pub async fn create_feed(
     State(service): State<Arc<FeedsService>>,
     session: Session,
-    ValidatedJson(body): ValidatedJson<CreateFeed>,
+    Valid(Json(body)): Valid<Json<CreateFeed>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
