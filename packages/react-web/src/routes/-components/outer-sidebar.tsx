@@ -4,7 +4,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Bookmark, Home, Rss, Settings, User } from 'lucide-react'
+import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { SidebarButton } from './sidebar-button'
 import { SidebarLink } from './sidebar-link'
 
@@ -39,6 +39,16 @@ export const OuterSidebar = () => {
 						</SidebarLink>
 					</TooltipTrigger>
 					<TooltipContent side="right">Bookmarks</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<SidebarButton>
+							<Search className="h-5 w-5 shrink-0" />
+						</SidebarButton>
+					</TooltipTrigger>
+					<TooltipContent side="right">Search</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 			<div className="flex-grow" />
