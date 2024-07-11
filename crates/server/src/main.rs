@@ -5,6 +5,7 @@ use axum::{
     http::{header, HeaderValue, Method},
     routing, Router,
 };
+use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Utc;
 use colette_core::{
     auth::AuthService,
@@ -32,6 +33,7 @@ use colette_sqlite::{
 use common::{EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use futures::stream::StreamExt;
+use rust_embed::Embed;
 use tokio::{net::TcpListener, sync::Semaphore, task};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
@@ -44,7 +46,6 @@ use tower_sessions_sqlx_store::PostgresStore;
 use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-use web::static_handler;
 
 mod auth;
 mod common;
@@ -53,10 +54,13 @@ mod error;
 mod feeds;
 mod profiles;
 mod session;
-mod web;
 
 const DEFAULT_PORT: u32 = 8000;
 const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";
+
+#[derive(Clone, Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
+struct Asset;
 
 #[derive(OpenApi)]
 #[openapi(
@@ -193,7 +197,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .merge(profiles::Api::router())
                 .with_state(state),
         )
-        .fallback_service(routing::get(static_handler))
+        .fallback_service(ServeEmbed::<Asset>::with_parameters(
+            Some(String::from("index.html")),
+            FallbackBehavior::Ok,
+            None,
+        ))
         .layer(
             SessionManagerLayer::new(session_store)
                 .with_secure(false)

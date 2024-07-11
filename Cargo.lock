@@ -167,6 +167,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "axum-embed"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "077959a7f8cf438676af90b483304528eb7e16eadadb7f44e9ada4f9dceb9e62"
+dependencies = [
+ "axum-core",
+ "chrono",
+ "http",
+ "mime_guess",
+ "rust-embed",
+ "tower-service",
+]
+
+[[package]]
 name = "axum-macros"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -363,8 +377,8 @@ name = "colette-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "axum-embed",
  "axum-valid",
- "bytes",
  "chrono",
  "colette-core",
  "colette-password",
@@ -374,7 +388,6 @@ dependencies = [
  "cron",
  "futures",
  "mime",
- "mime_guess",
  "rust-embed",
  "serde",
  "thiserror",
