@@ -9,7 +9,9 @@ import {
 	FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { client } from '@/lib/client'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useNavigate } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -21,6 +23,8 @@ const formSchema = z.object({
 type Values = z.infer<typeof formSchema>
 
 export const LoginForm = () => {
+	const navigate = useNavigate()
+
 	const form = useForm<Values>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -29,13 +33,25 @@ export const LoginForm = () => {
 		},
 	})
 
-	function onSubmit(values: Values) {
-		console.log(values)
+	const handleSubmit = async (values: Values) => {
+		const res = await client.POST('/api/v1/auth/login', {
+			body: values,
+		})
+
+		if (res.error) {
+			return form.setError('root', {
+				message: res.error.message,
+			})
+		}
+
+		await navigate({
+			to: '/',
+		})
 	}
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
 				<FormField
 					control={form.control}
 					name="email"
@@ -57,7 +73,7 @@ export const LoginForm = () => {
 						<FormItem>
 							<FormLabel>Password</FormLabel>
 							<FormControl>
-								<Input {...field} />
+								<Input {...field} type="password" />
 							</FormControl>
 							<FormDescription>This is your password.</FormDescription>
 							<FormMessage />

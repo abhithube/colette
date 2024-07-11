@@ -6,18 +6,18 @@ export const client = createClient<paths>({
 	credentials: 'include',
 })
 
-client.use({
-	onResponse: async ({ response }) => {
-		if (response.status >= 400) {
-			const body = await response.json()
+// client.use({
+// 	onResponse: async ({ response }) => {
+// 		if (response.status >= 400) {
+// 			const body = await response.json()
 
-			if (response.status === 401) {
-				throw new AuthError(body)
-			}
+// 			if (response.status === 401) {
+// 				throw new AuthError(body)
+// 			}
 
-			throw new Error(body)
-		}
-	},
-})
+// 			throw new Error(body)
+// 		}
+// 	},
+// })
 
 export class AuthError extends Error {}
