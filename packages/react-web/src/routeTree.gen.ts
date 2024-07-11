@@ -14,6 +14,8 @@ import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
 import { Route as PrivateImport } from './routes/_private'
 import { Route as PrivateIndexImport } from './routes/_private/index'
+import { Route as PrivateFeedsImport } from './routes/_private/feeds'
+import { Route as PrivateCollectionsImport } from './routes/_private/collections'
 
 // Create/Update Routes
 
@@ -29,6 +31,16 @@ const PrivateRoute = PrivateImport.update({
 
 const PrivateIndexRoute = PrivateIndexImport.update({
   path: '/',
+  getParentRoute: () => PrivateRoute,
+} as any)
+
+const PrivateFeedsRoute = PrivateFeedsImport.update({
+  path: '/feeds',
+  getParentRoute: () => PrivateRoute,
+} as any)
+
+const PrivateCollectionsRoute = PrivateCollectionsImport.update({
+  path: '/collections',
   getParentRoute: () => PrivateRoute,
 } as any)
 
@@ -50,6 +62,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/_private/collections': {
+      id: '/_private/collections'
+      path: '/collections'
+      fullPath: '/collections'
+      preLoaderRoute: typeof PrivateCollectionsImport
+      parentRoute: typeof PrivateImport
+    }
+    '/_private/feeds': {
+      id: '/_private/feeds'
+      path: '/feeds'
+      fullPath: '/feeds'
+      preLoaderRoute: typeof PrivateFeedsImport
+      parentRoute: typeof PrivateImport
+    }
     '/_private/': {
       id: '/_private/'
       path: '/'
@@ -63,7 +89,11 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 export const routeTree = rootRoute.addChildren({
-  PrivateRoute: PrivateRoute.addChildren({ PrivateIndexRoute }),
+  PrivateRoute: PrivateRoute.addChildren({
+    PrivateCollectionsRoute,
+    PrivateFeedsRoute,
+    PrivateIndexRoute,
+  }),
   LoginRoute,
 })
 
@@ -82,11 +112,21 @@ export const routeTree = rootRoute.addChildren({
     "/_private": {
       "filePath": "_private.tsx",
       "children": [
+        "/_private/collections",
+        "/_private/feeds",
         "/_private/"
       ]
     },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/_private/collections": {
+      "filePath": "_private/collections.tsx",
+      "parent": "/_private"
+    },
+    "/_private/feeds": {
+      "filePath": "_private/feeds.tsx",
+      "parent": "/_private"
     },
     "/_private/": {
       "filePath": "_private/index.tsx",

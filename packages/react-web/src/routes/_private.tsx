@@ -1,4 +1,5 @@
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { OuterSidebar } from './-components/outer-sidebar'
 
 export const Route = createFileRoute('/_private')({
 	beforeLoad: async ({ context }) => {
@@ -18,6 +19,7 @@ function Component() {
 
 	return (
 		<div className="flex h-screen">
+			<OuterSidebar />
 			<div className="w-full overflow-y-auto">
 				<Outlet />
 			</div>
