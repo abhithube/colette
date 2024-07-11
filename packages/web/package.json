@@ -11,20 +11,20 @@
 		"@pandacss/dev": "^0.42.0",
 		"@park-ui/panda-preset": "^0.38.1",
 		"openapi-typescript": "^7.0.2",
-		"typescript": "^5.3.3",
-		"vite": "^5.0.11",
-		"vite-plugin-solid": "^2.8.2",
+		"typescript": "^5.5.3",
+		"vite": "^5.3.3",
+		"vite-plugin-solid": "^2.10.2",
 		"vite-tsconfig-paths": "^4.3.2"
 	},
 	"dependencies": {
 		"@ark-ui/solid": "^3.5.0",
 		"@modular-forms/solid": "^0.22.1",
-		"@solidjs/router": "^0.13.6",
+		"@solidjs/router": "^0.14.1",
 		"openapi-fetch": "^0.10.2",
-		"solid-js": "^1.8.11",
+		"solid-js": "^1.8.18",
 		"valibot": "^0.36.0"
 	},
 	"optionalDependencies": {
-		"@rollup/rollup-linux-arm64-gnu": "4.18.0"
+		"@rollup/rollup-linux-arm64-gnu": "4.18.1"
 	}
 }
