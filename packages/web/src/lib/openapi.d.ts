@@ -169,7 +169,7 @@ export interface components {
             feedId: string;
         };
         EntryList: {
-            has_more: boolean;
+            hasMore: boolean;
             data: components["schemas"]["Entry"][];
         };
         Error: {
@@ -191,7 +191,7 @@ export interface components {
             unreadCount?: number | null;
         };
         FeedList: {
-            has_more: boolean;
+            hasMore: boolean;
             data: components["schemas"]["Feed"][];
         };
         Login: {
@@ -211,7 +211,7 @@ export interface components {
             updatedAt: string;
         };
         ProfileList: {
-            has_more: boolean;
+            hasMore: boolean;
             data: components["schemas"]["Profile"][];
         };
         Register: {

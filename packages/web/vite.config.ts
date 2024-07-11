@@ -1,15 +1,13 @@
+import path from 'node:path'
+import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
+import react from '@vitejs/plugin-react-swc'
 import { defineConfig } from 'vite'
-import solidPlugin from 'vite-plugin-solid'
-import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
-	plugins: [
-		solidPlugin(),
-		tsconfigPaths({
-			root: './',
-		}),
-	],
-	build: {
-		target: 'esnext',
+	plugins: [react(), TanStackRouterVite()],
+	resolve: {
+		alias: {
+			'@': path.resolve(__dirname, './src'),
+		},
 	},
 })
