@@ -7,6 +7,9 @@ import {
 	useSubmission,
 } from '@solidjs/router'
 import { type Component, Show } from 'solid-js'
+import { Button } from '~/components/ui/button'
+import { FormLabel } from '~/components/ui/form-label'
+import { Input } from '~/components/ui/input'
 import { APIError } from '../lib/client'
 import { type LoginDTO, authAPI, loginSchema } from '../lib/core/login'
 
@@ -51,8 +54,14 @@ export const Login: Component = () => {
 				<Field name="email">
 					{(field, props) => (
 						<div>
-							<label for={props.name}>Email: </label>
-							<input {...props} id={props.name} type="email" required />
+							<FormLabel for={props.name}>Email</FormLabel>
+							<Input
+								{...props}
+								id={props.name}
+								type="email"
+								placeholder="Enter your email"
+								required
+							/>
 							{field.error && <div>{field.error}</div>}
 						</div>
 					)}
@@ -60,15 +69,21 @@ export const Login: Component = () => {
 				<Field name="password">
 					{(field, props) => (
 						<div>
-							<label for={props.name}>Password: </label>
-							<input {...props} id={props.name} type="password" required />
+							<FormLabel for={props.name}>Password</FormLabel>
+							<Input
+								{...props}
+								id={props.name}
+								type="password"
+								placeholder="Enter your password"
+								required
+							/>
 							{field.error && <div>{field.error}</div>}
 						</div>
 					)}
 				</Field>
-				<button type="submit" disabled={loginForm.submitting}>
+				<Button type="submit" disabled={loginForm.submitting}>
 					Login
-				</button>
+				</Button>
 			</Form>
 		</div>
 	)
