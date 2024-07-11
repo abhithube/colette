@@ -32,7 +32,7 @@ use colette_sqlite::{
 use common::{EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use futures::stream::StreamExt;
-use tokio::{net::TcpListener, task};
+use tokio::{net::TcpListener, sync::Semaphore, task};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
 use tower_sessions::{
@@ -243,25 +243,44 @@ impl RefreshTask {
             repo,
         }
     }
+
+    async fn refresh(&self, feed_id: i64, url: String) {
+        println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
+
+        let feed = self.scraper.scrape(&url).await.unwrap();
+
+        let mut profiles_stream = iterate_profiles(&self.pool, feed_id);
+        while let Some(Ok(profile_id)) = profiles_stream.next().await {
+            let data = FeedCreateData {
+                url: url.clone(),
+                feed: feed.clone(),
+                profile_id,
+            };
+            self.repo.create(data).await.unwrap();
+        }
+    }
 }
 
 #[async_trait]
 impl Task for RefreshTask {
     async fn run(&self) {
-        let mut feeds_stream = iterate_feeds(&self.pool);
-        while let Some(Ok((feed_id, url))) = feeds_stream.next().await {
-            println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
-            let feed = self.scraper.scrape(&url).await.unwrap();
+        let semaphore = Arc::new(Semaphore::new(5));
+        let feeds_stream = iterate_feeds(&self.pool);
 
-            let mut profiles_stream = iterate_profiles(&self.pool, feed_id);
-            while let Some(Ok(profile_id)) = profiles_stream.next().await {
-                let data = FeedCreateData {
-                    url: url.clone(),
-                    feed: feed.clone(),
-                    profile_id,
-                };
-                self.repo.create(data).await.unwrap();
-            }
-        }
+        let tasks = feeds_stream
+            .map(|item| {
+                let semaphore = Arc::clone(&semaphore);
+
+                async move {
+                    let _ = semaphore.acquire().await.unwrap();
+
+                    if let Ok((feed_id, url)) = item {
+                        self.refresh(feed_id, url).await
+                    }
+                }
+            })
+            .buffer_unordered(5);
+
+        tasks.for_each(|_| async {}).await;
     }
 }
