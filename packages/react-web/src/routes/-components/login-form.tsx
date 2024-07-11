@@ -1,7 +1,4 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { Button } from './components/ui/button'
+import { Button } from '@/components/ui/button'
 import {
 	Form,
 	FormControl,
@@ -10,8 +7,11 @@ import {
 	FormItem,
 	FormLabel,
 	FormMessage,
-} from './components/ui/form'
-import { Input } from './components/ui/input'
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
 
 const formSchema = z.object({
 	email: z.string().email('Email is not valid.'),
@@ -20,7 +20,7 @@ const formSchema = z.object({
 
 type Values = z.infer<typeof formSchema>
 
-export const App = () => {
+export const LoginForm = () => {
 	const form = useForm<Values>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
