@@ -243,8 +243,8 @@ impl RefreshTask {
         pool: Pool,
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
         repo: Arc<dyn FeedsRepository + Send + Sync>,
-    ) -> RefreshTask {
-        RefreshTask {
+    ) -> Self {
+        Self {
             pool,
             scraper,
             repo,

@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub struct FeedsService {
-    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
+    repo: Arc<dyn FeedsRepository + Send + Sync>,
     scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
 }
 
@@ -19,7 +19,7 @@ impl FeedsService {
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
         Self {
-            feeds_repo,
+            repo: feeds_repo,
             scraper,
         }
     }
@@ -28,7 +28,7 @@ impl FeedsService {
         let params = FeedFindManyParams {
             profile_id: session.profile_id,
         };
-        let feeds = self.feeds_repo.find_many(params).await?;
+        let feeds = self.repo.find_many(params).await?;
 
         let paginated = Paginated::<Feed> {
             has_more: false,
@@ -43,7 +43,7 @@ impl FeedsService {
             id,
             profile_id: session.profile_id,
         };
-        let feed = self.feeds_repo.find_one(params).await?;
+        let feed = self.repo.find_one(params).await?;
 
         Ok(feed)
     }
@@ -56,7 +56,7 @@ impl FeedsService {
             feed: scraped,
             profile_id: session.profile_id,
         };
-        let feed = self.feeds_repo.create(data).await?;
+        let feed = self.repo.create(data).await?;
 
         Ok(feed)
     }
@@ -66,7 +66,7 @@ impl FeedsService {
             id,
             profile_id: session.profile_id,
         };
-        self.feeds_repo.delete(params).await?;
+        self.repo.delete(params).await?;
 
         Ok(())
     }

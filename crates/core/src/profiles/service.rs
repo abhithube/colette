@@ -10,19 +10,19 @@ use crate::{
 };
 
 pub struct ProfilesService {
-    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+    repo: Arc<dyn ProfilesRepository + Send + Sync>,
 }
 
 impl ProfilesService {
-    pub fn new(profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>) -> Self {
-        Self { profiles_repo }
+    pub fn new(repo: Arc<dyn ProfilesRepository + Send + Sync>) -> Self {
+        Self { repo }
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
         let params = ProfileFindManyParams {
             user_id: session.user_id,
         };
-        let profiles = self.profiles_repo.find_many(params).await?;
+        let profiles = self.repo.find_many(params).await?;
 
         let paginated = Paginated::<Profile> {
             has_more: false,
@@ -38,7 +38,7 @@ impl ProfilesService {
             user_id: session.user_id,
         };
         let params = ProfileFindOneParams::ById(params);
-        let profile = self.profiles_repo.find_one(params).await?;
+        let profile = self.repo.find_one(params).await?;
 
         Ok(profile)
     }
@@ -49,7 +49,7 @@ impl ProfilesService {
             image_url: data.image_url,
             user_id: session.user_id,
         };
-        let profile = self.profiles_repo.create(data).await?;
+        let profile = self.repo.create(data).await?;
 
         Ok(profile)
     }
@@ -64,7 +64,7 @@ impl ProfilesService {
             id,
             user_id: session.user_id,
         };
-        let profile = self.profiles_repo.update(params, data.into()).await?;
+        let profile = self.repo.update(params, data.into()).await?;
 
         Ok(profile)
     }
@@ -74,7 +74,7 @@ impl ProfilesService {
             id,
             user_id: session.user_id,
         };
-        self.profiles_repo.delete(params).await?;
+        self.repo.delete(params).await?;
 
         Ok(())
     }
