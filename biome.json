@@ -15,6 +15,9 @@
 	},
 	"linter": {
 		"rules": {
+			"nursery": {
+				"useSortedClasses": "warn"
+			},
 			"style": {
 				"noNonNullAssertion": "warn"
 			},
