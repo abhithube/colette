@@ -12,7 +12,8 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as LoginImport } from './routes/login'
-import { Route as IndexImport } from './routes/index'
+import { Route as PrivateImport } from './routes/_private'
+import { Route as PrivateIndexImport } from './routes/_private/index'
 
 // Create/Update Routes
 
@@ -21,20 +22,25 @@ const LoginRoute = LoginImport.update({
   getParentRoute: () => rootRoute,
 } as any)
 
-const IndexRoute = IndexImport.update({
-  path: '/',
+const PrivateRoute = PrivateImport.update({
+  id: '/_private',
   getParentRoute: () => rootRoute,
+} as any)
+
+const PrivateIndexRoute = PrivateIndexImport.update({
+  path: '/',
+  getParentRoute: () => PrivateRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexImport
+    '/_private': {
+      id: '/_private'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof PrivateImport
       parentRoute: typeof rootRoute
     }
     '/login': {
@@ -44,12 +50,22 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
+    '/_private/': {
+      id: '/_private/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof PrivateIndexImport
+      parentRoute: typeof PrivateImport
+    }
   }
 }
 
 // Create and export the route tree
 
-export const routeTree = rootRoute.addChildren({ IndexRoute, LoginRoute })
+export const routeTree = rootRoute.addChildren({
+  PrivateRoute: PrivateRoute.addChildren({ PrivateIndexRoute }),
+  LoginRoute,
+})
 
 /* prettier-ignore-end */
 
@@ -59,15 +75,22 @@ export const routeTree = rootRoute.addChildren({ IndexRoute, LoginRoute })
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/",
+        "/_private",
         "/login"
       ]
     },
-    "/": {
-      "filePath": "index.tsx"
+    "/_private": {
+      "filePath": "_private.tsx",
+      "children": [
+        "/_private/"
+      ]
     },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/_private/": {
+      "filePath": "_private/index.tsx",
+      "parent": "/_private"
     }
   }
 }
