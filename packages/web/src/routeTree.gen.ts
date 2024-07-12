@@ -16,6 +16,9 @@ import { Route as PrivateImport } from './routes/_private'
 import { Route as PrivateIndexImport } from './routes/_private/index'
 import { Route as PrivateFeedsImport } from './routes/_private/feeds'
 import { Route as PrivateCollectionsImport } from './routes/_private/collections'
+import { Route as PrivateFeedsIndexImport } from './routes/_private/feeds/index'
+import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
+import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
 
 // Create/Update Routes
 
@@ -42,6 +45,21 @@ const PrivateFeedsRoute = PrivateFeedsImport.update({
 const PrivateCollectionsRoute = PrivateCollectionsImport.update({
   path: '/collections',
   getParentRoute: () => PrivateRoute,
+} as any)
+
+const PrivateFeedsIndexRoute = PrivateFeedsIndexImport.update({
+  path: '/',
+  getParentRoute: () => PrivateFeedsRoute,
+} as any)
+
+const PrivateFeedsArchivedRoute = PrivateFeedsArchivedImport.update({
+  path: '/archived',
+  getParentRoute: () => PrivateFeedsRoute,
+} as any)
+
+const PrivateFeedsIdRoute = PrivateFeedsIdImport.update({
+  path: '/$id',
+  getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
@@ -83,6 +101,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivateIndexImport
       parentRoute: typeof PrivateImport
     }
+    '/_private/feeds/$id': {
+      id: '/_private/feeds/$id'
+      path: '/$id'
+      fullPath: '/feeds/$id'
+      preLoaderRoute: typeof PrivateFeedsIdImport
+      parentRoute: typeof PrivateFeedsImport
+    }
+    '/_private/feeds/archived': {
+      id: '/_private/feeds/archived'
+      path: '/archived'
+      fullPath: '/feeds/archived'
+      preLoaderRoute: typeof PrivateFeedsArchivedImport
+      parentRoute: typeof PrivateFeedsImport
+    }
+    '/_private/feeds/': {
+      id: '/_private/feeds/'
+      path: '/'
+      fullPath: '/feeds/'
+      preLoaderRoute: typeof PrivateFeedsIndexImport
+      parentRoute: typeof PrivateFeedsImport
+    }
   }
 }
 
@@ -91,7 +130,11 @@ declare module '@tanstack/react-router' {
 export const routeTree = rootRoute.addChildren({
   PrivateRoute: PrivateRoute.addChildren({
     PrivateCollectionsRoute,
-    PrivateFeedsRoute,
+    PrivateFeedsRoute: PrivateFeedsRoute.addChildren({
+      PrivateFeedsIdRoute,
+      PrivateFeedsArchivedRoute,
+      PrivateFeedsIndexRoute,
+    }),
     PrivateIndexRoute,
   }),
   LoginRoute,
@@ -126,11 +169,28 @@ export const routeTree = rootRoute.addChildren({
     },
     "/_private/feeds": {
       "filePath": "_private/feeds.tsx",
-      "parent": "/_private"
+      "parent": "/_private",
+      "children": [
+        "/_private/feeds/$id",
+        "/_private/feeds/archived",
+        "/_private/feeds/"
+      ]
     },
     "/_private/": {
       "filePath": "_private/index.tsx",
       "parent": "/_private"
+    },
+    "/_private/feeds/$id": {
+      "filePath": "_private/feeds/$id.tsx",
+      "parent": "/_private/feeds"
+    },
+    "/_private/feeds/archived": {
+      "filePath": "_private/feeds/archived.tsx",
+      "parent": "/_private/feeds"
+    },
+    "/_private/feeds/": {
+      "filePath": "_private/feeds/index.tsx",
+      "parent": "/_private/feeds"
     }
   }
 }
