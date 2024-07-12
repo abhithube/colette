@@ -9,8 +9,10 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { client } from '@/lib/client'
 import type { Profile } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Plus } from 'lucide-react'
 import { useState } from 'react'
 
@@ -20,22 +22,16 @@ type Props = {
 }
 
 export function ProfileModal({ profile }: Props) {
-	const [profiles] = useState<Profile[]>([
-		{
-			id: '1',
-			title: 'Profile 1',
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
-			userId: '1',
+	const { data: profiles } = useQuery({
+		queryKey: ['/profiles'],
+		queryFn: async ({ signal }) => {
+			const res = await client.GET('/api/v1/profiles', {
+				signal,
+			})
+
+			return res.data
 		},
-		{
-			id: '2',
-			title: 'Profile 2',
-			createdAt: new Date().toISOString(),
-			updatedAt: new Date().toISOString(),
-			userId: '1',
-		},
-	])
+	})
 
 	const [selected, setSelected] = useState(profile.id)
 
@@ -48,7 +44,7 @@ export function ProfileModal({ profile }: Props) {
 				<DialogDescription>Select a profile</DialogDescription>
 			</DialogHeader>
 			<RadioGroup className="grid grid-cols-3" value={selected}>
-				{profiles.map((p) => (
+				{profiles.data.map((p) => (
 					<div key={p.id}>
 						<RadioGroupItem id={p.id} className="hidden" value={p.id} />
 						<Card

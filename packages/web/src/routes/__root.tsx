@@ -10,8 +10,18 @@ export const Route = createRootRouteWithContext<{
 	profile?: Profile
 }>()({
 	beforeLoad: async ({ context }) => {
-		const res = await client.GET('/api/v1/profiles/@me')
-		context.profile = res.data
+		const data = await context.queryClient.fetchQuery({
+			queryKey: ['/profiles', '@me'],
+			queryFn: async ({ signal }) => {
+				const res = await client.GET('/api/v1/profiles/@me', {
+					signal,
+				})
+
+				return res.data
+			},
+		})
+
+		context.profile = data
 	},
 	component: Component,
 })
