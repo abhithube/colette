@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import {
 	ResizableHandle,
 	ResizablePanel,
@@ -9,8 +10,10 @@ import { client } from '@/lib/client'
 import { type QueryOptions, useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { SidebarLink } from '../-components/sidebar-link'
 import { FeedItem } from './-components/feed-item'
+import { SubscribeModal } from './-components/subscribe-modal'
 
 export const options = (profileId: string) => {
 	return {
@@ -34,6 +37,8 @@ export const Route = createFileRoute('/_private/feeds')({
 
 function Component() {
 	const { profile } = Route.useRouteContext()
+
+	const [isOpen, setOpen] = useState(false)
 
 	const { data: feeds } = useQuery(options(profile.id))
 
@@ -59,9 +64,14 @@ function Component() {
 							<span className="grow font-semibold text-muted-foreground text-xs">
 								Feeds
 							</span>
-							<Button className="h-8 w-8 justify-center" variant="ghost">
-								<Plus className="h-4 w-4 shrink-0" />
-							</Button>
+							<Dialog open={isOpen} onOpenChange={setOpen}>
+								<DialogTrigger asChild>
+									<Button className="h-8 w-8 justify-center" variant="ghost">
+										<Plus className="h-4 w-4 shrink-0" />
+									</Button>
+								</DialogTrigger>
+								<SubscribeModal close={() => setOpen(false)} />
+							</Dialog>
 						</div>
 						<div className="mt-1 h-full space-y-1 overflow-y-auto px-4">
 							{feeds.data.length > 0 ? (
