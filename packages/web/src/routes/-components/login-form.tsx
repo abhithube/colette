@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button'
 import {
 	Form,
 	FormControl,
-	FormDescription,
 	FormField,
 	FormItem,
 	FormLabel,
@@ -11,7 +10,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { client } from '@/lib/client'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
+import { Loader2 } from 'lucide-react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 
@@ -23,6 +25,8 @@ const formSchema = z.object({
 type Values = z.infer<typeof formSchema>
 
 export const LoginForm = () => {
+	const [loading, setLoading] = useState(false)
+
 	const navigate = useNavigate()
 
 	const form = useForm<Values>({
@@ -33,25 +37,38 @@ export const LoginForm = () => {
 		},
 	})
 
-	const handleSubmit = async (values: Values) => {
-		const res = await client.POST('/api/v1/auth/login', {
-			body: values,
-		})
-
-		if (res.error) {
-			return form.setError('root', {
-				message: res.error.message,
+	const { mutateAsync } = useMutation({
+		mutationFn: async (values: z.infer<typeof formSchema>) => {
+			const res = await client.POST('/api/v1/auth/login', {
+				body: values,
 			})
-		}
+			if (res.error) {
+				return form.setError('root', {
+					message: res.error.message,
+				})
+			}
 
-		await navigate({
-			to: '/',
-		})
-	}
+			return res.data
+		},
+		onMutate: () => {
+			setLoading(true)
+		},
+		onSuccess: async () => {
+			setLoading(false)
+
+			await navigate({
+				to: '/',
+				replace: true,
+			})
+		},
+	})
 
 	return (
 		<Form {...form}>
-			<form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+			<form
+				onSubmit={form.handleSubmit((data) => mutateAsync(data))}
+				className="space-y-8"
+			>
 				<FormField
 					control={form.control}
 					name="email"
@@ -61,7 +78,6 @@ export const LoginForm = () => {
 							<FormControl>
 								<Input placeholder="user@email.com" {...field} />
 							</FormControl>
-							<FormDescription>This is your email.</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
@@ -75,12 +91,14 @@ export const LoginForm = () => {
 							<FormControl>
 								<Input {...field} type="password" />
 							</FormControl>
-							<FormDescription>This is your password.</FormDescription>
 							<FormMessage />
 						</FormItem>
 					)}
 				/>
-				<Button type="submit">Submit</Button>
+				<Button disabled={loading}>
+					{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+					Login
+				</Button>
 			</form>
 		</Form>
 	)
