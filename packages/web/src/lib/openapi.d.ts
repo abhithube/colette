@@ -337,9 +337,9 @@ export interface operations {
     listEntries: {
         parameters: {
             query?: {
-                published_at?: string | null;
-                feed_id?: string | null;
-                has_read?: boolean | null;
+                publishedAt?: string | null;
+                feedId?: string | null;
+                hasRead?: boolean | null;
             };
             header?: never;
             path?: never;
