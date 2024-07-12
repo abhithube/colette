@@ -43,6 +43,7 @@ impl From<colette_core::Entry> for Entry {
 }
 
 #[derive(Debug, Deserialize, IntoParams, Validate)]
+#[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {
     pub published_at: Option<DateTime<Utc>>,

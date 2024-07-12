@@ -33,6 +33,7 @@ impl From<colette_core::User> for User {
 }
 
 #[derive(Debug, Deserialize, ToSchema, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(format = "email")]
     #[validate(email(message = "not a valid email"))]
@@ -53,6 +54,7 @@ impl From<Register> for auth::Register {
 }
 
 #[derive(Debug, Deserialize, ToSchema, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct Login {
     #[schema(format = "email")]
     #[validate(email(message = "not a valid email"))]
