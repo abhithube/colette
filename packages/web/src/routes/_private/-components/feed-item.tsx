@@ -1,3 +1,4 @@
+import { Favicon } from '@/components/favicon'
 import type { Feed } from '@/lib/types'
 import { Link } from '@tanstack/react-router'
 
@@ -9,7 +10,7 @@ export function FeedItem({ feed }: Props) {
 	return (
 		<Link
 			key={feed.id}
-			className="group flex w-full items-center rounded-md px-4 py-2 font-medium text-primary text-sm"
+			className="group flex w-full items-center justify-between space-x-4 rounded-md px-4 py-2 font-medium text-primary text-sm"
 			activeProps={{
 				className: 'bg-muted active text-secondary',
 			}}
@@ -22,6 +23,7 @@ export function FeedItem({ feed }: Props) {
 			}}
 			search
 		>
+			<Favicon domain={new URL(feed.link).hostname} />
 			<span className="grow truncate">{feed.title}</span>
 		</Link>
 	)
