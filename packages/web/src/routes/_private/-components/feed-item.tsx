@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
+import { UnsubscribeAlert } from './unsubscribe-alert'
 
 type Props = {
 	feed: Feed
@@ -20,6 +21,7 @@ type Props = {
 export function FeedItem({ feed }: Props) {
 	const [isHovering, setHovering] = useState(false)
 	const [isDropdownOpen, setDropdownOpen] = useState(false)
+	const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
 	return (
 		<Link
@@ -73,12 +75,23 @@ export function FeedItem({ feed }: Props) {
 							<DropdownMenuShortcut>⇧⌘R</DropdownMenuShortcut>
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={(e) => {
+								e.stopPropagation()
+
+								setUnsubscribeAlertOpen(true)
+							}}
+						>
 							Unsubscribe
 							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+				<UnsubscribeAlert
+					feed={feed}
+					isOpen={isUnsubscribeAlertOpen}
+					setOpen={setUnsubscribeAlertOpen}
+				/>
 			</div>
 		</Link>
 	)
