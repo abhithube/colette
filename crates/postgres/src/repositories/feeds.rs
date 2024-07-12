@@ -63,6 +63,7 @@ impl FeedsRepository for FeedsPostgresRepository {
         )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
+
         for e in data.feed.entries {
             let entry_id = queries::entries::insert(&mut *tx, (&e).into())
                 .await

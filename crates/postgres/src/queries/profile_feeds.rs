@@ -102,7 +102,7 @@ SELECT id
 }
 
 pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
-    sqlx::query!(
+    let result = sqlx::query!(
         "
 DELETE FROM profile_feeds
  WHERE id = $1
@@ -110,8 +110,12 @@ DELETE FROM profile_feeds
         params.id,
         params.profile_id
     )
-    .fetch_one(ex)
+    .execute(ex)
     .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(Error::RowNotFound);
+    }
 
     Ok(())
 }

@@ -185,7 +185,7 @@ pub async fn delete(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
 ) -> Result<(), Error> {
-    sqlx::query!(
+    let result = sqlx::query!(
         "
 DELETE FROM profiles
  WHERE id = $1
@@ -193,8 +193,12 @@ DELETE FROM profiles
         params.id,
         params.user_id
     )
-    .fetch_one(ex)
+    .execute(ex)
     .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(Error::RowNotFound);
+    }
 
     Ok(())
 }

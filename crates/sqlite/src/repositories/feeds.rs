@@ -62,6 +62,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             },
         )
         .await;
+
         let profile_feed_id = match result {
             Ok(id) => id,
             Err(_) => queries::profile_feeds::select(
@@ -85,6 +86,7 @@ impl FeedsRepository for FeedsSqliteRepository {
                 feed_entries::InsertData { feed_id, entry_id },
             )
             .await;
+
             let feed_entry_id = match result {
                 Ok(id) => id,
                 Err(_) => queries::feed_entries::select(
