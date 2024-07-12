@@ -1,12 +1,26 @@
 import { Favicon } from '@/components/favicon'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { Feed } from '@/lib/types'
+import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
+import { MoreHorizontal } from 'lucide-react'
+import { useState } from 'react'
 
 type Props = {
 	feed: Feed
 }
 
 export function FeedItem({ feed }: Props) {
+	const [isHovering, setHovering] = useState(false)
+	const [isDropdownOpen, setDropdownOpen] = useState(false)
+
 	return (
 		<Link
 			key={feed.id}
@@ -22,9 +36,44 @@ export function FeedItem({ feed }: Props) {
 				id: feed.id,
 			}}
 			search
+			onMouseEnter={() => setHovering(true)}
+			onMouseLeave={() => setHovering(false)}
 		>
 			<Favicon domain={new URL(feed.link).hostname} />
 			<span className="grow truncate">{feed.title}</span>
+			<div className="flex w-[3ch] shrink-0 justify-center">
+				<DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
+					<DropdownMenuTrigger>
+						{isHovering || isDropdownOpen ? (
+							<MoreHorizontal className="h-5 text-muted-foreground hover:text-primary" />
+						) : (
+							<span
+								className={cn(
+									'text-muted-foreground tabular-nums group-[.active]:text-secondary',
+									feed.unreadCount === 0 && 'hidden',
+								)}
+							>
+								{feed.unreadCount}
+							</span>
+						)}
+					</DropdownMenuTrigger>
+					<DropdownMenuContent className="w-56">
+						<DropdownMenuItem>
+							Open in new tab
+							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
+						</DropdownMenuItem>
+						<DropdownMenuItem>
+							Mark all as read
+							<DropdownMenuShortcut>⇧⌘R</DropdownMenuShortcut>
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem>
+							Unsubscribe
+							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
 		</Link>
 	)
 }
