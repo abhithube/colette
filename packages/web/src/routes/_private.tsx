@@ -8,6 +8,10 @@ export const Route = createFileRoute('/_private')({
 				to: '/login',
 			})
 		}
+
+		return {
+			profile: context.profile,
+		}
 	},
 	component: Component,
 })
