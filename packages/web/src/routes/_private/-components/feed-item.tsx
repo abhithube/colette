@@ -7,6 +7,12 @@ import {
 	DropdownMenuShortcut,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from '@/components/ui/tooltip'
 import type { Feed } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { Link } from '@tanstack/react-router'
@@ -42,7 +48,14 @@ export function FeedItem({ feed }: Props) {
 			onMouseLeave={() => setHovering(false)}
 		>
 			<Favicon domain={new URL(feed.link).hostname} />
-			<span className="grow truncate">{feed.title}</span>
+			<TooltipProvider>
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<span className="grow truncate">{feed.title}</span>
+					</TooltipTrigger>
+					<TooltipContent>{feed.title}</TooltipContent>
+				</Tooltip>
+			</TooltipProvider>
 			<div className="flex w-[3ch] shrink-0 justify-center">
 				<DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
 					<DropdownMenuTrigger>
