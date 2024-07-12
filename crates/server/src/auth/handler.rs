@@ -36,7 +36,7 @@ pub async fn register(
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
             auth::Error::Users(users::Error::Conflict(_)) => {
-                Ok(RegisterResponse::Conflict(common::Error {
+                Ok(RegisterResponse::Conflict(common::BaseError {
                     message: e.to_string(),
                 }))
             }
@@ -73,7 +73,7 @@ pub async fn login(
             Ok(LoginResponse::Ok(data))
         }
         Err(e) => match e {
-            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(common::Error {
+            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(common::BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

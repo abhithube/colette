@@ -60,7 +60,7 @@ pub async fn get_feed(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(common::Error {
+            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(common::BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -91,7 +91,7 @@ pub async fn create_feed(
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(common::Error {
+            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(common::BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -119,7 +119,7 @@ pub async fn delete_feed(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::Error {
+            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

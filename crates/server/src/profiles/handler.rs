@@ -113,10 +113,10 @@ pub async fn delete_profile(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::Error {
+            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
                 message: e.to_string(),
             })),
-            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(common::Error {
+            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(common::BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

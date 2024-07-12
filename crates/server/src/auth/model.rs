@@ -6,10 +6,10 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::auth;
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoResponses, ToSchema};
-use validator::Validate;
+use utoipa::{IntoResponses, ToResponse, ToSchema};
+use validator::{Validate, ValidationError};
 
-use crate::{common::Error, profiles::Profile};
+use crate::{common::BaseError, profiles::Profile};
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -72,17 +72,25 @@ impl From<Login> for auth::Login {
     }
 }
 
+#[derive(Debug, Serialize, ToResponse)]
+#[serde(rename_all = "camelCase")]
+#[response(description = "Invalid input")]
+pub struct RegisterValidationErrors {
+    email: Option<Vec<ValidationError>>,
+    password: Option<Vec<ValidationError>>,
+}
+
 #[derive(Debug, IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
     Created(User),
 
     #[response(status = 409, description = "Email already registered")]
-    Conflict(Error),
+    Conflict(BaseError),
 
     #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
+    #[response(status = 422)]
+    UnprocessableEntity(#[to_response] RegisterValidationErrors),
 }
 
 impl IntoResponse for RegisterResponse {
@@ -90,9 +98,19 @@ impl IntoResponse for RegisterResponse {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::UnprocessableEntity(e) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(..e)).into_response()
+            }
         }
     }
+}
+
+#[derive(Debug, Serialize, ToResponse)]
+#[serde(rename_all = "camelCase")]
+#[response(description = "Invalid input")]
+pub struct LoginValidationErrors {
+    email: Option<Vec<ValidationError>>,
+    password: Option<Vec<ValidationError>>,
 }
 
 #[derive(Debug, IntoResponses)]
@@ -101,11 +119,11 @@ pub enum LoginResponse {
     Ok(Profile),
 
     #[response(status = 401, description = "Bad credentials")]
-    Unauthorized(Error),
+    Unauthorized(BaseError),
 
     #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
+    #[response(status = 422)]
+    UnprocessableEntity(#[to_response] LoginValidationErrors),
 }
 
 impl IntoResponse for LoginResponse {
@@ -113,7 +131,9 @@ impl IntoResponse for LoginResponse {
         match self {
             Self::Ok(data) => Json(data).into_response(),
             Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::UnprocessableEntity(e) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
+            }
         }
     }
 }

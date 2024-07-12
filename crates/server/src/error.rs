@@ -6,7 +6,6 @@ use axum::{
 use colette_core::auth;
 use thiserror::Error;
 use tower_sessions::session;
-use validator::ValidationErrors;
 
 use crate::common;
 
@@ -17,9 +16,6 @@ pub enum Error {
 
     #[error(transparent)]
     JsonRejection(#[from] JsonRejection),
-
-    #[error(transparent)]
-    Validation(#[from] ValidationErrors),
 
     #[error(transparent)]
     Session(#[from] session::Error),
@@ -33,20 +29,17 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
+        let e = common::BaseError {
+            message: self.to_string(),
+        };
+
         match self {
-            Error::QueryRejection(e) => (StatusCode::BAD_REQUEST, e).into_response(),
-            Error::JsonRejection(e) => (StatusCode::BAD_REQUEST, e).into_response(),
-            Error::Validation(e) => (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                common::Error {
-                    message: e.to_string(),
-                },
-            )
-                .into_response(),
+            Error::QueryRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
+            Error::JsonRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
             Error::Auth(auth::Error::NotAuthenticated) => {
-                (StatusCode::UNAUTHORIZED, self.to_string()).into_response()
+                (StatusCode::UNAUTHORIZED, e).into_response()
             }
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response(),
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
         }
     }
 }

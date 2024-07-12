@@ -73,7 +73,7 @@ struct Asset;
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(common::Error, EntryList, FeedList, ProfileList)),
+    components(schemas(common::BaseError, common::ValidationError, EntryList, FeedList, ProfileList)),
     tags(
         (name = "Auth"),
         (name = "Entries"),

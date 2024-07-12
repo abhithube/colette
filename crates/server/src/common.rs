@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use axum::{
     extract::FromRef,
@@ -47,11 +47,18 @@ where
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct Error {
+pub struct BaseError {
     pub message: String,
 }
 
-impl IntoResponse for Error {
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ValidationError {
+    pub code: String,
+    pub message: String,
+    pub params: HashMap<String, String>,
+}
+
+impl IntoResponse for BaseError {
     fn into_response(self) -> Response {
         Json(self).into_response()
     }

@@ -6,10 +6,10 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::feeds;
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoResponses, ToSchema};
+use utoipa::{IntoResponses, ToResponse, ToSchema};
 use validator::Validate;
 
-use crate::common::{Error, FeedList};
+use crate::common::{BaseError, FeedList, ValidationError};
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -74,7 +74,7 @@ pub enum GetResponse {
     Ok(Feed),
 
     #[response(status = 404, description = "Feed not found")]
-    NotFound(Error),
+    NotFound(BaseError),
 }
 
 impl IntoResponse for GetResponse {
@@ -86,24 +86,33 @@ impl IntoResponse for GetResponse {
     }
 }
 
+#[derive(Debug, Serialize, ToResponse)]
+#[serde(rename_all = "camelCase")]
+#[response(description = "Invalid input")]
+pub struct CreateValidationErrors {
+    url: Option<Vec<ValidationError>>,
+}
+
 #[derive(Debug, IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]
     Created(Feed),
 
     #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
+    #[response(status = 422)]
+    UnprocessableEntity(#[to_response] CreateValidationErrors),
 
     #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(Error),
+    BadGateway(BaseError),
 }
 
 impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::UnprocessableEntity(e) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
+            }
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }
@@ -115,7 +124,7 @@ pub enum DeleteResponse {
     NoContent,
 
     #[response(status = 404, description = "Feed not found")]
-    NotFound(Error),
+    NotFound(BaseError),
 }
 
 impl IntoResponse for DeleteResponse {

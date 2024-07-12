@@ -6,10 +6,10 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::profiles;
 use serde::{Deserialize, Serialize};
-use utoipa::{IntoResponses, ToSchema};
+use utoipa::{IntoResponses, ToResponse, ToSchema};
 use validator::Validate;
 
-use crate::common::{Error, ProfileList};
+use crate::common::{BaseError, ProfileList, ValidationError};
 
 #[derive(Debug, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -85,21 +85,31 @@ impl IntoResponse for GetActiveResponse {
     }
 }
 
+#[derive(Debug, Serialize, ToResponse)]
+#[serde(rename_all = "camelCase")]
+#[response(description = "Invalid input")]
+pub struct CreateValidationErrors {
+    title: Option<Vec<ValidationError>>,
+    image_url: Option<Vec<ValidationError>>,
+}
+
 #[derive(Debug, IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created profile")]
     Created(Profile),
 
     #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(Error),
+    #[response(status = 422)]
+    UnprocessableEntity(#[to_response] CreateValidationErrors),
 }
 
 impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::UnprocessableEntity(e) => {
+                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
+            }
         }
     }
 }
@@ -110,10 +120,10 @@ pub enum DeleteResponse {
     NoContent,
 
     #[response(status = 404, description = "Profile not found")]
-    NotFound(Error),
+    NotFound(BaseError),
 
     #[response(status = 409, description = "Deleting default profile")]
-    Conflict(Error),
+    Conflict(BaseError),
 }
 
 impl IntoResponse for DeleteResponse {
