@@ -15,7 +15,7 @@ import { SidebarLink } from '../-components/sidebar-link'
 import { FeedItem } from './-components/feed-item'
 import { SubscribeModal } from './-components/subscribe-modal'
 
-export const options = (profileId: string) => {
+const options = (profileId: string) => {
 	return {
 		queryKey: ['/profiles', profileId, '/feeds'],
 		queryFn: async ({ signal }) => {
