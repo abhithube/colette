@@ -147,6 +147,9 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        BaseError: {
+            message: string;
+        };
         CreateFeed: {
             url: string;
         };
@@ -171,9 +174,6 @@ export interface components {
         EntryList: {
             hasMore: boolean;
             data: components["schemas"]["Entry"][];
-        };
-        Error: {
-            message: string;
         };
         Feed: {
             id: string;
@@ -228,6 +228,13 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
+        ValidationError: {
+            code: string;
+            message: string;
+            params: {
+                [key: string]: string | undefined;
+            };
+        };
     };
     responses: never;
     parameters: never;
@@ -265,7 +272,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Invalid input */
@@ -274,7 +281,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": {
+                        email?: components["schemas"]["ValidationError"][] | null;
+                        password?: components["schemas"]["ValidationError"][] | null;
+                    };
                 };
             };
         };
@@ -307,7 +317,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Invalid input */
@@ -316,7 +326,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": {
+                        email?: components["schemas"]["ValidationError"][] | null;
+                        password?: components["schemas"]["ValidationError"][] | null;
+                    };
                 };
             };
         };
@@ -393,7 +406,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": {
+                        url?: components["schemas"]["ValidationError"][] | null;
+                    };
                 };
             };
             /** @description Failed to fetch or parse feed */
@@ -402,7 +417,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -433,7 +448,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -462,7 +477,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -515,7 +530,10 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": {
+                        title?: components["schemas"]["ValidationError"][] | null;
+                        imageUrl?: components["schemas"]["ValidationError"][] | null;
+                    };
                 };
             };
         };
@@ -564,7 +582,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Deleting default profile */
@@ -573,7 +591,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Error"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
