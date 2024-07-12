@@ -58,7 +58,13 @@ export function FeedItem({ feed }: Props) {
 						)}
 					</DropdownMenuTrigger>
 					<DropdownMenuContent className="w-56">
-						<DropdownMenuItem>
+						<DropdownMenuItem
+							onClick={(e) => {
+								e.stopPropagation()
+
+								window.open(feed.link)
+							}}
+						>
 							Open in new tab
 							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
 						</DropdownMenuItem>
