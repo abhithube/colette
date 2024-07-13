@@ -45,7 +45,7 @@ export function UnsubscribeAlert({
 			if (res.error || !res.data) throw new Error()
 		},
 		onSuccess: async () => {
-			if (params instanceof object && params.id === feed.id) {
+			if (typeof params === 'object' && params.id === feed.id) {
 				await navigate({
 					to: '/feeds',
 				})
