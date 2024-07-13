@@ -1,10 +1,12 @@
 use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
 
+use auth::Api as Auth;
 use axum::{
     http::{header, HeaderValue, Method},
     routing, Router,
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
+use bookmarks::Api as Bookmarks;
 use chrono::Utc;
 use colette_core::{
     auth::AuthService,
@@ -32,9 +34,13 @@ use colette_sqlite::{
     EntriesSqliteRepository, FeedsSqliteRepository, Pool, ProfilesSqliteRepository,
     UsersSqliteRepository,
 };
+use collections::Api as Collections;
 use common::{BookmarkList, CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
+use entries::Api as Entries;
+use feeds::Api as Feeds;
 use futures::stream::StreamExt;
+use profiles::Api as Profiles;
 use tokio::{net::TcpListener, sync::Semaphore, task};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
@@ -71,22 +77,14 @@ struct Asset;
         (url = "http://localhost:8000")
     ),
     nest(
-        (path = "/api/v1/auth", api = auth::Api),
-        (path = "/api/v1/bookmarks", api = bookmarks::Api),
-        (path = "/api/v1/collections", api = collections::Api),
-        (path = "/api/v1/entries", api = entries::Api),
-        (path = "/api/v1/feeds", api = feeds::Api),
-        (path = "/api/v1/profiles", api = profiles::Api)
+        (path = "/api/v1/auth", api = Auth),
+        (path = "/api/v1/bookmarks", api = Bookmarks),
+        (path = "/api/v1/collections", api = Collections),
+        (path = "/api/v1/entries", api = Entries),
+        (path = "/api/v1/feeds", api = Feeds),
+        (path = "/api/v1/profiles", api = Profiles)
     ),
-    components(schemas(common::BaseError, common::ValidationError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList)),
-    tags(
-        (name = "Auth"),
-        (name = "Bookmarks"),
-        (name = "Collections"),
-        (name = "Entries"),
-        (name = "Feeds"),
-        (name = "Profiles")
-    )
+    components(schemas(common::BaseError, common::ValidationError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
 )]
 struct ApiDoc;
 
@@ -220,12 +218,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     "/openapi.json",
                     routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
                 )
-                .merge(auth::Api::router())
-                .merge(bookmarks::Api::router())
-                .merge(collections::Api::router())
-                .merge(entries::Api::router())
-                .merge(feeds::Api::router())
-                .merge(profiles::Api::router())
+                .merge(Auth::router())
+                .merge(Bookmarks::router())
+                .merge(Collections::router())
+                .merge(Entries::router())
+                .merge(Feeds::router())
+                .merge(Profiles::router())
                 .with_state(state),
         )
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
