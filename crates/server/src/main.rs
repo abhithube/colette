@@ -14,8 +14,7 @@ use colette_core::{
     entries::EntriesService,
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
     profiles::ProfilesService,
-    scraper::Scraper,
-    utils::task::Task,
+    utils::{scraper::Scraper, task::Task},
 };
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]

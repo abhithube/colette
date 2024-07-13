@@ -4,7 +4,7 @@ use async_trait::async_trait;
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions};
 use colette_core::{
     feeds::ProcessedFeed,
-    scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
+    utils::scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
 };
 pub use downloader::DefaultDownloader;
 pub use extractor::DefaultFeedExtractor;

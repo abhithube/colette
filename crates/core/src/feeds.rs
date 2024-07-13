@@ -5,7 +5,7 @@ use url::Url;
 
 use crate::{
     common::{FindOneParams, Paginated, Session},
-    scraper::{self, Scraper},
+    utils::scraper::{self, Scraper},
 };
 
 #[derive(Debug, thiserror::Error)]

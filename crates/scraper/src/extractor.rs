@@ -1,6 +1,6 @@
 use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions},
-    scraper::{extractor::Error, Extractor},
+    utils::scraper::{ExtractError, Extractor},
 };
 use skyscraper::{
     html,
@@ -18,8 +18,8 @@ pub struct DefaultFeedExtractor {
 }
 
 impl Extractor<ExtractedFeed> for DefaultFeedExtractor {
-    fn extract(&self, url: &str, raw: &str) -> Result<ExtractedFeed, Error> {
-        let document = html::parse(raw).map_err(|e| Error(e.into()))?;
+    fn extract(&self, url: &str, raw: &str) -> Result<ExtractedFeed, ExtractError> {
+        let document = html::parse(raw).map_err(|e| ExtractError(e.into()))?;
         let tree = XpathItemTree::from(&document);
 
         let mut entries: Vec<ExtractedEntry> = vec![];

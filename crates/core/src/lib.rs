@@ -12,6 +12,5 @@ pub mod common;
 pub mod entries;
 pub mod feeds;
 pub mod profiles;
-pub mod scraper;
 pub mod users;
 pub mod utils;

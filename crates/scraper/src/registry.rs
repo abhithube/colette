@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use colette_core::scraper::{Downloader, Extractor, Postprocessor};
+use colette_core::utils::scraper::{Downloader, Extractor, Postprocessor};
 
 pub struct PluginRegistry<T, U> {
     pub downloaders: HashMap<&'static str, Arc<dyn Downloader + Send + Sync>>,
