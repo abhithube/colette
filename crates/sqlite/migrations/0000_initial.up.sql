@@ -59,6 +59,32 @@ CREATE TABLE profile_feed_entries (
   UNIQUE (profile_feed_id, feed_entry_id)
 );
 
+CREATE TABLE collections (
+  id text NOT NULL PRIMARY KEY,
+  title text NOT NULL,
+  is_default integer NOT NULL DEFAULT 0,
+  profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bookmarks (
+  id text NOT NULL PRIMARY KEY,
+  link text NOT NULL,
+  title text NOT NULL,
+  thumbnail_url text,
+  published_at text,
+  author text,
+  custom_title text,
+  custom_thumbnail_url text,
+  custom_published_at text,
+  custom_author text,
+  collection_id text NOT NULL REFERENCES collections (id) ON DELETE cascade,
+  created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (collection_id, link)
+);
+
 CREATE TRIGGER users_updated_at
 AFTER
 UPDATE ON users FOR each ROW
@@ -88,6 +114,30 @@ AFTER
 UPDATE ON profile_feeds FOR each ROW
 BEGIN
 UPDATE profile_feeds
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
+
+CREATE TRIGGER collections_updated_at
+AFTER
+UPDATE ON collections FOR each ROW
+BEGIN
+UPDATE collections
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
+
+CREATE TRIGGER bookmarks_updated_at
+AFTER
+UPDATE ON bookmarks FOR each ROW
+BEGIN
+UPDATE bookmarks
 SET
   updated_at = CURRENT_TIMESTAMP
 WHERE

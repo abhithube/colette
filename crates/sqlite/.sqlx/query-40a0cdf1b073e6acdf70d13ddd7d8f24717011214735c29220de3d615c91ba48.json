@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\n   INSERT INTO collections (id, title, is_default, profile_id)\n   VALUES ($1, $2, $3, $4)\nRETURNING id,\n          title,\n          profile_id,\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n          cast(0 AS bigint) AS bookmark_count",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "profile_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "bookmark_count",
+        "ordinal": 5,
+        "type_info": "Int64"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "40a0cdf1b073e6acdf70d13ddd7d8f24717011214735c29220de3d615c91ba48"
+}

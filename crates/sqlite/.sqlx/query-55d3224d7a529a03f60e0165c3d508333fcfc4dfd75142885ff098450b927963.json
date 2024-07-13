@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nDELETE FROM collections\n WHERE id = $1\n   AND profile_id = $2\n   AND NOT is_default",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "55d3224d7a529a03f60e0165c3d508333fcfc4dfd75142885ff098450b927963"
+}
