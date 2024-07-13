@@ -9,6 +9,7 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Utc;
 use colette_core::{
     auth::AuthService,
+    bookmarks::BookmarksService,
     collections::CollectionsService,
     entries::EntriesService,
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
@@ -33,7 +34,7 @@ use colette_sqlite::{
     EntriesSqliteRepository, FeedsSqliteRepository, Pool, ProfilesSqliteRepository,
     UsersSqliteRepository,
 };
-use common::{CollectionList, EntryList, FeedList, ProfileList};
+use common::{BookmarkList, CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use futures::stream::StreamExt;
 use rust_embed::Embed;
@@ -51,6 +52,7 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 mod auth;
+mod bookmarks;
 mod collections;
 mod common;
 mod entries;
@@ -73,14 +75,16 @@ struct Asset;
     ),
     nest(
         (path = "/api/v1/auth", api = auth::Api),
+        (path = "/api/v1/bookmarks", api = bookmarks::Api),
         (path = "/api/v1/collections", api = collections::Api),
         (path = "/api/v1/entries", api = entries::Api),
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(common::BaseError, common::ValidationError, CollectionList, EntryList, FeedList, ProfileList)),
+    components(schemas(common::BaseError, common::ValidationError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList)),
     tags(
         (name = "Auth"),
+        (name = "Bookmarks"),
         (name = "Collections"),
         (name = "Entries"),
         (name = "Feeds"),
@@ -187,6 +191,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pr2 = Arc::clone(&pr);
 
     let auth_service = AuthService::new(Arc::new(users_repository), pr, Arc::new(argon_hasher));
+    let bookmarks_service = BookmarksService::new(Arc::new(bookmarks_repository));
     let collections_service = CollectionsService::new(Arc::new(collections_repository));
     let entries_service = EntriesService::new(Arc::new(entries_repository));
     let feeds_service = FeedsService::new(fr2, fs2);
@@ -202,6 +207,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let state = common::Context {
         auth_service: auth_service.into(),
+        bookmark_service: bookmarks_service.into(),
         collections_service: collections_service.into(),
         entries_service: entries_service.into(),
         feeds_service: feeds_service.into(),
@@ -218,6 +224,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
                 )
                 .merge(auth::Api::router())
+                .merge(bookmarks::Api::router())
                 .merge(collections::Api::router())
                 .merge(entries::Api::router())
                 .merge(feeds::Api::router())
