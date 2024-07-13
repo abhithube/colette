@@ -14,11 +14,8 @@ use colette_core::{
 };
 
 use crate::{
-    common,
-    common::{BaseError, Context, ValidationError},
-    error::Error,
+    common::{BaseError, Context, Error, Session, ValidationError, SESSION_KEY},
     profiles::Profile,
-    session::{Session, SESSION_KEY},
 };
 
 #[derive(utoipa::OpenApi)]
@@ -56,7 +53,7 @@ pub async fn register(
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
             auth::Error::Users(users::Error::Conflict(_)) => {
-                Ok(RegisterResponse::Conflict(common::BaseError {
+                Ok(RegisterResponse::Conflict(BaseError {
                     message: e.to_string(),
                 }))
             }
@@ -93,7 +90,7 @@ pub async fn login(
             Ok(LoginResponse::Ok(data))
         }
         Err(e) => match e {
-            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(common::BaseError {
+            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

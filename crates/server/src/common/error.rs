@@ -1,12 +1,13 @@
+use std::collections::HashMap;
+
 use axum::{
     extract::rejection::{JsonRejection, QueryRejection},
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json,
 };
 use colette_core::auth;
 use tower_sessions::session;
-
-use crate::common;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -28,7 +29,7 @@ pub enum Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let e = common::BaseError {
+        let e = BaseError {
             message: self.to_string(),
         };
 
@@ -40,5 +41,23 @@ impl IntoResponse for Error {
             }
             _ => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
         }
+    }
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct BaseError {
+    pub message: String,
+}
+
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+pub struct ValidationError {
+    pub code: String,
+    pub message: String,
+    pub params: HashMap<String, String>,
+}
+
+impl IntoResponse for BaseError {
+    fn into_response(self) -> Response {
+        Json(self).into_response()
     }
 }

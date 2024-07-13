@@ -10,10 +10,8 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::profiles::{self, ProfilesService};
 
-use crate::{
-    common::{self, BaseError, Context, Id, Paginated, ProfileList, ValidationError},
-    error::Error,
-    session::Session,
+use crate::common::{
+    BaseError, Context, Error, Id, Paginated, ProfileList, Session, ValidationError,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -129,10 +127,10 @@ pub async fn delete_profile(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(common::BaseError {
+            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

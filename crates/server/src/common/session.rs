@@ -2,7 +2,7 @@ use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use colette_core::{auth, common};
 use serde::{Deserialize, Serialize};
 
-use crate::error::Error;
+use super::Error;
 
 pub const SESSION_KEY: &str = "session";
 

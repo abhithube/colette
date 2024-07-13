@@ -9,11 +9,7 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::entries::{EntriesService, ListEntriesParams};
 
-use crate::{
-    common::{Context, EntryList, Paginated},
-    error::Error,
-    session::Session,
-};
+use crate::common::{Context, EntryList, Error, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(paths(list_entries), components(schemas(Entry)))]

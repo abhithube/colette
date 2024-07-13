@@ -59,10 +59,8 @@ mod bookmarks;
 mod collections;
 mod common;
 mod entries;
-mod error;
 mod feeds;
 mod profiles;
-mod session;
 
 const DEFAULT_PORT: u32 = 8000;
 const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";

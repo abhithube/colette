@@ -1,18 +1,19 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
-use axum::{
-    extract::FromRef,
-    response::{IntoResponse, Response},
-    Json,
-};
+use axum::extract::FromRef;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService, common,
     entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
 };
+pub use error::{BaseError, Error, ValidationError};
+pub use session::{Session, SESSION_KEY};
 
 use crate::{
     bookmarks::Bookmark, collections::Collection, entries::Entry, feeds::Feed, profiles::Profile,
 };
+
+mod error;
+mod session;
 
 #[derive(Clone, FromRef)]
 pub struct Context {
@@ -45,23 +46,5 @@ where
             has_more: value.has_more,
             data: value.data.into_iter().map(T::from).collect(),
         }
-    }
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct BaseError {
-    pub message: String,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ValidationError {
-    pub code: String,
-    pub message: String,
-    pub params: HashMap<String, String>,
-}
-
-impl IntoResponse for BaseError {
-    fn into_response(self) -> Response {
-        Json(self).into_response()
     }
 }

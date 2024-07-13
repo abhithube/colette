@@ -10,11 +10,7 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::feeds::{self, FeedsService};
 
-use crate::{
-    common::{self, BaseError, Context, FeedList, Id, Paginated, ValidationError},
-    error::Error,
-    session::Session,
-};
+use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session, ValidationError};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -78,7 +74,7 @@ pub async fn get_feed(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(common::BaseError {
+            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -109,7 +105,7 @@ pub async fn create_feed(
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(common::BaseError {
+            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -137,7 +133,7 @@ pub async fn delete_feed(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

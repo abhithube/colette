@@ -10,11 +10,7 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::bookmarks::{self, BookmarksService, ListBookmarksParams};
 
-use crate::{
-    common::{self, BaseError, BookmarkList, Context, Id, Paginated},
-    error::Error,
-    session::Session,
-};
+use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(paths(list_bookmarks, delete_bookmark), components(schemas(Bookmark)))]
@@ -77,7 +73,7 @@ pub async fn delete_bookmark(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

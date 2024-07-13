@@ -10,10 +10,8 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::collections::{self, CollectionsService};
 
-use crate::{
-    common::{self, BaseError, CollectionList, Context, Id, Paginated, ValidationError},
-    error::Error,
-    session::Session,
+use crate::common::{
+    BaseError, CollectionList, Context, Error, Id, Paginated, Session, ValidationError,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -81,7 +79,7 @@ pub async fn get_collection(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            collections::Error::NotFound(_) => Ok(GetResponse::NotFound(common::BaseError {
+            collections::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -135,7 +133,7 @@ pub async fn delete_collection(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            collections::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+            collections::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
