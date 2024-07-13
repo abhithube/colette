@@ -1,7 +1,7 @@
 pub use queries::{feeds::iterate as iterate_feeds, profiles::iterate as iterate_profiles};
 pub use repositories::{
-    CollectionsPostgresRepository, EntriesPostgresRepository, FeedsPostgresRepository,
-    ProfilesPostgresRepository, UsersPostgresRepository,
+    BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
+    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use sqlx::{Error, PgPool};
 

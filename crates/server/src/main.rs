@@ -19,8 +19,9 @@ use colette_core::{
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
 use colette_postgres::{
-    iterate_feeds, iterate_profiles, CollectionsPostgresRepository, EntriesPostgresRepository,
-    FeedsPostgresRepository, Pool, ProfilesPostgresRepository, UsersPostgresRepository,
+    iterate_feeds, iterate_profiles, BookmarksPostgresRepository, CollectionsPostgresRepository,
+    EntriesPostgresRepository, FeedsPostgresRepository, Pool, ProfilesPostgresRepository,
+    UsersPostgresRepository,
 };
 use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
@@ -28,8 +29,9 @@ use colette_scraper::{
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
-    iterate_feeds, iterate_profiles, CollectionsSqliteRepository, EntriesSqliteRepository,
-    FeedsSqliteRepository, Pool, ProfilesSqliteRepository, UsersSqliteRepository,
+    iterate_feeds, iterate_profiles, BookmarksSqliteRepository, CollectionsSqliteRepository,
+    EntriesSqliteRepository, FeedsSqliteRepository, Pool, ProfilesSqliteRepository,
+    UsersSqliteRepository,
 };
 use common::{CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
@@ -108,12 +110,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(feature = "postgres")]
     let (
+        bookmarks_repository,
         collections_repository,
         entries_repository,
         feeds_repository,
         profiles_repository,
         users_repository,
     ) = (
+        BookmarksPostgresRepository::new(pool.clone()),
         CollectionsPostgresRepository::new(pool.clone()),
         EntriesPostgresRepository::new(pool.clone()),
         FeedsPostgresRepository::new(pool.clone()),
@@ -122,12 +126,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     #[cfg(feature = "sqlite")]
     let (
+        bookmarks_repository,
         collections_repository,
         entries_repository,
         feeds_repository,
         profiles_repository,
         users_repository,
     ) = (
+        BookmarksSqliteRepository::new(pool.clone()),
         CollectionsSqliteRepository::new(pool.clone()),
         EntriesSqliteRepository::new(pool.clone()),
         FeedsSqliteRepository::new(pool.clone()),
