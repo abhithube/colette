@@ -1,3 +1,7 @@
+DROP TABLE bookmarks;
+
+DROP TABLE collections;
+
 DROP TABLE profile_feed_entries;
 
 DROP TABLE profile_feeds;

@@ -59,6 +59,32 @@ CREATE TABLE profile_feed_entries (
   UNIQUE (profile_feed_id, feed_entry_id)
 );
 
+CREATE TABLE collections (
+  id text NOT NULL PRIMARY KEY,
+  title text NOT NULL,
+  is_default boolean NOT NULL DEFAULT FALSE,
+  profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE bookmarks (
+  id text NOT NULL PRIMARY KEY,
+  link text NOT NULL,
+  title text NOT NULL,
+  thumbnail_url text,
+  published_at timestamptz,
+  author text,
+  custom_title text,
+  custom_thumbnail_url text,
+  custom_published_at timestamptz,
+  custom_author text,
+  collection_id text NOT NULL REFERENCES collections (id) ON DELETE cascade,
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (collection_id, link)
+);
+
 CREATE
 OR REPLACE function handle_updated_at () returns trigger AS $$
 BEGIN
@@ -77,4 +103,12 @@ EXECUTE procedure handle_updated_at ();
 
 CREATE TRIGGER profile_feeds_updated_at before
 UPDATE ON profile_feeds FOR each ROW
+EXECUTE procedure handle_updated_at ();
+
+CREATE TRIGGER collections_updated_at before
+UPDATE ON collections FOR each ROW
+EXECUTE procedure handle_updated_at ();
+
+CREATE TRIGGER bookmarks_updated_at before
+UPDATE ON bookmarks FOR each ROW
 EXECUTE procedure handle_updated_at ();
