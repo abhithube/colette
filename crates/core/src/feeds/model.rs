@@ -20,15 +20,15 @@ pub struct CreateFeed {
 
 #[derive(Debug)]
 pub struct ExtractorOptions {
-    pub feed_link_expr: Option<&'static str>,
-    pub feed_title_expr: &'static str,
-    pub feed_entries_expr: &'static str,
-    pub entry_link_expr: &'static str,
-    pub entry_title_expr: &'static str,
-    pub entry_published_expr: Option<&'static str>,
-    pub entry_description_expr: Option<&'static str>,
-    pub entry_author_expr: Option<&'static str>,
-    pub entry_thumbnail_expr: Option<&'static str>,
+    pub feed_link_expr: &'static [&'static str],
+    pub feed_title_expr: &'static [&'static str],
+    pub feed_entries_expr: &'static [&'static str],
+    pub entry_link_expr: &'static [&'static str],
+    pub entry_title_expr: &'static [&'static str],
+    pub entry_published_expr: &'static [&'static str],
+    pub entry_description_expr: &'static [&'static str],
+    pub entry_author_expr: &'static [&'static str],
+    pub entry_thumbnail_expr: &'static [&'static str],
 }
 
 #[derive(Debug)]

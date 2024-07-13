@@ -11,15 +11,15 @@ impl AtomExtractorOptions {
 impl Default for AtomExtractorOptions {
     fn default() -> Self {
         Self(ExtractorOptions {
-            feed_link_expr: Some("//feed/link[@rel='alternate']/@href"),
-            feed_title_expr: "//feed/title/text()",
-            feed_entries_expr: "//feed/entry",
-            entry_link_expr: "./link/@href",
-            entry_title_expr: "./title/text()",
-            entry_published_expr: Some("./published/text()"),
-            entry_description_expr: Some("./content/text()"),
-            entry_author_expr: Some("./author/name/text()"),
-            entry_thumbnail_expr: None,
+            feed_link_expr: &["//feed/link[@rel='alternate']/@href"],
+            feed_title_expr: &["//feed/title/text()"],
+            feed_entries_expr: &["//feed/entry"],
+            entry_link_expr: &["./link/@href"],
+            entry_title_expr: &["./title/text()"],
+            entry_published_expr: &["./published/text()"],
+            entry_description_expr: &["./content/text()"],
+            entry_author_expr: &["./author/name/text()"],
+            entry_thumbnail_expr: &[],
         })
     }
 }
@@ -35,15 +35,15 @@ impl RssExtractorOptions {
 impl Default for RssExtractorOptions {
     fn default() -> Self {
         Self(ExtractorOptions {
-            feed_link_expr: Some("/rss/channel/link/text()"),
-            feed_title_expr: "/rss/channel/title/text()",
-            feed_entries_expr: "/rss/channel/item",
-            entry_link_expr: "/link/text()",
-            entry_title_expr: "/title/text()",
-            entry_published_expr: Some("/pubDate/text()"),
-            entry_description_expr: Some("/description/text()"),
-            entry_author_expr: Some("/author/text()"),
-            entry_thumbnail_expr: Some("/enclosure[starts-with(@type, 'image/')]/@url"),
+            feed_link_expr: &["/rss/channel/link/text()"],
+            feed_title_expr: &["/rss/channel/title/text()"],
+            feed_entries_expr: &["/rss/channel/item"],
+            entry_link_expr: &["/link/text()"],
+            entry_title_expr: &["/title/text()"],
+            entry_published_expr: &["/pubDate/text()"],
+            entry_description_expr: &["/description/text()"],
+            entry_author_expr: &["/author/text()"],
+            entry_thumbnail_expr: &["/enclosure[starts-with(@type, 'image/')]/@url"],
         })
     }
 }
