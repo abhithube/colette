@@ -9,3 +9,8 @@ pub struct Collection {
     pub updated_at: DateTime<Utc>,
     pub bookmark_count: Option<i64>,
 }
+
+#[derive(Debug)]
+pub struct CreateCollection {
+    pub title: String,
+}
