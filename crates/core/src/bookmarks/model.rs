@@ -16,3 +16,10 @@ pub struct Bookmark {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
+
+#[derive(Debug)]
+pub struct ListBookmarksParams {
+    pub published_at: Option<DateTime<Utc>>,
+    pub collection_id: Option<String>,
+    pub is_default: Option<bool>,
+}
