@@ -9,6 +9,7 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Utc;
 use colette_core::{
     auth::AuthService,
+    collections::CollectionsService,
     entries::EntriesService,
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
     profiles::ProfilesService,
@@ -18,8 +19,8 @@ use colette_core::{
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
 use colette_postgres::{
-    iterate_feeds, iterate_profiles, EntriesPostgresRepository, FeedsPostgresRepository, Pool,
-    ProfilesPostgresRepository, UsersPostgresRepository,
+    iterate_feeds, iterate_profiles, CollectionsPostgresRepository, EntriesPostgresRepository,
+    FeedsPostgresRepository, Pool, ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
@@ -27,10 +28,10 @@ use colette_scraper::{
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
-    iterate_feeds, iterate_profiles, EntriesSqliteRepository, FeedsSqliteRepository, Pool,
-    ProfilesSqliteRepository, UsersSqliteRepository,
+    iterate_feeds, iterate_profiles, CollectionsSqliteRepository, EntriesSqliteRepository,
+    FeedsSqliteRepository, Pool, ProfilesSqliteRepository, UsersSqliteRepository,
 };
-use common::{EntryList, FeedList, ProfileList};
+use common::{CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use futures::stream::StreamExt;
 use rust_embed::Embed;
@@ -48,6 +49,7 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 mod auth;
+mod collections;
 mod common;
 mod entries;
 mod error;
@@ -69,13 +71,15 @@ struct Asset;
     ),
     nest(
         (path = "/api/v1/auth", api = auth::Api),
+        (path = "/api/v1/collections", api = collections::Api),
         (path = "/api/v1/entries", api = entries::Api),
         (path = "/api/v1/feeds", api = feeds::Api),
         (path = "/api/v1/profiles", api = profiles::Api)
     ),
-    components(schemas(common::BaseError, common::ValidationError, EntryList, FeedList, ProfileList)),
+    components(schemas(common::BaseError, common::ValidationError, CollectionList, EntryList, FeedList, ProfileList)),
     tags(
         (name = "Auth"),
+        (name = "Collections"),
         (name = "Entries"),
         (name = "Feeds"),
         (name = "Profiles")
@@ -103,18 +107,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let session_store = SqliteStore::new(pool.clone());
 
     #[cfg(feature = "postgres")]
-    let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
-        UsersPostgresRepository::new(pool.clone()),
-        ProfilesPostgresRepository::new(pool.clone()),
-        FeedsPostgresRepository::new(pool.clone()),
+    let (
+        collections_repository,
+        entries_repository,
+        feeds_repository,
+        profiles_repository,
+        users_repository,
+    ) = (
+        CollectionsPostgresRepository::new(pool.clone()),
         EntriesPostgresRepository::new(pool.clone()),
+        FeedsPostgresRepository::new(pool.clone()),
+        ProfilesPostgresRepository::new(pool.clone()),
+        UsersPostgresRepository::new(pool.clone()),
     );
     #[cfg(feature = "sqlite")]
-    let (users_repository, profiles_repository, feeds_repository, entries_repository) = (
-        UsersSqliteRepository::new(pool.clone()),
-        ProfilesSqliteRepository::new(pool.clone()),
-        FeedsSqliteRepository::new(pool.clone()),
+    let (
+        collections_repository,
+        entries_repository,
+        feeds_repository,
+        profiles_repository,
+        users_repository,
+    ) = (
+        CollectionsSqliteRepository::new(pool.clone()),
         EntriesSqliteRepository::new(pool.clone()),
+        FeedsSqliteRepository::new(pool.clone()),
+        ProfilesSqliteRepository::new(pool.clone()),
+        UsersSqliteRepository::new(pool.clone()),
     );
 
     let downloader = DefaultDownloader {};
@@ -163,6 +181,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pr2 = Arc::clone(&pr);
 
     let auth_service = AuthService::new(Arc::new(users_repository), pr, Arc::new(argon_hasher));
+    let collections_service = CollectionsService::new(Arc::new(collections_repository));
     let entries_service = EntriesService::new(Arc::new(entries_repository));
     let feeds_service = FeedsService::new(fr2, fs2);
     let profiles_service = ProfilesService::new(pr2);
@@ -177,6 +196,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let state = common::Context {
         auth_service: auth_service.into(),
+        collections_service: collections_service.into(),
         entries_service: entries_service.into(),
         feeds_service: feeds_service.into(),
         profiles_service: profiles_service.into(),
@@ -192,6 +212,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
                 )
                 .merge(auth::Api::router())
+                .merge(collections::Api::router())
                 .merge(entries::Api::router())
                 .merge(feeds::Api::router())
                 .merge(profiles::Api::router())

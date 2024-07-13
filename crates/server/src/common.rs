@@ -6,17 +6,18 @@ use axum::{
     Json,
 };
 use colette_core::{
-    auth::AuthService, common, entries::EntriesService, feeds::FeedsService,
-    profiles::ProfilesService,
+    auth::AuthService, collections::CollectionsService, common, entries::EntriesService,
+    feeds::FeedsService, profiles::ProfilesService,
 };
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
-use crate::{entries::Entry, feeds::Feed, profiles::Profile};
+use crate::{collections::Collection, entries::Entry, feeds::Feed, profiles::Profile};
 
 #[derive(Clone, FromRef)]
 pub struct Context {
     pub auth_service: Arc<AuthService>,
+    pub collections_service: Arc<CollectionsService>,
     pub entries_service: Arc<EntriesService>,
     pub feeds_service: Arc<FeedsService>,
     pub profiles_service: Arc<ProfilesService>,
@@ -27,7 +28,7 @@ pub struct Context {
 pub struct Id(pub String);
 
 #[derive(Debug, Serialize, ToSchema)]
-#[aliases(EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
+#[aliases(CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: Serialize> {
     pub has_more: bool,
