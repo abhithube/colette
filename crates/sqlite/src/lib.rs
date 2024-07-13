@@ -1,6 +1,7 @@
 pub use queries::{feeds::iterate as iterate_feeds, profiles::iterate as iterate_profiles};
 pub use repositories::{
-    EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
+    CollectionsSqliteRepository, EntriesSqliteRepository, FeedsSqliteRepository,
+    ProfilesSqliteRepository, UsersSqliteRepository,
 };
 use sqlx::{Error, SqlitePool};
 
