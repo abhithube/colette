@@ -1,13 +1,52 @@
 use std::sync::Arc;
 
-use super::{
-    model::CreateCollection, CollectionCreateData, CollectionFindManyParams, CollectionsRepository,
-    Error,
-};
-use crate::{
-    common::{FindOneParams, Paginated, Session},
-    Collection,
-};
+use chrono::{DateTime, Utc};
+
+use crate::common::{FindOneParams, Paginated, Session};
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("collection not found with id: {0}")]
+    NotFound(String),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
+}
+
+#[derive(Debug)]
+pub struct Collection {
+    pub id: String,
+    pub title: String,
+    pub profile_id: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub bookmark_count: Option<i64>,
+}
+
+#[derive(Debug)]
+pub struct CreateCollection {
+    pub title: String,
+}
+
+#[async_trait::async_trait]
+pub trait CollectionsRepository {
+    async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error>;
+
+    async fn find_one(&self, params: FindOneParams) -> Result<Collection, Error>;
+
+    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
+
+    async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
+}
+
+pub struct CollectionFindManyParams {
+    pub profile_id: String,
+}
+
+pub struct CollectionCreateData {
+    pub title: String,
+    pub profile_id: String,
+}
 
 pub struct CollectionsService {
     repo: Arc<dyn CollectionsRepository + Send + Sync>,
