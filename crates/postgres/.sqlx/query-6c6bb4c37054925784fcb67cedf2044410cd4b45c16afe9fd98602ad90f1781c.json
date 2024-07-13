@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM bookmarks AS b\n USING collections AS c\n WHERE b.id = $1\n   AND b.collection_id = c.id\n   AND c.profile_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6c6bb4c37054925784fcb67cedf2044410cd4b45c16afe9fd98602ad90f1781c"
+}

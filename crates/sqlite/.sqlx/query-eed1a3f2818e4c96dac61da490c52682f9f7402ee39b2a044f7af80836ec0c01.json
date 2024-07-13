@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nDELETE FROM bookmarks\n WHERE id = $1\n   AND collection_id IN (\n       SELECT id\n         FROM collections\n        WHERE profile_id = $2\n       )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "eed1a3f2818e4c96dac61da490c52682f9f7402ee39b2a044f7af80836ec0c01"
+}

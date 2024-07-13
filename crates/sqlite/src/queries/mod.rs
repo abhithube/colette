@@ -1,3 +1,4 @@
+pub mod bookmarks;
 pub mod collections;
 pub mod entries;
 pub mod feed_entries;
