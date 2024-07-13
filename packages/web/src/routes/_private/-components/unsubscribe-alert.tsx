@@ -13,6 +13,7 @@ import type { Feed } from '@/lib/types'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { object } from 'zod'
+import { Route } from '../feeds'
 
 export function UnsubscribeAlert({
 	feed,
@@ -23,6 +24,8 @@ export function UnsubscribeAlert({
 	isOpen: boolean
 	setOpen: React.Dispatch<React.SetStateAction<boolean>>
 }) {
+	const { profile } = Route.useRouteContext()
+
 	const navigate = useNavigate()
 
 	const matchRoute = useMatchRoute()
@@ -49,7 +52,7 @@ export function UnsubscribeAlert({
 			}
 
 			await queryClient.invalidateQueries({
-				queryKey: ['/feeds'],
+				queryKey: ['/profiles', profile.id, '/feeds'],
 			})
 		},
 	})

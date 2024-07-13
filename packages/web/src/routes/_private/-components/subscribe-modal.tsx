@@ -22,6 +22,7 @@ import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Route } from '../feeds'
 
 const formSchema = z.object({
 	url: z.string().url(),
@@ -32,6 +33,8 @@ type Props = {
 }
 
 export function SubscribeModal({ close }: Props) {
+	const { profile } = Route.useRouteContext()
+
 	const [loading, setLoading] = useState(false)
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -63,7 +66,7 @@ export function SubscribeModal({ close }: Props) {
 			close()
 
 			await queryClient.invalidateQueries({
-				queryKey: ['/feeds'],
+				queryKey: ['/profiles', profile.id, '/feeds'],
 			})
 
 			if (data) {
