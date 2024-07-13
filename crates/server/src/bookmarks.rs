@@ -1,12 +1,89 @@
+use std::sync::Arc;
+
 use axum::{
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    routing, Json, Router,
 };
+use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::ListBookmarksParams;
+use colette_core::bookmarks::{self, BookmarksService, ListBookmarksParams};
 
-use crate::common::{BaseError, BookmarkList};
+use crate::{
+    common::{self, BaseError, BookmarkList, Context, Id, Paginated},
+    error::Error,
+    session::Session,
+};
+
+#[derive(utoipa::OpenApi)]
+#[openapi(paths(list_bookmarks, delete_bookmark), components(schemas(Bookmark)))]
+pub struct Api;
+
+impl Api {
+    pub fn router() -> Router<Context> {
+        Router::new().nest(
+            "/bookmarks",
+            Router::new()
+                .route("/", routing::get(list_bookmarks))
+                .route("/:id", routing::delete(delete_bookmark)),
+        )
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListBookmarksQuery),
+    responses(ListResponse),
+    operation_id = "listBookmarks",
+    description = "List the active profile bookmarks",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn list_bookmarks(
+    State(service): State<Arc<BookmarksService>>,
+    Valid(Query(query)): Valid<Query<ListBookmarksQuery>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .list(query.into(), session.into())
+        .await
+        .map(Paginated::<Bookmark>::from);
+
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    params(Id),
+    responses(DeleteResponse),
+    operation_id = "deleteBookmark",
+    description = "Delete a bookmark by ID",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn delete_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service.delete(id, session.into()).await;
+
+    match result {
+        Ok(()) => Ok(DeleteResponse::NoContent),
+        Err(e) => match e {
+            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]

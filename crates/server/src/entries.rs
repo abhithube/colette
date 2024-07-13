@@ -1,11 +1,58 @@
-use axum::{
-    response::{IntoResponse, Response},
-    Json,
-};
-use chrono::{DateTime, Utc};
-use colette_core::entries::ListEntriesParams;
+use std::sync::Arc;
 
-use crate::common::EntryList;
+use axum::{
+    extract::{Query, State},
+    response::{IntoResponse, Response},
+    routing, Json, Router,
+};
+use axum_valid::Valid;
+use chrono::{DateTime, Utc};
+use colette_core::entries::{EntriesService, ListEntriesParams};
+
+use crate::{
+    common::{Context, EntryList, Paginated},
+    error::Error,
+    session::Session,
+};
+
+#[derive(utoipa::OpenApi)]
+#[openapi(paths(list_entries), components(schemas(Entry)))]
+pub struct Api;
+
+impl Api {
+    pub fn router() -> Router<Context> {
+        Router::new().nest(
+            "/entries",
+            Router::new().route("/", routing::get(list_entries)),
+        )
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListEntriesQuery),
+    responses(ListResponse),
+    operation_id = "listEntries",
+    description = "List feed entries",
+    tag = "Entries"
+)]
+#[axum::debug_handler]
+pub async fn list_entries(
+    State(service): State<Arc<EntriesService>>,
+    Valid(Query(query)): Valid<Query<ListEntriesQuery>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .list(query.into(), session.into())
+        .await
+        .map(Paginated::<Entry>::from);
+
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
+    }
+}
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]

@@ -1,12 +1,144 @@
+use std::sync::Arc;
+
 use axum::{
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
+    routing, Json, Router,
 };
+use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::profiles;
+use colette_core::profiles::{self, ProfilesService};
 
-use crate::common::{BaseError, ProfileList, ValidationError};
+use crate::{
+    common::{self, BaseError, Context, Id, Paginated, ProfileList, ValidationError},
+    error::Error,
+    session::Session,
+};
+
+#[derive(utoipa::OpenApi)]
+#[openapi(
+    paths(list_profiles, get_active_profile, create_profile, delete_profile),
+    components(schemas(Profile, CreateProfile))
+)]
+pub struct Api;
+
+impl Api {
+    pub fn router() -> Router<Context> {
+        Router::new().nest(
+            "/profiles",
+            Router::new()
+                .route("/", routing::get(list_profiles).post(create_profile))
+                .route("/@me", routing::get(get_active_profile))
+                .route("/:id", routing::delete(delete_profile)),
+        )
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "",
+    responses(ListResponse),
+    operation_id = "listProfiles",
+    description = "List the user profiles",
+    tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn list_profiles(
+    State(service): State<Arc<ProfilesService>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .list(session.into())
+        .await
+        .map(Paginated::<Profile>::from);
+
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        Err(_) => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/@me",
+    responses(GetActiveResponse),
+    operation_id = "getActiveProfile",
+    description = "Get the active profile",
+    tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn get_active_profile(
+    State(service): State<Arc<ProfilesService>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .get(session.profile_id.clone(), session.into())
+        .await
+        .map(Profile::from);
+
+    match result {
+        Ok(data) => Ok(GetActiveResponse::Ok(data)),
+        Err(_) => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+  post,
+  path = "",
+  request_body = CreateProfile,
+  responses(CreateResponse),
+  operation_id = "createProfile",
+  description = "Create a user profile",
+  tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn create_profile(
+    State(service): State<Arc<ProfilesService>>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<CreateProfile>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .create(body.into(), session.into())
+        .await
+        .map(Profile::from);
+
+    match result {
+        Ok(data) => Ok(CreateResponse::Created(data)),
+        Err(_) => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    params(Id),
+    responses(DeleteResponse),
+    operation_id = "deleteProfile",
+    description = "Delete a profile by ID",
+    tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn delete_profile(
+    State(service): State<Arc<ProfilesService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service.delete(id, session.into()).await;
+
+    match result {
+        Ok(()) => Ok(DeleteResponse::NoContent),
+        Err(e) => match e {
+            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(common::BaseError {
+                message: e.to_string(),
+            })),
+            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(common::BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
