@@ -1,13 +1,12 @@
 use axum::{routing, Router};
 pub use model::Collection;
-use utoipa::OpenApi;
 
 use crate::common::Context;
 
 mod handler;
 mod model;
 
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
     paths(
         handler::list_collections,
@@ -15,7 +14,7 @@ mod model;
         handler::create_collection,
         handler::delete_collection
     ),
-    components(schemas(model::Collection, model::CreateCollection))
+    components(schemas(Collection, model::CreateCollection))
 )]
 pub struct Api;
 

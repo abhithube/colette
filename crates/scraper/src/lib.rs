@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use async_trait::async_trait;
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions};
 use colette_core::{
     feeds::ProcessedFeed,
@@ -42,7 +41,7 @@ impl FeedScraper {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl Scraper<ProcessedFeed> for FeedScraper {
     async fn scrape(&self, url: &str) -> Result<ProcessedFeed, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;

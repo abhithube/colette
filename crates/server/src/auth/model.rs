@@ -5,13 +5,13 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::auth;
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoResponses, ToResponse, ToSchema};
-use validator::{Validate, ValidationError};
 
-use crate::{common::BaseError, profiles::Profile};
+use crate::{
+    common::{BaseError, ValidationError},
+    profiles::Profile,
+};
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: String,
@@ -32,7 +32,7 @@ impl From<colette_core::User> for User {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema, Validate)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(format = "email")]
@@ -53,7 +53,7 @@ impl From<Register> for auth::Register {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema, Validate)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
     #[schema(format = "email")]
@@ -74,7 +74,7 @@ impl From<Login> for auth::Login {
     }
 }
 
-#[derive(Debug, Serialize, ToResponse)]
+#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
 #[serde(rename_all = "camelCase")]
 #[response(description = "Invalid input")]
 pub struct RegisterValidationErrors {
@@ -82,7 +82,7 @@ pub struct RegisterValidationErrors {
     password: Option<Vec<ValidationError>>,
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
     Created(User),
@@ -107,7 +107,7 @@ impl IntoResponse for RegisterResponse {
     }
 }
 
-#[derive(Debug, Serialize, ToResponse)]
+#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
 #[serde(rename_all = "camelCase")]
 #[response(description = "Invalid input")]
 pub struct LoginValidationErrors {
@@ -115,7 +115,7 @@ pub struct LoginValidationErrors {
     password: Option<Vec<ValidationError>>,
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum LoginResponse {
     #[response(status = 200, description = "Default profile")]
     Ok(Profile),

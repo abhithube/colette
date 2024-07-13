@@ -1,7 +1,6 @@
 use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
 
 use axum::{
-    async_trait,
     http::{header, HeaderValue, Method},
     routing, Router,
 };
@@ -36,7 +35,6 @@ use colette_sqlite::{
 use common::{BookmarkList, CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use futures::stream::StreamExt;
-use rust_embed::Embed;
 use tokio::{net::TcpListener, sync::Semaphore, task};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
@@ -63,11 +61,11 @@ mod session;
 const DEFAULT_PORT: u32 = 8000;
 const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";
 
-#[derive(Clone, Embed)]
+#[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
 struct Asset;
 
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
     servers(
         (url = "http://localhost:8000")
@@ -301,7 +299,7 @@ impl RefreshTask {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl Task for RefreshTask {
     async fn run(&self) {
         let semaphore = Arc::new(Semaphore::new(5));

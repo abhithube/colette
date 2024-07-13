@@ -1,12 +1,11 @@
 use axum::{routing, Router};
-use utoipa::OpenApi;
 
 use crate::common::Context;
 
 mod handler;
 mod model;
 
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
     paths(handler::register, handler::login),
     components(schemas(model::Register, model::Login, model::User))

@@ -4,13 +4,10 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::entries::ListEntriesParams;
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, IntoResponses, ToSchema};
-use validator::Validate;
 
 use crate::common::EntryList;
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: String,
@@ -42,7 +39,7 @@ impl From<colette_core::Entry> for Entry {
     }
 }
 
-#[derive(Debug, Deserialize, IntoParams, Validate)]
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {
@@ -61,7 +58,7 @@ impl From<ListEntriesQuery> for ListEntriesParams {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of entries")]
     Ok(EntryList),

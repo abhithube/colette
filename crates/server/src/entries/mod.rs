@@ -1,14 +1,13 @@
 use axum::{routing, Router};
 pub use model::Entry;
-use utoipa::OpenApi;
 
 use crate::common::Context;
 
 mod handler;
 mod model;
 
-#[derive(OpenApi)]
-#[openapi(paths(handler::list_entries), components(schemas(model::Entry)))]
+#[derive(utoipa::OpenApi)]
+#[openapi(paths(handler::list_entries), components(schemas(Entry)))]
 pub struct Api;
 
 impl Api {

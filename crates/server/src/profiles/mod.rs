@@ -1,13 +1,12 @@
 use axum::{routing, Router};
 pub use model::Profile;
-use utoipa::OpenApi;
 
 use crate::common::Context;
 
 mod handler;
 mod model;
 
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
     paths(
         handler::list_profiles,
@@ -15,7 +14,7 @@ mod model;
         handler::create_profile,
         handler::delete_profile
     ),
-    components(schemas(model::Profile, model::CreateProfile))
+    components(schemas(Profile, model::CreateProfile))
 )]
 pub struct Api;
 

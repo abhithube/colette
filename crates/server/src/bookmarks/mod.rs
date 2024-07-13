@@ -1,13 +1,12 @@
 use axum::{routing, Router};
 pub use model::Bookmark;
-use utoipa::OpenApi;
 
 use crate::common::Context;
 
 mod handler;
 mod model;
 
-#[derive(OpenApi)]
+#[derive(utoipa::OpenApi)]
 #[openapi(
     paths(handler::list_bookmarks, handler::delete_bookmark),
     components(schemas(Bookmark))

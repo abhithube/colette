@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use colette_core::{
     common,
     feeds::{Error, FeedCreateData, FeedFindManyParams, FeedsRepository},
@@ -21,7 +20,7 @@ impl FeedsPostgresRepository {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl FeedsRepository for FeedsPostgresRepository {
     async fn find_many(&self, params: FeedFindManyParams) -> Result<Vec<Feed>, Error> {
         let feeds = queries::profile_feeds::select_many(&self.pool, (&params).into())

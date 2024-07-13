@@ -5,13 +5,10 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::profiles;
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoResponses, ToResponse, ToSchema};
-use validator::Validate;
 
 use crate::common::{BaseError, ProfileList, ValidationError};
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
     pub id: String,
@@ -36,7 +33,7 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-#[derive(Debug, Deserialize, ToSchema, Validate)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateProfile {
     #[schema(min_length = 1)]
@@ -57,7 +54,7 @@ impl From<CreateProfile> for profiles::CreateProfile {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
     Ok(ProfileList),
@@ -71,7 +68,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum GetActiveResponse {
     #[response(status = 200, description = "Active profile")]
     Ok(Profile),
@@ -85,7 +82,7 @@ impl IntoResponse for GetActiveResponse {
     }
 }
 
-#[derive(Debug, Serialize, ToResponse)]
+#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
 #[serde(rename_all = "camelCase")]
 #[response(description = "Invalid input")]
 pub struct CreateValidationErrors {
@@ -93,7 +90,7 @@ pub struct CreateValidationErrors {
     image_url: Option<Vec<ValidationError>>,
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created profile")]
     Created(Profile),
@@ -114,7 +111,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted profile")]
     NoContent,

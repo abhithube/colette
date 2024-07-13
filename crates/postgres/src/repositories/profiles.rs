@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use colette_core::{
     profiles::{
         Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
@@ -22,7 +21,7 @@ impl ProfilesPostgresRepository {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl ProfilesRepository for ProfilesPostgresRepository {
     async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
         let results = profiles::select_many(&self.pool, (&params).into())

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use colette_core::{
     users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
@@ -18,7 +17,7 @@ impl UsersPostgresRepository {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl UsersRepository for UsersPostgresRepository {
     async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         let user = users::select_by_email(&self.pool, (&params).into())

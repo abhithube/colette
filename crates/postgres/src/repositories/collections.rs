@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use colette_core::{
     collections::{CollectionCreateData, CollectionFindManyParams, CollectionsRepository, Error},
     common, Collection,
@@ -18,7 +17,7 @@ impl CollectionsPostgresRepository {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl CollectionsRepository for CollectionsPostgresRepository {
     async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error> {
         let feeds = queries::collections::select_many(&self.pool, (&params).into())

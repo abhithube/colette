@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use colette_core::{
     bookmarks::{BookmarkFindManyParams, BookmarksRepository, Error},
     common, Bookmark,
@@ -18,7 +17,7 @@ impl BookmarksPostgresRepository {
     }
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl BookmarksRepository for BookmarksPostgresRepository {
     async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error> {
         let feeds = queries::bookmarks::select_many(&self.pool, (&params).into())

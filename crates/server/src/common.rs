@@ -9,8 +9,6 @@ use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService, common,
     entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
 };
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, ToSchema};
 
 use crate::{
     bookmarks::Bookmark, collections::Collection, entries::Entry, feeds::Feed, profiles::Profile,
@@ -26,21 +24,21 @@ pub struct Context {
     pub profiles_service: Arc<ProfilesService>,
 }
 
-#[derive(Debug, Deserialize, IntoParams)]
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
 pub struct Id(pub String);
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
 #[serde(rename_all = "camelCase")]
-pub struct Paginated<T: Serialize> {
+pub struct Paginated<T: serde::Serialize> {
     pub has_more: bool,
     pub data: Vec<T>,
 }
 
 impl<T, U> From<common::Paginated<U>> for Paginated<T>
 where
-    T: From<U> + Serialize,
+    T: From<U> + serde::Serialize,
 {
     fn from(value: common::Paginated<U>) -> Self {
         Self {
@@ -50,12 +48,12 @@ where
     }
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct BaseError {
     pub message: String,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 pub struct ValidationError {
     pub code: String,
     pub message: String,

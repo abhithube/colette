@@ -5,13 +5,10 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::bookmarks::ListBookmarksParams;
-use serde::{Deserialize, Serialize};
-use utoipa::{IntoParams, IntoResponses, ToSchema};
-use validator::Validate;
 
 use crate::common::{BaseError, BookmarkList};
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
     pub id: String,
@@ -32,7 +29,7 @@ pub struct Bookmark {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, IntoParams, Validate)]
+#[derive(Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
@@ -71,7 +68,7 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of bookmarks")]
     Ok(BookmarkList),
@@ -85,7 +82,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, IntoResponses)]
+#[derive(Debug, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted bookmark")]
     NoContent,

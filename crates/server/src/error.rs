@@ -4,12 +4,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use colette_core::auth;
-use thiserror::Error;
 use tower_sessions::session;
 
 use crate::common;
 
-#[derive(Debug, Error)]
+#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     QueryRejection(#[from] QueryRejection),

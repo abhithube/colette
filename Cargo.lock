@@ -387,6 +387,7 @@ dependencies = [
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "axum-embed",
  "axum-valid",
