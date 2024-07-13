@@ -1,5 +1,6 @@
 use colette_core::common;
 
+pub mod collections;
 pub mod entries;
 pub mod feed_entries;
 pub mod feeds;
