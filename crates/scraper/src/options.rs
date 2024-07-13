@@ -15,11 +15,22 @@ impl Default for AtomExtractorOptions {
             feed_title_expr: &["//feed/title/text()"],
             feed_entries_expr: &["//feed/entry"],
             entry_link_expr: &["./link/@href"],
-            entry_title_expr: &["./title/text()"],
+            entry_title_expr: &[
+                "./media:group/media:title/text()",
+                "./media:title/text()",
+                "./title/text()",
+            ],
             entry_published_expr: &["./published/text()"],
-            entry_description_expr: &["./content/text()"],
+            entry_description_expr: &[
+                "./media:group/media:description/text()",
+                "./media:description/text()",
+                "./content/text()",
+            ],
             entry_author_expr: &["./author/name/text()"],
-            entry_thumbnail_expr: &[],
+            entry_thumbnail_expr: &[
+                "./media:group/media:thumbnail/@url",
+                "./media:thumbnail/@url",
+            ],
         })
     }
 }
@@ -42,7 +53,7 @@ impl Default for RssExtractorOptions {
             entry_title_expr: &["/title/text()"],
             entry_published_expr: &["/pubDate/text()"],
             entry_description_expr: &["/description/text()"],
-            entry_author_expr: &["/author/text()"],
+            entry_author_expr: &["./dc:creator/text()", "/author/text()"],
             entry_thumbnail_expr: &["/enclosure[starts-with(@type, 'image/')]/@url"],
         })
     }
