@@ -37,9 +37,12 @@ CREATE TABLE profiles (
   is_default integer NOT NULL DEFAULT 0,
   user_id text NOT NULL REFERENCES users (id) ON DELETE cascade,
   created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (user_id, is_default)
+  updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE index profiles_user_id_is_default_unq ON profiles (user_id, is_default)
+WHERE
+  is_default;
 
 CREATE TABLE profile_feeds (
   id text NOT NULL PRIMARY KEY,
@@ -67,6 +70,10 @@ CREATE TABLE collections (
   created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE UNIQUE index collections_profile_id_is_default_unq ON collections (profile_id, is_default)
+WHERE
+  is_default;
 
 CREATE TABLE bookmarks (
   id text NOT NULL PRIMARY KEY,
