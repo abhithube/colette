@@ -20,18 +20,6 @@ pub trait Scraper<T> {
 }
 
 #[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct DownloadError(#[from] pub anyhow::Error);
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct ExtractError(#[from] pub anyhow::Error);
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct PostprocessError(#[from] pub anyhow::Error);
-
-#[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     Download(#[from] DownloadError),
@@ -45,3 +33,15 @@ pub enum Error {
     #[error(transparent)]
     Postprocess(#[from] PostprocessError),
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct DownloadError(#[from] pub anyhow::Error);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct ExtractError(#[from] pub anyhow::Error);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct PostprocessError(#[from] pub anyhow::Error);

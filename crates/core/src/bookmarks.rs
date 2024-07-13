@@ -28,28 +28,11 @@ pub struct ListBookmarksParams {
     pub is_default: Option<bool>,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("bookmark not found with id: {0}")]
-    NotFound(String),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[async_trait::async_trait]
 pub trait BookmarksRepository {
     async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
-}
-
-pub struct BookmarkFindManyParams {
-    pub profile_id: String,
-    pub limit: i64,
-    pub published_at: Option<DateTime<Utc>>,
-    pub should_filter: bool,
-    pub collection_id: Option<String>,
 }
 
 pub struct BookmarksService {
@@ -92,4 +75,21 @@ impl BookmarksService {
 
         Ok(())
     }
+}
+
+pub struct BookmarkFindManyParams {
+    pub profile_id: String,
+    pub limit: i64,
+    pub published_at: Option<DateTime<Utc>>,
+    pub should_filter: bool,
+    pub collection_id: Option<String>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("bookmark not found with id: {0}")]
+    NotFound(String),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }

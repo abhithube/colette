@@ -4,15 +4,6 @@ use chrono::{DateTime, Utc};
 
 use crate::common::{Paginated, Session, PAGINATION_LIMIT};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("entry not found with id: {0}")]
-    NotFound(String),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[derive(Debug)]
 pub struct Entry {
     pub id: String,
@@ -36,14 +27,6 @@ pub struct ListEntriesParams {
 #[async_trait::async_trait]
 pub trait EntriesRepository {
     async fn find_many(&self, params: EntryFindManyParams) -> Result<Vec<Entry>, Error>;
-}
-
-pub struct EntryFindManyParams {
-    pub profile_id: String,
-    pub limit: i64,
-    pub published_at: Option<DateTime<Utc>>,
-    pub feed_id: Option<String>,
-    pub has_read: Option<bool>,
 }
 
 pub struct EntriesService {
@@ -76,4 +59,21 @@ impl EntriesService {
 
         Ok(paginated)
     }
+}
+
+pub struct EntryFindManyParams {
+    pub profile_id: String,
+    pub limit: i64,
+    pub published_at: Option<DateTime<Utc>>,
+    pub feed_id: Option<String>,
+    pub has_read: Option<bool>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("entry not found with id: {0}")]
+    NotFound(String),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }

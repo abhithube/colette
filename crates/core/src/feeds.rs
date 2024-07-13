@@ -8,18 +8,6 @@ use crate::{
     utils::scraper::{self, Scraper},
 };
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed not found with id: {0}")]
-    NotFound(String),
-
-    #[error(transparent)]
-    Scraper(#[from] scraper::Error),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[derive(Debug)]
 pub struct Feed {
     pub id: String,
@@ -95,16 +83,6 @@ pub trait FeedsRepository {
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
-pub struct FeedFindManyParams {
-    pub profile_id: String,
-}
-
-pub struct FeedCreateData {
-    pub url: String,
-    pub feed: ProcessedFeed,
-    pub profile_id: String,
-}
-
 pub struct FeedsService {
     repo: Arc<dyn FeedsRepository + Send + Sync>,
     scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
@@ -167,4 +145,26 @@ impl FeedsService {
 
         Ok(())
     }
+}
+
+pub struct FeedFindManyParams {
+    pub profile_id: String,
+}
+
+pub struct FeedCreateData {
+    pub url: String,
+    pub feed: ProcessedFeed,
+    pub profile_id: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("feed not found with id: {0}")]
+    NotFound(String),
+
+    #[error(transparent)]
+    Scraper(#[from] scraper::Error),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }

@@ -4,18 +4,6 @@ use chrono::{DateTime, Utc};
 
 use crate::common::{Paginated, Session};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("profile not found with id: {0}")]
-    NotFound(String),
-
-    #[error("default profile cannot be deleted")]
-    DeletingDefault,
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[derive(Debug)]
 pub struct Profile {
     pub id: String,
@@ -62,31 +50,6 @@ pub trait ProfilesRepository {
     ) -> Result<Profile, Error>;
 
     async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error>;
-}
-
-pub struct ProfileFindManyParams {
-    pub user_id: String,
-}
-
-pub struct ProfileFindByIdParams {
-    pub id: String,
-    pub user_id: String,
-}
-
-pub enum ProfileFindOneParams {
-    ById(ProfileFindByIdParams),
-    Default { user_id: String },
-}
-
-pub struct ProfileCreateData {
-    pub title: String,
-    pub image_url: Option<String>,
-    pub user_id: String,
-}
-
-pub struct ProfileUpdateData {
-    pub title: Option<String>,
-    pub image_url: Option<String>,
 }
 
 pub struct ProfilesService {
@@ -158,4 +121,41 @@ impl ProfilesService {
 
         Ok(())
     }
+}
+
+pub struct ProfileFindManyParams {
+    pub user_id: String,
+}
+
+pub struct ProfileFindByIdParams {
+    pub id: String,
+    pub user_id: String,
+}
+
+pub enum ProfileFindOneParams {
+    ById(ProfileFindByIdParams),
+    Default { user_id: String },
+}
+
+pub struct ProfileCreateData {
+    pub title: String,
+    pub image_url: Option<String>,
+    pub user_id: String,
+}
+
+pub struct ProfileUpdateData {
+    pub title: Option<String>,
+    pub image_url: Option<String>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("profile not found with id: {0}")]
+    NotFound(String),
+
+    #[error("default profile cannot be deleted")]
+    DeletingDefault,
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }

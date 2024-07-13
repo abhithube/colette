@@ -4,15 +4,6 @@ use chrono::{DateTime, Utc};
 
 use crate::common::{FindOneParams, Paginated, Session};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("collection not found with id: {0}")]
-    NotFound(String),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[derive(Debug)]
 pub struct Collection {
     pub id: String,
@@ -37,15 +28,6 @@ pub trait CollectionsRepository {
     async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
-}
-
-pub struct CollectionFindManyParams {
-    pub profile_id: String,
-}
-
-pub struct CollectionCreateData {
-    pub title: String,
-    pub profile_id: String,
 }
 
 pub struct CollectionsService {
@@ -104,4 +86,22 @@ impl CollectionsService {
 
         Ok(())
     }
+}
+
+pub struct CollectionFindManyParams {
+    pub profile_id: String,
+}
+
+pub struct CollectionCreateData {
+    pub title: String,
+    pub profile_id: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("collection not found with id: {0}")]
+    NotFound(String),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }

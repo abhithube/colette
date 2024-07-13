@@ -1,17 +1,5 @@
 use chrono::{DateTime, Utc};
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("user not found with email: {0}")]
-    NotFound(String),
-
-    #[error("user already exists with email: {0}")]
-    Conflict(String),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
-}
-
 #[derive(Debug)]
 pub struct User {
     pub id: String,
@@ -35,4 +23,16 @@ pub struct UserFindOneParams {
 pub struct UserCreateData {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("user not found with email: {0}")]
+    NotFound(String),
+
+    #[error("user already exists with email: {0}")]
+    Conflict(String),
+
+    #[error(transparent)]
+    Unknown(#[from] anyhow::Error),
 }
