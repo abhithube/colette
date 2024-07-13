@@ -52,7 +52,7 @@ export function UnsubscribeAlert({
 			}
 
 			await queryClient.invalidateQueries({
-				queryKey: ['/profiles', profile.id, '/feeds'],
+				queryKey: ['profiles', profile.id, 'feeds'],
 			})
 		},
 	})

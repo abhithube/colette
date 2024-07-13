@@ -23,7 +23,7 @@ type Props = {
 
 export function ProfileModal({ profile }: Props) {
 	const { data: profiles } = useQuery({
-		queryKey: ['/profiles'],
+		queryKey: ['profiles'],
 		queryFn: async ({ signal }) => {
 			const res = await client.GET('/api/v1/profiles', {
 				signal,

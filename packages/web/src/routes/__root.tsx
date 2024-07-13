@@ -9,7 +9,7 @@ export const Route = createRootRouteWithContext<{
 }>()({
 	beforeLoad: async ({ context }) => {
 		const profile = await context.queryClient.fetchQuery({
-			queryKey: ['/profiles', '@me'],
+			queryKey: ['profiles', '@me'],
 			queryFn: async ({ signal }) => {
 				const res = await client.GET('/api/v1/profiles/@me', {
 					signal,

@@ -66,7 +66,7 @@ export function SubscribeModal({ close }: Props) {
 			close()
 
 			await queryClient.invalidateQueries({
-				queryKey: ['/profiles', profile.id, '/feeds'],
+				queryKey: ['profiles', profile.id, 'feeds'],
 			})
 
 			if (data) {

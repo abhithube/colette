@@ -7,7 +7,7 @@ import { EntryGrid } from '../-components/entry-grid'
 
 const feedOptions = (id: string) =>
 	queryOptions({
-		queryKey: ['/feeds', id],
+		queryKey: ['feeds', id],
 		queryFn: async ({ signal }) => {
 			const res = await client.GET('/api/v1/feeds/{id}', {
 				params: {

@@ -17,7 +17,7 @@ import { SubscribeModal } from './-components/subscribe-modal'
 
 const options = (profileId: string) => {
 	return {
-		queryKey: ['/profiles', profileId, '/feeds'],
+		queryKey: ['profiles', profileId, 'feeds'],
 		queryFn: async ({ signal }) => {
 			const res = await client.GET('/api/v1/feeds', {
 				signal,

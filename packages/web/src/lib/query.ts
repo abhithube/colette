@@ -18,7 +18,7 @@ export async function ensureInfiniteQueryData(
 
 export const listEntriesOptions = (query: ListEntriesQuery) => {
 	return infiniteQueryOptions({
-		queryKey: ['/entries', query],
+		queryKey: ['entries', query],
 		queryFn: async ({ pageParam, signal }) => {
 			const res = await client.GET('/api/v1/entries', {
 				params: {
