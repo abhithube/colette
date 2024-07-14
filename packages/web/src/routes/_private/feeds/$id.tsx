@@ -1,18 +1,16 @@
-import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
-import { queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import {
+	ensureInfiniteQueryData,
+	getFeedOptions,
+	listEntriesOptions,
+} from '@colette/query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { EntryGrid } from '../-components/entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/$id')({
 	loader: async ({ context, params }) => {
-		const feedOptions = queryOptions({
-			queryKey: ['feeds', params.id],
-			queryFn: ({ signal }) =>
-				context.api.feeds.get(params.id, {
-					signal,
-				}),
-		})
+		const feedOptions = getFeedOptions(params.id, context.api)
 
 		const entryOptions = listEntriesOptions(
 			{

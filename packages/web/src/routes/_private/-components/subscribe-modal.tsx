@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { BadGatewayError, UnprocessableContentError } from '@colette/openapi'
+import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -47,45 +48,43 @@ export function SubscribeModal({ close }: Props) {
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 
-	const { mutateAsync: createFeed } = useMutation({
-		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			const feed = await context.api.feeds.create(values)
+	const { mutateAsync: createFeed } = useMutation(
+		createFeedOptions(
+			{
+				onMutate: () => {
+					setLoading(true)
+				},
+				onSuccess: async (data) => {
+					form.reset()
+					setLoading(false)
+					close()
 
-			return feed
-		},
-		onMutate: () => {
-			setLoading(true)
-		},
-		onSuccess: async (data) => {
-			form.reset()
-			setLoading(false)
-			close()
+					await queryClient.invalidateQueries({
+						queryKey: ['profiles', context.profile.id, 'feeds'],
+					})
 
-			await queryClient.invalidateQueries({
-				queryKey: ['profiles', context.profile.id, 'feeds'],
-			})
-
-			if (data) {
-				await navigate({
-					to: '/feeds/$id',
-					params: {
-						id: data.id,
-					},
-				})
-			}
-		},
-		onError: (error) => {
-			if (error instanceof UnprocessableContentError) {
-				form.setError('root', {
-					message: error.errors.url?.at(0)?.message,
-				})
-			} else if (error instanceof BadGatewayError) {
-				form.setError('root', {
-					message: error.message,
-				})
-			}
-		},
-	})
+					await navigate({
+						to: '/feeds/$id',
+						params: {
+							id: data.id,
+						},
+					})
+				},
+				onError: (error) => {
+					if (error instanceof UnprocessableContentError) {
+						form.setError('root', {
+							message: error.errors.url?.at(0)?.message,
+						})
+					} else if (error instanceof BadGatewayError) {
+						form.setError('root', {
+							message: error.message,
+						})
+					}
+				},
+			},
+			context.api,
+		),
+	)
 
 	return (
 		<DialogContent className="max-w-[400px]">

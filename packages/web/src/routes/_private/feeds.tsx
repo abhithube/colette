@@ -6,7 +6,8 @@ import {
 	ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { Separator } from '@/components/ui/separator'
-import { queryOptions, useQuery } from '@tanstack/react-query'
+import { listFeedsOptions } from '@colette/query'
+import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -16,13 +17,7 @@ import { SubscribeModal } from './-components/subscribe-modal'
 
 export const Route = createFileRoute('/_private/feeds')({
 	loader: async ({ context }) => {
-		const options = queryOptions({
-			queryKey: ['profiles', context.profile.id, 'feeds'],
-			queryFn: ({ signal }) =>
-				context.api.feeds.list({
-					signal,
-				}),
-		})
+		const options = listFeedsOptions(context.profile.id, context.api)
 
 		await context.queryClient.ensureQueryData(options)
 

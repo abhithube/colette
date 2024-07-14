@@ -9,6 +9,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import type { Feed } from '@colette/openapi'
+import { deleteFeedOptions } from '@colette/query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { Route } from '../feeds'
@@ -31,22 +32,25 @@ export function UnsubscribeAlert({
 
 	const queryClient = useQueryClient()
 
-	const { mutateAsync: unsubscribe } = useMutation({
-		mutationFn: async () => {
-			await context.api.feeds.delete(feed.id)
-		},
-		onSuccess: async () => {
-			if (typeof params === 'object' && params.id === feed.id) {
-				await navigate({
-					to: '/feeds',
-				})
-			}
+	const { mutateAsync: unsubscribe } = useMutation(
+		deleteFeedOptions(
+			feed.id,
+			{
+				onSuccess: async () => {
+					if (typeof params === 'object' && params.id === feed.id) {
+						await navigate({
+							to: '/feeds',
+						})
+					}
 
-			await queryClient.invalidateQueries({
-				queryKey: ['profiles', context.profile.id, 'feeds'],
-			})
-		},
-	})
+					await queryClient.invalidateQueries({
+						queryKey: ['profiles', context.profile.id, 'feeds'],
+					})
+				},
+			},
+			context.api,
+		),
+	)
 
 	return (
 		<AlertDialog open={isOpen} onOpenChange={setOpen}>
