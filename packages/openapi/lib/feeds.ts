@@ -71,7 +71,7 @@ export class FeedsAPI {
 	async delete(
 		id: string,
 		options?: Omit<FetchOptions<operations['deleteFeed']>, 'params'>,
-	): Promise<Feed> {
+	): Promise<void> {
 		const res = await this.client.DELETE('/api/v1/feeds/{id}', {
 			params: {
 				path: {
@@ -87,7 +87,5 @@ export class FeedsAPI {
 
 			throw new BaseError(res.error.message)
 		}
-
-		return res.data
 	}
 }
