@@ -1,4 +1,4 @@
-import { ensureInfiniteQueryData, listEntriesOptions } from '@/lib/query'
+import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -6,20 +6,25 @@ import { EntryGrid } from '../-components/entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/')({
 	loader: async ({ context }) => {
-		await ensureInfiniteQueryData(
-			context.queryClient,
-			listEntriesOptions({}) as any,
-		)
+		const options = listEntriesOptions({}, context.profile.id, context.api)
+
+		await ensureInfiniteQueryData(context.queryClient, options as any)
+
+		return {
+			options,
+		}
 	},
 	component: Component,
 })
 
 function Component() {
+	const { options } = Route.useLoaderData()
+
 	const {
 		data: entries,
 		hasNextPage,
 		fetchNextPage,
-	} = useInfiniteQuery(listEntriesOptions({}))
+	} = useInfiniteQuery(options)
 
 	useEffect(() => {
 		window.scrollTo(0, 0)

@@ -1,4 +1,4 @@
-import { ensureInfiniteQueryData, listEntriesOptions } from '@/lib/query'
+import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
 import { queryOptions, useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -14,18 +14,22 @@ export const Route = createFileRoute('/_private/feeds/$id')({
 				}),
 		})
 
+		const entryOptions = listEntriesOptions(
+			{
+				feedId: params.id,
+			},
+			context.profile.id,
+			context.api,
+		)
+
 		await Promise.all([
 			context.queryClient.ensureQueryData(feedOptions),
-			ensureInfiniteQueryData(
-				context.queryClient,
-				listEntriesOptions({
-					feedId: params.id,
-				}) as any,
-			),
+			ensureInfiniteQueryData(context.queryClient, entryOptions as any),
 		])
 
 		return {
 			feedOptions,
+			entryOptions,
 		}
 	},
 	component: Component,
@@ -33,18 +37,14 @@ export const Route = createFileRoute('/_private/feeds/$id')({
 
 function Component() {
 	const { id } = Route.useParams()
-	const { feedOptions } = Route.useLoaderData()
+	const { feedOptions, entryOptions } = Route.useLoaderData()
 
 	const { data: feed } = useQuery(feedOptions)
 	const {
 		data: entries,
 		hasNextPage,
 		fetchNextPage,
-	} = useInfiniteQuery(
-		listEntriesOptions({
-			feedId: id,
-		}),
-	)
+	} = useInfiniteQuery(entryOptions)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
