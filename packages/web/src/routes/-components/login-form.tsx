@@ -8,7 +8,7 @@ import {
 	FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { BaseError } from '@colette/openapi'
+import { UnauthorizedError, UnprocessableContentError } from '@colette/openapi'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -26,7 +26,7 @@ const formSchema = z.object({
 type Values = z.infer<typeof formSchema>
 
 export const LoginForm = () => {
-	const { api } = Route.useRouteContext()
+	const context = Route.useRouteContext()
 
 	const [loading, setLoading] = useState(false)
 
@@ -42,28 +42,35 @@ export const LoginForm = () => {
 
 	const { mutateAsync } = useMutation({
 		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			try {
-				const profile = await api.auth.login(values)
+			const profile = await context.api.auth.login(values)
 
-				return profile
-			} catch (error) {
-				if (error instanceof BaseError) {
-					return form.setError('root', {
-						message: error.message,
-					})
-				}
-			}
+			return profile
 		},
 		onMutate: () => {
 			setLoading(true)
 		},
-		onSuccess: async () => {
+		onSuccess: async (profile) => {
 			setLoading(false)
+
+			context.profile = profile
 
 			await navigate({
 				to: '/',
 				replace: true,
 			})
+		},
+		onError: (error) => {
+			if (error instanceof UnauthorizedError) {
+				form.setError('root', {
+					message: error.message,
+				})
+			} else if (error instanceof UnprocessableContentError) {
+				form.setError('root', {
+					message:
+						error.errors.email?.at(0)?.message ??
+						error.errors.password?.at(0)?.message,
+				})
+			}
 		},
 	})
 

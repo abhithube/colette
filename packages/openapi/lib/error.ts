@@ -12,8 +12,8 @@ export class UnprocessableContentError extends Error {
 	}
 }
 
-export class NotFoundError extends BaseError {}
+export class UnauthorizedError extends BaseError {}
 
-export class X extends BaseError {}
+export class NotFoundError extends BaseError {}
 
 export class BadGatewayError extends BaseError {}
