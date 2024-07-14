@@ -8,7 +8,7 @@ import {
 	FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { APIError } from '@colette/openapi'
+import { BaseError } from '@colette/openapi'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -47,7 +47,7 @@ export const LoginForm = () => {
 
 				return profile
 			} catch (error) {
-				if (error instanceof APIError) {
+				if (error instanceof BaseError) {
 					return form.setError('root', {
 						message: error.message,
 					})

@@ -1,9 +1,6 @@
 import type { Client } from '.'
-import { APIError } from './error'
-import type { components } from './openapi'
-import type { Profile } from './types'
-
-export type Login = components['schemas']['Login']
+import { BaseError } from './error'
+import type { Login, Profile } from './types'
 
 export class AuthAPI {
 	constructor(private client: Client) {}
@@ -13,7 +10,7 @@ export class AuthAPI {
 			body,
 		})
 		if (res.error) {
-			throw new APIError(res.error.message)
+			throw new BaseError(res.error.message)
 		}
 
 		return res.data
