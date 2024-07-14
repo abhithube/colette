@@ -1,3 +1,9 @@
+#[cfg(all(feature = "postgres", feature = "sqlite"))]
+compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
+
+#[cfg(not(any(feature = "postgres", feature = "sqlite")))]
+compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
+
 use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
 
 use auth::Api as Auth;

@@ -24,10 +24,7 @@ tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread"] }
 tokio-cron-scheduler = "0.10.2"
 tower-http = { version = "0.5.2", features = ["cors"] }
 tower-sessions = "0.12.2"
-tower-sessions-sqlx-store = { version = "0.12.0", features = [
-  "postgres",
-  "sqlite",
-] }
+tower-sessions-sqlx-store = { version = "0.12.0" }
 utoipa = { version = "5.0.0-alpha.0", features = [
   "chrono",
   "preserve_order",
@@ -38,5 +35,5 @@ validator = { version = "0.18.1", features = ["derive"] }
 
 [features]
 default = ["postgres"]
-postgres = ["colette-postgres"]
-sqlite = ["colette-sqlite"]
+postgres = ["colette-postgres", "tower-sessions-sqlx-store/postgres"]
+sqlite = ["colette-sqlite", "tower-sessions-sqlx-store/sqlite"]
