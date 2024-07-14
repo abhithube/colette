@@ -8,7 +8,7 @@ import {
 	FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { client } from '@/lib/client'
+import { APIError } from '@colette/openapi'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -16,6 +16,7 @@ import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { Route } from '../login'
 
 const formSchema = z.object({
 	email: z.string().email('Email is not valid.'),
@@ -25,6 +26,8 @@ const formSchema = z.object({
 type Values = z.infer<typeof formSchema>
 
 export const LoginForm = () => {
+	const { api } = Route.useRouteContext()
+
 	const [loading, setLoading] = useState(false)
 
 	const navigate = useNavigate()
@@ -39,16 +42,17 @@ export const LoginForm = () => {
 
 	const { mutateAsync } = useMutation({
 		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			const res = await client.POST('/api/v1/auth/login', {
-				body: values,
-			})
-			if (res.error) {
-				return form.setError('root', {
-					message: res.error.message,
-				})
-			}
+			try {
+				const profile = await api.auth.login(values)
 
-			return res.data
+				return profile
+			} catch (error) {
+				if (error instanceof APIError) {
+					return form.setError('root', {
+						message: error.message,
+					})
+				}
+			}
 		},
 		onMutate: () => {
 			setLoading(true)
