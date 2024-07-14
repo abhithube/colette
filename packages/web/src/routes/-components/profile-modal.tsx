@@ -11,6 +11,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@colette/openapi'
+import { listProfilesOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -24,13 +25,7 @@ type Props = {
 export function ProfileModal({ profile }: Props) {
 	const context = Route.useRouteContext()
 
-	const { data: profiles } = useQuery({
-		queryKey: ['profiles'],
-		queryFn: async ({ signal }) =>
-			context.api.profiles.list({
-				signal,
-			}),
-	})
+	const { data: profiles } = useQuery(listProfilesOptions(context.api))
 
 	const [selected, setSelected] = useState(profile.id)
 
