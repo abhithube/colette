@@ -9,12 +9,12 @@ import {
 	DialogTitle,
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { client } from '@/lib/client'
 import { cn } from '@/lib/utils'
 import type { Profile } from '@colette/openapi'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Plus } from 'lucide-react'
 import { useState } from 'react'
+import { Route } from '../_private'
 
 type Props = {
 	profile: Profile
@@ -22,15 +22,14 @@ type Props = {
 }
 
 export function ProfileModal({ profile }: Props) {
+	const context = Route.useRouteContext()
+
 	const { data: profiles } = useQuery({
 		queryKey: ['profiles'],
-		queryFn: async ({ signal }) => {
-			const res = await client.GET('/api/v1/profiles', {
+		queryFn: async ({ signal }) =>
+			context.api.profiles.list({
 				signal,
-			})
-
-			return res.data
-		},
+			}),
 	})
 
 	const [selected, setSelected] = useState(profile.id)

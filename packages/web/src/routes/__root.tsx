@@ -1,4 +1,3 @@
-import { client } from '@/lib/client'
 import type { API } from '@colette/openapi'
 import type { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -10,19 +9,22 @@ export const Route = createRootRouteWithContext<{
 	api: API
 }>()({
 	beforeLoad: async ({ context }) => {
-		const profile = await context.queryClient.fetchQuery({
-			queryKey: ['profiles', '@me'],
-			queryFn: async ({ signal }) => {
-				const res = await client.GET('/api/v1/profiles/@me', {
-					signal,
-				})
+		try {
+			const profile = await context.queryClient.fetchQuery({
+				queryKey: ['profiles', '@me'],
+				queryFn: async ({ signal }) =>
+					context.api.profiles.getActive({
+						signal,
+					}),
+			})
 
-				return res.data
-			},
-		})
-
-		return {
-			profile,
+			return {
+				profile,
+			}
+		} catch (_) {
+			return {
+				profile: undefined,
+			}
 		}
 	},
 	component: Component,
