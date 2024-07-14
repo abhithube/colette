@@ -16,4 +16,6 @@ export class UnauthorizedError extends BaseError {}
 
 export class NotFoundError extends BaseError {}
 
+export class ConflictError extends BaseError {}
+
 export class BadGatewayError extends BaseError {}
