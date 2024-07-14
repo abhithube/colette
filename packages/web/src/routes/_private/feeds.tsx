@@ -6,8 +6,7 @@ import {
 	ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { Separator } from '@/components/ui/separator'
-import { client } from '@/lib/client'
-import { type QueryOptions, useQuery } from '@tanstack/react-query'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus } from 'lucide-react'
 import { useState } from 'react'
@@ -15,32 +14,31 @@ import { SidebarLink } from '../-components/sidebar-link'
 import { FeedItem } from './-components/feed-item'
 import { SubscribeModal } from './-components/subscribe-modal'
 
-const options = (profileId: string) => {
-	return {
-		queryKey: ['profiles', profileId, 'feeds'],
-		queryFn: async ({ signal }) => {
-			const res = await client.GET('/api/v1/feeds', {
-				signal,
-			})
-
-			return res.data
-		},
-	} satisfies QueryOptions
-}
-
 export const Route = createFileRoute('/_private/feeds')({
 	loader: async ({ context }) => {
-		await context.queryClient.ensureQueryData(options(context.profile.id))
+		const options = queryOptions({
+			queryKey: ['profiles', context.profile.id, 'feeds'],
+			queryFn: ({ signal }) =>
+				context.api.feeds.list({
+					signal,
+				}),
+		})
+
+		await context.queryClient.ensureQueryData(options)
+
+		return {
+			options,
+		}
 	},
 	component: Component,
 })
 
 function Component() {
-	const { profile } = Route.useRouteContext()
+	const { options } = Route.useLoaderData()
 
 	const [isOpen, setOpen] = useState(false)
 
-	const { data: feeds } = useQuery(options(profile.id))
+	const { data: feeds } = useQuery(options)
 
 	if (!feeds) return
 

@@ -14,7 +14,7 @@ import {
 	FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { client } from '@/lib/client'
+import { BadGatewayError, UnprocessableContentError } from '@colette/openapi'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -33,7 +33,7 @@ type Props = {
 }
 
 export function SubscribeModal({ close }: Props) {
-	const { profile } = Route.useRouteContext()
+	const context = Route.useRouteContext()
 
 	const [loading, setLoading] = useState(false)
 
@@ -49,13 +49,9 @@ export function SubscribeModal({ close }: Props) {
 
 	const { mutateAsync: createFeed } = useMutation({
 		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			const res = await client.POST('/api/v1/feeds', {
-				body: {
-					url: values.url,
-				},
-			})
+			const feed = await context.api.feeds.create(values)
 
-			return res.data
+			return feed
 		},
 		onMutate: () => {
 			setLoading(true)
@@ -66,7 +62,7 @@ export function SubscribeModal({ close }: Props) {
 			close()
 
 			await queryClient.invalidateQueries({
-				queryKey: ['profiles', profile.id, 'feeds'],
+				queryKey: ['profiles', context.profile.id, 'feeds'],
 			})
 
 			if (data) {
@@ -75,6 +71,17 @@ export function SubscribeModal({ close }: Props) {
 					params: {
 						id: data.id,
 					},
+				})
+			}
+		},
+		onError: (error) => {
+			if (error instanceof UnprocessableContentError) {
+				form.setError('root', {
+					message: error.errors.url?.at(0)?.message,
+				})
+			} else if (error instanceof BadGatewayError) {
+				form.setError('root', {
+					message: error.message,
 				})
 			}
 		},

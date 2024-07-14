@@ -8,7 +8,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { client } from '@/lib/client'
 import type { Feed } from '@colette/openapi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
@@ -23,7 +22,7 @@ export function UnsubscribeAlert({
 	isOpen: boolean
 	setOpen: React.Dispatch<React.SetStateAction<boolean>>
 }) {
-	const { profile } = Route.useRouteContext()
+	const context = Route.useRouteContext()
 
 	const navigate = useNavigate()
 
@@ -34,14 +33,7 @@ export function UnsubscribeAlert({
 
 	const { mutateAsync: unsubscribe } = useMutation({
 		mutationFn: async () => {
-			const res = await client.DELETE('/api/v1/feeds/{id}', {
-				params: {
-					path: {
-						id: feed.id,
-					},
-				},
-			})
-			if (res.error || !res.data) throw new Error()
+			await context.api.feeds.delete(feed.id)
 		},
 		onSuccess: async () => {
 			if (typeof params === 'object' && params.id === feed.id) {
@@ -51,7 +43,7 @@ export function UnsubscribeAlert({
 			}
 
 			await queryClient.invalidateQueries({
-				queryKey: ['profiles', profile.id, 'feeds'],
+				queryKey: ['profiles', context.profile.id, 'feeds'],
 			})
 		},
 	})
