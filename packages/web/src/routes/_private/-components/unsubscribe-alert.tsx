@@ -9,10 +9,9 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { client } from '@/lib/client'
-import type { Feed } from '@/lib/types'
+import type { Feed } from '@colette/openapi'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
-import { object } from 'zod'
 import { Route } from '../feeds'
 
 export function UnsubscribeAlert({

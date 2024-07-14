@@ -1,5 +1,5 @@
 import { Separator } from '@/components/ui/separator'
-import type { Entry } from '@/lib/types'
+import type { Entry } from '@colette/openapi'
 import { useInView } from 'react-intersection-observer'
 import { EntryCard } from './entry-card'
 

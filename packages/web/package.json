@@ -8,6 +8,7 @@
 		"openapi": "openapi-typescript 'http://localhost:8000/api/v1/openapi.json' -o ./src/lib/openapi.d.ts"
 	},
 	"dependencies": {
+		"@colette/openapi": "*",
 		"@hookform/resolvers": "^3.9.0",
 		"@radix-ui/react-alert-dialog": "^1.1.1",
 		"@radix-ui/react-avatar": "^1.1.0",

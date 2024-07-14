@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import type { Entry } from '@/lib/types'
+import type { Entry } from '@colette/openapi'
 import {
 	EntryAuthor,
 	EntryPublished,

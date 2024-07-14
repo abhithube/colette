@@ -13,8 +13,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { Feed } from '@/lib/types'
 import { cn } from '@/lib/utils'
+import type { Feed } from '@colette/openapi'
 import { Link } from '@tanstack/react-router'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'

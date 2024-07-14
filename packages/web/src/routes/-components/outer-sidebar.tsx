@@ -5,7 +5,7 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { Profile } from '@/lib/types'
+import type { Profile } from '@colette/openapi'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { ProfileModal } from './profile-modal'
