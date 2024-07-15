@@ -47,15 +47,21 @@ use entries::Api as Entries;
 use feeds::Api as Feeds;
 use futures::stream::StreamExt;
 use profiles::Api as Profiles;
-use tokio::{net::TcpListener, sync::Semaphore, task};
+#[cfg(not(feature = "redis"))]
+use tokio::task;
+use tokio::{net::TcpListener, sync::Semaphore};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
-use tower_sessions::{
-    cookie::time::Duration, session_store::ExpiredDeletion, Expiry, SessionManagerLayer,
-};
-#[cfg(feature = "postgres")]
+#[cfg(not(feature = "redis"))]
+use tower_sessions::session_store::ExpiredDeletion;
+use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
+#[cfg(feature = "redis")]
+use tower_sessions_redis_store::fred::prelude::*;
+#[cfg(feature = "redis")]
+use tower_sessions_redis_store::RedisStore;
+#[cfg(all(feature = "postgres", not(feature = "redis")))]
 use tower_sessions_sqlx_store::PostgresStore;
-#[cfg(feature = "sqlite")]
+#[cfg(all(feature = "sqlite", not(feature = "redis")))]
 use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
@@ -101,14 +107,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let origin_urls = env::var("ORIGIN_URLS").ok();
     let cron_refresh = env::var("CRON_REFRESH").unwrap_or(String::from(DEFAULT_CRON_REFRESH));
 
+    #[cfg(feature = "redis")]
+    let (redis_pool, redis_conn) = {
+        let redis_url = env::var("REDIS_URL")?;
+        let pool = RedisPool::new(RedisConfig::from_url(&redis_url)?, None, None, None, 1)?;
+
+        let conn = pool.connect();
+        pool.wait_for_connect().await?;
+
+        (pool, conn)
+    };
     #[cfg(feature = "postgres")]
     let pool = colette_postgres::create_database(&database_url).await?;
     #[cfg(feature = "sqlite")]
     let pool = colette_sqlite::create_database(&database_url).await?;
 
-    #[cfg(feature = "postgres")]
+    #[cfg(feature = "redis")]
+    let session_store = RedisStore::new(redis_pool);
+    #[cfg(all(feature = "postgres", not(feature = "redis")))]
     let session_store = PostgresStore::new(pool.clone());
-    #[cfg(feature = "sqlite")]
+    #[cfg(all(feature = "sqlite", not(feature = "redis")))]
     let session_store = SqliteStore::new(pool.clone());
 
     #[cfg(feature = "postgres")]
@@ -196,13 +214,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feeds_service = FeedsService::new(fr2, fs2);
     let profiles_service = ProfilesService::new(pr2);
 
-    session_store.migrate().await?;
+    #[cfg(not(feature = "redis"))]
+    let deletion_task = {
+        session_store.migrate().await?;
 
-    let deletion_task = task::spawn(
-        session_store
-            .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-    );
+        task::spawn(
+            session_store
+                .clone()
+                .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+        )
+    };
 
     let state = common::Context {
         auth_service: auth_service.into(),
@@ -260,6 +281,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
     axum::serve(listener, app).await?;
 
+    #[cfg(feature = "redis")]
+    redis_conn.await??;
+
+    #[cfg(not(feature = "redis"))]
     deletion_task.await??;
 
     Ok(())
