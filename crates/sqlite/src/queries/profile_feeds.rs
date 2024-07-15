@@ -1,6 +1,6 @@
 use colette_core::Feed;
 use colette_database::{
-    profile_feeds::{InsertData, SelectManyParams},
+    profile_feeds::{InsertData, SelectManyParams, UpdateData},
     FindOneParams,
 };
 use sqlx::{Error, SqliteExecutor};
@@ -114,6 +114,32 @@ RETURNING id",
     .await?;
 
     Ok(row.id)
+}
+
+// try to map pg one to sqlite with claude
+pub async fn update(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData<'_>,
+) -> Result<(), Error> {
+    let result = sqlx::query!(
+        "
+   UPDATE profile_feeds
+      SET custom_title = $3
+    WHERE id = $1
+      AND profile_id = $2",
+        params.id,
+        params.profile_id,
+        data.custom_title
+    )
+    .execute(ex)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(Error::RowNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {

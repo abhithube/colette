@@ -19,3 +19,8 @@ pub struct InsertData<'a> {
     pub profile_id: &'a str,
     pub feed_id: i64,
 }
+
+#[derive(Debug)]
+pub struct UpdateData<'a> {
+    pub custom_title: Option<&'a str>,
+}

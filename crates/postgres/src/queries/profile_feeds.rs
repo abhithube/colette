@@ -1,6 +1,6 @@
 use colette_core::Feed;
 use colette_database::{
-    profile_feeds::{InsertData, SelectManyParams},
+    profile_feeds::{InsertData, SelectManyParams, UpdateData},
     FindOneParams,
 };
 use sqlx::{Error, PgExecutor};
@@ -99,6 +99,53 @@ SELECT id
     .await?;
 
     Ok(row.id)
+}
+
+pub async fn update(
+    ex: impl PgExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData<'_>,
+) -> Result<Feed, Error> {
+    let row = sqlx::query_as!(
+        Feed,
+        "
+  WITH
+       pf AS (
+             UPDATE profile_feeds
+                SET custom_title = $3
+              WHERE id = $1
+                AND profile_id = $2
+          RETURNING id,
+                    custom_title,
+                    profile_id,
+                    feed_id,
+                    created_at,
+                    updated_at
+       )
+SELECT pf.id,
+       f.link,
+       f.title,
+       f.url,
+       pf.custom_title,
+       pf.created_at,
+       pf.updated_at,
+       count(pfe.id) AS unread_count
+  FROM pf
+  JOIN feeds AS f ON f.id = pf.feed_id
+  JOIN feed_entries AS fe ON fe.feed_id = f.id
+       LEFT JOIN profile_feed_entries AS pfe
+       ON pfe.feed_entry_id = fe.id
+       AND pfe.has_read = FALSE
+ GROUP BY pf.id, pf.custom_title, pf.created_at, pf.updated_at, pf.profile_id, f.link, f.title,
+       f.url",
+        params.id,
+        params.profile_id,
+        data.custom_title
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(row)
 }
 
 pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {

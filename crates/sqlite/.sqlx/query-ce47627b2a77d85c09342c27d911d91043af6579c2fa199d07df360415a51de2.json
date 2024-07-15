@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n   UPDATE profile_feeds\n      SET custom_title = $3\n    WHERE id = $1\n      AND profile_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "ce47627b2a77d85c09342c27d911d91043af6579c2fa199d07df360415a51de2"
+}

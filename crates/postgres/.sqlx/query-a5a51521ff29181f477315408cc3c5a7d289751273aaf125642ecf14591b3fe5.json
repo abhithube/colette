@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n  WITH\n       pf AS (\n             UPDATE profile_feeds\n                SET custom_title = $3\n              WHERE id = $1\n                AND profile_id = $2\n          RETURNING id,\n                    custom_title,\n                    profile_id,\n                    feed_id,\n                    created_at,\n                    updated_at\n       )\nSELECT pf.id,\n       f.link,\n       f.title,\n       f.url,\n       pf.custom_title,\n       pf.created_at,\n       pf.updated_at,\n       count(pfe.id) AS unread_count\n  FROM pf\n  JOIN feeds AS f ON f.id = pf.feed_id\n  JOIN feed_entries AS fe ON fe.feed_id = f.id\n       LEFT JOIN profile_feed_entries AS pfe\n       ON pfe.feed_entry_id = fe.id\n       AND pfe.has_read = FALSE\n GROUP BY pf.id, pf.custom_title, pf.created_at, pf.updated_at, pf.profile_id, f.link, f.title,\n       f.url",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "custom_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "a5a51521ff29181f477315408cc3c5a7d289751273aaf125642ecf14591b3fe5"
+}
