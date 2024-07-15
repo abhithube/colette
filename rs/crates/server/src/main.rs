@@ -78,7 +78,7 @@ const DEFAULT_PORT: u32 = 8000;
 const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";
 
 #[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
+#[folder = "$CARGO_MANIFEST_DIR/../../../packages/web/dist"]
 struct Asset;
 
 #[derive(utoipa::OpenApi)]
