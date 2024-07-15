@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use colette_core::{
     common,
-    feeds::{Error, FeedCreateData, FeedFindManyParams, FeedsRepository},
+    feeds::{Error, FeedCreateData, FeedFindManyParams, FeedUpdateData, FeedsRepository},
     Feed,
 };
 use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
@@ -121,6 +121,35 @@ impl FeedsRepository for FeedsSqliteRepository {
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
+        Ok(feed)
+    }
+
+    async fn update(
+        &self,
+        params: common::FindOneParams,
+        data: FeedUpdateData,
+    ) -> Result<Feed, Error> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        queries::profile_feeds::update(&mut *tx, (&params).into(), (&data).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id.clone()),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        let feed = queries::profile_feeds::select_by_id(&mut *tx, (&params).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
         Ok(feed)
     }
 

@@ -1,4 +1,4 @@
-use colette_core::feeds::FeedFindManyParams;
+use colette_core::feeds::{FeedFindManyParams, FeedUpdateData};
 
 #[derive(Debug)]
 pub struct SelectManyParams<'a> {
@@ -23,4 +23,12 @@ pub struct InsertData<'a> {
 #[derive(Debug)]
 pub struct UpdateData<'a> {
     pub custom_title: Option<&'a str>,
+}
+
+impl<'a> From<&'a FeedUpdateData> for UpdateData<'a> {
+    fn from(value: &'a FeedUpdateData) -> Self {
+        Self {
+            custom_title: value.custom_title.as_deref(),
+        }
+    }
 }

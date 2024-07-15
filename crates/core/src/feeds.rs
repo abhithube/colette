@@ -80,6 +80,8 @@ pub trait FeedsRepository {
 
     async fn create(&self, data: FeedCreateData) -> Result<Feed, Error>;
 
+    async fn update(&self, params: FindOneParams, data: FeedUpdateData) -> Result<Feed, Error>;
+
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
@@ -90,13 +92,10 @@ pub struct FeedsService {
 
 impl FeedsService {
     pub fn new(
-        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
+        repo: Arc<dyn FeedsRepository + Send + Sync>,
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
     ) -> Self {
-        Self {
-            repo: feeds_repo,
-            scraper,
-        }
+        Self { repo, scraper }
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
@@ -155,6 +154,10 @@ pub struct FeedCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
     pub profile_id: String,
+}
+
+pub struct FeedUpdateData {
+    pub custom_title: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
