@@ -1,11 +1,11 @@
 use colette_core::Bookmark;
 use colette_database::{bookmarks::SelectManyParams, FindOneParams};
-use sqlx::{Error, SqliteExecutor};
+use sqlx::SqliteExecutor;
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Bookmark>, Error> {
+) -> Result<Vec<Bookmark>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Bookmark,
         "
@@ -53,7 +53,10 @@ SELECT b.id AS \"id: uuid::Uuid\",
     Ok(rows)
 }
 
-pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+pub async fn delete(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM bookmarks
@@ -70,7 +73,7 @@ DELETE FROM bookmarks
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())

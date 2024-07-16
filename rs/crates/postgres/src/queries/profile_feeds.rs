@@ -3,7 +3,7 @@ use colette_database::{
     profile_feeds::{SelectManyParams, UpdateData},
     FindOneParams,
 };
-use sqlx::{types::Uuid, Error, PgExecutor};
+use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
 pub struct InsertData<'a> {
@@ -14,7 +14,7 @@ pub struct InsertData<'a> {
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Feed>, Error> {
+) -> Result<Vec<Feed>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Feed,
         "
@@ -48,7 +48,7 @@ SELECT pf.id,
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
     params: FindOneParams<'_>,
-) -> Result<Feed, Error> {
+) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
         "
@@ -80,7 +80,7 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH
@@ -110,7 +110,7 @@ pub async fn update(
     ex: impl PgExecutor<'_>,
     params: FindOneParams<'_>,
     data: UpdateData<'_>,
-) -> Result<Feed, Error> {
+) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
         "
@@ -153,7 +153,7 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profile_feeds
@@ -166,7 +166,7 @@ DELETE FROM profile_feeds
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())

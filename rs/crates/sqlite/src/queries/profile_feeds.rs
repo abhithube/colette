@@ -3,7 +3,7 @@ use colette_database::{
     profile_feeds::{SelectManyParams, UpdateData},
     FindOneParams,
 };
-use sqlx::{Error, SqliteExecutor};
+use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub struct InsertData<'a> {
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Feed>, Error> {
+) -> Result<Vec<Feed>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Feed,
         "
@@ -56,7 +56,7 @@ SELECT pf.id AS \"id: uuid::Uuid\",
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
     params: FindOneParams<'_>,
-) -> Result<Feed, Error> {
+) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
         "
@@ -88,7 +88,10 @@ SELECT pf.id AS \"id: uuid::Uuid\",
     Ok(row)
 }
 
-pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams<'_>) -> Result<Uuid, Error> {
+pub async fn select(
+    ex: impl SqliteExecutor<'_>,
+    params: SelectParams<'_>,
+) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
 SELECT id AS \"id: uuid::Uuid\"
@@ -104,7 +107,10 @@ SELECT id AS \"id: uuid::Uuid\"
     Ok(row.id)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, Error> {
+pub async fn insert(
+    ex: impl SqliteExecutor<'_>,
+    data: InsertData<'_>,
+) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
    INSERT INTO profile_feeds (id, profile_id, feed_id)
@@ -126,7 +132,7 @@ pub async fn update(
     ex: impl SqliteExecutor<'_>,
     params: FindOneParams<'_>,
     data: UpdateData<'_>,
-) -> Result<(), Error> {
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
    UPDATE profile_feeds
@@ -141,13 +147,16 @@ pub async fn update(
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())
 }
 
-pub async fn delete(ex: impl SqliteExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+pub async fn delete(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profile_feeds
@@ -160,7 +169,7 @@ DELETE FROM profile_feeds
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())

@@ -2,7 +2,7 @@ use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile}
 use colette_database::profiles::{
     SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
-use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
+use sqlx::{sqlite::SqliteRow, Row, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -46,7 +46,7 @@ impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Profile>, Error> {
+) -> Result<Vec<Profile>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Profile,
         "
@@ -69,7 +69,7 @@ SELECT id AS \"id: uuid::Uuid\",
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -94,7 +94,7 @@ SELECT id AS \"id: uuid::Uuid\",
 pub async fn select_default(
     ex: impl SqliteExecutor<'_>,
     params: SelectDefaultParams<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -115,7 +115,10 @@ SELECT id AS \"id: uuid::Uuid\",
     Ok(row)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<Profile, Error> {
+pub async fn insert(
+    ex: impl SqliteExecutor<'_>,
+    data: InsertData<'_>,
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -143,7 +146,7 @@ pub async fn update(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
     data: UpdateData<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -172,7 +175,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 // pub async fn update_default_set(
 //     ex: impl SqliteExecutor<'_>,
 //     params: SelectByIdParams<'_>,
-// ) -> Result<Profile, Error> {
+// ) -> Result<Profile, sqlx::Error> {
 //     let row = sqlx::query_as!(
 //         Profile,
 //         "
@@ -198,7 +201,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 // pub async fn update_default_unset(
 //     ex: impl SqliteExecutor<'_>,
 //     params: UpdateDefaultUnsetParams<'_>,
-// ) -> Result<Uuid, Error> {
+// ) -> Result<Uuid, sqlx::Error> {
 //     let row = sqlx::query!(
 //         "
 //    UPDATE profiles
@@ -217,7 +220,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
     params: SelectByIdParams<'_>,
-) -> Result<(), Error> {
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profiles
@@ -230,7 +233,7 @@ DELETE FROM profiles
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())
@@ -239,7 +242,7 @@ DELETE FROM profiles
 pub fn iterate<'a>(
     ex: impl SqliteExecutor<'a> + 'a,
     feed_id: i64,
-) -> SendableStream<'a, Result<Uuid, Error>> {
+) -> SendableStream<'a, Result<Uuid, sqlx::Error>> {
     sqlx::query(
         "
 SELECT p.id AS \"id: uuid::Uuid\"

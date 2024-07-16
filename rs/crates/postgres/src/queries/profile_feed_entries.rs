@@ -1,6 +1,6 @@
 use colette_core::Entry;
 use colette_database::profile_feed_entries::SelectManyParams;
-use sqlx::{types::Uuid, Error, PgExecutor};
+use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
 pub struct InsertData<'a> {
@@ -11,7 +11,7 @@ pub struct InsertData<'a> {
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Entry>, Error> {
+) -> Result<Vec<Entry>, sqlx::Error> {
     let row = sqlx::query_as!(
         Entry,
         "
@@ -49,7 +49,7 @@ SELECT pfe.id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH

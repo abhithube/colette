@@ -1,8 +1,8 @@
 use colette_core::common::SendableStream;
 use colette_database::feeds::InsertData;
-use sqlx::{postgres::PgRow, Error, PgExecutor, Row};
+use sqlx::{postgres::PgRow, PgExecutor, Row};
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<i64, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
    INSERT INTO feeds (link, title, url)
@@ -24,7 +24,7 @@ RETURNING id",
 
 pub fn iterate<'a>(
     ex: impl PgExecutor<'a> + 'a,
-) -> SendableStream<'a, Result<(i64, String), Error>> {
+) -> SendableStream<'a, Result<(i64, String), sqlx::Error>> {
     Box::pin(
         sqlx::query(
             "

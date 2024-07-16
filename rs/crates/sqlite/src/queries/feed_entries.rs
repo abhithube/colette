@@ -1,5 +1,5 @@
 use colette_database::feed_entries::InsertData;
-use sqlx::{Error, SqliteExecutor};
+use sqlx::SqliteExecutor;
 
 #[derive(Debug)]
 pub struct SelectParams {
@@ -7,7 +7,7 @@ pub struct SelectParams {
     pub entry_id: i64,
 }
 
-pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams) -> Result<i64, Error> {
+pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
 SELECT id
@@ -23,7 +23,7 @@ SELECT id
     Ok(row.id)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData) -> Result<i64, Error> {
+pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
    INSERT INTO feed_entries (feed_id, entry_id)

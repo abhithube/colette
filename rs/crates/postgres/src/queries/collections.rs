@@ -1,6 +1,6 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{collections::SelectManyParams, FindOneParams};
-use sqlx::{types::Uuid, Error, PgExecutor};
+use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
 pub struct InsertData<'a> {
@@ -22,7 +22,7 @@ impl<'a> From<&'a CollectionCreateData> for InsertData<'a> {
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Collection>, Error> {
+) -> Result<Vec<Collection>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Collection,
         "
@@ -50,7 +50,7 @@ SELECT c.id,
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
     params: FindOneParams<'_>,
-) -> Result<Collection, Error> {
+) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
         "
@@ -76,7 +76,10 @@ SELECT c.id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Collection, Error> {
+pub async fn insert(
+    ex: impl PgExecutor<'_>,
+    data: InsertData<'_>,
+) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
         "
@@ -98,7 +101,7 @@ RETURNING id,
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM collections
@@ -112,7 +115,7 @@ DELETE FROM collections
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())

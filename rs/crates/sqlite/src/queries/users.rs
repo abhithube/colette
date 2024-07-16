@@ -1,6 +1,6 @@
 use colette_core::{users::UserCreateData, User};
 use colette_database::users::SelectByEmailParams;
-use sqlx::{Error, SqliteExecutor};
+use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -23,7 +23,7 @@ impl<'a> From<&'a UserCreateData> for InsertData<'a> {
 pub async fn select_by_email(
     ex: impl SqliteExecutor<'_>,
     params: SelectByEmailParams<'_>,
-) -> Result<User, Error> {
+) -> Result<User, sqlx::Error> {
     let row = sqlx::query_as!(
         User,
         "
@@ -42,7 +42,10 @@ SELECT id AS \"id: uuid::Uuid\",
     Ok(row)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<User, Error> {
+pub async fn insert(
+    ex: impl SqliteExecutor<'_>,
+    data: InsertData<'_>,
+) -> Result<User, sqlx::Error> {
     let row = sqlx::query_as!(
         User,
         "

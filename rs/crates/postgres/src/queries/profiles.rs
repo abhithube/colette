@@ -2,7 +2,7 @@ use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile}
 use colette_database::profiles::{
     SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
-use sqlx::{postgres::PgRow, types::Uuid, Error, PgExecutor, Row};
+use sqlx::{postgres::PgRow, types::Uuid, PgExecutor, Row};
 
 #[derive(Debug)]
 pub struct InsertData<'a> {
@@ -37,7 +37,7 @@ impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
     params: SelectManyParams<'_>,
-) -> Result<Vec<Profile>, Error> {
+) -> Result<Vec<Profile>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Profile,
         "
@@ -60,7 +60,7 @@ SELECT id,
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
     params: SelectByIdParams<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -85,7 +85,7 @@ SELECT id,
 pub async fn select_default(
     ex: impl PgExecutor<'_>,
     params: SelectDefaultParams<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -106,7 +106,7 @@ SELECT id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Profile, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -133,7 +133,7 @@ pub async fn update(
     ex: impl PgExecutor<'_>,
     params: SelectByIdParams<'_>,
     data: UpdateData<'_>,
-) -> Result<Profile, Error> {
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -162,7 +162,7 @@ RETURNING id,
 // pub async fn update_default(
 //     ex: impl PgExecutor<'_>,
 //     params: SelectByIdParams<'_>,
-// ) -> Result<Profile, Error> {
+// ) -> Result<Profile, sqlx::Error> {
 //     let row = sqlx::query_as!(
 //         Profile,
 //         "
@@ -192,7 +192,10 @@ RETURNING id,
 //     Ok(row)
 // }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams<'_>) -> Result<(), Error> {
+pub async fn delete(
+    ex: impl PgExecutor<'_>,
+    params: SelectByIdParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profiles
@@ -205,7 +208,7 @@ DELETE FROM profiles
     .await?;
 
     if result.rows_affected() == 0 {
-        return Err(Error::RowNotFound);
+        return Err(sqlx::Error::RowNotFound);
     }
 
     Ok(())
@@ -214,7 +217,7 @@ DELETE FROM profiles
 pub fn iterate<'a>(
     ex: impl PgExecutor<'a> + 'a,
     feed_id: i64,
-) -> SendableStream<'a, Result<Uuid, Error>> {
+) -> SendableStream<'a, Result<Uuid, sqlx::Error>> {
     sqlx::query(
         "
 SELECT p.id
