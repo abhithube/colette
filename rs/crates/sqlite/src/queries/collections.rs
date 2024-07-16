@@ -1,5 +1,8 @@
 use colette_core::{collections::CollectionCreateData, Collection};
-use colette_database::{collections::SelectManyParams, FindOneParams};
+use colette_database::{
+    collections::{SelectManyParams, UpdateData},
+    FindOneParams,
+};
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
@@ -103,6 +106,32 @@ RETURNING id AS \"id: uuid::Uuid\",
     .await?;
 
     Ok(row)
+}
+
+pub async fn update(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData<'_>,
+) -> Result<(), sqlx::Error> {
+    let result = sqlx::query!(
+        "
+UPDATE collections
+   SET title = coalesce($3, title)
+ WHERE id = $1
+   AND profile_id = $2
+   AND NOT is_default",
+        params.id,
+        params.profile_id,
+        data.title,
+    )
+    .execute(ex)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn delete(

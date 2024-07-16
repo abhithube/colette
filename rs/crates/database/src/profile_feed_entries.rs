@@ -22,3 +22,8 @@ impl<'a> From<&'a EntryFindManyParams> for SelectManyParams<'a> {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct UpdateData {
+    pub has_read: Option<bool>,
+}

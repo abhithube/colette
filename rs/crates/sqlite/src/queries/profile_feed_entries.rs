@@ -1,5 +1,8 @@
 use colette_core::Entry;
-use colette_database::profile_feed_entries::SelectManyParams;
+use colette_database::{
+    profile_feed_entries::{SelectManyParams, UpdateData},
+    FindOneParams,
+};
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
@@ -69,4 +72,30 @@ RETURNING id AS \"id: uuid::Uuid\"",
     .await?;
 
     Ok(row.id)
+}
+
+pub async fn update(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData,
+) -> Result<(), sqlx::Error> {
+    let result = sqlx::query!(
+        "
+UPDATE profile_feed_entries AS pfe
+   SET has_read = coalesce($3, pfe.has_read)
+  FROM profile_feeds AS pf
+ WHERE pfe.id = $1
+   AND pf.profile_id = $2",
+        params.id,
+        params.profile_id,
+        data.has_read
+    )
+    .execute(ex)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
 }

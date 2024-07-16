@@ -135,10 +135,10 @@ pub async fn update(
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
-   UPDATE profile_feeds
-      SET custom_title = $3
-    WHERE id = $1
-      AND profile_id = $2",
+UPDATE profile_feeds
+   SET custom_title = $3
+ WHERE id = $1
+   AND profile_id = $2",
         params.id,
         params.profile_id,
         data.custom_title

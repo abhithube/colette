@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nUPDATE collections\n   SET title = coalesce($3, title)\n WHERE id = $1\n   AND profile_id = $2\n   AND NOT is_default",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "6d6d6888a823a6f1191c13b0953e63fccb415488ef3eb368245b77b17c8f3ec9"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nUPDATE profile_feed_entries AS pfe\n   SET has_read = coalesce($3, pfe.has_read)\n  FROM profile_feeds AS pf\n WHERE pfe.id = $1\n   AND pf.profile_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "581b6740b3d018436345139cc3a4bbf0fb864869ebd238e1e3c1ada8154d6a3b"
+}

@@ -1,5 +1,8 @@
 use colette_core::Bookmark;
-use colette_database::{bookmarks::SelectManyParams, FindOneParams};
+use colette_database::{
+    bookmarks::{SelectManyParams, UpdateData},
+    FindOneParams,
+};
 use sqlx::SqliteExecutor;
 
 pub async fn select_many(
@@ -51,6 +54,39 @@ SELECT b.id AS \"id: uuid::Uuid\",
     .await?;
 
     Ok(rows)
+}
+
+pub async fn update(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData<'_>,
+) -> Result<(), sqlx::Error> {
+    let result = sqlx::query_as!(
+        Bookmark,
+        "
+UPDATE bookmarks AS b
+   SET custom_title = coalesce($3, custom_title),
+       custom_thumbnail_url = coalesce($4, custom_thumbnail_url),
+       custom_published_at = coalesce($5, custom_published_at),
+       custom_author = coalesce($6, custom_author)
+  FROM collections AS c
+ WHERE b.id = $1
+   AND c.profile_id = $2",
+        params.id,
+        params.profile_id,
+        data.custom_title,
+        data.custom_thumbnail_url,
+        data.custom_published_at,
+        data.custom_author
+    )
+    .execute(ex)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn delete(

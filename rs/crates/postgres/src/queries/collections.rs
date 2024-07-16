@@ -1,5 +1,8 @@
 use colette_core::{collections::CollectionCreateData, Collection};
-use colette_database::{collections::SelectManyParams, FindOneParams};
+use colette_database::{
+    collections::{SelectManyParams, UpdateData},
+    FindOneParams,
+};
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
@@ -94,6 +97,51 @@ RETURNING id,
         data.title,
         data.is_default,
         data.profile_id,
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn update(
+    ex: impl PgExecutor<'_>,
+    params: FindOneParams<'_>,
+    data: UpdateData<'_>,
+) -> Result<Collection, sqlx::Error> {
+    let row = sqlx::query_as!(
+        Collection,
+        "
+  WITH
+       c AS (
+            UPDATE collections
+               SET title = coalesce($3, title)
+             WHERE id = $1
+               AND profile_id = $2
+               AND NOT is_default
+         RETURNING id,
+                   title,
+                   profile_id,
+                   created_at,
+                   updated_at
+       )
+SELECT c.id,
+       c.title,
+       c.profile_id,
+       c.created_at,
+       c.updated_at,
+       count(b.collection_id) AS bookmark_count
+  FROM c
+       LEFT JOIN bookmarks AS b
+       ON b.collection_id = c.id
+ GROUP BY c.id,
+          c.title,
+          c.profile_id,
+          c.created_at,
+          c.updated_at",
+        params.id,
+        params.profile_id,
+        data.title,
     )
     .fetch_one(ex)
     .await?;
