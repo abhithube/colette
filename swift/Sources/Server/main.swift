@@ -9,6 +9,13 @@ extension Components.Schemas.Login: Validatable {
   }
 }
 
+extension Components.Schemas.Register: Validatable {
+  static func validations(_ validations: inout Validations) {
+    validations.add("email", as: String.self, is: .email)
+    validations.add("password", as: String.self, is: !.empty)
+  }
+}
+
 struct API: APIProtocol {
   func login(_ input: Operations.login.Input) async throws -> Operations.login.Output {
     switch input.body {
@@ -18,6 +25,19 @@ struct API: APIProtocol {
       } catch let error as ValidationsError {
         return .unprocessableContent(.init(body: .json(.init(message: error.description))))
       }
+    }
+
+    return .ok(.init(body: .json(.init(id: "", email: "", createdAt: .now, updatedAt: .now))))
+  }
+
+  func register(_ input: Operations.register.Input) async throws -> Operations.register.Output {
+    switch input.body {
+      case .json(let body):
+        do {
+          try Components.Schemas.Register.validate(body)
+        } catch let error as ValidationsError {
+          return .unprocessableContent(.init(body: .json(.init(message: error.description))))
+        }
     }
 
     return .ok(.init(body: .json(.init(id: "", email: "", createdAt: .now, updatedAt: .now))))

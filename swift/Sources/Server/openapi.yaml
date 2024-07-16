@@ -25,8 +25,34 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         422:
           $ref: "#/components/responses/UnprocessableContent"
+  /auth/register:
+    post:
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Register"
+      responses:
+        200:
+          description: Logged in user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        409:
+          $ref: "#/components/responses/Conflict"
+        422:
+          $ref: "#/components/responses/UnprocessableContent"
 components:
   responses:
+    Conflict:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
     Unauthorized:
       description: User not authenticated
       content:
@@ -48,6 +74,18 @@ components:
         message:
           type: string
     Login:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+    Register:
       type: object
       required:
         - email
