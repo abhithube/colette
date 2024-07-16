@@ -9,7 +9,6 @@ use sqlx::PgPool;
 
 use crate::queries;
 
-#[derive(Clone)]
 pub struct FeedsPostgresRepository {
     pool: PgPool,
 }

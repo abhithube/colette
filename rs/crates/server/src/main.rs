@@ -142,7 +142,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(EntriesPostgresRepository::new(pool.clone())),
         Arc::new(FeedsPostgresRepository::new(pool.clone())),
         Arc::new(ProfilesPostgresRepository::new(pool.clone())),
-        Arc::new(UsersPostgresRepository::new(pool.clone())),
+        Arc::new(UsersPostgresRepository::new(pool)),
     );
     #[cfg(feature = "sqlite")]
     let (
@@ -158,7 +158,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(EntriesSqliteRepository::new(pool.clone())),
         Arc::new(FeedsSqliteRepository::new(pool.clone())),
         Arc::new(ProfilesSqliteRepository::new(pool.clone())),
-        Arc::new(UsersSqliteRepository::new(pool.clone())),
+        Arc::new(UsersSqliteRepository::new(pool)),
     );
 
     let downloader = DefaultDownloader {};
@@ -206,13 +206,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     scheduler.start().await?;
 
-    let argon_hasher = Argon2Hasher::default();
+    let argon_hasher = Arc::new(Argon2Hasher::default());
 
-    let auth_service = AuthService::new(
-        users_repository,
-        profiles_repository.clone(),
-        Arc::new(argon_hasher),
-    );
+    let auth_service =
+        AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
     let bookmarks_service = BookmarksService::new(bookmarks_repository);
     let collections_service = CollectionsService::new(collections_repository);
     let entries_service = EntriesService::new(entries_repository);
@@ -341,7 +338,7 @@ impl Task for RefreshTask {
 
         let tasks = feeds_stream
             .map(|item| {
-                let semaphore = Arc::clone(&semaphore);
+                let semaphore = semaphore.clone();
 
                 async move {
                     let _ = semaphore.acquire().await.unwrap();

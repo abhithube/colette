@@ -14,7 +14,6 @@ use uuid::Uuid;
 
 use crate::queries;
 
-#[derive(Clone)]
 pub struct ProfilesSqliteRepository {
     pool: SqlitePool,
 }

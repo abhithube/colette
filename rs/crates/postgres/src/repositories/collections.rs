@@ -6,7 +6,6 @@ use sqlx::PgPool;
 
 use crate::queries;
 
-#[derive(Clone)]
 pub struct CollectionsPostgresRepository {
     pool: PgPool,
 }
