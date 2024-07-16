@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindOneParams, Paginated, Session},
+    common::{FindOneParams, SendableStream, Paginated, Session},
     utils::scraper::{self, Scraper},
 };
 
@@ -84,6 +84,8 @@ pub trait FeedsRepository {
     async fn update(&self, params: FindOneParams, data: FeedUpdateData) -> Result<Feed, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
+
+    fn iterate(&self) -> SendableStream<Result<(i64, String), Error>>;
 }
 
 pub struct FeedsService {

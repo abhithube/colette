@@ -1,5 +1,5 @@
+use colette_core::common::SendableStream;
 use colette_database::feeds::InsertData;
-use futures::Stream;
 use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
 
 pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<i64, Error> {
@@ -24,13 +24,13 @@ RETURNING id",
 
 pub fn iterate<'a>(
     ex: impl SqliteExecutor<'a> + 'a,
-) -> impl Stream<Item = Result<(i64, String), Error>> + 'a {
+) -> SendableStream<'a, Result<(i64, String), Error>> {
     sqlx::query(
         "
 SELECT id,
        coalesce(url, link) AS url
   FROM feeds",
     )
-    .map(|e: SqliteRow| (e.get(0), e.get(0)))
+    .map(|e: SqliteRow| (e.get(0), e.get(1)))
     .fetch(ex)
 }

@@ -1,8 +1,7 @@
-use colette_core::{profiles::ProfileCreateData, Profile};
+use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile};
 use colette_database::profiles::{
     SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
-use futures::Stream;
 use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
 use uuid::Uuid;
 
@@ -240,7 +239,7 @@ DELETE FROM profiles
 pub fn iterate<'a>(
     ex: impl SqliteExecutor<'a> + 'a,
     feed_id: i64,
-) -> impl Stream<Item = Result<Uuid, Error>> + 'a {
+) -> SendableStream<'a, Result<Uuid, Error>> {
     sqlx::query(
         "
 SELECT p.id AS \"id: uuid::Uuid\"

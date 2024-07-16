@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{Paginated, Session};
+use crate::common::{Paginated, SendableStream, Session};
 
 #[derive(Debug)]
 pub struct Profile {
@@ -51,6 +51,8 @@ pub trait ProfilesRepository {
     ) -> Result<Profile, Error>;
 
     async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error>;
+
+    fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>>;
 }
 
 pub struct ProfilesService {

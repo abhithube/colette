@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use colette_core::{
+    common::SendableStream,
     profiles::{
         Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
         ProfileFindOneParams, ProfileUpdateData, ProfilesRepository,
@@ -7,7 +8,9 @@ use colette_core::{
     Profile,
 };
 use colette_database::profiles::SelectDefaultParams;
+use futures::TryStreamExt;
 use sqlx::SqlitePool;
+use uuid::Uuid;
 
 use crate::queries;
 
@@ -101,5 +104,11 @@ impl ProfilesRepository for ProfilesSqliteRepository {
             })?;
 
         Ok(())
+    }
+
+    fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>> {
+        Box::pin(
+            queries::profiles::iterate(&self.pool, feed_id).map_err(|e| Error::Unknown(e.into())),
+        )
     }
 }

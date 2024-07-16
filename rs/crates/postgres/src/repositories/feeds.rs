@@ -1,9 +1,10 @@
 use colette_core::{
-    common,
+    common::{self, SendableStream},
     feeds::{Error, FeedCreateData, FeedFindManyParams, FeedUpdateData, FeedsRepository},
     Feed,
 };
 use colette_database::{feed_entries, FindOneParams};
+use futures::TryStreamExt;
 use sqlx::PgPool;
 
 use crate::queries;
@@ -123,5 +124,9 @@ impl FeedsRepository for FeedsPostgresRepository {
             })?;
 
         Ok(())
+    }
+
+    fn iterate(&self) -> SendableStream<Result<(i64, String), Error>> {
+        Box::pin(queries::feeds::iterate(&self.pool).map_err(|e| Error::Unknown(e.into())))
     }
 }

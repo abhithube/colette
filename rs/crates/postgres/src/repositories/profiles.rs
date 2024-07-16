@@ -1,4 +1,5 @@
 use colette_core::{
+    common::SendableStream,
     profiles::{
         Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
         ProfileFindOneParams, ProfileUpdateData, ProfilesRepository,
@@ -6,9 +7,10 @@ use colette_core::{
     Profile,
 };
 use colette_database::profiles::SelectDefaultParams;
-use sqlx::PgPool;
+use futures::TryStreamExt;
+use sqlx::{types::Uuid, PgPool};
 
-use crate::queries::profiles;
+use crate::queries::{self, profiles};
 
 #[derive(Clone)]
 pub struct ProfilesPostgresRepository {
@@ -99,5 +101,11 @@ impl ProfilesRepository for ProfilesPostgresRepository {
             })?;
 
         Ok(())
+    }
+
+    fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>> {
+        Box::pin(
+            queries::profiles::iterate(&self.pool, feed_id).map_err(|e| Error::Unknown(e.into())),
+        )
     }
 }
