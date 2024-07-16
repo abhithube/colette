@@ -3,6 +3,7 @@ use colette_core::{
     entries::{EntriesRepository, EntryFindManyParams, EntryUpdateData, Error},
     Entry,
 };
+use colette_database::profile_feed_entries::UpdateParams;
 use sqlx::PgPool;
 
 use crate::queries;
@@ -28,13 +29,19 @@ impl EntriesRepository for EntriesPostgresRepository {
     }
 
     async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error> {
-        let entry =
-            queries::profile_feed_entries::update(&self.pool, (&params).into(), (&data).into())
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                    _ => Error::Unknown(e.into()),
-                })?;
+        let entry = queries::profile_feed_entries::update(
+            &self.pool,
+            UpdateParams {
+                id: &params.id,
+                profile_id: &params.profile_id,
+                has_read: data.has_read,
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(entry)
     }

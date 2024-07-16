@@ -7,7 +7,7 @@ use colette_core::{
     },
     Profile,
 };
-use colette_database::profiles::SelectDefaultParams;
+use colette_database::profiles::{SelectDefaultParams, UpdateParams};
 use futures::TryStreamExt;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -37,12 +37,10 @@ impl ProfilesRepository for ProfilesSqliteRepository {
     async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error> {
         let profile = match params {
             ProfileFindOneParams::ById(params) => {
-                let id = params.id.to_owned();
-
                 queries::profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
-                        sqlx::Error::RowNotFound => Error::NotFound(id),
+                        sqlx::Error::RowNotFound => Error::NotFound(params.id),
                         _ => Error::Unknown(e.into()),
                     })?
             }
@@ -70,14 +68,20 @@ impl ProfilesRepository for ProfilesSqliteRepository {
         params: ProfileFindByIdParams,
         data: ProfileUpdateData,
     ) -> Result<Profile, Error> {
-        let id = params.id.to_owned();
-
-        let profile = queries::profiles::update(&self.pool, (&params).into(), (&data).into())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(id),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let profile = queries::profiles::update(
+            &self.pool,
+            UpdateParams {
+                id: &params.id,
+                user_id: &params.user_id,
+                title: data.title.as_deref(),
+                image_url: data.image_url.as_deref(),
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(profile)
     }
@@ -93,12 +97,10 @@ impl ProfilesRepository for ProfilesSqliteRepository {
             return Err(Error::DeletingDefault);
         }
 
-        let id = params.id.to_owned();
-
         queries::profiles::delete(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(id),
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
 

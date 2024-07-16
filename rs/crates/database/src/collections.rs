@@ -1,4 +1,4 @@
-use colette_core::collections::{CollectionFindManyParams, CollectionUpdateData};
+use colette_core::collections::CollectionFindManyParams;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -15,14 +15,8 @@ impl<'a> From<&'a CollectionFindManyParams> for SelectManyParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct UpdateData<'a> {
+pub struct UpdateParams<'a> {
+    pub id: &'a Uuid,
+    pub profile_id: &'a Uuid,
     pub title: Option<&'a str>,
-}
-
-impl<'a> From<&'a CollectionUpdateData> for UpdateData<'a> {
-    fn from(value: &'a CollectionUpdateData) -> Self {
-        Self {
-            title: value.title.as_deref(),
-        }
-    }
 }

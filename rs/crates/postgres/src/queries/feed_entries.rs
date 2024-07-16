@@ -1,7 +1,7 @@
-use colette_database::feed_entries::InsertData;
+use colette_database::feed_entries::InsertParams;
 use sqlx::PgExecutor;
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData) -> Result<i64, sqlx::Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, params: InsertParams) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH
@@ -18,8 +18,8 @@ SELECT id
   FROM feed_entries
  WHERE feed_id = $1
    AND entry_id = $2",
-        data.feed_id,
-        data.entry_id
+        params.feed_id,
+        params.entry_id
     )
     .fetch_one(ex)
     .await?;

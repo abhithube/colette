@@ -1,4 +1,4 @@
-use colette_database::feed_entries::InsertData;
+use colette_database::feed_entries::InsertParams;
 use sqlx::SqliteExecutor;
 
 #[derive(Debug)]
@@ -23,15 +23,15 @@ SELECT id
     Ok(row.id)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData) -> Result<i64, sqlx::Error> {
+pub async fn insert(ex: impl SqliteExecutor<'_>, params: InsertParams) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
    INSERT INTO feed_entries (feed_id, entry_id)
    VALUES ($1, $2)
        ON CONFLICT (feed_id, entry_id) DO NOTHING
 RETURNING id",
-        data.feed_id,
-        data.entry_id
+        params.feed_id,
+        params.entry_id
     )
     .fetch_one(ex)
     .await?;

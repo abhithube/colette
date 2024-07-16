@@ -3,7 +3,7 @@ use colette_core::{
     feeds::{Error, FeedCreateData, FeedFindManyParams, FeedUpdateData, FeedsRepository},
     Feed,
 };
-use colette_database::{feed_entries, FindOneParams};
+use colette_database::{feed_entries, profile_feeds::UpdateParams, FindOneParams};
 use futures::TryStreamExt;
 use sqlx::PgPool;
 
@@ -53,7 +53,7 @@ impl FeedsRepository for FeedsPostgresRepository {
 
         let profile_feed_id = queries::profile_feeds::insert(
             &mut *tx,
-            queries::profile_feeds::InsertData {
+            queries::profile_feeds::InsertParams {
                 profile_id: &data.profile_id,
                 feed_id,
             },
@@ -68,14 +68,14 @@ impl FeedsRepository for FeedsPostgresRepository {
 
             let feed_entry_id = queries::feed_entries::insert(
                 &mut *tx,
-                feed_entries::InsertData { feed_id, entry_id },
+                feed_entries::InsertParams { feed_id, entry_id },
             )
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
             queries::profile_feed_entries::insert(
                 &mut *tx,
-                queries::profile_feed_entries::InsertData {
+                queries::profile_feed_entries::InsertParams {
                     profile_feed_id: &profile_feed_id,
                     feed_entry_id,
                 },
@@ -104,12 +104,19 @@ impl FeedsRepository for FeedsPostgresRepository {
         params: common::FindOneParams,
         data: FeedUpdateData,
     ) -> Result<Feed, Error> {
-        let feed = queries::profile_feeds::update(&self.pool, (&params).into(), (&data).into())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let feed = queries::profile_feeds::update(
+            &self.pool,
+            UpdateParams {
+                id: &params.id,
+                profile_id: &params.profile_id,
+                custom_title: data.custom_title.as_deref(),
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(feed)
     }

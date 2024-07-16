@@ -1,4 +1,4 @@
-use colette_core::profiles::{ProfileFindByIdParams, ProfileFindManyParams, ProfileUpdateData};
+use colette_core::profiles::{ProfileFindByIdParams, ProfileFindManyParams};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -35,16 +35,9 @@ pub struct SelectDefaultParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct UpdateData<'a> {
+pub struct UpdateParams<'a> {
+    pub id: &'a Uuid,
+    pub user_id: &'a Uuid,
     pub title: Option<&'a str>,
     pub image_url: Option<&'a str>,
-}
-
-impl<'a> From<&'a ProfileUpdateData> for UpdateData<'a> {
-    fn from(value: &'a ProfileUpdateData) -> Self {
-        Self {
-            title: value.title.as_deref(),
-            image_url: value.image_url.as_deref(),
-        }
-    }
 }

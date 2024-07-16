@@ -6,6 +6,7 @@ use colette_core::{
     common::{self, FindOneParams},
     Collection,
 };
+use colette_database::collections::UpdateParams;
 use sqlx::PgPool;
 
 use crate::queries;
@@ -54,12 +55,19 @@ impl CollectionsRepository for CollectionsPostgresRepository {
         params: FindOneParams,
         data: CollectionUpdateData,
     ) -> Result<Collection, Error> {
-        let collection = queries::collections::update(&self.pool, (&params).into(), (&data).into())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let collection = queries::collections::update(
+            &self.pool,
+            UpdateParams {
+                id: &params.id,
+                profile_id: &params.profile_id,
+                title: data.title.as_deref(),
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(collection)
     }

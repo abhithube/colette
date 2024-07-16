@@ -1,18 +1,18 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{
-    collections::{SelectManyParams, UpdateData},
+    collections::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub title: &'a str,
     pub is_default: bool,
     pub profile_id: &'a Uuid,
 }
 
-impl<'a> From<&'a CollectionCreateData> for InsertData<'a> {
+impl<'a> From<&'a CollectionCreateData> for InsertParams<'a> {
     fn from(value: &'a CollectionCreateData) -> Self {
         Self {
             title: &value.title,
@@ -81,7 +81,7 @@ SELECT c.id,
 
 pub async fn insert(
     ex: impl PgExecutor<'_>,
-    data: InsertData<'_>,
+    params: InsertParams<'_>,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -94,9 +94,9 @@ RETURNING id,
           created_at,
           updated_at,
           cast(0 AS bigint) AS bookmark_count",
-        data.title,
-        data.is_default,
-        data.profile_id,
+        params.title,
+        params.is_default,
+        params.profile_id,
     )
     .fetch_one(ex)
     .await?;
@@ -106,8 +106,7 @@ RETURNING id,
 
 pub async fn update(
     ex: impl PgExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -141,7 +140,7 @@ SELECT c.id,
           c.updated_at",
         params.id,
         params.profile_id,
-        data.title,
+        params.title,
     )
     .fetch_one(ex)
     .await?;

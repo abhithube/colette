@@ -1,20 +1,20 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{
-    collections::{SelectManyParams, UpdateData},
+    collections::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub is_default: bool,
     pub profile_id: &'a Uuid,
 }
 
-impl<'a> From<&'a CollectionCreateData> for InsertData<'a> {
+impl<'a> From<&'a CollectionCreateData> for InsertParams<'a> {
     fn from(value: &'a CollectionCreateData) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -84,7 +84,7 @@ SELECT c.id AS \"id: uuid::Uuid\",
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    data: InsertData<'_>,
+    params: InsertParams<'_>,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -97,10 +97,10 @@ RETURNING id AS \"id: uuid::Uuid\",
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",
           cast(0 AS bigint) AS bookmark_count",
-        data.id,
-        data.title,
-        data.is_default,
-        data.profile_id,
+        params.id,
+        params.title,
+        params.is_default,
+        params.profile_id,
     )
     .fetch_one(ex)
     .await?;
@@ -110,8 +110,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
@@ -122,7 +121,7 @@ UPDATE collections
    AND NOT is_default",
         params.id,
         params.profile_id,
-        data.title,
+        params.title,
     )
     .execute(ex)
     .await?;

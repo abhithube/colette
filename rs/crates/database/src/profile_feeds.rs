@@ -1,4 +1,4 @@
-use colette_core::feeds::{FeedFindManyParams, FeedUpdateData};
+use colette_core::feeds::FeedFindManyParams;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -15,14 +15,8 @@ impl<'a> From<&'a FeedFindManyParams> for SelectManyParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct UpdateData<'a> {
+pub struct UpdateParams<'a> {
+    pub id: &'a Uuid,
+    pub profile_id: &'a Uuid,
     pub custom_title: Option<&'a str>,
-}
-
-impl<'a> From<&'a FeedUpdateData> for UpdateData<'a> {
-    fn from(value: &'a FeedUpdateData) -> Self {
-        Self {
-            custom_title: value.custom_title.as_deref(),
-        }
-    }
 }

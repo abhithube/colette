@@ -1,8 +1,11 @@
 use colette_core::common::SendableStream;
-use colette_database::feeds::InsertData;
+use colette_database::feeds::InsertParams;
 use sqlx::{sqlite::SqliteRow, Row, SqliteExecutor};
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<i64, sqlx::Error> {
+pub async fn insert(
+    ex: impl SqliteExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<i64, sqlx::Error> {
     let row = sqlx::query!(
         "
    INSERT INTO feeds (link, title, url)
@@ -12,9 +15,9 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
       SET title = excluded.title,
           url = excluded.url
 RETURNING id",
-        data.link,
-        data.title,
-        data.url
+        params.link,
+        params.title,
+        params.url
     )
     .fetch_one(ex)
     .await?;

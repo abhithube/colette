@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::feeds::ProcessedEntry;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub link: &'a str,
     pub title: &'a str,
     pub published_at: Option<&'a DateTime<Utc>>,
@@ -11,7 +11,7 @@ pub struct InsertData<'a> {
     pub thumbnail_url: Option<&'a str>,
 }
 
-impl<'a> From<&'a ProcessedEntry> for InsertData<'a> {
+impl<'a> From<&'a ProcessedEntry> for InsertParams<'a> {
     fn from(value: &'a ProcessedEntry) -> Self {
         Self {
             link: value.link.as_str(),

@@ -4,13 +4,13 @@ use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub id: Uuid,
     pub email: &'a str,
     pub password: &'a str,
 }
 
-impl<'a> From<&'a UserCreateData> for InsertData<'a> {
+impl<'a> From<&'a UserCreateData> for InsertParams<'a> {
     fn from(value: &'a UserCreateData) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -44,7 +44,7 @@ SELECT id AS \"id: uuid::Uuid\",
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    data: InsertData<'_>,
+    params: InsertParams<'_>,
 ) -> Result<User, sqlx::Error> {
     let row = sqlx::query_as!(
         User,
@@ -56,9 +56,9 @@ RETURNING id AS \"id: uuid::Uuid\",
           password,
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
-        data.id,
-        data.email,
-        data.password
+        params.id,
+        params.email,
+        params.password
     )
     .fetch_one(ex)
     .await?;

@@ -1,12 +1,12 @@
 use colette_core::Feed;
 use colette_database::{
-    profile_feeds::{SelectManyParams, UpdateData},
+    profile_feeds::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub profile_id: &'a Uuid,
     pub feed_id: i64,
 }
@@ -80,7 +80,10 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, sqlx::Error> {
+pub async fn insert(
+    ex: impl PgExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH
@@ -97,8 +100,8 @@ SELECT id
   FROM profile_feeds
  WHERE profile_id = $1
    AND feed_id = $2",
-        data.profile_id,
-        data.feed_id
+        params.profile_id,
+        params.feed_id
     )
     .fetch_one(ex)
     .await?;
@@ -108,8 +111,7 @@ SELECT id
 
 pub async fn update(
     ex: impl PgExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
@@ -145,7 +147,7 @@ SELECT pf.id,
        f.url",
         params.id,
         params.profile_id,
-        data.custom_title
+        params.custom_title
     )
     .fetch_one(ex)
     .await?;

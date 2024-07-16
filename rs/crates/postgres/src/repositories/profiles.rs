@@ -6,7 +6,7 @@ use colette_core::{
     },
     Profile,
 };
-use colette_database::profiles::SelectDefaultParams;
+use colette_database::profiles::{SelectDefaultParams, UpdateParams};
 use futures::TryStreamExt;
 use sqlx::{types::Uuid, PgPool};
 
@@ -25,22 +25,20 @@ impl ProfilesPostgresRepository {
 #[async_trait::async_trait]
 impl ProfilesRepository for ProfilesPostgresRepository {
     async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
-        let results = profiles::select_many(&self.pool, (&params).into())
+        let profiles = profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(results)
+        Ok(profiles)
     }
 
     async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error> {
         let profile = match params {
             ProfileFindOneParams::ById(params) => {
-                let id = params.id.to_owned();
-
                 profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
-                        sqlx::Error::RowNotFound => Error::NotFound(id),
+                        sqlx::Error::RowNotFound => Error::NotFound(params.id),
                         _ => Error::Unknown(e.into()),
                     })?
             }
@@ -67,14 +65,20 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         params: ProfileFindByIdParams,
         data: ProfileUpdateData,
     ) -> Result<Profile, Error> {
-        let id = params.id.to_owned();
-
-        let profile = profiles::update(&self.pool, (&params).into(), (&data).into())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(id),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let profile = profiles::update(
+            &self.pool,
+            UpdateParams {
+                id: &params.id,
+                user_id: &params.user_id,
+                title: data.title.as_deref(),
+                image_url: data.image_url.as_deref(),
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(profile)
     }
@@ -90,12 +94,10 @@ impl ProfilesRepository for ProfilesPostgresRepository {
             return Err(Error::DeletingDefault);
         }
 
-        let id = params.id.to_owned();
-
         profiles::delete(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(id),
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
 

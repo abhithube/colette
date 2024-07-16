@@ -3,12 +3,12 @@ use colette_database::users::SelectByEmailParams;
 use sqlx::PgExecutor;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub email: &'a str,
     pub password: &'a str,
 }
 
-impl<'a> From<&'a UserCreateData> for InsertData<'a> {
+impl<'a> From<&'a UserCreateData> for InsertParams<'a> {
     fn from(value: &'a UserCreateData) -> Self {
         Self {
             email: &value.email,
@@ -39,7 +39,10 @@ SELECT id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<User, sqlx::Error> {
+pub async fn insert(
+    ex: impl PgExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<User, sqlx::Error> {
     let row = sqlx::query_as!(
         User,
         "
@@ -50,8 +53,8 @@ RETURNING id,
           password,
           created_at,
           updated_at",
-        data.email,
-        data.password
+        params.email,
+        params.password
     )
     .fetch_one(ex)
     .await?;

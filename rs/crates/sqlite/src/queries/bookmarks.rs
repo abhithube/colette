@@ -1,6 +1,6 @@
 use colette_core::Bookmark;
 use colette_database::{
-    bookmarks::{SelectManyParams, UpdateData},
+    bookmarks::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::SqliteExecutor;
@@ -95,8 +95,7 @@ SELECT b.id AS \"id: uuid::Uuid\",
 
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query_as!(
         Bookmark,
@@ -111,10 +110,10 @@ UPDATE bookmarks AS b
    AND c.profile_id = $2",
         params.id,
         params.profile_id,
-        data.custom_title,
-        data.custom_thumbnail_url,
-        data.custom_published_at,
-        data.custom_author
+        params.custom_title,
+        params.custom_thumbnail_url,
+        params.custom_published_at,
+        params.custom_author
     )
     .execute(ex)
     .await?;

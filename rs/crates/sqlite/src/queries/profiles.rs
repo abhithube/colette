@@ -1,12 +1,12 @@
 use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile};
 use colette_database::profiles::{
-    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
+    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateParams,
 };
 use sqlx::{sqlite::SqliteRow, Row, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub image_url: Option<&'a str>,
@@ -14,7 +14,7 @@ pub struct InsertData<'a> {
     pub user_id: &'a Uuid,
 }
 
-impl<'a> InsertData<'a> {
+impl<'a> InsertParams<'a> {
     pub fn default_with_user(user_id: &'a Uuid) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -26,7 +26,7 @@ impl<'a> InsertData<'a> {
     }
 }
 
-impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
+impl<'a> From<&'a ProfileCreateData> for InsertParams<'a> {
     fn from(value: &'a ProfileCreateData) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -117,7 +117,7 @@ SELECT id AS \"id: uuid::Uuid\",
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    data: InsertData<'_>,
+    params: InsertParams<'_>,
 ) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
@@ -130,11 +130,11 @@ RETURNING id AS \"id: uuid::Uuid\",
           user_id AS \"user_id: uuid::Uuid\",
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
-        data.id,
-        data.title,
-        data.image_url,
-        data.is_default,
-        data.user_id
+        params.id,
+        params.title,
+        params.image_url,
+        params.is_default,
+        params.user_id
     )
     .fetch_one(ex)
     .await?;
@@ -144,8 +144,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
@@ -163,8 +162,8 @@ RETURNING id AS \"id: uuid::Uuid\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
         params.id,
         params.user_id,
-        data.title,
-        data.image_url,
+        params.title,
+        params.image_url,
     )
     .fetch_one(ex)
     .await?;

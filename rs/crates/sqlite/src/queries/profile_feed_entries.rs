@@ -1,13 +1,13 @@
 use colette_core::Entry;
 use colette_database::{
-    profile_feed_entries::{SelectManyParams, UpdateData},
+    profile_feed_entries::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub id: Uuid,
     pub profile_feed_id: &'a Uuid,
     pub feed_entry_id: i64,
@@ -90,7 +90,7 @@ SELECT pfe.id AS \"id: uuid::Uuid\",
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    data: InsertData<'_>,
+    params: InsertParams<'_>,
 ) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
@@ -98,9 +98,9 @@ pub async fn insert(
    VALUES ($1, $2, $3)
        ON CONFLICT (profile_feed_id, feed_entry_id) DO NOTHING
 RETURNING id AS \"id: uuid::Uuid\"",
-        data.id,
-        data.profile_feed_id,
-        data.feed_entry_id
+        params.id,
+        params.profile_feed_id,
+        params.feed_entry_id
     )
     .fetch_one(ex)
     .await?;
@@ -110,8 +110,7 @@ RETURNING id AS \"id: uuid::Uuid\"",
 
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData,
+    params: UpdateParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
@@ -122,7 +121,7 @@ UPDATE profile_feed_entries AS pfe
    AND pf.profile_id = $2",
         params.id,
         params.profile_id,
-        data.has_read
+        params.has_read
     )
     .execute(ex)
     .await?;

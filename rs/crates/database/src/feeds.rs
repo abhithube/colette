@@ -1,13 +1,13 @@
 use colette_core::feeds::FeedCreateData;
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub link: &'a str,
     pub title: &'a str,
     pub url: Option<&'a str>,
 }
 
-impl<'a> From<&'a FeedCreateData> for InsertData<'a> {
+impl<'a> From<&'a FeedCreateData> for InsertParams<'a> {
     fn from(value: &'a FeedCreateData) -> Self {
         let link = value.feed.link.as_str();
 

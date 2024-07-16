@@ -7,6 +7,7 @@ use colette_core::{
     common::{self, FindOneParams},
     Collection,
 };
+use colette_database::collections::UpdateParams;
 use sqlx::SqlitePool;
 
 use crate::queries;
@@ -61,12 +62,19 @@ impl CollectionsRepository for CollectionsSqliteRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        queries::collections::update(&mut *tx, (&params).into(), (&data).into())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+        queries::collections::update(
+            &mut *tx,
+            UpdateParams {
+                id: &params.id,
+                profile_id: &params.profile_id,
+                title: data.title.as_deref(),
+            },
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         let collection = queries::collections::select_by_id(&mut *tx, (&params).into())
             .await

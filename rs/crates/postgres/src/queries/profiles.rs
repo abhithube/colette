@@ -1,18 +1,18 @@
 use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile};
 use colette_database::profiles::{
-    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
+    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateParams,
 };
 use sqlx::{postgres::PgRow, types::Uuid, PgExecutor, Row};
 
 #[derive(Debug)]
-pub struct InsertData<'a> {
+pub struct InsertParams<'a> {
     pub title: &'a str,
     pub image_url: Option<&'a str>,
     pub is_default: bool,
     pub user_id: &'a Uuid,
 }
 
-impl<'a> InsertData<'a> {
+impl<'a> InsertParams<'a> {
     pub fn default_with_user(user_id: &'a Uuid) -> Self {
         Self {
             title: "Default",
@@ -23,7 +23,7 @@ impl<'a> InsertData<'a> {
     }
 }
 
-impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
+impl<'a> From<&'a ProfileCreateData> for InsertParams<'a> {
     fn from(value: &'a ProfileCreateData) -> Self {
         Self {
             title: &value.title,
@@ -106,7 +106,10 @@ SELECT id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Profile, sqlx::Error> {
+pub async fn insert(
+    ex: impl PgExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
         "
@@ -118,10 +121,10 @@ RETURNING id,
           user_id,
           created_at,
           updated_at",
-        data.title,
-        data.image_url,
-        data.is_default,
-        data.user_id
+        params.title,
+        params.image_url,
+        params.is_default,
+        params.user_id
     )
     .fetch_one(ex)
     .await?;
@@ -131,8 +134,7 @@ RETURNING id,
 
 pub async fn update(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
@@ -150,8 +152,8 @@ RETURNING id,
           updated_at",
         params.id,
         params.user_id,
-        data.title,
-        data.image_url,
+        params.title,
+        params.image_url,
     )
     .fetch_one(ex)
     .await?;

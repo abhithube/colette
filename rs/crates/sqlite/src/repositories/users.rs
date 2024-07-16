@@ -5,7 +5,7 @@ use colette_core::{
 };
 use sqlx::SqlitePool;
 
-use crate::queries::{self, profiles::InsertData};
+use crate::queries::{self, profiles::InsertParams};
 
 pub struct UsersSqliteRepository {
     pool: SqlitePool,
@@ -23,7 +23,7 @@ impl UsersRepository for UsersSqliteRepository {
         let user = queries::users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.email.to_owned()),
+                sqlx::Error::RowNotFound => Error::NotFound(params.email),
                 _ => Error::Unknown(e.into()),
             })?;
 
@@ -40,14 +40,11 @@ impl UsersRepository for UsersSqliteRepository {
         let user = queries::users::insert(&mut *tx, (&data).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => {
-                    Error::Conflict(data.email.to_owned())
-                }
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.email),
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let data = InsertData::default_with_user(&user.id);
-        queries::profiles::insert(&mut *tx, data)
+        queries::profiles::insert(&mut *tx, InsertParams::default_with_user(&user.id))
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

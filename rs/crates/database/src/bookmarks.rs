@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::{BookmarkFindManyParams, BookmarkUpdateData};
+use colette_core::bookmarks::BookmarkFindManyParams;
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -24,20 +24,11 @@ impl<'a> From<&'a BookmarkFindManyParams> for SelectManyParams<'a> {
 }
 
 #[derive(Debug)]
-pub struct UpdateData<'a> {
+pub struct UpdateParams<'a> {
+    pub id: &'a Uuid,
+    pub profile_id: &'a Uuid,
     pub custom_title: Option<&'a str>,
     pub custom_thumbnail_url: Option<&'a str>,
     pub custom_published_at: Option<&'a DateTime<Utc>>,
     pub custom_author: Option<&'a str>,
-}
-
-impl<'a> From<&'a BookmarkUpdateData> for UpdateData<'a> {
-    fn from(value: &'a BookmarkUpdateData) -> Self {
-        Self {
-            custom_title: value.custom_title.as_deref(),
-            custom_thumbnail_url: value.custom_thumbnail_url.as_deref(),
-            custom_published_at: value.custom_published_at.as_ref(),
-            custom_author: value.custom_author.as_deref(),
-        }
-    }
 }

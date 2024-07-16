@@ -1,6 +1,6 @@
 use colette_core::Bookmark;
 use colette_database::{
-    bookmarks::{SelectManyParams, UpdateData},
+    bookmarks::{SelectManyParams, UpdateParams},
     FindOneParams,
 };
 use sqlx::PgExecutor;
@@ -58,8 +58,7 @@ SELECT b.id,
 
 pub async fn update(
     ex: impl PgExecutor<'_>,
-    params: FindOneParams<'_>,
-    data: UpdateData<'_>,
+    params: UpdateParams<'_>,
 ) -> Result<Bookmark, sqlx::Error> {
     let row = sqlx::query_as!(
         Bookmark,
@@ -90,10 +89,10 @@ RETURNING b.id,
           b.updated_at",
         params.id,
         params.profile_id,
-        data.custom_title,
-        data.custom_thumbnail_url,
-        data.custom_published_at,
-        data.custom_author
+        params.custom_title,
+        params.custom_thumbnail_url,
+        params.custom_published_at,
+        params.custom_author
     )
     .fetch_one(ex)
     .await?;
