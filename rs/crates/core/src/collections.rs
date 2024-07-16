@@ -28,6 +28,12 @@ pub trait CollectionsRepository {
 
     async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
 
+    async fn update(
+        &self,
+        params: FindOneParams,
+        data: CollectionUpdateData,
+    ) -> Result<Collection, Error>;
+
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
@@ -96,6 +102,10 @@ pub struct CollectionFindManyParams {
 pub struct CollectionCreateData {
     pub title: String,
     pub profile_id: Uuid,
+}
+
+pub struct CollectionUpdateData {
+    pub title: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
