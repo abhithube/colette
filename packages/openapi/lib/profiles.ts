@@ -15,7 +15,7 @@ export class ProfilesAPI {
 	async list(
 		options?: FetchOptions<operations['listProfiles']>,
 	): Promise<ProfileList> {
-		const res = await this.client.GET('/api/v1/profiles', options)
+		const res = await this.client.GET('/profiles', options)
 		if (res.error) {
 			throw new BaseError('unknown error')
 		}
@@ -26,7 +26,7 @@ export class ProfilesAPI {
 	async getActive(
 		options?: Omit<FetchOptions<operations['getActiveProfile']>, 'params'>,
 	): Promise<Profile> {
-		const res = await this.client.GET('/api/v1/profiles/@me', options)
+		const res = await this.client.GET('/profiles/@me', options)
 		if (res.error) {
 			throw new BaseError('unknown error')
 		}
@@ -38,7 +38,7 @@ export class ProfilesAPI {
 		body: CreateProfile,
 		options?: Omit<FetchOptions<operations['createProfile']>, 'body'>,
 	): Promise<Profile> {
-		const res = await this.client.POST('/api/v1/profiles', {
+		const res = await this.client.POST('/profiles', {
 			body,
 			...options,
 		})
@@ -57,7 +57,7 @@ export class ProfilesAPI {
 		id: string,
 		options?: Omit<FetchOptions<operations['deleteProfile']>, 'params'>,
 	): Promise<void> {
-		const res = await this.client.DELETE('/api/v1/profiles/{id}', {
+		const res = await this.client.DELETE('/profiles/{id}', {
 			params: {
 				path: {
 					id,

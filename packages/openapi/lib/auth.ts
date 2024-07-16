@@ -10,7 +10,7 @@ export class AuthAPI {
 	constructor(private client: Client) {}
 
 	async login(body: Login): Promise<Profile> {
-		const res = await this.client.POST('/api/v1/auth/login', {
+		const res = await this.client.POST('/auth/login', {
 			body,
 		})
 		if (res.error) {

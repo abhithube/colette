@@ -15,7 +15,7 @@ export class FeedsAPI {
 	async list(
 		options?: FetchOptions<operations['listFeeds']>,
 	): Promise<FeedList> {
-		const res = await this.client.GET('/api/v1/feeds', options)
+		const res = await this.client.GET('/feeds', options)
 		if (res.error) {
 			throw new BaseError('unknown error')
 		}
@@ -27,7 +27,7 @@ export class FeedsAPI {
 		id: string,
 		options?: Omit<FetchOptions<operations['getFeed']>, 'params'>,
 	): Promise<Feed> {
-		const res = await this.client.GET('/api/v1/feeds/{id}', {
+		const res = await this.client.GET('/feeds/{id}', {
 			params: {
 				path: {
 					id,
@@ -50,7 +50,7 @@ export class FeedsAPI {
 		body: CreateFeed,
 		options?: Omit<FetchOptions<operations['createFeed']>, 'body'>,
 	): Promise<Feed> {
-		const res = await this.client.POST('/api/v1/feeds', {
+		const res = await this.client.POST('/feeds', {
 			body,
 			...options,
 		})
@@ -72,7 +72,7 @@ export class FeedsAPI {
 		id: string,
 		options?: Omit<FetchOptions<operations['deleteFeed']>, 'params'>,
 	): Promise<void> {
-		const res = await this.client.DELETE('/api/v1/feeds/{id}', {
+		const res = await this.client.DELETE('/feeds/{id}', {
 			params: {
 				path: {
 					id,

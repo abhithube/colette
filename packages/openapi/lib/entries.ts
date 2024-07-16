@@ -11,7 +11,7 @@ export class EntriesAPI {
 		query?: ListEntriesQuery,
 		options?: FetchOptions<operations['listEntries']>,
 	): Promise<EntryList> {
-		const res = await this.client.GET('/api/v1/entries', {
+		const res = await this.client.GET('/entries', {
 			params: {
 				query,
 			},
