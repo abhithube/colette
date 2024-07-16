@@ -58,7 +58,7 @@ extension Components.Schemas.Register: Validatable {
 }
 
 extension Components.Schemas.User {
-  init(from user: User) {
+  init(from user: User) throws {
     self.init(
       id: user.id!.uuidString,
       email: user.email,
@@ -112,7 +112,7 @@ struct API: APIProtocol {
         let user = User(email: body.email, password: digest)
         try await user.create(on: self.database)
 
-        return .ok(.init(body: .json(.init(from: user))))
+        return .ok(.init(body: .json(try .init(from: user))))
       } catch let error as ValidationsError {
         return .unprocessableContent(.init(body: .json(.init(message: error.description))))
       } catch let error as PostgresError where error.code == .uniqueViolation {
