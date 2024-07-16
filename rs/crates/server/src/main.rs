@@ -20,15 +20,14 @@ use colette_core::{
     collections::CollectionsService,
     entries::EntriesService,
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
-    profiles::ProfilesService,
+    profiles::{ProfilesRepository, ProfilesService},
     utils::{scraper::Scraper, task::Task},
 };
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
 use colette_postgres::{
-    iterate_feeds, iterate_profiles, BookmarksPostgresRepository, CollectionsPostgresRepository,
-    EntriesPostgresRepository, FeedsPostgresRepository, Pool, ProfilesPostgresRepository,
-    UsersPostgresRepository,
+    BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
+    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use colette_scraper::{
     AtomExtractorOptions, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
@@ -37,7 +36,7 @@ use colette_scraper::{
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
     iterate_feeds, iterate_profiles, BookmarksSqliteRepository, CollectionsSqliteRepository,
-    EntriesSqliteRepository, FeedsSqliteRepository, Pool, ProfilesSqliteRepository,
+    EntriesSqliteRepository, FeedsSqliteRepository, ProfilesSqliteRepository,
     UsersSqliteRepository,
 };
 use collections::Api as Collections;
@@ -138,12 +137,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profiles_repository,
         users_repository,
     ) = (
-        BookmarksPostgresRepository::new(pool.clone()),
-        CollectionsPostgresRepository::new(pool.clone()),
-        EntriesPostgresRepository::new(pool.clone()),
-        FeedsPostgresRepository::new(pool.clone()),
-        ProfilesPostgresRepository::new(pool.clone()),
-        UsersPostgresRepository::new(pool.clone()),
+        Arc::new(BookmarksPostgresRepository::new(pool.clone())),
+        Arc::new(CollectionsPostgresRepository::new(pool.clone())),
+        Arc::new(EntriesPostgresRepository::new(pool.clone())),
+        Arc::new(FeedsPostgresRepository::new(pool.clone())),
+        Arc::new(ProfilesPostgresRepository::new(pool.clone())),
+        Arc::new(UsersPostgresRepository::new(pool.clone())),
     );
     #[cfg(feature = "sqlite")]
     let (
@@ -154,12 +153,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profiles_repository,
         users_repository,
     ) = (
-        BookmarksSqliteRepository::new(pool.clone()),
-        CollectionsSqliteRepository::new(pool.clone()),
-        EntriesSqliteRepository::new(pool.clone()),
-        FeedsSqliteRepository::new(pool.clone()),
-        ProfilesSqliteRepository::new(pool.clone()),
-        UsersSqliteRepository::new(pool.clone()),
+        Arc::new(BookmarksSqliteRepository::new(pool.clone())),
+        Arc::new(CollectionsSqliteRepository::new(pool.clone())),
+        Arc::new(EntriesSqliteRepository::new(pool.clone())),
+        Arc::new(FeedsSqliteRepository::new(pool.clone())),
+        Arc::new(ProfilesSqliteRepository::new(pool.clone())),
+        Arc::new(UsersSqliteRepository::new(pool.clone())),
     );
 
     let downloader = DefaultDownloader {};
@@ -175,44 +174,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
         extractors: HashMap::new(),
         postprocessors: HashMap::new(),
     };
-    let feed_scraper = FeedScraper::new(
+    let feed_scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync> = Arc::new(FeedScraper::new(
         feed_registry,
         Arc::new(downloader),
         Arc::new(feed_extractor),
         Arc::new(feed_postprocessor),
-    );
+    ));
 
     let schedule = Schedule::from_str(&cron_refresh)?;
     let scheduler = JobScheduler::new().await?;
 
-    let fs = Arc::new(feed_scraper);
-    let fs2 = Arc::clone(&fs);
-    let fr = Arc::new(feeds_repository);
-    let fr2 = Arc::clone(&fr);
+    {
+        let feed_scraper = feed_scraper.clone();
+        let feeds_repository = feeds_repository.clone();
+        let profiles_repository = profiles_repository.clone();
 
-    scheduler
-        .add(Job::new_async(schedule, move |_id, _scheduler| {
-            let refresh_task = RefreshTask::new(pool.clone(), fs.clone(), fr.clone());
+        scheduler
+            .add(Job::new_async(schedule, move |_id, _scheduler| {
+                let refresh_task = RefreshTask::new(
+                    feed_scraper.clone(),
+                    feeds_repository.clone(),
+                    profiles_repository.clone(),
+                );
 
-            Box::pin(async move {
-                let _ = refresh_task.run().await;
-            })
-        })?)
-        .await?;
+                Box::pin(async move {
+                    let _ = refresh_task.run().await;
+                })
+            })?)
+            .await?;
+    }
 
     scheduler.start().await?;
 
     let argon_hasher = Argon2Hasher::default();
 
-    let pr = Arc::new(profiles_repository);
-    let pr2 = Arc::clone(&pr);
-
-    let auth_service = AuthService::new(Arc::new(users_repository), pr, Arc::new(argon_hasher));
-    let bookmarks_service = BookmarksService::new(Arc::new(bookmarks_repository));
-    let collections_service = CollectionsService::new(Arc::new(collections_repository));
-    let entries_service = EntriesService::new(Arc::new(entries_repository));
-    let feeds_service = FeedsService::new(fr2, fs2);
-    let profiles_service = ProfilesService::new(pr2);
+    let auth_service = AuthService::new(
+        users_repository,
+        profiles_repository.clone(),
+        Arc::new(argon_hasher),
+    );
+    let bookmarks_service = BookmarksService::new(bookmarks_repository);
+    let collections_service = CollectionsService::new(collections_repository);
+    let entries_service = EntriesService::new(entries_repository);
+    let feeds_service = FeedsService::new(feeds_repository, feed_scraper);
+    let profiles_service = ProfilesService::new(profiles_repository);
 
     #[cfg(not(feature = "redis"))]
     let deletion_task = {
@@ -291,21 +296,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 pub struct RefreshTask {
-    pool: Pool,
     scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    repo: Arc<dyn FeedsRepository + Send + Sync>,
+    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
+    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
 }
 
 impl RefreshTask {
     pub fn new(
-        pool: Pool,
         scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-        repo: Arc<dyn FeedsRepository + Send + Sync>,
+        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
+        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
     ) -> Self {
         Self {
-            pool,
             scraper,
-            repo,
+            feeds_repo,
+            profiles_repo,
         }
     }
 
@@ -314,14 +319,15 @@ impl RefreshTask {
 
         let feed = self.scraper.scrape(&url).await.unwrap();
 
-        let mut profiles_stream = iterate_profiles(&self.pool, feed_id);
+        let mut profiles_stream = self.profiles_repo.iterate(feed_id);
+
         while let Some(Ok(profile_id)) = profiles_stream.next().await {
             let data = FeedCreateData {
                 url: url.clone(),
                 feed: feed.clone(),
                 profile_id,
             };
-            self.repo.create(data).await.unwrap();
+            self.feeds_repo.create(data).await.unwrap();
         }
     }
 }
@@ -330,7 +336,8 @@ impl RefreshTask {
 impl Task for RefreshTask {
     async fn run(&self) {
         let semaphore = Arc::new(Semaphore::new(5));
-        let feeds_stream = iterate_feeds(&self.pool);
+
+        let feeds_stream = self.feeds_repo.iterate();
 
         let tasks = feeds_stream
             .map(|item| {
