@@ -9,6 +9,7 @@ paths:
     post:
       operationId: login
       requestBody:
+        required: true
         content:
           application/json:
             schema:
@@ -22,10 +23,18 @@ paths:
                 $ref: "#/components/schemas/User"
         401:
           $ref: "#/components/responses/Unauthorized"
+        422:
+          $ref: "#/components/responses/UnprocessableContent"
 components:
   responses:
     Unauthorized:
       description: User not authenticated
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnprocessableContent:
+      description: Validation failed
       content:
         application/json:
           schema:
