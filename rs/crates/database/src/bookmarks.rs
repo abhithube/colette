@@ -25,8 +25,8 @@ impl<'a> From<&'a BookmarkFindManyParams> for SelectManyParams<'a> {
 
 #[derive(Debug)]
 pub struct UpdateData<'a> {
-    pub custom_title: &'a str,
-    pub custom_thumbnail_url: &'a str,
+    pub custom_title: Option<&'a str>,
+    pub custom_thumbnail_url: Option<&'a str>,
     pub custom_published_at: Option<&'a DateTime<Utc>>,
     pub custom_author: Option<&'a str>,
 }

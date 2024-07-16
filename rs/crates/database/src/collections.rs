@@ -16,5 +16,5 @@ impl<'a> From<&'a CollectionFindManyParams> for SelectManyParams<'a> {
 
 #[derive(Debug)]
 pub struct UpdateData<'a> {
-    pub title: &'a str,
+    pub title: Option<&'a str>,
 }
