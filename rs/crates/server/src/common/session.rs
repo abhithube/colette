@@ -1,6 +1,7 @@
 use axum::{async_trait, extract::FromRequestParts, http::request::Parts};
 use colette_core::{auth, common};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use super::Error;
 
@@ -8,8 +9,8 @@ pub const SESSION_KEY: &str = "session";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Session {
-    pub user_id: String,
-    pub profile_id: String,
+    pub user_id: Uuid,
+    pub profile_id: Uuid,
 }
 
 impl From<Session> for common::Session {

@@ -12,6 +12,7 @@ use colette_core::{
     auth::{self, AuthService},
     users,
 };
+use uuid::Uuid;
 
 use crate::{
     common::{BaseError, Context, Error, Session, ValidationError, SESSION_KEY},
@@ -82,8 +83,8 @@ pub async fn login(
     match result {
         Ok(data) => {
             let session = Session {
-                user_id: data.user_id.clone(),
-                profile_id: data.id.clone(),
+                user_id: data.user_id,
+                profile_id: data.id,
             };
             session_store.insert(SESSION_KEY, session).await?;
 
@@ -101,7 +102,7 @@ pub async fn login(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
-    pub id: String,
+    pub id: Uuid,
     #[schema(format = "email")]
     pub email: String,
     pub created_at: DateTime<Utc>,

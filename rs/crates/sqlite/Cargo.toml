@@ -9,5 +9,10 @@ chrono.workspace = true
 colette-core.workspace = true
 colette-database.workspace = true
 futures.workspace = true
-nanoid = "0.4.0"
-sqlx = { version = "0.7.4", features = ["chrono", "sqlite", "runtime-tokio"] }
+sqlx = { version = "0.7.4", features = [
+  "chrono",
+  "sqlite",
+  "runtime-tokio",
+  "uuid",
+] }
+uuid = { workspace = true, features = ["v4"] }

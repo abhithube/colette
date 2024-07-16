@@ -1,11 +1,9 @@
-use colette_core::profiles::{
-    ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams, ProfileUpdateData,
-};
-use nanoid::nanoid;
+use colette_core::profiles::{ProfileFindByIdParams, ProfileFindManyParams, ProfileUpdateData};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct SelectManyParams<'a> {
-    pub user_id: &'a str,
+    pub user_id: &'a Uuid,
 }
 
 impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
@@ -18,8 +16,8 @@ impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
 
 #[derive(Debug)]
 pub struct SelectByIdParams<'a> {
-    pub id: &'a str,
-    pub user_id: &'a str,
+    pub id: &'a Uuid,
+    pub user_id: &'a Uuid,
 }
 
 impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
@@ -33,40 +31,7 @@ impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
 
 #[derive(Debug)]
 pub struct SelectDefaultParams<'a> {
-    pub user_id: &'a str,
-}
-
-#[derive(Debug)]
-pub struct InsertData<'a> {
-    pub id: String,
-    pub title: &'a str,
-    pub image_url: Option<&'a str>,
-    pub is_default: bool,
-    pub user_id: &'a str,
-}
-
-impl<'a> InsertData<'a> {
-    pub fn default_with_user(user_id: &'a str) -> Self {
-        Self {
-            id: nanoid!(),
-            title: "Default",
-            image_url: None,
-            is_default: true,
-            user_id,
-        }
-    }
-}
-
-impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
-    fn from(value: &'a ProfileCreateData) -> Self {
-        Self {
-            id: nanoid!(),
-            title: &value.title,
-            image_url: value.image_url.as_deref(),
-            is_default: false,
-            user_id: &value.user_id,
-        }
-    }
+    pub user_id: &'a Uuid,
 }
 
 #[derive(Debug)]

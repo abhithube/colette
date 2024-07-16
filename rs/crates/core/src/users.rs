@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct User {
-    pub id: String,
+    pub id: Uuid,
     pub email: String,
     pub password: String,
     pub created_at: DateTime<Utc>,

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use url::Url;
+use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, Session},
@@ -10,7 +11,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Feed {
-    pub id: String,
+    pub id: Uuid,
     pub link: String,
     pub title: String,
     pub url: Option<String>,
@@ -112,7 +113,7 @@ impl FeedsService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session) -> Result<Feed, Error> {
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
         let params = FindOneParams {
             id,
             profile_id: session.profile_id,
@@ -135,7 +136,7 @@ impl FeedsService {
         Ok(feed)
     }
 
-    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
+    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         let params = FindOneParams {
             id,
             profile_id: session.profile_id,
@@ -147,13 +148,13 @@ impl FeedsService {
 }
 
 pub struct FeedFindManyParams {
-    pub profile_id: String,
+    pub profile_id: Uuid,
 }
 
 pub struct FeedCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
-    pub profile_id: String,
+    pub profile_id: Uuid,
 }
 
 pub struct FeedUpdateData {
@@ -163,7 +164,7 @@ pub struct FeedUpdateData {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("feed not found with id: {0}")]
-    NotFound(String),
+    NotFound(Uuid),
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),

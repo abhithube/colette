@@ -30,8 +30,10 @@ utoipa = { version = "5.0.0-alpha.0", features = [
   "chrono",
   "preserve_order",
   "preserve_path_order",
+  "uuid",
 ] }
 utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"] }
+uuid = { workspace = true, features = ["serde"] }
 validator = { version = "0.18.1", features = ["derive"] }
 
 [features]

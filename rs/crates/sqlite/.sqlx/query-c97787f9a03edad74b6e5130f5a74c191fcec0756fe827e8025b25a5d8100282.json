@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\nSELECT c.id,\n       c.title,\n       c.profile_id,\n       c.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       c.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n       count(b.collection_id) AS bookmark_count\n  FROM collections AS c\n       LEFT JOIN bookmarks AS b\n       ON b.collection_id = c.id\n WHERE c.profile_id = $1\n   AND NOT c.is_default\n GROUP BY c.id\n ORDER BY c.title ASC",
+  "query": "\nSELECT c.id AS \"id: uuid::Uuid\",\n       c.title,\n       c.profile_id AS \"profile_id: uuid::Uuid\",\n       c.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       c.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n       count(b.collection_id) AS bookmark_count\n  FROM collections AS c\n       LEFT JOIN bookmarks AS b\n       ON b.collection_id = c.id\n WHERE c.id = $1\n   AND c.profile_id = $2\n   AND NOT c.is_default\n GROUP BY c.id",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -14,7 +14,7 @@
         "type_info": "Text"
       },
       {
-        "name": "profile_id",
+        "name": "profile_id: uuid::Uuid",
         "ordinal": 2,
         "type_info": "Text"
       },
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "a813131fb5eb9e0e6c2b09ee82cfec38de22f570ab32a874bcdb96da5bc6f75f"
+  "hash": "c97787f9a03edad74b6e5130f5a74c191fcec0756fe827e8025b25a5d8100282"
 }

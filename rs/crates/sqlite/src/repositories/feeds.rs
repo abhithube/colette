@@ -4,9 +4,9 @@ use colette_core::{
     feeds::{Error, FeedCreateData, FeedFindManyParams, FeedUpdateData, FeedsRepository},
     Feed,
 };
-use colette_database::{feed_entries, profile_feed_entries, profile_feeds, FindOneParams};
-use nanoid::nanoid;
+use colette_database::{feed_entries, FindOneParams};
 use sqlx::SqlitePool;
+use uuid::Uuid;
 
 use crate::queries;
 
@@ -55,8 +55,8 @@ impl FeedsRepository for FeedsSqliteRepository {
 
         let result = queries::profile_feeds::insert(
             &mut *tx,
-            profile_feeds::InsertData {
-                id: nanoid!(),
+            queries::profile_feeds::InsertData {
+                id: Uuid::new_v4(),
                 profile_id: &data.profile_id,
                 feed_id,
             },
@@ -99,8 +99,8 @@ impl FeedsRepository for FeedsSqliteRepository {
 
             queries::profile_feed_entries::insert(
                 &mut *tx,
-                profile_feed_entries::InsertData {
-                    id: nanoid!(),
+                queries::profile_feed_entries::InsertData {
+                    id: Uuid::new_v4(),
                     profile_feed_id: &profile_feed_id,
                     feed_entry_id,
                 },
@@ -138,7 +138,7 @@ impl FeedsRepository for FeedsSqliteRepository {
         queries::profile_feeds::update(&mut *tx, (&params).into(), (&data).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id.clone()),
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
 

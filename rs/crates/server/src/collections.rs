@@ -9,6 +9,7 @@ use axum::{
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::collections::{self, CollectionsService};
+use uuid::Uuid;
 
 use crate::common::{
     BaseError, CollectionList, Context, Error, Id, Paginated, Session, ValidationError,
@@ -144,9 +145,9 @@ pub async fn delete_collection(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Collection {
-    pub id: String,
+    pub id: Uuid,
     pub title: String,
-    pub profile_id: String,
+    pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

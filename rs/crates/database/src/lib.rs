@@ -1,4 +1,5 @@
 use colette_core::common;
+use uuid::Uuid;
 
 pub mod bookmarks;
 pub mod collections;
@@ -12,8 +13,8 @@ pub mod users;
 
 #[derive(Debug)]
 pub struct FindOneParams<'a> {
-    pub id: &'a str,
-    pub profile_id: &'a str,
+    pub id: &'a Uuid,
+    pub profile_id: &'a Uuid,
 }
 
 impl<'a> From<&'a common::FindOneParams> for FindOneParams<'a> {

@@ -1,30 +1,35 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n   INSERT INTO users (id, email, password)\n   VALUES ($1, $2, $3)\nRETURNING id,\n          email,\n          password,\n          created_at,\n          updated_at",
+  "query": "\n   INSERT INTO profiles (title, image_url, is_default, user_id)\n   VALUES ($1, $2, $3, $4)\nRETURNING id,\n          title,\n          image_url,\n          user_id,\n          created_at,\n          updated_at",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "id",
-        "type_info": "Text"
+        "type_info": "Uuid"
       },
       {
         "ordinal": 1,
-        "name": "email",
+        "name": "title",
         "type_info": "Text"
       },
       {
         "ordinal": 2,
-        "name": "password",
+        "name": "image_url",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
+        "name": "user_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
@@ -33,16 +38,18 @@
       "Left": [
         "Text",
         "Text",
-        "Text"
+        "Bool",
+        "Uuid"
       ]
     },
     "nullable": [
       false,
       false,
+      true,
       false,
       false,
       false
     ]
   },
-  "hash": "58d55bc5f5ea5a51e947ec27c4b7442c6480a9ceb813c333a2e4a7d2d3ff1320"
+  "hash": "15abe96f7bea9ab5834683a68eb4e8804657e0719839c0b05b40b9c4f191406c"
 }

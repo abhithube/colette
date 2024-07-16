@@ -33,7 +33,7 @@ SELECT b.id,
    AND CASE
        WHEN $4::boolean THEN (
             CASE
-            WHEN $5::text IS NULL THEN c.is_default
+            WHEN $5::uuid IS NULL THEN c.is_default
             ELSE b.collection_id = $5
             END
        )

@@ -7,6 +7,7 @@ use colette_core::{
 };
 pub use error::{BaseError, Error, ValidationError};
 pub use session::{Session, SESSION_KEY};
+use uuid::Uuid;
 
 use crate::{
     bookmarks::Bookmark, collections::Collection, entries::Entry, feeds::Feed, profiles::Profile,
@@ -27,7 +28,7 @@ pub struct Context {
 
 #[derive(Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
-pub struct Id(pub String);
+pub struct Id(pub Uuid);
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]

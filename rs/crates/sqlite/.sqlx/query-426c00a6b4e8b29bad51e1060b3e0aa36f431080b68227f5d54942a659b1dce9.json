@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n   INSERT INTO profiles (id, title, image_url, is_default, user_id)\n   VALUES ($1, $2, $3, $4, $5)\nRETURNING id,\n          title,\n          image_url,\n          user_id,\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
+  "query": "\n   INSERT INTO profiles (id, title, image_url, is_default, user_id)\n   VALUES ($1, $2, $3, $4, $5)\nRETURNING id AS \"id: uuid::Uuid\",\n          title,\n          image_url,\n          user_id AS \"user_id: uuid::Uuid\",\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -19,7 +19,7 @@
         "type_info": "Text"
       },
       {
-        "name": "user_id",
+        "name": "user_id: uuid::Uuid",
         "ordinal": 3,
         "type_info": "Text"
       },
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "3723ff0da95b3896a133d1c9b7767b7fbe912d30842d6c397e1a57e54f992fa3"
+  "hash": "426c00a6b4e8b29bad51e1060b3e0aa36f431080b68227f5d54942a659b1dce9"
 }

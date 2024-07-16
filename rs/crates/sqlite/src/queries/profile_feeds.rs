@@ -1,13 +1,21 @@
 use colette_core::Feed;
 use colette_database::{
-    profile_feeds::{InsertData, SelectManyParams, UpdateData},
+    profile_feeds::{SelectManyParams, UpdateData},
     FindOneParams,
 };
 use sqlx::{Error, SqliteExecutor};
+use uuid::Uuid;
 
 #[derive(Debug)]
 pub struct SelectParams<'a> {
-    pub profile_id: &'a str,
+    pub profile_id: &'a Uuid,
+    pub feed_id: i64,
+}
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub id: Uuid,
+    pub profile_id: &'a Uuid,
     pub feed_id: i64,
 }
 
@@ -18,7 +26,7 @@ pub async fn select_many(
     let rows = sqlx::query_as!(
         Feed,
         "
-SELECT pf.id,
+SELECT pf.id AS \"id: uuid::Uuid\",
        f.link,
        f.title,
        f.url,
@@ -52,7 +60,7 @@ pub async fn select_by_id(
     let row = sqlx::query_as!(
         Feed,
         "
-SELECT pf.id,
+SELECT pf.id AS \"id: uuid::Uuid\",
        f.link,
        f.title,
        f.url,
@@ -80,13 +88,10 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn select(
-    ex: impl SqliteExecutor<'_>,
-    params: SelectParams<'_>,
-) -> Result<String, Error> {
+pub async fn select(ex: impl SqliteExecutor<'_>, params: SelectParams<'_>) -> Result<Uuid, Error> {
     let row = sqlx::query!(
         "
-SELECT id
+SELECT id AS \"id: uuid::Uuid\"
   FROM profile_feeds
  WHERE profile_id = $1
    AND feed_id = $2",
@@ -99,13 +104,13 @@ SELECT id
     Ok(row.id)
 }
 
-pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
+pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, Error> {
     let row = sqlx::query!(
         "
    INSERT INTO profile_feeds (id, profile_id, feed_id)
    VALUES ($1, $2, $3)
        ON CONFLICT (profile_id, feed_id) DO NOTHING
-RETURNING id",
+RETURNING id AS \"id: uuid::Uuid\"",
         data.id,
         data.profile_id,
         data.feed_id

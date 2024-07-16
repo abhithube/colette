@@ -1,6 +1,21 @@
-use colette_core::User;
-use colette_database::users::{InsertData, SelectByEmailParams};
+use colette_core::{users::UserCreateData, User};
+use colette_database::users::SelectByEmailParams;
 use sqlx::{Error, PgExecutor};
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub email: &'a str,
+    pub password: &'a str,
+}
+
+impl<'a> From<&'a UserCreateData> for InsertData<'a> {
+    fn from(value: &'a UserCreateData) -> Self {
+        Self {
+            email: &value.email,
+            password: &value.password,
+        }
+    }
+}
 
 pub async fn select_by_email(
     ex: impl PgExecutor<'_>,
@@ -28,14 +43,13 @@ pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Use
     let row = sqlx::query_as!(
         User,
         "
-   INSERT INTO users (id, email, password)
-   VALUES ($1, $2, $3)
+   INSERT INTO users (email, password)
+   VALUES ($1, $2)
 RETURNING id,
           email,
           password,
           created_at,
           updated_at",
-        data.id,
         data.email,
         data.password
     )

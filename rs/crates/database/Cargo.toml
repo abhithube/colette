@@ -7,3 +7,4 @@ edition = "2021"
 colette-core.workspace = true
 chrono.workspace = true
 nanoid = "0.4.0"
+uuid.workspace = true

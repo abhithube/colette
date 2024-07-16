@@ -9,6 +9,7 @@ use axum::{
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::feeds::{self, FeedsService};
+use uuid::Uuid;
 
 use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session, ValidationError};
 
@@ -144,7 +145,7 @@ pub async fn delete_feed(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Feed {
-    pub id: String,
+    pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
     pub title: String,

@@ -1,3 +1,5 @@
+use uuid::Uuid;
+
 pub const PAGINATION_LIMIT: usize = 24;
 
 #[derive(Debug)]
@@ -8,12 +10,12 @@ pub struct Paginated<T> {
 
 #[derive(Debug)]
 pub struct FindOneParams {
-    pub id: String,
-    pub profile_id: String,
+    pub id: Uuid,
+    pub profile_id: Uuid,
 }
 
 #[derive(Debug)]
 pub struct Session {
-    pub user_id: String,
-    pub profile_id: String,
+    pub user_id: Uuid,
+    pub profile_id: Uuid,
 }

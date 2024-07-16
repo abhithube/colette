@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\nSELECT id,\n       title,\n       image_url,\n       user_id,\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM profiles\n WHERE id = $1\n   AND user_id = $2",
+  "query": "\nSELECT id AS \"id: uuid::Uuid\",\n       title,\n       image_url,\n       user_id AS \"user_id: uuid::Uuid\",\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM profiles\n WHERE user_id = $1\n   AND is_default = 1",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -19,7 +19,7 @@
         "type_info": "Text"
       },
       {
-        "name": "user_id",
+        "name": "user_id: uuid::Uuid",
         "ordinal": 3,
         "type_info": "Text"
       },
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 2
+      "Right": 1
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "a658e4a0128a06f4201d7f42d5586ac898818757e903b41dd9f748efdec8bd3b"
+  "hash": "e310f2efcec16cdde2e7bcea4d87b6de865c1c2b165bcd1bc8358314a30c9caf"
 }

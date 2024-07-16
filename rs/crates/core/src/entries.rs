@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::common::{Paginated, Session, PAGINATION_LIMIT};
 
 #[derive(Debug)]
 pub struct Entry {
-    pub id: String,
+    pub id: Uuid,
     pub link: String,
     pub title: String,
     pub published_at: Option<DateTime<Utc>>,
@@ -14,13 +15,13 @@ pub struct Entry {
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,
     pub has_read: bool,
-    pub feed_id: String,
+    pub feed_id: Uuid,
 }
 
 #[derive(Debug)]
 pub struct ListEntriesParams {
     pub published_at: Option<DateTime<Utc>>,
-    pub feed_id: Option<String>,
+    pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
 }
 
@@ -62,17 +63,17 @@ impl EntriesService {
 }
 
 pub struct EntryFindManyParams {
-    pub profile_id: String,
+    pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
-    pub feed_id: Option<String>,
+    pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("entry not found with id: {0}")]
-    NotFound(String),
+    NotFound(Uuid),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),

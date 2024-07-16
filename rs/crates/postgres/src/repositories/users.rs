@@ -2,10 +2,12 @@ use colette_core::{
     users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
 };
-use colette_database::profiles::InsertData;
 use sqlx::PgPool;
 
-use crate::queries::{profiles, users};
+use crate::queries::{
+    profiles::{self, InsertData},
+    users,
+};
 
 pub struct UsersPostgresRepository {
     pool: PgPool,

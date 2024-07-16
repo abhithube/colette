@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\nSELECT b.id,\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at AS \"custom_published_at: chrono::DateTime<chrono::Utc>\",\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS \"collection_id!\",\n       b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE c.profile_id = $1\n   AND ($3 IS NULL OR b.published_at < $3)\n   AND CASE\n       WHEN $4 THEN (\n            CASE\n            WHEN $5 IS NULL THEN c.is_default\n            ELSE b.collection_id = $5\n            END\n       )\n       ELSE TRUE\n       END\n ORDER BY b.custom_published_at DESC, b.published_at DESC, b.custom_title ASC, b.title ASC\n LIMIT $2",
+  "query": "\nSELECT b.id AS \"id: uuid::Uuid\",\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at AS \"custom_published_at: chrono::DateTime<chrono::Utc>\",\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS \"collection_id!: uuid::Uuid\",\n       b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE c.profile_id = $1\n   AND ($3 IS NULL OR b.published_at < $3)\n   AND CASE\n       WHEN $4 THEN (\n            CASE\n            WHEN $5 IS NULL THEN c.is_default\n            ELSE b.collection_id = $5\n            END\n       )\n       ELSE TRUE\n       END\n ORDER BY b.custom_published_at DESC, b.published_at DESC, b.custom_title ASC, b.title ASC\n LIMIT $2",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -54,7 +54,7 @@
         "type_info": "Text"
       },
       {
-        "name": "collection_id!",
+        "name": "collection_id!: uuid::Uuid",
         "ordinal": 10,
         "type_info": "Text"
       },
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "501b3df915a6f9d575a8e9b2c69fca0d0baab005244289ed0578262ad40fe6be"
+  "hash": "a5b30d6e3a734bd4dec2d888af6ebe15179646187c0dea274a92b97a63d6a050"
 }

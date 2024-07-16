@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n   INSERT INTO users (id, email, password)\n   VALUES ($1, $2, $3)\nRETURNING id,\n          email,\n          password,\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
+  "query": "\nSELECT id AS \"id: uuid::Uuid\",\n       email,\n       password,\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM users\n WHERE email = $1",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -30,7 +30,7 @@
       }
     ],
     "parameters": {
-      "Right": 3
+      "Right": 1
     },
     "nullable": [
       false,
@@ -40,5 +40,5 @@
       false
     ]
   },
-  "hash": "27b14fdb95a5956cd1fa8c8153d223f95e67b155ae08ac7221e93342c77a858c"
+  "hash": "b01dc292c8d383e6d62c1b3fa5214588b8ef5173ae854f99c683bfd80dd95abf"
 }

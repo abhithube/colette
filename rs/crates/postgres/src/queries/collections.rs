@@ -1,9 +1,23 @@
-use colette_core::Collection;
-use colette_database::{
-    collections::{InsertData, SelectManyParams},
-    FindOneParams,
-};
-use sqlx::{Error, PgExecutor};
+use colette_core::{collections::CollectionCreateData, Collection};
+use colette_database::{collections::SelectManyParams, FindOneParams};
+use sqlx::{types::Uuid, Error, PgExecutor};
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub title: &'a str,
+    pub is_default: bool,
+    pub profile_id: &'a Uuid,
+}
+
+impl<'a> From<&'a CollectionCreateData> for InsertData<'a> {
+    fn from(value: &'a CollectionCreateData) -> Self {
+        Self {
+            title: &value.title,
+            is_default: false,
+            profile_id: &value.profile_id,
+        }
+    }
+}
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
@@ -66,15 +80,14 @@ pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Col
     let row = sqlx::query_as!(
         Collection,
         "
-   INSERT INTO collections (id, title, is_default, profile_id)
-   VALUES ($1, $2, $3, $4)
+   INSERT INTO collections (title, is_default, profile_id)
+   VALUES ($1, $2, $3)
 RETURNING id,
           title,
           profile_id,
           created_at,
           updated_at,
           cast(0 AS bigint) AS bookmark_count",
-        data.id,
         data.title,
         data.is_default,
         data.profile_id,

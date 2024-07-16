@@ -9,6 +9,7 @@ use axum::{
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::profiles::{self, ProfilesService};
+use uuid::Uuid;
 
 use crate::common::{
     BaseError, Context, Error, Id, Paginated, ProfileList, Session, ValidationError,
@@ -71,7 +72,7 @@ pub async fn get_active_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
-        .get(session.profile_id.clone(), session.into())
+        .get(session.profile_id, session.into())
         .await
         .map(Profile::from);
 
@@ -141,11 +142,11 @@ pub async fn delete_profile(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
-    pub id: String,
+    pub id: Uuid,
     pub title: String,
     #[schema(format = "uri")]
     pub image_url: Option<String>,
-    pub user_id: String,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

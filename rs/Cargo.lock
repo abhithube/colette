@@ -351,6 +351,7 @@ dependencies = [
  "http",
  "thiserror",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -360,6 +361,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "nanoid",
+ "uuid",
 ]
 
 [[package]]
@@ -380,7 +382,6 @@ dependencies = [
  "colette-core",
  "colette-database",
  "futures",
- "nanoid",
  "sqlx",
 ]
 
@@ -427,6 +428,7 @@ dependencies = [
  "tower-sessions-sqlx-store",
  "utoipa",
  "utoipa-scalar",
+ "uuid",
  "validator",
 ]
 
@@ -439,8 +441,8 @@ dependencies = [
  "colette-core",
  "colette-database",
  "futures",
- "nanoid",
  "sqlx",
+ "uuid",
 ]
 
 [[package]]
@@ -2309,6 +2311,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -2391,6 +2394,7 @@ dependencies = [
  "thiserror",
  "time",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -2431,6 +2435,7 @@ dependencies = [
  "thiserror",
  "time",
  "tracing",
+ "uuid",
  "whoami",
 ]
 
@@ -2457,6 +2462,7 @@ dependencies = [
  "tracing",
  "url",
  "urlencoding",
+ "uuid",
 ]
 
 [[package]]
@@ -2986,6 +2992,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.68",
+ "uuid",
 ]
 
 [[package]]
@@ -3007,6 +3014,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "81dfa00651efa65069b0b6b651f4aaa31ba9e3c3ce0137aaad053604ee7e0314"
 dependencies = [
  "getrandom",
+ "serde",
 ]
 
 [[package]]

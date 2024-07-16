@@ -81,7 +81,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
     async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error> {
         let profile = self
             .find_one(ProfileFindOneParams::Default {
-                user_id: params.user_id.clone(),
+                user_id: params.user_id,
             })
             .await?;
 

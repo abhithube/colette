@@ -9,7 +9,7 @@ pub async fn select_many(
     let rows = sqlx::query_as!(
         Bookmark,
         "
-SELECT b.id,
+SELECT b.id AS \"id: uuid::Uuid\",
        b.link,
        b.title,
        b.thumbnail_url,
@@ -22,7 +22,7 @@ SELECT b.id,
        CASE
        WHEN c.is_default THEN NULL
        ELSE b.collection_id
-       END AS \"collection_id!\",
+       END AS \"collection_id!: uuid::Uuid\",
        b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM bookmarks AS b

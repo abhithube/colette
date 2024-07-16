@@ -9,6 +9,7 @@ use axum::{
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::bookmarks::{self, BookmarksService, ListBookmarksParams};
+use uuid::Uuid;
 
 use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session};
 
@@ -84,7 +85,7 @@ pub async fn delete_bookmark(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
-    pub id: String,
+    pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
     pub title: String,
@@ -97,7 +98,7 @@ pub struct Bookmark {
     pub custom_thumbnail_url: Option<String>,
     pub custom_published_at: Option<DateTime<Utc>>,
     pub custom_author: Option<String>,
-    pub collection_id: String,
+    pub collection_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -107,7 +108,7 @@ pub struct Bookmark {
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
     pub published_at: Option<DateTime<Utc>>,
-    pub collection_id: Option<String>,
+    pub collection_id: Option<Uuid>,
     pub is_default: Option<bool>,
 }
 

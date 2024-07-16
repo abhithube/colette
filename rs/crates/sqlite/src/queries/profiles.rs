@@ -1,9 +1,43 @@
-use colette_core::Profile;
+use colette_core::{profiles::ProfileCreateData, Profile};
 use colette_database::profiles::{
-    InsertData, SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
+    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
 use futures::Stream;
 use sqlx::{sqlite::SqliteRow, Error, Row, SqliteExecutor};
+use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub image_url: Option<&'a str>,
+    pub is_default: bool,
+    pub user_id: &'a Uuid,
+}
+
+impl<'a> InsertData<'a> {
+    pub fn default_with_user(user_id: &'a Uuid) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            title: "Default",
+            image_url: None,
+            is_default: true,
+            user_id,
+        }
+    }
+}
+
+impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
+    fn from(value: &'a ProfileCreateData) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            title: &value.title,
+            image_url: value.image_url.as_deref(),
+            is_default: false,
+            user_id: &value.user_id,
+        }
+    }
+}
 
 // #[derive(Debug)]
 // pub struct UpdateDefaultUnsetParams<'a> {
@@ -17,10 +51,10 @@ pub async fn select_many(
     let rows = sqlx::query_as!(
         Profile,
         "
-SELECT id,
+SELECT id AS \"id: uuid::Uuid\",
        title,
        image_url,
-       user_id,
+       user_id AS \"user_id: uuid::Uuid\",
        created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM profiles
@@ -40,10 +74,10 @@ pub async fn select_by_id(
     let row = sqlx::query_as!(
         Profile,
         "
-SELECT id,
+SELECT id AS \"id: uuid::Uuid\",
        title,
        image_url,
-       user_id,
+       user_id AS \"user_id: uuid::Uuid\",
        created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM profiles
@@ -65,10 +99,10 @@ pub async fn select_default(
     let row = sqlx::query_as!(
         Profile,
         "
-SELECT id,
+SELECT id AS \"id: uuid::Uuid\",
        title,
        image_url,
-       user_id,
+       user_id AS \"user_id: uuid::Uuid\",
        created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM profiles
@@ -88,10 +122,10 @@ pub async fn insert(ex: impl SqliteExecutor<'_>, data: InsertData<'_>) -> Result
         "
    INSERT INTO profiles (id, title, image_url, is_default, user_id)
    VALUES ($1, $2, $3, $4, $5)
-RETURNING id,
+RETURNING id AS \"id: uuid::Uuid\",
           title,
           image_url,
-          user_id,
+          user_id AS \"user_id: uuid::Uuid\",
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
         data.id,
@@ -119,10 +153,10 @@ pub async fn update(
           image_url = coalesce($4, image_url)
     WHERE id = $1
       AND user_id = $2
-RETURNING id,
+RETURNING id AS \"id: uuid::Uuid\",
           title,
           image_url,
-          user_id,
+          user_id AS \"user_id: uuid::Uuid\",
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
         params.id,
@@ -147,10 +181,10 @@ RETURNING id,
 //       SET is_default = 1
 //     WHERE id = $1
 //       AND user_id = $2
-// RETURNING id,
+// RETURNING id AS \"id: uuid::Uuid\",
 //           title,
 //           image_url,
-//           user_id,
+//           user_id AS \"user_id: uuid::Uuid\",
 //           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
 //           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
 //         params.id,
@@ -165,14 +199,14 @@ RETURNING id,
 // pub async fn update_default_unset(
 //     ex: impl SqliteExecutor<'_>,
 //     params: UpdateDefaultUnsetParams<'_>,
-// ) -> Result<String, Error> {
+// ) -> Result<Uuid, Error> {
 //     let row = sqlx::query!(
 //         "
 //    UPDATE profiles
 //       SET is_default = 0
 //     WHERE user_id = $1
 //       AND is_default = 1
-// RETURNING id",
+// RETURNING id AS \"id: uuid::Uuid\"",
 //         params.user_id
 //     )
 //     .fetch_one(ex)
@@ -206,10 +240,10 @@ DELETE FROM profiles
 pub fn iterate<'a>(
     ex: impl SqliteExecutor<'a> + 'a,
     feed_id: i64,
-) -> impl Stream<Item = Result<String, Error>> + 'a {
+) -> impl Stream<Item = Result<Uuid, Error>> + 'a {
     sqlx::query(
         "
-SELECT p.id
+SELECT p.id AS \"id: uuid::Uuid\"
   FROM profiles AS p
   JOIN profile_feeds AS pf
     ON pf.profile_id = p.id

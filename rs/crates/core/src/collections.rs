@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session};
 
 #[derive(Debug)]
 pub struct Collection {
-    pub id: String,
+    pub id: Uuid,
     pub title: String,
-    pub profile_id: String,
+    pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub bookmark_count: Option<i64>,
@@ -53,7 +54,7 @@ impl CollectionsService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session) -> Result<Collection, Error> {
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Collection, Error> {
         let params = FindOneParams {
             id,
             profile_id: session.profile_id,
@@ -77,7 +78,7 @@ impl CollectionsService {
         Ok(collections)
     }
 
-    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
+    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         let params = FindOneParams {
             id,
             profile_id: session.profile_id,
@@ -89,18 +90,18 @@ impl CollectionsService {
 }
 
 pub struct CollectionFindManyParams {
-    pub profile_id: String,
+    pub profile_id: Uuid,
 }
 
 pub struct CollectionCreateData {
     pub title: String,
-    pub profile_id: String,
+    pub profile_id: Uuid,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("collection not found with id: {0}")]
-    NotFound(String),
+    NotFound(Uuid),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),

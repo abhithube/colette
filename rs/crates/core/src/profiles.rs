@@ -1,15 +1,16 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::common::{Paginated, Session};
 
 #[derive(Debug)]
 pub struct Profile {
-    pub id: String,
+    pub id: Uuid,
     pub title: String,
     pub image_url: Option<String>,
-    pub user_id: String,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -75,7 +76,7 @@ impl ProfilesService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: String, session: Session) -> Result<Profile, Error> {
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
         let params = ProfileFindByIdParams {
             id,
             user_id: session.user_id,
@@ -99,7 +100,7 @@ impl ProfilesService {
 
     pub async fn update(
         &self,
-        id: String,
+        id: Uuid,
         data: UpdateProfile,
         session: Session,
     ) -> Result<Profile, Error> {
@@ -112,7 +113,7 @@ impl ProfilesService {
         Ok(profile)
     }
 
-    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
+    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         let params = ProfileFindByIdParams {
             id,
             user_id: session.user_id,
@@ -124,23 +125,23 @@ impl ProfilesService {
 }
 
 pub struct ProfileFindManyParams {
-    pub user_id: String,
+    pub user_id: Uuid,
 }
 
 pub struct ProfileFindByIdParams {
-    pub id: String,
-    pub user_id: String,
+    pub id: Uuid,
+    pub user_id: Uuid,
 }
 
 pub enum ProfileFindOneParams {
     ById(ProfileFindByIdParams),
-    Default { user_id: String },
+    Default { user_id: Uuid },
 }
 
 pub struct ProfileCreateData {
     pub title: String,
     pub image_url: Option<String>,
-    pub user_id: String,
+    pub user_id: Uuid,
 }
 
 pub struct ProfileUpdateData {
@@ -151,7 +152,7 @@ pub struct ProfileUpdateData {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("profile not found with id: {0}")]
-    NotFound(String),
+    NotFound(Uuid),
 
     #[error("default profile cannot be deleted")]
     DeletingDefault,

@@ -1,9 +1,15 @@
 use colette_core::Feed;
 use colette_database::{
-    profile_feeds::{InsertData, SelectManyParams, UpdateData},
+    profile_feeds::{SelectManyParams, UpdateData},
     FindOneParams,
 };
-use sqlx::{Error, PgExecutor};
+use sqlx::{types::Uuid, Error, PgExecutor};
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub profile_id: &'a Uuid,
+    pub feed_id: i64,
+}
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
@@ -74,13 +80,13 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<String, Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Uuid, Error> {
     let row = sqlx::query!(
         "
   WITH
        pf AS (
-             INSERT INTO profile_feeds (id, profile_id, feed_id)
-             VALUES ($1, $2, $3)
+             INSERT INTO profile_feeds (profile_id, feed_id)
+             VALUES ($1, $2)
                  ON CONFLICT (profile_id, feed_id) DO NOTHING
           RETURNING id
        )
@@ -89,9 +95,8 @@ SELECT id AS \"id!\"
  UNION ALL
 SELECT id
   FROM profile_feeds
- WHERE profile_id = $2
-   AND feed_id = $3",
-        data.id,
+ WHERE profile_id = $1
+   AND feed_id = $2",
         data.profile_id,
         data.feed_id
     )

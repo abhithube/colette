@@ -8,6 +8,7 @@ use axum::{
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::entries::{EntriesService, ListEntriesParams};
+use uuid::Uuid;
 
 use crate::common::{Context, EntryList, Error, Paginated, Session};
 
@@ -53,7 +54,7 @@ pub async fn list_entries(
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
-    pub id: String,
+    pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
     pub title: String,
@@ -63,7 +64,7 @@ pub struct Entry {
     #[schema(format = "uri")]
     pub thumbnail_url: Option<String>,
     pub has_read: bool,
-    pub feed_id: String,
+    pub feed_id: Uuid,
 }
 
 impl From<colette_core::Entry> for Entry {
@@ -87,7 +88,7 @@ impl From<colette_core::Entry> for Entry {
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {
     pub published_at: Option<DateTime<Utc>>,
-    pub feed_id: Option<String>,
+    pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
 }
 

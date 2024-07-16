@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n   INSERT INTO collections (id, title, is_default, profile_id)\n   VALUES ($1, $2, $3, $4)\nRETURNING id,\n          title,\n          profile_id,\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n          cast(0 AS bigint) AS bookmark_count",
+  "query": "\nSELECT c.id AS \"id: uuid::Uuid\",\n       c.title,\n       c.profile_id AS \"profile_id: uuid::Uuid\",\n       c.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       c.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",\n       count(b.collection_id) AS bookmark_count\n  FROM collections AS c\n       LEFT JOIN bookmarks AS b\n       ON b.collection_id = c.id\n WHERE c.profile_id = $1\n   AND NOT c.is_default\n GROUP BY c.id\n ORDER BY c.title ASC",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -14,7 +14,7 @@
         "type_info": "Text"
       },
       {
-        "name": "profile_id",
+        "name": "profile_id: uuid::Uuid",
         "ordinal": 2,
         "type_info": "Text"
       },
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 4
+      "Right": 1
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "40a0cdf1b073e6acdf70d13ddd7d8f24717011214735c29220de3d615c91ba48"
+  "hash": "cb9db58d5e34d8b0cc5aecb417019609d8b4bfc0e179420a44214e0c03aed537"
 }

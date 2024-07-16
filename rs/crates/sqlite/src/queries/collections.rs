@@ -1,9 +1,26 @@
-use colette_core::Collection;
-use colette_database::{
-    collections::{InsertData, SelectManyParams},
-    FindOneParams,
-};
+use colette_core::{collections::CollectionCreateData, Collection};
+use colette_database::{collections::SelectManyParams, FindOneParams};
 use sqlx::{Error, SqliteExecutor};
+use uuid::Uuid;
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub is_default: bool,
+    pub profile_id: &'a Uuid,
+}
+
+impl<'a> From<&'a CollectionCreateData> for InsertData<'a> {
+    fn from(value: &'a CollectionCreateData) -> Self {
+        Self {
+            id: Uuid::new_v4(),
+            title: &value.title,
+            is_default: false,
+            profile_id: &value.profile_id,
+        }
+    }
+}
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
@@ -12,9 +29,9 @@ pub async fn select_many(
     let rows = sqlx::query_as!(
         Collection,
         "
-SELECT c.id,
+SELECT c.id AS \"id: uuid::Uuid\",
        c.title,
-       c.profile_id,
+       c.profile_id AS \"profile_id: uuid::Uuid\",
        c.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        c.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",
        count(b.collection_id) AS bookmark_count
@@ -40,9 +57,9 @@ pub async fn select_by_id(
     let row = sqlx::query_as!(
         Collection,
         "
-SELECT c.id,
+SELECT c.id AS \"id: uuid::Uuid\",
        c.title,
-       c.profile_id,
+       c.profile_id AS \"profile_id: uuid::Uuid\",
        c.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        c.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",
        count(b.collection_id) AS bookmark_count
@@ -71,9 +88,9 @@ pub async fn insert(
         "
    INSERT INTO collections (id, title, is_default, profile_id)
    VALUES ($1, $2, $3, $4)
-RETURNING id,
+RETURNING id AS \"id: uuid::Uuid\",
           title,
-          profile_id,
+          profile_id AS \"profile_id: uuid::Uuid\",
           created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
           updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\",
           cast(0 AS bigint) AS bookmark_count",

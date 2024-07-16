@@ -3,10 +3,9 @@ use colette_core::{
     users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
     User,
 };
-use colette_database::profiles::InsertData;
 use sqlx::SqlitePool;
 
-use crate::queries;
+use crate::queries::{self, profiles::InsertData};
 
 pub struct UsersSqliteRepository {
     pool: SqlitePool,

@@ -23,7 +23,7 @@ CREATE TABLE feed_entries (
 );
 
 CREATE TABLE users (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   email text NOT NULL UNIQUE,
   password text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,11 +31,11 @@ CREATE TABLE users (
 );
 
 CREATE TABLE profiles (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title text NOT NULL,
   image_url text,
   is_default boolean NOT NULL DEFAULT FALSE,
-  user_id text NOT NULL REFERENCES users (id) ON DELETE cascade,
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE cascade,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,9 +45,9 @@ WHERE
   is_default;
 
 CREATE TABLE profile_feeds (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   custom_title text,
-  profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade,
   feed_id bigint NOT NULL REFERENCES feeds (id) ON DELETE restrict,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -55,18 +55,18 @@ CREATE TABLE profile_feeds (
 );
 
 CREATE TABLE profile_feed_entries (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   has_read boolean NOT NULL DEFAULT FALSE,
-  profile_feed_id text NOT NULL REFERENCES profile_feeds (id) ON DELETE cascade,
+  profile_feed_id UUID NOT NULL REFERENCES profile_feeds (id) ON DELETE cascade,
   feed_entry_id bigint NOT NULL REFERENCES feed_entries (id) ON DELETE restrict,
   UNIQUE (profile_feed_id, feed_entry_id)
 );
 
 CREATE TABLE collections (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title text NOT NULL,
   is_default boolean NOT NULL DEFAULT FALSE,
-  profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -76,7 +76,7 @@ WHERE
   is_default;
 
 CREATE TABLE bookmarks (
-  id text NOT NULL PRIMARY KEY,
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link text NOT NULL,
   title text NOT NULL,
   thumbnail_url text,
@@ -86,7 +86,7 @@ CREATE TABLE bookmarks (
   custom_thumbnail_url text,
   custom_published_at timestamptz,
   custom_author text,
-  collection_id text NOT NULL REFERENCES collections (id) ON DELETE cascade,
+  collection_id UUID NOT NULL REFERENCES collections (id) ON DELETE cascade,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (collection_id, link)

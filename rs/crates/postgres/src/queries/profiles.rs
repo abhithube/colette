@@ -1,9 +1,39 @@
-use colette_core::Profile;
+use colette_core::{profiles::ProfileCreateData, Profile};
 use colette_database::profiles::{
-    InsertData, SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
+    SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateData,
 };
 use futures::Stream;
-use sqlx::{postgres::PgRow, Error, PgExecutor, Row};
+use sqlx::{postgres::PgRow, types::Uuid, Error, PgExecutor, Row};
+
+#[derive(Debug)]
+pub struct InsertData<'a> {
+    pub title: &'a str,
+    pub image_url: Option<&'a str>,
+    pub is_default: bool,
+    pub user_id: &'a Uuid,
+}
+
+impl<'a> InsertData<'a> {
+    pub fn default_with_user(user_id: &'a Uuid) -> Self {
+        Self {
+            title: "Default",
+            image_url: None,
+            is_default: true,
+            user_id,
+        }
+    }
+}
+
+impl<'a> From<&'a ProfileCreateData> for InsertData<'a> {
+    fn from(value: &'a ProfileCreateData) -> Self {
+        Self {
+            title: &value.title,
+            image_url: value.image_url.as_deref(),
+            is_default: false,
+            user_id: &value.user_id,
+        }
+    }
+}
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
@@ -81,15 +111,14 @@ pub async fn insert(ex: impl PgExecutor<'_>, data: InsertData<'_>) -> Result<Pro
     let row = sqlx::query_as!(
         Profile,
         "
-   INSERT INTO profiles (id, title, image_url, is_default, user_id)
-   VALUES ($1, $2, $3, $4, $5)
+   INSERT INTO profiles (title, image_url, is_default, user_id)
+   VALUES ($1, $2, $3, $4)
 RETURNING id,
           title,
           image_url,
           user_id,
           created_at,
           updated_at",
-        data.id,
         data.title,
         data.image_url,
         data.is_default,
@@ -186,7 +215,7 @@ DELETE FROM profiles
 pub fn iterate<'a>(
     ex: impl PgExecutor<'a> + 'a,
     feed_id: i64,
-) -> impl Stream<Item = Result<String, Error>> + 'a {
+) -> impl Stream<Item = Result<Uuid, Error>> + 'a {
     sqlx::query(
         "
 SELECT p.id

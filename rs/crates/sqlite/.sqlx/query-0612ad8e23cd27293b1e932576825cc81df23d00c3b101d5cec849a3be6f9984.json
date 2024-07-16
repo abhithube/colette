@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "\n   UPDATE profiles\n      SET title = coalesce($3, title),\n          image_url = coalesce($4, image_url)\n    WHERE id = $1\n      AND user_id = $2\nRETURNING id,\n          title,\n          image_url,\n          user_id,\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
+  "query": "\nSELECT id AS \"id: uuid::Uuid\",\n       title,\n       image_url,\n       user_id AS \"user_id: uuid::Uuid\",\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM profiles\n WHERE id = $1\n   AND user_id = $2",
   "describe": {
     "columns": [
       {
-        "name": "id",
+        "name": "id: uuid::Uuid",
         "ordinal": 0,
         "type_info": "Text"
       },
@@ -19,7 +19,7 @@
         "type_info": "Text"
       },
       {
-        "name": "user_id",
+        "name": "user_id: uuid::Uuid",
         "ordinal": 3,
         "type_info": "Text"
       },
@@ -35,7 +35,7 @@
       }
     ],
     "parameters": {
-      "Right": 4
+      "Right": 2
     },
     "nullable": [
       false,
@@ -46,5 +46,5 @@
       false
     ]
   },
-  "hash": "447ea70b5bf6412c37015dc955ee13ec2b5445ac4c33df98824c71e9a6f2390b"
+  "hash": "0612ad8e23cd27293b1e932576825cc81df23d00c3b101d5cec849a3be6f9984"
 }

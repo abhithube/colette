@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
 
 #[derive(Debug)]
 pub struct Bookmark {
-    pub id: String,
+    pub id: Uuid,
     pub link: String,
     pub title: String,
     pub thumbnail_url: Option<String>,
@@ -16,7 +17,7 @@ pub struct Bookmark {
     pub custom_thumbnail_url: Option<String>,
     pub custom_published_at: Option<DateTime<Utc>>,
     pub custom_author: Option<String>,
-    pub collection_id: String,
+    pub collection_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -24,7 +25,7 @@ pub struct Bookmark {
 #[derive(Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
-    pub collection_id: Option<String>,
+    pub collection_id: Option<Uuid>,
     pub is_default: Option<bool>,
 }
 
@@ -66,7 +67,7 @@ impl BookmarksService {
         Ok(paginated)
     }
 
-    pub async fn delete(&self, id: String, session: Session) -> Result<(), Error> {
+    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         let params = FindOneParams {
             id,
             profile_id: session.profile_id,
@@ -78,17 +79,17 @@ impl BookmarksService {
 }
 
 pub struct BookmarkFindManyParams {
-    pub profile_id: String,
+    pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
     pub should_filter: bool,
-    pub collection_id: Option<String>,
+    pub collection_id: Option<Uuid>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
-    NotFound(String),
+    NotFound(Uuid),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
