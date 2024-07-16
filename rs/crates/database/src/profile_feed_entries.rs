@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::entries::EntryFindManyParams;
+use colette_core::entries::{EntryFindManyParams, EntryUpdateData};
 use uuid::Uuid;
 
 #[derive(Debug)]
@@ -26,4 +26,12 @@ impl<'a> From<&'a EntryFindManyParams> for SelectManyParams<'a> {
 #[derive(Debug)]
 pub struct UpdateData {
     pub has_read: Option<bool>,
+}
+
+impl<'a> From<&'a EntryUpdateData> for UpdateData {
+    fn from(value: &'a EntryUpdateData) -> Self {
+        Self {
+            has_read: value.has_read,
+        }
+    }
 }

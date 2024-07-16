@@ -1,5 +1,6 @@
 use colette_core::{
-    entries::{EntriesRepository, EntryFindManyParams, Error},
+    common::FindOneParams,
+    entries::{EntriesRepository, EntryFindManyParams, EntryUpdateData, Error},
     Entry,
 };
 use sqlx::SqlitePool;
@@ -24,5 +25,31 @@ impl EntriesRepository for EntriesSqliteRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(entries)
+    }
+
+    async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        queries::profile_feed_entries::update(&mut *tx, (&params).into(), (&data).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        let entry = queries::profile_feed_entries::select_by_id(&mut *tx, (&params).into())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(entry)
     }
 }

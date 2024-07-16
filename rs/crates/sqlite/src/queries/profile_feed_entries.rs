@@ -17,7 +17,7 @@ pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
     params: SelectManyParams<'_>,
 ) -> Result<Vec<Entry>, sqlx::Error> {
-    let row = sqlx::query_as!(
+    let rows = sqlx::query_as!(
         Entry,
         "
 SELECT pfe.id AS \"id: uuid::Uuid\",
@@ -49,6 +49,40 @@ SELECT pfe.id AS \"id: uuid::Uuid\",
         params.has_read
     )
     .fetch_all(ex)
+    .await?;
+
+    Ok(rows)
+}
+
+pub async fn select_by_id(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+) -> Result<Entry, sqlx::Error> {
+    let row = sqlx::query_as!(
+        Entry,
+        "
+SELECT pfe.id AS \"id: uuid::Uuid\",
+       e.link,
+       e.title,
+       e.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",
+       e.description,
+       e.author,
+       e.thumbnail_url,
+       pfe.has_read AS \"has_read: bool\",
+       pfe.profile_feed_id AS \"feed_id: uuid::Uuid\"
+  FROM profile_feed_entries AS pfe
+  JOIN profile_feeds AS pf
+    ON pf.id = pfe.profile_feed_id
+  JOIN feed_entries AS fe
+    ON fe.id = pfe.feed_entry_id
+  JOIN entries AS e
+    ON e.id = fe.entry_id
+ WHERE pfe.id = $1
+   AND pf.profile_id = $2",
+        params.id,
+        params.profile_id,
+    )
+    .fetch_one(ex)
     .await?;
 
     Ok(row)

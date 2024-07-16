@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{Paginated, Session, PAGINATION_LIMIT};
+use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
 
 #[derive(Debug)]
 pub struct Entry {
@@ -28,6 +28,8 @@ pub struct ListEntriesParams {
 #[async_trait::async_trait]
 pub trait EntriesRepository {
     async fn find_many(&self, params: EntryFindManyParams) -> Result<Vec<Entry>, Error>;
+
+    async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error>;
 }
 
 pub struct EntriesService {
@@ -67,6 +69,10 @@ pub struct EntryFindManyParams {
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
+    pub has_read: Option<bool>,
+}
+
+pub struct EntryUpdateData {
     pub has_read: Option<bool>,
 }
 
