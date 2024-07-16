@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::{
     extract::rejection::{JsonRejection, QueryRejection},
     http::StatusCode,
@@ -45,15 +43,9 @@ impl IntoResponse for Error {
 }
 
 #[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[schema(title = "Error")]
 pub struct BaseError {
     pub message: String,
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
-pub struct ValidationError {
-    pub code: String,
-    pub message: String,
-    pub params: HashMap<String, String>,
 }
 
 impl IntoResponse for BaseError {

@@ -11,9 +11,7 @@ use chrono::{DateTime, Utc};
 use colette_core::profiles::{self, ProfilesService};
 use uuid::Uuid;
 
-use crate::common::{
-    BaseError, Context, Error, Id, Paginated, ProfileList, Session, ValidationError,
-};
+use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -213,31 +211,21 @@ impl IntoResponse for GetActiveResponse {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
-#[serde(rename_all = "camelCase")]
-#[response(description = "Invalid input")]
-pub struct CreateValidationErrors {
-    title: Option<Vec<ValidationError>>,
-    image_url: Option<Vec<ValidationError>>,
-}
-
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created profile")]
     Created(Profile),
 
     #[allow(dead_code)]
-    #[response(status = 422)]
-    UnprocessableEntity(#[to_response] CreateValidationErrors),
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
-            }
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }

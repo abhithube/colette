@@ -11,9 +11,7 @@ use chrono::{DateTime, Utc};
 use colette_core::collections::{self, CollectionsService};
 use uuid::Uuid;
 
-use crate::common::{
-    BaseError, CollectionList, Context, Error, Id, Paginated, Session, ValidationError,
-};
+use crate::common::{BaseError, CollectionList, Context, Error, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -210,30 +208,21 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
-#[serde(rename_all = "camelCase")]
-#[response(description = "Invalid input")]
-pub struct CreateValidationErrors {
-    title: Option<Vec<ValidationError>>,
-}
-
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created collection")]
     Created(Collection),
 
     #[allow(dead_code)]
-    #[response(status = 422)]
-    UnprocessableEntity(#[to_response] CreateValidationErrors),
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
-            }
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }

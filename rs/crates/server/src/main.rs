@@ -93,7 +93,7 @@ struct Asset;
         (path = "/feeds", api = Feeds),
         (path = "/profiles", api = Profiles)
     ),
-    components(schemas(common::BaseError, common::ValidationError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
+    components(schemas(common::BaseError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
 )]
 struct ApiDoc;
 

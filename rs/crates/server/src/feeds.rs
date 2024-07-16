@@ -11,7 +11,7 @@ use chrono::{DateTime, Utc};
 use colette_core::feeds::{self, FeedsService};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session, ValidationError};
+use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -217,21 +217,14 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
-#[serde(rename_all = "camelCase")]
-#[response(description = "Invalid input")]
-pub struct CreateValidationErrors {
-    url: Option<Vec<ValidationError>>,
-}
-
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]
     Created(Feed),
 
     #[allow(dead_code)]
-    #[response(status = 422)]
-    UnprocessableEntity(#[to_response] CreateValidationErrors),
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 
     #[response(status = 502, description = "Failed to fetch or parse feed")]
     BadGateway(BaseError),
@@ -241,9 +234,7 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
-            }
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }

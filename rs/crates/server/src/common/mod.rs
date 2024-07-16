@@ -5,7 +5,7 @@ use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService, common,
     entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
 };
-pub use error::{BaseError, Error, ValidationError};
+pub use error::{BaseError, Error};
 pub use session::{Session, SESSION_KEY};
 use uuid::Uuid;
 

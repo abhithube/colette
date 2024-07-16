@@ -15,7 +15,7 @@ use colette_core::{
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Context, Error, Session, ValidationError, SESSION_KEY},
+    common::{BaseError, Context, Error, Session, SESSION_KEY},
     profiles::Profile,
 };
 
@@ -162,14 +162,6 @@ impl From<Login> for auth::Login {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
-#[serde(rename_all = "camelCase")]
-#[response(description = "Invalid input")]
-pub struct RegisterValidationErrors {
-    email: Option<Vec<ValidationError>>,
-    password: Option<Vec<ValidationError>>,
-}
-
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
@@ -179,8 +171,8 @@ pub enum RegisterResponse {
     Conflict(BaseError),
 
     #[allow(dead_code)]
-    #[response(status = 422)]
-    UnprocessableEntity(#[to_response] RegisterValidationErrors),
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for RegisterResponse {
@@ -188,19 +180,9 @@ impl IntoResponse for RegisterResponse {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, Json(..e)).into_response()
-            }
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
-}
-
-#[derive(Debug, serde::Serialize, utoipa::ToResponse)]
-#[serde(rename_all = "camelCase")]
-#[response(description = "Invalid input")]
-pub struct LoginValidationErrors {
-    email: Option<Vec<ValidationError>>,
-    password: Option<Vec<ValidationError>>,
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -212,8 +194,8 @@ pub enum LoginResponse {
     Unauthorized(BaseError),
 
     #[allow(dead_code)]
-    #[response(status = 422)]
-    UnprocessableEntity(#[to_response] LoginValidationErrors),
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for LoginResponse {
@@ -221,9 +203,7 @@ impl IntoResponse for LoginResponse {
         match self {
             Self::Ok(data) => Json(data).into_response(),
             Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
-            Self::UnprocessableEntity(e) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, Json(e)).into_response()
-            }
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }
