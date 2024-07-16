@@ -84,15 +84,15 @@ struct Asset;
 #[derive(utoipa::OpenApi)]
 #[openapi(
     servers(
-        (url = "http://localhost:8000")
+        (url = "http://localhost:8000/api/v1")
     ),
     nest(
-        (path = "/api/v1/auth", api = Auth),
-        (path = "/api/v1/bookmarks", api = Bookmarks),
-        (path = "/api/v1/collections", api = Collections),
-        (path = "/api/v1/entries", api = Entries),
-        (path = "/api/v1/feeds", api = Feeds),
-        (path = "/api/v1/profiles", api = Profiles)
+        (path = "/auth", api = Auth),
+        (path = "/bookmarks", api = Bookmarks),
+        (path = "/collections", api = Collections),
+        (path = "/entries", api = Entries),
+        (path = "/feeds", api = Feeds),
+        (path = "/profiles", api = Profiles)
     ),
     components(schemas(common::BaseError, common::ValidationError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
 )]
