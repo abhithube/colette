@@ -56,6 +56,43 @@ SELECT b.id AS \"id: uuid::Uuid\",
     Ok(rows)
 }
 
+pub async fn select_by_id(
+    ex: impl SqliteExecutor<'_>,
+    params: FindOneParams<'_>,
+) -> Result<Bookmark, sqlx::Error> {
+    let row = sqlx::query_as!(
+        Bookmark,
+        "
+SELECT b.id AS \"id: uuid::Uuid\",
+       b.link,
+       b.title,
+       b.thumbnail_url,
+       b.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",
+       b.author,
+       b.custom_title,
+       b.custom_thumbnail_url,
+       b.custom_published_at AS \"custom_published_at: chrono::DateTime<chrono::Utc>\",
+       b.custom_author,
+       CASE
+       WHEN c.is_default THEN NULL
+       ELSE b.collection_id
+       END AS \"collection_id!: uuid::Uuid\",
+       b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
+       b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
+  FROM bookmarks AS b
+  JOIN collections AS c
+    ON c.id = b.collection_id
+ WHERE b.id = $1
+   AND c.profile_id = $2",
+        params.id,
+        params.profile_id,
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(row)
+}
+
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
     params: FindOneParams<'_>,

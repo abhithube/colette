@@ -33,6 +33,12 @@ pub struct ListBookmarksParams {
 pub trait BookmarksRepository {
     async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error>;
 
+    async fn update(
+        &self,
+        params: FindOneParams,
+        data: BookmarkUpdateData,
+    ) -> Result<Bookmark, Error>;
+
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
@@ -84,6 +90,13 @@ pub struct BookmarkFindManyParams {
     pub published_at: Option<DateTime<Utc>>,
     pub should_filter: bool,
     pub collection_id: Option<Uuid>,
+}
+
+pub struct BookmarkUpdateData {
+    pub custom_title: Option<String>,
+    pub custom_thumbnail_url: Option<String>,
+    pub custom_published_at: Option<DateTime<Utc>>,
+    pub custom_author: Option<String>,
 }
 
 #[derive(Debug, thiserror::Error)]
