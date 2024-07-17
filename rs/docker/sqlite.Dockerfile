@@ -3,7 +3,7 @@ ARG TARGET="aarch64-unknown-linux-musl"
 FROM node AS frontend-build
 WORKDIR /app
 COPY package*.json .
-COPY packages/web ./packages/web
+COPY packages ./packages
 RUN npm ci
 RUN npm run build --workspace=@colette/web
 
@@ -12,14 +12,14 @@ WORKDIR /app
 RUN cargo install cargo-chef 
 
 FROM base AS prepare
-COPY . .
+COPY rs .
 RUN cargo chef prepare  --recipe-path recipe.json
 
 FROM base AS rust-build
 ARG TARGET
 COPY --from=prepare /app/recipe.json recipe.json
 RUN cargo chef cook --target $TARGET --release --recipe-path recipe.json
-COPY . .
+COPY rs .
 COPY --from=frontend-build /app/packages/web/dist ./packages/web/dist
 RUN cargo build --target $TARGET --release
 
