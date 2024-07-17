@@ -46,20 +46,21 @@ impl AuthService {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let data = UserCreateData {
-            email: data.email,
-            password: hashed,
-        };
-        let user = self.users_repo.create(data).await?;
+        let user = self
+            .users_repo
+            .create(UserCreateData {
+                email: data.email,
+                password: hashed,
+            })
+            .await?;
 
         Ok(user)
     }
 
     pub async fn login(&self, data: Login) -> Result<Profile, Error> {
-        let params = UserFindOneParams { email: data.email };
         let user = self
             .users_repo
-            .find_one(params)
+            .find_one(UserFindOneParams { email: data.email })
             .await
             .map_err(|e| match e {
                 users::Error::NotFound(_) => Error::NotAuthenticated,
@@ -75,8 +76,10 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        let params = ProfileFindOneParams::Default { user_id: user.id };
-        let profile = self.profiles_repo.find_one(params).await?;
+        let profile = self
+            .profiles_repo
+            .find_one(ProfileFindOneParams::Default { user_id: user.id })
+            .await?;
 
         Ok(profile)
     }

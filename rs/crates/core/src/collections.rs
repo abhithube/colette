@@ -20,6 +20,11 @@ pub struct CreateCollection {
     pub title: String,
 }
 
+#[derive(Clone, Debug)]
+pub struct UpdateCollection {
+    pub title: Option<String>,
+}
+
 #[async_trait::async_trait]
 pub trait CollectionsRepository {
     async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error>;
@@ -47,10 +52,12 @@ impl CollectionsService {
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Collection>, Error> {
-        let params = CollectionFindManyParams {
-            profile_id: session.profile_id,
-        };
-        let collections = self.repo.find_many(params).await?;
+        let collections = self
+            .repo
+            .find_many(CollectionFindManyParams {
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         let paginated = Paginated::<Collection> {
             has_more: false,
@@ -61,11 +68,13 @@ impl CollectionsService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Collection, Error> {
-        let params = FindOneParams {
-            id,
-            profile_id: session.profile_id,
-        };
-        let collection = self.repo.find_one(params).await?;
+        let collection = self
+            .repo
+            .find_one(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(collection)
     }
@@ -75,21 +84,44 @@ impl CollectionsService {
         data: CreateCollection,
         session: Session,
     ) -> Result<Collection, Error> {
-        let data = CollectionCreateData {
-            title: data.title,
-            profile_id: session.profile_id,
-        };
-        let collections = self.repo.create(data).await?;
+        let collections = self
+            .repo
+            .create(CollectionCreateData {
+                title: data.title,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(collections)
     }
 
+    pub async fn update(
+        &self,
+        id: Uuid,
+        data: UpdateCollection,
+        session: Session,
+    ) -> Result<Collection, Error> {
+        let collection = self
+            .repo
+            .update(
+                FindOneParams {
+                    id,
+                    profile_id: session.profile_id,
+                },
+                data.into(),
+            )
+            .await?;
+
+        Ok(collection)
+    }
+
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        let params = FindOneParams {
-            id,
-            profile_id: session.profile_id,
-        };
-        self.repo.delete(params).await?;
+        self.repo
+            .delete(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(())
     }
@@ -109,6 +141,12 @@ pub struct CollectionCreateData {
 #[derive(Clone, Debug)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
+}
+
+impl From<UpdateCollection> for CollectionUpdateData {
+    fn from(value: UpdateCollection) -> Self {
+        Self { title: value.title }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

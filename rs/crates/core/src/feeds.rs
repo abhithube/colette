@@ -27,6 +27,11 @@ pub struct CreateFeed {
 }
 
 #[derive(Clone, Debug)]
+pub struct UpdateFeed {
+    pub title: Option<String>,
+}
+
+#[derive(Clone, Debug)]
 pub struct ExtractorOptions {
     pub feed_link_expr: &'static [&'static str],
     pub feed_title_expr: &'static [&'static str],
@@ -104,10 +109,12 @@ impl FeedsService {
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
-        let params = FeedFindManyParams {
-            profile_id: session.profile_id,
-        };
-        let feeds = self.repo.find_many(params).await?;
+        let feeds = self
+            .repo
+            .find_many(FeedFindManyParams {
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         let paginated = Paginated::<Feed> {
             has_more: false,
@@ -118,11 +125,13 @@ impl FeedsService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
-        let params = FindOneParams {
-            id,
-            profile_id: session.profile_id,
-        };
-        let feed = self.repo.find_one(params).await?;
+        let feed = self
+            .repo
+            .find_one(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(feed)
     }
@@ -130,22 +139,45 @@ impl FeedsService {
     pub async fn create(&self, data: CreateFeed, session: Session) -> Result<Feed, Error> {
         let scraped = self.scraper.scrape(&data.url).await?;
 
-        let data = FeedCreateData {
-            url: data.url,
-            feed: scraped,
-            profile_id: session.profile_id,
-        };
-        let feed = self.repo.create(data).await?;
+        let feed = self
+            .repo
+            .create(FeedCreateData {
+                url: data.url,
+                feed: scraped,
+                profile_id: session.profile_id,
+            })
+            .await?;
+
+        Ok(feed)
+    }
+
+    pub async fn update(
+        &self,
+        id: Uuid,
+        data: UpdateFeed,
+        session: Session,
+    ) -> Result<Feed, Error> {
+        let feed = self
+            .repo
+            .update(
+                FindOneParams {
+                    id,
+                    profile_id: session.profile_id,
+                },
+                data.into(),
+            )
+            .await?;
 
         Ok(feed)
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        let params = FindOneParams {
-            id,
-            profile_id: session.profile_id,
-        };
-        self.repo.delete(params).await?;
+        self.repo
+            .delete(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(())
     }
@@ -166,6 +198,14 @@ pub struct FeedCreateData {
 #[derive(Clone, Debug)]
 pub struct FeedUpdateData {
     pub custom_title: Option<String>,
+}
+
+impl From<UpdateFeed> for FeedUpdateData {
+    fn from(value: UpdateFeed) -> Self {
+        Self {
+            custom_title: value.title,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

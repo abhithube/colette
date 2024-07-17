@@ -23,6 +23,14 @@ pub struct Bookmark {
 }
 
 #[derive(Clone, Debug)]
+pub struct UpdateBookmark {
+    pub title: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+}
+
+#[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
     pub collection_id: Option<Uuid>,
@@ -56,14 +64,17 @@ impl BookmarksService {
         params: ListBookmarksParams,
         session: Session,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let params = BookmarkFindManyParams {
-            profile_id: session.profile_id,
-            limit: (PAGINATION_LIMIT + 1) as i64,
-            published_at: params.published_at,
-            should_filter: params.collection_id.is_none() && params.is_default.is_some_and(|e| e),
-            collection_id: params.collection_id,
-        };
-        let bookmarks = self.repo.find_many(params).await?;
+        let bookmarks = self
+            .repo
+            .find_many(BookmarkFindManyParams {
+                profile_id: session.profile_id,
+                limit: (PAGINATION_LIMIT + 1) as i64,
+                published_at: params.published_at,
+                should_filter: params.collection_id.is_none()
+                    && params.is_default.is_some_and(|e| e),
+                collection_id: params.collection_id,
+            })
+            .await?;
 
         let paginated = Paginated::<Bookmark> {
             has_more: bookmarks.len() > PAGINATION_LIMIT,
@@ -73,12 +84,33 @@ impl BookmarksService {
         Ok(paginated)
     }
 
+    pub async fn update(
+        &self,
+        id: Uuid,
+        data: UpdateBookmark,
+        session: Session,
+    ) -> Result<Bookmark, Error> {
+        let bookmark = self
+            .repo
+            .update(
+                FindOneParams {
+                    id,
+                    profile_id: session.profile_id,
+                },
+                data.into(),
+            )
+            .await?;
+
+        Ok(bookmark)
+    }
+
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        let params = FindOneParams {
-            id,
-            profile_id: session.profile_id,
-        };
-        self.repo.delete(params).await?;
+        self.repo
+            .delete(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
 
         Ok(())
     }
@@ -99,6 +131,17 @@ pub struct BookmarkUpdateData {
     pub custom_thumbnail_url: Option<String>,
     pub custom_published_at: Option<DateTime<Utc>>,
     pub custom_author: Option<String>,
+}
+
+impl From<UpdateBookmark> for BookmarkUpdateData {
+    fn from(value: UpdateBookmark) -> Self {
+        Self {
+            custom_title: value.title,
+            custom_thumbnail_url: value.thumbnail_url,
+            custom_published_at: value.published_at,
+            custom_author: value.author,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -65,10 +65,12 @@ impl ProfilesService {
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
-        let params = ProfileFindManyParams {
-            user_id: session.user_id,
-        };
-        let profiles = self.repo.find_many(params).await?;
+        let profiles = self
+            .repo
+            .find_many(ProfileFindManyParams {
+                user_id: session.user_id,
+            })
+            .await?;
 
         let paginated = Paginated::<Profile> {
             has_more: false,
@@ -79,23 +81,24 @@ impl ProfilesService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
-        let params = ProfileFindByIdParams {
+        let params = ProfileFindOneParams::ById(ProfileFindByIdParams {
             id,
             user_id: session.user_id,
-        };
-        let params = ProfileFindOneParams::ById(params);
+        });
         let profile = self.repo.find_one(params).await?;
 
         Ok(profile)
     }
 
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
-        let data = ProfileCreateData {
-            title: data.title,
-            image_url: data.image_url,
-            user_id: session.user_id,
-        };
-        let profile = self.repo.create(data).await?;
+        let profile = self
+            .repo
+            .create(ProfileCreateData {
+                title: data.title,
+                image_url: data.image_url,
+                user_id: session.user_id,
+            })
+            .await?;
 
         Ok(profile)
     }
@@ -106,21 +109,27 @@ impl ProfilesService {
         data: UpdateProfile,
         session: Session,
     ) -> Result<Profile, Error> {
-        let params = ProfileFindByIdParams {
-            id,
-            user_id: session.user_id,
-        };
-        let profile = self.repo.update(params, data.into()).await?;
+        let profile = self
+            .repo
+            .update(
+                ProfileFindByIdParams {
+                    id,
+                    user_id: session.user_id,
+                },
+                data.into(),
+            )
+            .await?;
 
         Ok(profile)
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        let params = ProfileFindByIdParams {
-            id,
-            user_id: session.user_id,
-        };
-        self.repo.delete(params).await?;
+        self.repo
+            .delete(ProfileFindByIdParams {
+                id,
+                user_id: session.user_id,
+            })
+            .await?;
 
         Ok(())
     }

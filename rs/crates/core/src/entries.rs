@@ -19,6 +19,11 @@ pub struct Entry {
 }
 
 #[derive(Clone, Debug)]
+pub struct UpdateEntry {
+    pub has_read: Option<bool>,
+}
+
+#[derive(Clone, Debug)]
 pub struct ListEntriesParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
@@ -46,14 +51,16 @@ impl EntriesService {
         params: ListEntriesParams,
         session: Session,
     ) -> Result<Paginated<Entry>, Error> {
-        let params = EntryFindManyParams {
-            profile_id: session.profile_id,
-            limit: (PAGINATION_LIMIT + 1) as i64,
-            published_at: params.published_at,
-            feed_id: params.feed_id,
-            has_read: params.has_read,
-        };
-        let entries = self.repo.find_many(params).await?;
+        let entries = self
+            .repo
+            .find_many(EntryFindManyParams {
+                profile_id: session.profile_id,
+                limit: (PAGINATION_LIMIT + 1) as i64,
+                published_at: params.published_at,
+                feed_id: params.feed_id,
+                has_read: params.has_read,
+            })
+            .await?;
 
         let paginated = Paginated::<Entry> {
             has_more: entries.len() > PAGINATION_LIMIT,
@@ -61,6 +68,26 @@ impl EntriesService {
         };
 
         Ok(paginated)
+    }
+
+    pub async fn update(
+        &self,
+        id: Uuid,
+        data: UpdateEntry,
+        session: Session,
+    ) -> Result<Entry, Error> {
+        let entry = self
+            .repo
+            .update(
+                FindOneParams {
+                    id,
+                    profile_id: session.profile_id,
+                },
+                data.into(),
+            )
+            .await?;
+
+        Ok(entry)
     }
 }
 
@@ -76,6 +103,14 @@ pub struct EntryFindManyParams {
 #[derive(Clone, Debug)]
 pub struct EntryUpdateData {
     pub has_read: Option<bool>,
+}
+
+impl From<UpdateEntry> for EntryUpdateData {
+    fn from(value: UpdateEntry) -> Self {
+        Self {
+            has_read: value.has_read,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
