@@ -51,6 +51,8 @@ use profiles::Api as Profiles;
 use tokio::{net::TcpListener, sync::Semaphore};
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
+#[cfg(not(feature = "redis"))]
+use tower_sessions::session_store::ExpiredDeletion;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 #[cfg(feature = "redis")]
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
@@ -60,8 +62,6 @@ use tower_sessions_sqlx_store::PostgresStore;
 use tower_sessions_sqlx_store::SqliteStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
-#[cfg(not(feature = "redis"))]
-use {tokio::task, tower_sessions::session_store::ExpiredDeletion};
 
 mod auth;
 mod bookmarks;
@@ -131,10 +131,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let store = SqliteStore::new(pool.clone());
 
         let deletion_task = {
-            session_store.migrate().await?;
+            store.migrate().await?;
 
-            task::spawn(
-                session_store.continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+            tokio::task::spawn(
+                store
+                    .clone()
+                    .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
             )
         };
 
