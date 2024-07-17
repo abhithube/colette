@@ -49,12 +49,12 @@ impl Default for RssExtractorOptions {
             feed_link_expr: &["/rss/channel/link/text()"],
             feed_title_expr: &["/rss/channel/title/text()"],
             feed_entries_expr: &["/rss/channel/item"],
-            entry_link_expr: &["/link/text()"],
-            entry_title_expr: &["/title/text()"],
-            entry_published_expr: &["/pubDate/text()"],
-            entry_description_expr: &["/description/text()"],
-            entry_author_expr: &["./dc:creator/text()", "/author/text()"],
-            entry_thumbnail_expr: &["/enclosure[starts-with(@type, 'image/')]/@url"],
+            entry_link_expr: &["./link/text()"],
+            entry_title_expr: &["./title/text()"],
+            entry_published_expr: &["./pubDate/text()"],
+            entry_description_expr: &["./description/text()"],
+            entry_author_expr: &["./dc:creator/text()", "./author/text()"],
+            entry_thumbnail_expr: &["./enclosure[starts-with(@type, 'image/')]/@url"],
         })
     }
 }
