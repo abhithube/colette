@@ -1,7 +1,7 @@
 use colette_core::Feed;
 use colette_database::{
     profile_feeds::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
@@ -55,7 +55,7 @@ SELECT pf.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
@@ -154,7 +154,7 @@ UPDATE profile_feeds
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

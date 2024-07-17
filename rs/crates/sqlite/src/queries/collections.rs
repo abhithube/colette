@@ -1,7 +1,7 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{
     collections::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
@@ -55,7 +55,7 @@ SELECT c.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -135,7 +135,7 @@ UPDATE collections
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

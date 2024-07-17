@@ -3,7 +3,7 @@ use colette_core::{
     feeds::{Error, FeedCreateData, FeedFindManyParams, FeedUpdateData, FeedsRepository},
     Feed,
 };
-use colette_database::{feed_entries, profile_feeds::UpdateParams, FindOneParams};
+use colette_database::{feed_entries, profile_feeds::UpdateParams, SelectByIdParams};
 use futures::TryStreamExt;
 use sqlx::PgPool;
 
@@ -86,7 +86,7 @@ impl FeedsRepository for FeedsPostgresRepository {
 
         let feed = queries::profile_feeds::select_by_id(
             &mut *tx,
-            FindOneParams {
+            SelectByIdParams {
                 id: &profile_feed_id,
                 profile_id: &data.profile_id,
             },

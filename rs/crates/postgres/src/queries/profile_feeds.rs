@@ -1,7 +1,7 @@
 use colette_core::Feed;
 use colette_database::{
     profile_feeds::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::{types::Uuid, PgExecutor};
 
@@ -47,7 +47,7 @@ SELECT pf.id,
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
@@ -155,7 +155,10 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), sqlx::Error> {
+pub async fn delete(
+    ex: impl PgExecutor<'_>,
+    params: SelectByIdParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profile_feeds

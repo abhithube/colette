@@ -12,12 +12,12 @@ pub mod profiles;
 pub mod users;
 
 #[derive(Debug)]
-pub struct FindOneParams<'a> {
+pub struct SelectByIdParams<'a> {
     pub id: &'a Uuid,
     pub profile_id: &'a Uuid,
 }
 
-impl<'a> From<&'a common::FindOneParams> for FindOneParams<'a> {
+impl<'a> From<&'a common::FindOneParams> for SelectByIdParams<'a> {
     fn from(value: &'a common::FindOneParams) -> Self {
         Self {
             id: &value.id,

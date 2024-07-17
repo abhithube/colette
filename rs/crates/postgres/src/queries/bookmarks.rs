@@ -1,7 +1,7 @@
 use colette_core::Bookmark;
 use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::PgExecutor;
 
@@ -100,7 +100,10 @@ RETURNING b.id,
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), sqlx::Error> {
+pub async fn delete(
+    ex: impl PgExecutor<'_>,
+    params: SelectByIdParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM bookmarks AS b

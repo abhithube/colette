@@ -1,7 +1,7 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{
     collections::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::{types::Uuid, PgExecutor};
 
@@ -52,7 +52,7 @@ SELECT c.id,
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -148,7 +148,10 @@ SELECT c.id,
     Ok(row)
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: FindOneParams<'_>) -> Result<(), sqlx::Error> {
+pub async fn delete(
+    ex: impl PgExecutor<'_>,
+    params: SelectByIdParams<'_>,
+) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM collections

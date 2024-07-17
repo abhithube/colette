@@ -1,7 +1,7 @@
 use colette_core::Bookmark;
 use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
-    FindOneParams,
+    SelectByIdParams,
 };
 use sqlx::SqliteExecutor;
 
@@ -58,7 +58,7 @@ SELECT b.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<Bookmark, sqlx::Error> {
     let row = sqlx::query_as!(
         Bookmark,
@@ -127,7 +127,7 @@ UPDATE bookmarks AS b
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: FindOneParams<'_>,
+    params: SelectByIdParams<'_>,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
