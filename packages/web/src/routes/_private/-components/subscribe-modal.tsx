@@ -73,7 +73,7 @@ export function SubscribeModal({ close }: Props) {
 				onError: (error) => {
 					if (error instanceof UnprocessableContentError) {
 						form.setError('root', {
-							message: error.errors.url?.at(0)?.message,
+							message: error.message,
 						})
 					} else if (error instanceof BadGatewayError) {
 						form.setError('root', {

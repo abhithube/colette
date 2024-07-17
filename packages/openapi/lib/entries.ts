@@ -1,6 +1,6 @@
 import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
-import { BaseError } from './error'
+import { APIError } from './error'
 import type { operations } from './openapi'
 import type { EntryList, ListEntriesQuery } from './types'
 
@@ -18,7 +18,7 @@ export class EntriesAPI {
 			...options,
 		})
 		if (res.error) {
-			throw new BaseError('unknown error')
+			throw new APIError('unknown error')
 		}
 
 		return res.data

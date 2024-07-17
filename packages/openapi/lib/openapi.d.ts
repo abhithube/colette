@@ -217,6 +217,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** Error */
         BaseError: {
             message: string;
         };
@@ -350,13 +351,6 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
         };
-        ValidationError: {
-            code: string;
-            message: string;
-            params: {
-                [key: string]: string | undefined;
-            };
-        };
     };
     responses: never;
     parameters: never;
@@ -403,10 +397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        email?: components["schemas"]["ValidationError"][] | null;
-                        password?: components["schemas"]["ValidationError"][] | null;
-                    };
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -448,10 +439,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        email?: components["schemas"]["ValidationError"][] | null;
-                        password?: components["schemas"]["ValidationError"][] | null;
-                    };
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -557,9 +545,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        title?: components["schemas"]["ValidationError"][] | null;
-                    };
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -696,9 +682,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        url?: components["schemas"]["ValidationError"][] | null;
-                    };
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Failed to fetch or parse feed */
@@ -820,10 +804,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        title?: components["schemas"]["ValidationError"][] | null;
-                        imageUrl?: components["schemas"]["ValidationError"][] | null;
-                    };
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };

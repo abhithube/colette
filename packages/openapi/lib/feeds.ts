@@ -1,8 +1,8 @@
 import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
 import {
+	APIError,
 	BadGatewayError,
-	BaseError,
 	NotFoundError,
 	UnprocessableContentError,
 } from './error'
@@ -17,7 +17,7 @@ export class FeedsAPI {
 	): Promise<FeedList> {
 		const res = await this.client.GET('/feeds', options)
 		if (res.error) {
-			throw new BaseError('unknown error')
+			throw new APIError('unknown error')
 		}
 
 		return res.data
@@ -40,7 +40,7 @@ export class FeedsAPI {
 				throw new NotFoundError(res.error.message)
 			}
 
-			throw new BaseError(res.error.message)
+			throw new APIError(res.error.message)
 		}
 
 		return res.data
@@ -56,13 +56,13 @@ export class FeedsAPI {
 		})
 		if (res.error) {
 			if (res.response.status === 422) {
-				throw new UnprocessableContentError(res.error as any)
+				throw new UnprocessableContentError(res.error.message)
 			}
 			if (res.response.status === 502) {
 				throw new BadGatewayError(res.error.message)
 			}
 
-			throw new BaseError(res.error.message)
+			throw new APIError(res.error.message)
 		}
 
 		return res.data
@@ -85,7 +85,7 @@ export class FeedsAPI {
 				throw new NotFoundError(res.error.message)
 			}
 
-			throw new BaseError(res.error.message)
+			throw new APIError(res.error.message)
 		}
 	}
 }

@@ -66,9 +66,7 @@ export const LoginForm = () => {
 				})
 			} else if (error instanceof UnprocessableContentError) {
 				form.setError('root', {
-					message:
-						error.errors.email?.at(0)?.message ??
-						error.errors.password?.at(0)?.message,
+					message: error.message,
 				})
 			}
 		},

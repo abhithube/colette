@@ -1,7 +1,7 @@
 import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
 import {
-	BaseError,
+	APIError,
 	ConflictError,
 	NotFoundError,
 	UnprocessableContentError,
@@ -17,7 +17,7 @@ export class ProfilesAPI {
 	): Promise<ProfileList> {
 		const res = await this.client.GET('/profiles', options)
 		if (res.error) {
-			throw new BaseError('unknown error')
+			throw new APIError('unknown error')
 		}
 
 		return res.data
@@ -28,7 +28,7 @@ export class ProfilesAPI {
 	): Promise<Profile> {
 		const res = await this.client.GET('/profiles/@me', options)
 		if (res.error) {
-			throw new BaseError('unknown error')
+			throw new APIError('unknown error')
 		}
 
 		return res.data
@@ -44,10 +44,10 @@ export class ProfilesAPI {
 		})
 		if (res.error) {
 			if (res.response.status === 422) {
-				throw new UnprocessableContentError(res.error as any)
+				throw new UnprocessableContentError(res.error.message)
 			}
 
-			throw new BaseError('unknown error')
+			throw new APIError('unknown error')
 		}
 
 		return res.data
@@ -73,7 +73,7 @@ export class ProfilesAPI {
 				throw new ConflictError(res.error.message)
 			}
 
-			throw new BaseError(res.error.message)
+			throw new APIError(res.error.message)
 		}
 	}
 }

@@ -1,21 +1,11 @@
-import type { ValidationError } from './types'
+export class APIError extends Error {}
 
-export class BaseError extends Error {}
+export class UnauthorizedError extends APIError {}
 
-export class UnprocessableContentError extends Error {
-	errors: Record<string, ValidationError[]>
+export class NotFoundError extends APIError {}
 
-	constructor(errors: Record<string, ValidationError[]>) {
-		super()
+export class ConflictError extends APIError {}
 
-		this.errors = errors
-	}
-}
+export class UnprocessableContentError extends APIError {}
 
-export class UnauthorizedError extends BaseError {}
-
-export class NotFoundError extends BaseError {}
-
-export class ConflictError extends BaseError {}
-
-export class BadGatewayError extends BaseError {}
+export class BadGatewayError extends APIError {}

@@ -17,5 +17,3 @@ export type Login = schemas['Login']
 export type ListEntriesQuery = NonNullable<
 	operations['listEntries']['parameters']['query']
 >
-
-export type ValidationError = schemas['ValidationError']
