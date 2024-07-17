@@ -21,7 +21,10 @@ use colette_core::{
     entries::EntriesService,
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
     profiles::{ProfilesRepository, ProfilesService},
-    utils::{scraper::Scraper, task::Task},
+    utils::{
+        scraper::Scraper,
+        task::{self, Task},
+    },
 };
 use colette_password::Argon2Hasher;
 #[cfg(feature = "postgres")]
@@ -69,7 +72,7 @@ mod feeds;
 mod profiles;
 
 const DEFAULT_PORT: u32 = 8000;
-const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * * *";
+const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * *";
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../../../packages/web/dist"]
@@ -324,7 +327,7 @@ impl RefreshTask {
 
 #[async_trait::async_trait]
 impl Task for RefreshTask {
-    async fn run(&self) {
+    async fn run(&self) -> Result<(), task::Error> {
         let semaphore = Arc::new(Semaphore::new(5));
 
         let feeds_stream = self.feeds_repo.iterate();
@@ -344,5 +347,7 @@ impl Task for RefreshTask {
             .buffer_unordered(5);
 
         tasks.for_each(|_| async {}).await;
+
+        Ok(())
     }
 }
