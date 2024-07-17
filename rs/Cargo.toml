@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/config",
   "crates/core",
   "crates/database",
   "crates/password",
@@ -15,6 +16,7 @@ anyhow = "1.0.86"
 async-trait = "0.1.80"
 bytes = "1.6.0"
 chrono = { version = "0.4.38", features = ["serde"] }
+colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-database.path = "crates/database"
 colette-password.path = "crates/password"

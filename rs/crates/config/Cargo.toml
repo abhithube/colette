@@ -1,0 +1,8 @@
+[package]
+name = "colette-config"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+envy = "0.4.2"
+serde.workspace = true
