@@ -418,6 +418,7 @@ dependencies = [
  "axum-embed",
  "axum-valid",
  "chrono",
+ "colette-config",
  "colette-core",
  "colette-password",
  "colette-postgres",

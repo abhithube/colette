@@ -4,7 +4,7 @@ compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 
-use std::{collections::HashMap, env, error::Error, str::FromStr, sync::Arc};
+use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
 
 use auth::Api as Auth;
 use axum::{
@@ -71,9 +71,6 @@ mod entries;
 mod feeds;
 mod profiles;
 
-const DEFAULT_PORT: u32 = 8000;
-const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * *";
-
 const CRON_CLEANUP: &str = "0 0 * * * *";
 
 #[derive(Clone, rust_embed::Embed)]
@@ -99,21 +96,18 @@ struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let port = env::var("PORT")
-        .map(|e| e.parse::<u32>())
-        .unwrap_or(Ok(DEFAULT_PORT))?;
-    let database_url = env::var("DATABASE_URL")?;
-    let origin_urls = env::var("ORIGIN_URLS").ok();
-    let cron_refresh = env::var("CRON_REFRESH").unwrap_or(String::from(DEFAULT_CRON_REFRESH));
+    let config = colette_config::load_config()?;
 
     #[cfg(feature = "postgres")]
-    let pool = colette_postgres::create_database(&database_url).await?;
+    let pool = colette_postgres::create_database(&config.database_url).await?;
     #[cfg(feature = "sqlite")]
-    let pool = colette_sqlite::create_database(&database_url).await?;
+    let pool = colette_sqlite::create_database(&config.database_url).await?;
 
     #[cfg(feature = "redis")]
     let (session_store, cleanup) = {
-        let redis_url = env::var("REDIS_URL")?;
+        let Some(redis_url) = config.redis_url else {
+            panic!("\"REDIS_URL\" not set")
+        };
         let pool = RedisPool::new(RedisConfig::from_url(&redis_url)?, None, None, None, 1)?;
 
         let store = RedisStore::new(pool.clone());
@@ -196,27 +190,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(feed_postprocessor),
     ));
 
-    let schedule = Schedule::from_str(&cron_refresh)?;
     let scheduler = JobScheduler::new().await?;
 
-    {
-        let feed_scraper = feed_scraper.clone();
-        let feeds_repository = feeds_repository.clone();
-        let profiles_repository = profiles_repository.clone();
+    if config.refresh_enabled {
+        let schedule = Schedule::from_str(&config.cron_refresh)?;
 
-        scheduler
-            .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
-                let refresh_task = RefreshTask::new(
-                    feed_scraper.clone(),
-                    feeds_repository.clone(),
-                    profiles_repository.clone(),
-                );
+        {
+            let feed_scraper = feed_scraper.clone();
+            let feeds_repository = feeds_repository.clone();
+            let profiles_repository = profiles_repository.clone();
 
-                Box::pin(async move {
-                    let _ = refresh_task.run().await;
-                })
-            })?)
-            .await?;
+            scheduler
+                .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
+                    let refresh_task = RefreshTask::new(
+                        feed_scraper.clone(),
+                        feeds_repository.clone(),
+                        profiles_repository.clone(),
+                    );
+
+                    Box::pin(async move {
+                        let _ = refresh_task.run().await;
+                    })
+                })?)
+                .await?;
+        }
     }
 
     {
@@ -282,12 +279,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .with_expiry(Expiry::OnInactivity(Duration::days(1))),
         );
 
-    if let Some(origin_urls) = origin_urls {
-        let mut origins: Vec<HeaderValue> = vec![];
-        for part in origin_urls.split(",") {
-            let origin = part.parse::<HeaderValue>()?;
-            origins.push(origin);
-        }
+    if !config.origin_urls.is_empty() {
+        let origins: Vec<HeaderValue> = config
+            .origin_urls
+            .iter()
+            .filter_map(|e| e.parse::<HeaderValue>().ok())
+            .collect();
 
         app = app.layer(
             CorsLayer::new()
@@ -298,7 +295,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     }
 
-    let listener = TcpListener::bind(format!("0.0.0.0:{}", port)).await?;
+    let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     axum::serve(listener, app).await?;
 
     cleanup.await??;

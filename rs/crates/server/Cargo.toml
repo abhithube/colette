@@ -9,6 +9,7 @@ axum = { version = "0.7.5", features = ["macros"] }
 axum-embed = "0.1.0"
 axum-valid = { version = "0.18.0", features = ["422", "into_json"] }
 chrono.workspace = true
+colette-config.workspace = true
 colette-core.workspace = true
 colette-password.workspace = true
 colette-postgres = { workspace = true, optional = true }
