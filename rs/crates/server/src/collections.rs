@@ -15,8 +15,14 @@ use crate::common::{BaseError, CollectionList, Context, Error, Id, Paginated, Se
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_collections, get_collection, create_collection, delete_collection),
-    components(schemas(Collection, CreateCollection))
+    paths(
+        list_collections,
+        get_collection,
+        create_collection,
+        update_collection,
+        delete_collection
+    ),
+    components(schemas(Collection, CreateCollection, UpdateCollection))
 )]
 pub struct Api;
 
@@ -28,7 +34,9 @@ impl Api {
                 .route("/", routing::get(list_collections).post(create_collection))
                 .route(
                     "/:id",
-                    routing::get(get_collection).delete(delete_collection),
+                    routing::get(get_collection)
+                        .patch(update_collection)
+                        .delete(delete_collection),
                 ),
         )
     }
@@ -113,6 +121,39 @@ pub async fn create_collection(
 }
 
 #[utoipa::path(
+    patch,
+    path = "/{id}",
+    params(Id),
+    request_body = UpdateCollection,
+    responses(UpdateResponse),
+    operation_id = "updateCollection",
+    description = "Update a collection by ID",
+    tag = "Collections"
+)]
+#[axum::debug_handler]
+pub async fn update_collection(
+    State(service): State<Arc<CollectionsService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<UpdateCollection>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .update(id, body.into(), session.into())
+        .await
+        .map(Collection::from);
+
+    match result {
+        Ok(collection) => Ok(UpdateResponse::Ok(collection)),
+        Err(e) => match e {
+            collections::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[utoipa::path(
     delete,
     path = "/{id}",
     params(Id),
@@ -176,6 +217,20 @@ impl From<CreateCollection> for collections::CreateCollection {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateCollection {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+}
+
+impl From<UpdateCollection> for collections::UpdateCollection {
+    fn from(value: UpdateCollection) -> Self {
+        Self { title: value.title }
+    }
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of collections")]
@@ -222,6 +277,29 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated collection")]
+    Ok(Collection),
+
+    #[response(status = 404, description = "Collection not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }

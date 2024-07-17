@@ -14,7 +14,10 @@ use uuid::Uuid;
 use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
-#[openapi(paths(list_bookmarks, delete_bookmark), components(schemas(Bookmark)))]
+#[openapi(
+    paths(list_bookmarks, update_bookmark, delete_bookmark),
+    components(schemas(Bookmark, UpdateBookmark))
+)]
 pub struct Api;
 
 impl Api {
@@ -23,7 +26,10 @@ impl Api {
             "/bookmarks",
             Router::new()
                 .route("/", routing::get(list_bookmarks))
-                .route("/:id", routing::delete(delete_bookmark)),
+                .route(
+                    "/:id",
+                    routing::patch(update_bookmark).delete(delete_bookmark),
+                ),
         )
     }
 }
@@ -51,6 +57,39 @@ pub async fn list_bookmarks(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+    patch,
+    path = "/{id}",
+    params(Id),
+    request_body = UpdateBookmark,
+    responses(UpdateResponse),
+    operation_id = "updateBookmark",
+    description = "Update a bookmark by ID",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn update_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<UpdateBookmark>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .update(id, body.into(), session.into())
+        .await
+        .map(Bookmark::from);
+
+    match result {
+        Ok(bookmark) => Ok(UpdateResponse::Ok(Box::new(bookmark))),
+        Err(e) => match e {
+            bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
     }
 }
 
@@ -89,27 +128,63 @@ pub struct Bookmark {
     #[schema(format = "uri")]
     pub link: String,
     pub title: String,
-    #[schema(format = "uri")]
+    #[schema(format = "uri", required)]
     pub thumbnail_url: Option<String>,
+    #[schema(required)]
     pub published_at: Option<DateTime<Utc>>,
+    #[schema(required)]
     pub author: Option<String>,
+    #[schema(required)]
     pub custom_title: Option<String>,
-    #[schema(format = "uri")]
+    #[schema(format = "uri", required)]
     pub custom_thumbnail_url: Option<String>,
+    #[schema(required)]
     pub custom_published_at: Option<DateTime<Utc>>,
+    #[schema(required)]
     pub custom_author: Option<String>,
+    #[schema(required)]
     pub collection_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateBookmark {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+    #[schema(format = "uri", nullable = false)]
+    #[validate(url(message = "not a valid URL"))]
+    pub thumbnail_url: Option<String>,
+    #[schema(nullable = false)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub author: Option<String>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
+    #[param(nullable = false)]
     pub published_at: Option<DateTime<Utc>>,
+    #[param(nullable = false)]
     pub collection_id: Option<Uuid>,
+    #[param(nullable = false)]
     pub is_default: Option<bool>,
+}
+
+impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
+    fn from(value: UpdateBookmark) -> Self {
+        Self {
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+        }
+    }
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
@@ -152,6 +227,29 @@ impl IntoResponse for ListResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated bookmark")]
+    Ok(Box<Bookmark>),
+
+    #[response(status = 404, description = "Bookmark not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }

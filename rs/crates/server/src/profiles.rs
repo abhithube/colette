@@ -15,8 +15,14 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Sessi
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_profiles, get_active_profile, create_profile, delete_profile),
-    components(schemas(Profile, CreateProfile))
+    paths(
+        list_profiles,
+        get_active_profile,
+        create_profile,
+        update_profile,
+        delete_profile
+    ),
+    components(schemas(Profile, CreateProfile, UpdateProfile))
 )]
 pub struct Api;
 
@@ -27,7 +33,10 @@ impl Api {
             Router::new()
                 .route("/", routing::get(list_profiles).post(create_profile))
                 .route("/@me", routing::get(get_active_profile))
-                .route("/:id", routing::delete(delete_profile)),
+                .route(
+                    "/:id",
+                    routing::patch(update_profile).delete(delete_profile),
+                ),
         )
     }
 }
@@ -107,6 +116,39 @@ pub async fn create_profile(
 }
 
 #[utoipa::path(
+    patch,
+    path = "/{id}",
+    params(Id),
+    request_body = UpdateProfile,
+    responses(UpdateResponse),
+    operation_id = "updateProfile",
+    description = "Update a profile by ID",
+    tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn update_profile(
+    State(service): State<Arc<ProfilesService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<UpdateProfile>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .update(id, body.into(), session.into())
+        .await
+        .map(Profile::from);
+
+    match result {
+        Ok(collection) => Ok(UpdateResponse::Ok(collection)),
+        Err(e) => match e {
+            profiles::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[utoipa::path(
     delete,
     path = "/{id}",
     params(Id),
@@ -142,7 +184,7 @@ pub async fn delete_profile(
 pub struct Profile {
     pub id: Uuid,
     pub title: String,
-    #[schema(format = "uri")]
+    #[schema(format = "uri", required)]
     pub image_url: Option<String>,
     pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
@@ -172,6 +214,27 @@ pub struct CreateProfile {
     #[schema(nullable = false)]
     #[validate(url(message = "not a valid URL"))]
     pub image_url: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateProfile {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+
+    #[schema(nullable = false)]
+    #[validate(url(message = "not a valid URL"))]
+    pub image_url: Option<String>,
+}
+
+impl From<UpdateProfile> for profiles::UpdateProfile {
+    fn from(value: UpdateProfile) -> Self {
+        Self {
+            title: value.title,
+            image_url: value.image_url,
+        }
+    }
 }
 
 impl From<CreateProfile> for profiles::CreateProfile {
@@ -225,6 +288,29 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated profile")]
+    Ok(Profile),
+
+    #[response(status = 404, description = "Profile not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
