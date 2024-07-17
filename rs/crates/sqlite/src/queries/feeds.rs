@@ -37,3 +37,19 @@ SELECT id,
     .map(|e: SqliteRow| (e.get(0), e.get(1)))
     .fetch(ex)
 }
+
+pub async fn cleanup(ex: impl SqliteExecutor<'_>) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "
+DELETE FROM feeds AS f
+ WHERE NOT EXISTS (
+       SELECT 1
+         FROM profile_feeds AS pf
+        WHERE pf.feed_id = f.id
+ )"
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
+}

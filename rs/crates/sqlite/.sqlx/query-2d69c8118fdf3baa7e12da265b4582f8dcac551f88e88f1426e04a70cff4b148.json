@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nDELETE FROM feeds AS f\n WHERE NOT EXISTS (\n       SELECT 1\n         FROM profile_feeds AS pf\n        WHERE pf.feed_id = f.id\n )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "2d69c8118fdf3baa7e12da265b4582f8dcac551f88e88f1426e04a70cff4b148"
+}

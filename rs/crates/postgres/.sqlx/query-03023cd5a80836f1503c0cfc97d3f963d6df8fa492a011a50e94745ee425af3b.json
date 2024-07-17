@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM feed_entries AS fe\n WHERE NOT EXISTS (\n       SELECT 1\n         FROM profile_feed_entries AS pfe\n        WHERE pfe.feed_entry_id = fe.id\n )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "03023cd5a80836f1503c0cfc97d3f963d6df8fa492a011a50e94745ee425af3b"
+}

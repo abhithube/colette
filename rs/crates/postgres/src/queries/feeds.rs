@@ -36,3 +36,19 @@ SELECT id,
         .fetch(ex),
     )
 }
+
+pub async fn cleanup(ex: impl PgExecutor<'_>) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "
+DELETE FROM feeds AS f
+ WHERE NOT EXISTS (
+       SELECT 1
+         FROM profile_feeds AS pf
+        WHERE pf.feed_id = f.id
+ )"
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
+}

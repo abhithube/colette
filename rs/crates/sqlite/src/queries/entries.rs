@@ -29,3 +29,19 @@ RETURNING id",
 
     Ok(row.id)
 }
+
+pub async fn cleanup(ex: impl SqliteExecutor<'_>) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "
+DELETE FROM entries AS e
+ WHERE NOT EXISTS (
+       SELECT 1
+         FROM feed_entries AS fe
+        WHERE fe.entry_id = e.id
+ )"
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
+}
