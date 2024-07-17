@@ -74,6 +74,8 @@ mod profiles;
 const DEFAULT_PORT: u32 = 8000;
 const DEFAULT_CRON_REFRESH: &str = "0 */15 * * * *";
 
+const CRON_CLEANUP: &str = "0 0 * * * *";
+
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../../../packages/web/dist"]
 struct Asset;
@@ -201,7 +203,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let profiles_repository = profiles_repository.clone();
 
         scheduler
-            .add(Job::new_async(schedule, move |_id, _scheduler| {
+            .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
                 let refresh_task = RefreshTask::new(
                     feed_scraper.clone(),
                     feeds_repository.clone(),
@@ -210,6 +212,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                 Box::pin(async move {
                     let _ = refresh_task.run().await;
+                })
+            })?)
+            .await?;
+    }
+
+    {
+        let feeds_repository = feeds_repository.clone();
+
+        scheduler
+            .add(Job::new_async(CRON_CLEANUP, move |_id, _scheduler| {
+                let cleanup_task = CleanupTask::new(feeds_repository.clone());
+
+                Box::pin(async move {
+                    let _ = cleanup_task.run().await;
                 })
             })?)
             .await?;
@@ -347,6 +363,28 @@ impl Task for RefreshTask {
             .buffer_unordered(5);
 
         tasks.for_each(|_| async {}).await;
+
+        Ok(())
+    }
+}
+
+pub struct CleanupTask {
+    repo: Arc<dyn FeedsRepository + Send + Sync>,
+}
+
+impl CleanupTask {
+    pub fn new(repo: Arc<dyn FeedsRepository + Send + Sync>) -> Self {
+        Self { repo }
+    }
+}
+
+#[async_trait::async_trait]
+impl Task for CleanupTask {
+    async fn run(&self) -> Result<(), task::Error> {
+        self.repo
+            .cleanup()
+            .await
+            .map_err(|e| task::Error(e.into()))?;
 
         Ok(())
     }
