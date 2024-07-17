@@ -25,7 +25,7 @@ SELECT b.id,
        CASE
        WHEN c.is_default THEN NULL
        ELSE b.collection_id
-       END AS \"collection_id!\",
+       END AS collection_id,
        b.created_at,
        b.updated_at
   FROM bookmarks AS b
@@ -84,7 +84,7 @@ RETURNING b.id,
           CASE
           WHEN c.is_default THEN NULL
           ELSE b.collection_id
-          END AS \"collection_id!\",
+          END AS collection_id,
           b.created_at,
           b.updated_at",
         params.id,

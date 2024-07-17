@@ -25,7 +25,7 @@ SELECT b.id AS \"id: uuid::Uuid\",
        CASE
        WHEN c.is_default THEN NULL
        ELSE b.collection_id
-       END AS \"collection_id!: uuid::Uuid\",
+       END AS \"collection_id: uuid::Uuid\",
        b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM bookmarks AS b
@@ -76,7 +76,7 @@ SELECT b.id AS \"id: uuid::Uuid\",
        CASE
        WHEN c.is_default THEN NULL
        ELSE b.collection_id
-       END AS \"collection_id!: uuid::Uuid\",
+       END AS \"collection_id: uuid::Uuid\",
        b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",
        b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"
   FROM bookmarks AS b

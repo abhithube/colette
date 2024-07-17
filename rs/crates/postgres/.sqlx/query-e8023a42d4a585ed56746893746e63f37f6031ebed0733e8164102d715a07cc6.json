@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n   UPDATE bookmarks AS b\n      SET custom_title = coalesce($3, custom_title),\n          custom_thumbnail_url = coalesce($4, custom_thumbnail_url),\n          custom_published_at = coalesce($5, custom_published_at),\n          custom_author = coalesce($6, custom_author)\n     FROM collections AS c\n    WHERE b.id = $1\n      AND c.profile_id = $2\nRETURNING b.id,\n          b.link,\n          b.title,\n          b.thumbnail_url,\n          b.published_at,\n          b.author,\n          b.custom_title,\n          b.custom_thumbnail_url,\n          b.custom_published_at,\n          b.custom_author,\n          CASE\n          WHEN c.is_default THEN NULL\n          ELSE b.collection_id\n          END AS \"collection_id!\",\n          b.created_at,\n          b.updated_at",
+  "query": "\n   UPDATE bookmarks AS b\n      SET custom_title = coalesce($3, custom_title),\n          custom_thumbnail_url = coalesce($4, custom_thumbnail_url),\n          custom_published_at = coalesce($5, custom_published_at),\n          custom_author = coalesce($6, custom_author)\n     FROM collections AS c\n    WHERE b.id = $1\n      AND c.profile_id = $2\nRETURNING b.id,\n          b.link,\n          b.title,\n          b.thumbnail_url,\n          b.published_at,\n          b.author,\n          b.custom_title,\n          b.custom_thumbnail_url,\n          b.custom_published_at,\n          b.custom_author,\n          CASE\n          WHEN c.is_default THEN NULL\n          ELSE b.collection_id\n          END AS collection_id,\n          b.created_at,\n          b.updated_at",
   "describe": {
     "columns": [
       {
@@ -55,7 +55,7 @@
       },
       {
         "ordinal": 10,
-        "name": "collection_id!",
+        "name": "collection_id",
         "type_info": "Uuid"
       },
       {
@@ -95,5 +95,5 @@
       false
     ]
   },
-  "hash": "ac8a9bf6effd3fe0c6258c0d444372abf6b6fb89e31b37cb14de60f9bd45e501"
+  "hash": "e8023a42d4a585ed56746893746e63f37f6031ebed0733e8164102d715a07cc6"
 }

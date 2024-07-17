@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "\nSELECT b.id AS \"id: uuid::Uuid\",\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at AS \"custom_published_at: chrono::DateTime<chrono::Utc>\",\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS \"collection_id!: uuid::Uuid\",\n       b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE b.id = $1\n   AND c.profile_id = $2",
+  "query": "\nSELECT b.id AS \"id: uuid::Uuid\",\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at AS \"published_at: chrono::DateTime<chrono::Utc>\",\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at AS \"custom_published_at: chrono::DateTime<chrono::Utc>\",\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS \"collection_id: uuid::Uuid\",\n       b.created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       b.updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE b.id = $1\n   AND c.profile_id = $2",
   "describe": {
     "columns": [
       {
@@ -54,7 +54,7 @@
         "type_info": "Text"
       },
       {
-        "name": "collection_id!: uuid::Uuid",
+        "name": "collection_id: uuid::Uuid",
         "ordinal": 10,
         "type_info": "Text"
       },
@@ -88,5 +88,5 @@
       false
     ]
   },
-  "hash": "bb0620f841919d9e106f63215adc8f3324278ad15cb3736609314af82aa630e1"
+  "hash": "2d10af7803075a0530cee47d12a156226860d39270fae6f27739de31e6edb40b"
 }

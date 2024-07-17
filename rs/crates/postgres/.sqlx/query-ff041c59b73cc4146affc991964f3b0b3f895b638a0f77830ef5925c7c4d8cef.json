@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\nSELECT b.id,\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at,\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at,\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS \"collection_id!\",\n       b.created_at,\n       b.updated_at\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE c.profile_id = $1\n   AND ($3::timestamptz IS NULL OR b.published_at < $3)\n   AND CASE\n       WHEN $4::boolean THEN (\n            CASE\n            WHEN $5::uuid IS NULL THEN c.is_default\n            ELSE b.collection_id = $5\n            END\n       )\n       ELSE TRUE\n       END\n ORDER BY b.custom_published_at DESC, b.published_at DESC, b.custom_title ASC, b.title ASC\n LIMIT $2",
+  "query": "\nSELECT b.id,\n       b.link,\n       b.title,\n       b.thumbnail_url,\n       b.published_at,\n       b.author,\n       b.custom_title,\n       b.custom_thumbnail_url,\n       b.custom_published_at,\n       b.custom_author,\n       CASE\n       WHEN c.is_default THEN NULL\n       ELSE b.collection_id\n       END AS collection_id,\n       b.created_at,\n       b.updated_at\n  FROM bookmarks AS b\n  JOIN collections AS c\n    ON c.id = b.collection_id\n WHERE c.profile_id = $1\n   AND ($3::timestamptz IS NULL OR b.published_at < $3)\n   AND CASE\n       WHEN $4::boolean THEN (\n            CASE\n            WHEN $5::uuid IS NULL THEN c.is_default\n            ELSE b.collection_id = $5\n            END\n       )\n       ELSE TRUE\n       END\n ORDER BY b.custom_published_at DESC, b.published_at DESC, b.custom_title ASC, b.title ASC\n LIMIT $2",
   "describe": {
     "columns": [
       {
@@ -55,7 +55,7 @@
       },
       {
         "ordinal": 10,
-        "name": "collection_id!",
+        "name": "collection_id",
         "type_info": "Uuid"
       },
       {
@@ -94,5 +94,5 @@
       false
     ]
   },
-  "hash": "e5c8c219bcb19d2477588711883c44eb7ffd235f78d171abbed0cbe6d360a669"
+  "hash": "ff041c59b73cc4146affc991964f3b0b3f895b638a0f77830ef5925c7c4d8cef"
 }
