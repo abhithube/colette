@@ -1,106 +1,85 @@
+use anyhow::anyhow;
 use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions},
     utils::scraper::{ExtractError, Extractor},
 };
-use skyscraper::{
-    html,
-    xpath::{
-        self,
-        grammar::{data_model::XpathItem, XpathItemTreeNode},
-        query,
-        xpath_item_set::XpathItemSet,
-        XpathItemTree,
-    },
-};
+use libxml::{parser::Parser, tree::Node, xpath::Context};
 
 pub struct DefaultFeedExtractor {
     pub options: ExtractorOptions,
 }
 
+trait Xpath {
+    fn find_first_content(&mut self, exprs: &'static [&str], node: Option<&Node>)
+        -> Option<String>;
+
+    fn find_nodes(&mut self, exprs: &'static [&str], node: Option<&Node>) -> Vec<Node>;
+}
+
+impl Xpath for Context {
+    fn find_first_content(
+        &mut self,
+        exprs: &'static [&str],
+        node: Option<&Node>,
+    ) -> Option<String> {
+        exprs
+            .iter()
+            .find_map(|expr| self.findvalue(expr, node).ok())
+    }
+
+    fn find_nodes(&mut self, exprs: &'static [&str], node: Option<&Node>) -> Vec<Node> {
+        exprs
+            .iter()
+            .find_map(|expr| self.findnodes(expr, node).ok())
+            .unwrap_or(vec![])
+    }
+}
+
 impl Extractor<ExtractedFeed> for DefaultFeedExtractor {
     fn extract(&self, url: &str, raw: &str) -> Result<ExtractedFeed, ExtractError> {
-        let document = html::parse(raw).map_err(|e| ExtractError(e.into()))?;
-        let tree = XpathItemTree::from(&document);
+        let document = Parser::default()
+            .parse_string(raw)
+            .map_err(|e| ExtractError(e.into()))?;
 
-        let mut entries: Vec<ExtractedEntry> = vec![];
+        let mut context = Context::new(&document)
+            .map_err(|_| ExtractError(anyhow!("couldn't create xpath context from document")))?;
 
-        if let Some(set) = self
-            .options
-            .feed_entries_expr
+        context
+            .register_namespace("atom", "http://www.w3.org/2005/Atom")
+            .map_err(|_| ExtractError(anyhow!("couldn't register namespace")))?;
+
+        context
+            .register_namespace("media", "http://search.yahoo.com/mrss/")
+            .map_err(|_| ExtractError(anyhow!("couldn't register namespace")))?;
+
+        context
+            .register_namespace("dc", "http://purl.org/dc/elements/1.1/")
+            .map_err(|_| ExtractError(anyhow!("couldn't register namespace")))?;
+
+        let entries: Vec<ExtractedEntry> = context
+            .find_nodes(self.options.feed_entries_expr, None)
             .iter()
-            .find_map(|expr| query::find(&tree, expr).ok())
-        {
-            for item in set.into_iter() {
-                let entry = ExtractedEntry {
-                    link: find_text_from_item(&tree, item.clone(), self.options.entry_link_expr),
-                    title: find_text_from_item(&tree, item.clone(), self.options.entry_title_expr),
-                    published: find_text_from_item(
-                        &tree,
-                        item.clone(),
-                        self.options.entry_published_expr,
-                    ),
-                    description: find_text_from_item(
-                        &tree,
-                        item.clone(),
-                        self.options.entry_description_expr,
-                    ),
-                    author: find_text_from_item(
-                        &tree,
-                        item.clone(),
-                        self.options.entry_author_expr,
-                    ),
-                    thumbnail: find_text_from_item(
-                        &tree,
-                        item.clone(),
-                        self.options.entry_thumbnail_expr,
-                    ),
-                };
-
-                entries.push(entry);
-            }
-        }
+            .map(|node| ExtractedEntry {
+                link: context.find_first_content(self.options.entry_link_expr, Some(node)),
+                title: context.find_first_content(self.options.entry_title_expr, Some(node)),
+                published: context
+                    .find_first_content(self.options.entry_published_expr, Some(node)),
+                description: context
+                    .find_first_content(self.options.entry_description_expr, Some(node)),
+                author: context.find_first_content(self.options.entry_author_expr, Some(node)),
+                thumbnail: context
+                    .find_first_content(self.options.entry_thumbnail_expr, Some(node)),
+            })
+            .collect();
 
         let feed = ExtractedFeed {
-            link: find_text_from_tree(&tree, self.options.feed_link_expr).or(Some(url.to_owned())),
-            title: find_text_from_tree(&tree, self.options.feed_title_expr),
+            link: context
+                .find_first_content(self.options.feed_link_expr, None)
+                .or(Some(url.to_owned())),
+            title: context.find_first_content(self.options.feed_title_expr, None),
             entries,
         };
 
         Ok(feed)
     }
-}
-
-fn extract_text(node: &XpathItemTreeNode) -> Option<String> {
-    match node {
-        XpathItemTreeNode::TextNode(text) => Some(text.content.clone()),
-        XpathItemTreeNode::AttributeNode(attr) => Some(attr.value.clone()),
-        _ => None,
-    }
-}
-
-fn handle_result_set(set: XpathItemSet) -> Option<String> {
-    set.into_iter()
-        .next()
-        .and_then(|e| e.as_node().ok().cloned())
-        .and_then(extract_text)
-}
-
-fn find_text_from_tree(tree: &XpathItemTree, exprs: &'static [&str]) -> Option<String> {
-    exprs
-        .iter()
-        .find_map(|expr| query::find(tree, expr).ok().and_then(handle_result_set))
-}
-
-fn find_text_from_item(
-    tree: &XpathItemTree,
-    item: XpathItem,
-    exprs: &'static [&str],
-) -> Option<String> {
-    exprs.iter().find_map(|expr| {
-        xpath::parse(expr).ok().and_then(|e| {
-            e.apply_to_item(tree, item.clone())
-                .ok()
-                .and_then(handle_result_set)
-        })
-    })
 }

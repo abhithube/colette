@@ -10,6 +10,6 @@ bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 http.workspace = true
+libxml = "0.3.3"
 reqwest = "0.12.5"
-skyscraper = "0.7.0-beta.2"
 url.workspace = true

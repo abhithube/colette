@@ -11,22 +11,22 @@ impl AtomExtractorOptions {
 impl Default for AtomExtractorOptions {
     fn default() -> Self {
         Self(ExtractorOptions {
-            feed_link_expr: &["//feed/link[@rel='alternate']/@href"],
-            feed_title_expr: &["//feed/title/text()"],
-            feed_entries_expr: &["//feed/entry"],
-            entry_link_expr: &["./link/@href"],
+            feed_link_expr: &["//atom:feed/atom:link[@rel='alternate']/@href"],
+            feed_title_expr: &["//atom:feed/atom:title/text()"],
+            feed_entries_expr: &["//atom:feed/atom:entry"],
+            entry_link_expr: &["./atom:link/@href"],
             entry_title_expr: &[
+                "./atom:title/text()",
                 "./media:group/media:title/text()",
                 "./media:title/text()",
-                "./title/text()",
             ],
-            entry_published_expr: &["./published/text()"],
+            entry_published_expr: &["./atom:published/text()"],
             entry_description_expr: &[
+                "./atom:content/text()",
                 "./media:group/media:description/text()",
                 "./media:description/text()",
-                "./content/text()",
             ],
-            entry_author_expr: &["./author/name/text()"],
+            entry_author_expr: &["./atom:author/atom:name/text()"],
             entry_thumbnail_expr: &[
                 "./media:group/media:thumbnail/@url",
                 "./media:thumbnail/@url",
