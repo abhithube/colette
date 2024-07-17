@@ -6,6 +6,8 @@ use colette_core::{
 };
 use url::Url;
 
+const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
+
 pub struct DefaultFeedPostprocessor {}
 
 impl Postprocessor<ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
@@ -30,10 +32,13 @@ impl Postprocessor<ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
             let Some(title) = e.title else {
                 return Err(PostprocessError(anyhow!("could not process entry title")));
             };
-            let published = e
-                .published
-                .as_ref()
-                .and_then(|e| DateTime::parse_from_rfc3339(e).ok().map(|f| f.to_utc()));
+            let published = e.published.as_ref().and_then(|e| {
+                DateTime::parse_from_rfc3339(e)
+                    .ok()
+                    .or(DateTime::parse_from_rfc2822(e).ok())
+                    .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
+                    .map(|f| f.to_utc())
+            });
             let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e).ok());
 
             let entry = ProcessedEntry {
