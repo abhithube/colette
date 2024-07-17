@@ -1,7 +1,7 @@
 use colette_core::profiles::{ProfileFindByIdParams, ProfileFindManyParams};
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectManyParams<'a> {
     pub user_id: &'a Uuid,
 }
@@ -14,7 +14,7 @@ impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectByIdParams<'a> {
     pub id: &'a Uuid,
     pub user_id: &'a Uuid,
@@ -29,12 +29,12 @@ impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectDefaultParams<'a> {
     pub user_id: &'a Uuid,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct UpdateParams<'a> {
     pub id: &'a Uuid,
     pub user_id: &'a Uuid,

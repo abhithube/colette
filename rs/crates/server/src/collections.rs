@@ -140,7 +140,7 @@ pub async fn delete_collection(
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Collection {
     pub id: Uuid,
@@ -162,7 +162,7 @@ impl From<colette_core::Collection> for Collection {
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateCollection {
     #[schema(min_length = 1)]

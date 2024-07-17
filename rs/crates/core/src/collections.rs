@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
@@ -15,7 +15,7 @@ pub struct Collection {
     pub bookmark_count: Option<i64>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CreateCollection {
     pub title: String,
 }
@@ -95,15 +95,18 @@ impl CollectionsService {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct CollectionFindManyParams {
     pub profile_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct CollectionCreateData {
     pub title: String,
     pub profile_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
 }

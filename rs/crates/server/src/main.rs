@@ -235,7 +235,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     scheduler.start().await?;
 
-    let argon_hasher = Arc::new(Argon2Hasher::default());
+    let argon_hasher = Arc::new(Argon2Hasher {});
 
     let auth_service =
         AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);

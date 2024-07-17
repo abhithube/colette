@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
@@ -22,7 +22,7 @@ pub struct Bookmark {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
     pub collection_id: Option<Uuid>,
@@ -84,6 +84,7 @@ impl BookmarksService {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct BookmarkFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
@@ -92,6 +93,7 @@ pub struct BookmarkFindManyParams {
     pub collection_id: Option<Uuid>,
 }
 
+#[derive(Clone, Debug)]
 pub struct BookmarkUpdateData {
     pub custom_title: Option<String>,
     pub custom_thumbnail_url: Option<String>,

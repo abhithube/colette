@@ -4,7 +4,7 @@ use colette_database::profiles::{
 };
 use sqlx::{postgres::PgRow, types::Uuid, PgExecutor, Row};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub title: &'a str,
     pub image_url: Option<&'a str>,

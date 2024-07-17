@@ -5,7 +5,7 @@ use colette_database::{
 };
 use sqlx::{types::Uuid, PgExecutor};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub title: &'a str,
     pub is_default: bool,

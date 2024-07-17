@@ -9,7 +9,7 @@ use crate::{
     utils::scraper::{self, Scraper},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Feed {
     pub id: Uuid,
     pub link: String,
@@ -21,12 +21,12 @@ pub struct Feed {
     pub unread_count: Option<i64>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CreateFeed {
     pub url: String,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExtractorOptions {
     pub feed_link_expr: &'static [&'static str],
     pub feed_title_expr: &'static [&'static str],
@@ -39,14 +39,14 @@ pub struct ExtractorOptions {
     pub entry_thumbnail_expr: &'static [&'static str],
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExtractedFeed {
     pub link: Option<String>,
     pub title: Option<String>,
     pub entries: Vec<ExtractedEntry>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ExtractedEntry {
     pub link: Option<String>,
     pub title: Option<String>,
@@ -151,16 +151,19 @@ impl FeedsService {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct FeedFindManyParams {
     pub profile_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct FeedCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
     pub profile_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct FeedUpdateData {
     pub custom_title: Option<String>,
 }

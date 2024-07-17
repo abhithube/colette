@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -17,10 +17,12 @@ pub trait UsersRepository {
     async fn create(&self, data: UserCreateData) -> Result<User, Error>;
 }
 
+#[derive(Clone, Debug)]
 pub struct UserFindOneParams {
     pub email: String,
 }
 
+#[derive(Clone, Debug)]
 pub struct UserCreateData {
     pub email: String,
     pub password: String,

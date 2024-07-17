@@ -42,7 +42,7 @@ impl IntoResponse for Error {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[schema(title = "Error")]
 pub struct BaseError {
     pub message: String,

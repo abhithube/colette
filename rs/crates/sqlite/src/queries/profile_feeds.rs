@@ -6,13 +6,13 @@ use colette_database::{
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectParams<'a> {
     pub profile_id: &'a Uuid,
     pub feed_id: i64,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub id: Uuid,
     pub profile_id: &'a Uuid,

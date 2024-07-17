@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::feeds::ProcessedEntry;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub link: &'a str,
     pub title: &'a str,

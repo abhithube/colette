@@ -6,7 +6,7 @@ use colette_database::{
 use sqlx::SqliteExecutor;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub id: Uuid,
     pub title: &'a str,

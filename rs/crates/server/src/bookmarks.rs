@@ -82,7 +82,7 @@ pub async fn delete_bookmark(
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
     pub id: Uuid,
@@ -103,7 +103,7 @@ pub struct Bookmark {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {

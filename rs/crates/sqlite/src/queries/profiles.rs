@@ -5,7 +5,7 @@ use colette_database::profiles::{
 use sqlx::{sqlite::SqliteRow, Row, SqliteExecutor};
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub id: Uuid,
     pub title: &'a str,
@@ -38,7 +38,7 @@ impl<'a> From<&'a ProfileCreateData> for InsertParams<'a> {
     }
 }
 
-// #[derive(Debug)]
+// #[derive(Clone, Debug)]
 // pub struct UpdateDefaultUnsetParams<'a> {
 //     pub user_id: &'a str,
 // }

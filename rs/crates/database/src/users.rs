@@ -1,6 +1,6 @@
 use colette_core::users::UserFindOneParams;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectByEmailParams<'a> {
     pub email: &'a str,
 }

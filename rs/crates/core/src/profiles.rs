@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{Paginated, SendableStream, Session};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Profile {
     pub id: Uuid,
     pub title: String,
@@ -15,13 +15,13 @@ pub struct Profile {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct CreateProfile {
     pub title: String,
     pub image_url: Option<String>,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct UpdateProfile {
     pub title: Option<String>,
     pub image_url: Option<String>,
@@ -126,26 +126,31 @@ impl ProfilesService {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct ProfileFindManyParams {
     pub user_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct ProfileFindByIdParams {
     pub id: Uuid,
     pub user_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub enum ProfileFindOneParams {
     ById(ProfileFindByIdParams),
     Default { user_id: Uuid },
 }
 
+#[derive(Clone, Debug)]
 pub struct ProfileCreateData {
     pub title: String,
     pub image_url: Option<String>,
     pub user_id: Uuid,
 }
 
+#[derive(Clone, Debug)]
 pub struct ProfileUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,

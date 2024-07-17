@@ -1,7 +1,7 @@
 use colette_database::feed_entries::InsertParams;
 use sqlx::SqliteExecutor;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectParams {
     pub feed_id: i64,
     pub entry_id: i64,

@@ -1,5 +1,6 @@
 use colette_core::feeds::ExtractorOptions;
 
+#[derive(Clone, Debug)]
 pub struct AtomExtractorOptions(ExtractorOptions);
 
 impl AtomExtractorOptions {
@@ -35,6 +36,7 @@ impl Default for AtomExtractorOptions {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct RssExtractorOptions(ExtractorOptions);
 
 impl RssExtractorOptions {

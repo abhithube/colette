@@ -8,13 +8,13 @@ use crate::{
     Profile, User,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Register {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Login {
     pub email: String,
     pub password: String,

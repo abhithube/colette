@@ -1,6 +1,6 @@
 use colette_core::feeds::FeedCreateData;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub link: &'a str,
     pub title: &'a str,

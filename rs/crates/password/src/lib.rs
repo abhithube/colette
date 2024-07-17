@@ -1,7 +1,6 @@
 use colette_core::utils::password::{Error, PasswordHasher};
 use password_auth::{generate_hash, verify_password, VerifyError};
 
-#[derive(Default)]
 pub struct Argon2Hasher {}
 
 #[async_trait::async_trait]

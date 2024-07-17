@@ -99,7 +99,7 @@ pub async fn login(
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
@@ -120,7 +120,7 @@ impl From<colette_core::User> for User {
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(format = "email")]
@@ -141,7 +141,7 @@ impl From<Register> for auth::Register {
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
     #[schema(format = "email")]

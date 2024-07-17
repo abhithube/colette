@@ -142,7 +142,7 @@ pub async fn delete_feed(
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Feed {
     pub id: Uuid,
@@ -172,7 +172,7 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFeed {
     #[validate(url(message = "not a valid URL"))]

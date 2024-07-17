@@ -7,7 +7,7 @@ use super::Error;
 
 pub const SESSION_KEY: &str = "session";
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Session {
     pub user_id: Uuid,
     pub profile_id: Uuid,

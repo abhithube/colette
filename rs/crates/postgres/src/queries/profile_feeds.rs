@@ -5,7 +5,7 @@ use colette_database::{
 };
 use sqlx::{types::Uuid, PgExecutor};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub profile_id: &'a Uuid,
     pub feed_id: i64,

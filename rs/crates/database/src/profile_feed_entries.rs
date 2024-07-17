@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::entries::EntryFindManyParams;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectManyParams<'a> {
     pub profile_id: &'a Uuid,
     pub limit: i64,
@@ -23,7 +23,7 @@ impl<'a> From<&'a EntryFindManyParams> for SelectManyParams<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct UpdateParams<'a> {
     pub id: &'a Uuid,
     pub profile_id: &'a Uuid,

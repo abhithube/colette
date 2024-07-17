@@ -1,7 +1,7 @@
 use colette_core::feeds::FeedFindManyParams;
 use uuid::Uuid;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectManyParams<'a> {
     pub profile_id: &'a Uuid,
 }
@@ -14,7 +14,7 @@ impl<'a> From<&'a FeedFindManyParams> for SelectManyParams<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct UpdateParams<'a> {
     pub id: &'a Uuid,
     pub profile_id: &'a Uuid,

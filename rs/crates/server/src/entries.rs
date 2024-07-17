@@ -51,7 +51,7 @@ pub async fn list_entries(
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub id: Uuid,
@@ -83,7 +83,7 @@ impl From<colette_core::Entry> for Entry {
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {

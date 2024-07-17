@@ -2,7 +2,7 @@ use colette_core::{users::UserCreateData, User};
 use colette_database::users::SelectByEmailParams;
 use sqlx::PgExecutor;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub email: &'a str,
     pub password: &'a str,

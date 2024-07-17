@@ -2,7 +2,7 @@ use colette_core::Entry;
 use colette_database::profile_feed_entries::{SelectManyParams, UpdateParams};
 use sqlx::{types::Uuid, PgExecutor};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub profile_feed_id: &'a Uuid,
     pub feed_entry_id: i64,

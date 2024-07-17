@@ -11,7 +11,7 @@ pub mod profile_feeds;
 pub mod profiles;
 pub mod users;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct SelectByIdParams<'a> {
     pub id: &'a Uuid,
     pub profile_id: &'a Uuid,

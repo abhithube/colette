@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Entry {
     pub id: Uuid,
     pub link: String,
@@ -18,7 +18,7 @@ pub struct Entry {
     pub feed_id: Uuid,
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ListEntriesParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
@@ -64,6 +64,7 @@ impl EntriesService {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct EntryFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
@@ -72,6 +73,7 @@ pub struct EntryFindManyParams {
     pub has_read: Option<bool>,
 }
 
+#[derive(Clone, Debug)]
 pub struct EntryUpdateData {
     pub has_read: Option<bool>,
 }
