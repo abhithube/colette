@@ -53,9 +53,24 @@ impl ProfilesRepository for ProfilesPostgresRepository {
     }
 
     async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
-        let profile = profiles::insert(&self.pool, (&data).into())
+        let mut tx = self
+            .pool
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
+
+        let profile = profiles::insert(&mut *tx, (&data).into())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        queries::collections::insert(
+            &mut *tx,
+            queries::collections::InsertParams::default_with_profile(&profile.id),
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(profile)
     }

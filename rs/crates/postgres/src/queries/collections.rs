@@ -12,6 +12,16 @@ pub struct InsertParams<'a> {
     pub profile_id: &'a Uuid,
 }
 
+impl<'a> InsertParams<'a> {
+    pub fn default_with_profile(profile_id: &'a Uuid) -> Self {
+        Self {
+            title: "Default",
+            is_default: true,
+            profile_id,
+        }
+    }
+}
+
 impl<'a> From<&'a CollectionCreateData> for InsertParams<'a> {
     fn from(value: &'a CollectionCreateData) -> Self {
         Self {
