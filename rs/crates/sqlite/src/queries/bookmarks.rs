@@ -3,7 +3,7 @@ use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
     SelectByIdParams,
 };
-use sqlx::SqliteExecutor;
+use sqlx::{types::chrono, SqliteExecutor};
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,

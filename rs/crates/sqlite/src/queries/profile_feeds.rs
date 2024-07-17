@@ -3,7 +3,7 @@ use colette_database::{
     profile_feeds::{SelectManyParams, UpdateParams},
     SelectByIdParams,
 };
-use sqlx::SqliteExecutor;
+use sqlx::{types::chrono, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]

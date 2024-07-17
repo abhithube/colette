@@ -1,6 +1,6 @@
 use colette_core::{users::UserCreateData, User};
 use colette_database::users::SelectByEmailParams;
-use sqlx::SqliteExecutor;
+use sqlx::{types::chrono, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]

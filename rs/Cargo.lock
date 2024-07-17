@@ -387,7 +387,6 @@ name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "chrono",
  "colette-core",
  "colette-database",
  "futures",
@@ -447,7 +446,6 @@ name = "colette-sqlite"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "chrono",
  "colette-core",
  "colette-database",
  "futures",

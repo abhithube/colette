@@ -2,7 +2,7 @@ use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile}
 use colette_database::profiles::{
     SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateParams,
 };
-use sqlx::{sqlite::SqliteRow, Row, SqliteExecutor};
+use sqlx::{sqlite::SqliteRow, types::chrono, Row, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
