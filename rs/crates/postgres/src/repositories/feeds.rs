@@ -135,4 +135,26 @@ impl FeedsRepository for FeedsPostgresRepository {
     fn iterate(&self) -> SendableStream<Result<(i64, String), Error>> {
         Box::pin(queries::feeds::iterate(&self.pool).map_err(|e| Error::Unknown(e.into())))
     }
+
+    async fn cleanup(&self) -> Result<(), Error> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        queries::feed_entries::cleanup(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        queries::entries::cleanup(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        queries::feeds::cleanup(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(())
+    }
 }
