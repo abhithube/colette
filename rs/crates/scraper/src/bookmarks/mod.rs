@@ -5,12 +5,17 @@ use colette_core::{
     utils::scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
 };
 pub use extractor::DefaultBookmarkExtractor;
+pub use options::{
+    base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
+    twitter_extractor_options,
+};
 pub use postprocessor::DefaultBookmarkPostprocessor;
 use url::Url;
 
 use crate::PluginRegistry;
 
 mod extractor;
+mod options;
 mod postprocessor;
 
 pub struct BookmarkScraper {
