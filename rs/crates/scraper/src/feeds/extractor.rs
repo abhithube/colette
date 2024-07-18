@@ -104,54 +104,63 @@ fn merge(options_vec: Vec<FeedExtractorOptions>) -> FeedExtractorOptions {
             &options_vec
                 .iter()
                 .map(|e| e.feed_link_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         feed_title_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.feed_title_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         feed_entries_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.feed_entries_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_link_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_link_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_title_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_title_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_published_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_published_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_description_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_description_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_author_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_author_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
         entry_thumbnail_expr: merge_field(
             &options_vec
                 .iter()
                 .map(|e| e.entry_thumbnail_expr.clone())
+                .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
     }
