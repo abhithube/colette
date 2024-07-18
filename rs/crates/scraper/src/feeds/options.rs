@@ -1,17 +1,17 @@
-use colette_core::feeds::ExtractorOptions;
+use colette_core::feeds::FeedExtractorOptions;
 
 #[derive(Clone, Debug)]
-pub struct AtomExtractorOptions(ExtractorOptions);
+pub struct AtomExtractorOptions(FeedExtractorOptions);
 
 impl AtomExtractorOptions {
-    pub fn inner(self) -> ExtractorOptions {
+    pub fn inner(self) -> FeedExtractorOptions {
         self.0
     }
 }
 
 impl Default for AtomExtractorOptions {
     fn default() -> Self {
-        Self(ExtractorOptions {
+        Self(FeedExtractorOptions {
             feed_link_expr: &["//atom:feed/atom:link[@rel='alternate']/@href"],
             feed_title_expr: &["//atom:feed/atom:title/text()"],
             feed_entries_expr: &["//atom:feed/atom:entry"],
@@ -37,17 +37,17 @@ impl Default for AtomExtractorOptions {
 }
 
 #[derive(Clone, Debug)]
-pub struct RssExtractorOptions(ExtractorOptions);
+pub struct RssExtractorOptions(FeedExtractorOptions);
 
 impl RssExtractorOptions {
-    pub fn inner(self) -> ExtractorOptions {
+    pub fn inner(self) -> FeedExtractorOptions {
         self.0
     }
 }
 
 impl Default for RssExtractorOptions {
     fn default() -> Self {
-        Self(ExtractorOptions {
+        Self(FeedExtractorOptions {
             feed_link_expr: &["/rss/channel/link/text()"],
             feed_title_expr: &["/rss/channel/title/text()"],
             feed_entries_expr: &["/rss/channel/item"],

@@ -1,12 +1,12 @@
 use anyhow::anyhow;
 use colette_core::{
-    feeds::{ExtractedEntry, ExtractedFeed, ExtractorOptions},
+    feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
     utils::scraper::{ExtractError, Extractor},
 };
 use libxml::{parser::Parser, tree::Node, xpath::Context};
 
 pub struct DefaultFeedExtractor {
-    pub options: ExtractorOptions,
+    pub options: FeedExtractorOptions,
 }
 
 trait Xpath {

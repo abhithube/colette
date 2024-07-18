@@ -32,7 +32,7 @@ pub struct UpdateFeed {
 }
 
 #[derive(Clone, Debug)]
-pub struct ExtractorOptions {
+pub struct FeedExtractorOptions {
     pub feed_link_expr: &'static [&'static str],
     pub feed_title_expr: &'static [&'static str],
     pub feed_entries_expr: &'static [&'static str],
