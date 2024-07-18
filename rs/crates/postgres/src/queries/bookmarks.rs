@@ -3,7 +3,24 @@ use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
     SelectByIdParams,
 };
-use sqlx::PgExecutor;
+use sqlx::{
+    types::{
+        chrono::{DateTime, Utc},
+        Uuid,
+    },
+    PgExecutor,
+};
+
+#[derive(Clone, Debug)]
+pub struct InsertParams<'a> {
+    pub link: &'a str,
+    pub title: &'a str,
+    pub thumbnail_url: Option<&'a str>,
+    pub published_at: Option<&'a DateTime<Utc>>,
+    pub author: Option<&'a str>,
+    pub profile_id: &'a Uuid,
+    pub collection_id: Option<&'a Uuid>,
+}
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
@@ -54,6 +71,78 @@ SELECT b.id,
     .await?;
 
     Ok(rows)
+}
+
+pub async fn insert(
+    ex: impl PgExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<Bookmark, sqlx::Error> {
+    let row = sqlx::query_as!(
+        Bookmark,
+        "
+  WITH
+       c AS (
+         SELECT id,
+                is_default
+           FROM collections
+          WHERE profile_id = $6
+            AND CASE
+                WHEN $7::UUID IS NULL THEN is_default
+                ELSE id = $7
+                END
+       ),
+       b AS (
+            INSERT INTO bookmarks AS b (link, title, thumbnail_url, published_at, author, collection_id)
+            SELECT $1, $2, $3, $4, $5, c.id
+              FROM c
+                ON CONFLICT (collection_id, link) DO
+            UPDATE
+               SET title = coalesce(excluded.title, b.title),
+                   thumbnail_url = coalesce(excluded.thumbnail_url, b.thumbnail_url),
+                   published_at = coalesce(excluded.published_at, b.published_at),
+                   author = coalesce(excluded.author, b.author)
+         RETURNING b.id,
+                   b.link,
+                   b.title,
+                   b.thumbnail_url,
+                   b.published_at,
+                   b.author,
+                   b.custom_title,
+                   b.custom_thumbnail_url,
+                   b.custom_published_at,
+                   b.custom_author,
+                   b.created_at,
+                   b.updated_at
+       )
+SELECT b.id,
+       b.link,
+       b.title,
+       b.thumbnail_url,
+       b.published_at,
+       b.author,
+       b.custom_title,
+       b.custom_thumbnail_url,
+       b.custom_published_at,
+       b.custom_author,
+       CASE
+       WHEN c.is_default THEN NULL
+       ELSE c.id
+       END AS collection_id,
+       b.created_at,
+       b.updated_at
+  FROM b, c",
+        params.link,
+        params.title,
+        params.thumbnail_url,
+        params.published_at,
+        params.author,
+        params.profile_id,
+        params.collection_id,
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(row)
 }
 
 pub async fn update(

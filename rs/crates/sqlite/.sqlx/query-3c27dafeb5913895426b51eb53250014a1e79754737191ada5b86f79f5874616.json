@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "\nSELECT c.id AS \"id!: uuid::Uuid\",\n       c.title AS \"title!\",\n       c.profile_id AS \"profile_id!: uuid::Uuid\",\n       c.created_at AS \"created_at!: chrono::DateTime<chrono::Utc>\",\n       c.updated_at AS \"updated_at!: chrono::DateTime<chrono::Utc>\",\n       count(b.collection_id) AS \"bookmark_count: Option<i64>\"\n  FROM collections AS c\n       LEFT JOIN bookmarks AS b\n       ON b.collection_id = c.id\n WHERE c.profile_id = $1\n   AND c.is_default = 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "profile_id!: uuid::Uuid",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at!: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at!: chrono::DateTime<chrono::Utc>",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "bookmark_count: Option<i64>",
+        "ordinal": 5,
+        "type_info": "Int"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "3c27dafeb5913895426b51eb53250014a1e79754737191ada5b86f79f5874616"
+}

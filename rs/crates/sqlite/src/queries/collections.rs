@@ -1,10 +1,12 @@
 use colette_core::{collections::CollectionCreateData, Collection};
 use colette_database::{
-    collections::{SelectManyParams, UpdateParams},
+    collections::{SelectDefaultParams, SelectManyParams, UpdateParams},
     SelectByIdParams,
 };
-use sqlx::{types::chrono, SqliteExecutor};
-use uuid::Uuid;
+use sqlx::{
+    types::{chrono, Uuid},
+    SqliteExecutor,
+};
 
 #[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
@@ -74,6 +76,32 @@ SELECT c.id AS \"id: uuid::Uuid\",
    AND NOT c.is_default
  GROUP BY c.id",
         params.id,
+        params.profile_id
+    )
+    .fetch_one(ex)
+    .await?;
+
+    Ok(row)
+}
+
+pub async fn select_default(
+    ex: impl SqliteExecutor<'_>,
+    params: SelectDefaultParams<'_>,
+) -> Result<Collection, sqlx::Error> {
+    let row = sqlx::query_as!(
+        Collection,
+        "
+SELECT c.id AS \"id!: uuid::Uuid\",
+       c.title AS \"title!\",
+       c.profile_id AS \"profile_id!: uuid::Uuid\",
+       c.created_at AS \"created_at!: chrono::DateTime<chrono::Utc>\",
+       c.updated_at AS \"updated_at!: chrono::DateTime<chrono::Utc>\",
+       count(b.collection_id) AS \"bookmark_count: Option<i64>\"
+  FROM collections AS c
+       LEFT JOIN bookmarks AS b
+       ON b.collection_id = c.id
+ WHERE c.profile_id = $1
+   AND c.is_default = 1",
         params.profile_id
     )
     .fetch_one(ex)

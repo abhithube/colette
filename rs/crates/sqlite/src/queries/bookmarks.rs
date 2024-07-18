@@ -3,7 +3,24 @@ use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
     SelectByIdParams,
 };
-use sqlx::{types::chrono, SqliteExecutor};
+use sqlx::{
+    types::{
+        chrono::{self, DateTime, Utc},
+        Uuid,
+    },
+    SqliteExecutor,
+};
+
+#[derive(Clone, Debug)]
+pub struct InsertParams<'a> {
+    pub id: Uuid,
+    pub link: &'a str,
+    pub title: &'a str,
+    pub thumbnail_url: Option<&'a str>,
+    pub published_at: Option<&'a DateTime<Utc>>,
+    pub author: Option<&'a str>,
+    pub collection_id: &'a Uuid,
+}
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
@@ -91,6 +108,34 @@ SELECT b.id AS \"id: uuid::Uuid\",
     .await?;
 
     Ok(row)
+}
+
+pub async fn insert(
+    ex: impl SqliteExecutor<'_>,
+    params: InsertParams<'_>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query!(
+        "
+   INSERT INTO bookmarks AS b (id, link, title, thumbnail_url, published_at, author, collection_id)
+   VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (collection_id, link) DO
+   UPDATE
+      SET title = coalesce(excluded.title, b.title),
+          thumbnail_url = coalesce(excluded.thumbnail_url, b.thumbnail_url),
+          published_at = coalesce(excluded.published_at, b.published_at),
+          author = coalesce(excluded.author, b.author)",
+        params.id,
+        params.link,
+        params.title,
+        params.thumbnail_url,
+        params.published_at,
+        params.author,
+        params.collection_id,
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }
 
 pub async fn update(
