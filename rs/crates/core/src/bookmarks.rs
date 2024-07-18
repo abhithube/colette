@@ -39,11 +39,11 @@ pub struct ListBookmarksParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarkExtractorOptions {
-    pub title_expr: &'static [&'static str],
-    pub published_expr: &'static [&'static str],
-    pub author_expr: &'static [&'static str],
-    pub thumbnail_expr: &'static [&'static str],
+pub struct BookmarkExtractorOptions<'a> {
+    pub title_expr: Vec<&'a str>,
+    pub published_expr: Vec<&'a str>,
+    pub author_expr: Vec<&'a str>,
+    pub thumbnail_expr: Vec<&'a str>,
 }
 
 #[derive(Clone, Debug)]
