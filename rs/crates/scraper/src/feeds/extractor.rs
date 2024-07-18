@@ -3,36 +3,12 @@ use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
     utils::scraper::{ExtractError, Extractor},
 };
-use libxml::{parser::Parser, tree::Node, xpath::Context};
+use libxml::{parser::Parser, xpath::Context};
+
+use crate::utils::Xpath;
 
 pub struct DefaultFeedExtractor {
     pub options: FeedExtractorOptions,
-}
-
-trait Xpath {
-    fn find_first_content(&mut self, exprs: &'static [&str], node: Option<&Node>)
-        -> Option<String>;
-
-    fn find_nodes(&mut self, exprs: &'static [&str], node: Option<&Node>) -> Vec<Node>;
-}
-
-impl Xpath for Context {
-    fn find_first_content(
-        &mut self,
-        exprs: &'static [&str],
-        node: Option<&Node>,
-    ) -> Option<String> {
-        exprs
-            .iter()
-            .find_map(|expr| self.findvalue(expr, node).ok())
-    }
-
-    fn find_nodes(&mut self, exprs: &'static [&str], node: Option<&Node>) -> Vec<Node> {
-        exprs
-            .iter()
-            .find_map(|expr| self.findnodes(expr, node).ok())
-            .unwrap_or(vec![])
-    }
 }
 
 impl Extractor<ExtractedFeed> for DefaultFeedExtractor {

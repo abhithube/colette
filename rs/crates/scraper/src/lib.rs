@@ -10,3 +10,4 @@ mod downloader;
 mod feeds;
 mod postprocessor;
 mod registry;
+mod utils;
