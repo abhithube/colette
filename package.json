@@ -1,12 +1,12 @@
 {
 	"name": "colette",
 	"type": "module",
-	"workspaces": ["packages/web", "packages/query", "packages/openapi"],
+	"workspaces": ["packages/openapi", "packages/query", "packages/web"],
 	"devDependencies": {
 		"@biomejs/biome": "^1.8.3",
 		"@types/bun": "latest"
 	},
 	"peerDependencies": {
-		"typescript": "^5.0.0"
+		"typescript": "^5.5.3"
 	}
 }

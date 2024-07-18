@@ -11,9 +11,9 @@
 		"generate": "openapi-typescript 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.d.ts"
 	},
 	"devDependencies": {
-		"openapi-typescript": "^7.0.2",
+		"openapi-typescript": "^7.0.4",
 		"typescript": "^5.5.3",
-		"vite": "^5.3.3"
+		"vite": "^5.3.4"
 	},
 	"dependencies": {
 		"openapi-fetch": "^0.10.2"
