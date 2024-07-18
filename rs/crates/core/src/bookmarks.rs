@@ -49,17 +49,17 @@ pub struct BookmarkExtractorOptions {
 #[derive(Clone, Debug)]
 pub struct ExtractedBookmark {
     pub title: Option<String>,
+    pub thumbnail: Option<String>,
     pub published: Option<String>,
     pub author: Option<String>,
-    pub thumbnail: Option<String>,
 }
 
 #[derive(Debug, Clone)]
 pub struct ProcessedBookmark {
     pub title: String,
+    pub thumbnail: Option<Url>,
     pub published: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub thumbnail: Option<Url>,
 }
 
 #[async_trait::async_trait]
@@ -154,11 +154,8 @@ pub struct BookmarkFindManyParams {
 
 #[derive(Clone, Debug)]
 pub struct BookmarkCreateData {
-    pub link: String,
-    pub title: String,
-    pub thumbnail_url: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<String>,
+    pub url: String,
+    pub bookmark: ProcessedBookmark,
     pub collection_id: Option<Uuid>,
     pub profile_id: Uuid,
 }

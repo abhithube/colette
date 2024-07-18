@@ -25,11 +25,11 @@ pub struct InsertParams<'a> {
 impl<'a> From<&'a BookmarkCreateData> for InsertParams<'a> {
     fn from(value: &'a BookmarkCreateData) -> Self {
         Self {
-            link: &value.link,
-            title: &value.title,
-            thumbnail_url: value.thumbnail_url.as_deref(),
-            published_at: value.published_at.as_ref(),
-            author: value.author.as_deref(),
+            link: &value.url,
+            title: &value.bookmark.title,
+            thumbnail_url: value.bookmark.thumbnail.as_ref().map(|e| e.as_str()),
+            published_at: value.bookmark.published.as_ref(),
+            author: value.bookmark.author.as_deref(),
             profile_id: &value.profile_id,
             collection_id: value.collection_id.as_ref(),
         }

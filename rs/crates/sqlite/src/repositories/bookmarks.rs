@@ -69,11 +69,11 @@ impl BookmarksRepository for BookmarksSqliteRepository {
             &mut *tx,
             queries::bookmarks::InsertParams {
                 id,
-                link: &data.link,
-                title: &data.title,
-                thumbnail_url: data.thumbnail_url.as_deref(),
-                published_at: data.published_at.as_ref(),
-                author: data.author.as_deref(),
+                link: &data.url,
+                title: &data.bookmark.title,
+                thumbnail_url: data.bookmark.thumbnail.as_ref().map(|e| e.as_str()),
+                published_at: data.bookmark.published.as_ref(),
+                author: data.bookmark.author.as_deref(),
                 collection_id: &collection.id,
             },
         )
