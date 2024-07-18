@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use url::Url;
 use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
@@ -35,6 +36,33 @@ pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
     pub collection_id: Option<Uuid>,
     pub is_default: Option<bool>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BookmarkExtractorOptions {
+    pub link_expr: &'static [&'static str],
+    pub title_expr: &'static [&'static str],
+    pub published_expr: &'static [&'static str],
+    pub author_expr: &'static [&'static str],
+    pub thumbnail_expr: &'static [&'static str],
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtractedBookmark {
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub published: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct ProcessedBookmark {
+    pub link: Url,
+    pub title: String,
+    pub published: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub thumbnail: Option<Url>,
 }
 
 #[async_trait::async_trait]
