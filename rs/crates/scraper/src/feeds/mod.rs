@@ -6,12 +6,14 @@ use colette_core::{
 };
 pub use extractor::DefaultFeedExtractor;
 pub use options::{AtomExtractorOptions, RssExtractorOptions};
+pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 
 use crate::PluginRegistry;
 
 mod extractor;
 mod options;
+mod postprocessor;
 
 pub struct FeedScraper {
     registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
