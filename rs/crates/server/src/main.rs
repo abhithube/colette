@@ -33,7 +33,8 @@ use colette_postgres::{
     FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use colette_scraper::{
-    DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper, PluginRegistry,
+    BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultDownloader,
+    DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper, PluginRegistry,
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
@@ -169,20 +170,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(UsersSqliteRepository::new(pool)),
     );
 
-    let downloader = DefaultDownloader {};
-    let feed_extractor = DefaultFeedExtractor { options: None };
-    let feed_postprocessor = DefaultFeedPostprocessor {};
+    let downloader = Arc::new(DefaultDownloader {});
+
+    let feed_extractor = Arc::new(DefaultFeedExtractor { options: None });
+    let feed_postprocessor = Arc::new(DefaultFeedPostprocessor {});
 
     let feed_registry = PluginRegistry {
         downloaders: HashMap::new(),
         extractors: HashMap::new(),
         postprocessors: HashMap::new(),
     };
-    let feed_scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync> = Arc::new(FeedScraper::new(
+    let feed_scraper = Arc::new(FeedScraper::new(
         feed_registry,
-        Arc::new(downloader),
-        Arc::new(feed_extractor),
-        Arc::new(feed_postprocessor),
+        downloader.clone(),
+        feed_extractor,
+        feed_postprocessor,
+    ));
+
+    let bookmark_extractor = Arc::new(DefaultBookmarkExtractor::new(None));
+    let bookmark_postprocessor = Arc::new(DefaultBookmarkPostprocessor {});
+
+    let bookmark_registry = PluginRegistry {
+        downloaders: HashMap::new(),
+        extractors: HashMap::new(),
+        postprocessors: HashMap::new(),
+    };
+    let bookmark_scraper = Arc::new(BookmarkScraper::new(
+        bookmark_registry,
+        downloader,
+        bookmark_extractor,
+        bookmark_postprocessor,
     ));
 
     let scheduler = JobScheduler::new().await?;
@@ -231,7 +248,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let auth_service =
         AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
-    let bookmarks_service = BookmarksService::new(bookmarks_repository);
+    let bookmarks_service = BookmarksService::new(bookmarks_repository, bookmark_scraper);
     let collections_service = CollectionsService::new(collections_repository);
     let entries_service = EntriesService::new(entries_repository);
     let feeds_service = FeedsService::new(feeds_repository, feed_scraper);

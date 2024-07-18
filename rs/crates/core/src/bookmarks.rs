@@ -4,7 +4,10 @@ use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
-use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
+use crate::{
+    common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
+    utils::scraper::{self, Scraper},
+};
 
 #[derive(Clone, Debug)]
 pub struct Bookmark {
@@ -21,6 +24,12 @@ pub struct Bookmark {
     pub collection_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug)]
+pub struct CreateBookmark {
+    pub url: String,
+    pub collection_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug)]
@@ -79,11 +88,15 @@ pub trait BookmarksRepository {
 
 pub struct BookmarksService {
     repo: Arc<dyn BookmarksRepository + Send + Sync>,
+    scraper: Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
 }
 
 impl BookmarksService {
-    pub fn new(repo: Arc<dyn BookmarksRepository + Send + Sync>) -> Self {
-        Self { repo }
+    pub fn new(
+        repo: Arc<dyn BookmarksRepository + Send + Sync>,
+        scraper: Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
+    ) -> Self {
+        Self { repo, scraper }
     }
 
     pub async fn list(
@@ -109,6 +122,22 @@ impl BookmarksService {
         };
 
         Ok(paginated)
+    }
+
+    pub async fn create(&self, data: CreateBookmark, session: Session) -> Result<Bookmark, Error> {
+        let scraped = self.scraper.scrape(&data.url).await?;
+
+        let bookmark = self
+            .repo
+            .create(BookmarkCreateData {
+                url: data.url,
+                bookmark: scraped,
+                collection_id: data.collection_id,
+                profile_id: session.profile_id,
+            })
+            .await?;
+
+        Ok(bookmark)
     }
 
     pub async fn update(
@@ -183,6 +212,9 @@ impl From<UpdateBookmark> for BookmarkUpdateData {
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
     NotFound(Uuid),
+
+    #[error(transparent)]
+    Scraper(#[from] scraper::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
