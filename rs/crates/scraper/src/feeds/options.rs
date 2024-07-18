@@ -12,9 +12,9 @@ impl AtomExtractorOptions {
 impl Default for AtomExtractorOptions {
     fn default() -> Self {
         Self(FeedExtractorOptions {
-            feed_link_expr: &["//atom:feed/atom:link[@rel='alternate']/@href"],
-            feed_title_expr: &["//atom:feed/atom:title/text()"],
-            feed_entries_expr: &["//atom:feed/atom:entry"],
+            feed_link_expr: &["/atom:feed/atom:link[@rel='alternate']/@href"],
+            feed_title_expr: &["/atom:feed/atom:title/text()"],
+            feed_entries_expr: &["/atom:feed/atom:entry"],
             entry_link_expr: &["./atom:link/@href"],
             entry_title_expr: &[
                 "./atom:title/text()",
