@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub struct DefaultFeedExtractor<'a> {
-    pub options: FeedExtractorOptions<'a>,
+    pub options: Option<FeedExtractorOptions<'a>>,
 }
 
 impl Extractor<ExtractedFeed> for DefaultFeedExtractor<'_> {
@@ -24,7 +24,10 @@ impl Extractor<ExtractedFeed> for DefaultFeedExtractor<'_> {
         let mut context = Context::new(&document)
             .map_err(|_| ExtractError(anyhow!("couldn't create xpath context from document")))?;
 
-        let mut options_vec = vec![self.options.clone()];
+        let mut options_vec: Vec<FeedExtractorOptions> = Vec::new();
+        if let Some(options) = self.options.clone() {
+            options_vec.push(options)
+        }
 
         if raw.contains("<feed") {
             context

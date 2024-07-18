@@ -33,8 +33,7 @@ use colette_postgres::{
     FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
 };
 use colette_scraper::{
-    atom_extractor_options, DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor,
-    FeedScraper, PluginRegistry,
+    DefaultDownloader, DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper, PluginRegistry,
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
@@ -171,9 +170,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
 
     let downloader = DefaultDownloader {};
-    let feed_extractor = DefaultFeedExtractor {
-        options: atom_extractor_options(),
-    };
+    let feed_extractor = DefaultFeedExtractor { options: None };
     let feed_postprocessor = DefaultFeedPostprocessor {};
 
     let feed_registry = PluginRegistry {
