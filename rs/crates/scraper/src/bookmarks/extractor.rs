@@ -12,7 +12,7 @@ pub struct DefaultBookmarkExtractor {
 }
 
 impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor {
-    fn extract(&self, url: &str, raw: &str) -> Result<ExtractedBookmark, ExtractError> {
+    fn extract(&self, _url: &str, raw: &str) -> Result<ExtractedBookmark, ExtractError> {
         let document = Parser::default()
             .parse_string(raw)
             .map_err(|e| ExtractError(e.into()))?;
@@ -21,9 +21,6 @@ impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor {
             .map_err(|_| ExtractError(anyhow!("couldn't create xpath context from document")))?;
 
         let bookmark = ExtractedBookmark {
-            link: context
-                .find_first_content(self.options.link_expr, None)
-                .or(Some(url.to_owned())),
             title: context.find_first_content(self.options.title_expr, None),
             thumbnail: context.find_first_content(self.options.thumbnail_expr, None),
             published: context.find_first_content(self.options.published_expr, None),

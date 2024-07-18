@@ -14,9 +14,6 @@ impl Postprocessor<ExtractedBookmark, ProcessedBookmark> for DefaultBookmarkPost
         _url: &str,
         extracted: ExtractedBookmark,
     ) -> Result<ProcessedBookmark, PostprocessError> {
-        let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
-            return Err(PostprocessError(anyhow!("could not process bookmark link")));
-        };
         let Some(title) = extracted.title else {
             return Err(PostprocessError(anyhow!(
                 "could not process bookmark title"
@@ -24,7 +21,6 @@ impl Postprocessor<ExtractedBookmark, ProcessedBookmark> for DefaultBookmarkPost
         };
 
         let bookmark = ProcessedBookmark {
-            link,
             title,
             thumbnail: extracted
                 .thumbnail

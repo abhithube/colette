@@ -40,7 +40,6 @@ pub struct ListBookmarksParams {
 
 #[derive(Clone, Debug)]
 pub struct BookmarkExtractorOptions {
-    pub link_expr: &'static [&'static str],
     pub title_expr: &'static [&'static str],
     pub published_expr: &'static [&'static str],
     pub author_expr: &'static [&'static str],
@@ -49,7 +48,6 @@ pub struct BookmarkExtractorOptions {
 
 #[derive(Clone, Debug)]
 pub struct ExtractedBookmark {
-    pub link: Option<String>,
     pub title: Option<String>,
     pub published: Option<String>,
     pub author: Option<String>,
@@ -58,7 +56,6 @@ pub struct ExtractedBookmark {
 
 #[derive(Debug, Clone)]
 pub struct ProcessedBookmark {
-    pub link: Url,
     pub title: String,
     pub published: Option<DateTime<Utc>>,
     pub author: Option<String>,
