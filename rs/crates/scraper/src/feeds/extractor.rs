@@ -17,7 +17,12 @@ pub struct DefaultFeedExtractor<'a> {
 
 impl Extractor<ExtractedFeed> for DefaultFeedExtractor<'_> {
     fn extract(&self, url: &str, raw: &str) -> Result<ExtractedFeed, ExtractError> {
-        let document = Parser::default()
+        let parser = match raw {
+            raw if raw.contains("<html") => Parser::default_html(),
+            _ => Parser::default(),
+        };
+
+        let document = parser
             .parse_string(raw)
             .map_err(|e| ExtractError(e.into()))?;
 

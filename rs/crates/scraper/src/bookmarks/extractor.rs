@@ -29,7 +29,7 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 
 impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor<'_> {
     fn extract(&self, _url: &str, raw: &str) -> Result<ExtractedBookmark, ExtractError> {
-        let document = Parser::default()
+        let document = Parser::default_html()
             .parse_string(raw)
             .map_err(|e| ExtractError(e.into()))?;
 
