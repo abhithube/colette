@@ -1,4 +1,4 @@
-pub use bookmarks::BookmarkScraper;
+pub use bookmarks::{BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor};
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions};
 pub use downloader::DefaultDownloader;
 pub use feeds::{AtomExtractorOptions, DefaultFeedExtractor, FeedScraper, RssExtractorOptions};

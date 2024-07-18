@@ -4,9 +4,14 @@ use colette_core::{
     bookmarks::{ExtractedBookmark, ProcessedBookmark},
     utils::scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
 };
+pub use extractor::DefaultBookmarkExtractor;
+pub use postprocessor::DefaultBookmarkPostprocessor;
 use url::Url;
 
 use crate::PluginRegistry;
+
+mod extractor;
+mod postprocessor;
 
 pub struct BookmarkScraper {
     registry: PluginRegistry<ExtractedBookmark, ProcessedBookmark>,
