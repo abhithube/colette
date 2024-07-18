@@ -5,7 +5,10 @@ use colette_core::{
     utils::scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
 };
 pub use extractor::DefaultFeedExtractor;
-pub use options::{AtomExtractorOptions, RssExtractorOptions};
+pub use options::{
+    atom_extractor_options, dublin_core_extractor_options, itunes_extractor_options,
+    media_extractor_options, rss_extractor_options,
+};
 pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 

@@ -7,11 +7,11 @@ use libxml::{parser::Parser, xpath::Context};
 
 use crate::utils::Xpath;
 
-pub struct DefaultFeedExtractor {
-    pub options: FeedExtractorOptions,
+pub struct DefaultFeedExtractor<'a> {
+    pub options: FeedExtractorOptions<'a>,
 }
 
-impl Extractor<ExtractedFeed> for DefaultFeedExtractor {
+impl Extractor<ExtractedFeed> for DefaultFeedExtractor<'_> {
     fn extract(&self, url: &str, raw: &str) -> Result<ExtractedFeed, ExtractError> {
         let document = Parser::default()
             .parse_string(raw)
@@ -33,26 +33,26 @@ impl Extractor<ExtractedFeed> for DefaultFeedExtractor {
             .map_err(|_| ExtractError(anyhow!("couldn't register namespace")))?;
 
         let entries: Vec<ExtractedEntry> = context
-            .find_nodes(self.options.feed_entries_expr, None)
+            .find_nodes(&self.options.feed_entries_expr, None)
             .iter()
             .map(|node| ExtractedEntry {
-                link: context.find_first_content(self.options.entry_link_expr, Some(node)),
-                title: context.find_first_content(self.options.entry_title_expr, Some(node)),
+                link: context.find_first_content(&self.options.entry_link_expr, Some(node)),
+                title: context.find_first_content(&self.options.entry_title_expr, Some(node)),
                 published: context
-                    .find_first_content(self.options.entry_published_expr, Some(node)),
+                    .find_first_content(&self.options.entry_published_expr, Some(node)),
                 description: context
-                    .find_first_content(self.options.entry_description_expr, Some(node)),
-                author: context.find_first_content(self.options.entry_author_expr, Some(node)),
+                    .find_first_content(&self.options.entry_description_expr, Some(node)),
+                author: context.find_first_content(&self.options.entry_author_expr, Some(node)),
                 thumbnail: context
-                    .find_first_content(self.options.entry_thumbnail_expr, Some(node)),
+                    .find_first_content(&self.options.entry_thumbnail_expr, Some(node)),
             })
             .collect();
 
         let feed = ExtractedFeed {
             link: context
-                .find_first_content(self.options.feed_link_expr, None)
+                .find_first_content(&self.options.feed_link_expr, None)
                 .or(Some(url.to_owned())),
-            title: context.find_first_content(self.options.feed_title_expr, None),
+            title: context.find_first_content(&self.options.feed_title_expr, None),
             entries,
         };
 

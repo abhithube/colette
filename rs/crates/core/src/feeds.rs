@@ -32,16 +32,16 @@ pub struct UpdateFeed {
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedExtractorOptions {
-    pub feed_link_expr: &'static [&'static str],
-    pub feed_title_expr: &'static [&'static str],
-    pub feed_entries_expr: &'static [&'static str],
-    pub entry_link_expr: &'static [&'static str],
-    pub entry_title_expr: &'static [&'static str],
-    pub entry_published_expr: &'static [&'static str],
-    pub entry_description_expr: &'static [&'static str],
-    pub entry_author_expr: &'static [&'static str],
-    pub entry_thumbnail_expr: &'static [&'static str],
+pub struct FeedExtractorOptions<'a> {
+    pub feed_link_expr: Vec<&'a str>,
+    pub feed_title_expr: Vec<&'a str>,
+    pub feed_entries_expr: Vec<&'a str>,
+    pub entry_link_expr: Vec<&'a str>,
+    pub entry_title_expr: Vec<&'a str>,
+    pub entry_published_expr: Vec<&'a str>,
+    pub entry_description_expr: Vec<&'a str>,
+    pub entry_author_expr: Vec<&'a str>,
+    pub entry_thumbnail_expr: Vec<&'a str>,
 }
 
 #[derive(Clone, Debug)]
