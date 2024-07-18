@@ -31,7 +31,7 @@ pub struct UpdateFeed {
     pub title: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct FeedExtractorOptions<'a> {
     pub feed_link_expr: Vec<&'a str>,
     pub feed_title_expr: Vec<&'a str>,
