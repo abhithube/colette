@@ -15,8 +15,8 @@ use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Sess
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_bookmarks, update_bookmark, delete_bookmark),
-    components(schemas(Bookmark, UpdateBookmark))
+    paths(list_bookmarks, create_bookmark, update_bookmark, delete_bookmark),
+    components(schemas(Bookmark, CreateBookmark, UpdateBookmark))
 )]
 pub struct Api;
 
@@ -25,7 +25,7 @@ impl Api {
         Router::new().nest(
             "/bookmarks",
             Router::new()
-                .route("/", routing::get(list_bookmarks))
+                .route("/", routing::get(list_bookmarks).post(create_bookmark))
                 .route(
                     "/:id",
                     routing::patch(update_bookmark).delete(delete_bookmark),
@@ -57,6 +57,37 @@ pub async fn list_bookmarks(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "",
+    request_body = CreateBookmark,
+    responses(CreateResponse),
+    operation_id = "createBookmark",
+    description = "Add a bookmark to a collection",
+    tag = "Bookmarks"
+  )]
+#[axum::debug_handler]
+pub async fn create_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<CreateBookmark>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .create(body.into(), session.into())
+        .await
+        .map(Bookmark::from);
+
+    match result {
+        Ok(data) => Ok(CreateResponse::Created(Box::new(data))),
+        Err(e) => match e {
+            bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
     }
 }
 
@@ -148,55 +179,6 @@ pub struct Bookmark {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateBookmark {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-    #[schema(format = "uri", nullable = false)]
-    #[validate(url(message = "not a valid URL"))]
-    pub thumbnail_url: Option<String>,
-    #[schema(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub author: Option<String>,
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub struct ListBookmarksQuery {
-    #[param(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false)]
-    pub collection_id: Option<Uuid>,
-    #[param(nullable = false)]
-    pub is_default: Option<bool>,
-}
-
-impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
-    fn from(value: UpdateBookmark) -> Self {
-        Self {
-            title: value.title,
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author,
-        }
-    }
-}
-
-impl From<ListBookmarksQuery> for ListBookmarksParams {
-    fn from(value: ListBookmarksQuery) -> Self {
-        Self {
-            published_at: value.published_at,
-            collection_id: value.collection_id,
-            is_default: value.is_default,
-        }
-    }
-}
-
 impl From<colette_core::Bookmark> for Bookmark {
     fn from(value: colette_core::Bookmark) -> Self {
         Self {
@@ -217,6 +199,74 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBookmark {
+    #[schema(format = "uri")]
+    #[validate(url(message = "not a valid URL"))]
+    pub url: String,
+    #[schema(nullable = false)]
+    pub collection_id: Option<Uuid>,
+}
+
+impl From<CreateBookmark> for bookmarks::CreateBookmark {
+    fn from(value: CreateBookmark) -> Self {
+        Self {
+            url: value.url,
+            collection_id: value.collection_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateBookmark {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+    #[schema(format = "uri", nullable = false)]
+    #[validate(url(message = "not a valid URL"))]
+    pub thumbnail_url: Option<String>,
+    #[schema(nullable = false)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub author: Option<String>,
+}
+
+impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
+    fn from(value: UpdateBookmark) -> Self {
+        Self {
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct ListBookmarksQuery {
+    #[param(nullable = false)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[param(nullable = false)]
+    pub collection_id: Option<Uuid>,
+    #[param(nullable = false)]
+    pub is_default: Option<bool>,
+}
+
+impl From<ListBookmarksQuery> for ListBookmarksParams {
+    fn from(value: ListBookmarksQuery) -> Self {
+        Self {
+            published_at: value.published_at,
+            collection_id: value.collection_id,
+            is_default: value.is_default,
+        }
+    }
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of bookmarks")]
@@ -227,6 +277,29 @@ impl IntoResponse for ListResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created bookmark")]
+    Created(Box<Bookmark>),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+
+    #[response(status = 502, description = "Failed to fetch or parse bookmark")]
+    BadGateway(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }
 }
