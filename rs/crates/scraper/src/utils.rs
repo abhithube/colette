@@ -10,7 +10,7 @@ impl Xpath for Context {
     fn find_first_content(&mut self, exprs: &[&str], node: Option<&Node>) -> Option<String> {
         exprs
             .iter()
-            .find_map(|expr| self.findvalue(expr, node).ok())
+            .find_map(|expr| self.findvalue(expr, node).ok().filter(|e| !e.is_empty()))
     }
 
     fn find_nodes(&mut self, exprs: &[&str], node: Option<&Node>) -> Vec<Node> {
