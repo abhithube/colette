@@ -1,11 +1,16 @@
 use async_trait::async_trait;
 use colette_core::{
-    bookmarks::{BookmarkFindManyParams, BookmarkUpdateData, BookmarksRepository, Error},
+    bookmarks::{
+        BookmarkCreateData, BookmarkFindManyParams, BookmarkUpdateData, BookmarksRepository, Error,
+    },
     common::{self, FindOneParams},
     Bookmark,
 };
-use colette_database::bookmarks::UpdateParams;
+use colette_database::{
+    bookmarks::UpdateParams, collections::SelectDefaultParams, SelectByIdParams,
+};
 use sqlx::SqlitePool;
+use uuid::Uuid;
 
 use crate::queries;
 
@@ -27,6 +32,67 @@ impl BookmarksRepository for BookmarksSqliteRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(bookmarks)
+    }
+
+    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let collection = match data.collection_id {
+            Some(id) => queries::collections::select_by_id(
+                &mut *tx,
+                SelectByIdParams {
+                    id: &id,
+                    profile_id: &data.profile_id,
+                },
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Unknown(e.into()),
+            })?,
+            None => queries::collections::select_default(
+                &mut *tx,
+                SelectDefaultParams {
+                    profile_id: &data.profile_id,
+                },
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?,
+        };
+
+        let id = Uuid::new_v4();
+        queries::bookmarks::insert(
+            &mut *tx,
+            queries::bookmarks::InsertParams {
+                id,
+                link: &data.link,
+                title: &data.title,
+                thumbnail_url: data.thumbnail_url.as_deref(),
+                published_at: data.published_at.as_ref(),
+                author: data.author.as_deref(),
+                collection_id: &collection.id,
+            },
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        let bookmark = queries::bookmarks::select_by_id(
+            &mut *tx,
+            SelectByIdParams {
+                id: &id,
+                profile_id: &data.profile_id,
+            },
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(bookmark)
     }
 
     async fn update(

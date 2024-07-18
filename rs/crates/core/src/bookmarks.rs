@@ -41,6 +41,8 @@ pub struct ListBookmarksParams {
 pub trait BookmarksRepository {
     async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error>;
 
+    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
+
     async fn update(
         &self,
         params: FindOneParams,
@@ -123,6 +125,17 @@ pub struct BookmarkFindManyParams {
     pub published_at: Option<DateTime<Utc>>,
     pub should_filter: bool,
     pub collection_id: Option<Uuid>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BookmarkCreateData {
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub collection_id: Option<Uuid>,
+    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

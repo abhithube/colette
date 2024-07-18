@@ -1,4 +1,4 @@
-use colette_core::Bookmark;
+use colette_core::{bookmarks::BookmarkCreateData, Bookmark};
 use colette_database::{
     bookmarks::{SelectManyParams, UpdateParams},
     SelectByIdParams,
@@ -20,6 +20,20 @@ pub struct InsertParams<'a> {
     pub author: Option<&'a str>,
     pub profile_id: &'a Uuid,
     pub collection_id: Option<&'a Uuid>,
+}
+
+impl<'a> From<&'a BookmarkCreateData> for InsertParams<'a> {
+    fn from(value: &'a BookmarkCreateData) -> Self {
+        Self {
+            link: &value.link,
+            title: &value.title,
+            thumbnail_url: value.thumbnail_url.as_deref(),
+            published_at: value.published_at.as_ref(),
+            author: value.author.as_deref(),
+            profile_id: &value.profile_id,
+            collection_id: value.collection_id.as_ref(),
+        }
+    }
 }
 
 pub async fn select_many(

@@ -1,5 +1,7 @@
 use colette_core::{
-    bookmarks::{BookmarkFindManyParams, BookmarkUpdateData, BookmarksRepository, Error},
+    bookmarks::{
+        BookmarkCreateData, BookmarkFindManyParams, BookmarkUpdateData, BookmarksRepository, Error,
+    },
     common::{self, FindOneParams},
     Bookmark,
 };
@@ -26,6 +28,14 @@ impl BookmarksRepository for BookmarksPostgresRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(bookmarks)
+    }
+
+    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
+        let bookmark = queries::bookmarks::insert(&self.pool, (&data).into())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(bookmark)
     }
 
     async fn update(
