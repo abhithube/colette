@@ -382,7 +382,9 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "bytes",
+ "chrono",
  "colette-core",
+ "colette-scraper",
  "http",
  "regex",
  "reqwest",
