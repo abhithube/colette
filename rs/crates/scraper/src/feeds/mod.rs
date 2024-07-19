@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use colette_core::{
     feeds::{ExtractedFeed, ProcessedFeed},
-    utils::scraper::{Downloader, Error, Extractor, Postprocessor, Scraper},
+    utils::scraper::{Downloader, Error, Extractor, PluginRegistry, Postprocessor, Scraper},
 };
 pub use extractor::DefaultFeedExtractor;
 pub use options::{
@@ -11,8 +11,6 @@ pub use options::{
 };
 pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
-
-use crate::PluginRegistry;
 
 mod extractor;
 mod options;

@@ -4,7 +4,7 @@ compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 
-use std::{collections::HashMap, error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, str::FromStr, sync::Arc};
 
 use auth::Api as Auth;
 use axum::{
@@ -22,12 +22,12 @@ use colette_core::{
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
     profiles::{ProfilesRepository, ProfilesService},
     utils::{
-        scraper::{Downloader, Scraper},
+        scraper::Scraper,
         task::{self, Task},
     },
 };
 use colette_password::Argon2Hasher;
-use colette_plugins::{RedditFeedPlugin, YouTubeFeedPlugin};
+use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 #[cfg(feature = "postgres")]
 use colette_postgres::{
     BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
@@ -35,7 +35,7 @@ use colette_postgres::{
 };
 use colette_scraper::{
     BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultDownloader,
-    DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper, PluginRegistry,
+    DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper,
 };
 #[cfg(feature = "sqlite")]
 use colette_sqlite::{
@@ -176,22 +176,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_extractor = Arc::new(DefaultFeedExtractor { options: None });
     let feed_postprocessor = Arc::new(DefaultFeedPostprocessor {});
 
-    let yt_feed_plugin = Arc::new(YouTubeFeedPlugin::new(downloader.clone()));
-    let reddit_feed_plugin = Arc::new(RedditFeedPlugin::new(downloader.clone()));
-
-    let feed_registry = PluginRegistry {
-        downloaders: HashMap::from([
-            (
-                "www.youtube.com",
-                yt_feed_plugin as Arc<dyn Downloader + Send + Sync>,
-            ),
-            ("www.reddit.com", reddit_feed_plugin),
-        ]),
-        extractors: HashMap::new(),
-        postprocessors: HashMap::new(),
-    };
     let feed_scraper = Arc::new(FeedScraper::new(
-        feed_registry,
+        register_feed_plugins(
+            downloader.clone(),
+            feed_extractor.clone(),
+            feed_postprocessor.clone(),
+        ),
         downloader.clone(),
         feed_extractor,
         feed_postprocessor,
@@ -200,13 +190,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_extractor = Arc::new(DefaultBookmarkExtractor::new(None));
     let bookmark_postprocessor = Arc::new(DefaultBookmarkPostprocessor {});
 
-    let bookmark_registry = PluginRegistry {
-        downloaders: HashMap::new(),
-        extractors: HashMap::new(),
-        postprocessors: HashMap::new(),
-    };
     let bookmark_scraper = Arc::new(BookmarkScraper::new(
-        bookmark_registry,
+        register_bookmark_plugins(
+            downloader.clone(),
+            bookmark_extractor.clone(),
+            bookmark_postprocessor.clone(),
+        ),
         downloader,
         bookmark_extractor,
         bookmark_postprocessor,

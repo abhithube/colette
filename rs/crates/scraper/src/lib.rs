@@ -10,10 +10,8 @@ pub use feeds::{
     media_extractor_options, rss_extractor_options, DefaultFeedExtractor, DefaultFeedPostprocessor,
     FeedScraper,
 };
-pub use registry::PluginRegistry;
 
 mod bookmarks;
 mod downloader;
 mod feeds;
-mod registry;
 mod utils;
