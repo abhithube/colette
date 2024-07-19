@@ -4,6 +4,7 @@ members = [
   "crates/core",
   "crates/database",
   "crates/password",
+  "crates/plugins",
   "crates/postgres",
   "crates/scraper",
   "crates/server",
@@ -20,6 +21,7 @@ colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-database.path = "crates/database"
 colette-password.path = "crates/password"
+colette-plugins.path = "crates/plugins"
 colette-postgres.path = "crates/postgres"
 colette-scraper.path = "crates/scraper"
 colette-sqlite.path = "crates/sqlite"

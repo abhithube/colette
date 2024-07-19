@@ -22,11 +22,12 @@ use colette_core::{
     feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
     profiles::{ProfilesRepository, ProfilesService},
     utils::{
-        scraper::Scraper,
+        scraper::{Downloader, Scraper},
         task::{self, Task},
     },
 };
 use colette_password::Argon2Hasher;
+use colette_plugins::{RedditFeedPlugin, YouTubeFeedPlugin};
 #[cfg(feature = "postgres")]
 use colette_postgres::{
     BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
@@ -175,8 +176,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_extractor = Arc::new(DefaultFeedExtractor { options: None });
     let feed_postprocessor = Arc::new(DefaultFeedPostprocessor {});
 
+    let yt_feed_plugin = Arc::new(YouTubeFeedPlugin::new(downloader.clone()));
+    let reddit_feed_plugin = Arc::new(RedditFeedPlugin::new(downloader.clone()));
+
     let feed_registry = PluginRegistry {
-        downloaders: HashMap::new(),
+        downloaders: HashMap::from([
+            (
+                "www.youtube.com",
+                yt_feed_plugin as Arc<dyn Downloader + Send + Sync>,
+            ),
+            ("www.reddit.com", reddit_feed_plugin),
+        ]),
         extractors: HashMap::new(),
         postprocessors: HashMap::new(),
     };
