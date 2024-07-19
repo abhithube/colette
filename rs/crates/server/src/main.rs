@@ -344,10 +344,10 @@ impl RefreshTask {
         }
     }
 
-    async fn refresh(&self, feed_id: i64, url: String) {
+    async fn refresh(&self, feed_id: i64, mut url: String) {
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
-        let feed = self.scraper.scrape(&url).await.unwrap();
+        let feed = self.scraper.scrape(&mut url).await.unwrap();
 
         let mut profiles_stream = self.profiles_repo.iterate(feed_id);
 

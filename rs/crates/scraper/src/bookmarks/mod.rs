@@ -46,7 +46,7 @@ impl BookmarkScraper {
 
 #[async_trait::async_trait]
 impl Scraper<ProcessedBookmark> for BookmarkScraper {
-    async fn scrape(&self, url: &str) -> Result<ProcessedBookmark, Error> {
+    async fn scrape(&self, url: &mut String) -> Result<ProcessedBookmark, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
 

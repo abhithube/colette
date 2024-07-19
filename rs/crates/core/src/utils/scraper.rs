@@ -3,7 +3,7 @@ use http::Response;
 
 #[async_trait::async_trait]
 pub trait Downloader {
-    async fn download(&self, url: &str) -> Result<Response<Bytes>, DownloadError>;
+    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError>;
 }
 
 pub trait Extractor<T> {
@@ -16,7 +16,7 @@ pub trait Postprocessor<T, U> {
 
 #[async_trait::async_trait]
 pub trait Scraper<T> {
-    async fn scrape(&self, url: &str) -> Result<T, Error>;
+    async fn scrape(&self, url: &mut String) -> Result<T, Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

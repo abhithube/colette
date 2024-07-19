@@ -43,7 +43,7 @@ impl FeedScraper {
 
 #[async_trait::async_trait]
 impl Scraper<ProcessedFeed> for FeedScraper {
-    async fn scrape(&self, url: &str) -> Result<ProcessedFeed, Error> {
+    async fn scrape(&self, url: &mut String) -> Result<ProcessedFeed, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
 

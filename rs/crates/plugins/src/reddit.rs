@@ -17,7 +17,7 @@ impl RedditFeedPlugin {
 
 #[async_trait::async_trait]
 impl Downloader for RedditFeedPlugin {
-    async fn download(&self, url: &str) -> Result<Response<Bytes>, DownloadError> {
+    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError> {
         let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
 
         if !parsed.path().contains(".rss") {
@@ -28,6 +28,8 @@ impl Downloader for RedditFeedPlugin {
                 .push(".rss");
         }
 
-        self.downloader.download(parsed.as_str()).await
+        *url = parsed.to_string();
+
+        self.downloader.download(url).await
     }
 }

@@ -136,8 +136,8 @@ impl FeedsService {
         Ok(feed)
     }
 
-    pub async fn create(&self, data: CreateFeed, session: Session) -> Result<Feed, Error> {
-        let scraped = self.scraper.scrape(&data.url).await?;
+    pub async fn create(&self, mut data: CreateFeed, session: Session) -> Result<Feed, Error> {
+        let scraped = self.scraper.scrape(&mut data.url).await?;
 
         let feed = self
             .repo

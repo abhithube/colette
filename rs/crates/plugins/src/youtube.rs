@@ -23,16 +23,17 @@ impl YouTubeFeedPlugin {
 
 #[async_trait::async_trait]
 impl Downloader for YouTubeFeedPlugin {
-    async fn download(&self, url: &str) -> Result<Response<Bytes>, DownloadError> {
-        let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
-
+    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError> {
         if let Some(captures) = self.channel_regex.captures(url) {
+            let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
             if let Some(m) = captures.get(1) {
                 parsed.set_path("feeds/videos.xml");
                 parsed.set_query(Some(&format!("channel_id={}", m.as_str())));
             }
+
+            *url = parsed.to_string();
         }
 
-        self.downloader.download(parsed.as_str()).await
+        self.downloader.download(url).await
     }
 }

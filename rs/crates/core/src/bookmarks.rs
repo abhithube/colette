@@ -124,8 +124,12 @@ impl BookmarksService {
         Ok(paginated)
     }
 
-    pub async fn create(&self, data: CreateBookmark, session: Session) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&data.url).await?;
+    pub async fn create(
+        &self,
+        mut data: CreateBookmark,
+        session: Session,
+    ) -> Result<Bookmark, Error> {
+        let scraped = self.scraper.scrape(&mut data.url).await?;
 
         let bookmark = self
             .repo
