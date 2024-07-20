@@ -6,13 +6,7 @@ compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 
 use std::{error::Error, str::FromStr, sync::Arc};
 
-use auth::Api as Auth;
-use axum::{
-    http::{header, HeaderValue, Method},
-    routing, Router,
-};
-use axum_embed::{FallbackBehavior, ServeEmbed};
-use bookmarks::Api as Bookmarks;
+use app::App;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService,
     entries::EntriesService, feeds::FeedsService, profiles::ProfilesService, utils::task::Task,
@@ -34,27 +28,18 @@ use colette_sqlite::{
     FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 };
 use colette_tasks::{CleanupTask, RefreshTask};
-use collections::Api as Collections;
-use common::{BookmarkList, CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
-use entries::Api as Entries;
-use feeds::Api as Feeds;
-use profiles::Api as Profiles;
-use tokio::net::TcpListener;
 use tokio_cron_scheduler::{Job, JobScheduler};
-use tower_http::cors::CorsLayer;
 #[cfg(not(feature = "redis"))]
 use tower_sessions::session_store::ExpiredDeletion;
-use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 #[cfg(feature = "redis")]
 use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
 #[cfg(all(feature = "postgres", not(feature = "redis")))]
 use tower_sessions_sqlx_store::PostgresStore;
 #[cfg(all(feature = "sqlite", not(feature = "redis")))]
 use tower_sessions_sqlx_store::SqliteStore;
-use utoipa::OpenApi;
-use utoipa_scalar::{Scalar, Servable};
 
+mod app;
 mod auth;
 mod bookmarks;
 mod collections;
@@ -64,27 +49,6 @@ mod feeds;
 mod profiles;
 
 const CRON_CLEANUP: &str = "0 0 * * * *";
-
-#[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../../packages/web/dist"]
-struct Asset;
-
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    servers(
-        (url = "http://localhost:8000/api/v1")
-    ),
-    nest(
-        (path = "/auth", api = Auth),
-        (path = "/bookmarks", api = Bookmarks),
-        (path = "/collections", api = Collections),
-        (path = "/entries", api = Entries),
-        (path = "/feeds", api = Feeds),
-        (path = "/profiles", api = Profiles)
-    ),
-    components(schemas(common::BaseError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
-)]
-struct ApiDoc;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -97,7 +61,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     #[cfg(feature = "redis")]
     let (session_store, cleanup) = {
-        let Some(redis_url) = config.redis_url else {
+        let Some(redis_url) = config.redis_url.clone() else {
             panic!("\"REDIS_URL\" not set")
         };
         let pool = RedisPool::new(RedisConfig::from_url(&redis_url)?, None, None, None, 1)?;
@@ -253,52 +217,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profiles_service: profiles_service.into(),
     };
 
-    let mut app = Router::new()
-        .nest(
-            "/api/v1",
-            Router::new()
-                .merge(Scalar::with_url("/doc", ApiDoc::openapi()))
-                .route(
-                    "/openapi.json",
-                    routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
-                )
-                .merge(Auth::router())
-                .merge(Bookmarks::router())
-                .merge(Collections::router())
-                .merge(Entries::router())
-                .merge(Feeds::router())
-                .merge(Profiles::router())
-                .with_state(state),
-        )
-        .fallback_service(ServeEmbed::<Asset>::with_parameters(
-            Some(String::from("index.html")),
-            FallbackBehavior::Ok,
-            None,
-        ))
-        .layer(
-            SessionManagerLayer::new(session_store)
-                .with_secure(false)
-                .with_expiry(Expiry::OnInactivity(Duration::days(1))),
-        );
-
-    if !config.origin_urls.is_empty() {
-        let origins: Vec<HeaderValue> = config
-            .origin_urls
-            .iter()
-            .filter_map(|e| e.parse::<HeaderValue>().ok())
-            .collect();
-
-        app = app.layer(
-            CorsLayer::new()
-                .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-                .allow_origin(origins)
-                .allow_headers([header::CONTENT_TYPE])
-                .allow_credentials(true),
-        )
-    }
-
-    let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
-    axum::serve(listener, app).await?;
+    App::new(state, config, session_store).start().await?;
 
     cleanup.await??;
 
