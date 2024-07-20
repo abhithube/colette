@@ -4,7 +4,7 @@ compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, sync::Arc};
 
 use app::App;
 use colette_core::{
@@ -24,7 +24,6 @@ use colette_scraper::{
     DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper,
 };
 use colette_tasks::{CleanupTask, RefreshTask};
-use cron::Schedule;
 use tokio_cron_scheduler::{Job, JobScheduler};
 #[cfg(not(feature = "redis"))]
 use tower_sessions::session_store::ExpiredDeletion;
@@ -139,24 +138,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let scheduler = JobScheduler::new().await?;
 
     if config.refresh_enabled {
-        let schedule = Schedule::from_str(&config.cron_refresh)?;
-
         let feed_scraper = feed_scraper.clone();
         let feeds_repository = repositories.feeds.clone();
         let profiles_repository = repositories.profiles.clone();
 
         scheduler
-            .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
-                let refresh_task = RefreshTask::new(
-                    feed_scraper.clone(),
-                    feeds_repository.clone(),
-                    profiles_repository.clone(),
-                );
+            .add(Job::new_async(
+                config.cron_refresh.as_ref(),
+                move |_id, _scheduler| {
+                    let refresh_task = RefreshTask::new(
+                        feed_scraper.clone(),
+                        feeds_repository.clone(),
+                        profiles_repository.clone(),
+                    );
 
-                Box::pin(async move {
-                    let _ = refresh_task.run().await;
-                })
-            })?)
+                    Box::pin(async move {
+                        let _ = refresh_task.run().await;
+                    })
+                },
+            )?)
             .await?;
     }
 

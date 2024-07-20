@@ -17,7 +17,6 @@ colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-sqlite = { workspace = true, optional = true }
 colette-tasks.workspace = true
-cron = "0.12.1"
 rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
 serde.workspace = true
 thiserror.workspace = true

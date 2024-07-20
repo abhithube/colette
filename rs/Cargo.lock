@@ -433,7 +433,6 @@ dependencies = [
  "colette-scraper",
  "colette-sqlite",
  "colette-tasks",
- "cron",
  "rust-embed",
  "serde",
  "thiserror",
