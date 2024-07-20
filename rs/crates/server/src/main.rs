@@ -9,28 +9,19 @@ use std::{error::Error, str::FromStr, sync::Arc};
 use app::App;
 use colette_core::{
     auth::AuthService,
-    bookmarks::{BookmarksService, ProcessedBookmark},
-    collections::CollectionsService,
-    entries::EntriesService,
-    feeds::{FeedsService, ProcessedFeed},
-    profiles::ProfilesService,
+    bookmarks::{BookmarksRepository, BookmarksService, ProcessedBookmark},
+    collections::{CollectionsRepository, CollectionsService},
+    entries::{EntriesRepository, EntriesService},
+    feeds::{FeedsRepository, FeedsService, ProcessedFeed},
+    profiles::{ProfilesRepository, ProfilesService},
+    users::UsersRepository,
     utils::{scraper::Scraper, task::Task},
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-#[cfg(feature = "postgres")]
-use colette_postgres::{
-    BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
-    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
-};
 use colette_scraper::{
     BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultDownloader,
     DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper,
-};
-#[cfg(feature = "sqlite")]
-use colette_sqlite::{
-    BookmarksSqliteRepository, CollectionsSqliteRepository, EntriesSqliteRepository,
-    FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 };
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
@@ -55,14 +46,59 @@ mod profiles;
 
 const CRON_CLEANUP: &str = "0 0 * * * *";
 
+struct Repositories {
+    bookmarks: Arc<dyn BookmarksRepository>,
+    collections: Arc<dyn CollectionsRepository>,
+    entries: Arc<dyn EntriesRepository>,
+    feeds: Arc<dyn FeedsRepository>,
+    profiles: Arc<dyn ProfilesRepository>,
+    users: Arc<dyn UsersRepository>,
+}
+
+impl Repositories {
+    #[cfg(feature = "postgres")]
+    fn new_pg(pool: colette_postgres::PgPool) -> Self {
+        use colette_postgres::*;
+        Self {
+            bookmarks: Arc::new(BookmarksPostgresRepository::new(pool.clone())),
+            collections: Arc::new(CollectionsPostgresRepository::new(pool.clone())),
+            entries: Arc::new(EntriesPostgresRepository::new(pool.clone())),
+            feeds: Arc::new(FeedsPostgresRepository::new(pool.clone())),
+            profiles: Arc::new(ProfilesPostgresRepository::new(pool.clone())),
+            users: Arc::new(UsersPostgresRepository::new(pool.clone())),
+        }
+    }
+
+    #[cfg(feature = "sqlite")]
+    fn new_sqlite(pool: colette_sqlite::SqlitePool) -> Self {
+        use colette_sqlite::*;
+        Self {
+            bookmarks: Arc::new(BookmarksSqliteRepository::new(pool.clone())),
+            collections: Arc::new(CollectionsSqliteRepository::new(pool.clone())),
+            entries: Arc::new(EntriesSqliteRepository::new(pool.clone())),
+            feeds: Arc::new(FeedsSqliteRepository::new(pool.clone())),
+            profiles: Arc::new(ProfilesSqliteRepository::new(pool.clone())),
+            users: Arc::new(UsersSqliteRepository::new(pool.clone())),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let config = colette_config::load_config()?;
 
     #[cfg(feature = "postgres")]
-    let pool = colette_postgres::create_database(&config.database_url).await?;
+    let (pool, repositories) = {
+        let pool = colette_postgres::create_database(&config.database_url).await?;
+
+        (pool.clone(), Repositories::new_pg(pool))
+    };
     #[cfg(feature = "sqlite")]
-    let pool = colette_sqlite::create_database(&config.database_url).await?;
+    let (pool, repositories) = {
+        let pool = colette_sqlite::create_database(&config.database_url).await?;
+
+        (pool.clone(), Repositories::new_sqlite(pool))
+    };
 
     #[cfg(feature = "redis")]
     let (session_store, cleanup) = {
@@ -98,39 +134,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         (store, deletion_task)
     };
 
-    #[cfg(feature = "postgres")]
-    let (
-        bookmarks_repository,
-        collections_repository,
-        entries_repository,
-        feeds_repository,
-        profiles_repository,
-        users_repository,
-    ) = (
-        Arc::new(BookmarksPostgresRepository::new(pool.clone())),
-        Arc::new(CollectionsPostgresRepository::new(pool.clone())),
-        Arc::new(EntriesPostgresRepository::new(pool.clone())),
-        Arc::new(FeedsPostgresRepository::new(pool.clone())),
-        Arc::new(ProfilesPostgresRepository::new(pool.clone())),
-        Arc::new(UsersPostgresRepository::new(pool)),
-    );
-    #[cfg(feature = "sqlite")]
-    let (
-        bookmarks_repository,
-        collections_repository,
-        entries_repository,
-        feeds_repository,
-        profiles_repository,
-        users_repository,
-    ) = (
-        Arc::new(BookmarksSqliteRepository::new(pool.clone())),
-        Arc::new(CollectionsSqliteRepository::new(pool.clone())),
-        Arc::new(EntriesSqliteRepository::new(pool.clone())),
-        Arc::new(FeedsSqliteRepository::new(pool.clone())),
-        Arc::new(ProfilesSqliteRepository::new(pool.clone())),
-        Arc::new(UsersSqliteRepository::new(pool)),
-    );
-
     let (feed_scraper, bookmark_scraper) = create_scrapers();
 
     let scheduler = JobScheduler::new().await?;
@@ -139,8 +142,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let schedule = Schedule::from_str(&config.cron_refresh)?;
 
         let feed_scraper = feed_scraper.clone();
-        let feeds_repository = feeds_repository.clone();
-        let profiles_repository = profiles_repository.clone();
+        let feeds_repository = repositories.feeds.clone();
+        let profiles_repository = repositories.profiles.clone();
 
         scheduler
             .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
@@ -158,7 +161,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     {
-        let feeds_repository = feeds_repository.clone();
+        let feeds_repository = repositories.feeds.clone();
 
         scheduler
             .add(Job::new_async(CRON_CLEANUP, move |_id, _scheduler| {
@@ -175,16 +178,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let state = common::Context {
         auth_service: AuthService::new(
-            users_repository,
-            profiles_repository.clone(),
+            repositories.users,
+            repositories.profiles.clone(),
             Arc::new(Argon2Hasher {}),
         )
         .into(),
-        bookmark_service: BookmarksService::new(bookmarks_repository, bookmark_scraper).into(),
-        collections_service: CollectionsService::new(collections_repository).into(),
-        entries_service: EntriesService::new(entries_repository).into(),
-        feeds_service: FeedsService::new(feeds_repository, feed_scraper).into(),
-        profiles_service: ProfilesService::new(profiles_repository).into(),
+        bookmark_service: BookmarksService::new(repositories.bookmarks, bookmark_scraper).into(),
+        collections_service: CollectionsService::new(repositories.collections).into(),
+        entries_service: EntriesService::new(repositories.entries).into(),
+        feeds_service: FeedsService::new(repositories.feeds, feed_scraper).into(),
+        profiles_service: ProfilesService::new(repositories.profiles).into(),
     };
 
     App::new(state, config, session_store).start().await?;
