@@ -8,8 +8,13 @@ use std::{error::Error, str::FromStr, sync::Arc};
 
 use app::App;
 use colette_core::{
-    auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService,
-    entries::EntriesService, feeds::FeedsService, profiles::ProfilesService, utils::task::Task,
+    auth::AuthService,
+    bookmarks::{BookmarksService, ProcessedBookmark},
+    collections::CollectionsService,
+    entries::EntriesService,
+    feeds::{FeedsService, ProcessedFeed},
+    profiles::ProfilesService,
+    utils::{scraper::Scraper, task::Task},
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -126,6 +131,73 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(UsersSqliteRepository::new(pool)),
     );
 
+    let (feed_scraper, bookmark_scraper) = create_scrapers();
+
+    let scheduler = JobScheduler::new().await?;
+
+    if config.refresh_enabled {
+        let schedule = Schedule::from_str(&config.cron_refresh)?;
+
+        let feed_scraper = feed_scraper.clone();
+        let feeds_repository = feeds_repository.clone();
+        let profiles_repository = profiles_repository.clone();
+
+        scheduler
+            .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
+                let refresh_task = RefreshTask::new(
+                    feed_scraper.clone(),
+                    feeds_repository.clone(),
+                    profiles_repository.clone(),
+                );
+
+                Box::pin(async move {
+                    let _ = refresh_task.run().await;
+                })
+            })?)
+            .await?;
+    }
+
+    {
+        let feeds_repository = feeds_repository.clone();
+
+        scheduler
+            .add(Job::new_async(CRON_CLEANUP, move |_id, _scheduler| {
+                let cleanup_task = CleanupTask::new(feeds_repository.clone());
+
+                Box::pin(async move {
+                    let _ = cleanup_task.run().await;
+                })
+            })?)
+            .await?;
+    }
+
+    scheduler.start().await?;
+
+    let state = common::Context {
+        auth_service: AuthService::new(
+            users_repository,
+            profiles_repository.clone(),
+            Arc::new(Argon2Hasher {}),
+        )
+        .into(),
+        bookmark_service: BookmarksService::new(bookmarks_repository, bookmark_scraper).into(),
+        collections_service: CollectionsService::new(collections_repository).into(),
+        entries_service: EntriesService::new(entries_repository).into(),
+        feeds_service: FeedsService::new(feeds_repository, feed_scraper).into(),
+        profiles_service: ProfilesService::new(profiles_repository).into(),
+    };
+
+    App::new(state, config, session_store).start().await?;
+
+    cleanup.await??;
+
+    Ok(())
+}
+
+fn create_scrapers() -> (
+    Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
+    Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
+) {
     let downloader = Arc::new(DefaultDownloader {});
 
     let feed_extractor = Arc::new(DefaultFeedExtractor { options: None });
@@ -156,70 +228,5 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_postprocessor,
     ));
 
-    let scheduler = JobScheduler::new().await?;
-
-    if config.refresh_enabled {
-        let schedule = Schedule::from_str(&config.cron_refresh)?;
-
-        {
-            let feed_scraper = feed_scraper.clone();
-            let feeds_repository = feeds_repository.clone();
-            let profiles_repository = profiles_repository.clone();
-
-            scheduler
-                .add(Job::new_async(schedule.clone(), move |_id, _scheduler| {
-                    let refresh_task = RefreshTask::new(
-                        feed_scraper.clone(),
-                        feeds_repository.clone(),
-                        profiles_repository.clone(),
-                    );
-
-                    Box::pin(async move {
-                        let _ = refresh_task.run().await;
-                    })
-                })?)
-                .await?;
-        }
-    }
-
-    {
-        let feeds_repository = feeds_repository.clone();
-
-        scheduler
-            .add(Job::new_async(CRON_CLEANUP, move |_id, _scheduler| {
-                let cleanup_task = CleanupTask::new(feeds_repository.clone());
-
-                Box::pin(async move {
-                    let _ = cleanup_task.run().await;
-                })
-            })?)
-            .await?;
-    }
-
-    scheduler.start().await?;
-
-    let argon_hasher = Arc::new(Argon2Hasher {});
-
-    let auth_service =
-        AuthService::new(users_repository, profiles_repository.clone(), argon_hasher);
-    let bookmarks_service = BookmarksService::new(bookmarks_repository, bookmark_scraper);
-    let collections_service = CollectionsService::new(collections_repository);
-    let entries_service = EntriesService::new(entries_repository);
-    let feeds_service = FeedsService::new(feeds_repository, feed_scraper);
-    let profiles_service = ProfilesService::new(profiles_repository);
-
-    let state = common::Context {
-        auth_service: auth_service.into(),
-        bookmark_service: bookmarks_service.into(),
-        collections_service: collections_service.into(),
-        entries_service: entries_service.into(),
-        feeds_service: feeds_service.into(),
-        profiles_service: profiles_service.into(),
-    };
-
-    App::new(state, config, session_store).start().await?;
-
-    cleanup.await??;
-
-    Ok(())
+    (feed_scraper, bookmark_scraper)
 }
