@@ -6,11 +6,11 @@ use http::Response;
 use reqwest::Url;
 
 pub struct RedditFeedPlugin {
-    downloader: Arc<dyn Downloader + Send + Sync>,
+    downloader: Arc<dyn Downloader>,
 }
 
 impl RedditFeedPlugin {
-    pub fn new(downloader: Arc<dyn Downloader + Send + Sync>) -> Self {
+    pub fn new(downloader: Arc<dyn Downloader>) -> Self {
         Self { downloader }
     }
 }

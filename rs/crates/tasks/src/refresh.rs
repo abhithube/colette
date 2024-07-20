@@ -13,16 +13,16 @@ use futures::StreamExt;
 use tokio::sync::Semaphore;
 
 pub struct RefreshTask {
-    scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+    scraper: Arc<dyn Scraper<ProcessedFeed>>,
+    feeds_repo: Arc<dyn FeedsRepository>,
+    profiles_repo: Arc<dyn ProfilesRepository>,
 }
 
 impl RefreshTask {
     pub fn new(
-        scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
+        scraper: Arc<dyn Scraper<ProcessedFeed>>,
+        feeds_repo: Arc<dyn FeedsRepository>,
+        profiles_repo: Arc<dyn ProfilesRepository>,
     ) -> Self {
         Self {
             scraper,

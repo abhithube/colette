@@ -11,7 +11,7 @@ pub struct User {
 }
 
 #[async_trait::async_trait]
-pub trait UsersRepository {
+pub trait UsersRepository: Send + Sync {
     async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error>;
 
     async fn create(&self, data: UserCreateData) -> Result<User, Error>;

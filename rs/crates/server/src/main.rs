@@ -195,8 +195,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn create_scrapers() -> (
-    Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
+    Arc<dyn Scraper<ProcessedFeed>>,
+    Arc<dyn Scraper<ProcessedBookmark>>,
 ) {
     let downloader = Arc::new(DefaultDownloader {});
 

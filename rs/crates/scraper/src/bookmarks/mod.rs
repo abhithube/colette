@@ -18,20 +18,17 @@ mod postprocessor;
 
 pub struct BookmarkScraper {
     registry: PluginRegistry<ExtractedBookmark, ProcessedBookmark>,
-    default_downloader: Arc<dyn Downloader + Send + Sync>,
-    default_extractor: Arc<dyn Extractor<ExtractedBookmark> + Send + Sync>,
-    default_postprocessor:
-        Arc<dyn Postprocessor<ExtractedBookmark, ProcessedBookmark> + Send + Sync>,
+    default_downloader: Arc<dyn Downloader>,
+    default_extractor: Arc<dyn Extractor<ExtractedBookmark>>,
+    default_postprocessor: Arc<dyn Postprocessor<ExtractedBookmark, ProcessedBookmark>>,
 }
 
 impl BookmarkScraper {
     pub fn new(
         registry: PluginRegistry<ExtractedBookmark, ProcessedBookmark>,
-        default_downloader: Arc<dyn Downloader + Send + Sync>,
-        default_extractor: Arc<dyn Extractor<ExtractedBookmark> + Send + Sync>,
-        default_postprocessor: Arc<
-            dyn Postprocessor<ExtractedBookmark, ProcessedBookmark> + Send + Sync,
-        >,
+        default_downloader: Arc<dyn Downloader>,
+        default_extractor: Arc<dyn Extractor<ExtractedBookmark>>,
+        default_postprocessor: Arc<dyn Postprocessor<ExtractedBookmark, ProcessedBookmark>>,
     ) -> Self {
         Self {
             registry,

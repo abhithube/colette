@@ -1,5 +1,5 @@
 #[async_trait::async_trait]
-pub trait PasswordHasher {
+pub trait PasswordHasher: Send + Sync {
     async fn hash(&self, password: &str) -> Result<String, Error>;
 
     async fn verify(&self, password: &str, hashed: &str) -> Result<bool, Error>;

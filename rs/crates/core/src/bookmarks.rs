@@ -72,7 +72,7 @@ pub struct ProcessedBookmark {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarksRepository {
+pub trait BookmarksRepository: Send + Sync {
     async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error>;
 
     async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
@@ -87,14 +87,14 @@ pub trait BookmarksRepository {
 }
 
 pub struct BookmarksService {
-    repo: Arc<dyn BookmarksRepository + Send + Sync>,
-    scraper: Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
+    repo: Arc<dyn BookmarksRepository>,
+    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
 }
 
 impl BookmarksService {
     pub fn new(
-        repo: Arc<dyn BookmarksRepository + Send + Sync>,
-        scraper: Arc<dyn Scraper<ProcessedBookmark> + Send + Sync>,
+        repo: Arc<dyn BookmarksRepository>,
+        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
     ) -> Self {
         Self { repo, scraper }
     }

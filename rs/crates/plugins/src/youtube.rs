@@ -8,11 +8,11 @@ use reqwest::Url;
 
 pub struct YouTubeFeedPlugin {
     channel_regex: Regex,
-    downloader: Arc<dyn Downloader + Send + Sync>,
+    downloader: Arc<dyn Downloader>,
 }
 
 impl YouTubeFeedPlugin {
-    pub fn new(downloader: Arc<dyn Downloader + Send + Sync>) -> Self {
+    pub fn new(downloader: Arc<dyn Downloader>) -> Self {
         Self {
             channel_regex: Regex::new(r#"/channel/(UC[\w_-]+)"#)
                 .expect("failed to create channel regex"),

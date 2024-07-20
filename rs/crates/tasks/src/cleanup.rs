@@ -6,11 +6,11 @@ use colette_core::{
 };
 
 pub struct CleanupTask {
-    repo: Arc<dyn FeedsRepository + Send + Sync>,
+    repo: Arc<dyn FeedsRepository>,
 }
 
 impl CleanupTask {
-    pub fn new(repo: Arc<dyn FeedsRepository + Send + Sync>) -> Self {
+    pub fn new(repo: Arc<dyn FeedsRepository>) -> Self {
         Self { repo }
     }
 }

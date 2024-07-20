@@ -21,16 +21,16 @@ pub struct Login {
 }
 
 pub struct AuthService {
-    users_repo: Arc<dyn UsersRepository + Send + Sync>,
-    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
-    hasher: Arc<dyn PasswordHasher + Send + Sync>,
+    users_repo: Arc<dyn UsersRepository>,
+    profiles_repo: Arc<dyn ProfilesRepository>,
+    hasher: Arc<dyn PasswordHasher>,
 }
 
 impl AuthService {
     pub fn new(
-        users_repo: Arc<dyn UsersRepository + Send + Sync>,
-        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
-        hasher: Arc<dyn PasswordHasher + Send + Sync>,
+        users_repo: Arc<dyn UsersRepository>,
+        profiles_repo: Arc<dyn ProfilesRepository>,
+        hasher: Arc<dyn PasswordHasher>,
     ) -> Self {
         Self {
             users_repo,

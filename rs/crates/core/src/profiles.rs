@@ -37,7 +37,7 @@ impl From<UpdateProfile> for ProfileUpdateData {
 }
 
 #[async_trait::async_trait]
-pub trait ProfilesRepository {
+pub trait ProfilesRepository: Send + Sync {
     async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error>;
 
     async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error>;
@@ -56,11 +56,11 @@ pub trait ProfilesRepository {
 }
 
 pub struct ProfilesService {
-    repo: Arc<dyn ProfilesRepository + Send + Sync>,
+    repo: Arc<dyn ProfilesRepository>,
 }
 
 impl ProfilesService {
-    pub fn new(repo: Arc<dyn ProfilesRepository + Send + Sync>) -> Self {
+    pub fn new(repo: Arc<dyn ProfilesRepository>) -> Self {
         Self { repo }
     }
 

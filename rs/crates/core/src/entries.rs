@@ -31,18 +31,18 @@ pub struct ListEntriesParams {
 }
 
 #[async_trait::async_trait]
-pub trait EntriesRepository {
+pub trait EntriesRepository: Send + Sync {
     async fn find_many(&self, params: EntryFindManyParams) -> Result<Vec<Entry>, Error>;
 
     async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error>;
 }
 
 pub struct EntriesService {
-    repo: Arc<dyn EntriesRepository + Send + Sync>,
+    repo: Arc<dyn EntriesRepository>,
 }
 
 impl EntriesService {
-    pub fn new(repo: Arc<dyn EntriesRepository + Send + Sync>) -> Self {
+    pub fn new(repo: Arc<dyn EntriesRepository>) -> Self {
         Self { repo }
     }
 

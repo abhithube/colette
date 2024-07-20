@@ -79,7 +79,7 @@ pub struct ProcessedEntry {
 }
 
 #[async_trait::async_trait]
-pub trait FeedsRepository {
+pub trait FeedsRepository: Send + Sync {
     async fn find_many(&self, params: FeedFindManyParams) -> Result<Vec<Feed>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Feed, Error>;
@@ -96,15 +96,12 @@ pub trait FeedsRepository {
 }
 
 pub struct FeedsService {
-    repo: Arc<dyn FeedsRepository + Send + Sync>,
-    scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
+    repo: Arc<dyn FeedsRepository>,
+    scraper: Arc<dyn Scraper<ProcessedFeed>>,
 }
 
 impl FeedsService {
-    pub fn new(
-        repo: Arc<dyn FeedsRepository + Send + Sync>,
-        scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    ) -> Self {
+    pub fn new(repo: Arc<dyn FeedsRepository>, scraper: Arc<dyn Scraper<ProcessedFeed>>) -> Self {
         Self { repo, scraper }
     }
 

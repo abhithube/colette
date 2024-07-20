@@ -18,17 +18,17 @@ mod postprocessor;
 
 pub struct FeedScraper {
     registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
-    default_downloader: Arc<dyn Downloader + Send + Sync>,
-    default_extractor: Arc<dyn Extractor<ExtractedFeed> + Send + Sync>,
-    default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+    default_downloader: Arc<dyn Downloader>,
+    default_extractor: Arc<dyn Extractor<ExtractedFeed>>,
+    default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed>>,
 }
 
 impl FeedScraper {
     pub fn new(
         registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,
-        default_downloader: Arc<dyn Downloader + Send + Sync>,
-        default_extractor: Arc<dyn Extractor<ExtractedFeed> + Send + Sync>,
-        default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed> + Send + Sync>,
+        default_downloader: Arc<dyn Downloader>,
+        default_extractor: Arc<dyn Extractor<ExtractedFeed>>,
+        default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed>>,
     ) -> Self {
         Self {
             registry,

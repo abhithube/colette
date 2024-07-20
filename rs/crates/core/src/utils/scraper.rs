@@ -4,27 +4,27 @@ use bytes::Bytes;
 use http::Response;
 
 #[async_trait::async_trait]
-pub trait Downloader {
+pub trait Downloader: Send + Sync {
     async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError>;
 }
 
-pub trait Extractor<T> {
+pub trait Extractor<T>: Send + Sync {
     fn extract(&self, url: &str, raw: &str) -> Result<T, ExtractError>;
 }
 
-pub trait Postprocessor<T, U> {
+pub trait Postprocessor<T, U>: Send + Sync {
     fn postprocess(&self, url: &str, extracted: T) -> Result<U, PostprocessError>;
 }
 
 #[async_trait::async_trait]
-pub trait Scraper<T> {
+pub trait Scraper<T>: Send + Sync {
     async fn scrape(&self, url: &mut String) -> Result<T, Error>;
 }
 
 pub struct PluginRegistry<T, U> {
-    pub downloaders: HashMap<&'static str, Arc<dyn Downloader + Send + Sync>>,
-    pub extractors: HashMap<&'static str, Arc<dyn Extractor<T> + Send + Sync>>,
-    pub postprocessors: HashMap<&'static str, Arc<dyn Postprocessor<T, U> + Send + Sync>>,
+    pub downloaders: HashMap<&'static str, Arc<dyn Downloader>>,
+    pub extractors: HashMap<&'static str, Arc<dyn Extractor<T>>>,
+    pub postprocessors: HashMap<&'static str, Arc<dyn Postprocessor<T, U>>>,
 }
 
 #[derive(Debug, thiserror::Error)]

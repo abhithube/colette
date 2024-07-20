@@ -26,7 +26,7 @@ pub struct UpdateCollection {
 }
 
 #[async_trait::async_trait]
-pub trait CollectionsRepository {
+pub trait CollectionsRepository: Send + Sync {
     async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Collection, Error>;
@@ -43,11 +43,11 @@ pub trait CollectionsRepository {
 }
 
 pub struct CollectionsService {
-    repo: Arc<dyn CollectionsRepository + Send + Sync>,
+    repo: Arc<dyn CollectionsRepository>,
 }
 
 impl CollectionsService {
-    pub fn new(repo: Arc<dyn CollectionsRepository + Send + Sync>) -> Self {
+    pub fn new(repo: Arc<dyn CollectionsRepository>) -> Self {
         Self { repo }
     }
 
