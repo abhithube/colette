@@ -12,9 +12,11 @@ pub use options::{
 pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 
+mod atom;
 mod extractor;
 mod options;
 mod postprocessor;
+mod rss;
 
 pub struct FeedScraper {
     registry: PluginRegistry<ExtractedFeed, ProcessedFeed>,

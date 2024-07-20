@@ -13,4 +13,5 @@ http.workspace = true
 itertools.workspace = true
 libxml = "0.3.3"
 reqwest.workspace = true
+serde.workspace = true
 url.workspace = true

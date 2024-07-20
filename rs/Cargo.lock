@@ -413,6 +413,7 @@ dependencies = [
  "itertools",
  "libxml",
  "reqwest",
+ "serde",
  "url",
 ]
 
