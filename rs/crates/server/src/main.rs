@@ -13,18 +13,9 @@ use axum::{
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use bookmarks::Api as Bookmarks;
-use chrono::Utc;
 use colette_core::{
-    auth::AuthService,
-    bookmarks::BookmarksService,
-    collections::CollectionsService,
-    entries::EntriesService,
-    feeds::{FeedCreateData, FeedsRepository, FeedsService, ProcessedFeed},
-    profiles::{ProfilesRepository, ProfilesService},
-    utils::{
-        scraper::Scraper,
-        task::{self, Task},
-    },
+    auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService,
+    entries::EntriesService, feeds::FeedsService, profiles::ProfilesService, utils::task::Task,
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -42,14 +33,14 @@ use colette_sqlite::{
     BookmarksSqliteRepository, CollectionsSqliteRepository, EntriesSqliteRepository,
     FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
 };
+use colette_tasks::{CleanupTask, RefreshTask};
 use collections::Api as Collections;
 use common::{BookmarkList, CollectionList, EntryList, FeedList, ProfileList};
 use cron::Schedule;
 use entries::Api as Entries;
 use feeds::Api as Feeds;
-use futures::stream::StreamExt;
 use profiles::Api as Profiles;
-use tokio::{net::TcpListener, sync::Semaphore};
+use tokio::net::TcpListener;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tower_http::cors::CorsLayer;
 #[cfg(not(feature = "redis"))]
@@ -312,90 +303,4 @@ async fn main() -> Result<(), Box<dyn Error>> {
     cleanup.await??;
 
     Ok(())
-}
-
-pub struct RefreshTask {
-    scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-    feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-    profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
-}
-
-impl RefreshTask {
-    pub fn new(
-        scraper: Arc<dyn Scraper<ProcessedFeed> + Send + Sync>,
-        feeds_repo: Arc<dyn FeedsRepository + Send + Sync>,
-        profiles_repo: Arc<dyn ProfilesRepository + Send + Sync>,
-    ) -> Self {
-        Self {
-            scraper,
-            feeds_repo,
-            profiles_repo,
-        }
-    }
-
-    async fn refresh(&self, feed_id: i64, mut url: String) {
-        println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
-
-        let feed = self.scraper.scrape(&mut url).await.unwrap();
-
-        let mut profiles_stream = self.profiles_repo.iterate(feed_id);
-
-        while let Some(Ok(profile_id)) = profiles_stream.next().await {
-            let data = FeedCreateData {
-                url: url.clone(),
-                feed: feed.clone(),
-                profile_id,
-            };
-            self.feeds_repo.create(data).await.unwrap();
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl Task for RefreshTask {
-    async fn run(&self) -> Result<(), task::Error> {
-        let semaphore = Arc::new(Semaphore::new(5));
-
-        let feeds_stream = self.feeds_repo.iterate();
-
-        let tasks = feeds_stream
-            .map(|item| {
-                let semaphore = semaphore.clone();
-
-                async move {
-                    let _ = semaphore.acquire().await.unwrap();
-
-                    if let Ok((feed_id, url)) = item {
-                        self.refresh(feed_id, url).await
-                    }
-                }
-            })
-            .buffer_unordered(5);
-
-        tasks.for_each(|_| async {}).await;
-
-        Ok(())
-    }
-}
-
-pub struct CleanupTask {
-    repo: Arc<dyn FeedsRepository + Send + Sync>,
-}
-
-impl CleanupTask {
-    pub fn new(repo: Arc<dyn FeedsRepository + Send + Sync>) -> Self {
-        Self { repo }
-    }
-}
-
-#[async_trait::async_trait]
-impl Task for CleanupTask {
-    async fn run(&self) -> Result<(), task::Error> {
-        self.repo
-            .cleanup()
-            .await
-            .map_err(|e| task::Error(e.into()))?;
-
-        Ok(())
-    }
 }

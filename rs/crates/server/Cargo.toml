@@ -16,6 +16,7 @@ colette-postgres = { workspace = true, optional = true }
 colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-sqlite = { workspace = true, optional = true }
+colette-tasks.workspace = true
 cron = "0.12.1"
 futures.workspace = true
 mime = "0.3.17"

@@ -9,6 +9,7 @@ members = [
   "crates/scraper",
   "crates/server",
   "crates/sqlite",
+  "crates/tasks",
 ]
 resolver = "2"
 
@@ -25,6 +26,7 @@ colette-plugins.path = "crates/plugins"
 colette-postgres.path = "crates/postgres"
 colette-scraper.path = "crates/scraper"
 colette-sqlite.path = "crates/sqlite"
+colette-tasks.path = "crates/tasks"
 futures = "0.3.30"
 http = "1.1.0"
 serde = { version = "1.0.203", features = ["derive"] }

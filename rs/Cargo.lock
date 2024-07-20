@@ -433,6 +433,7 @@ dependencies = [
  "colette-postgres",
  "colette-scraper",
  "colette-sqlite",
+ "colette-tasks",
  "cron",
  "futures",
  "mime",
@@ -461,6 +462,17 @@ dependencies = [
  "futures",
  "sqlx",
  "uuid",
+]
+
+[[package]]
+name = "colette-tasks"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-core",
+ "futures",
+ "tokio",
 ]
 
 [[package]]

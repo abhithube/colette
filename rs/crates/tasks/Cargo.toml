@@ -1,0 +1,11 @@
+[package]
+name = "colette-tasks"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+colette-core.workspace = true
+futures.workspace = true
+tokio = "1.38.1"
