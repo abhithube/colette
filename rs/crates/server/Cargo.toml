@@ -18,12 +18,10 @@ colette-scraper.workspace = true
 colette-sqlite = { workspace = true, optional = true }
 colette-tasks.workspace = true
 cron = "0.12.1"
-futures.workspace = true
-mime = "0.3.17"
 rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
 serde.workspace = true
 thiserror.workspace = true
-tokio = { version = "1.38.1", features = ["macros", "rt-multi-thread"] }
+tokio.workspace = true
 tokio-cron-scheduler = "0.10.2"
 tower-http = { version = "0.5.2", features = ["cors"] }
 tower-sessions = "0.12.2"

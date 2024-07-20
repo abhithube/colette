@@ -8,4 +8,4 @@ async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 futures.workspace = true
-tokio = "1.38.1"
+tokio.workspace = true
