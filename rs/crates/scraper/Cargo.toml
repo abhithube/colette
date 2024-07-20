@@ -12,6 +12,8 @@ colette-core.workspace = true
 http.workspace = true
 itertools.workspace = true
 libxml = "0.3.3"
+quick-xml = { version = "0.36.0", features = ["overlapped-lists", "serialize"] }
 reqwest.workspace = true
+scraper = "0.19.1"
 serde.workspace = true
 url.workspace = true

@@ -21,7 +21,7 @@ use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{
     BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultDownloader,
-    DefaultFeedExtractor, DefaultFeedPostprocessor, FeedScraper,
+    FeedScraper,
 };
 use colette_tasks::{CleanupTask, RefreshTask};
 use tokio_cron_scheduler::{Job, JobScheduler};
@@ -203,19 +203,7 @@ fn create_scrapers() -> (
 ) {
     let downloader = Arc::new(DefaultDownloader {});
 
-    let feed_extractor = Arc::new(DefaultFeedExtractor { options: None });
-    let feed_postprocessor = Arc::new(DefaultFeedPostprocessor {});
-
-    let feed_scraper = Arc::new(FeedScraper::new(
-        register_feed_plugins(
-            downloader.clone(),
-            feed_extractor.clone(),
-            feed_postprocessor.clone(),
-        ),
-        downloader.clone(),
-        feed_extractor,
-        feed_postprocessor,
-    ));
+    let feed_scraper = Arc::new(FeedScraper::new(register_feed_plugins(downloader.clone())));
 
     let bookmark_extractor = Arc::new(DefaultBookmarkExtractor::new(None));
     let bookmark_postprocessor = Arc::new(DefaultBookmarkPostprocessor {});

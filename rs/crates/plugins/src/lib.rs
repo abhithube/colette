@@ -16,8 +16,6 @@ mod youtube;
 
 pub fn register_feed_plugins(
     downloader: Arc<dyn Downloader>,
-    _extractor: Arc<dyn Extractor<ExtractedFeed>>,
-    _postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed>>,
 ) -> PluginRegistry<ExtractedFeed, ProcessedFeed> {
     let yt_feed_plugin = Arc::new(YouTubeFeedPlugin::new(downloader.clone()));
     let reddit_feed_plugin = Arc::new(RedditFeedPlugin::new(downloader.clone()));
