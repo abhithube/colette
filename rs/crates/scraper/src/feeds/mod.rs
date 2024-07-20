@@ -34,9 +34,8 @@ impl FeedScraper {
     }
 }
 
-#[async_trait::async_trait]
 impl Scraper<ProcessedFeed> for FeedScraper {
-    async fn scrape(&self, url: &mut String) -> Result<ProcessedFeed, Error> {
+    fn scrape(&self, url: &mut String) -> Result<ProcessedFeed, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
 
@@ -51,8 +50,8 @@ impl Scraper<ProcessedFeed> for FeedScraper {
             .get(host)
             .unwrap_or(&self.default_postprocessor);
 
-        let resp = downloader.download(url).await?;
-        let body = String::from_utf8_lossy(resp.body());
+        let resp = downloader.download(url)?;
+        let (_, body) = resp.into_parts();
 
         let extracted = match &body {
             raw if raw.contains("<feed") => quick_xml::de::from_str::<AtomFeed>(raw)

@@ -39,9 +39,8 @@ impl BookmarkScraper {
     }
 }
 
-#[async_trait::async_trait]
 impl Scraper<ProcessedBookmark> for BookmarkScraper {
-    async fn scrape(&self, url: &mut String) -> Result<ProcessedBookmark, Error> {
+    fn scrape(&self, url: &mut String) -> Result<ProcessedBookmark, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
 
@@ -61,8 +60,8 @@ impl Scraper<ProcessedBookmark> for BookmarkScraper {
             .get(host)
             .unwrap_or(&self.default_postprocessor);
 
-        let resp = downloader.download(url).await?;
-        let body = String::from_utf8_lossy(resp.body());
+        let resp = downloader.download(url)?;
+        let (_, body) = resp.into_parts();
 
         let extracted = extractor.extract(url, &body)?;
         let processed = postprocessor.postprocess(url, extracted)?;

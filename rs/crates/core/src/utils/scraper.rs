@@ -1,11 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use bytes::Bytes;
 use http::Response;
 
-#[async_trait::async_trait]
 pub trait Downloader: Send + Sync {
-    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError>;
+    fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError>;
 }
 
 pub trait Extractor<T>: Send + Sync {
@@ -16,9 +14,8 @@ pub trait Postprocessor<T, U>: Send + Sync {
     fn postprocess(&self, url: &str, extracted: T) -> Result<U, PostprocessError>;
 }
 
-#[async_trait::async_trait]
 pub trait Scraper<T>: Send + Sync {
-    async fn scrape(&self, url: &mut String) -> Result<T, Error>;
+    fn scrape(&self, url: &mut String) -> Result<T, Error>;
 }
 
 pub struct PluginRegistry<T, U> {

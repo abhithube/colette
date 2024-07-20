@@ -129,7 +129,7 @@ impl BookmarksService {
         mut data: CreateBookmark,
         session: Session,
     ) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&mut data.url).await?;
+        let scraped = self.scraper.scrape(&mut data.url)?;
 
         let bookmark = self
             .repo

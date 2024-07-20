@@ -1,9 +1,8 @@
 use std::sync::Arc;
 
-use bytes::Bytes;
 use colette_core::utils::scraper::{DownloadError, Downloader};
 use http::Response;
-use reqwest::Url;
+use url::Url;
 
 pub struct RedditFeedPlugin {
     downloader: Arc<dyn Downloader>,
@@ -15,9 +14,8 @@ impl RedditFeedPlugin {
     }
 }
 
-#[async_trait::async_trait]
 impl Downloader for RedditFeedPlugin {
-    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError> {
+    fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError> {
         let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
 
         if !parsed.path().contains(".rss") {
@@ -30,6 +28,6 @@ impl Downloader for RedditFeedPlugin {
 
         *url = parsed.to_string();
 
-        self.downloader.download(url).await
+        self.downloader.download(url)
     }
 }

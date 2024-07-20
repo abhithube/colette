@@ -5,13 +5,11 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-async-trait.workspace = true
-bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 http.workspace = true
 quick-xml = { version = "0.36.0", features = ["overlapped-lists", "serialize"] }
-reqwest.workspace = true
 scraper = "0.19.1"
 serde.workspace = true
+ureq = { version = "2.10.0", features = ["http-crate"] }
 url.workspace = true

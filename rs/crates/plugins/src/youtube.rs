@@ -1,10 +1,9 @@
 use std::sync::Arc;
 
-use bytes::Bytes;
 use colette_core::utils::scraper::{DownloadError, Downloader};
 use http::Response;
 use regex::Regex;
-use reqwest::Url;
+use url::Url;
 
 pub struct YouTubeFeedPlugin {
     channel_regex: Regex,
@@ -21,9 +20,8 @@ impl YouTubeFeedPlugin {
     }
 }
 
-#[async_trait::async_trait]
 impl Downloader for YouTubeFeedPlugin {
-    async fn download(&self, url: &mut String) -> Result<Response<Bytes>, DownloadError> {
+    fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError> {
         if let Some(captures) = self.channel_regex.captures(url) {
             let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
             if let Some(m) = captures.get(1) {
@@ -34,6 +32,6 @@ impl Downloader for YouTubeFeedPlugin {
             *url = parsed.to_string();
         }
 
-        self.downloader.download(url).await
+        self.downloader.download(url)
     }
 }
