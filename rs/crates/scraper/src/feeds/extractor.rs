@@ -2,6 +2,7 @@ use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
     utils::scraper::{ExtractError, Extractor, ExtractorQuery, Node},
 };
+use http::Response;
 use scraper::{ElementRef, Html, Selector};
 
 pub struct HtmlExtractor<'a> {
@@ -9,8 +10,9 @@ pub struct HtmlExtractor<'a> {
 }
 
 impl Extractor<ExtractedFeed> for HtmlExtractor<'_> {
-    fn extract(&self, _url: &str, raw: &str) -> Result<ExtractedFeed, ExtractError> {
-        let html = Html::parse_document(raw);
+    fn extract(&self, _url: &str, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+        let raw = resp.into_body();
+        let html = Html::parse_document(&raw);
 
         let entries: Vec<ExtractedEntry> = html
             .select(&Selector::parse(self.options.feed_entries_selector).unwrap())

@@ -25,7 +25,7 @@ pub trait Downloader: Send + Sync {
 }
 
 pub trait Extractor<T>: Send + Sync {
-    fn extract(&self, url: &str, raw: &str) -> Result<T, ExtractError>;
+    fn extract(&self, url: &str, resp: Response<String>) -> Result<T, ExtractError>;
 }
 
 pub trait Postprocessor<T, U>: Send + Sync {

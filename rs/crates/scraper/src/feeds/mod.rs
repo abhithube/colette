@@ -7,6 +7,7 @@ use colette_core::{
     utils::scraper::{Downloader, Error, ExtractError, PluginRegistry, Postprocessor, Scraper},
 };
 pub use extractor::{HtmlExtractor, TextSelector};
+use http::Response;
 pub use postprocessor::DefaultFeedPostprocessor;
 use rss::RSSFeed;
 use url::Url;
@@ -51,7 +52,7 @@ impl Scraper<ProcessedFeed> for FeedScraper {
             .unwrap_or(&self.default_postprocessor);
 
         let resp = downloader.download(url)?;
-        let (_, body) = resp.into_parts();
+        let (parts, body) = resp.into_parts();
 
         let extracted = match &body {
             raw if raw.contains("<feed") => quick_xml::de::from_str::<AtomFeed>(raw)
@@ -63,7 +64,7 @@ impl Scraper<ProcessedFeed> for FeedScraper {
             raw if raw.contains("<html") => {
                 if let Some(extractor) = self.registry.extractors.get(host) {
                     extractor
-                        .extract(url, raw)
+                        .extract(url, Response::from_parts(parts, body))
                         .map_err(|e| Error::Extract(ExtractError(e.into())))
                 } else {
                     Err(Error::Extract(ExtractError(anyhow!(

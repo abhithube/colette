@@ -61,9 +61,7 @@ impl Scraper<ProcessedBookmark> for BookmarkScraper {
             .unwrap_or(&self.default_postprocessor);
 
         let resp = downloader.download(url)?;
-        let (_, body) = resp.into_parts();
-
-        let extracted = extractor.extract(url, &body)?;
+        let extracted = extractor.extract(url, resp)?;
         let processed = postprocessor.postprocess(url, extracted)?;
 
         Ok(processed)

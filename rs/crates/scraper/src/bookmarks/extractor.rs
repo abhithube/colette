@@ -2,6 +2,7 @@ use colette_core::{
     bookmarks::{BookmarkExtractorOptions, ExtractedBookmark},
     utils::scraper::{ExtractError, Extractor, ExtractorQuery},
 };
+use http::Response;
 use scraper::Html;
 
 use crate::{
@@ -27,8 +28,13 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 }
 
 impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor<'_> {
-    fn extract(&self, _url: &str, raw: &str) -> Result<ExtractedBookmark, ExtractError> {
-        let html = Html::parse_document(raw);
+    fn extract(
+        &self,
+        _url: &str,
+        resp: Response<String>,
+    ) -> Result<ExtractedBookmark, ExtractError> {
+        let raw = resp.into_body();
+        let html = Html::parse_document(&raw);
 
         let bookmark = ExtractedBookmark {
             title: html.select_text(&self.options.title_queries),
