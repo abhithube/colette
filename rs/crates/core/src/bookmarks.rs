@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
-    utils::scraper::{self, Scraper},
+    utils::scraper::{self, ExtractorQuery, Scraper},
 };
 
 #[derive(Clone, Debug)]
@@ -49,10 +49,10 @@ pub struct ListBookmarksParams {
 
 #[derive(Clone, Debug)]
 pub struct BookmarkExtractorOptions<'a> {
-    pub title_expr: Vec<&'a str>,
-    pub published_expr: Vec<&'a str>,
-    pub author_expr: Vec<&'a str>,
-    pub thumbnail_expr: Vec<&'a str>,
+    pub title_queries: Vec<ExtractorQuery<'a>>,
+    pub published_queries: Vec<ExtractorQuery<'a>>,
+    pub author_queries: Vec<ExtractorQuery<'a>>,
+    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
 }
 
 #[derive(Clone, Debug)]

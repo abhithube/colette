@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, SendableStream, Session},
-    utils::scraper::{self, Scraper},
+    utils::scraper::{self, ExtractorQuery, Scraper},
 };
 
 #[derive(Clone, Debug)]
@@ -31,17 +31,17 @@ pub struct UpdateFeed {
     pub title: Option<String>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug)]
 pub struct FeedExtractorOptions<'a> {
-    pub feed_link_expr: Vec<&'a str>,
-    pub feed_title_expr: Vec<&'a str>,
-    pub feed_entries_expr: Vec<&'a str>,
-    pub entry_link_expr: Vec<&'a str>,
-    pub entry_title_expr: Vec<&'a str>,
-    pub entry_published_expr: Vec<&'a str>,
-    pub entry_description_expr: Vec<&'a str>,
-    pub entry_author_expr: Vec<&'a str>,
-    pub entry_thumbnail_expr: Vec<&'a str>,
+    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entries_selector: &'a str,
+    pub entry_link_queries: Vec<ExtractorQuery<'a>>,
+    pub entry_title_queries: Vec<ExtractorQuery<'a>>,
+    pub entry_published_queries: Vec<ExtractorQuery<'a>>,
+    pub entry_description_queries: Vec<ExtractorQuery<'a>>,
+    pub entry_author_queries: Vec<ExtractorQuery<'a>>,
+    pub entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
 }
 
 #[derive(Clone, Debug)]

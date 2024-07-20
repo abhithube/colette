@@ -6,7 +6,7 @@ use colette_core::{
     feeds::{ExtractedFeed, ProcessedFeed},
     utils::scraper::{Downloader, Error, ExtractError, PluginRegistry, Postprocessor, Scraper},
 };
-pub use extractor::{HtmlExtractor, Item, Node, TextSelector};
+pub use extractor::{HtmlExtractor, TextSelector};
 pub use postprocessor::DefaultFeedPostprocessor;
 use rss::RSSFeed;
 use url::Url;

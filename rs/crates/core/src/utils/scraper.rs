@@ -2,6 +2,24 @@ use std::{collections::HashMap, sync::Arc};
 
 use http::Response;
 
+#[derive(Clone, Debug)]
+pub enum Node<'a> {
+    Text,
+    Attr(&'a str),
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtractorQuery<'a> {
+    pub selector: &'a str,
+    pub node: Node<'a>,
+}
+
+impl<'a> ExtractorQuery<'a> {
+    pub fn new(selector: &'a str, node: Node<'a>) -> Self {
+        Self { selector, node }
+    }
+}
+
 pub trait Downloader: Send + Sync {
     fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError>;
 }

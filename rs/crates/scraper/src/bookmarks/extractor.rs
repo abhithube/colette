@@ -1,21 +1,13 @@
 use colette_core::{
-    bookmarks::ExtractedBookmark,
-    utils::scraper::{ExtractError, Extractor},
+    bookmarks::{BookmarkExtractorOptions, ExtractedBookmark},
+    utils::scraper::{ExtractError, Extractor, ExtractorQuery},
 };
 use scraper::Html;
 
 use crate::{
-    base_extractor_options,
-    feeds::{Item, TextSelector},
-    microdata_extractor_options, open_graph_extractor_options, twitter_extractor_options,
+    base_extractor_options, feeds::TextSelector, microdata_extractor_options,
+    open_graph_extractor_options, twitter_extractor_options,
 };
-
-pub struct BookmarkExtractorOptions<'a> {
-    pub title_selectors: Vec<Item<'a>>,
-    pub published_selectors: Vec<Item<'a>>,
-    pub author_selectors: Vec<Item<'a>>,
-    pub thumbnail_selectors: Vec<Item<'a>>,
-}
 
 pub struct DefaultBookmarkExtractor<'a> {
     options: BookmarkExtractorOptions<'a>,
@@ -39,10 +31,10 @@ impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor<'_> {
         let html = Html::parse_document(raw);
 
         let bookmark = ExtractedBookmark {
-            title: html.select_text(&self.options.title_selectors),
-            thumbnail: html.select_text(&self.options.thumbnail_selectors),
-            published: html.select_text(&self.options.published_selectors),
-            author: html.select_text(&self.options.author_selectors),
+            title: html.select_text(&self.options.title_queries),
+            thumbnail: html.select_text(&self.options.thumbnail_queries),
+            published: html.select_text(&self.options.published_queries),
+            author: html.select_text(&self.options.author_queries),
         };
 
         Ok(bookmark)
@@ -50,36 +42,36 @@ impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor<'_> {
 }
 
 fn merge(options_vec: Vec<BookmarkExtractorOptions>) -> BookmarkExtractorOptions {
-    fn merge_field<'a>(fields: &[Vec<Item<'a>>]) -> Vec<Item<'a>> {
+    fn merge_field<'a>(fields: &[Vec<ExtractorQuery<'a>>]) -> Vec<ExtractorQuery<'a>> {
         fields.iter().flat_map(|v| v.iter().cloned()).collect()
     }
 
     BookmarkExtractorOptions {
-        title_selectors: merge_field(
+        title_queries: merge_field(
             &options_vec
                 .iter()
-                .map(|e| e.title_selectors.clone())
+                .map(|e| e.title_queries.clone())
                 .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
-        thumbnail_selectors: merge_field(
+        thumbnail_queries: merge_field(
             &options_vec
                 .iter()
-                .map(|e| e.thumbnail_selectors.clone())
+                .map(|e| e.thumbnail_queries.clone())
                 .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
-        published_selectors: merge_field(
+        published_queries: merge_field(
             &options_vec
                 .iter()
-                .map(|e| e.published_selectors.clone())
+                .map(|e| e.published_queries.clone())
                 .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
-        author_selectors: merge_field(
+        author_queries: merge_field(
             &options_vec
                 .iter()
-                .map(|e| e.author_selectors.clone())
+                .map(|e| e.author_queries.clone())
                 .filter(|e| !e.is_empty())
                 .collect::<Vec<_>>(),
         ),
