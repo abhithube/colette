@@ -10,4 +10,3 @@ pub use feeds::{DefaultFeedPostprocessor, FeedScraper, HtmlExtractor};
 mod bookmarks;
 mod downloader;
 mod feeds;
-mod utils;
