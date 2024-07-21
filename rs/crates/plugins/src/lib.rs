@@ -1,31 +1,27 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use colette_core::{
-    bookmarks::{ExtractedBookmark, ProcessedBookmark},
+    bookmarks::{BookmarkExtractorOptions, ExtractedBookmark, ProcessedBookmark},
     feeds::{ExtractedFeed, ProcessedFeed},
-    utils::scraper::{Downloader, Extractor, PluginRegistry, Postprocessor},
+    utils::scraper::{DownloaderPlugin, ExtractorPlugin, PluginRegistry, PostprocessorPlugin},
 };
+use colette_scraper::FeedExtractorOptions;
 #[allow(unused_imports)]
 use custom::*;
-use reddit::RedditFeedPlugin;
-use youtube::YouTubeFeedPlugin;
 
 mod custom;
 mod reddit;
 mod youtube;
 
-pub fn register_feed_plugins(
-    downloader: Arc<dyn Downloader>,
-) -> PluginRegistry<ExtractedFeed, ProcessedFeed> {
-    let yt_feed_plugin = Arc::new(YouTubeFeedPlugin::new(downloader.clone()));
-    let reddit_feed_plugin = Arc::new(RedditFeedPlugin::new(downloader.clone()));
-
+pub fn register_feed_plugins<'a>(
+) -> PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed> {
     let mut downloaders = HashMap::from([
-        ("www.youtube.com", yt_feed_plugin as Arc<dyn Downloader>),
-        ("www.reddit.com", reddit_feed_plugin),
+        ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
+        ("www.reddit.com", reddit::REDDIT_DOWNLOADER_PLUGIN),
     ]);
-    let mut extractors: HashMap<&str, Arc<dyn Extractor<ExtractedFeed>>> = HashMap::new();
-    let mut postprocessors: HashMap<&str, Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed>>> =
+    let mut extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
+        HashMap::new();
+    let mut postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
         HashMap::new();
 
     downloaders.extend(HashMap::new());
@@ -39,16 +35,16 @@ pub fn register_feed_plugins(
     }
 }
 
-pub fn register_bookmark_plugins(
-    _downloader: Arc<dyn Downloader>,
-    _extractor: Arc<dyn Extractor<ExtractedBookmark>>,
-    _postprocessor: Arc<dyn Postprocessor<ExtractedBookmark, ProcessedBookmark>>,
-) -> PluginRegistry<ExtractedBookmark, ProcessedBookmark> {
-    let mut downloaders: HashMap<&str, Arc<dyn Downloader>> = HashMap::new();
-    let mut extractors: HashMap<&str, Arc<dyn Extractor<ExtractedBookmark>>> = HashMap::new();
+pub fn register_bookmark_plugins<'a>(
+) -> PluginRegistry<BookmarkExtractorOptions<'a>, ExtractedBookmark, (), ProcessedBookmark> {
+    let mut downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
+    let mut extractors: HashMap<
+        &str,
+        ExtractorPlugin<BookmarkExtractorOptions, ExtractedBookmark>,
+    > = HashMap::new();
     let mut postprocessors: HashMap<
         &str,
-        Arc<dyn Postprocessor<ExtractedBookmark, ProcessedBookmark>>,
+        PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>,
     > = HashMap::new();
 
     downloaders.extend(HashMap::new());

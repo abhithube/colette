@@ -9,20 +9,17 @@ use std::{error::Error, sync::Arc};
 use app::App;
 use colette_core::{
     auth::AuthService,
-    bookmarks::{BookmarksRepository, BookmarksService, ProcessedBookmark},
+    bookmarks::{BookmarksRepository, BookmarksService},
     collections::{CollectionsRepository, CollectionsService},
     entries::{EntriesRepository, EntriesService},
-    feeds::{FeedsRepository, FeedsService, ProcessedFeed},
+    feeds::{FeedsRepository, FeedsService},
     profiles::{ProfilesRepository, ProfilesService},
     users::UsersRepository,
-    utils::{scraper::Scraper, task::Task},
+    utils::task::Task,
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{
-    BookmarkScraper, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultDownloader,
-    FeedScraper,
-};
+use colette_scraper::{BookmarkScraper, FeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use tokio_cron_scheduler::{Job, JobScheduler};
 #[cfg(not(feature = "redis"))]
@@ -133,7 +130,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         (store, deletion_task)
     };
 
-    let (feed_scraper, bookmark_scraper) = create_scrapers();
+    let feed_scraper = Arc::new(FeedScraper::new(register_feed_plugins()));
 
     let scheduler = JobScheduler::new().await?;
 
@@ -183,7 +180,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Arc::new(Argon2Hasher {}),
         )
         .into(),
-        bookmark_service: BookmarksService::new(repositories.bookmarks, bookmark_scraper).into(),
+        bookmark_service: BookmarksService::new(
+            repositories.bookmarks,
+            Arc::new(BookmarkScraper::new(register_bookmark_plugins())),
+        )
+        .into(),
         collections_service: CollectionsService::new(repositories.collections).into(),
         entries_service: EntriesService::new(repositories.entries).into(),
         feeds_service: FeedsService::new(repositories.feeds, feed_scraper).into(),
@@ -195,29 +196,4 @@ async fn main() -> Result<(), Box<dyn Error>> {
     cleanup.await??;
 
     Ok(())
-}
-
-fn create_scrapers() -> (
-    Arc<dyn Scraper<ProcessedFeed>>,
-    Arc<dyn Scraper<ProcessedBookmark>>,
-) {
-    let downloader = Arc::new(DefaultDownloader {});
-
-    let feed_scraper = Arc::new(FeedScraper::new(register_feed_plugins(downloader.clone())));
-
-    let bookmark_extractor = Arc::new(DefaultBookmarkExtractor::new(None));
-    let bookmark_postprocessor = Arc::new(DefaultBookmarkPostprocessor {});
-
-    let bookmark_scraper = Arc::new(BookmarkScraper::new(
-        register_bookmark_plugins(
-            downloader.clone(),
-            bookmark_extractor.clone(),
-            bookmark_postprocessor.clone(),
-        ),
-        downloader,
-        bookmark_extractor,
-        bookmark_postprocessor,
-    ));
-
-    (feed_scraper, bookmark_scraper)
 }

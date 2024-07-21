@@ -1,6 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
-use http::Response;
+use http::{HeaderMap, Request, Response};
 
 #[derive(Clone, Debug)]
 pub enum Node<'a> {
@@ -24,22 +24,40 @@ pub trait Downloader: Send + Sync {
     fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError>;
 }
 
+pub type DownloaderFn<T> = fn(&str) -> Result<Request<T>, DownloadError>;
+
+pub enum DownloaderPlugin<T = ()> {
+    Value(HeaderMap),
+    Callback(DownloaderFn<T>),
+    Impl(Arc<dyn Downloader>),
+}
+
 pub trait Extractor<T>: Send + Sync {
     fn extract(&self, url: &str, resp: Response<String>) -> Result<T, ExtractError>;
+}
+
+pub enum ExtractorPlugin<T, U> {
+    Value(T),
+    Impl(Arc<dyn Extractor<U>>),
 }
 
 pub trait Postprocessor<T, U>: Send + Sync {
     fn postprocess(&self, url: &str, extracted: T) -> Result<U, PostprocessError>;
 }
 
+pub enum PostprocessorPlugin<T, U, V> {
+    Value(U),
+    Impl(Arc<dyn Postprocessor<T, V>>),
+}
+
 pub trait Scraper<T>: Send + Sync {
     fn scrape(&self, url: &mut String) -> Result<T, Error>;
 }
 
-pub struct PluginRegistry<T, U> {
-    pub downloaders: HashMap<&'static str, Arc<dyn Downloader>>,
-    pub extractors: HashMap<&'static str, Arc<dyn Extractor<T>>>,
-    pub postprocessors: HashMap<&'static str, Arc<dyn Postprocessor<T, U>>>,
+pub struct PluginRegistry<T, U, V, W, X = ()> {
+    pub downloaders: HashMap<&'static str, DownloaderPlugin<X>>,
+    pub extractors: HashMap<&'static str, ExtractorPlugin<T, U>>,
+    pub postprocessors: HashMap<&'static str, PostprocessorPlugin<U, V, W>>,
 }
 
 #[derive(Debug, thiserror::Error)]
