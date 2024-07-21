@@ -61,7 +61,7 @@ impl Repositories {
             entries: Arc::new(EntriesPostgresRepository::new(pool.clone())),
             feeds: Arc::new(FeedsPostgresRepository::new(pool.clone())),
             profiles: Arc::new(ProfilesPostgresRepository::new(pool.clone())),
-            users: Arc::new(UsersPostgresRepository::new(pool.clone())),
+            users: Arc::new(UsersPostgresRepository::new(pool)),
         }
     }
 
@@ -74,7 +74,7 @@ impl Repositories {
             entries: Arc::new(EntriesSqliteRepository::new(pool.clone())),
             feeds: Arc::new(FeedsSqliteRepository::new(pool.clone())),
             profiles: Arc::new(ProfilesSqliteRepository::new(pool.clone())),
-            users: Arc::new(UsersSqliteRepository::new(pool.clone())),
+            users: Arc::new(UsersSqliteRepository::new(pool)),
         }
     }
 }
