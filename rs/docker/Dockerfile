@@ -11,12 +11,7 @@ RUN npm run build --workspace=@colette/web
 FROM rust:1.79-alpine AS base
 WORKDIR /app/rs
 ARG TARGET
-RUN apk add --no-cache musl-dev make zlib-dev
-RUN wget https://download.gnome.org/sources/libxml2/2.13/libxml2-2.13.2.tar.xz && \
-  tar xf libxml2-2.13.2.tar.xz && \
-  cd libxml2-2.13.2 && \
-  ./configure --with-minimum --with-html --with-xpath --enable-static && \
-  make && make install
+RUN apk add --no-cache musl-dev
 RUN rustup target add $TARGET
 RUN cargo install cargo-chef
 
