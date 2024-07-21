@@ -15,18 +15,14 @@ mod youtube;
 
 pub fn register_feed_plugins<'a>(
 ) -> PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed> {
-    let mut downloaders = HashMap::from([
+    let downloaders = HashMap::from([
         ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
         ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
     ]);
-    let mut extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
+    let extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
         HashMap::new();
-    let mut postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
+    let postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
         HashMap::new();
-
-    downloaders.extend(HashMap::new());
-    extractors.extend(HashMap::new());
-    postprocessors.extend(HashMap::new());
 
     PluginRegistry {
         downloaders,
@@ -37,19 +33,13 @@ pub fn register_feed_plugins<'a>(
 
 pub fn register_bookmark_plugins<'a>(
 ) -> PluginRegistry<BookmarkExtractorOptions<'a>, ExtractedBookmark, (), ProcessedBookmark> {
-    let mut downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
-    let mut extractors: HashMap<
-        &str,
-        ExtractorPlugin<BookmarkExtractorOptions, ExtractedBookmark>,
-    > = HashMap::new();
-    let mut postprocessors: HashMap<
+    let downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
+    let extractors: HashMap<&str, ExtractorPlugin<BookmarkExtractorOptions, ExtractedBookmark>> =
+        HashMap::new();
+    let postprocessors: HashMap<
         &str,
         PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>,
     > = HashMap::new();
-
-    downloaders.extend(HashMap::new());
-    extractors.extend(HashMap::new());
-    postprocessors.extend(HashMap::new());
 
     PluginRegistry {
         downloaders,
