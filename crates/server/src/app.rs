@@ -21,7 +21,7 @@ use crate::{
 };
 
 #[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../../packages/web/dist"]
+#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
 struct Asset;
 
 #[derive(utoipa::OpenApi)]

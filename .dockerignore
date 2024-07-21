@@ -1,2 +1,4 @@
-/node_modules
-/rs/target
+/node_modules/
+/swift/
+/target/
+/ts/
