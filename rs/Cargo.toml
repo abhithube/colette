@@ -16,7 +16,6 @@ resolver = "2"
 [workspace.dependencies]
 anyhow = "1.0.86"
 async-trait = "0.1.80"
-bytes = "1.6.0"
 chrono = { version = "0.4.38", features = ["serde"] }
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
