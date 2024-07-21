@@ -29,7 +29,7 @@ colette-sqlite.path = "crates/sqlite"
 colette-tasks.path = "crates/tasks"
 futures = "0.3.30"
 http = "1.1.0"
-regex = "1.10.5"
+lazy-regex = "3.1.0"
 serde = { version = "1.0.203", features = ["derive"] }
 thiserror = "1.0.61"
 tokio = { version = "1.38.1", features = ["macros", "rt-multi-thread"] }
