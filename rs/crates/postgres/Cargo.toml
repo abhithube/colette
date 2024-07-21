@@ -8,9 +8,8 @@ async-trait.workspace = true
 colette-core.workspace = true
 colette-database.workspace = true
 futures.workspace = true
-sqlx = { version = "0.7.4", features = [
+sqlx = { version = "0.7.4", default-features = false, features = [
   "chrono",
   "postgres",
-  "runtime-tokio",
   "uuid",
 ] }

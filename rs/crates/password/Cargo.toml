@@ -6,4 +6,6 @@ edition = "2021"
 [dependencies]
 async-trait.workspace = true
 colette-core.workspace = true
-password-auth = "1.0.0"
+password-auth = { version = "1.0.0", default-features = false, features = [
+  "argon2",
+] }

@@ -5,10 +5,19 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
-axum = { version = "0.7.5", features = ["macros"] }
-axum-embed = "0.1.0"
-axum-valid = { version = "0.19.0", features = ["422", "into_json"] }
-chrono.workspace = true
+axum = { version = "0.7.5", default-features = false, features = [
+  "http1",
+  "macros",
+  "tokio",
+] }
+axum-embed = { version = "0.1.0", default-features = false }
+axum-valid = { version = "0.19.0", default-features = false, features = [
+  "422",
+  "basic",
+  "into_json",
+  "validator",
+] }
+chrono = { workspace = true, features = ["serde"] }
 colette-config.workspace = true
 colette-core.workspace = true
 colette-password.workspace = true
@@ -17,24 +26,34 @@ colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-sqlite = { workspace = true, optional = true }
 colette-tasks.workspace = true
-rust-embed = { version = "8.5.0", features = ["interpolate-folder-path"] }
+rust-embed = { version = "8.5.0", default-features = false, features = [
+  "interpolate-folder-path",
+] }
 serde.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
-tokio-cron-scheduler = "0.10.2"
-tower-http = { version = "0.5.2", features = ["cors"] }
-tower-sessions = "0.12.2"
-tower-sessions-redis-store = { version = "0.13.0", optional = true }
-tower-sessions-sqlx-store = { version = "0.12.0" }
-utoipa = { version = "5.0.0-alpha.0", features = [
+tokio-cron-scheduler = { version = "0.10.2", default-features = false }
+tower-http = { version = "0.5.2", default-features = false, features = [
+  "cors",
+] }
+tower-sessions = { version = "0.12.2", default-features = false, features = [
+  "axum-core",
+] }
+tower-sessions-redis-store = { version = "0.13.0", default-features = false, optional = true }
+tower-sessions-sqlx-store = { version = "0.12.0", default-features = false }
+utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
   "chrono",
   "preserve_order",
   "preserve_path_order",
   "uuid",
 ] }
-utoipa-scalar = { version = "0.2.0-alpha.0", features = ["axum"] }
+utoipa-scalar = { version = "0.2.0-alpha.0", default-features = false, features = [
+  "axum",
+] }
 uuid = { workspace = true, features = ["serde"] }
-validator = { version = "0.18.1", features = ["derive"] }
+validator = { version = "0.18.1", default-features = false, features = [
+  "derive",
+] }
 
 [features]
 default = ["postgres", "redis"]
