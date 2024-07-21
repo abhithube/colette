@@ -1,9 +1,45 @@
+use anyhow::anyhow;
 use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
     utils::scraper::{ExtractError, Extractor, ExtractorQuery, Node},
 };
 use http::Response;
 use scraper::{ElementRef, Html, Selector};
+
+use super::{atom::AtomFeed, rss::RSSFeed};
+
+pub struct DefaultFeedExtractor {}
+
+impl Extractor<ExtractedFeed> for DefaultFeedExtractor {
+    fn extract(&self, _url: &str, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+        let (parts, body) = resp.into_parts();
+
+        let content_type = parts
+            .headers
+            .get(http::header::CONTENT_TYPE)
+            .and_then(|e| e.to_str().ok());
+
+        let feed = if content_type.map_or(false, |e| e.contains("application/atom+xml"))
+            || body.contains("<feed")
+        {
+            quick_xml::de::from_str::<AtomFeed>(&body)
+                .map(ExtractedFeed::from)
+                .map_err(|e| ExtractError(e.into()))
+        } else if content_type.map_or(false, |e| e.contains("application/rss+xml"))
+            || body.contains("<rss")
+        {
+            quick_xml::de::from_str::<RSSFeed>(&body)
+                .map(ExtractedFeed::from)
+                .map_err(|e| ExtractError(e.into()))
+        } else {
+            Err(ExtractError(anyhow!(
+                "couldn't find extractor for feed URL"
+            )))
+        }?;
+
+        Ok(feed)
+    }
+}
 
 pub struct HtmlExtractor<'a> {
     options: FeedExtractorOptions<'a>,
