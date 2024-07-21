@@ -17,7 +17,7 @@ pub fn register_feed_plugins<'a>(
 ) -> PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed> {
     let mut downloaders = HashMap::from([
         ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
-        ("www.reddit.com", reddit::REDDIT_DOWNLOADER_PLUGIN),
+        ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
     ]);
     let mut extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
         HashMap::new();

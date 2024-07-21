@@ -2,7 +2,7 @@ use colette_core::utils::scraper::{DownloadError, DownloaderPlugin};
 use http::Request;
 use url::Url;
 
-pub const REDDIT_DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
+pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
     let mut parsed = Url::parse(url).map_err(|e| DownloadError(e.into()))?;
 
     if !parsed.path().contains(".rss") {
