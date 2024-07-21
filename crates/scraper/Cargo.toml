@@ -16,5 +16,6 @@ scraper = { version = "0.19.1", default-features = false }
 serde.workspace = true
 ureq = { version = "2.10.0", default-features = false, features = [
   "http-crate",
+  "tls",
 ] }
 url.workspace = true

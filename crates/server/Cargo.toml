@@ -57,6 +57,6 @@ validator = { version = "0.18.1", default-features = false, features = [
 
 [features]
 default = ["postgres", "redis"]
-postgres = ["colette-postgres", "tower-sessions-sqlx-store/postgres"]
+postgres = ["dep:colette-postgres", "tower-sessions-sqlx-store/postgres"]
 redis = ["tower-sessions-redis-store"]
-sqlite = ["colette-sqlite", "tower-sessions-sqlx-store/sqlite"]
+sqlite = ["dep:colette-sqlite", "tower-sessions-sqlx-store/sqlite"]
