@@ -1,14 +1,10 @@
-use colette_core::utils::backup::{self, BackupManager};
+use colette_core::{
+    feeds::BackupFeed,
+    utils::backup::{self, BackupManager},
+};
 use quick_xml::se::Serializer;
 use serde::Serialize;
 use url::Url;
-
-#[derive(Clone, Debug)]
-pub struct BackupFeed {
-    pub title: String,
-    pub xml_url: Url,
-    pub html_url: Option<Url>,
-}
 
 #[derive(Default)]
 pub struct OpmlManager;
