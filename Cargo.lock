@@ -333,6 +333,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-backup"
+version = "0.1.0"
+dependencies = [
+ "colette-core",
+ "quick-xml",
+ "serde",
+ "url",
+]
+
+[[package]]
 name = "colette-config"
 version = "0.1.0"
 dependencies = [
@@ -2980,6 +2990,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

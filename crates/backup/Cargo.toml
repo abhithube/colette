@@ -1,0 +1,10 @@
+[package]
+name = "colette-backup"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colette-core.workspace = true
+quick-xml = { version = "0.36.0", features = ["serialize"] }
+serde.workspace = true
+url = { workspace = true, features = ["serde"] }

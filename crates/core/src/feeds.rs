@@ -61,14 +61,14 @@ pub struct ExtractedEntry {
     pub thumbnail: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct ProcessedFeed {
     pub link: Url,
     pub title: String,
     pub entries: Vec<ProcessedEntry>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct ProcessedEntry {
     pub link: Url,
     pub title: String,
@@ -76,6 +76,13 @@ pub struct ProcessedEntry {
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail: Option<Url>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BackupFeed {
+    pub title: String,
+    pub xml_url: Url,
+    pub html_url: Option<Url>,
 }
 
 #[async_trait::async_trait]

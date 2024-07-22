@@ -1,5 +1,6 @@
 [workspace]
 members = [
+  "crates/backup",
   "crates/config",
   "crates/core",
   "crates/database",
@@ -17,6 +18,7 @@ resolver = "2"
 anyhow = { version = "1.0.86", default-features = false, features = ["std"] }
 async-trait = { version = "0.1.80", default-features = false }
 chrono = { version = "0.4.38", default-features = false }
+colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-database.path = "crates/database"
