@@ -14,6 +14,7 @@ use colette_core::{
     entries::{EntriesRepository, EntriesService},
     feeds::{FeedsRepository, FeedsService},
     profiles::{ProfilesRepository, ProfilesService},
+    tags::{TagsRepository, TagsService},
     users::UsersRepository,
     utils::task::Task,
 };
@@ -39,6 +40,7 @@ mod common;
 mod entries;
 mod feeds;
 mod profiles;
+mod tags;
 
 const CRON_CLEANUP: &str = "0 0 * * * *";
 
@@ -48,6 +50,7 @@ struct Repositories {
     entries: Arc<dyn EntriesRepository>,
     feeds: Arc<dyn FeedsRepository>,
     profiles: Arc<dyn ProfilesRepository>,
+    tags: Arc<dyn TagsRepository>,
     users: Arc<dyn UsersRepository>,
 }
 
@@ -61,6 +64,7 @@ impl Repositories {
             entries: Arc::new(EntriesPostgresRepository::new(pool.clone())),
             feeds: Arc::new(FeedsPostgresRepository::new(pool.clone())),
             profiles: Arc::new(ProfilesPostgresRepository::new(pool.clone())),
+            tags: Arc::new(TagsPostgresRepository::new(pool.clone())),
             users: Arc::new(UsersPostgresRepository::new(pool)),
         }
     }
@@ -74,6 +78,7 @@ impl Repositories {
             entries: Arc::new(EntriesSqliteRepository::new(pool.clone())),
             feeds: Arc::new(FeedsSqliteRepository::new(pool.clone())),
             profiles: Arc::new(ProfilesSqliteRepository::new(pool.clone())),
+            tags: Arc::new(TagsSqliteRepository::new(pool.clone())),
             users: Arc::new(UsersSqliteRepository::new(pool)),
         }
     }
@@ -189,6 +194,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         entries_service: EntriesService::new(repositories.entries).into(),
         feeds_service: FeedsService::new(repositories.feeds, feed_scraper).into(),
         profiles_service: ProfilesService::new(repositories.profiles).into(),
+        tags_service: TagsService::new(repositories.tags).into(),
     };
 
     App::new(state, config, session_store).start().await?;

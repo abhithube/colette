@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::extract::FromRef;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService, common,
-    entries::EntriesService, feeds::FeedsService, profiles::ProfilesService,
+    entries::EntriesService, feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
 };
 pub use error::{BaseError, Error};
 pub use session::{Session, SESSION_KEY};
@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::{
     bookmarks::Bookmark, collections::Collection, entries::Entry, feeds::Feed, profiles::Profile,
+    tags::Tag,
 };
 
 mod error;
@@ -24,6 +25,7 @@ pub struct Context {
     pub entries_service: Arc<EntriesService>,
     pub feeds_service: Arc<FeedsService>,
     pub profiles_service: Arc<ProfilesService>,
+    pub tags_service: Arc<TagsService>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
@@ -31,7 +33,7 @@ pub struct Context {
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>)]
+#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: serde::Serialize> {
     pub has_more: bool,

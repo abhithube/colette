@@ -18,6 +18,7 @@ use crate::{
     entries::Api as Entries,
     feeds::Api as Feeds,
     profiles::Api as Profiles,
+    tags::Api as Tags,
 };
 
 #[derive(Clone, rust_embed::Embed)]
@@ -35,7 +36,8 @@ struct Asset;
         (path = "/collections", api = Collections),
         (path = "/entries", api = Entries),
         (path = "/feeds", api = Feeds),
-        (path = "/profiles", api = Profiles)
+        (path = "/profiles", api = Profiles),
+        (path = "/tags", api = Tags)
     ),
     components(schemas(common::BaseError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
 )]
@@ -72,6 +74,7 @@ impl<Store: SessionStore + Clone> App<Store> {
                     .merge(Entries::router())
                     .merge(Feeds::router())
                     .merge(Profiles::router())
+                    .merge(Tags::router())
                     .with_state(self.state),
             )
             .fallback_service(ServeEmbed::<Asset>::with_parameters(
