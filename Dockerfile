@@ -1,32 +1,37 @@
+ARG DATABASE_URL="sqlite:///data/sqlite.db?mode=rwc"
 ARG TARGET="aarch64-unknown-linux-musl"
 
-FROM node AS frontend-build
+FROM node:22-alpine AS web-build
 WORKDIR /app
 COPY package*.json .
 COPY packages ./packages
 RUN npm ci
+RUN npm i -D typescript
 RUN npm run build --workspace=@colette/web
 
-FROM clux/muslrust AS base 
+FROM rust:1.79-alpine AS base
 WORKDIR /app
-RUN cargo install cargo-chef 
+ARG TARGET
+RUN apk add --no-cache musl-dev
+RUN rustup target add $TARGET
+RUN cargo install cargo-chef
 
 FROM base AS prepare
-COPY rs .
+COPY . .
 RUN cargo chef prepare  --recipe-path recipe.json
 
 FROM base AS rust-build
-ARG TARGET
 COPY --from=prepare /app/recipe.json recipe.json
 RUN cargo chef cook --target $TARGET --release --recipe-path recipe.json
-COPY rs .
-COPY --from=frontend-build /app/packages/web/dist ./packages/web/dist
+COPY . .
+COPY --from=web-build /app/packages/web/dist /packages/web/dist
 RUN cargo build --target $TARGET --release
 
 FROM gcr.io/distroless/static AS release
-VOLUME ["/data"]
-ENV DATABASE_URL="sqlite:///data/sqlite.db?mode=rwc"
+ARG DATABASE_URL
 ARG TARGET
+ENV DATABASE_URL=$DATABASE_URL
+VOLUME ["/data"]
 EXPOSE 8000
 COPY --from=rust-build /app/target/$TARGET/release/colette-server /
 ENTRYPOINT ["/colette-server"]
