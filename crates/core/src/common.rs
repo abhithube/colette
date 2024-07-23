@@ -12,6 +12,11 @@ pub struct Paginated<T> {
 }
 
 #[derive(Clone, Debug)]
+pub struct FindManyParams {
+    pub profile_id: Uuid,
+}
+
+#[derive(Clone, Debug)]
 pub struct FindOneParams {
     pub id: Uuid,
     pub profile_id: Uuid,

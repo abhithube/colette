@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindOneParams, Paginated, SendableStream, Session},
+    common::{FindManyParams, FindOneParams, Paginated, SendableStream, Session},
     utils::scraper::{self, ExtractorQuery, Scraper},
 };
 
@@ -87,7 +87,7 @@ pub struct BackupFeed {
 
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
-    async fn find_many(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error>;
+    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Feed, Error>;
 
@@ -115,7 +115,7 @@ impl FeedsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repo
-            .find_many(FeedsFindManyParams {
+            .find_many(FindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -185,11 +185,6 @@ impl FeedsService {
 
         Ok(())
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct FeedsFindManyParams {
-    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

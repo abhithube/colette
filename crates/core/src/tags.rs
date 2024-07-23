@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::FindOneParams;
+use crate::common::{FindManyParams, FindOneParams};
 
 #[derive(Clone, Debug)]
 pub struct Tag {
@@ -14,7 +14,7 @@ pub struct Tag {
 
 #[async_trait::async_trait]
 pub trait TagsRepository: Send + Sync {
-    async fn find_many(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error>;
+    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Tag, Error>;
 
@@ -23,11 +23,6 @@ pub trait TagsRepository: Send + Sync {
     async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
-}
-
-#[derive(Clone, Debug)]
-pub struct TagsFindManyParams {
-    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

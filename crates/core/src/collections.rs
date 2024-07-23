@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{FindOneParams, Paginated, Session};
+use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
 
 #[derive(Clone, Debug)]
 pub struct Collection {
@@ -27,7 +27,7 @@ pub struct UpdateCollection {
 
 #[async_trait::async_trait]
 pub trait CollectionsRepository: Send + Sync {
-    async fn find_many(&self, params: CollectionsFindManyParams) -> Result<Vec<Collection>, Error>;
+    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Collection>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Collection, Error>;
 
@@ -54,7 +54,7 @@ impl CollectionsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repo
-            .find_many(CollectionsFindManyParams {
+            .find_many(FindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -125,11 +125,6 @@ impl CollectionsService {
 
         Ok(())
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct CollectionsFindManyParams {
-    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

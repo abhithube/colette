@@ -1,6 +1,6 @@
 use colette_core::{
-    common::{self, SendableStream},
-    feeds::{Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData},
+    common::{self, FindManyParams, SendableStream},
+    feeds::{Error, FeedsCreateData, FeedsRepository, FeedsUpdateData},
     Feed,
 };
 use colette_database::{feed_entries, profile_feeds::UpdateParams, SelectByIdParams};
@@ -21,7 +21,7 @@ impl FeedsPostgresRepository {
 
 #[async_trait::async_trait]
 impl FeedsRepository for FeedsPostgresRepository {
-    async fn find_many(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error> {
+    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error> {
         let feeds = queries::profile_feeds::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

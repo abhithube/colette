@@ -1,8 +1,5 @@
 use colette_core::Feed;
-use colette_database::{
-    profile_feeds::{SelectManyParams, UpdateParams},
-    SelectByIdParams,
-};
+use colette_database::{profile_feeds::UpdateParams, SelectByIdParams, SelectManyParams};
 use sqlx::{types::chrono, SqliteExecutor};
 use uuid::Uuid;
 

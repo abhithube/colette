@@ -1,10 +1,7 @@
 use async_trait::async_trait;
 use colette_core::{
-    collections::{
-        CollectionsCreateData, CollectionsFindManyParams, CollectionsRepository,
-        CollectionsUpdateData, Error,
-    },
-    common::{self, FindOneParams},
+    collections::{CollectionsCreateData, CollectionsRepository, CollectionsUpdateData, Error},
+    common::{self, FindManyParams, FindOneParams},
     Collection,
 };
 use colette_database::collections::UpdateParams;
@@ -24,7 +21,7 @@ impl CollectionsSqliteRepository {
 
 #[async_trait]
 impl CollectionsRepository for CollectionsSqliteRepository {
-    async fn find_many(&self, params: CollectionsFindManyParams) -> Result<Vec<Collection>, Error> {
+    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Collection>, Error> {
         let collections = queries::collections::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

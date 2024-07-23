@@ -1,8 +1,5 @@
 use colette_core::{collections::CollectionsCreateData, Collection};
-use colette_database::{
-    collections::{SelectManyParams, UpdateParams},
-    SelectByIdParams,
-};
+use colette_database::{collections::UpdateParams, SelectByIdParams, SelectManyParams};
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Clone, Debug)]

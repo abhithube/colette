@@ -1,7 +1,7 @@
 use colette_core::{collections::CollectionsCreateData, Collection};
 use colette_database::{
-    collections::{SelectDefaultParams, SelectManyParams, UpdateParams},
-    SelectByIdParams,
+    collections::{SelectDefaultParams, UpdateParams},
+    SelectByIdParams, SelectManyParams,
 };
 use sqlx::{
     types::{chrono, Uuid},
