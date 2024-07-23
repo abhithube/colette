@@ -1,6 +1,7 @@
 pub use repositories::{
     BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
-    FeedsPostgresRepository, ProfilesPostgresRepository, UsersPostgresRepository,
+    FeedsPostgresRepository, ProfilesPostgresRepository, TagsPostgresRepository,
+    UsersPostgresRepository,
 };
 pub use sqlx::PgPool;
 

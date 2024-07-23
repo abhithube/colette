@@ -1,6 +1,6 @@
 pub use repositories::{
     BookmarksSqliteRepository, CollectionsSqliteRepository, EntriesSqliteRepository,
-    FeedsSqliteRepository, ProfilesSqliteRepository, UsersSqliteRepository,
+    FeedsSqliteRepository, ProfilesSqliteRepository, TagsSqliteRepository, UsersSqliteRepository,
 };
 pub use sqlx::SqlitePool;
 
