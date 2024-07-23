@@ -36,6 +36,38 @@ impl Api {
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Feed {
+    pub id: Uuid,
+    #[schema(format = "uri")]
+    pub link: String,
+    pub title: String,
+    #[schema(format = "uri", required)]
+    pub url: Option<String>,
+    #[schema(required)]
+    pub custom_title: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    #[schema(nullable = false)]
+    pub unread_count: Option<i64>,
+}
+
+impl From<colette_core::Feed> for Feed {
+    fn from(value: colette_core::Feed) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            url: value.url,
+            custom_title: value.custom_title,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            unread_count: value.unread_count,
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "",
@@ -57,6 +89,20 @@ pub async fn list_feeds(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of profiles")]
+    Ok(FeedList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
     }
 }
 
@@ -88,6 +134,24 @@ pub async fn get_feed(
     }
 }
 
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Feed by ID")]
+    Ok(Feed),
+
+    #[response(status = 404, description = "Feed not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
 #[utoipa::path(
   post,
   path = "",
@@ -116,6 +180,42 @@ pub async fn create_feed(
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFeed {
+    #[validate(url(message = "not a valid URL"))]
+    pub url: String,
+}
+
+impl From<CreateFeed> for feeds::CreateFeed {
+    fn from(value: CreateFeed) -> Self {
+        Self { url: value.url }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created feed")]
+    Created(Feed),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+
+    #[response(status = 502, description = "Failed to fetch or parse feed")]
+    BadGateway(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+        }
     }
 }
 
@@ -152,6 +252,43 @@ pub async fn update_feed(
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateFeed {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+}
+
+impl From<UpdateFeed> for feeds::UpdateFeed {
+    fn from(value: UpdateFeed) -> Self {
+        Self { title: value.title }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated feed")]
+    Ok(Feed),
+
+    #[response(status = 404, description = "Feed not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -177,143 +314,6 @@ pub async fn delete_feed(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Feed {
-    pub id: Uuid,
-    #[schema(format = "uri")]
-    pub link: String,
-    pub title: String,
-    #[schema(format = "uri", required)]
-    pub url: Option<String>,
-    #[schema(required)]
-    pub custom_title: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    #[schema(nullable = false)]
-    pub unread_count: Option<i64>,
-}
-
-impl From<colette_core::Feed> for Feed {
-    fn from(value: colette_core::Feed) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            url: value.url,
-            custom_title: value.custom_title,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            unread_count: value.unread_count,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateFeed {
-    #[validate(url(message = "not a valid URL"))]
-    pub url: String,
-}
-
-impl From<CreateFeed> for feeds::CreateFeed {
-    fn from(value: CreateFeed) -> Self {
-        Self { url: value.url }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateFeed {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-}
-
-impl From<UpdateFeed> for feeds::UpdateFeed {
-    fn from(value: UpdateFeed) -> Self {
-        Self { title: value.title }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(FeedList),
-}
-
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Feed by ID")]
-    Ok(Feed),
-
-    #[response(status = 404, description = "Feed not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created feed")]
-    Created(Feed),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated feed")]
-    Ok(Feed),
-
-    #[response(status = 404, description = "Feed not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for UpdateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
     }
 }
 

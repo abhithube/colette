@@ -34,124 +34,6 @@ impl Api {
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "",
-    params(ListBookmarksQuery),
-    responses(ListResponse),
-    operation_id = "listBookmarks",
-    description = "List the active profile bookmarks",
-    tag = "Bookmarks"
-)]
-#[axum::debug_handler]
-pub async fn list_bookmarks(
-    State(service): State<Arc<BookmarksService>>,
-    Valid(Query(query)): Valid<Query<ListBookmarksQuery>>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let result = service
-        .list(query.into(), session.into())
-        .await
-        .map(Paginated::<Bookmark>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
-        _ => Err(Error::Unknown),
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "",
-    request_body = CreateBookmark,
-    responses(CreateResponse),
-    operation_id = "createBookmark",
-    description = "Add a bookmark to a collection",
-    tag = "Bookmarks"
-  )]
-#[axum::debug_handler]
-pub async fn create_bookmark(
-    State(service): State<Arc<BookmarksService>>,
-    session: Session,
-    Valid(Json(body)): Valid<Json<CreateBookmark>>,
-) -> Result<impl IntoResponse, Error> {
-    let result = service
-        .create(body.into(), session.into())
-        .await
-        .map(Bookmark::from);
-
-    match result {
-        Ok(data) => Ok(CreateResponse::Created(Box::new(data))),
-        Err(e) => match e {
-            bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown),
-        },
-    }
-}
-
-#[utoipa::path(
-    patch,
-    path = "/{id}",
-    params(Id),
-    request_body = UpdateBookmark,
-    responses(UpdateResponse),
-    operation_id = "updateBookmark",
-    description = "Update a bookmark by ID",
-    tag = "Bookmarks"
-)]
-#[axum::debug_handler]
-pub async fn update_bookmark(
-    State(service): State<Arc<BookmarksService>>,
-    Path(Id(id)): Path<Id>,
-    session: Session,
-    Valid(Json(body)): Valid<Json<UpdateBookmark>>,
-) -> Result<impl IntoResponse, Error> {
-    let result = service
-        .update(id, body.into(), session.into())
-        .await
-        .map(Bookmark::from);
-
-    match result {
-        Ok(bookmark) => Ok(UpdateResponse::Ok(Box::new(bookmark))),
-        Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown),
-        },
-    }
-}
-
-#[utoipa::path(
-    delete,
-    path = "/{id}",
-    params(Id),
-    responses(DeleteResponse),
-    operation_id = "deleteBookmark",
-    description = "Delete a bookmark by ID",
-    tag = "Bookmarks"
-)]
-#[axum::debug_handler]
-pub async fn delete_bookmark(
-    State(service): State<Arc<BookmarksService>>,
-    Path(Id(id)): Path<Id>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let result = service.delete(id, session.into()).await;
-
-    match result {
-        Ok(()) => Ok(DeleteResponse::NoContent),
-        Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown),
-        },
-    }
-}
-
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
@@ -199,49 +81,29 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateBookmark {
-    #[schema(format = "uri")]
-    #[validate(url(message = "not a valid URL"))]
-    pub url: String,
-    #[schema(nullable = false)]
-    pub collection_id: Option<Uuid>,
-}
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListBookmarksQuery),
+    responses(ListResponse),
+    operation_id = "listBookmarks",
+    description = "List the active profile bookmarks",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn list_bookmarks(
+    State(service): State<Arc<BookmarksService>>,
+    Valid(Query(query)): Valid<Query<ListBookmarksQuery>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .list(query.into(), session.into())
+        .await
+        .map(Paginated::<Bookmark>::from);
 
-impl From<CreateBookmark> for bookmarks::CreateBookmark {
-    fn from(value: CreateBookmark) -> Self {
-        Self {
-            url: value.url,
-            collection_id: value.collection_id,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct UpdateBookmark {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-    #[schema(format = "uri", nullable = false)]
-    #[validate(url(message = "not a valid URL"))]
-    pub thumbnail_url: Option<String>,
-    #[schema(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub author: Option<String>,
-}
-
-impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
-    fn from(value: UpdateBookmark) -> Self {
-        Self {
-            title: value.title,
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author,
-        }
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
     }
 }
 
@@ -281,6 +143,56 @@ impl IntoResponse for ListResponse {
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "",
+    request_body = CreateBookmark,
+    responses(CreateResponse),
+    operation_id = "createBookmark",
+    description = "Add a bookmark to a collection",
+    tag = "Bookmarks"
+  )]
+#[axum::debug_handler]
+pub async fn create_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<CreateBookmark>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .create(body.into(), session.into())
+        .await
+        .map(Bookmark::from);
+
+    match result {
+        Ok(data) => Ok(CreateResponse::Created(Box::new(data))),
+        Err(e) => match e {
+            bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateBookmark {
+    #[schema(format = "uri")]
+    #[validate(url(message = "not a valid URL"))]
+    pub url: String,
+    #[schema(nullable = false)]
+    pub collection_id: Option<Uuid>,
+}
+
+impl From<CreateBookmark> for bookmarks::CreateBookmark {
+    fn from(value: CreateBookmark) -> Self {
+        Self {
+            url: value.url,
+            collection_id: value.collection_id,
+        }
+    }
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
@@ -300,6 +212,66 @@ impl IntoResponse for CreateResponse {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    patch,
+    path = "/{id}",
+    params(Id),
+    request_body = UpdateBookmark,
+    responses(UpdateResponse),
+    operation_id = "updateBookmark",
+    description = "Update a bookmark by ID",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn update_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+    Valid(Json(body)): Valid<Json<UpdateBookmark>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .update(id, body.into(), session.into())
+        .await
+        .map(Bookmark::from);
+
+    match result {
+        Ok(bookmark) => Ok(UpdateResponse::Ok(Box::new(bookmark))),
+        Err(e) => match e {
+            bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateBookmark {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+    #[schema(format = "uri", nullable = false)]
+    #[validate(url(message = "not a valid URL"))]
+    pub thumbnail_url: Option<String>,
+    #[schema(nullable = false)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub author: Option<String>,
+}
+
+impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
+    fn from(value: UpdateBookmark) -> Self {
+        Self {
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
         }
     }
 }
@@ -324,6 +296,34 @@ impl IntoResponse for UpdateResponse {
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
+    }
+}
+
+#[utoipa::path(
+    delete,
+    path = "/{id}",
+    params(Id),
+    responses(DeleteResponse),
+    operation_id = "deleteBookmark",
+    description = "Delete a bookmark by ID",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn delete_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service.delete(id, session.into()).await;
+
+    match result {
+        Ok(()) => Ok(DeleteResponse::NoContent),
+        Err(e) => match e {
+            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
     }
 }
 

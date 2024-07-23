@@ -32,6 +32,41 @@ impl Api {
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Entry {
+    pub id: Uuid,
+    #[schema(format = "uri")]
+    pub link: String,
+    pub title: String,
+    #[schema(required)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[schema(required)]
+    pub description: Option<String>,
+    #[schema(required)]
+    pub author: Option<String>,
+    #[schema(format = "uri", required)]
+    pub thumbnail_url: Option<String>,
+    pub has_read: bool,
+    pub feed_id: Uuid,
+}
+
+impl From<colette_core::Entry> for Entry {
+    fn from(value: colette_core::Entry) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url,
+            has_read: value.has_read,
+            feed_id: value.feed_id,
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "",
@@ -55,6 +90,42 @@ pub async fn list_entries(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct ListEntriesQuery {
+    #[param(nullable = false)]
+    pub published_at: Option<DateTime<Utc>>,
+    #[param(nullable = false)]
+    pub feed_id: Option<Uuid>,
+    #[param(nullable = false)]
+    pub has_read: Option<bool>,
+}
+
+impl From<ListEntriesQuery> for ListEntriesParams {
+    fn from(value: ListEntriesQuery) -> Self {
+        Self {
+            published_at: value.published_at,
+            feed_id: value.feed_id,
+            has_read: value.has_read,
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of entries")]
+    Ok(EntryList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
     }
 }
 
@@ -119,77 +190,6 @@ async fn mark_entry(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Entry {
-    pub id: Uuid,
-    #[schema(format = "uri")]
-    pub link: String,
-    pub title: String,
-    #[schema(required)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[schema(required)]
-    pub description: Option<String>,
-    #[schema(required)]
-    pub author: Option<String>,
-    #[schema(format = "uri", required)]
-    pub thumbnail_url: Option<String>,
-    pub has_read: bool,
-    pub feed_id: Uuid,
-}
-
-impl From<colette_core::Entry> for Entry {
-    fn from(value: colette_core::Entry) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at,
-            description: value.description,
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            has_read: value.has_read,
-            feed_id: value.feed_id,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub struct ListEntriesQuery {
-    #[param(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false)]
-    pub feed_id: Option<Uuid>,
-    #[param(nullable = false)]
-    pub has_read: Option<bool>,
-}
-
-impl From<ListEntriesQuery> for ListEntriesParams {
-    fn from(value: ListEntriesQuery) -> Self {
-        Self {
-            published_at: value.published_at,
-            feed_id: value.feed_id,
-            has_read: value.has_read,
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of entries")]
-    Ok(EntryList),
-}
-
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
     }
 }
 
