@@ -1,4 +1,4 @@
-pub trait BackupManager {
+pub trait BackupManager: Send + Sync {
     type T;
 
     fn import(&self, raw: &str) -> Result<Self::T, Error>;
