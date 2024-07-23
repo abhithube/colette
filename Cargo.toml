@@ -29,7 +29,7 @@ colette-scraper.path = "crates/scraper"
 colette-sqlite.path = "crates/sqlite"
 colette-tasks.path = "crates/tasks"
 futures = { version = "0.3.30", default-features = false }
-http = { version = "1.1.0", default-features = false }
+http = { version = "1.1.0", default-features = false, features = ["std"] }
 lazy-regex = { version = "3.1.0", default-features = false, features = [
   "lite",
 ] }
