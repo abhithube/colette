@@ -1,4 +1,4 @@
-use colette_core::{collections::CollectionCreateData, Collection};
+use colette_core::{collections::CollectionsCreateData, Collection};
 use colette_database::{
     collections::{SelectManyParams, UpdateParams},
     SelectByIdParams,
@@ -22,8 +22,8 @@ impl<'a> InsertParams<'a> {
     }
 }
 
-impl<'a> From<&'a CollectionCreateData> for InsertParams<'a> {
-    fn from(value: &'a CollectionCreateData) -> Self {
+impl<'a> From<&'a CollectionsCreateData> for InsertParams<'a> {
+    fn from(value: &'a CollectionsCreateData) -> Self {
         Self {
             title: &value.title,
             is_default: false,

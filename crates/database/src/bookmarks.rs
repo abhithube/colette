@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::BookmarkFindManyParams;
+use colette_core::bookmarks::BookmarksFindManyParams;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
@@ -11,8 +11,8 @@ pub struct SelectManyParams<'a> {
     pub collection_id: Option<&'a Uuid>,
 }
 
-impl<'a> From<&'a BookmarkFindManyParams> for SelectManyParams<'a> {
-    fn from(value: &'a BookmarkFindManyParams) -> Self {
+impl<'a> From<&'a BookmarksFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a BookmarksFindManyParams) -> Self {
         Self {
             profile_id: &value.profile_id,
             limit: value.limit,

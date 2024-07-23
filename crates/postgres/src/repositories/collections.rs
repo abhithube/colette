@@ -1,7 +1,7 @@
 use colette_core::{
     collections::{
-        CollectionCreateData, CollectionFindManyParams, CollectionUpdateData,
-        CollectionsRepository, Error,
+        CollectionsCreateData, CollectionsFindManyParams, CollectionsRepository,
+        CollectionsUpdateData, Error,
     },
     common::{self, FindOneParams},
     Collection,
@@ -23,7 +23,7 @@ impl CollectionsPostgresRepository {
 
 #[async_trait::async_trait]
 impl CollectionsRepository for CollectionsPostgresRepository {
-    async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error> {
+    async fn find_many(&self, params: CollectionsFindManyParams) -> Result<Vec<Collection>, Error> {
         let collections = queries::collections::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -42,7 +42,7 @@ impl CollectionsRepository for CollectionsPostgresRepository {
         Ok(collection)
     }
 
-    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error> {
+    async fn create(&self, data: CollectionsCreateData) -> Result<Collection, Error> {
         let collection = queries::collections::insert(&self.pool, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -53,7 +53,7 @@ impl CollectionsRepository for CollectionsPostgresRepository {
     async fn update(
         &self,
         params: FindOneParams,
-        data: CollectionUpdateData,
+        data: CollectionsUpdateData,
     ) -> Result<Collection, Error> {
         let collection = queries::collections::update(
             &self.pool,

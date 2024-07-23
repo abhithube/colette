@@ -1,7 +1,8 @@
 use async_trait::async_trait;
 use colette_core::{
     bookmarks::{
-        BookmarkCreateData, BookmarkFindManyParams, BookmarkUpdateData, BookmarksRepository, Error,
+        BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
+        Error,
     },
     common::{self, FindOneParams},
     Bookmark,
@@ -26,7 +27,7 @@ impl BookmarksSqliteRepository {
 
 #[async_trait]
 impl BookmarksRepository for BookmarksSqliteRepository {
-    async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error> {
+    async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
         let bookmarks = queries::bookmarks::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -34,7 +35,7 @@ impl BookmarksRepository for BookmarksSqliteRepository {
         Ok(bookmarks)
     }
 
-    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
+    async fn create(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
         let mut tx = self
             .pool
             .begin()
@@ -98,7 +99,7 @@ impl BookmarksRepository for BookmarksSqliteRepository {
     async fn update(
         &self,
         params: FindOneParams,
-        data: BookmarkUpdateData,
+        data: BookmarksUpdateData,
     ) -> Result<Bookmark, Error> {
         let mut tx = self
             .pool

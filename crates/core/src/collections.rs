@@ -27,16 +27,16 @@ pub struct UpdateCollection {
 
 #[async_trait::async_trait]
 pub trait CollectionsRepository: Send + Sync {
-    async fn find_many(&self, params: CollectionFindManyParams) -> Result<Vec<Collection>, Error>;
+    async fn find_many(&self, params: CollectionsFindManyParams) -> Result<Vec<Collection>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Collection, Error>;
 
-    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
+    async fn create(&self, data: CollectionsCreateData) -> Result<Collection, Error>;
 
     async fn update(
         &self,
         params: FindOneParams,
-        data: CollectionUpdateData,
+        data: CollectionsUpdateData,
     ) -> Result<Collection, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
@@ -54,7 +54,7 @@ impl CollectionsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repo
-            .find_many(CollectionFindManyParams {
+            .find_many(CollectionsFindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -86,7 +86,7 @@ impl CollectionsService {
     ) -> Result<Collection, Error> {
         let collections = self
             .repo
-            .create(CollectionCreateData {
+            .create(CollectionsCreateData {
                 title: data.title,
                 profile_id: session.profile_id,
             })
@@ -128,22 +128,22 @@ impl CollectionsService {
 }
 
 #[derive(Clone, Debug)]
-pub struct CollectionFindManyParams {
+pub struct CollectionsFindManyParams {
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct CollectionCreateData {
+pub struct CollectionsCreateData {
     pub title: String,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct CollectionUpdateData {
+pub struct CollectionsUpdateData {
     pub title: Option<String>,
 }
 
-impl From<UpdateCollection> for CollectionUpdateData {
+impl From<UpdateCollection> for CollectionsUpdateData {
     fn from(value: UpdateCollection) -> Self {
         Self { title: value.title }
     }

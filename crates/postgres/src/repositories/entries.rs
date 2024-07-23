@@ -1,6 +1,6 @@
 use colette_core::{
     common::FindOneParams,
-    entries::{EntriesRepository, EntryFindManyParams, EntryUpdateData, Error},
+    entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
 use colette_database::profile_feed_entries::UpdateParams;
@@ -20,7 +20,7 @@ impl EntriesPostgresRepository {
 
 #[async_trait::async_trait]
 impl EntriesRepository for EntriesPostgresRepository {
-    async fn find_many(&self, params: EntryFindManyParams) -> Result<Vec<Entry>, Error> {
+    async fn find_many(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
         let entries = queries::profile_feed_entries::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -28,7 +28,7 @@ impl EntriesRepository for EntriesPostgresRepository {
         Ok(entries)
     }
 
-    async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error> {
+    async fn update(&self, params: FindOneParams, data: EntriesUpdateData) -> Result<Entry, Error> {
         let entry = queries::profile_feed_entries::update(
             &self.pool,
             UpdateParams {

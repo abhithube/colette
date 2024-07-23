@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use crate::{
     profiles,
-    profiles::{ProfileFindOneParams, ProfilesRepository},
-    users::{self, UserCreateData, UserFindOneParams, UsersRepository},
+    profiles::{ProfilesFindOneParams, ProfilesRepository},
+    users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
     utils::password::PasswordHasher,
     Profile, User,
 };
@@ -48,7 +48,7 @@ impl AuthService {
 
         let user = self
             .users_repo
-            .create(UserCreateData {
+            .create(UsersCreateData {
                 email: data.email,
                 password: hashed,
             })
@@ -60,7 +60,7 @@ impl AuthService {
     pub async fn login(&self, data: Login) -> Result<Profile, Error> {
         let user = self
             .users_repo
-            .find_one(UserFindOneParams { email: data.email })
+            .find_one(UsersFindOneParams { email: data.email })
             .await
             .map_err(|e| match e {
                 users::Error::NotFound(_) => Error::NotAuthenticated,
@@ -78,7 +78,7 @@ impl AuthService {
 
         let profile = self
             .profiles_repo
-            .find_one(ProfileFindOneParams::Default { user_id: user.id })
+            .find_one(ProfilesFindOneParams::Default { user_id: user.id })
             .await?;
 
         Ok(profile)

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::entries::EntryFindManyParams;
+use colette_core::entries::EntriesFindManyParams;
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
@@ -11,8 +11,8 @@ pub struct SelectManyParams<'a> {
     pub has_read: Option<bool>,
 }
 
-impl<'a> From<&'a EntryFindManyParams> for SelectManyParams<'a> {
-    fn from(value: &'a EntryFindManyParams) -> Self {
+impl<'a> From<&'a EntriesFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a EntriesFindManyParams) -> Self {
         Self {
             profile_id: &value.profile_id,
             limit: value.limit,

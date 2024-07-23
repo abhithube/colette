@@ -1,8 +1,8 @@
 use colette_core::{
     common::SendableStream,
     profiles::{
-        Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
-        ProfileFindOneParams, ProfileUpdateData, ProfilesRepository,
+        Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
+        ProfilesFindOneParams, ProfilesRepository, ProfilesUpdateData,
     },
     Profile,
 };
@@ -24,7 +24,7 @@ impl ProfilesPostgresRepository {
 
 #[async_trait::async_trait]
 impl ProfilesRepository for ProfilesPostgresRepository {
-    async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
+    async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
         let profiles = profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -32,9 +32,9 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         Ok(profiles)
     }
 
-    async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error> {
+    async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
         let profile = match params {
-            ProfileFindOneParams::ById(params) => {
+            ProfilesFindOneParams::ById(params) => {
                 profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
@@ -42,7 +42,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfileFindOneParams::Default { user_id } => {
+            ProfilesFindOneParams::Default { user_id } => {
                 profiles::select_default(&self.pool, SelectDefaultParams { user_id: &user_id })
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -52,7 +52,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         Ok(profile)
     }
 
-    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
+    async fn create(&self, data: ProfilesCreateData) -> Result<Profile, Error> {
         let mut tx = self
             .pool
             .begin()
@@ -77,8 +77,8 @@ impl ProfilesRepository for ProfilesPostgresRepository {
 
     async fn update(
         &self,
-        params: ProfileFindByIdParams,
-        data: ProfileUpdateData,
+        params: ProfilesFindByIdParams,
+        data: ProfilesUpdateData,
     ) -> Result<Profile, Error> {
         let profile = profiles::update(
             &self.pool,
@@ -98,9 +98,9 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         Ok(profile)
     }
 
-    async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error> {
+    async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
         let profile = self
-            .find_one(ProfileFindOneParams::Default {
+            .find_one(ProfilesFindOneParams::Default {
                 user_id: params.user_id,
             })
             .await?;

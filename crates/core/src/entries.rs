@@ -32,9 +32,9 @@ pub struct ListEntriesParams {
 
 #[async_trait::async_trait]
 pub trait EntriesRepository: Send + Sync {
-    async fn find_many(&self, params: EntryFindManyParams) -> Result<Vec<Entry>, Error>;
+    async fn find_many(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error>;
 
-    async fn update(&self, params: FindOneParams, data: EntryUpdateData) -> Result<Entry, Error>;
+    async fn update(&self, params: FindOneParams, data: EntriesUpdateData) -> Result<Entry, Error>;
 }
 
 pub struct EntriesService {
@@ -53,7 +53,7 @@ impl EntriesService {
     ) -> Result<Paginated<Entry>, Error> {
         let entries = self
             .repo
-            .find_many(EntryFindManyParams {
+            .find_many(EntriesFindManyParams {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
@@ -92,7 +92,7 @@ impl EntriesService {
 }
 
 #[derive(Clone, Debug)]
-pub struct EntryFindManyParams {
+pub struct EntriesFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
@@ -101,11 +101,11 @@ pub struct EntryFindManyParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct EntryUpdateData {
+pub struct EntriesUpdateData {
     pub has_read: Option<bool>,
 }
 
-impl From<UpdateEntry> for EntryUpdateData {
+impl From<UpdateEntry> for EntriesUpdateData {
     fn from(value: UpdateEntry) -> Self {
         Self {
             has_read: value.has_read,

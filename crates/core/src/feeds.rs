@@ -87,13 +87,13 @@ pub struct BackupFeed {
 
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
-    async fn find_many(&self, params: FeedFindManyParams) -> Result<Vec<Feed>, Error>;
+    async fn find_many(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error>;
 
     async fn find_one(&self, params: FindOneParams) -> Result<Feed, Error>;
 
-    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error>;
+    async fn create(&self, data: FeedsCreateData) -> Result<Feed, Error>;
 
-    async fn update(&self, params: FindOneParams, data: FeedUpdateData) -> Result<Feed, Error>;
+    async fn update(&self, params: FindOneParams, data: FeedsUpdateData) -> Result<Feed, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 
@@ -115,7 +115,7 @@ impl FeedsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repo
-            .find_many(FeedFindManyParams {
+            .find_many(FeedsFindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -145,7 +145,7 @@ impl FeedsService {
 
         let feed = self
             .repo
-            .create(FeedCreateData {
+            .create(FeedsCreateData {
                 url: data.url,
                 feed: scraped,
                 profile_id: session.profile_id,
@@ -188,23 +188,23 @@ impl FeedsService {
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedFindManyParams {
+pub struct FeedsFindManyParams {
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedCreateData {
+pub struct FeedsCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedUpdateData {
+pub struct FeedsUpdateData {
     pub custom_title: Option<String>,
 }
 
-impl From<UpdateFeed> for FeedUpdateData {
+impl From<UpdateFeed> for FeedsUpdateData {
     fn from(value: UpdateFeed) -> Self {
         Self {
             custom_title: value.title,

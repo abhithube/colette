@@ -27,7 +27,7 @@ pub struct UpdateProfile {
     pub image_url: Option<String>,
 }
 
-impl From<UpdateProfile> for ProfileUpdateData {
+impl From<UpdateProfile> for ProfilesUpdateData {
     fn from(value: UpdateProfile) -> Self {
         Self {
             title: value.title,
@@ -38,19 +38,19 @@ impl From<UpdateProfile> for ProfileUpdateData {
 
 #[async_trait::async_trait]
 pub trait ProfilesRepository: Send + Sync {
-    async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error>;
+    async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error>;
 
-    async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error>;
+    async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error>;
 
-    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error>;
+    async fn create(&self, data: ProfilesCreateData) -> Result<Profile, Error>;
 
     async fn update(
         &self,
-        params: ProfileFindByIdParams,
-        data: ProfileUpdateData,
+        params: ProfilesFindByIdParams,
+        data: ProfilesUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error>;
+    async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
 
     fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>>;
 }
@@ -67,7 +67,7 @@ impl ProfilesService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
         let profiles = self
             .repo
-            .find_many(ProfileFindManyParams {
+            .find_many(ProfilesFindManyParams {
                 user_id: session.user_id,
             })
             .await?;
@@ -81,7 +81,7 @@ impl ProfilesService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
-        let params = ProfileFindOneParams::ById(ProfileFindByIdParams {
+        let params = ProfilesFindOneParams::ById(ProfilesFindByIdParams {
             id,
             user_id: session.user_id,
         });
@@ -93,7 +93,7 @@ impl ProfilesService {
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
         let profile = self
             .repo
-            .create(ProfileCreateData {
+            .create(ProfilesCreateData {
                 title: data.title,
                 image_url: data.image_url,
                 user_id: session.user_id,
@@ -112,7 +112,7 @@ impl ProfilesService {
         let profile = self
             .repo
             .update(
-                ProfileFindByIdParams {
+                ProfilesFindByIdParams {
                     id,
                     user_id: session.user_id,
                 },
@@ -125,7 +125,7 @@ impl ProfilesService {
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete(ProfileFindByIdParams {
+            .delete(ProfilesFindByIdParams {
                 id,
                 user_id: session.user_id,
             })
@@ -136,31 +136,31 @@ impl ProfilesService {
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfileFindManyParams {
+pub struct ProfilesFindManyParams {
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfileFindByIdParams {
+pub struct ProfilesFindByIdParams {
     pub id: Uuid,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub enum ProfileFindOneParams {
-    ById(ProfileFindByIdParams),
+pub enum ProfilesFindOneParams {
+    ById(ProfilesFindByIdParams),
     Default { user_id: Uuid },
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfileCreateData {
+pub struct ProfilesCreateData {
     pub title: String,
     pub image_url: Option<String>,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfileUpdateData {
+pub struct ProfilesUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
 }

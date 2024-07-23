@@ -63,7 +63,7 @@ pub struct ExtractedBookmark {
     pub author: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct ProcessedBookmark {
     pub title: String,
     pub thumbnail: Option<Url>,
@@ -73,14 +73,14 @@ pub struct ProcessedBookmark {
 
 #[async_trait::async_trait]
 pub trait BookmarksRepository: Send + Sync {
-    async fn find_many(&self, params: BookmarkFindManyParams) -> Result<Vec<Bookmark>, Error>;
+    async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error>;
 
-    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
+    async fn create(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
 
     async fn update(
         &self,
         params: FindOneParams,
-        data: BookmarkUpdateData,
+        data: BookmarksUpdateData,
     ) -> Result<Bookmark, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
@@ -106,7 +106,7 @@ impl BookmarksService {
     ) -> Result<Paginated<Bookmark>, Error> {
         let bookmarks = self
             .repo
-            .find_many(BookmarkFindManyParams {
+            .find_many(BookmarksFindManyParams {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
@@ -133,7 +133,7 @@ impl BookmarksService {
 
         let bookmark = self
             .repo
-            .create(BookmarkCreateData {
+            .create(BookmarksCreateData {
                 url: data.url,
                 bookmark: scraped,
                 collection_id: data.collection_id,
@@ -177,7 +177,7 @@ impl BookmarksService {
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarkFindManyParams {
+pub struct BookmarksFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
@@ -186,7 +186,7 @@ pub struct BookmarkFindManyParams {
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarkCreateData {
+pub struct BookmarksCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
     pub collection_id: Option<Uuid>,
@@ -194,14 +194,14 @@ pub struct BookmarkCreateData {
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarkUpdateData {
+pub struct BookmarksUpdateData {
     pub custom_title: Option<String>,
     pub custom_thumbnail_url: Option<String>,
     pub custom_published_at: Option<DateTime<Utc>>,
     pub custom_author: Option<String>,
 }
 
-impl From<UpdateBookmark> for BookmarkUpdateData {
+impl From<UpdateBookmark> for BookmarksUpdateData {
     fn from(value: UpdateBookmark) -> Self {
         Self {
             custom_title: value.title,

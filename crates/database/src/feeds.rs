@@ -1,4 +1,4 @@
-use colette_core::feeds::FeedCreateData;
+use colette_core::feeds::FeedsCreateData;
 
 #[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
@@ -7,8 +7,8 @@ pub struct InsertParams<'a> {
     pub url: Option<&'a str>,
 }
 
-impl<'a> From<&'a FeedCreateData> for InsertParams<'a> {
-    fn from(value: &'a FeedCreateData) -> Self {
+impl<'a> From<&'a FeedsCreateData> for InsertParams<'a> {
+    fn from(value: &'a FeedsCreateData) -> Self {
         let link = value.feed.link.as_str();
 
         Self {

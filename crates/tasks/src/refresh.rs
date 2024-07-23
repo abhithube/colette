@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use colette_core::{
-    feeds::{FeedCreateData, FeedsRepository, ProcessedFeed},
+    feeds::{FeedsCreateData, FeedsRepository, ProcessedFeed},
     profiles::ProfilesRepository,
     utils::{
         scraper::Scraper,
@@ -39,12 +39,14 @@ impl RefreshTask {
         let mut profiles_stream = self.profiles_repo.iterate(feed_id);
 
         while let Some(Ok(profile_id)) = profiles_stream.next().await {
-            let data = FeedCreateData {
-                url: url.clone(),
-                feed: feed.clone(),
-                profile_id,
-            };
-            self.feeds_repo.create(data).await.unwrap();
+            self.feeds_repo
+                .create(FeedsCreateData {
+                    url: url.clone(),
+                    feed: feed.clone(),
+                    profile_id,
+                })
+                .await
+                .unwrap();
         }
     }
 }

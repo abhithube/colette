@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use colette_core::{
     common::SendableStream,
     profiles::{
-        Error, ProfileCreateData, ProfileFindByIdParams, ProfileFindManyParams,
-        ProfileFindOneParams, ProfileUpdateData, ProfilesRepository,
+        Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
+        ProfilesFindOneParams, ProfilesRepository, ProfilesUpdateData,
     },
     Profile,
 };
@@ -26,7 +26,7 @@ impl ProfilesSqliteRepository {
 
 #[async_trait]
 impl ProfilesRepository for ProfilesSqliteRepository {
-    async fn find_many(&self, params: ProfileFindManyParams) -> Result<Vec<Profile>, Error> {
+    async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
         let results = queries::profiles::select_many(&self.pool, (&params).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -34,9 +34,9 @@ impl ProfilesRepository for ProfilesSqliteRepository {
         Ok(results)
     }
 
-    async fn find_one(&self, params: ProfileFindOneParams) -> Result<Profile, Error> {
+    async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
         let profile = match params {
-            ProfileFindOneParams::ById(params) => {
+            ProfilesFindOneParams::ById(params) => {
                 queries::profiles::select_by_id(&self.pool, (&params).into())
                     .await
                     .map_err(|e| match e {
@@ -44,7 +44,7 @@ impl ProfilesRepository for ProfilesSqliteRepository {
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfileFindOneParams::Default { user_id } => queries::profiles::select_default(
+            ProfilesFindOneParams::Default { user_id } => queries::profiles::select_default(
                 &self.pool,
                 SelectDefaultParams { user_id: &user_id },
             )
@@ -55,7 +55,7 @@ impl ProfilesRepository for ProfilesSqliteRepository {
         Ok(profile)
     }
 
-    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
+    async fn create(&self, data: ProfilesCreateData) -> Result<Profile, Error> {
         let profile = queries::profiles::insert(&self.pool, (&data).into())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -65,8 +65,8 @@ impl ProfilesRepository for ProfilesSqliteRepository {
 
     async fn update(
         &self,
-        params: ProfileFindByIdParams,
-        data: ProfileUpdateData,
+        params: ProfilesFindByIdParams,
+        data: ProfilesUpdateData,
     ) -> Result<Profile, Error> {
         let profile = queries::profiles::update(
             &self.pool,
@@ -86,9 +86,9 @@ impl ProfilesRepository for ProfilesSqliteRepository {
         Ok(profile)
     }
 
-    async fn delete(&self, params: ProfileFindByIdParams) -> Result<(), Error> {
+    async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
         let profile = self
-            .find_one(ProfileFindOneParams::Default {
+            .find_one(ProfilesFindOneParams::Default {
                 user_id: params.user_id,
             })
             .await?;

@@ -1,5 +1,5 @@
 use colette_core::{
-    users::{Error, UserCreateData, UserFindOneParams, UsersRepository},
+    users::{Error, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
 };
 use sqlx::PgPool;
@@ -18,7 +18,7 @@ impl UsersPostgresRepository {
 
 #[async_trait::async_trait]
 impl UsersRepository for UsersPostgresRepository {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
+    async fn find_one(&self, params: UsersFindOneParams) -> Result<User, Error> {
         let user = queries::users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
@@ -29,7 +29,7 @@ impl UsersRepository for UsersPostgresRepository {
         Ok(user)
     }
 
-    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
+    async fn create(&self, data: UsersCreateData) -> Result<User, Error> {
         let mut tx = self
             .pool
             .begin()

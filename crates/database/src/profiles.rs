@@ -1,4 +1,4 @@
-use colette_core::profiles::{ProfileFindByIdParams, ProfileFindManyParams};
+use colette_core::profiles::{ProfilesFindByIdParams, ProfilesFindManyParams};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
@@ -6,8 +6,8 @@ pub struct SelectManyParams<'a> {
     pub user_id: &'a Uuid,
 }
 
-impl<'a> From<&'a ProfileFindManyParams> for SelectManyParams<'a> {
-    fn from(value: &'a ProfileFindManyParams) -> Self {
+impl<'a> From<&'a ProfilesFindManyParams> for SelectManyParams<'a> {
+    fn from(value: &'a ProfilesFindManyParams) -> Self {
         Self {
             user_id: &value.user_id,
         }
@@ -20,8 +20,8 @@ pub struct SelectByIdParams<'a> {
     pub user_id: &'a Uuid,
 }
 
-impl<'a> From<&'a ProfileFindByIdParams> for SelectByIdParams<'a> {
-    fn from(value: &'a ProfileFindByIdParams) -> Self {
+impl<'a> From<&'a ProfilesFindByIdParams> for SelectByIdParams<'a> {
+    fn from(value: &'a ProfilesFindByIdParams) -> Self {
         Self {
             id: &value.id,
             user_id: &value.user_id,

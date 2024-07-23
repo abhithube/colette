@@ -1,4 +1,4 @@
-use colette_core::{common::SendableStream, profiles::ProfileCreateData, Profile};
+use colette_core::{common::SendableStream, profiles::ProfilesCreateData, Profile};
 use colette_database::profiles::{
     SelectByIdParams, SelectDefaultParams, SelectManyParams, UpdateParams,
 };
@@ -26,8 +26,8 @@ impl<'a> InsertParams<'a> {
     }
 }
 
-impl<'a> From<&'a ProfileCreateData> for InsertParams<'a> {
-    fn from(value: &'a ProfileCreateData) -> Self {
+impl<'a> From<&'a ProfilesCreateData> for InsertParams<'a> {
+    fn from(value: &'a ProfilesCreateData) -> Self {
         Self {
             id: Uuid::new_v4(),
             title: &value.title,

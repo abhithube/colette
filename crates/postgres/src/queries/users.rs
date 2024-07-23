@@ -1,4 +1,4 @@
-use colette_core::{users::UserCreateData, User};
+use colette_core::{users::UsersCreateData, User};
 use colette_database::users::SelectByEmailParams;
 use sqlx::PgExecutor;
 
@@ -8,8 +8,8 @@ pub struct InsertParams<'a> {
     pub password: &'a str,
 }
 
-impl<'a> From<&'a UserCreateData> for InsertParams<'a> {
-    fn from(value: &'a UserCreateData) -> Self {
+impl<'a> From<&'a UsersCreateData> for InsertParams<'a> {
+    fn from(value: &'a UsersCreateData) -> Self {
         Self {
             email: &value.email,
             password: &value.password,

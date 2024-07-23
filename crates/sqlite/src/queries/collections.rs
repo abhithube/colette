@@ -1,4 +1,4 @@
-use colette_core::{collections::CollectionCreateData, Collection};
+use colette_core::{collections::CollectionsCreateData, Collection};
 use colette_database::{
     collections::{SelectDefaultParams, SelectManyParams, UpdateParams},
     SelectByIdParams,
@@ -16,8 +16,8 @@ pub struct InsertParams<'a> {
     pub profile_id: &'a Uuid,
 }
 
-impl<'a> From<&'a CollectionCreateData> for InsertParams<'a> {
-    fn from(value: &'a CollectionCreateData) -> Self {
+impl<'a> From<&'a CollectionsCreateData> for InsertParams<'a> {
+    fn from(value: &'a CollectionsCreateData) -> Self {
         Self {
             id: Uuid::new_v4(),
             title: &value.title,
