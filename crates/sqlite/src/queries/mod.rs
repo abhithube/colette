@@ -6,4 +6,5 @@ pub mod feeds;
 pub mod profile_feed_entries;
 pub mod profile_feeds;
 pub mod profiles;
+pub mod tags;
 pub mod users;

@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\nSELECT id AS \"id: uuid::Uuid\",\n       title,\n       profile_id AS \"profile_id: uuid::Uuid\",\n       created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n       updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"\n  FROM tags\n WHERE id = $1\n   AND profile_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "profile_id: uuid::Uuid",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c50e4348d64b0119378dbe8f20fbc79d59c84ea27c09ce3713bceeee275c831d"
+}

@@ -92,6 +92,14 @@ CREATE TABLE bookmarks (
   UNIQUE (collection_id, link)
 );
 
+CREATE TABLE tags (
+  id text NOT NULL PRIMARY KEY,
+  title text NOT NULL,
+  profile_id text NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  created_at text NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at text NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TRIGGER users_updated_at
 AFTER
 UPDATE ON users FOR each ROW
@@ -145,6 +153,18 @@ AFTER
 UPDATE ON bookmarks FOR each ROW
 BEGIN
 UPDATE bookmarks
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = new.id;
+
+END;
+
+CREATE TRIGGER tags_updated_at
+AFTER
+UPDATE ON tags FOR each ROW
+BEGIN
+UPDATE tags
 SET
   updated_at = CURRENT_TIMESTAMP
 WHERE

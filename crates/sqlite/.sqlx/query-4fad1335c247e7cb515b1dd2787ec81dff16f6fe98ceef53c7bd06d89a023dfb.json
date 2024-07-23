@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n   INSERT INTO tags (id, title, profile_id)\n   VALUES ($1, $2, $3)\nRETURNING id AS \"id: uuid::Uuid\",\n          title,\n          profile_id AS \"profile_id: uuid::Uuid\",\n          created_at AS \"created_at: chrono::DateTime<chrono::Utc>\",\n          updated_at AS \"updated_at: chrono::DateTime<chrono::Utc>\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: uuid::Uuid",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "profile_id: uuid::Uuid",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: chrono::DateTime<chrono::Utc>",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4fad1335c247e7cb515b1dd2787ec81dff16f6fe98ceef53c7bd06d89a023dfb"
+}
