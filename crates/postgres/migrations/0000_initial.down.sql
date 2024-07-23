@@ -1,3 +1,5 @@
+DROP TABLE tags;
+
 DROP TABLE bookmarks;
 
 DROP TABLE collections;

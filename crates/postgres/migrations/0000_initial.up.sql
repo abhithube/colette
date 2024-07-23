@@ -92,6 +92,14 @@ CREATE TABLE bookmarks (
   UNIQUE (collection_id, link)
 );
 
+CREATE TABLE tags (
+  id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  title text NOT NULL,
+  profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE
 OR REPLACE function handle_updated_at () returns trigger AS $$
 BEGIN
@@ -118,4 +126,8 @@ EXECUTE procedure handle_updated_at ();
 
 CREATE TRIGGER bookmarks_updated_at before
 UPDATE ON bookmarks FOR each ROW
+EXECUTE procedure handle_updated_at ();
+
+CREATE TRIGGER tags_updated_at before
+UPDATE ON tags FOR each ROW
 EXECUTE procedure handle_updated_at ();
