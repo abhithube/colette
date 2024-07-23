@@ -32,22 +32,27 @@ pub enum DownloaderPlugin<T = ()> {
     Impl(Arc<dyn Downloader>),
 }
 
-pub trait Extractor<T>: Send + Sync {
-    fn extract(&self, url: &str, resp: Response<String>) -> Result<T, ExtractError>;
+pub trait Extractor: Send + Sync {
+    type T;
+
+    fn extract(&self, url: &str, resp: Response<String>) -> Result<Self::T, ExtractError>;
 }
 
 pub enum ExtractorPlugin<T, U> {
     Value(T),
-    Impl(Arc<dyn Extractor<U>>),
+    Impl(Arc<dyn Extractor<T = U>>),
 }
 
-pub trait Postprocessor<T, U>: Send + Sync {
-    fn postprocess(&self, url: &str, extracted: T) -> Result<U, PostprocessError>;
+pub trait Postprocessor: Send + Sync {
+    type T;
+    type U;
+
+    fn postprocess(&self, url: &str, extracted: Self::T) -> Result<Self::U, PostprocessError>;
 }
 
 pub enum PostprocessorPlugin<T, U, V> {
     Value(U),
-    Impl(Arc<dyn Postprocessor<T, V>>),
+    Impl(Arc<dyn Postprocessor<T = T, U = V>>),
 }
 
 pub trait Scraper<T>: Send + Sync {

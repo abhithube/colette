@@ -27,7 +27,9 @@ impl<'a> DefaultBookmarkExtractor<'a> {
     }
 }
 
-impl Extractor<ExtractedBookmark> for DefaultBookmarkExtractor<'_> {
+impl Extractor for DefaultBookmarkExtractor<'_> {
+    type T = ExtractedBookmark;
+
     fn extract(
         &self,
         _url: &str,

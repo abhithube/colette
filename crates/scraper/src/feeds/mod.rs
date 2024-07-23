@@ -22,8 +22,8 @@ mod rss;
 pub struct FeedScraper<'a> {
     registry: PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed>,
     default_downloader: Arc<dyn Downloader>,
-    default_extractor: Arc<dyn Extractor<ExtractedFeed>>,
-    default_postprocessor: Arc<dyn Postprocessor<ExtractedFeed, ProcessedFeed>>,
+    default_extractor: Arc<dyn Extractor<T = ExtractedFeed>>,
+    default_postprocessor: Arc<dyn Postprocessor<T = ExtractedFeed, U = ProcessedFeed>>,
 }
 
 impl<'a> FeedScraper<'a> {

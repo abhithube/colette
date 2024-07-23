@@ -10,7 +10,10 @@ const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 
 pub struct DefaultFeedPostprocessor {}
 
-impl Postprocessor<ExtractedFeed, ProcessedFeed> for DefaultFeedPostprocessor {
+impl Postprocessor for DefaultFeedPostprocessor {
+    type T = ExtractedFeed;
+    type U = ProcessedFeed;
+
     fn postprocess(
         &self,
         _url: &str,

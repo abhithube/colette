@@ -8,7 +8,10 @@ use url::Url;
 
 pub struct DefaultBookmarkPostprocessor {}
 
-impl Postprocessor<ExtractedBookmark, ProcessedBookmark> for DefaultBookmarkPostprocessor {
+impl Postprocessor for DefaultBookmarkPostprocessor {
+    type T = ExtractedBookmark;
+    type U = ProcessedBookmark;
+
     fn postprocess(
         &self,
         _url: &str,
