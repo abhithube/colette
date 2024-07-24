@@ -89,12 +89,12 @@ impl<Store: SessionStore + Clone> App<Store> {
             );
 
         if !self.config.origin_urls.is_empty() {
-            let origins: Vec<HeaderValue> = self
+            let origins = self
                 .config
                 .origin_urls
                 .iter()
                 .filter_map(|e| e.parse::<HeaderValue>().ok())
-                .collect();
+                .collect::<Vec<_>>();
 
             app = app.layer(
                 CorsLayer::new()

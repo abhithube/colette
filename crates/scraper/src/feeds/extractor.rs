@@ -54,7 +54,7 @@ impl Extractor for HtmlExtractor<'_> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 
-        let entries: Vec<ExtractedEntry> = html
+        let entries = html
             .select(&Selector::parse(self.options.feed_entries_selector).unwrap())
             .map(|element| ExtractedEntry {
                 link: element.select_text(&self.options.entry_link_queries),
