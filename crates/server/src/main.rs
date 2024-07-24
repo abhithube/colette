@@ -7,6 +7,7 @@ compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 use std::{error::Error, sync::Arc};
 
 use app::App;
+use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService,
     bookmarks::{BookmarksRepository, BookmarksService},
@@ -192,7 +193,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .into(),
         collections_service: CollectionsService::new(repositories.collections).into(),
         entries_service: EntriesService::new(repositories.entries).into(),
-        feeds_service: FeedsService::new(repositories.feeds, feed_scraper).into(),
+        feeds_service: FeedsService::new(repositories.feeds, feed_scraper, Arc::new(OpmlManager))
+            .into(),
         profiles_service: ProfilesService::new(repositories.profiles).into(),
         tags_service: TagsService::new(repositories.tags).into(),
     };

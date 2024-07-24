@@ -1,22 +1,30 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Multipart, Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::feeds::{self, FeedsService};
+use colette_core::feeds::{self, FeedsService, ImportFeeds};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_feeds, get_feed, create_feed, update_feed, delete_feed),
-    components(schemas(Feed, CreateFeed, UpdateFeed))
+    paths(
+        list_feeds,
+        get_feed,
+        create_feed,
+        update_feed,
+        delete_feed,
+        import_feeds,
+        export_feeds
+    ),
+    components(schemas(Feed, CreateFeed, UpdateFeed, File))
 )]
 pub struct Api;
 
@@ -31,7 +39,9 @@ impl Api {
                     routing::get(get_feed)
                         .patch(update_feed)
                         .delete(delete_feed),
-                ),
+                )
+                .route("/import", routing::post(import_feeds))
+                .route("/export", routing::post(export_feeds)),
         )
     }
 }
@@ -331,6 +341,96 @@ impl IntoResponse for DeleteResponse {
         match self {
             Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/import",
+    request_body(content = File, content_type = "multipart/form-data"),
+    responses(ImportResponse),
+    operation_id = "importFeeds",
+    description = "Import OPML feeds into profile",
+    tag = "Feeds"
+)]
+#[axum::debug_handler]
+pub async fn import_feeds(
+    State(service): State<Arc<FeedsService>>,
+    session: Session,
+    mut multipart: Multipart,
+) -> Result<impl IntoResponse, Error> {
+    let Ok(Some(field)) = multipart.next_field().await else {
+        return Err(Error::Unknown);
+    };
+
+    let raw = field.text().await.map_err(|_| Error::Unknown)?;
+
+    let result = service.import(ImportFeeds { raw }, session.into()).await;
+
+    match result {
+        Ok(()) => Ok(ImportResponse::NoContent),
+        _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct File {
+    #[allow(dead_code)]
+    #[schema(format = "Binary")]
+    pub data: String,
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ImportResponse {
+    #[response(status = 204, description = "Successfully started import")]
+    NoContent,
+}
+
+impl IntoResponse for ImportResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/export",
+    responses(ExportResponse),
+    operation_id = "exportFeeds",
+    description = "Export OPML feeds from profile",
+    tag = "Feeds"
+)]
+#[axum::debug_handler]
+pub async fn export_feeds(
+    State(service): State<Arc<FeedsService>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service.export(session.into()).await;
+
+    match result {
+        Ok(raw) => Ok(ExportResponse::Ok(raw.as_bytes().into())),
+        _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ExportResponse {
+    #[response(
+        status = 200,
+        description = "OPML file",
+        content_type = "application/octet-stream"
+    )]
+    Ok(Box<[u8]>),
+}
+
+impl IntoResponse for ExportResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => data.into_response(),
         }
     }
 }

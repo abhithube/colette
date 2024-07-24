@@ -6,7 +6,10 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindManyParams, FindOneParams, Paginated, SendableStream, Session},
-    utils::scraper::{self, ExtractorQuery, Scraper},
+    utils::{
+        backup::{self, BackupManager},
+        scraper::{self, ExtractorQuery, Scraper},
+    },
 };
 
 #[derive(Clone, Debug)]
@@ -29,6 +32,10 @@ pub struct CreateFeed {
 #[derive(Clone, Debug)]
 pub struct UpdateFeed {
     pub title: Option<String>,
+}
+
+pub struct ImportFeeds {
+    pub raw: String,
 }
 
 #[derive(Clone, Debug)]
@@ -105,11 +112,20 @@ pub trait FeedsRepository: Send + Sync {
 pub struct FeedsService {
     repo: Arc<dyn FeedsRepository>,
     scraper: Arc<dyn Scraper<ProcessedFeed>>,
+    opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
 }
 
 impl FeedsService {
-    pub fn new(repo: Arc<dyn FeedsRepository>, scraper: Arc<dyn Scraper<ProcessedFeed>>) -> Self {
-        Self { repo, scraper }
+    pub fn new(
+        repo: Arc<dyn FeedsRepository>,
+        scraper: Arc<dyn Scraper<ProcessedFeed>>,
+        opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
+    ) -> Self {
+        Self {
+            repo,
+            scraper,
+            opml,
+        }
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
@@ -185,6 +201,40 @@ impl FeedsService {
 
         Ok(())
     }
+
+    pub async fn import(&self, data: ImportFeeds, session: Session) -> Result<(), Error> {
+        for feed in self.opml.import(&data.raw)? {
+            self.create(
+                CreateFeed {
+                    url: feed.xml_url.to_string(),
+                },
+                session.clone(),
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn export(&self, session: Session) -> Result<String, Error> {
+        let feeds = self.list(session).await?;
+
+        let data = feeds
+            .data
+            .into_iter()
+            .filter_map(|e| {
+                Some(BackupFeed {
+                    title: e.title,
+                    xml_url: e.url.and_then(|e| Url::parse(&e).ok())?,
+                    html_url: Url::parse(&e.link).ok(),
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let raw = self.opml.export(data)?;
+
+        Ok(raw)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -214,6 +264,9 @@ pub enum Error {
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),
+
+    #[error(transparent)]
+    Backup(#[from] backup::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
