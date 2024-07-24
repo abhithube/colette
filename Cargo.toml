@@ -16,7 +16,7 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.86", default-features = false, features = ["std"] }
-async-trait = { version = "0.1.80", default-features = false }
+async-trait = { version = "0.1.81", default-features = false }
 chrono = { version = "0.4.38", default-features = false }
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
@@ -33,9 +33,17 @@ http = { version = "1.1.0", default-features = false, features = ["std"] }
 lazy-regex = { version = "3.1.0", default-features = false, features = [
   "lite",
 ] }
-serde = { version = "1.0.203", default-features = false }
-thiserror = { version = "1.0.61", default-features = false }
-tokio = { version = "1.38.1", default-features = false, features = [
+quick-xml = { version = "0.36.1", features = ["serialize"] }
+serde = { version = "1.0.204", default-features = false }
+sqlx = { version = "0.7.4", default-features = false, features = [
+  "chrono",
+  "macros",
+  "migrate",
+  "runtime-tokio",
+  "uuid",
+] }
+thiserror = { version = "1.0.63", default-features = false }
+tokio = { version = "1.39.1", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
