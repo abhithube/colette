@@ -4,9 +4,10 @@ compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
 
-use std::{error::Error, sync::Arc};
+use std::{error::Error, str::FromStr, sync::Arc};
 
 use app::App;
+use chrono::Local;
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService,
@@ -23,7 +24,8 @@ use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{BookmarkScraper, FeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
-use tokio_cron_scheduler::{Job, JobScheduler};
+use cron::Schedule;
+use tokio::time;
 #[cfg(not(feature = "redis"))]
 use tower_sessions::session_store::ExpiredDeletion;
 #[cfg(feature = "redis")]
@@ -138,46 +140,71 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let feed_scraper = Arc::new(FeedScraper::new(register_feed_plugins()));
 
-    let scheduler = JobScheduler::new().await?;
-
     if config.refresh_enabled {
         let feed_scraper = feed_scraper.clone();
         let feeds_repository = repositories.feeds.clone();
         let profiles_repository = repositories.profiles.clone();
 
-        scheduler
-            .add(Job::new_async(
-                config.cron_refresh.as_ref(),
-                move |_id, _scheduler| {
-                    let refresh_task = RefreshTask::new(
-                        feed_scraper.clone(),
-                        feeds_repository.clone(),
-                        profiles_repository.clone(),
-                    );
+        let schedule = Schedule::from_str(&config.cron_refresh).unwrap();
 
-                    Box::pin(async move {
-                        let _ = refresh_task.run().await;
-                    })
-                },
-            )?)
-            .await?;
+        tokio::spawn(async move {
+            let refresh_task = RefreshTask::new(
+                feed_scraper.clone(),
+                feeds_repository.clone(),
+                profiles_repository.clone(),
+            );
+
+            loop {
+                let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
+                let duration = (upcoming - Local::now()).to_std().unwrap();
+
+                time::sleep(duration).await;
+
+                let start = Local::now();
+                println!("Started refresh task at: {}", start);
+
+                match refresh_task.run().await {
+                    Ok(_) => {
+                        let elasped = (Local::now().time() - start.time()).num_milliseconds();
+                        println!("Finished refresh task in {} ms", elasped);
+                    }
+                    Err(e) => {
+                        println!("Failed refresh task: {}", e);
+                    }
+                }
+            }
+        });
     }
 
     {
         let feeds_repository = repositories.feeds.clone();
 
-        scheduler
-            .add(Job::new_async(CRON_CLEANUP, move |_id, _scheduler| {
-                let cleanup_task = CleanupTask::new(feeds_repository.clone());
+        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
 
-                Box::pin(async move {
-                    let _ = cleanup_task.run().await;
-                })
-            })?)
-            .await?;
+        tokio::spawn(async move {
+            let cleanup_task = CleanupTask::new(feeds_repository.clone());
+
+            loop {
+                let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
+                let duration = (upcoming - Local::now()).to_std().unwrap();
+
+                time::sleep(duration).await;
+
+                let start = Local::now();
+                println!("Started cleanup task at: {}", start);
+
+                match cleanup_task.run().await {
+                    Ok(_) => {
+                        let elasped = (Local::now().time() - start.time()).num_milliseconds();
+                        println!("Finished cleanup task in {} ms", elasped);
+                    }
+                    Err(e) => {
+                        println!("Failed cleanup task: {}", e);
+                    }
+                }
+            }
+        });
     }
-
-    scheduler.start().await?;
 
     let state = common::Context {
         auth_service: AuthService::new(
