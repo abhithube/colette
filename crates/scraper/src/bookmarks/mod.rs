@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use colette_core::{
-    bookmarks::{BookmarkExtractorOptions, ExtractedBookmark, ProcessedBookmark},
+    bookmarks::{BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark},
     utils::scraper::{
-        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, PluginRegistry,
-        Postprocessor, PostprocessorPlugin, Scraper,
+        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
+        PostprocessorPlugin, Scraper,
     },
 };
 pub use extractor::DefaultBookmarkExtractor;
@@ -22,22 +22,14 @@ mod options;
 mod postprocessor;
 
 pub struct BookmarkScraper<'a> {
-    registry:
-        PluginRegistry<BookmarkExtractorOptions<'a>, ExtractedBookmark, (), ProcessedBookmark>,
+    registry: BookmarkPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
     default_extractor: Arc<dyn Extractor<T = ExtractedBookmark>>,
     default_postprocessor: Arc<dyn Postprocessor<T = ExtractedBookmark, U = ProcessedBookmark>>,
 }
 
 impl<'a> BookmarkScraper<'a> {
-    pub fn new(
-        registry: PluginRegistry<
-            BookmarkExtractorOptions<'a>,
-            ExtractedBookmark,
-            (),
-            ProcessedBookmark,
-        >,
-    ) -> Self {
+    pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
         Self {
             registry,
             default_downloader: Arc::new(DefaultDownloader {}),

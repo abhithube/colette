@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use url::Url;
@@ -6,7 +6,9 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
-    utils::scraper::{self, ExtractorQuery, Scraper},
+    utils::scraper::{
+        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
+    },
 };
 
 #[derive(Clone, Debug)]
@@ -69,6 +71,14 @@ pub struct ProcessedBookmark {
     pub thumbnail: Option<Url>,
     pub published: Option<DateTime<Utc>>,
     pub author: Option<String>,
+}
+
+pub struct BookmarkPluginRegistry<'a> {
+    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub extractors:
+        HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
+    pub postprocessors:
+        HashMap<&'static str, PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>>,
 }
 
 #[async_trait::async_trait]

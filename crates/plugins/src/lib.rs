@@ -1,11 +1,13 @@
 use std::collections::HashMap;
 
 use colette_core::{
-    bookmarks::{BookmarkExtractorOptions, ExtractedBookmark, ProcessedBookmark},
-    feeds::{ExtractedFeed, ProcessedFeed},
-    utils::scraper::{DownloaderPlugin, ExtractorPlugin, PluginRegistry, PostprocessorPlugin},
+    bookmarks::{
+        BookmarkExtractorOptions, BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark,
+    },
+    feeds::{FeedPluginRegistry, ProcessedFeed},
+    utils::scraper::{DownloaderPlugin, ExtractorPlugin, PostprocessorPlugin},
 };
-use colette_scraper::FeedExtractorOptions;
+use colette_scraper::{ExtractedFeed, FeedExtractorOptions};
 #[allow(unused_imports)]
 use custom::*;
 
@@ -13,8 +15,7 @@ mod custom;
 mod reddit;
 mod youtube;
 
-pub fn register_feed_plugins<'a>(
-) -> PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed> {
+pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
     let downloaders = HashMap::from([
         ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
         ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
@@ -24,15 +25,14 @@ pub fn register_feed_plugins<'a>(
     let postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
         HashMap::new();
 
-    PluginRegistry {
+    FeedPluginRegistry {
         downloaders,
         extractors,
         postprocessors,
     }
 }
 
-pub fn register_bookmark_plugins<'a>(
-) -> PluginRegistry<BookmarkExtractorOptions<'a>, ExtractedBookmark, (), ProcessedBookmark> {
+pub fn register_bookmark_plugins<'a>() -> BookmarkPluginRegistry<'a> {
     let downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
     let extractors: HashMap<&str, ExtractorPlugin<BookmarkExtractorOptions, ExtractedBookmark>> =
         HashMap::new();
@@ -41,7 +41,7 @@ pub fn register_bookmark_plugins<'a>(
         PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>,
     > = HashMap::new();
 
-    PluginRegistry {
+    BookmarkPluginRegistry {
         downloaders,
         extractors,
         postprocessors,

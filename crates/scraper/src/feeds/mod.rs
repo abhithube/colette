@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use colette_core::{
-    feeds::{ExtractedFeed, FeedExtractorOptions, ProcessedFeed},
+    feeds::{ExtractedFeed, FeedPluginRegistry, ProcessedFeed},
     utils::scraper::{
-        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, PluginRegistry,
-        Postprocessor, PostprocessorPlugin, Scraper,
+        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
+        PostprocessorPlugin, Scraper,
     },
 };
 use extractor::DefaultFeedExtractor;
@@ -20,16 +20,14 @@ mod postprocessor;
 mod rss;
 
 pub struct FeedScraper<'a> {
-    registry: PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed>,
+    registry: FeedPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
     default_extractor: Arc<dyn Extractor<T = ExtractedFeed>>,
     default_postprocessor: Arc<dyn Postprocessor<T = ExtractedFeed, U = ProcessedFeed>>,
 }
 
 impl<'a> FeedScraper<'a> {
-    pub fn new(
-        registry: PluginRegistry<FeedExtractorOptions<'a>, ExtractedFeed, (), ProcessedFeed>,
-    ) -> Self {
+    pub fn new(registry: FeedPluginRegistry<'a>) -> Self {
         Self {
             registry,
             default_downloader: Arc::new(DefaultDownloader {}),

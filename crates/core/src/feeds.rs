@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use url::Url;
@@ -8,7 +8,9 @@ use crate::{
     common::{FindManyParams, FindOneParams, Paginated, SendableStream, Session},
     utils::{
         backup::{self, BackupManager},
-        scraper::{self, ExtractorQuery, Scraper},
+        scraper::{
+            self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
+        },
     },
 };
 
@@ -107,6 +109,13 @@ pub trait FeedsRepository: Send + Sync {
     fn iterate(&self) -> SendableStream<Result<(i64, String), Error>>;
 
     async fn cleanup(&self) -> Result<(), Error>;
+}
+
+pub struct FeedPluginRegistry<'a> {
+    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
+    pub postprocessors:
+        HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
 }
 
 pub struct FeedsService {
