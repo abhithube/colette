@@ -4,7 +4,7 @@ use colette_core::{
     bookmarks::{
         BookmarkExtractorOptions, BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark,
     },
-    feeds::{FeedPluginRegistry, ProcessedFeed},
+    feeds::{DetectorPlugin, FeedPluginRegistry, ProcessedFeed},
     utils::scraper::{DownloaderPlugin, ExtractorPlugin, PostprocessorPlugin},
 };
 use colette_scraper::{ExtractedFeed, FeedExtractorOptions};
@@ -20,6 +20,7 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
         ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
         ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
     ]);
+    let detectors: HashMap<&str, DetectorPlugin> = HashMap::new();
     let extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
         HashMap::new();
     let postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
@@ -27,6 +28,7 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
 
     FeedPluginRegistry {
         downloaders,
+        detectors,
         extractors,
         postprocessors,
     }

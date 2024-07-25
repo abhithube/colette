@@ -1,12 +1,15 @@
 use std::sync::Arc;
 
 use colette_core::{
-    feeds::{ExtractedFeed, FeedPluginRegistry, ProcessedFeed},
+    feeds::{
+        Detector, DetectorPlugin, ExtractedFeed, FeedPluginRegistry, FeedScraper, ProcessedFeed,
+    },
     utils::scraper::{
         Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
         PostprocessorPlugin, Scraper,
     },
 };
+use detector::DefaultFeedDetector;
 use extractor::DefaultFeedExtractor;
 pub use extractor::{HtmlExtractor, TextSelector};
 pub use postprocessor::DefaultFeedPostprocessor;
@@ -15,21 +18,24 @@ use url::Url;
 use crate::DefaultDownloader;
 
 mod atom;
+mod detector;
 mod extractor;
 mod postprocessor;
 mod rss;
 
-pub struct FeedScraper<'a> {
+pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
+    default_detector: Arc<dyn Detector>,
     default_extractor: Arc<dyn Extractor<T = ExtractedFeed>>,
     default_postprocessor: Arc<dyn Postprocessor<T = ExtractedFeed, U = ProcessedFeed>>,
 }
 
-impl<'a> FeedScraper<'a> {
+impl<'a> DefaultFeedScraper<'a> {
     pub fn new(registry: FeedPluginRegistry<'a>) -> Self {
         Self {
             registry,
+            default_detector: Arc::new(DefaultFeedDetector::new(None)),
             default_downloader: Arc::new(DefaultDownloader {}),
             default_extractor: Arc::new(DefaultFeedExtractor {}),
             default_postprocessor: Arc::new(DefaultFeedPostprocessor {}),
@@ -37,7 +43,7 @@ impl<'a> FeedScraper<'a> {
     }
 }
 
-impl Scraper<ProcessedFeed> for FeedScraper<'_> {
+impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
     fn scrape(&self, url: &mut String) -> Result<ProcessedFeed, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
@@ -64,5 +70,27 @@ impl Scraper<ProcessedFeed> for FeedScraper<'_> {
         }?;
 
         Ok(processed)
+    }
+}
+
+impl FeedScraper for DefaultFeedScraper<'_> {
+    fn detect(&self, url: &mut String) -> Result<Vec<String>, Error> {
+        let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
+        let host = parsed.host_str().ok_or(Error::Parse)?;
+
+        let downloader = self.registry.downloaders.get(host);
+        let detector = self.registry.detectors.get(host);
+
+        let resp = match downloader {
+            Some(DownloaderPlugin::Impl(downloader)) => downloader.download(url),
+            _ => self.default_downloader.download(url),
+        }?;
+
+        let detected = match detector {
+            Some(DetectorPlugin::Impl(detector)) => detector.detect(url, resp),
+            _ => self.default_detector.detect(url, resp),
+        }?;
+
+        Ok(detected)
     }
 }

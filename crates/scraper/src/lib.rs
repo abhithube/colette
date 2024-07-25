@@ -5,7 +5,7 @@ pub use bookmarks::{
 };
 pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions};
 pub use downloader::DefaultDownloader;
-pub use feeds::{DefaultFeedPostprocessor, FeedScraper, HtmlExtractor};
+pub use feeds::{DefaultFeedPostprocessor, DefaultFeedScraper, HtmlExtractor};
 
 mod bookmarks;
 mod downloader;

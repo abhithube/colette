@@ -22,7 +22,7 @@ use colette_core::{
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{BookmarkScraper, FeedScraper};
+use colette_scraper::{BookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
 use tokio::time;
@@ -138,7 +138,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         (store, deletion_task)
     };
 
-    let feed_scraper = Arc::new(FeedScraper::new(register_feed_plugins()));
+    let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
 
     if config.refresh_enabled {
         let feed_scraper = feed_scraper.clone();

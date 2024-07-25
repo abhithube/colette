@@ -1,6 +1,7 @@
 use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
+use http::Response;
 use url::Url;
 use uuid::Uuid;
 
@@ -111,8 +112,26 @@ pub trait FeedsRepository: Send + Sync {
     async fn cleanup(&self) -> Result<(), Error>;
 }
 
+pub trait Detector: Send + Sync {
+    fn detect(
+        &self,
+        url: &str,
+        resp: Response<String>,
+    ) -> Result<Vec<String>, scraper::ExtractError>;
+}
+
+pub enum DetectorPlugin<'a> {
+    Value(Vec<ExtractorQuery<'a>>),
+    Impl(Arc<dyn Detector>),
+}
+
+pub trait FeedScraper: Scraper<ProcessedFeed> {
+    fn detect(&self, url: &mut String) -> Result<Vec<String>, scraper::Error>;
+}
+
 pub struct FeedPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub detectors: HashMap<&'static str, DetectorPlugin<'a>>,
     pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
     pub postprocessors:
         HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
@@ -120,14 +139,14 @@ pub struct FeedPluginRegistry<'a> {
 
 pub struct FeedsService {
     repo: Arc<dyn FeedsRepository>,
-    scraper: Arc<dyn Scraper<ProcessedFeed>>,
+    scraper: Arc<dyn FeedScraper>,
     opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
 }
 
 impl FeedsService {
     pub fn new(
         repo: Arc<dyn FeedsRepository>,
-        scraper: Arc<dyn Scraper<ProcessedFeed>>,
+        scraper: Arc<dyn FeedScraper>,
         opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
     ) -> Self {
         Self {
