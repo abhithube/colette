@@ -85,7 +85,7 @@ impl TextSelector for Html {
         items.iter().find_map(|item| {
             self.select(&Selector::parse(item.selector).unwrap())
                 .next()
-                .and_then(|e| select(e, item))
+                .and_then(|e| select(e, &item.node))
         })
     }
 }
@@ -95,13 +95,13 @@ impl TextSelector for ElementRef<'_> {
         items.iter().find_map(|item| {
             self.select(&Selector::parse(item.selector).unwrap())
                 .next()
-                .and_then(|e| select(e, item))
+                .and_then(|e| select(e, &item.node))
         })
     }
 }
 
-fn select(e: ElementRef, item: &ExtractorQuery) -> Option<String> {
-    match item.node {
+pub fn select(e: ElementRef, node: &Node<'_>) -> Option<String> {
+    match node {
         Node::Text => {
             let text = e.inner_html();
             match text.is_empty() {
