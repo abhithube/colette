@@ -8,7 +8,7 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::collections::{self, CollectionsService};
+use colette_core::collections::{self, CollectionsService, CreateCollection, UpdateCollection};
 use uuid::Uuid;
 
 use crate::common::{BaseError, CollectionList, Context, Error, Id, Paginated, Session};
@@ -22,7 +22,7 @@ use crate::common::{BaseError, CollectionList, Context, Error, Id, Paginated, Se
         update_collection,
         delete_collection
     ),
-    components(schemas(Collection, CreateCollection, UpdateCollection))
+    components(schemas(Collection, CollectionCreate, CollectionUpdate))
 )]
 pub struct Api;
 
@@ -151,7 +151,7 @@ impl IntoResponse for GetResponse {
 #[utoipa::path(
   post,
   path = "",
-  request_body = CreateCollection,
+  request_body = CollectionCreate,
   responses(CreateResponse),
   operation_id = "createCollection",
   description = "Create a bookmarks collection",
@@ -161,7 +161,7 @@ impl IntoResponse for GetResponse {
 pub async fn create_collection(
     State(service): State<Arc<CollectionsService>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CreateCollection>>,
+    Valid(Json(body)): Valid<Json<CollectionCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
@@ -176,14 +176,14 @@ pub async fn create_collection(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateCollection {
+pub struct CollectionCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
 }
 
-impl From<CreateCollection> for collections::CreateCollection {
-    fn from(value: CreateCollection) -> Self {
+impl From<CollectionCreate> for CreateCollection {
+    fn from(value: CollectionCreate) -> Self {
         Self { title: value.title }
     }
 }
@@ -211,7 +211,7 @@ impl IntoResponse for CreateResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = UpdateCollection,
+    request_body = CollectionUpdate,
     responses(UpdateResponse),
     operation_id = "updateCollection",
     description = "Update a collection by ID",
@@ -222,7 +222,7 @@ pub async fn update_collection(
     State(service): State<Arc<CollectionsService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<UpdateCollection>>,
+    Valid(Json(body)): Valid<Json<CollectionUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .update(id, body.into(), session.into())
@@ -242,14 +242,14 @@ pub async fn update_collection(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateCollection {
+pub struct CollectionUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
 }
 
-impl From<UpdateCollection> for collections::UpdateCollection {
-    fn from(value: UpdateCollection) -> Self {
+impl From<CollectionUpdate> for UpdateCollection {
+    fn from(value: CollectionUpdate) -> Self {
         Self { title: value.title }
     }
 }

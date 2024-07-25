@@ -8,7 +8,7 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::tags::{self, TagsService};
+use colette_core::tags::{self, CreateTag, TagsService, UpdateTag};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Context, Error, Id, Paginated, Session, TagList};
@@ -16,7 +16,7 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, Session, TagList};
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(list_tags, get_tag, create_tag, update_tag, delete_tag),
-    components(schemas(Tag, CreateTag, UpdateTag))
+    components(schemas(Tag, TagCreate, TagUpdate))
 )]
 pub struct Api;
 
@@ -143,7 +143,7 @@ impl IntoResponse for GetResponse {
 #[utoipa::path(
   post,
   path = "",
-  request_body = CreateTag,
+  request_body = TagCreate,
   responses(CreateResponse),
   operation_id = "createTag",
   description = "Create a tag",
@@ -153,7 +153,7 @@ impl IntoResponse for GetResponse {
 pub async fn create_tag(
     State(service): State<Arc<TagsService>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CreateTag>>,
+    Valid(Json(body)): Valid<Json<TagCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
@@ -168,14 +168,14 @@ pub async fn create_tag(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateTag {
+pub struct TagCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
 }
 
-impl From<CreateTag> for tags::CreateTag {
-    fn from(value: CreateTag) -> Self {
+impl From<TagCreate> for CreateTag {
+    fn from(value: TagCreate) -> Self {
         Self { title: value.title }
     }
 }
@@ -203,7 +203,7 @@ impl IntoResponse for CreateResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = UpdateTag,
+    request_body = TagUpdate,
     responses(UpdateResponse),
     operation_id = "updateTag",
     description = "Update a tag by ID",
@@ -214,7 +214,7 @@ pub async fn update_tag(
     State(service): State<Arc<TagsService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<UpdateTag>>,
+    Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .update(id, body.into(), session.into())
@@ -234,14 +234,14 @@ pub async fn update_tag(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateTag {
+pub struct TagUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
 }
 
-impl From<UpdateTag> for tags::UpdateTag {
-    fn from(value: UpdateTag) -> Self {
+impl From<TagUpdate> for UpdateTag {
+    fn from(value: TagUpdate) -> Self {
         Self { title: value.title }
     }
 }

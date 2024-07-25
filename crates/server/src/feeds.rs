@@ -8,11 +8,11 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::feeds::{self, FeedsService, ImportFeeds};
+use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
 use uuid::Uuid;
 
 use crate::common::{
-    BaseError, Context, DetectedFeedList, Error, FeedList, Id, Paginated, Session,
+    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -27,7 +27,7 @@ use crate::common::{
         import_feeds,
         export_feeds
     ),
-    components(schemas(Feed, CreateFeed, UpdateFeed, DetectFeeds, DetectedFeed, File))
+    components(schemas(Feed, FeedCreate, FeedUpdate, FeedDetect, FeedDetected, File))
 )]
 pub struct Api;
 
@@ -169,7 +169,7 @@ impl IntoResponse for GetResponse {
 #[utoipa::path(
   post,
   path = "",
-  request_body = CreateFeed,
+  request_body = FeedCreate,
   responses(CreateResponse),
   operation_id = "createFeed",
   description = "Subscribe to a web feed",
@@ -179,7 +179,7 @@ impl IntoResponse for GetResponse {
 pub async fn create_feed(
     State(service): State<Arc<FeedsService>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CreateFeed>>,
+    Valid(Json(body)): Valid<Json<FeedCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
@@ -199,14 +199,14 @@ pub async fn create_feed(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateFeed {
+pub struct FeedCreate {
     #[schema(format = "uri")]
     #[validate(url(message = "not a valid URL"))]
     pub url: String,
 }
 
-impl From<CreateFeed> for feeds::CreateFeed {
-    fn from(value: CreateFeed) -> Self {
+impl From<FeedCreate> for CreateFeed {
+    fn from(value: FeedCreate) -> Self {
         Self { url: value.url }
     }
 }
@@ -238,7 +238,7 @@ impl IntoResponse for CreateResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = UpdateFeed,
+    request_body = FeedUpdate,
     responses(UpdateResponse),
     operation_id = "updateFeed",
     description = "Update a feed by ID",
@@ -249,7 +249,7 @@ pub async fn update_feed(
     State(service): State<Arc<FeedsService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<UpdateFeed>>,
+    Valid(Json(body)): Valid<Json<FeedUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .update(id, body.into(), session.into())
@@ -269,14 +269,14 @@ pub async fn update_feed(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateFeed {
+pub struct FeedUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
 }
 
-impl From<UpdateFeed> for feeds::UpdateFeed {
-    fn from(value: UpdateFeed) -> Self {
+impl From<FeedUpdate> for UpdateFeed {
+    fn from(value: FeedUpdate) -> Self {
         Self { title: value.title }
     }
 }
@@ -353,7 +353,7 @@ impl IntoResponse for DeleteResponse {
 #[utoipa::path(
     post,
     path = "/detect",
-    request_body = DetectFeeds,
+    request_body = FeedDetect,
     responses(DetectResponse),
     operation_id = "detectFeeds",
     description = "Detects web feeds on a page",
@@ -362,12 +362,12 @@ impl IntoResponse for DeleteResponse {
 #[axum::debug_handler]
 pub async fn detect_feeds(
     State(service): State<Arc<FeedsService>>,
-    Valid(Json(body)): Valid<Json<DetectFeeds>>,
+    Valid(Json(body)): Valid<Json<FeedDetect>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .detect(body.into())
         .await
-        .map(Paginated::<DetectedFeed>::from);
+        .map(Paginated::<FeedDetected>::from);
 
     match result {
         Ok(data) => Ok(DetectResponse::Ok(data)),
@@ -382,28 +382,28 @@ pub async fn detect_feeds(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct DetectFeeds {
+pub struct FeedDetect {
     #[schema(format = "uri")]
     #[validate(url(message = "not a valid URL"))]
     pub url: String,
 }
 
-impl From<DetectFeeds> for feeds::DetectFeeds {
-    fn from(value: DetectFeeds) -> Self {
+impl From<FeedDetect> for feeds::DetectFeeds {
+    fn from(value: FeedDetect) -> Self {
         Self { url: value.url }
     }
 }
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct DetectedFeed {
+pub struct FeedDetected {
     #[schema(format = "uri")]
     pub url: String,
     pub title: String,
 }
 
-impl From<feeds::DetectedFeed> for DetectedFeed {
-    fn from(value: feeds::DetectedFeed) -> Self {
+impl From<DetectedFeed> for FeedDetected {
+    fn from(value: DetectedFeed) -> Self {
         Self {
             url: value.url,
             title: value.title,
@@ -414,7 +414,7 @@ impl From<feeds::DetectedFeed> for DetectedFeed {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum DetectResponse {
     #[response(status = 201, description = "Detected feeds")]
-    Ok(DetectedFeedList),
+    Ok(FeedDetectedList),
 
     #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]

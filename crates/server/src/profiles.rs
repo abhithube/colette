@@ -8,7 +8,7 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::profiles::{self, ProfilesService};
+use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Session};
@@ -22,7 +22,7 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Sessi
         update_profile,
         delete_profile
     ),
-    components(schemas(Profile, CreateProfile, UpdateProfile))
+    components(schemas(Profile, ProfileCreate, ProfileUpdate))
 )]
 pub struct Api;
 
@@ -145,7 +145,7 @@ impl IntoResponse for GetActiveResponse {
 #[utoipa::path(
   post,
   path = "",
-  request_body = CreateProfile,
+  request_body = ProfileCreate,
   responses(CreateResponse),
   operation_id = "createProfile",
   description = "Create a user profile",
@@ -155,7 +155,7 @@ impl IntoResponse for GetActiveResponse {
 pub async fn create_profile(
     State(service): State<Arc<ProfilesService>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CreateProfile>>,
+    Valid(Json(body)): Valid<Json<ProfileCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
@@ -170,7 +170,7 @@ pub async fn create_profile(
 
 #[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateProfile {
+pub struct ProfileCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
@@ -180,8 +180,8 @@ pub struct CreateProfile {
     pub image_url: Option<String>,
 }
 
-impl From<CreateProfile> for profiles::CreateProfile {
-    fn from(value: CreateProfile) -> Self {
+impl From<ProfileCreate> for CreateProfile {
+    fn from(value: ProfileCreate) -> Self {
         Self {
             title: value.title,
             image_url: value.image_url,
@@ -212,7 +212,7 @@ impl IntoResponse for CreateResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = UpdateProfile,
+    request_body = ProfileUpdate,
     responses(UpdateResponse),
     operation_id = "updateProfile",
     description = "Update a profile by ID",
@@ -223,7 +223,7 @@ pub async fn update_profile(
     State(service): State<Arc<ProfilesService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<UpdateProfile>>,
+    Valid(Json(body)): Valid<Json<ProfileUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .update(id, body.into(), session.into())
@@ -243,7 +243,7 @@ pub async fn update_profile(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateProfile {
+pub struct ProfileUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
@@ -253,8 +253,8 @@ pub struct UpdateProfile {
     pub image_url: Option<String>,
 }
 
-impl From<UpdateProfile> for profiles::UpdateProfile {
-    fn from(value: UpdateProfile) -> Self {
+impl From<ProfileUpdate> for UpdateProfile {
+    fn from(value: ProfileUpdate) -> Self {
         Self {
             title: value.title,
             image_url: value.image_url,

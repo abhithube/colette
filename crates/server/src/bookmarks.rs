@@ -8,7 +8,9 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::{self, BookmarksService, ListBookmarksParams};
+use colette_core::bookmarks::{
+    self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark,
+};
 use uuid::Uuid;
 
 use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session};
@@ -16,7 +18,7 @@ use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Sess
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(list_bookmarks, create_bookmark, update_bookmark, delete_bookmark),
-    components(schemas(Bookmark, CreateBookmark, UpdateBookmark))
+    components(schemas(Bookmark, BookmarkCreate, BookmarkUpdate))
 )]
 pub struct Api;
 
@@ -146,7 +148,7 @@ impl IntoResponse for ListResponse {
 #[utoipa::path(
     post,
     path = "",
-    request_body = CreateBookmark,
+    request_body = BookmarkCreate,
     responses(CreateResponse),
     operation_id = "createBookmark",
     description = "Add a bookmark to a collection",
@@ -156,7 +158,7 @@ impl IntoResponse for ListResponse {
 pub async fn create_bookmark(
     State(service): State<Arc<BookmarksService>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CreateBookmark>>,
+    Valid(Json(body)): Valid<Json<BookmarkCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .create(body.into(), session.into())
@@ -176,7 +178,7 @@ pub async fn create_bookmark(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateBookmark {
+pub struct BookmarkCreate {
     #[schema(format = "uri")]
     #[validate(url(message = "not a valid URL"))]
     pub url: String,
@@ -184,8 +186,8 @@ pub struct CreateBookmark {
     pub collection_id: Option<Uuid>,
 }
 
-impl From<CreateBookmark> for bookmarks::CreateBookmark {
-    fn from(value: CreateBookmark) -> Self {
+impl From<BookmarkCreate> for CreateBookmark {
+    fn from(value: BookmarkCreate) -> Self {
         Self {
             url: value.url,
             collection_id: value.collection_id,
@@ -220,7 +222,7 @@ impl IntoResponse for CreateResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = UpdateBookmark,
+    request_body = BookmarkUpdate,
     responses(UpdateResponse),
     operation_id = "updateBookmark",
     description = "Update a bookmark by ID",
@@ -231,7 +233,7 @@ pub async fn update_bookmark(
     State(service): State<Arc<BookmarksService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<UpdateBookmark>>,
+    Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
         .update(id, body.into(), session.into())
@@ -251,7 +253,7 @@ pub async fn update_bookmark(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct UpdateBookmark {
+pub struct BookmarkUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
@@ -265,8 +267,8 @@ pub struct UpdateBookmark {
     pub author: Option<String>,
 }
 
-impl From<UpdateBookmark> for bookmarks::UpdateBookmark {
-    fn from(value: UpdateBookmark) -> Self {
+impl From<BookmarkUpdate> for UpdateBookmark {
+    fn from(value: BookmarkUpdate) -> Self {
         Self {
             title: value.title,
             thumbnail_url: value.thumbnail_url,
