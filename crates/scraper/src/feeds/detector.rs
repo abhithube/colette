@@ -5,7 +5,7 @@ use colette_core::{
 use http::Response;
 use scraper::{Html, Selector};
 
-use super::extractor::select;
+use crate::utils::select;
 
 pub struct DefaultFeedDetector<'a> {
     options: Vec<ExtractorQuery<'a>>,

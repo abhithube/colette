@@ -6,8 +6,8 @@ use http::Response;
 use scraper::Html;
 
 use crate::{
-    base_extractor_options, feeds::TextSelector, microdata_extractor_options,
-    open_graph_extractor_options, twitter_extractor_options,
+    base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
+    twitter_extractor_options, utils::TextSelector,
 };
 
 pub struct DefaultBookmarkExtractor<'a> {

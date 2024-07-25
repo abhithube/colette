@@ -11,7 +11,7 @@ use colette_core::{
 };
 use detector::DefaultFeedDetector;
 use extractor::DefaultFeedExtractor;
-pub use extractor::{HtmlExtractor, TextSelector};
+pub use extractor::HtmlExtractor;
 pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 
