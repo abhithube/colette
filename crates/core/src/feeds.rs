@@ -37,6 +37,17 @@ pub struct UpdateFeed {
     pub title: Option<String>,
 }
 
+#[derive(Clone, Debug)]
+pub struct DetectFeeds {
+    pub url: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct DetectedFeed {
+    pub url: String,
+    pub title: String,
+}
+
 pub struct ImportFeeds {
     pub raw: String,
 }
@@ -228,6 +239,27 @@ impl FeedsService {
             .await?;
 
         Ok(())
+    }
+
+    pub async fn detect(&self, mut data: DetectFeeds) -> Result<Paginated<DetectedFeed>, Error> {
+        let urls = self.scraper.detect(&mut data.url)?;
+
+        let mut feeds: Vec<DetectedFeed> = vec![];
+
+        for mut url in urls.into_iter() {
+            let feed = self.scraper.scrape(&mut url)?;
+            feeds.push(DetectedFeed {
+                url,
+                title: feed.title,
+            })
+        }
+
+        let paginated = Paginated::<DetectedFeed> {
+            has_more: false,
+            data: feeds,
+        };
+
+        Ok(paginated)
     }
 
     pub async fn import(&self, data: ImportFeeds, session: Session) -> Result<(), Error> {

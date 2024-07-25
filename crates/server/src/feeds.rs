@@ -11,7 +11,9 @@ use chrono::{DateTime, Utc};
 use colette_core::feeds::{self, FeedsService, ImportFeeds};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session};
+use crate::common::{
+    BaseError, Context, DetectedFeedList, Error, FeedList, Id, Paginated, Session,
+};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -21,10 +23,11 @@ use crate::common::{BaseError, Context, Error, FeedList, Id, Paginated, Session}
         create_feed,
         update_feed,
         delete_feed,
+        detect_feeds,
         import_feeds,
         export_feeds
     ),
-    components(schemas(Feed, CreateFeed, UpdateFeed, File))
+    components(schemas(Feed, CreateFeed, UpdateFeed, DetectFeeds, DetectedFeed, File))
 )]
 pub struct Api;
 
@@ -40,6 +43,7 @@ impl Api {
                         .patch(update_feed)
                         .delete(delete_feed),
                 )
+                .route("/detect", routing::post(detect_feeds))
                 .route("/import", routing::post(import_feeds))
                 .route("/export", routing::post(export_feeds)),
         )
@@ -341,6 +345,90 @@ impl IntoResponse for DeleteResponse {
         match self {
             Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/detect",
+    request_body = DetectFeeds,
+    responses(DetectResponse),
+    operation_id = "detectFeeds",
+    description = "Detects web feeds on a page",
+    tag = "Feeds"
+  )]
+#[axum::debug_handler]
+pub async fn detect_feeds(
+    State(service): State<Arc<FeedsService>>,
+    Valid(Json(body)): Valid<Json<DetectFeeds>>,
+) -> Result<impl IntoResponse, Error> {
+    let result = service
+        .detect(body.into())
+        .await
+        .map(Paginated::<DetectedFeed>::from);
+
+    match result {
+        Ok(data) => Ok(DetectResponse::Ok(data)),
+        Err(e) => match e {
+            feeds::Error::Scraper(_) => Ok(DetectResponse::BadGateway(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectFeeds {
+    #[schema(format = "uri")]
+    #[validate(url(message = "not a valid URL"))]
+    pub url: String,
+}
+
+impl From<DetectFeeds> for feeds::DetectFeeds {
+    fn from(value: DetectFeeds) -> Self {
+        Self { url: value.url }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct DetectedFeed {
+    #[schema(format = "uri")]
+    pub url: String,
+    pub title: String,
+}
+
+impl From<feeds::DetectedFeed> for DetectedFeed {
+    fn from(value: feeds::DetectedFeed) -> Self {
+        Self {
+            url: value.url,
+            title: value.title,
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum DetectResponse {
+    #[response(status = 201, description = "Detected feeds")]
+    Ok(DetectedFeedList),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+
+    #[response(status = 502, description = "Failed to fetch or parse feed")]
+    BadGateway(BaseError),
+}
+
+impl IntoResponse for DetectResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }
 }

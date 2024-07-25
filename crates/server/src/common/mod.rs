@@ -10,7 +10,11 @@ pub use session::{Session, SESSION_KEY};
 use uuid::Uuid;
 
 use crate::{
-    bookmarks::Bookmark, collections::Collection, entries::Entry, feeds::Feed, profiles::Profile,
+    bookmarks::Bookmark,
+    collections::Collection,
+    entries::Entry,
+    feeds::{DetectedFeed, Feed},
+    profiles::Profile,
     tags::Tag,
 };
 
@@ -33,7 +37,7 @@ pub struct Context {
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
+#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, DetectedFeedList = Paginated<DetectedFeed>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: serde::Serialize> {
     pub has_more: bool,

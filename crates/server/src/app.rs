@@ -14,7 +14,10 @@ use crate::{
     auth::Api as Auth,
     bookmarks::Api as Bookmarks,
     collections::Api as Collections,
-    common::{self, BookmarkList, CollectionList, Context, EntryList, FeedList, ProfileList},
+    common::{
+        self, BookmarkList, CollectionList, Context, DetectedFeedList, EntryList, FeedList,
+        ProfileList,
+    },
     entries::Api as Entries,
     feeds::Api as Feeds,
     profiles::Api as Profiles,
@@ -39,7 +42,7 @@ struct Asset;
         (path = "/profiles", api = Profiles),
         (path = "/tags", api = Tags)
     ),
-    components(schemas(common::BaseError, BookmarkList, CollectionList, EntryList, FeedList, ProfileList))
+    components(schemas(common::BaseError, BookmarkList, CollectionList, DetectedFeedList, EntryList, FeedList, ProfileList))
 )]
 struct ApiDoc;
 
