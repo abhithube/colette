@@ -22,7 +22,7 @@ use colette_core::{
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{BookmarkScraper, DefaultFeedScraper};
+use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
 use tokio::time;
@@ -215,7 +215,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .into(),
         bookmark_service: BookmarksService::new(
             repositories.bookmarks,
-            Arc::new(BookmarkScraper::new(register_bookmark_plugins())),
+            Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
         )
         .into(),
         collections_service: CollectionsService::new(repositories.collections).into(),

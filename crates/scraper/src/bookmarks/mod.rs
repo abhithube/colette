@@ -21,14 +21,14 @@ mod extractor;
 mod options;
 mod postprocessor;
 
-pub struct BookmarkScraper<'a> {
+pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
     default_extractor: Arc<dyn Extractor<T = ExtractedBookmark>>,
     default_postprocessor: Arc<dyn Postprocessor<T = ExtractedBookmark, U = ProcessedBookmark>>,
 }
 
-impl<'a> BookmarkScraper<'a> {
+impl<'a> DefaultBookmarkScraper<'a> {
     pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
         Self {
             registry,
@@ -39,7 +39,7 @@ impl<'a> BookmarkScraper<'a> {
     }
 }
 
-impl Scraper<ProcessedBookmark> for BookmarkScraper<'_> {
+impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
     fn scrape(&self, url: &mut String) -> Result<ProcessedBookmark, Error> {
         let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
         let host = parsed.host_str().ok_or(Error::Parse)?;
