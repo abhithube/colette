@@ -1,3 +1,7 @@
+DROP TABLE bookmark_tags;
+
+DROP TABLE profile_feed_tags;
+
 DROP TABLE tags;
 
 DROP TABLE bookmarks;

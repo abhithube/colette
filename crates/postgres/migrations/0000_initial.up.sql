@@ -100,6 +100,18 @@ CREATE TABLE tags (
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE profile_feed_tags (
+  profile_feed_id UUID NOT NULL REFERENCES profile_feeds (id) ON DELETE cascade,
+  tag_id UUID NOT NULL REFERENCES tags (id) ON DELETE cascade,
+  PRIMARY KEY (profile_feed_id, tag_id)
+);
+
+CREATE TABLE bookmark_tags (
+  bookmark_id UUID NOT NULL REFERENCES bookmarks (id) ON DELETE cascade,
+  tag_id UUID NOT NULL REFERENCES tags (id) ON DELETE cascade,
+  PRIMARY KEY (bookmark_id, tag_id)
+);
+
 CREATE
 OR REPLACE function handle_updated_at () returns trigger AS $$
 BEGIN
