@@ -200,6 +200,7 @@ pub async fn create_feed(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateFeed {
+    #[schema(format = "uri")]
     #[validate(url(message = "not a valid URL"))]
     pub url: String,
 }
