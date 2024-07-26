@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nINSERT INTO profile_feed_tags (profile_feed_id, tag_id)\nSELECT * FROM UNNEST($1::UUID[], $2::UUID[])\n    ON CONFLICT (profile_feed_id, tag_id) DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "01c6675137ecf5fbfa95caa967106a4b10e0a97096a703e226af6cea80974461"
+}

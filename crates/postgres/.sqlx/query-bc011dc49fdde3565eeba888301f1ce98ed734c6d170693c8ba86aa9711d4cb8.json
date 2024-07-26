@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM bookmark_tags\n WHERE (bookmark_id, tag_id) IN (\n       SELECT unnest($1::UUID[]) AS bookmark_id,\n              unnest($2::UUID[]) AS tag_id\n       )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bc011dc49fdde3565eeba888301f1ce98ed734c6d170693c8ba86aa9711d4cb8"
+}

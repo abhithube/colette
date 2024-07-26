@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM profile_feed_tags\n WHERE (profile_feed_id, tag_id) IN (\n       SELECT unnest($1::UUID[]) AS profile_feed_id,\n              unnest($2::UUID[]) AS tag_id\n       )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ce700a0986a8614af58afa1df7b52846e5a4d28cfc89a9aac917d8b3d050cfb4"
+}
