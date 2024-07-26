@@ -4,6 +4,7 @@ members = [
   "crates/config",
   "crates/core",
   "crates/database",
+  "crates/entities",
   "crates/migrations",
   "crates/password",
   "crates/plugins",
@@ -23,6 +24,7 @@ colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-database.path = "crates/database"
+colette-entities.path = "crates/entities"
 colette-migrations.path = "crates/migrations"
 colette-password.path = "crates/password"
 colette-plugins.path = "crates/plugins"
@@ -36,6 +38,11 @@ lazy-regex = { version = "3.1.0", default-features = false, features = [
   "lite",
 ] }
 quick-xml = { version = "0.36.1", features = ["serialize"] }
+sea-orm = { version = "1.0.0-rc.7", default-features = false, features = [
+  "runtime-tokio",
+  "with-chrono",
+  "with-uuid",
+] }
 serde = { version = "1.0.204", default-features = false }
 sqlx = { version = "0.7.4", default-features = false, features = [
   "chrono",
