@@ -1,12 +1,14 @@
 use colette_core::common::{FindManyParams, FindOneParams};
 use uuid::Uuid;
 
+pub mod bookmark_tags;
 pub mod bookmarks;
 pub mod collections;
 pub mod entries;
 pub mod feed_entries;
 pub mod feeds;
 pub mod profile_feed_entries;
+pub mod profile_feed_tags;
 pub mod profile_feeds;
 pub mod profiles;
 pub mod tags;

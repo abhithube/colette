@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\nINSERT INTO bookmark_tags (bookmark_id, tag_id)\nVALUES ($1, $2)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "fd5a7d7d1fb6278f6eb0aaa4c97ef6c4e53c084e2f7fb650c3bc6504b1ccacf8"
+}
