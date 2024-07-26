@@ -46,8 +46,8 @@ impl BookmarksRepository for BookmarksSqliteRepository {
             Some(id) => queries::collections::select_by_id(
                 &mut *tx,
                 SelectByIdParams {
-                    id: &id,
-                    profile_id: &data.profile_id,
+                    id,
+                    profile_id: data.profile_id,
                 },
             )
             .await
@@ -58,7 +58,7 @@ impl BookmarksRepository for BookmarksSqliteRepository {
             None => queries::collections::select_default(
                 &mut *tx,
                 SelectDefaultParams {
-                    profile_id: &data.profile_id,
+                    profile_id: data.profile_id,
                 },
             )
             .await
@@ -75,7 +75,7 @@ impl BookmarksRepository for BookmarksSqliteRepository {
                 thumbnail_url: data.bookmark.thumbnail.as_ref().map(|e| e.as_str()),
                 published_at: data.bookmark.published.as_ref(),
                 author: data.bookmark.author.as_deref(),
-                collection_id: &collection.id,
+                collection_id: collection.id,
             },
         )
         .await
@@ -84,8 +84,8 @@ impl BookmarksRepository for BookmarksSqliteRepository {
         let bookmark = queries::bookmarks::select_by_id(
             &mut *tx,
             SelectByIdParams {
-                id: &id,
-                profile_id: &data.profile_id,
+                id,
+                profile_id: data.profile_id,
             },
         )
         .await
@@ -110,8 +110,8 @@ impl BookmarksRepository for BookmarksSqliteRepository {
         queries::bookmarks::update(
             &mut *tx,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 custom_title: data.custom_title.as_deref(),
                 custom_thumbnail_url: data.custom_thumbnail_url.as_deref(),
                 custom_published_at: data.custom_published_at.as_ref(),

@@ -7,9 +7,9 @@ use sqlx::{types::chrono, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
-pub struct InsertParams<'a> {
+pub struct InsertParams {
     pub id: Uuid,
-    pub profile_feed_id: &'a Uuid,
+    pub profile_feed_id: Uuid,
     pub feed_entry_id: i64,
 }
 
@@ -56,7 +56,7 @@ SELECT pfe.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Entry, sqlx::Error> {
     let row = sqlx::query_as!(
         Entry,
@@ -90,7 +90,7 @@ SELECT pfe.id AS \"id: uuid::Uuid\",
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    params: InsertParams<'_>,
+    params: InsertParams,
 ) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
@@ -108,10 +108,7 @@ RETURNING id AS \"id: uuid::Uuid\"",
     Ok(row.id)
 }
 
-pub async fn update(
-    ex: impl SqliteExecutor<'_>,
-    params: UpdateParams<'_>,
-) -> Result<(), sqlx::Error> {
+pub async fn update(ex: impl SqliteExecutor<'_>, params: UpdateParams) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 UPDATE profile_feed_entries AS pfe

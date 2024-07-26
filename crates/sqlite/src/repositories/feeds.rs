@@ -57,7 +57,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             &mut *tx,
             queries::profile_feeds::InsertParams {
                 id: Uuid::new_v4(),
-                profile_id: &data.profile_id,
+                profile_id: data.profile_id,
                 feed_id,
             },
         )
@@ -68,7 +68,7 @@ impl FeedsRepository for FeedsSqliteRepository {
             Err(_) => queries::profile_feeds::select(
                 &mut *tx,
                 queries::profile_feeds::SelectParams {
-                    profile_id: &data.profile_id,
+                    profile_id: data.profile_id,
                     feed_id,
                 },
             )
@@ -101,7 +101,7 @@ impl FeedsRepository for FeedsSqliteRepository {
                 &mut *tx,
                 queries::profile_feed_entries::InsertParams {
                     id: Uuid::new_v4(),
-                    profile_feed_id: &profile_feed_id,
+                    profile_feed_id,
                     feed_entry_id,
                 },
             )
@@ -112,8 +112,8 @@ impl FeedsRepository for FeedsSqliteRepository {
         let feed = queries::profile_feeds::select_by_id(
             &mut *tx,
             SelectByIdParams {
-                id: &profile_feed_id,
-                profile_id: &data.profile_id,
+                id: profile_feed_id,
+                profile_id: data.profile_id,
             },
         )
         .await
@@ -138,8 +138,8 @@ impl FeedsRepository for FeedsSqliteRepository {
         queries::profile_feeds::update(
             &mut *tx,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 custom_title: data.custom_title.as_deref(),
             },
         )

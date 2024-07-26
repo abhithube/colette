@@ -4,29 +4,29 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct SelectManyParams<'a> {
-    pub profile_id: &'a Uuid,
+    pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<&'a DateTime<Utc>>,
     pub should_filter: bool,
-    pub collection_id: Option<&'a Uuid>,
+    pub collection_id: Option<Uuid>,
 }
 
 impl<'a> From<&'a BookmarksFindManyParams> for SelectManyParams<'a> {
     fn from(value: &'a BookmarksFindManyParams) -> Self {
         Self {
-            profile_id: &value.profile_id,
+            profile_id: value.profile_id,
             limit: value.limit,
             published_at: value.published_at.as_ref(),
             should_filter: value.should_filter,
-            collection_id: value.collection_id.as_ref(),
+            collection_id: value.collection_id,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct UpdateParams<'a> {
-    pub id: &'a Uuid,
-    pub profile_id: &'a Uuid,
+    pub id: Uuid,
+    pub profile_id: Uuid,
     pub custom_title: Option<&'a str>,
     pub custom_thumbnail_url: Option<&'a str>,
     pub custom_published_at: Option<&'a DateTime<Utc>>,

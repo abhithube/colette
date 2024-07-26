@@ -62,8 +62,8 @@ impl CollectionsRepository for CollectionsSqliteRepository {
         queries::collections::update(
             &mut *tx,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 title: data.title.as_deref(),
             },
         )

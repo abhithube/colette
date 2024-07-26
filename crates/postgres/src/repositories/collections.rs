@@ -55,8 +55,8 @@ impl CollectionsRepository for CollectionsPostgresRepository {
         let collection = queries::collections::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 title: data.title.as_deref(),
             },
         )

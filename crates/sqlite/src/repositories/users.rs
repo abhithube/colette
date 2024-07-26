@@ -44,7 +44,7 @@ impl UsersRepository for UsersSqliteRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        queries::profiles::insert(&mut *tx, InsertParams::default_with_user(&user.id))
+        queries::profiles::insert(&mut *tx, InsertParams::default_with_user(user.id))
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

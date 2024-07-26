@@ -52,8 +52,8 @@ impl TagsRepository for TagsSqliteRepository {
         let tag = queries::tags::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 title: data.title.as_deref(),
             },
         )

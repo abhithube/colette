@@ -3,8 +3,8 @@ use colette_database::profile_feed_entries::{SelectManyParams, UpdateParams};
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Clone, Debug)]
-pub struct InsertParams<'a> {
-    pub profile_feed_id: &'a Uuid,
+pub struct InsertParams {
+    pub profile_feed_id: Uuid,
     pub feed_entry_id: i64,
 }
 
@@ -49,10 +49,7 @@ SELECT pfe.id,
     Ok(row)
 }
 
-pub async fn insert(
-    ex: impl PgExecutor<'_>,
-    params: InsertParams<'_>,
-) -> Result<Uuid, sqlx::Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, params: InsertParams) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH
@@ -79,10 +76,7 @@ SELECT id
     Ok(row.id)
 }
 
-pub async fn update(
-    ex: impl PgExecutor<'_>,
-    params: UpdateParams<'_>,
-) -> Result<Entry, sqlx::Error> {
+pub async fn update(ex: impl PgExecutor<'_>, params: UpdateParams) -> Result<Entry, sqlx::Error> {
     let row = sqlx::query_as!(
         Entry,
         "

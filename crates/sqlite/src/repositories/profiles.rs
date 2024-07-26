@@ -44,12 +44,11 @@ impl ProfilesRepository for ProfilesSqliteRepository {
                         _ => Error::Unknown(e.into()),
                     })?
             }
-            ProfilesFindOneParams::Default { user_id } => queries::profiles::select_default(
-                &self.pool,
-                SelectDefaultParams { user_id: &user_id },
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?,
+            ProfilesFindOneParams::Default { user_id } => {
+                queries::profiles::select_default(&self.pool, SelectDefaultParams { user_id })
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            }
         };
 
         Ok(profile)
@@ -71,8 +70,8 @@ impl ProfilesRepository for ProfilesSqliteRepository {
         let profile = queries::profiles::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                user_id: &params.user_id,
+                id: params.id,
+                user_id: params.user_id,
                 title: data.title.as_deref(),
                 image_url: data.image_url.as_deref(),
             },

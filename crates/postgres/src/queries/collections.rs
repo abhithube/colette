@@ -6,11 +6,11 @@ use sqlx::{types::Uuid, PgExecutor};
 pub struct InsertParams<'a> {
     pub title: &'a str,
     pub is_default: bool,
-    pub profile_id: &'a Uuid,
+    pub profile_id: Uuid,
 }
 
 impl<'a> InsertParams<'a> {
-    pub fn default_with_profile(profile_id: &'a Uuid) -> Self {
+    pub fn default_with_profile(profile_id: Uuid) -> Self {
         Self {
             title: "Default",
             is_default: true,
@@ -24,14 +24,14 @@ impl<'a> From<&'a CollectionsCreateData> for InsertParams<'a> {
         Self {
             title: &value.title,
             is_default: false,
-            profile_id: &value.profile_id,
+            profile_id: value.profile_id,
         }
     }
 }
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Collection>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Collection,
@@ -59,7 +59,7 @@ SELECT c.id,
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Collection, sqlx::Error> {
     let row = sqlx::query_as!(
         Collection,
@@ -155,10 +155,7 @@ SELECT c.id,
     Ok(row)
 }
 
-pub async fn delete(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<(), sqlx::Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM collections

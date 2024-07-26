@@ -15,29 +15,29 @@ pub mod tags;
 pub mod users;
 
 #[derive(Clone, Debug)]
-pub struct SelectManyParams<'a> {
-    pub profile_id: &'a Uuid,
+pub struct SelectManyParams {
+    pub profile_id: Uuid,
 }
 
-impl<'a> From<&'a FindManyParams> for SelectManyParams<'a> {
+impl<'a> From<&'a FindManyParams> for SelectManyParams {
     fn from(value: &'a FindManyParams) -> Self {
         Self {
-            profile_id: &value.profile_id,
+            profile_id: value.profile_id,
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct SelectByIdParams<'a> {
-    pub id: &'a Uuid,
-    pub profile_id: &'a Uuid,
+pub struct SelectByIdParams {
+    pub id: Uuid,
+    pub profile_id: Uuid,
 }
 
-impl<'a> From<&'a FindOneParams> for SelectByIdParams<'a> {
+impl<'a> From<&'a FindOneParams> for SelectByIdParams {
     fn from(value: &'a FindOneParams) -> Self {
         Self {
-            id: &value.id,
-            profile_id: &value.profile_id,
+            id: value.id,
+            profile_id: value.profile_id,
         }
     }
 }

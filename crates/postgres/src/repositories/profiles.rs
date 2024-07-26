@@ -43,7 +43,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
                     })?
             }
             ProfilesFindOneParams::Default { user_id } => {
-                profiles::select_default(&self.pool, SelectDefaultParams { user_id: &user_id })
+                profiles::select_default(&self.pool, SelectDefaultParams { user_id })
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             }
@@ -65,7 +65,7 @@ impl ProfilesRepository for ProfilesPostgresRepository {
 
         queries::collections::insert(
             &mut *tx,
-            queries::collections::InsertParams::default_with_profile(&profile.id),
+            queries::collections::InsertParams::default_with_profile(profile.id),
         )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
@@ -83,8 +83,8 @@ impl ProfilesRepository for ProfilesPostgresRepository {
         let profile = profiles::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                user_id: &params.user_id,
+                id: params.id,
+                user_id: params.user_id,
                 title: data.title.as_deref(),
                 image_url: data.image_url.as_deref(),
             },

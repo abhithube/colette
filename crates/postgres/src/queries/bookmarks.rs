@@ -18,8 +18,8 @@ pub struct InsertParams<'a> {
     pub thumbnail_url: Option<&'a str>,
     pub published_at: Option<&'a DateTime<Utc>>,
     pub author: Option<&'a str>,
-    pub profile_id: &'a Uuid,
-    pub collection_id: Option<&'a Uuid>,
+    pub profile_id: Uuid,
+    pub collection_id: Option<Uuid>,
 }
 
 impl<'a> From<&'a BookmarksCreateData> for InsertParams<'a> {
@@ -30,8 +30,8 @@ impl<'a> From<&'a BookmarksCreateData> for InsertParams<'a> {
             thumbnail_url: value.bookmark.thumbnail.as_ref().map(|e| e.as_str()),
             published_at: value.bookmark.published.as_ref(),
             author: value.bookmark.author.as_deref(),
-            profile_id: &value.profile_id,
-            collection_id: value.collection_id.as_ref(),
+            profile_id: value.profile_id,
+            collection_id: value.collection_id,
         }
     }
 }
@@ -203,10 +203,7 @@ RETURNING b.id,
     Ok(row)
 }
 
-pub async fn delete(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<(), sqlx::Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM bookmarks AS b

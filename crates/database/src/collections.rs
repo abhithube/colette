@@ -1,13 +1,13 @@
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
-pub struct SelectDefaultParams<'a> {
-    pub profile_id: &'a Uuid,
+pub struct SelectDefaultParams {
+    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
 pub struct UpdateParams<'a> {
-    pub id: &'a Uuid,
-    pub profile_id: &'a Uuid,
+    pub id: Uuid,
+    pub profile_id: Uuid,
     pub title: Option<&'a str>,
 }

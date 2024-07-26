@@ -47,8 +47,8 @@ impl BookmarksRepository for BookmarksPostgresRepository {
         let bookmark = queries::bookmarks::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 custom_title: data.custom_title.as_deref(),
                 custom_thumbnail_url: data.custom_thumbnail_url.as_deref(),
                 custom_published_at: data.custom_published_at.as_ref(),

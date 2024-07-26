@@ -45,14 +45,14 @@ impl UsersRepository for UsersPostgresRepository {
 
         let profile = queries::profiles::insert(
             &mut *tx,
-            queries::profiles::InsertParams::default_with_user(&user.id),
+            queries::profiles::InsertParams::default_with_user(user.id),
         )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
         queries::collections::insert(
             &mut *tx,
-            queries::collections::InsertParams::default_with_profile(&profile.id),
+            queries::collections::InsertParams::default_with_profile(profile.id),
         )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;

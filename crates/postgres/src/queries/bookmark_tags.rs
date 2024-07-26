@@ -1,7 +1,7 @@
 use colette_database::bookmark_tags::SelectParams;
 use sqlx::PgExecutor;
 
-pub async fn insert(ex: impl PgExecutor<'_>, params: SelectParams<'_>) -> Result<(), sqlx::Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, params: SelectParams) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "
 INSERT INTO bookmark_tags (bookmark_id, tag_id)
@@ -15,7 +15,7 @@ VALUES ($1, $2)",
     Ok(())
 }
 
-pub async fn delete(ex: impl PgExecutor<'_>, params: SelectParams<'_>) -> Result<(), sqlx::Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectParams) -> Result<(), sqlx::Error> {
     sqlx::query!(
         "
 DELETE FROM bookmark_tags

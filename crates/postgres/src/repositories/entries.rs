@@ -32,8 +32,8 @@ impl EntriesRepository for EntriesPostgresRepository {
         let entry = queries::profile_feed_entries::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 has_read: data.has_read,
             },
         )

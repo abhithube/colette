@@ -19,7 +19,7 @@ pub struct InsertParams<'a> {
     pub thumbnail_url: Option<&'a str>,
     pub published_at: Option<&'a DateTime<Utc>>,
     pub author: Option<&'a str>,
-    pub collection_id: &'a Uuid,
+    pub collection_id: Uuid,
 }
 
 pub async fn select_many(
@@ -75,7 +75,7 @@ SELECT b.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Bookmark, sqlx::Error> {
     let row = sqlx::query_as!(
         Bookmark,
@@ -172,7 +172,7 @@ UPDATE bookmarks AS b
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

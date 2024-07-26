@@ -4,21 +4,21 @@ use sqlx::{types::chrono, SqliteExecutor};
 use uuid::Uuid;
 
 #[derive(Clone, Debug)]
-pub struct SelectParams<'a> {
-    pub profile_id: &'a Uuid,
+pub struct SelectParams {
+    pub profile_id: Uuid,
     pub feed_id: i64,
 }
 
 #[derive(Clone, Debug)]
-pub struct InsertParams<'a> {
+pub struct InsertParams {
     pub id: Uuid,
-    pub profile_id: &'a Uuid,
+    pub profile_id: Uuid,
     pub feed_id: i64,
 }
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Feed>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Feed,
@@ -52,7 +52,7 @@ SELECT pf.id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
@@ -87,7 +87,7 @@ SELECT pf.id AS \"id: uuid::Uuid\",
 
 pub async fn select(
     ex: impl SqliteExecutor<'_>,
-    params: SelectParams<'_>,
+    params: SelectParams,
 ) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
@@ -106,7 +106,7 @@ SELECT id AS \"id: uuid::Uuid\"
 
 pub async fn insert(
     ex: impl SqliteExecutor<'_>,
-    params: InsertParams<'_>,
+    params: InsertParams,
 ) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
@@ -124,7 +124,6 @@ RETURNING id AS \"id: uuid::Uuid\"",
     Ok(row.id)
 }
 
-// try to map pg one to sqlite with claude
 pub async fn update(
     ex: impl SqliteExecutor<'_>,
     params: UpdateParams<'_>,
@@ -151,7 +150,7 @@ UPDATE profile_feeds
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

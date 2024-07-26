@@ -5,21 +5,21 @@ use sqlx::{types::Uuid, PgExecutor};
 #[derive(Clone, Debug)]
 pub struct InsertParams<'a> {
     pub title: &'a str,
-    pub profile_id: &'a Uuid,
+    pub profile_id: Uuid,
 }
 
 impl<'a> From<&'a TagsCreateData> for InsertParams<'a> {
     fn from(value: &'a TagsCreateData) -> Self {
         Self {
             title: &value.title,
-            profile_id: &value.profile_id,
+            profile_id: value.profile_id,
         }
     }
 }
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Tag>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Tag,
@@ -41,7 +41,7 @@ SELECT id,
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Tag, sqlx::Error> {
     let row = sqlx::query_as!(
         Tag,
@@ -106,10 +106,7 @@ RETURNING id,
     Ok(row)
 }
 
-pub async fn delete(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<(), sqlx::Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM tags

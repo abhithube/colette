@@ -3,14 +3,14 @@ use colette_database::{profile_feeds::UpdateParams, SelectByIdParams, SelectMany
 use sqlx::{types::Uuid, PgExecutor};
 
 #[derive(Clone, Debug)]
-pub struct InsertParams<'a> {
-    pub profile_id: &'a Uuid,
+pub struct InsertParams {
+    pub profile_id: Uuid,
     pub feed_id: i64,
 }
 
 pub async fn select_many(
     ex: impl PgExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Feed>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Feed,
@@ -44,7 +44,7 @@ SELECT pf.id,
 
 pub async fn select_by_id(
     ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Feed, sqlx::Error> {
     let row = sqlx::query_as!(
         Feed,
@@ -77,10 +77,7 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn insert(
-    ex: impl PgExecutor<'_>,
-    params: InsertParams<'_>,
-) -> Result<Uuid, sqlx::Error> {
+pub async fn insert(ex: impl PgExecutor<'_>, params: InsertParams) -> Result<Uuid, sqlx::Error> {
     let row = sqlx::query!(
         "
   WITH
@@ -152,10 +149,7 @@ SELECT pf.id,
     Ok(row)
 }
 
-pub async fn delete(
-    ex: impl PgExecutor<'_>,
-    params: SelectByIdParams<'_>,
-) -> Result<(), sqlx::Error> {
+pub async fn delete(ex: impl PgExecutor<'_>, params: SelectByIdParams) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "
 DELETE FROM profile_feeds

@@ -9,7 +9,7 @@ use sqlx::{
 pub struct InsertParams<'a> {
     pub id: Uuid,
     pub title: &'a str,
-    pub profile_id: &'a Uuid,
+    pub profile_id: Uuid,
 }
 
 impl<'a> From<&'a TagsCreateData> for InsertParams<'a> {
@@ -17,14 +17,14 @@ impl<'a> From<&'a TagsCreateData> for InsertParams<'a> {
         Self {
             id: Uuid::new_v4(),
             title: &value.title,
-            profile_id: &value.profile_id,
+            profile_id: value.profile_id,
         }
     }
 }
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Tag>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Tag,
@@ -47,7 +47,7 @@ SELECT id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Tag, sqlx::Error> {
     let row = sqlx::query_as!(
         Tag,
@@ -121,7 +121,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

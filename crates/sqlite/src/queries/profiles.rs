@@ -11,11 +11,11 @@ pub struct InsertParams<'a> {
     pub title: &'a str,
     pub image_url: Option<&'a str>,
     pub is_default: bool,
-    pub user_id: &'a Uuid,
+    pub user_id: Uuid,
 }
 
 impl<'a> InsertParams<'a> {
-    pub fn default_with_user(user_id: &'a Uuid) -> Self {
+    pub fn default_with_user(user_id: Uuid) -> Self {
         Self {
             id: Uuid::new_v4(),
             title: "Default",
@@ -33,7 +33,7 @@ impl<'a> From<&'a ProfilesCreateData> for InsertParams<'a> {
             title: &value.title,
             image_url: value.image_url.as_deref(),
             is_default: false,
-            user_id: &value.user_id,
+            user_id: value.user_id,
         }
     }
 }
@@ -45,7 +45,7 @@ impl<'a> From<&'a ProfilesCreateData> for InsertParams<'a> {
 
 pub async fn select_many(
     ex: impl SqliteExecutor<'_>,
-    params: SelectManyParams<'_>,
+    params: SelectManyParams,
 ) -> Result<Vec<Profile>, sqlx::Error> {
     let rows = sqlx::query_as!(
         Profile,
@@ -68,7 +68,7 @@ SELECT id AS \"id: uuid::Uuid\",
 
 pub async fn select_by_id(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
@@ -93,7 +93,7 @@ SELECT id AS \"id: uuid::Uuid\",
 
 pub async fn select_default(
     ex: impl SqliteExecutor<'_>,
-    params: SelectDefaultParams<'_>,
+    params: SelectDefaultParams,
 ) -> Result<Profile, sqlx::Error> {
     let row = sqlx::query_as!(
         Profile,
@@ -218,7 +218,7 @@ RETURNING id AS \"id: uuid::Uuid\",
 
 pub async fn delete(
     ex: impl SqliteExecutor<'_>,
-    params: SelectByIdParams<'_>,
+    params: SelectByIdParams,
 ) -> Result<(), sqlx::Error> {
     let result = sqlx::query!(
         "

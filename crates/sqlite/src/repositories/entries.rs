@@ -38,8 +38,8 @@ impl EntriesRepository for EntriesSqliteRepository {
         queries::profile_feed_entries::update(
             &mut *tx,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 has_read: data.has_read,
             },
         )

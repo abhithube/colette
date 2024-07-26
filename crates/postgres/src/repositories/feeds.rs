@@ -54,7 +54,7 @@ impl FeedsRepository for FeedsPostgresRepository {
         let profile_feed_id = queries::profile_feeds::insert(
             &mut *tx,
             queries::profile_feeds::InsertParams {
-                profile_id: &data.profile_id,
+                profile_id: data.profile_id,
                 feed_id,
             },
         )
@@ -76,7 +76,7 @@ impl FeedsRepository for FeedsPostgresRepository {
             queries::profile_feed_entries::insert(
                 &mut *tx,
                 queries::profile_feed_entries::InsertParams {
-                    profile_feed_id: &profile_feed_id,
+                    profile_feed_id,
                     feed_entry_id,
                 },
             )
@@ -87,8 +87,8 @@ impl FeedsRepository for FeedsPostgresRepository {
         let feed = queries::profile_feeds::select_by_id(
             &mut *tx,
             SelectByIdParams {
-                id: &profile_feed_id,
-                profile_id: &data.profile_id,
+                id: profile_feed_id,
+                profile_id: data.profile_id,
             },
         )
         .await
@@ -107,8 +107,8 @@ impl FeedsRepository for FeedsPostgresRepository {
         let feed = queries::profile_feeds::update(
             &self.pool,
             UpdateParams {
-                id: &params.id,
-                profile_id: &params.profile_id,
+                id: params.id,
+                profile_id: params.profile_id,
                 custom_title: data.custom_title.as_deref(),
             },
         )
