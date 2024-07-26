@@ -43,14 +43,10 @@ command = "cargo"
 args = ["sqlx", "prepare"]
 env_files = [".env.sqlite"]
 
-[tasks.reset]
-cwd = "./crates/postgres"
-command = "sqlx"
-args = ["database", "reset"]
-env_files = [".env"]
+[tasks.migrate]
+command = "sea-orm-cli"
+args = ["migrate", "fresh", "-d", "./crates/migrations"]
 
-[tasks.reset-sqlite]
-cwd = "./crates/sqlite"
-command = "sqlx"
-args = ["database", "reset"]
-env_files = [".env.sqlite"]
+[tasks.generate]
+command = "sea-orm-cli"
+args = ["generate", "entity", "-l", "-o", "./crates/entities/src"]
