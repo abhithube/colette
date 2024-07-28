@@ -48,7 +48,9 @@ const CRON_CLEANUP: &str = "0 0 * * * *";
 async fn main() -> Result<(), Box<dyn Error>> {
     let config = colette_config::load_config()?;
 
-    let db = Database::connect(ConnectOptions::new(&config.database_url)).await?;
+    let mut opt = ConnectOptions::new(&config.database_url);
+    opt.max_connections(100).min_connections(5);
+    let db = Database::connect(opt).await?;
     Migrator::up(&db, None).await?;
 
     let bookmarks_repository = Arc::new(BookmarksSqlRepository::new(db.clone()));
