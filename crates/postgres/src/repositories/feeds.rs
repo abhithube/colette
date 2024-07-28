@@ -116,7 +116,14 @@ impl FeedsRepository for FeedsSqlRepository {
                     };
 
                     profile_feeds::Entity::insert(profile_feed_model)
-                        .on_conflict_do_nothing()
+                        .on_conflict(
+                            OnConflict::columns([
+                                profile_feeds::Column::ProfileId,
+                                profile_feeds::Column::FeedId,
+                            ])
+                            .do_nothing_on([profile_feeds::Column::Id])
+                            .to_owned(),
+                        )
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -181,7 +188,14 @@ impl FeedsRepository for FeedsSqlRepository {
                         };
 
                         feed_entries::Entity::insert(feed_entry_model)
-                            .on_conflict_do_nothing()
+                            .on_conflict(
+                                OnConflict::columns([
+                                    feed_entries::Column::FeedId,
+                                    feed_entries::Column::EntryId,
+                                ])
+                                .do_nothing_on([feed_entries::Column::Id])
+                                .to_owned(),
+                            )
                             .exec_without_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
@@ -207,8 +221,15 @@ impl FeedsRepository for FeedsSqlRepository {
                         };
 
                         profile_feed_entries::Entity::insert(profile_feed_entry)
-                            .on_conflict_do_nothing()
-                            .exec(txn)
+                            .on_conflict(
+                                OnConflict::columns([
+                                    profile_feed_entries::Column::ProfileFeedId,
+                                    profile_feed_entries::Column::FeedEntryId,
+                                ])
+                                .do_nothing_on([profile_feed_entries::Column::Id])
+                                .to_owned(),
+                            )
+                            .exec_without_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
