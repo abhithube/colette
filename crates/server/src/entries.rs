@@ -14,10 +14,7 @@ use uuid::Uuid;
 use crate::common::{BaseError, Context, EntryList, Error, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(list_entries, mark_entry_as_read, mark_entry_as_unread),
-    components(schemas(Entry))
-)]
+#[openapi(paths(list_entries, update_entry), components(schemas(Entry)))]
 pub struct Api;
 
 impl Api {
@@ -26,8 +23,7 @@ impl Api {
             "/entries",
             Router::new()
                 .route("/", routing::get(list_entries))
-                .route("/:id/markAsRead", routing::get(mark_entry_as_read))
-                .route("/:id/markAsUnread", routing::get(mark_entry_as_unread)),
+                .route("/:id", routing::patch(update_entry)),
         )
     }
 }
@@ -130,66 +126,49 @@ impl IntoResponse for ListResponse {
 }
 
 #[utoipa::path(
-    post,
-    path = "/{id}/markAsRead",
+    patch,
+    path = "/{id}",
     params(Id),
+    request_body = EntryUpdate,
     responses(UpdateResponse),
-    operation_id = "markEntryAsRead",
-    description = "Mark a feed entry as read",
+    operation_id = "updateEntry",
+    description = "Update a feed entry by ID",
     tag = "Entries"
 )]
 #[axum::debug_handler]
-pub async fn mark_entry_as_read(
+pub async fn update_entry(
     State(service): State<Arc<EntriesService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
-    mark_entry(id, true, session, service).await
-}
-
-#[utoipa::path(
-    post,
-    path = "/{id}/markAsUnread",
-    params(Id),
-    responses(UpdateResponse),
-    operation_id = "markEntryAsUnread",
-    description = "Mark a feed entry as unread",
-    tag = "Entries"
-)]
-#[axum::debug_handler]
-pub async fn mark_entry_as_unread(
-    State(service): State<Arc<EntriesService>>,
-    Path(Id(id)): Path<Id>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    mark_entry(id, false, session, service).await
-}
-
-async fn mark_entry(
-    id: Uuid,
-    has_read: bool,
-    session: Session,
-    service: Arc<EntriesService>,
+    Valid(Json(body)): Valid<Json<EntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = service
-        .update(
-            id,
-            UpdateEntry {
-                has_read: Some(has_read),
-            },
-            session.into(),
-        )
+        .update(id, body.into(), session.into())
         .await
         .map(Entry::from);
 
     match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+        Ok(entry) => Ok(UpdateResponse::Ok(entry)),
         Err(e) => match e {
             entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct EntryUpdate {
+    pub has_read: Option<bool>,
+}
+
+impl From<EntryUpdate> for UpdateEntry {
+    fn from(value: EntryUpdate) -> Self {
+        Self {
+            has_read: value.has_read,
+        }
     }
 }
 
@@ -200,6 +179,10 @@ pub enum UpdateResponse {
 
     #[response(status = 404, description = "Entry not found")]
     NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for UpdateResponse {
@@ -207,6 +190,7 @@ impl IntoResponse for UpdateResponse {
         match self {
             Self::Ok(data) => Json(data).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }
