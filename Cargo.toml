@@ -39,6 +39,7 @@ lazy-regex = { version = "3.1.0", default-features = false, features = [
 ] }
 quick-xml = { version = "0.36.1", features = ["serialize"] }
 sea-orm = { version = "1.0.0-rc.7", default-features = false, features = [
+  "macros",
   "runtime-tokio",
   "with-chrono",
   "with-uuid",

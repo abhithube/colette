@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use colette_core::{
-    users::{Error, UsersCreateData, UsersFindOneParams, UsersRepository},
+    users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
 };
 use sqlx::SqlitePool;
@@ -23,7 +23,7 @@ impl UsersRepository for UsersSqliteRepository {
         let user = queries::users::select_by_email(&self.pool, (&params).into())
             .await
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.email),
+                sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(params.email)),
                 _ => Error::Unknown(e.into()),
             })?;
 

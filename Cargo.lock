@@ -704,11 +704,15 @@ dependencies = [
 name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "colette-core",
  "colette-database",
+ "colette-entities",
  "futures",
+ "sea-orm",
  "sqlx",
+ "uuid",
 ]
 
 [[package]]

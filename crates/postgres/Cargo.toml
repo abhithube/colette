@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow.workspace = true
 async-trait.workspace = true
 colette-core.workspace = true
 colette-database.workspace = true
+colette-entities.workspace = true
 futures.workspace = true
+sea-orm = { workspace = true, features = ["sqlx-postgres"] }
 sqlx = { workspace = true, features = ["postgres"] }
+uuid = { workspace = true, features = ["v4"] }

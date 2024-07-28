@@ -30,12 +30,21 @@ pub struct UsersCreateData {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("user not found with email: {0}")]
-    NotFound(String),
+    #[error(transparent)]
+    NotFound(#[from] NotFoundError),
 
     #[error("user already exists with email: {0}")]
     Conflict(String),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum NotFoundError {
+    #[error("user not found with id: {0}")]
+    Id(Uuid),
+
+    #[error("user not found with email: {0}")]
+    Email(String),
 }
