@@ -254,7 +254,9 @@ impl FeedsRepository for FeedsSqlRepository {
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) => Error::NotFound(params.id),
+                            DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => {
+                                Error::NotFound(params.id)
+                            }
                             _ => Error::Unknown(e.into()),
                         })?;
 
@@ -277,14 +279,15 @@ impl FeedsRepository for FeedsSqlRepository {
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
-        profile_feeds::Entity::delete_by_id(params.id)
+        let result = profile_feeds::Entity::delete_by_id(params.id)
             .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
             .exec(&self.db)
             .await
-            .map_err(|e| match e {
-                DbErr::RecordNotFound(_) => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
 
         Ok(())
     }

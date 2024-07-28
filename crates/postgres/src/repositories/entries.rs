@@ -5,8 +5,8 @@ use colette_core::{
 };
 use colette_entities::{entries, feed_entries, profile_feed_entries, profile_feeds};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
+    ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
+    RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, Utc};
 use uuid::Uuid;
@@ -84,10 +84,7 @@ impl EntriesRepository for EntriesSqlRepository {
                     let model = profile_feed_entries::Entity::update(model)
                         .exec(txn)
                         .await
-                        .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) => Error::NotFound(params.id),
-                            _ => Error::Unknown(e.into()),
-                        })?;
+                        .map_err(|e| Error::Unknown(e.into()))?;
 
                     entry.has_read = model.has_read;
 

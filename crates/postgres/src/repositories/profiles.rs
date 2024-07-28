@@ -147,7 +147,9 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) => Error::NotFound(params.id),
+                            DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => {
+                                Error::NotFound(params.id)
+                            }
                             _ => Error::Unknown(e.into()),
                         })?;
 
