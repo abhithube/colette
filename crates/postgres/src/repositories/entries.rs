@@ -6,29 +6,23 @@ use colette_core::{
 use colette_entities::{entries, feed_entries, profile_feed_entries, profile_feeds};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, SqlxPostgresConnector,
-    TransactionTrait,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, Utc},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-pub struct EntriesPostgresRepository {
+pub struct EntriesSqlRepository {
     db: DatabaseConnection,
 }
 
-impl EntriesPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl EntriesSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl EntriesRepository for EntriesPostgresRepository {
+impl EntriesRepository for EntriesSqlRepository {
     async fn find_many(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
         let mut query = profile_feed_entries::Entity::find()
             .select_only()

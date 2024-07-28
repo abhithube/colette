@@ -1,10 +1,10 @@
-pub use bookmarks::BookmarksPostgresRepository;
-pub use collections::CollectionsPostgresRepository;
-pub use entries::EntriesPostgresRepository;
-pub use feeds::FeedsPostgresRepository;
-pub use profiles::ProfilesPostgresRepository;
-pub use tags::TagsPostgresRepository;
-pub use users::UsersPostgresRepository;
+pub use bookmarks::BookmarksSqlRepository;
+pub use collections::CollectionsSqlRepository;
+pub use entries::EntriesSqlRepository;
+pub use feeds::FeedsSqlRepository;
+pub use profiles::ProfilesSqlRepository;
+pub use tags::TagsSqlRepository;
+pub use users::UsersSqlRepository;
 
 mod bookmarks;
 mod collections;

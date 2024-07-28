@@ -11,28 +11,23 @@ use colette_entities::{bookmarks, collections};
 use sea_orm::{
     prelude::Expr, sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
-    SqlxPostgresConnector, TransactionTrait,
+    TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset, Utc},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset, Utc};
 use uuid::Uuid;
 
-pub struct BookmarksPostgresRepository {
+pub struct BookmarksSqlRepository {
     db: DatabaseConnection,
 }
 
-impl BookmarksPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl BookmarksSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl BookmarksRepository for BookmarksPostgresRepository {
+impl BookmarksRepository for BookmarksSqlRepository {
     async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
         let mut query = bookmarks::Entity::find()
             .select_only()

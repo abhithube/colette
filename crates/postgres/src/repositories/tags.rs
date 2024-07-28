@@ -7,28 +7,23 @@ use colette_core::{
 use colette_entities::tags;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QuerySelect, SelectModel,
-    Selector, Set, SqlxPostgresConnector, TransactionTrait,
+    Selector, Set, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
-pub struct TagsPostgresRepository {
+pub struct TagsSqlRepository {
     db: DatabaseConnection,
 }
 
-impl TagsPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl TagsSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl TagsRepository for TagsPostgresRepository {
+impl TagsRepository for TagsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error> {
         tags::Entity::find()
             .select_only()

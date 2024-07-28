@@ -10,6 +10,6 @@ colette-core.workspace = true
 colette-database.workspace = true
 colette-entities.workspace = true
 futures.workspace = true
-sea-orm = { workspace = true, features = ["sqlx-postgres"] }
+sea-orm.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
 uuid = { workspace = true, features = ["v4"] }

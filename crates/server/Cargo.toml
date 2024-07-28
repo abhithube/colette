@@ -23,8 +23,9 @@ cron = { version = "0.12.1", default-features = false }
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
+colette-migrations.workspace = true
 colette-password.workspace = true
-colette-postgres = { workspace = true, optional = true }
+colette-postgres.workspace = true
 colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-sqlite = { workspace = true, optional = true }
@@ -32,6 +33,7 @@ colette-tasks.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
+sea-orm.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
@@ -57,6 +59,6 @@ validator = { version = "0.18.1", default-features = false, features = [
 ] }
 
 [features]
-default = ["postgres"]
-postgres = ["dep:colette-postgres", "tower-sessions-sqlx-store/postgres"]
-sqlite = ["dep:colette-sqlite", "tower-sessions-sqlx-store/sqlite"]
+default = ["sqlite"]
+postgres = ["tower-sessions-sqlx-store/postgres"]
+sqlite = ["tower-sessions-sqlx-store/sqlite"]

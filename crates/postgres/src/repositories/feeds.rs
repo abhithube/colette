@@ -10,31 +10,25 @@ use sea_orm::{
     prelude::Expr,
     sea_query::{IntoCondition, OnConflict, Query},
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, SqlxPostgresConnector,
-    TransactionTrait,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 use crate::queries;
 
-pub struct FeedsPostgresRepository {
+pub struct FeedsSqlRepository {
     db: DatabaseConnection,
 }
 
-impl FeedsPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl FeedsSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl FeedsRepository for FeedsPostgresRepository {
+impl FeedsRepository for FeedsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error> {
         profile_feeds::Entity::find()
             .select_only()

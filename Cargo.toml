@@ -41,6 +41,8 @@ quick-xml = { version = "0.36.1", features = ["serialize"] }
 sea-orm = { version = "1.0.0-rc.7", default-features = false, features = [
   "macros",
   "runtime-tokio",
+  "sqlx-postgres",
+  "sqlx-sqlite",
   "with-chrono",
   "with-uuid",
 ] }

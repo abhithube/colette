@@ -7,29 +7,23 @@ use colette_core::{
 use colette_entities::{bookmarks, collections};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, SqlxPostgresConnector,
-    TransactionTrait,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
-pub struct CollectionsPostgresRepository {
+pub struct CollectionsSqlRepository {
     db: DatabaseConnection,
 }
 
-impl CollectionsPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl CollectionsSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl CollectionsRepository for CollectionsPostgresRepository {
+impl CollectionsRepository for CollectionsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Collection>, Error> {
         collections::Entity::find()
             .select_only()

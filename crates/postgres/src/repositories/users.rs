@@ -6,28 +6,23 @@ use colette_core::{
 use colette_entities::{collections, profiles, users};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, SelectModel, Selector,
-    Set, SqlErr, SqlxPostgresConnector, TransactionTrait,
+    Set, SqlErr, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
-pub struct UsersPostgresRepository {
+pub struct UsersSqlRepository {
     db: DatabaseConnection,
 }
 
-impl UsersPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl UsersSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl UsersRepository for UsersPostgresRepository {
+impl UsersRepository for UsersSqlRepository {
     async fn find_one(&self, params: UsersFindOneParams) -> Result<User, Error> {
         let Some(user) = users::Entity::find()
             .select_only()

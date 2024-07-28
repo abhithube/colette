@@ -11,30 +11,25 @@ use colette_entities::{collections, profiles};
 use futures::TryStreamExt;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
-    SelectModel, Selector, Set, SqlxPostgresConnector, TransactionTrait,
+    SelectModel, Selector, Set, TransactionTrait,
 };
-use sqlx::{
-    types::chrono::{DateTime, FixedOffset},
-    PgPool,
-};
+use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 use crate::queries;
 
-pub struct ProfilesPostgresRepository {
+pub struct ProfilesSqlRepository {
     db: DatabaseConnection,
 }
 
-impl ProfilesPostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+impl ProfilesSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl ProfilesRepository for ProfilesPostgresRepository {
+impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
         profiles::Entity::find()
             .select_only()
