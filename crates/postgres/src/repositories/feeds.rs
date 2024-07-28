@@ -49,6 +49,7 @@ impl FeedsRepository for FeedsSqlRepository {
                     }),
             )
             .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
+            .group_by(profile_feeds::Column::Id)
             .order_by_asc(profile_feeds::Column::CustomTitle)
             .order_by_asc(feeds::Column::Title)
             .order_by_asc(profile_feeds::Column::Id)
@@ -440,8 +441,8 @@ fn feed_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<FeedSelect>> {
         .columns(PROFILE_FEED_COLUMNS)
         .columns(FEED_COLUMNS)
         .column_as(profile_feed_entries::Column::Id.count(), "unread_count")
-        .join(JoinType::Join, feeds::Relation::ProfileFeeds.def())
-        .join(JoinType::Join, feed_entries::Relation::Feeds.def())
+        .join(JoinType::Join, profile_feeds::Relation::Feeds.def())
+        .join(JoinType::Join, feeds::Relation::FeedEntries.def())
         .join(
             JoinType::LeftJoin,
             profile_feed_entries::Relation::FeedEntries
@@ -454,5 +455,6 @@ fn feed_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<FeedSelect>> {
                 }),
         )
         .filter(profile_feeds::Column::ProfileId.eq(profile_id))
+        .group_by(profile_feeds::Column::Id)
         .into_model::<FeedSelect>()
 }

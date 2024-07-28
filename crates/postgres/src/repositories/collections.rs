@@ -31,6 +31,8 @@ impl CollectionsRepository for CollectionsSqlRepository {
             .column_as(bookmarks::Column::Id.count(), "bookmark_count")
             .join(JoinType::LeftJoin, collections::Relation::Bookmarks.def())
             .filter(collections::Column::ProfileId.eq(params.profile_id))
+            .filter(collections::Column::IsDefault.eq(false))
+            .group_by(collections::Column::Id)
             .order_by_asc(collections::Column::Title)
             .order_by_asc(collections::Column::Id)
             .into_model::<CollectionSelect>()
@@ -189,5 +191,7 @@ fn collection_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<Collecti
         .column_as(bookmarks::Column::Id.count(), "bookmark_count")
         .join(JoinType::LeftJoin, collections::Relation::Bookmarks.def())
         .filter(collections::Column::ProfileId.eq(profile_id))
+        .filter(collections::Column::IsDefault.eq(false))
+        .group_by(collections::Column::Id)
         .into_model::<CollectionSelect>()
 }

@@ -36,7 +36,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
             .columns(PROFILE_COLUMNS)
             .filter(profiles::Column::UserId.eq(params.user_id))
             .order_by_asc(profiles::Column::Title)
-            .order_by_asc(collections::Column::Id)
+            .order_by_asc(profiles::Column::Id)
             .into_model::<ProfileSelect>()
             .all(&self.db)
             .await
