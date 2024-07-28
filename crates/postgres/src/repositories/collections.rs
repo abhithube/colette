@@ -107,8 +107,9 @@ impl CollectionsRepository for CollectionsSqlRepository {
                         model.title = Set(title);
                     }
 
-                    collections::Entity::update(model)
+                    let model = collections::Entity::update(model)
                         .filter(collections::Column::ProfileId.eq(params.profile_id))
+                        .filter(collections::Column::IsDefault.eq(false))
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
@@ -123,9 +124,13 @@ impl CollectionsRepository for CollectionsSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::Unknown(anyhow!(
-                            "Failed to fetch updated collection"
-                        )));
+                        if model.is_default {
+                            return Err(Error::NotFound(params.id));
+                        } else {
+                            return Err(Error::Unknown(anyhow!(
+                                "Failed to fetch updated collection"
+                            )));
+                        }
                     };
 
                     Ok(collection.into())
@@ -141,6 +146,7 @@ impl CollectionsRepository for CollectionsSqlRepository {
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
         let result = collections::Entity::delete_by_id(params.id)
             .filter(collections::Column::ProfileId.eq(params.profile_id))
+            .filter(collections::Column::IsDefault.eq(false))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
