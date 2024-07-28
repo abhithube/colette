@@ -26,13 +26,10 @@ use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
 use tokio::time;
-#[cfg(not(feature = "redis"))]
 use tower_sessions::session_store::ExpiredDeletion;
-#[cfg(feature = "redis")]
-use tower_sessions_redis_store::{fred::prelude::*, RedisStore};
-#[cfg(all(feature = "postgres", not(feature = "redis")))]
+#[cfg(feature = "postgres")]
 use tower_sessions_sqlx_store::PostgresStore;
-#[cfg(all(feature = "sqlite", not(feature = "redis")))]
+#[cfg(feature = "sqlite")]
 use tower_sessions_sqlx_store::SqliteStore;
 
 mod app;
@@ -104,21 +101,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         (pool.clone(), Repositories::new_sqlite(pool))
     };
 
-    #[cfg(feature = "redis")]
-    let (session_store, cleanup) = {
-        let Some(redis_url) = config.redis_url.clone() else {
-            panic!("\"REDIS_URL\" not set")
-        };
-        let pool = RedisPool::new(RedisConfig::from_url(&redis_url)?, None, None, None, 1)?;
-
-        let store = RedisStore::new(pool.clone());
-
-        let conn = pool.connect();
-        pool.wait_for_connect().await?;
-
-        (store, conn)
-    };
-    #[cfg(not(feature = "redis"))]
     let (session_store, cleanup) = {
         #[cfg(feature = "postgres")]
         let store = PostgresStore::new(pool.clone());

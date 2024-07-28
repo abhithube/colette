@@ -7,7 +7,6 @@ pub struct Config {
     #[serde(default = "default_port")]
     pub port: u16,
     pub database_url: String,
-    pub redis_url: Option<String>,
     #[serde(deserialize_with = "string_to_vec", default = "default_origin_urls")]
     pub origin_urls: Vec<String>,
     #[serde(default = "default_refresh_enabled")]

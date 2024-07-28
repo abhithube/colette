@@ -41,7 +41,6 @@ tower-http = { version = "0.5.2", default-features = false, features = [
 tower-sessions = { version = "0.12.2", default-features = false, features = [
   "axum-core",
 ] }
-tower-sessions-redis-store = { version = "0.13.0", default-features = false, optional = true }
 tower-sessions-sqlx-store = { version = "0.12.0", default-features = false }
 utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
   "chrono",
@@ -58,7 +57,6 @@ validator = { version = "0.18.1", default-features = false, features = [
 ] }
 
 [features]
-default = ["postgres", "redis"]
+default = ["postgres"]
 postgres = ["dep:colette-postgres", "tower-sessions-sqlx-store/postgres"]
-redis = ["tower-sessions-redis-store"]
 sqlite = ["dep:colette-sqlite", "tower-sessions-sqlx-store/sqlite"]
