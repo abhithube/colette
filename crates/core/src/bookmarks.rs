@@ -5,6 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
+    collections,
     common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
@@ -226,6 +227,9 @@ impl From<UpdateBookmark> for BookmarksUpdateData {
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
     NotFound(Uuid),
+
+    #[error(transparent)]
+    Collection(#[from] collections::Error),
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),

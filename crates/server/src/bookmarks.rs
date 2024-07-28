@@ -8,8 +8,9 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::{
-    self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark,
+use colette_core::{
+    bookmarks::{self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark},
+    collections,
 };
 use uuid::Uuid;
 
@@ -171,6 +172,12 @@ pub async fn create_bookmark(
             bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
                 message: e.to_string(),
             })),
+            bookmarks::Error::Collection(e) => match e {
+                collections::Error::NotFound(_) => Ok(CreateResponse::NotFound(BaseError {
+                    message: e.to_string(),
+                })),
+                _ => Err(Error::Unknown),
+            },
             _ => Err(Error::Unknown),
         },
     }
@@ -200,6 +207,9 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
     Created(Box<Bookmark>),
 
+    #[response(status = 404, description = "Collection not found")]
+    NotFound(BaseError),
+
     #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
@@ -212,6 +222,7 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }

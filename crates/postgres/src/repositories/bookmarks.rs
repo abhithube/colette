@@ -89,11 +89,15 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
                         if let Some(collection_id) = data.collection_id {
-                            return Err(Error::NotFound(collection_id));
+                            return Err(Error::Collection(
+                                colette_core::collections::Error::NotFound(collection_id),
+                            ));
                         } else {
-                            return Err(Error::Unknown(anyhow!(
-                                "Failed to fetch default collection"
-                            )));
+                            return Err(Error::Collection(
+                                colette_core::collections::Error::Unknown(anyhow!(
+                                    "Failed to fetch default collection"
+                                )),
+                            ));
                         }
                     };
 
