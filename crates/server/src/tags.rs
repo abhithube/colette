@@ -222,7 +222,7 @@ pub async fn update_tag(
         .map(Tag::from);
 
     match result {
-        Ok(tag) => Ok(UpdateResponse::Ok(tag)),
+        Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

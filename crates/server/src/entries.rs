@@ -148,7 +148,7 @@ pub async fn update_entry(
         .map(Entry::from);
 
     match result {
-        Ok(entry) => Ok(UpdateResponse::Ok(entry)),
+        Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

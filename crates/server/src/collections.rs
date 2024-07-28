@@ -233,7 +233,7 @@ pub async fn update_collection(
         .map(Collection::from);
 
     match result {
-        Ok(collection) => Ok(UpdateResponse::Ok(collection)),
+        Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             collections::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

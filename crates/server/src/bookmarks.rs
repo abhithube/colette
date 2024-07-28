@@ -241,7 +241,7 @@ pub async fn update_bookmark(
         .map(Bookmark::from);
 
     match result {
-        Ok(bookmark) => Ok(UpdateResponse::Ok(Box::new(bookmark))),
+        Ok(data) => Ok(UpdateResponse::Ok(Box::new(data))),
         Err(e) => match e {
             bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

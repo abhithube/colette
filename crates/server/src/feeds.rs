@@ -259,7 +259,7 @@ pub async fn update_feed(
         .map(Feed::from);
 
     match result {
-        Ok(collection) => Ok(UpdateResponse::Ok(collection)),
+        Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -503,7 +503,7 @@ pub async fn export_feeds(
     let result = service.export(session.into()).await;
 
     match result {
-        Ok(raw) => Ok(ExportResponse::Ok(raw.as_bytes().into())),
+        Ok(data) => Ok(ExportResponse::Ok(data.as_bytes().into())),
         _ => Err(Error::Unknown),
     }
 }

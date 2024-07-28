@@ -231,7 +231,7 @@ pub async fn update_profile(
         .map(Profile::from);
 
     match result {
-        Ok(collection) => Ok(UpdateResponse::Ok(collection)),
+        Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
