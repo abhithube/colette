@@ -139,7 +139,7 @@ impl TagsRepository for TagsSqlRepository {
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
 struct TagSelect {
     id: Uuid,
     title: String,

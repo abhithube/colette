@@ -28,7 +28,7 @@ impl CollectionsRepository for CollectionsSqlRepository {
         collections::Entity::find()
             .select_only()
             .columns(COLLECTION_COLUMNS)
-            .column_as(bookmarks::Column::Id.count(), "count")
+            .column_as(bookmarks::Column::Id.count(), "bookmark_count")
             .join(JoinType::LeftJoin, collections::Relation::Bookmarks.def())
             .filter(collections::Column::ProfileId.eq(params.profile_id))
             .order_by_asc(collections::Column::Title)
@@ -151,14 +151,14 @@ impl CollectionsRepository for CollectionsSqlRepository {
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
 struct CollectionSelect {
     id: Uuid,
     title: String,
     profile_id: Uuid,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
-    bookmark_count: Option<u64>,
+    bookmark_count: Option<i64>,
 }
 
 impl From<CollectionSelect> for Collection {
@@ -169,7 +169,7 @@ impl From<CollectionSelect> for Collection {
             profile_id: value.profile_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
-            bookmark_count: value.bookmark_count.map(|e| e as i64),
+            bookmark_count: value.bookmark_count,
         }
     }
 }
@@ -186,7 +186,7 @@ fn collection_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<Collecti
     collections::Entity::find_by_id(id)
         .select_only()
         .columns(COLLECTION_COLUMNS)
-        .column_as(bookmarks::Column::Id.count(), "count")
+        .column_as(bookmarks::Column::Id.count(), "bookmark_count")
         .join(JoinType::LeftJoin, collections::Relation::Bookmarks.def())
         .filter(collections::Column::ProfileId.eq(profile_id))
         .into_model::<CollectionSelect>()
