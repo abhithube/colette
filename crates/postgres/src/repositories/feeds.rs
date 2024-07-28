@@ -50,6 +50,9 @@ impl FeedsRepository for FeedsSqlRepository {
             )
             .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
             .group_by(profile_feeds::Column::Id)
+            .group_by(feeds::Column::Link)
+            .group_by(feeds::Column::Title)
+            .group_by(feeds::Column::Url)
             .order_by_asc(profile_feeds::Column::CustomTitle)
             .order_by_asc(feeds::Column::Title)
             .order_by_asc(profile_feeds::Column::Id)
@@ -393,6 +396,7 @@ struct FeedSelect {
     title: String,
     url: Option<String>,
     custom_title: Option<String>,
+    profile_id: Uuid,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
     unread_count: Option<i64>,
@@ -406,6 +410,7 @@ impl From<FeedSelect> for Feed {
             title: value.title,
             url: value.url,
             custom_title: value.custom_title,
+            profile_id: value.profile_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
             unread_count: value.unread_count,
@@ -423,9 +428,10 @@ struct UuidInsert {
     id: Uuid,
 }
 
-const PROFILE_FEED_COLUMNS: [profile_feeds::Column; 4] = [
+const PROFILE_FEED_COLUMNS: [profile_feeds::Column; 5] = [
     profile_feeds::Column::Id,
     profile_feeds::Column::CustomTitle,
+    profile_feeds::Column::ProfileId,
     profile_feeds::Column::CreatedAt,
     profile_feeds::Column::UpdatedAt,
 ];
@@ -457,5 +463,8 @@ fn feed_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<FeedSelect>> {
         )
         .filter(profile_feeds::Column::ProfileId.eq(profile_id))
         .group_by(profile_feeds::Column::Id)
+        .group_by(feeds::Column::Link)
+        .group_by(feeds::Column::Title)
+        .group_by(feeds::Column::Url)
         .into_model::<FeedSelect>()
 }

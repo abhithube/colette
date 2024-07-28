@@ -22,6 +22,7 @@ pub struct Feed {
     pub title: String,
     pub url: Option<String>,
     pub custom_title: Option<String>,
+    pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub unread_count: Option<i64>,

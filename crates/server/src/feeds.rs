@@ -61,6 +61,7 @@ pub struct Feed {
     pub url: Option<String>,
     #[schema(required)]
     pub custom_title: Option<String>,
+    pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     #[schema(nullable = false)]
@@ -75,6 +76,7 @@ impl From<colette_core::Feed> for Feed {
             title: value.title,
             url: value.url,
             custom_title: value.custom_title,
+            profile_id: value.profile_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
             unread_count: value.unread_count,
