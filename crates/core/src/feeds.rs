@@ -1,12 +1,13 @@
 use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use http::Response;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindManyParams, FindOneParams, Paginated, SendableStream, Session},
+    common::{FindManyParams, FindOneParams, Paginated, Session},
     utils::{
         backup::{self, BackupManager},
         scraper::{
@@ -107,6 +108,12 @@ pub struct BackupFeed {
     pub html_url: Option<Url>,
 }
 
+#[derive(Clone, Debug)]
+pub struct StreamFeed {
+    pub id: i64,
+    pub url: String,
+}
+
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error>;
@@ -119,7 +126,7 @@ pub trait FeedsRepository: Send + Sync {
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 
-    fn iterate(&self) -> SendableStream<Result<(i64, String), Error>>;
+    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 
     async fn cleanup(&self) -> Result<(), Error>;
 }

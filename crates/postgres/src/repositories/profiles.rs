@@ -1,22 +1,19 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::SendableStream,
     profiles::{
         Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
-        ProfilesFindOneParams, ProfilesRepository, ProfilesUpdateData,
+        ProfilesFindOneParams, ProfilesRepository, ProfilesUpdateData, StreamProfile,
     },
     Profile,
 };
-use colette_entities::{collections, profiles};
-use futures::TryStreamExt;
+use colette_entities::{collections, profile_feeds, profiles};
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
-    SelectModel, Selector, Set, TransactionError, TransactionTrait,
+    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
-
-use crate::queries;
 
 pub struct ProfilesSqlRepository {
     db: DatabaseConnection,
@@ -206,11 +203,27 @@ impl ProfilesRepository for ProfilesSqlRepository {
             })
     }
 
-    fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>> {
-        Box::pin(
-            queries::profiles::iterate(self.db.get_postgres_connection_pool(), feed_id)
-                .map_err(|e| Error::Unknown(e.into())),
-        )
+    async fn stream(
+        &self,
+        feed_id: i64,
+    ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
+        profiles::Entity::find()
+            .select_only()
+            .column(profiles::Column::Id)
+            .join(JoinType::Join, profiles::Relation::ProfileFeeds.def())
+            .filter(profile_feeds::Column::FeedId.eq(feed_id))
+            .into_model::<StreamSelect>()
+            .stream(&self.db)
+            .await
+            .map(|e| {
+                e.map(|e| {
+                    e.map(StreamProfile::from)
+                        .map_err(|e| Error::Unknown(e.into()))
+                })
+                .map_err(|e| Error::Unknown(e.into()))
+                .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -240,6 +253,17 @@ impl From<ProfileSelect> for Profile {
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 struct ProfileDelete {
     is_default: bool,
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct StreamSelect {
+    pub id: Uuid,
+}
+
+impl From<StreamSelect> for StreamProfile {
+    fn from(value: StreamSelect) -> Self {
+        Self { id: value.id }
+    }
 }
 
 const PROFILE_COLUMNS: [profiles::Column; 6] = [

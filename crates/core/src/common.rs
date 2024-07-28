@@ -1,6 +1,3 @@
-use std::pin::Pin;
-
-use futures::Stream;
 use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: usize = 24;
@@ -27,5 +24,3 @@ pub struct Session {
     pub user_id: Uuid,
     pub profile_id: Uuid,
 }
-
-pub type SendableStream<'a, T> = Pin<Box<dyn Stream<Item = T> + Send + 'a>>;

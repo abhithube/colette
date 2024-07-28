@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use futures::stream::BoxStream;
 use uuid::Uuid;
 
-use crate::common::{Paginated, SendableStream, Session};
+use crate::common::{Paginated, Session};
 
 #[derive(Clone, Debug)]
 pub struct Profile {
@@ -36,6 +37,11 @@ impl From<UpdateProfile> for ProfilesUpdateData {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct StreamProfile {
+    pub id: Uuid,
+}
+
 #[async_trait::async_trait]
 pub trait ProfilesRepository: Send + Sync {
     async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error>;
@@ -52,7 +58,7 @@ pub trait ProfilesRepository: Send + Sync {
 
     async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
 
-    fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>>;
+    async fn stream(&self, feed_id: i64) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }
 
 pub struct ProfilesService {

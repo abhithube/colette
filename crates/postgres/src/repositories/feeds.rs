@@ -1,21 +1,19 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{self, FindManyParams, SendableStream},
-    feeds::{Error, FeedsCreateData, FeedsRepository, FeedsUpdateData},
+    common::{self, FindManyParams},
+    feeds::{Error, FeedsCreateData, FeedsRepository, FeedsUpdateData, StreamFeed},
     Feed,
 };
 use colette_entities::{entries, feed_entries, feeds, profile_feed_entries, profile_feeds};
-use futures::TryStreamExt;
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
-    sea_query::{IntoCondition, OnConflict, Query},
+    sea_query::{Func, IntoCondition, OnConflict, Query},
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
-
-use crate::queries;
 
 pub struct FeedsSqlRepository {
     db: DatabaseConnection,
@@ -320,11 +318,29 @@ impl FeedsRepository for FeedsSqlRepository {
         Ok(())
     }
 
-    fn iterate(&self) -> SendableStream<Result<(i64, String), Error>> {
-        Box::pin(
-            queries::feeds::iterate(self.db.get_postgres_connection_pool())
-                .map_err(|e| Error::Unknown(e.into())),
-        )
+    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
+        feeds::Entity::find()
+            .select_only()
+            .column(feeds::Column::Id)
+            .expr_as(
+                Func::coalesce([
+                    Expr::col(feeds::Column::Url).into(),
+                    Expr::col(feeds::Column::Link).into(),
+                ]),
+                "url",
+            )
+            .into_model::<StreamSelect>()
+            .stream(&self.db)
+            .await
+            .map(|e| {
+                e.map(|e| {
+                    e.map(StreamFeed::from)
+                        .map_err(|e| Error::Unknown(e.into()))
+                })
+                .map_err(|e| Error::Unknown(e.into()))
+                .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn cleanup(&self) -> Result<(), Error> {
@@ -426,6 +442,21 @@ struct BigIntInsert {
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 struct UuidInsert {
     id: Uuid,
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct StreamSelect {
+    pub id: i64,
+    pub url: String,
+}
+
+impl From<StreamSelect> for StreamFeed {
+    fn from(value: StreamSelect) -> Self {
+        Self {
+            id: value.id,
+            url: value.url,
+        }
+    }
 }
 
 const PROFILE_FEED_COLUMNS: [profile_feeds::Column; 5] = [
