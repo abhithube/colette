@@ -8,7 +8,7 @@ use colette_entities::{entries, feed_entries, feeds, profile_feed_entries, profi
 use futures::TryStreamExt;
 use sea_orm::{
     prelude::Expr,
-    sea_query::{IntoCondition, OnConflict},
+    sea_query::{IntoCondition, OnConflict, Query},
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, SelectModel, Selector, Set, SqlxPostgresConnector,
     TransactionTrait,
@@ -297,24 +297,62 @@ impl FeedsRepository for FeedsPostgresRepository {
     }
 
     async fn cleanup(&self) -> Result<(), Error> {
-        let mut tx = self
-            .db
-            .get_postgres_connection_pool()
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        self.db
+            .transaction::<_, (), DbErr>(|txn| {
+                Box::pin(async move {
+                    let subquery = Query::select()
+                        .from(profile_feed_entries::Entity)
+                        .and_where(
+                            Expr::col((
+                                profile_feed_entries::Entity,
+                                profile_feed_entries::Column::FeedEntryId,
+                            ))
+                            .equals((feed_entries::Entity, feed_entries::Column::Id)),
+                        )
+                        .to_owned();
 
-        queries::feed_entries::cleanup(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-        queries::entries::cleanup(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-        queries::feeds::cleanup(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+                    let result = feed_entries::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+                    println!("Deleted {} orphaned feed entries", result.rows_affected);
+
+                    let subquery = Query::select()
+                        .from(feed_entries::Entity)
+                        .and_where(
+                            Expr::col((feed_entries::Entity, feed_entries::Column::EntryId))
+                                .equals((entries::Entity, entries::Column::Id)),
+                        )
+                        .to_owned();
+
+                    let result = entries::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
+
+                    println!("Deleted {} orphaned entries", result.rows_affected);
+
+                    let subquery = Query::select()
+                        .from(profile_feeds::Entity)
+                        .and_where(
+                            Expr::col((profile_feeds::Entity, profile_feeds::Column::FeedId))
+                                .equals((feeds::Entity, feeds::Column::Id)),
+                        )
+                        .to_owned();
+
+                    let result = feeds::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
+
+                    println!("Deleted {} orphaned feeds", result.rows_affected);
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(())
     }
