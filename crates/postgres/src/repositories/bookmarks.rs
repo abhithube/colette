@@ -11,7 +11,7 @@ use colette_entities::{bookmarks, collections};
 use sea_orm::{
     prelude::Expr, sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
-    TransactionTrait,
+    TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset, Utc};
 use uuid::Uuid;
@@ -155,7 +155,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn update(
@@ -207,7 +210,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
@@ -235,7 +241,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 

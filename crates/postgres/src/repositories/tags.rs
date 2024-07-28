@@ -7,7 +7,7 @@ use colette_core::{
 use colette_entities::tags;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QuerySelect, SelectModel,
-    Selector, Set, TransactionTrait,
+    Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
@@ -77,7 +77,10 @@ impl TagsRepository for TagsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error> {
@@ -110,7 +113,10 @@ impl TagsRepository for TagsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {

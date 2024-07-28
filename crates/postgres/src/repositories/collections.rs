@@ -7,7 +7,7 @@ use colette_core::{
 use colette_entities::{bookmarks, collections};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionTrait,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
@@ -83,7 +83,10 @@ impl CollectionsRepository for CollectionsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn update(
@@ -122,7 +125,10 @@ impl CollectionsRepository for CollectionsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {

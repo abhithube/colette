@@ -10,7 +10,7 @@ use sea_orm::{
     prelude::Expr,
     sea_query::{IntoCondition, OnConflict, Query},
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionTrait,
+    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
@@ -225,7 +225,10 @@ impl FeedsRepository for FeedsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })?;
 
         Ok(feed)
     }
@@ -267,7 +270,10 @@ impl FeedsRepository for FeedsSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {

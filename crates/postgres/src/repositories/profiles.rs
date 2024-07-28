@@ -11,7 +11,7 @@ use colette_entities::{collections, profiles};
 use futures::TryStreamExt;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
-    SelectModel, Selector, Set, TransactionTrait,
+    SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
@@ -117,7 +117,10 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn update(
@@ -160,7 +163,10 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
@@ -191,7 +197,10 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     fn iterate(&self, feed_id: i64) -> SendableStream<Result<Uuid, Error>> {
