@@ -111,6 +111,7 @@ impl FeedsRepository for FeedsSqlRepository {
                     };
 
                     let profile_feed_model = profile_feeds::ActiveModel {
+                        id: Set(Uuid::new_v4()),
                         profile_id: Set(data.profile_id),
                         feed_id: Set(feed.id),
                         ..Default::default()
