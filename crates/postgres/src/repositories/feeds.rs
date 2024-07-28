@@ -72,8 +72,7 @@ impl FeedsRepository for FeedsSqlRepository {
     }
 
     async fn create(&self, data: FeedsCreateData) -> Result<Feed, Error> {
-        let feed = self
-            .db
+        self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
                     let link = data.feed.link.to_string();
@@ -98,10 +97,11 @@ impl FeedsRepository for FeedsSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(feed_model) = feeds::Entity::find()
+                    let Some(feed) = feeds::Entity::find()
                         .select_only()
                         .column(feeds::Column::Id)
                         .filter(feeds::Column::Link.eq(link))
+                        .into_model::<BigIntInsert>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -111,7 +111,7 @@ impl FeedsRepository for FeedsSqlRepository {
 
                     let profile_feed_model = profile_feeds::ActiveModel {
                         profile_id: Set(data.profile_id),
-                        feed_id: Set(feed_model.id),
+                        feed_id: Set(feed.id),
                         ..Default::default()
                     };
 
@@ -128,11 +128,12 @@ impl FeedsRepository for FeedsSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(profile_feed_model) = profile_feeds::Entity::find()
+                    let Some(profile_feed) = profile_feeds::Entity::find()
                         .select_only()
                         .column(profile_feeds::Column::Id)
                         .filter(profile_feeds::Column::ProfileId.eq(data.profile_id))
-                        .filter(profile_feeds::Column::FeedId.eq(feed_model.id))
+                        .filter(profile_feeds::Column::FeedId.eq(feed.id))
+                        .into_model::<UuidInsert>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -170,10 +171,11 @@ impl FeedsRepository for FeedsSqlRepository {
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(entry_model) = entries::Entity::find()
+                        let Some(entry) = entries::Entity::find()
                             .select_only()
                             .column(entries::Column::Id)
                             .filter(entries::Column::Link.eq(link))
+                            .into_model::<BigIntInsert>()
                             .one(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
@@ -182,8 +184,8 @@ impl FeedsRepository for FeedsSqlRepository {
                         };
 
                         let feed_entry_model = feed_entries::ActiveModel {
-                            feed_id: Set(feed_model.id),
-                            entry_id: Set(entry_model.id),
+                            feed_id: Set(feed.id),
+                            entry_id: Set(entry.id),
                             ..Default::default()
                         };
 
@@ -200,11 +202,12 @@ impl FeedsRepository for FeedsSqlRepository {
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(feed_entry_model) = feed_entries::Entity::find()
+                        let Some(feed_entry) = feed_entries::Entity::find()
                             .select_only()
                             .column(feed_entries::Column::Id)
-                            .filter(feed_entries::Column::FeedId.eq(feed_model.id))
-                            .filter(feed_entries::Column::EntryId.eq(entry_model.id))
+                            .filter(feed_entries::Column::FeedId.eq(feed.id))
+                            .filter(feed_entries::Column::EntryId.eq(entry.id))
+                            .into_model::<BigIntInsert>()
                             .one(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
@@ -215,8 +218,9 @@ impl FeedsRepository for FeedsSqlRepository {
                         };
 
                         let profile_feed_entry = profile_feed_entries::ActiveModel {
-                            profile_feed_id: Set(profile_feed_model.id),
-                            feed_entry_id: Set(feed_entry_model.id),
+                            id: Set(Uuid::new_v4()),
+                            profile_feed_id: Set(profile_feed.id),
+                            feed_entry_id: Set(feed_entry.id),
                             ..Default::default()
                         };
 
@@ -234,7 +238,7 @@ impl FeedsRepository for FeedsSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    let Some(feed) = feed_by_id(profile_feed_model.id, data.profile_id)
+                    let Some(feed) = feed_by_id(profile_feed.id, data.profile_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -249,9 +253,7 @@ impl FeedsRepository for FeedsSqlRepository {
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        Ok(feed)
+            })
     }
 
     async fn update(
@@ -407,6 +409,16 @@ impl From<FeedSelect> for Feed {
             unread_count: value.unread_count,
         }
     }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+struct BigIntInsert {
+    id: i64,
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+struct UuidInsert {
+    id: Uuid,
 }
 
 const PROFILE_FEED_COLUMNS: [profile_feeds::Column; 4] = [

@@ -177,8 +177,9 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 Box::pin(async move {
                     let Some(profile) = profiles::Entity::find_by_id(params.id)
                         .select_only()
-                        .column(profiles::Column::Id)
+                        .column(profiles::Column::IsDefault)
                         .filter(profiles::Column::UserId.eq(params.user_id))
+                        .into_model::<ProfileDelete>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -234,6 +235,11 @@ impl From<ProfileSelect> for Profile {
             updated_at: value.updated_at.into(),
         }
     }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+struct ProfileDelete {
+    is_default: bool,
 }
 
 const PROFILE_COLUMNS: [profiles::Column; 6] = [

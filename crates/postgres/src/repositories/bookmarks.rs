@@ -81,8 +81,9 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         query = query.filter(collections::Column::IsDefault.eq(true))
                     }
 
-                    let Some(collection_model) = query
+                    let Some(collection) = query
                         .filter(collections::Column::ProfileId.eq(data.profile_id))
+                        .into_model::<CollectionSelect>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -106,7 +107,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                             .published
                             .map(DateTime::<FixedOffset>::from)),
                         author: Set(data.bookmark.author),
-                        collection_id: Set(collection_model.id),
+                        collection_id: Set(collection.id),
                         ..Default::default()
                     };
 
@@ -140,7 +141,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                             "collection_id",
                         )
                         .join(JoinType::Join, bookmarks::Relation::Collections.def())
-                        .filter(bookmarks::Column::CollectionId.eq(collection_model.id))
+                        .filter(bookmarks::Column::CollectionId.eq(collection.id))
                         .filter(bookmarks::Column::Link.eq(data.url))
                         .filter(collections::Column::ProfileId.eq(data.profile_id))
                         .into_model::<BookmarkSelect>()
@@ -225,6 +226,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         .column(bookmarks::Column::Id)
                         .join(JoinType::Join, bookmarks::Relation::Collections.def())
                         .filter(collections::Column::ProfileId.eq(params.profile_id))
+                        .into_model::<BookmarkDelete>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -283,6 +285,16 @@ impl From<BookmarkSelect> for Bookmark {
             updated_at: value.updated_at.into(),
         }
     }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+struct CollectionSelect {
+    id: Uuid,
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+struct BookmarkDelete {
+    id: Uuid,
 }
 
 const BOOKMARK_COLUMNS: [bookmarks::Column; 12] = [
