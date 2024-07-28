@@ -50,6 +50,8 @@ pub struct Collection {
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[schema(nullable = false)]
+    pub bookmark_count: Option<i64>,
 }
 
 impl From<colette_core::Collection> for Collection {
@@ -60,6 +62,7 @@ impl From<colette_core::Collection> for Collection {
             profile_id: value.profile_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
+            bookmark_count: value.bookmark_count,
         }
     }
 }
