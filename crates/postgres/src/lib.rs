@@ -1,17 +1,15 @@
-pub use repositories::{
-    BookmarksPostgresRepository, CollectionsPostgresRepository, EntriesPostgresRepository,
-    FeedsPostgresRepository, ProfilesPostgresRepository, TagsPostgresRepository,
-    UsersPostgresRepository,
-};
-pub use sqlx::PgPool;
+pub use bookmarks::BookmarksSqlRepository;
+pub use collections::CollectionsSqlRepository;
+pub use entries::EntriesSqlRepository;
+pub use feeds::FeedsSqlRepository;
+pub use profiles::ProfilesSqlRepository;
+pub use tags::TagsSqlRepository;
+pub use users::UsersSqlRepository;
 
-mod queries;
-mod repositories;
-
-pub async fn create_database(url: &str) -> Result<PgPool, sqlx::Error> {
-    let pool = sqlx::PgPool::connect(url).await?;
-
-    sqlx::migrate!().run(&pool).await?;
-
-    Ok(pool)
-}
+mod bookmarks;
+mod collections;
+mod entries;
+mod feeds;
+mod profiles;
+mod tags;
+mod users;
