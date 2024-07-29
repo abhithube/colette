@@ -1,3 +1,4 @@
+use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
@@ -90,6 +91,18 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
+
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                #[cfg(feature = "postgres")]
+                crate::postgres::create_updated_at_trigger(manager, "tags").await?;
+            }
+            DatabaseBackend::Sqlite => {
+                #[cfg(feature = "sqlite")]
+                crate::sqlite::create_updated_at_trigger(manager, "tags").await?;
+            }
+            _ => {}
+        }
 
         Ok(())
     }

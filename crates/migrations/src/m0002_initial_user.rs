@@ -1,3 +1,4 @@
+use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -63,6 +64,24 @@ CREATE UNIQUE INDEX profiles_user_id_is_default_key
  WHERE is_default",
             )
             .await?;
+
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                #[cfg(feature = "postgres")]
+                {
+                    crate::postgres::create_updated_at_trigger(manager, "users").await?;
+                    crate::postgres::create_updated_at_trigger(manager, "profiles").await?;
+                }
+            }
+            DatabaseBackend::Sqlite => {
+                #[cfg(feature = "sqlite")]
+                {
+                    crate::sqlite::create_updated_at_trigger(manager, "users").await?;
+                    crate::sqlite::create_updated_at_trigger(manager, "profiles").await?;
+                }
+            }
+            _ => {}
+        }
 
         Ok(())
     }

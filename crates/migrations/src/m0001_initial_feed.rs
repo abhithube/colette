@@ -1,3 +1,4 @@
+use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 
 #[derive(DeriveMigrationName)]
@@ -71,6 +72,11 @@ impl MigrationTrait for Migration {
                     .to_owned(),
             )
             .await?;
+
+        if manager.get_database_backend() == DatabaseBackend::Postgres {
+            #[cfg(feature = "postgres")]
+            crate::postgres::create_updated_at_fn(manager).await?;
+        }
 
         Ok(())
     }
