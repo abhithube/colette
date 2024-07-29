@@ -5,7 +5,7 @@ use colette_core::{
     tags::{Error, Tag, TagsCreateData, TagsRepository, TagsUpdateData},
     TagDetails,
 };
-use colette_entities::tags;
+use colette_entities::tag;
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QuerySelect, SelectModel,
     Selector, Set, TransactionError, TransactionTrait,
@@ -25,10 +25,10 @@ impl TagsSqlRepository {
 #[async_trait::async_trait]
 impl TagsRepository for TagsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error> {
-        tags::Entity::find()
+        tag::Entity::find()
             .select_only()
-            .columns([tags::Column::Id, tags::Column::Title])
-            .filter(tags::Column::ProfileId.eq(params.profile_id))
+            .columns([tag::Column::Id, tag::Column::Title])
+            .filter(tag::Column::ProfileId.eq(params.profile_id))
             .into_model::<TagSelect>()
             .all(&self.db)
             .await
@@ -53,14 +53,14 @@ impl TagsRepository for TagsSqlRepository {
             .transaction::<_, TagDetails, Error>(|txn| {
                 Box::pin(async move {
                     let new_id = Uuid::new_v4();
-                    let model = tags::ActiveModel {
+                    let model = tag::ActiveModel {
                         id: Set(new_id),
                         title: Set(data.title),
                         profile_id: Set(data.profile_id),
                         ..Default::default()
                     };
 
-                    tags::Entity::insert(model)
+                    tag::Entity::insert(model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -91,7 +91,7 @@ impl TagsRepository for TagsSqlRepository {
         self.db
             .transaction::<_, TagDetails, Error>(|txn| {
                 Box::pin(async move {
-                    let mut model = tags::ActiveModel {
+                    let mut model = tag::ActiveModel {
                         id: Set(params.id),
                         ..Default::default()
                     };
@@ -99,8 +99,8 @@ impl TagsRepository for TagsSqlRepository {
                         model.title = Set(title);
                     }
 
-                    tags::Entity::update(model)
-                        .filter(tags::Column::ProfileId.eq(params.profile_id))
+                    tag::Entity::update(model)
+                        .filter(tag::Column::ProfileId.eq(params.profile_id))
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
@@ -129,8 +129,8 @@ impl TagsRepository for TagsSqlRepository {
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
-        let result = tags::Entity::delete_by_id(params.id)
-            .filter(tags::Column::ProfileId.eq(params.profile_id))
+        let result = tag::Entity::delete_by_id(params.id)
+            .filter(tag::Column::ProfileId.eq(params.profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -180,15 +180,15 @@ impl From<TagDetailsSelect> for TagDetails {
 }
 
 fn tag_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<TagDetailsSelect>> {
-    tags::Entity::find_by_id(id)
+    tag::Entity::find_by_id(id)
         .select_only()
         .columns([
-            tags::Column::Id,
-            tags::Column::Title,
-            tags::Column::ProfileId,
-            tags::Column::CreatedAt,
-            tags::Column::UpdatedAt,
+            tag::Column::Id,
+            tag::Column::Title,
+            tag::Column::ProfileId,
+            tag::Column::CreatedAt,
+            tag::Column::UpdatedAt,
         ])
-        .filter(tags::Column::ProfileId.eq(profile_id))
+        .filter(tag::Column::ProfileId.eq(profile_id))
         .into_model::<TagDetailsSelect>()
 }

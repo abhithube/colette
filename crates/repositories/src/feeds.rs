@@ -6,7 +6,7 @@ use colette_core::{
     Feed,
 };
 use colette_entities::{
-    entries, feed_entries, feeds, profile_feed_entries, profile_feed_tags, profile_feeds,
+    entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
@@ -30,32 +30,32 @@ impl FeedsSqlRepository {
 #[async_trait::async_trait]
 impl FeedsRepository for FeedsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error> {
-        profile_feeds::Entity::find()
+        profile_feed::Entity::find()
             .select_only()
             .columns(PROFILE_FEED_COLUMNS)
             .columns(FEED_COLUMNS)
-            .column_as(profile_feed_entries::Column::Id.count(), "unread_count")
-            .join(JoinType::Join, profile_feeds::Relation::Feeds.def())
-            .join(JoinType::Join, feeds::Relation::FeedEntries.def())
+            .column_as(profile_feed_entry::Column::Id.count(), "unread_count")
+            .join(JoinType::Join, profile_feed::Relation::Feed.def())
+            .join(JoinType::Join, feed::Relation::FeedEntry.def())
             .join(
                 JoinType::LeftJoin,
-                profile_feed_entries::Relation::FeedEntries
+                profile_feed_entry::Relation::FeedEntry
                     .def()
                     .rev()
                     .on_condition(|_, right| {
-                        Expr::col((right, profile_feed_entries::Column::HasRead))
+                        Expr::col((right, profile_feed_entry::Column::HasRead))
                             .eq(false)
                             .into_condition()
                     }),
             )
-            .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
-            .group_by(profile_feeds::Column::Id)
-            .group_by(feeds::Column::Link)
-            .group_by(feeds::Column::Title)
-            .group_by(feeds::Column::Url)
-            .order_by_asc(profile_feeds::Column::CustomTitle)
-            .order_by_asc(feeds::Column::Title)
-            .order_by_asc(profile_feeds::Column::Id)
+            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+            .group_by(profile_feed::Column::Id)
+            .group_by(feed::Column::Link)
+            .group_by(feed::Column::Title)
+            .group_by(feed::Column::Url)
+            .order_by_asc(profile_feed::Column::CustomTitle)
+            .order_by_asc(feed::Column::Title)
+            .order_by_asc(profile_feed::Column::Id)
             .into_model::<FeedSelect>()
             .all(&self.db)
             .await
@@ -80,7 +80,7 @@ impl FeedsRepository for FeedsSqlRepository {
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
                     let link = data.feed.link.to_string();
-                    let feed_model = feeds::ActiveModel {
+                    let feed_model = feed::ActiveModel {
                         link: Set(link.clone()),
                         title: Set(data.feed.title),
                         url: Set(if data.url == link {
@@ -91,21 +91,21 @@ impl FeedsRepository for FeedsSqlRepository {
                         ..Default::default()
                     };
 
-                    feeds::Entity::insert(feed_model)
+                    feed::Entity::insert(feed_model)
                         .on_conflict(
-                            OnConflict::column(feeds::Column::Link)
-                                .update_columns([feeds::Column::Title, feeds::Column::Url])
+                            OnConflict::column(feed::Column::Link)
+                                .update_columns([feed::Column::Title, feed::Column::Url])
                                 .to_owned(),
                         )
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(feed) = feeds::Entity::find()
+                    let Some(feed) = feed::Entity::find()
                         .select_only()
-                        .column(feeds::Column::Id)
-                        .filter(feeds::Column::Link.eq(link))
-                        .into_model::<BigIntInsert>()
+                        .column(feed::Column::Id)
+                        .filter(feed::Column::Link.eq(link))
+                        .into_model::<IntInsert>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -113,31 +113,31 @@ impl FeedsRepository for FeedsSqlRepository {
                         return Err(Error::Unknown(anyhow!("Failed to fetch created feed")));
                     };
 
-                    let profile_feed_model = profile_feeds::ActiveModel {
+                    let profile_feed_model = profile_feed::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         profile_id: Set(data.profile_id),
                         feed_id: Set(feed.id),
                         ..Default::default()
                     };
 
-                    profile_feeds::Entity::insert(profile_feed_model)
+                    profile_feed::Entity::insert(profile_feed_model)
                         .on_conflict(
                             OnConflict::columns([
-                                profile_feeds::Column::ProfileId,
-                                profile_feeds::Column::FeedId,
+                                profile_feed::Column::ProfileId,
+                                profile_feed::Column::FeedId,
                             ])
-                            .do_nothing_on([profile_feeds::Column::Id])
+                            .do_nothing_on([profile_feed::Column::Id])
                             .to_owned(),
                         )
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(profile_feed) = profile_feeds::Entity::find()
+                    let Some(profile_feed) = profile_feed::Entity::find()
                         .select_only()
-                        .column(profile_feeds::Column::Id)
-                        .filter(profile_feeds::Column::ProfileId.eq(data.profile_id))
-                        .filter(profile_feeds::Column::FeedId.eq(feed.id))
+                        .column(profile_feed::Column::Id)
+                        .filter(profile_feed::Column::ProfileId.eq(data.profile_id))
+                        .filter(profile_feed::Column::FeedId.eq(feed.id))
                         .into_model::<UuidInsert>()
                         .one(txn)
                         .await
@@ -150,7 +150,7 @@ impl FeedsRepository for FeedsSqlRepository {
 
                     for e in data.feed.entries {
                         let link = e.link.to_string();
-                        let entry_model = entries::ActiveModel {
+                        let entry_model = entry::ActiveModel {
                             link: Set(link.clone()),
                             title: Set(e.title),
                             published_at: Set(e.published.map(|e| e.into())),
@@ -160,15 +160,15 @@ impl FeedsRepository for FeedsSqlRepository {
                             ..Default::default()
                         };
 
-                        entries::Entity::insert(entry_model)
+                        entry::Entity::insert(entry_model)
                             .on_conflict(
-                                OnConflict::column(entries::Column::Link)
+                                OnConflict::column(entry::Column::Link)
                                     .update_columns([
-                                        entries::Column::Title,
-                                        entries::Column::PublishedAt,
-                                        entries::Column::Description,
-                                        entries::Column::Author,
-                                        entries::Column::ThumbnailUrl,
+                                        entry::Column::Title,
+                                        entry::Column::PublishedAt,
+                                        entry::Column::Description,
+                                        entry::Column::Author,
+                                        entry::Column::ThumbnailUrl,
                                     ])
                                     .to_owned(),
                             )
@@ -176,11 +176,11 @@ impl FeedsRepository for FeedsSqlRepository {
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(entry) = entries::Entity::find()
+                        let Some(entry) = entry::Entity::find()
                             .select_only()
-                            .column(entries::Column::Id)
-                            .filter(entries::Column::Link.eq(link))
-                            .into_model::<BigIntInsert>()
+                            .column(entry::Column::Id)
+                            .filter(entry::Column::Link.eq(link))
+                            .into_model::<IntInsert>()
                             .one(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
@@ -188,31 +188,31 @@ impl FeedsRepository for FeedsSqlRepository {
                             return Err(Error::Unknown(anyhow!("Failed to fetch created entry")));
                         };
 
-                        let feed_entry_model = feed_entries::ActiveModel {
+                        let feed_entry_model = feed_entry::ActiveModel {
                             feed_id: Set(feed.id),
                             entry_id: Set(entry.id),
                             ..Default::default()
                         };
 
-                        feed_entries::Entity::insert(feed_entry_model)
+                        feed_entry::Entity::insert(feed_entry_model)
                             .on_conflict(
                                 OnConflict::columns([
-                                    feed_entries::Column::FeedId,
-                                    feed_entries::Column::EntryId,
+                                    feed_entry::Column::FeedId,
+                                    feed_entry::Column::EntryId,
                                 ])
-                                .do_nothing_on([feed_entries::Column::Id])
+                                .do_nothing_on([feed_entry::Column::Id])
                                 .to_owned(),
                             )
                             .exec_without_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(feed_entry) = feed_entries::Entity::find()
+                        let Some(feed_entry) = feed_entry::Entity::find()
                             .select_only()
-                            .column(feed_entries::Column::Id)
-                            .filter(feed_entries::Column::FeedId.eq(feed.id))
-                            .filter(feed_entries::Column::EntryId.eq(entry.id))
-                            .into_model::<BigIntInsert>()
+                            .column(feed_entry::Column::Id)
+                            .filter(feed_entry::Column::FeedId.eq(feed.id))
+                            .filter(feed_entry::Column::EntryId.eq(entry.id))
+                            .into_model::<IntInsert>()
                             .one(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
@@ -222,20 +222,20 @@ impl FeedsRepository for FeedsSqlRepository {
                             )));
                         };
 
-                        let profile_feed_entry = profile_feed_entries::ActiveModel {
+                        let profile_feed_entry = profile_feed_entry::ActiveModel {
                             id: Set(Uuid::new_v4()),
                             profile_feed_id: Set(profile_feed.id),
                             feed_entry_id: Set(feed_entry.id),
                             ..Default::default()
                         };
 
-                        profile_feed_entries::Entity::insert(profile_feed_entry)
+                        profile_feed_entry::Entity::insert(profile_feed_entry)
                             .on_conflict(
                                 OnConflict::columns([
-                                    profile_feed_entries::Column::ProfileFeedId,
-                                    profile_feed_entries::Column::FeedEntryId,
+                                    profile_feed_entry::Column::ProfileFeedId,
+                                    profile_feed_entry::Column::FeedEntryId,
                                 ])
-                                .do_nothing_on([profile_feed_entries::Column::Id])
+                                .do_nothing_on([profile_feed_entry::Column::Id])
                                 .to_owned(),
                             )
                             .exec_without_returning(txn)
@@ -269,7 +269,7 @@ impl FeedsRepository for FeedsSqlRepository {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
-                    let mut model = profile_feeds::ActiveModel {
+                    let mut model = profile_feed::ActiveModel {
                         id: Set(params.id),
                         ..Default::default()
                     };
@@ -277,8 +277,8 @@ impl FeedsRepository for FeedsSqlRepository {
                         model.custom_title = Set(data.custom_title)
                     }
 
-                    profile_feeds::Entity::update(model)
-                        .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
+                    profile_feed::Entity::update(model)
+                        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
@@ -293,17 +293,17 @@ impl FeedsRepository for FeedsSqlRepository {
                             UpdateTagList::Add(tag_ids) => {
                                 let models = tag_ids
                                     .into_iter()
-                                    .map(|id| profile_feed_tags::ActiveModel {
+                                    .map(|id| profile_feed_tag::ActiveModel {
                                         tag_id: Set(id),
                                         profile_feed_id: Set(params.id),
                                     })
                                     .collect::<Vec<_>>();
 
-                                profile_feed_tags::Entity::insert_many(models)
+                                profile_feed_tag::Entity::insert_many(models)
                                     .on_conflict(
                                         OnConflict::columns([
-                                            profile_feed_tags::Column::ProfileFeedId,
-                                            profile_feed_tags::Column::TagId,
+                                            profile_feed_tag::Column::ProfileFeedId,
+                                            profile_feed_tag::Column::TagId,
                                         ])
                                         .do_nothing()
                                         .to_owned(),
@@ -313,29 +313,29 @@ impl FeedsRepository for FeedsSqlRepository {
                                     .map_err(|e| Error::Unknown(e.into()))?;
                             }
                             UpdateTagList::Remove(tag_ids) => {
-                                profile_feed_tags::Entity::delete_many()
-                                    .filter(profile_feed_tags::Column::ProfileFeedId.eq(params.id))
-                                    .filter(profile_feed_tags::Column::TagId.is_in(tag_ids))
+                                profile_feed_tag::Entity::delete_many()
+                                    .filter(profile_feed_tag::Column::ProfileFeedId.eq(params.id))
+                                    .filter(profile_feed_tag::Column::TagId.is_in(tag_ids))
                                     .exec(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
                             }
                             UpdateTagList::Set(tag_ids) => {
-                                profile_feed_tags::Entity::delete_many()
-                                    .filter(profile_feed_tags::Column::ProfileFeedId.eq(params.id))
+                                profile_feed_tag::Entity::delete_many()
+                                    .filter(profile_feed_tag::Column::ProfileFeedId.eq(params.id))
                                     .exec(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
 
                                 let models = tag_ids
                                     .into_iter()
-                                    .map(|id| profile_feed_tags::ActiveModel {
+                                    .map(|id| profile_feed_tag::ActiveModel {
                                         tag_id: Set(id),
                                         profile_feed_id: Set(params.id),
                                     })
                                     .collect::<Vec<_>>();
 
-                                profile_feed_tags::Entity::insert_many(models)
+                                profile_feed_tag::Entity::insert_many(models)
                                     .exec_without_returning(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
@@ -362,8 +362,8 @@ impl FeedsRepository for FeedsSqlRepository {
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
-        let result = profile_feeds::Entity::delete_by_id(params.id)
-            .filter(profile_feeds::Column::ProfileId.eq(params.profile_id))
+        let result = profile_feed::Entity::delete_by_id(params.id)
+            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -376,13 +376,13 @@ impl FeedsRepository for FeedsSqlRepository {
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
-        feeds::Entity::find()
+        feed::Entity::find()
             .select_only()
-            .column(feeds::Column::Id)
+            .column(feed::Column::Id)
             .expr_as(
                 Func::coalesce([
-                    Expr::col(feeds::Column::Url).into(),
-                    Expr::col(feeds::Column::Link).into(),
+                    Expr::col(feed::Column::Url).into(),
+                    Expr::col(feed::Column::Link).into(),
                 ]),
                 "url",
             )
@@ -405,17 +405,17 @@ impl FeedsRepository for FeedsSqlRepository {
             .transaction::<_, (), DbErr>(|txn| {
                 Box::pin(async move {
                     let subquery = Query::select()
-                        .from(profile_feed_entries::Entity)
+                        .from(profile_feed_entry::Entity)
                         .and_where(
                             Expr::col((
-                                profile_feed_entries::Entity,
-                                profile_feed_entries::Column::FeedEntryId,
+                                profile_feed_entry::Entity,
+                                profile_feed_entry::Column::FeedEntryId,
                             ))
-                            .equals((feed_entries::Entity, feed_entries::Column::Id)),
+                            .equals((feed_entry::Entity, feed_entry::Column::Id)),
                         )
                         .to_owned();
 
-                    let result = feed_entries::Entity::delete_many()
+                    let result = feed_entry::Entity::delete_many()
                         .filter(Expr::exists(subquery).not())
                         .exec(txn)
                         .await?;
@@ -423,14 +423,14 @@ impl FeedsRepository for FeedsSqlRepository {
                     println!("Deleted {} orphaned feed entries", result.rows_affected);
 
                     let subquery = Query::select()
-                        .from(feed_entries::Entity)
+                        .from(feed_entry::Entity)
                         .and_where(
-                            Expr::col((feed_entries::Entity, feed_entries::Column::EntryId))
-                                .equals((entries::Entity, entries::Column::Id)),
+                            Expr::col((feed_entry::Entity, feed_entry::Column::EntryId))
+                                .equals((entry::Entity, entry::Column::Id)),
                         )
                         .to_owned();
 
-                    let result = entries::Entity::delete_many()
+                    let result = entry::Entity::delete_many()
                         .filter(Expr::exists(subquery).not())
                         .exec(txn)
                         .await?;
@@ -438,14 +438,14 @@ impl FeedsRepository for FeedsSqlRepository {
                     println!("Deleted {} orphaned entries", result.rows_affected);
 
                     let subquery = Query::select()
-                        .from(profile_feeds::Entity)
+                        .from(profile_feed::Entity)
                         .and_where(
-                            Expr::col((profile_feeds::Entity, profile_feeds::Column::FeedId))
-                                .equals((feeds::Entity, feeds::Column::Id)),
+                            Expr::col((profile_feed::Entity, profile_feed::Column::FeedId))
+                                .equals((feed::Entity, feed::Column::Id)),
                         )
                         .to_owned();
 
-                    let result = feeds::Entity::delete_many()
+                    let result = feed::Entity::delete_many()
                         .filter(Expr::exists(subquery).not())
                         .exec(txn)
                         .await?;
@@ -492,8 +492,8 @@ impl From<FeedSelect> for Feed {
 }
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct BigIntInsert {
-    id: i64,
+struct IntInsert {
+    id: i32,
 }
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
@@ -503,56 +503,53 @@ struct UuidInsert {
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct StreamSelect {
-    pub id: i64,
+    pub id: i32,
     pub url: String,
 }
 
 impl From<StreamSelect> for StreamFeed {
     fn from(value: StreamSelect) -> Self {
         Self {
-            id: value.id,
+            id: value.id.into(),
             url: value.url,
         }
     }
 }
 
-const PROFILE_FEED_COLUMNS: [profile_feeds::Column; 5] = [
-    profile_feeds::Column::Id,
-    profile_feeds::Column::CustomTitle,
-    profile_feeds::Column::ProfileId,
-    profile_feeds::Column::CreatedAt,
-    profile_feeds::Column::UpdatedAt,
+const PROFILE_FEED_COLUMNS: [profile_feed::Column; 5] = [
+    profile_feed::Column::Id,
+    profile_feed::Column::CustomTitle,
+    profile_feed::Column::ProfileId,
+    profile_feed::Column::CreatedAt,
+    profile_feed::Column::UpdatedAt,
 ];
 
-const FEED_COLUMNS: [feeds::Column; 3] = [
-    feeds::Column::Link,
-    feeds::Column::Title,
-    feeds::Column::Url,
-];
+const FEED_COLUMNS: [feed::Column; 3] =
+    [feed::Column::Link, feed::Column::Title, feed::Column::Url];
 
 fn feed_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<FeedSelect>> {
-    profile_feeds::Entity::find_by_id(id)
+    profile_feed::Entity::find_by_id(id)
         .select_only()
         .columns(PROFILE_FEED_COLUMNS)
         .columns(FEED_COLUMNS)
-        .column_as(profile_feed_entries::Column::Id.count(), "unread_count")
-        .join(JoinType::Join, profile_feeds::Relation::Feeds.def())
-        .join(JoinType::Join, feeds::Relation::FeedEntries.def())
+        .column_as(profile_feed_entry::Column::Id.count(), "unread_count")
+        .join(JoinType::Join, profile_feed::Relation::Feed.def())
+        .join(JoinType::Join, feed::Relation::FeedEntry.def())
         .join(
             JoinType::LeftJoin,
-            profile_feed_entries::Relation::FeedEntries
+            profile_feed_entry::Relation::FeedEntry
                 .def()
                 .rev()
                 .on_condition(|_, right| {
-                    Expr::col((right, profile_feed_entries::Column::HasRead))
+                    Expr::col((right, profile_feed_entry::Column::HasRead))
                         .eq(false)
                         .into_condition()
                 }),
         )
-        .filter(profile_feeds::Column::ProfileId.eq(profile_id))
-        .group_by(profile_feeds::Column::Id)
-        .group_by(feeds::Column::Link)
-        .group_by(feeds::Column::Title)
-        .group_by(feeds::Column::Url)
+        .filter(profile_feed::Column::ProfileId.eq(profile_id))
+        .group_by(profile_feed::Column::Id)
+        .group_by(feed::Column::Link)
+        .group_by(feed::Column::Title)
+        .group_by(feed::Column::Url)
         .into_model::<FeedSelect>()
 }

@@ -4,7 +4,7 @@ use colette_core::{
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
-use colette_entities::{entries, feed_entries, profile_feed_entries, profile_feeds};
+use colette_entities::{entry, feed_entry, profile_feed, profile_feed_entry};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
     RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
@@ -24,35 +24,35 @@ impl EntriesSqlRepository {
 #[async_trait::async_trait]
 impl EntriesRepository for EntriesSqlRepository {
     async fn find_many(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
-        let mut query = profile_feed_entries::Entity::find()
+        let mut query = profile_feed_entry::Entity::find()
             .select_only()
             .columns(PROFILE_FEED_ENTRY_COLUMNS)
             .columns(ENTRY_COLUMNS)
-            .column_as(profile_feed_entries::Column::ProfileFeedId, "feed_id")
+            .column_as(profile_feed_entry::Column::ProfileFeedId, "feed_id")
             .join(
                 JoinType::Join,
-                profile_feed_entries::Relation::ProfileFeeds.def(),
+                profile_feed_entry::Relation::ProfileFeed.def(),
             )
             .join(
                 JoinType::Join,
-                profile_feed_entries::Relation::FeedEntries.def(),
+                profile_feed_entry::Relation::FeedEntry.def(),
             )
-            .join(JoinType::Join, feed_entries::Relation::Entries.def())
-            .filter(profile_feeds::Column::ProfileId.eq(params.profile_id));
+            .join(JoinType::Join, feed_entry::Relation::Entry.def())
+            .filter(profile_feed::Column::ProfileId.eq(params.profile_id));
 
         if let Some(published_at) = params.published_at {
-            query = query.filter(entries::Column::PublishedAt.lt(published_at))
+            query = query.filter(entry::Column::PublishedAt.lt(published_at))
         }
         if let Some(feed_id) = params.feed_id {
-            query = query.filter(profile_feed_entries::Column::ProfileFeedId.eq(feed_id))
+            query = query.filter(profile_feed_entry::Column::ProfileFeedId.eq(feed_id))
         }
         if let Some(has_read) = params.has_read {
-            query = query.filter(profile_feed_entries::Column::HasRead.eq(has_read))
+            query = query.filter(profile_feed_entry::Column::HasRead.eq(has_read))
         }
 
         query
-            .order_by_desc(entries::Column::PublishedAt)
-            .order_by_asc(profile_feed_entries::Column::Id)
+            .order_by_desc(entry::Column::PublishedAt)
+            .order_by_asc(profile_feed_entry::Column::Id)
             .limit(params.limit as u64)
             .into_model::<EntrySelect>()
             .all(&self.db)
@@ -73,7 +73,7 @@ impl EntriesRepository for EntriesSqlRepository {
                         return Err(Error::NotFound(params.id));
                     };
 
-                    let mut model = profile_feed_entries::ActiveModel {
+                    let mut model = profile_feed_entry::ActiveModel {
                         id: Set(params.id),
                         ..Default::default()
                     };
@@ -81,7 +81,7 @@ impl EntriesRepository for EntriesSqlRepository {
                         model.has_read = Set(has_read);
                     }
 
-                    let model = profile_feed_entries::Entity::update(model)
+                    let model = profile_feed_entry::Entity::update(model)
                         .exec(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -128,34 +128,34 @@ impl From<EntrySelect> for Entry {
     }
 }
 
-const PROFILE_FEED_ENTRY_COLUMNS: [profile_feed_entries::Column; 2] = [
-    profile_feed_entries::Column::Id,
-    profile_feed_entries::Column::HasRead,
+const PROFILE_FEED_ENTRY_COLUMNS: [profile_feed_entry::Column; 2] = [
+    profile_feed_entry::Column::Id,
+    profile_feed_entry::Column::HasRead,
 ];
 
-const ENTRY_COLUMNS: [entries::Column; 5] = [
-    entries::Column::Link,
-    entries::Column::Title,
-    entries::Column::PublishedAt,
-    entries::Column::Author,
-    entries::Column::ThumbnailUrl,
+const ENTRY_COLUMNS: [entry::Column; 5] = [
+    entry::Column::Link,
+    entry::Column::Title,
+    entry::Column::PublishedAt,
+    entry::Column::Author,
+    entry::Column::ThumbnailUrl,
 ];
 
 fn entry_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<EntrySelect>> {
-    profile_feed_entries::Entity::find_by_id(id)
+    profile_feed_entry::Entity::find_by_id(id)
         .select_only()
         .columns(PROFILE_FEED_ENTRY_COLUMNS)
         .columns(ENTRY_COLUMNS)
-        .column_as(profile_feed_entries::Column::ProfileFeedId, "feed_id")
+        .column_as(profile_feed_entry::Column::ProfileFeedId, "feed_id")
         .join(
             JoinType::Join,
-            profile_feed_entries::Relation::ProfileFeeds.def(),
+            profile_feed_entry::Relation::ProfileFeed.def(),
         )
         .join(
             JoinType::Join,
-            profile_feed_entries::Relation::FeedEntries.def(),
+            profile_feed_entry::Relation::FeedEntry.def(),
         )
-        .join(JoinType::Join, feed_entries::Relation::Entries.def())
-        .filter(profile_feeds::Column::ProfileId.eq(profile_id))
+        .join(JoinType::Join, feed_entry::Relation::Entry.def())
+        .filter(profile_feed::Column::ProfileId.eq(profile_id))
         .into_model::<EntrySelect>()
 }

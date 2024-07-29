@@ -2,15 +2,15 @@
 
 pub mod prelude;
 
-pub mod bookmark_tags;
-pub mod bookmarks;
-pub mod collections;
-pub mod entries;
-pub mod feed_entries;
-pub mod feeds;
-pub mod profile_feed_entries;
-pub mod profile_feed_tags;
-pub mod profile_feeds;
-pub mod profiles;
-pub mod tags;
-pub mod users;
+pub mod bookmark;
+pub mod bookmark_tag;
+pub mod collection;
+pub mod entry;
+pub mod feed;
+pub mod feed_entry;
+pub mod profile;
+pub mod profile_feed;
+pub mod profile_feed_entry;
+pub mod profile_feed_tag;
+pub mod tag;
+pub mod user;

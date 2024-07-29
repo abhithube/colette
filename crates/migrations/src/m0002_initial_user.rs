@@ -61,20 +61,20 @@ impl MigrationTrait for Migration {
             .get_connection()
             .execute_unprepared(
                 "
-CREATE UNIQUE INDEX profiles_user_id_is_default_key
-    ON profiles (user_id, is_default)
- WHERE is_default",
+        CREATE UNIQUE INDEX profile_user_id_is_default_key
+            ON \"profile\" (user_id, is_default)
+         WHERE is_default",
             )
             .await?;
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                postgres::create_updated_at_trigger(manager, "users").await?;
-                postgres::create_updated_at_trigger(manager, "profiles").await?;
+                postgres::create_updated_at_trigger(manager, "user").await?;
+                postgres::create_updated_at_trigger(manager, "profile").await?;
             }
             DatabaseBackend::Sqlite => {
-                sqlite::create_updated_at_trigger(manager, "users").await?;
-                sqlite::create_updated_at_trigger(manager, "profiles").await?;
+                sqlite::create_updated_at_trigger(manager, "user").await?;
+                sqlite::create_updated_at_trigger(manager, "profile").await?;
             }
             _ => {}
         }
@@ -97,7 +97,6 @@ CREATE UNIQUE INDEX profiles_user_id_is_default_key
 
 #[derive(DeriveIden)]
 pub enum User {
-    #[sea_orm(iden = "users")]
     Table,
     Id,
     Email,
@@ -108,7 +107,6 @@ pub enum User {
 
 #[derive(DeriveIden)]
 pub enum Profile {
-    #[sea_orm(iden = "profiles")]
     Table,
     Id,
     Title,

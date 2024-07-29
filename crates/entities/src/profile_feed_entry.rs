@@ -3,44 +3,44 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "profile_feed_entries")]
+#[sea_orm(table_name = "profile_feed_entry")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub has_read: bool,
     pub profile_feed_id: Uuid,
-    pub feed_entry_id: i64,
+    pub feed_entry_id: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::feed_entries::Entity",
+        belongs_to = "super::feed_entry::Entity",
         from = "Column::FeedEntryId",
-        to = "super::feed_entries::Column::Id",
+        to = "super::feed_entry::Column::Id",
         on_update = "NoAction",
         on_delete = "Restrict"
     )]
-    FeedEntries,
+    FeedEntry,
     #[sea_orm(
-        belongs_to = "super::profile_feeds::Entity",
+        belongs_to = "super::profile_feed::Entity",
         from = "Column::ProfileFeedId",
-        to = "super::profile_feeds::Column::Id",
+        to = "super::profile_feed::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    ProfileFeeds,
+    ProfileFeed,
 }
 
-impl Related<super::feed_entries::Entity> for Entity {
+impl Related<super::feed_entry::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::FeedEntries.def()
+        Relation::FeedEntry.def()
     }
 }
 
-impl Related<super::profile_feeds::Entity> for Entity {
+impl Related<super::profile_feed::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ProfileFeeds.def()
+        Relation::ProfileFeed.def()
     }
 }
 

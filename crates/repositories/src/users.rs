@@ -4,7 +4,7 @@ use colette_core::{
     users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
 };
-use colette_entities::{collections, profiles, users};
+use colette_entities::{collection, profile, user};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, SelectModel, Selector,
     Set, SqlErr, TransactionTrait,
@@ -24,10 +24,10 @@ impl UsersSqlRepository {
 #[async_trait::async_trait]
 impl UsersRepository for UsersSqlRepository {
     async fn find_one(&self, params: UsersFindOneParams) -> Result<User, Error> {
-        let Some(user) = users::Entity::find()
+        let Some(user) = user::Entity::find()
             .select_only()
             .columns(USER_COLUMNS)
-            .filter(users::Column::Email.eq(&params.email))
+            .filter(user::Column::Email.eq(&params.email))
             .into_model::<UserSelect>()
             .one(&self.db)
             .await
@@ -44,14 +44,14 @@ impl UsersRepository for UsersSqlRepository {
             .transaction::<_, User, Error>(|txn| {
                 Box::pin(async move {
                     let new_user_id = Uuid::new_v4();
-                    let user = users::ActiveModel {
+                    let user = user::ActiveModel {
                         id: Set(new_user_id),
                         email: Set(data.email.clone()),
                         password: Set(data.password),
                         ..Default::default()
                     };
 
-                    users::Entity::insert(user)
+                    user::Entity::insert(user)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| match e.sql_err() {
@@ -62,7 +62,7 @@ impl UsersRepository for UsersSqlRepository {
                         })?;
 
                     let new_profile_id = Uuid::new_v4();
-                    let profile_model = profiles::ActiveModel {
+                    let profile_model = profile::ActiveModel {
                         id: Set(new_profile_id),
                         title: Set("Default".to_owned()),
                         is_default: Set(true),
@@ -70,12 +70,12 @@ impl UsersRepository for UsersSqlRepository {
                         ..Default::default()
                     };
 
-                    profiles::Entity::insert(profile_model)
+                    profile::Entity::insert(profile_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let collection_model = collections::ActiveModel {
+                    let collection_model = collection::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         title: Set("Default".to_owned()),
                         is_default: Set(true),
@@ -83,7 +83,7 @@ impl UsersRepository for UsersSqlRepository {
                         ..Default::default()
                     };
 
-                    collections::Entity::insert(collection_model)
+                    collection::Entity::insert(collection_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -125,16 +125,16 @@ impl From<UserSelect> for User {
     }
 }
 
-const USER_COLUMNS: [users::Column; 5] = [
-    users::Column::Id,
-    users::Column::Email,
-    users::Column::Password,
-    users::Column::CreatedAt,
-    users::Column::UpdatedAt,
+const USER_COLUMNS: [user::Column; 5] = [
+    user::Column::Id,
+    user::Column::Email,
+    user::Column::Password,
+    user::Column::CreatedAt,
+    user::Column::UpdatedAt,
 ];
 
 fn user_by_id(id: Uuid) -> Selector<SelectModel<UserSelect>> {
-    users::Entity::find_by_id(id)
+    user::Entity::find_by_id(id)
         .select_only()
         .columns(USER_COLUMNS)
         .into_model::<UserSelect>()

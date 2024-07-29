@@ -94,10 +94,10 @@ impl MigrationTrait for Migration {
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                postgres::create_updated_at_trigger(manager, "tags").await?;
+                postgres::create_updated_at_trigger(manager, "tag").await?;
             }
             DatabaseBackend::Sqlite => {
-                sqlite::create_updated_at_trigger(manager, "tags").await?;
+                sqlite::create_updated_at_trigger(manager, "tag").await?;
             }
             _ => {}
         }
@@ -124,7 +124,6 @@ impl MigrationTrait for Migration {
 
 #[derive(DeriveIden)]
 pub enum Tag {
-    #[sea_orm(iden = "tags")]
     Table,
     Id,
     Title,
@@ -135,7 +134,6 @@ pub enum Tag {
 
 #[derive(DeriveIden)]
 pub enum ProfileFeedTag {
-    #[sea_orm(iden = "profile_feed_tags")]
     Table,
     ProfileFeedId,
     TagId,
@@ -143,7 +141,6 @@ pub enum ProfileFeedTag {
 
 #[derive(DeriveIden)]
 pub enum BookmarkTag {
-    #[sea_orm(iden = "bookmark_tags")]
     Table,
     BookmarkId,
     TagId,

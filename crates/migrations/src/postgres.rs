@@ -24,7 +24,7 @@ pub async fn create_updated_at_trigger<'a>(
         .execute_unprepared(&format!(
             "
  CREATE TRIGGER {table}_updated_at
- BEFORE UPDATE ON {table}
+ BEFORE UPDATE ON \"{table}\"
     FOR EACH ROW
 EXECUTE FUNCTION handle_updated_at()",
             table = table_name,

@@ -14,7 +14,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Feed::Table)
                     .if_not_exists()
-                    .col(big_integer(Feed::Id).primary_key().auto_increment())
+                    .col(integer(Feed::Id).primary_key().auto_increment())
                     .col(text_uniq(Feed::Link))
                     .col(text(Feed::Title))
                     .col(text_null(Feed::Url))
@@ -27,7 +27,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Entry::Table)
                     .if_not_exists()
-                    .col(big_integer(Entry::Id).primary_key().auto_increment())
+                    .col(integer(Entry::Id).primary_key().auto_increment())
                     .col(text_uniq(Entry::Link))
                     .col(text(Entry::Title))
                     .col(timestamp_with_time_zone_null(Entry::PublishedAt))
@@ -43,15 +43,15 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(FeedEntry::Table)
                     .if_not_exists()
-                    .col(big_integer(FeedEntry::Id).primary_key().auto_increment())
-                    .col(big_integer(FeedEntry::FeedId))
+                    .col(integer(FeedEntry::Id).primary_key().auto_increment())
+                    .col(integer(FeedEntry::FeedId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(FeedEntry::Table, FeedEntry::FeedId)
                             .to(Feed::Table, Feed::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(big_integer(FeedEntry::EntryId))
+                    .col(integer(FeedEntry::EntryId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(FeedEntry::Table, FeedEntry::EntryId)
@@ -65,7 +65,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("feed_entries_feed_id_entry_id_key")
+                    .name("feed_entry_feed_id_entry_id_key")
                     .table(FeedEntry::Table)
                     .if_not_exists()
                     .col(FeedEntry::FeedId)
@@ -101,7 +101,6 @@ impl MigrationTrait for Migration {
 
 #[derive(DeriveIden)]
 pub enum Feed {
-    #[sea_orm(iden = "feeds")]
     Table,
     Id,
     Link,
@@ -111,7 +110,6 @@ pub enum Feed {
 
 #[derive(DeriveIden)]
 pub enum Entry {
-    #[sea_orm(iden = "entries")]
     Table,
     Id,
     Link,
@@ -124,7 +122,6 @@ pub enum Entry {
 
 #[derive(DeriveIden)]
 pub enum FeedEntry {
-    #[sea_orm(iden = "feed_entries")]
     Table,
     Id,
     FeedId,

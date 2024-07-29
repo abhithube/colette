@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "tags")]
+#[sea_orm(table_name = "tag")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -16,53 +16,53 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::bookmark_tags::Entity")]
-    BookmarkTags,
-    #[sea_orm(has_many = "super::profile_feed_tags::Entity")]
-    ProfileFeedTags,
+    #[sea_orm(has_many = "super::bookmark_tag::Entity")]
+    BookmarkTag,
     #[sea_orm(
-        belongs_to = "super::profiles::Entity",
+        belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
-        to = "super::profiles::Column::Id",
+        to = "super::profile::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Profiles,
+    Profile,
+    #[sea_orm(has_many = "super::profile_feed_tag::Entity")]
+    ProfileFeedTag,
 }
 
-impl Related<super::bookmark_tags::Entity> for Entity {
+impl Related<super::bookmark_tag::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::BookmarkTags.def()
+        Relation::BookmarkTag.def()
     }
 }
 
-impl Related<super::profile_feed_tags::Entity> for Entity {
+impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ProfileFeedTags.def()
+        Relation::Profile.def()
     }
 }
 
-impl Related<super::profiles::Entity> for Entity {
+impl Related<super::profile_feed_tag::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Profiles.def()
+        Relation::ProfileFeedTag.def()
     }
 }
 
-impl Related<super::bookmarks::Entity> for Entity {
+impl Related<super::bookmark::Entity> for Entity {
     fn to() -> RelationDef {
-        super::bookmark_tags::Relation::Bookmarks.def()
+        super::bookmark_tag::Relation::Bookmark.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::bookmark_tags::Relation::Tags.def().rev())
+        Some(super::bookmark_tag::Relation::Tag.def().rev())
     }
 }
 
-impl Related<super::profile_feeds::Entity> for Entity {
+impl Related<super::profile_feed::Entity> for Entity {
     fn to() -> RelationDef {
-        super::profile_feed_tags::Relation::ProfileFeeds.def()
+        super::profile_feed_tag::Relation::ProfileFeed.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::profile_feed_tags::Relation::Tags.def().rev())
+        Some(super::profile_feed_tag::Relation::Tag.def().rev())
     }
 }
 

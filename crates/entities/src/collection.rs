@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "collections")]
+#[sea_orm(table_name = "collection")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -17,27 +17,27 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::bookmarks::Entity")]
-    Bookmarks,
+    #[sea_orm(has_many = "super::bookmark::Entity")]
+    Bookmark,
     #[sea_orm(
-        belongs_to = "super::profiles::Entity",
+        belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
-        to = "super::profiles::Column::Id",
+        to = "super::profile::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Profiles,
+    Profile,
 }
 
-impl Related<super::bookmarks::Entity> for Entity {
+impl Related<super::bookmark::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Bookmarks.def()
+        Relation::Bookmark.def()
     }
 }
 
-impl Related<super::profiles::Entity> for Entity {
+impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Profiles.def()
+        Relation::Profile.def()
     }
 }
 

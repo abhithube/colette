@@ -7,7 +7,7 @@ use colette_core::{
     },
     Profile,
 };
-use colette_entities::{collections, profile_feeds, profiles};
+use colette_entities::{collection, profile, profile_feed};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
@@ -28,12 +28,12 @@ impl ProfilesSqlRepository {
 #[async_trait::async_trait]
 impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
-        profiles::Entity::find()
+        profile::Entity::find()
             .select_only()
             .columns(PROFILE_COLUMNS)
-            .filter(profiles::Column::UserId.eq(params.user_id))
-            .order_by_asc(profiles::Column::Title)
-            .order_by_asc(profiles::Column::Id)
+            .filter(profile::Column::UserId.eq(params.user_id))
+            .order_by_asc(profile::Column::Title)
+            .order_by_asc(profile::Column::Id)
             .into_model::<ProfileSelect>()
             .all(&self.db)
             .await
@@ -55,9 +55,9 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 Ok(profile.into())
             }
             ProfilesFindOneParams::Default { user_id } => {
-                let Some(profile) = profiles::Entity::find()
-                    .filter(profiles::Column::IsDefault.eq(true))
-                    .filter(profiles::Column::UserId.eq(user_id))
+                let Some(profile) = profile::Entity::find()
+                    .filter(profile::Column::IsDefault.eq(true))
+                    .filter(profile::Column::UserId.eq(user_id))
                     .into_model::<ProfileSelect>()
                     .one(&self.db)
                     .await
@@ -76,7 +76,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
             .transaction::<_, Profile, Error>(|txn| {
                 Box::pin(async move {
                     let new_id = Uuid::new_v4();
-                    let profile_model = profiles::ActiveModel {
+                    let profile_model = profile::ActiveModel {
                         id: Set(new_id),
                         title: Set(data.title),
                         image_url: Set(data.image_url),
@@ -84,12 +84,12 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         ..Default::default()
                     };
 
-                    profiles::Entity::insert(profile_model)
+                    profile::Entity::insert(profile_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let collection_model = collections::ActiveModel {
+                    let collection_model = collection::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         title: Set("Default".to_owned()),
                         is_default: Set(true),
@@ -97,7 +97,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         ..Default::default()
                     };
 
-                    collections::Entity::insert(collection_model)
+                    collection::Entity::insert(collection_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -128,7 +128,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
         self.db
             .transaction::<_, Profile, Error>(|txn| {
                 Box::pin(async move {
-                    let mut model = profiles::ActiveModel {
+                    let mut model = profile::ActiveModel {
                         id: Set(params.id),
                         ..Default::default()
                     };
@@ -139,8 +139,8 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         model.image_url = Set(data.image_url)
                     }
 
-                    profiles::Entity::update(model)
-                        .filter(profiles::Column::UserId.eq(params.user_id))
+                    profile::Entity::update(model)
+                        .filter(profile::Column::UserId.eq(params.user_id))
                         .exec(txn)
                         .await
                         .map_err(|e| match e {
@@ -172,10 +172,10 @@ impl ProfilesRepository for ProfilesSqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(profile) = profiles::Entity::find_by_id(params.id)
+                    let Some(profile) = profile::Entity::find_by_id(params.id)
                         .select_only()
-                        .column(profiles::Column::IsDefault)
-                        .filter(profiles::Column::UserId.eq(params.user_id))
+                        .column(profile::Column::IsDefault)
+                        .filter(profile::Column::UserId.eq(params.user_id))
                         .into_model::<ProfileDelete>()
                         .one(txn)
                         .await
@@ -188,7 +188,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         return Err(Error::DeletingDefault);
                     }
 
-                    profiles::Entity::delete_by_id(params.id)
+                    profile::Entity::delete_by_id(params.id)
                         .exec(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -204,11 +204,11 @@ impl ProfilesRepository for ProfilesSqlRepository {
     }
 
     async fn stream(&self, feed_id: i64) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
-        profiles::Entity::find()
+        profile::Entity::find()
             .select_only()
-            .column(profiles::Column::Id)
-            .join(JoinType::Join, profiles::Relation::ProfileFeeds.def())
-            .filter(profile_feeds::Column::FeedId.eq(feed_id))
+            .column(profile::Column::Id)
+            .join(JoinType::Join, profile::Relation::ProfileFeed.def())
+            .filter(profile_feed::Column::FeedId.eq(feed_id))
             .into_model::<StreamSelect>()
             .stream(&self.db)
             .await
@@ -263,19 +263,19 @@ impl From<StreamSelect> for StreamProfile {
     }
 }
 
-const PROFILE_COLUMNS: [profiles::Column; 6] = [
-    profiles::Column::Id,
-    profiles::Column::Title,
-    profiles::Column::ImageUrl,
-    profiles::Column::UserId,
-    profiles::Column::CreatedAt,
-    profiles::Column::UpdatedAt,
+const PROFILE_COLUMNS: [profile::Column; 6] = [
+    profile::Column::Id,
+    profile::Column::Title,
+    profile::Column::ImageUrl,
+    profile::Column::UserId,
+    profile::Column::CreatedAt,
+    profile::Column::UpdatedAt,
 ];
 
 fn profile_by_id(id: Uuid, user_id: Uuid) -> Selector<SelectModel<ProfileSelect>> {
-    profiles::Entity::find_by_id(id)
+    profile::Entity::find_by_id(id)
         .select_only()
         .columns(PROFILE_COLUMNS)
-        .filter(profiles::Column::UserId.eq(user_id))
+        .filter(profile::Column::UserId.eq(user_id))
         .into_model::<ProfileSelect>()
 }

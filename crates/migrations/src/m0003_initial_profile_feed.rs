@@ -27,7 +27,7 @@ impl MigrationTrait for Migration {
                             .to(Profile::Table, Profile::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(big_integer(ProfileFeed::FeedId))
+                    .col(integer(ProfileFeed::FeedId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(ProfileFeed::Table, ProfileFeed::FeedId)
@@ -49,7 +49,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("profile_feeds_profile_id_feed_id_key")
+                    .name("profile_feed_profile_id_feed_id_key")
                     .table(ProfileFeed::Table)
                     .if_not_exists()
                     .col(ProfileFeed::ProfileId)
@@ -73,7 +73,7 @@ impl MigrationTrait for Migration {
                             .to(ProfileFeed::Table, ProfileFeed::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .col(big_integer(ProfileFeedEntry::FeedEntryId))
+                    .col(integer(ProfileFeedEntry::FeedEntryId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(ProfileFeedEntry::Table, ProfileFeedEntry::FeedEntryId)
@@ -87,7 +87,7 @@ impl MigrationTrait for Migration {
         manager
             .create_index(
                 Index::create()
-                    .name("profile_feed_entries_profile_feed_id_feed_entry_id_key")
+                    .name("profile_feed_entry_profile_feed_id_feed_entry_id_key")
                     .table(ProfileFeedEntry::Table)
                     .if_not_exists()
                     .col(ProfileFeedEntry::ProfileFeedId)
@@ -99,10 +99,10 @@ impl MigrationTrait for Migration {
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                postgres::create_updated_at_trigger(manager, "profile_feeds").await?;
+                postgres::create_updated_at_trigger(manager, "profile_feed").await?;
             }
             DatabaseBackend::Sqlite => {
-                sqlite::create_updated_at_trigger(manager, "profile_feeds").await?;
+                sqlite::create_updated_at_trigger(manager, "profile_feed").await?;
             }
             _ => {}
         }
@@ -125,7 +125,6 @@ impl MigrationTrait for Migration {
 
 #[derive(DeriveIden)]
 pub enum ProfileFeed {
-    #[sea_orm(iden = "profile_feeds")]
     Table,
     Id,
     CustomTitle,
@@ -137,7 +136,6 @@ pub enum ProfileFeed {
 
 #[derive(DeriveIden)]
 pub enum ProfileFeedEntry {
-    #[sea_orm(iden = "profile_feed_entries")]
     Table,
     Id,
     HasRead,

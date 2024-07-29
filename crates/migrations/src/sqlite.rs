@@ -9,10 +9,10 @@ pub async fn create_updated_at_trigger<'a>(
         .execute_unprepared(&format!(
             "
 CREATE TRIGGER {table}_updated_at
- AFTER UPDATE ON {table}
+ AFTER UPDATE ON \"{table}\"
    FOR EACH ROW
  BEGIN
-       UPDATE {table}
+       UPDATE \"{table}\"
           SET updated_at = CURRENT_TIMESTAMP
         WHERE id = new.id;
    END",

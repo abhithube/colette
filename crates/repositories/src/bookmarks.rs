@@ -8,7 +8,7 @@ use colette_core::{
     common::{self, FindOneParams, UpdateTagList},
     Bookmark,
 };
-use colette_entities::{bookmark_tags, bookmarks, collections};
+use colette_entities::{bookmark, bookmark_tag, collection};
 use sea_orm::{
     prelude::Expr, sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
@@ -29,37 +29,37 @@ impl BookmarksSqlRepository {
 #[async_trait::async_trait]
 impl BookmarksRepository for BookmarksSqlRepository {
     async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
-        let mut query = bookmarks::Entity::find()
+        let mut query = bookmark::Entity::find()
             .select_only()
             .columns(BOOKMARK_COLUMNS)
             .expr_as(
                 Expr::case(
-                    collections::Column::IsDefault.eq(true),
+                    collection::Column::IsDefault.eq(true),
                     Expr::value(Option::<Uuid>::None),
                 )
-                .finally(bookmarks::Column::CollectionId.into_expr()),
+                .finally(bookmark::Column::CollectionId.into_expr()),
                 "collection_id",
             )
-            .join(JoinType::Join, bookmarks::Relation::Collections.def())
-            .filter(collections::Column::ProfileId.eq(params.profile_id));
+            .join(JoinType::Join, bookmark::Relation::Collection.def())
+            .filter(collection::Column::ProfileId.eq(params.profile_id));
 
         if let Some(published_at) = params.published_at {
-            query = query.filter(bookmarks::Column::PublishedAt.lt(published_at))
+            query = query.filter(bookmark::Column::PublishedAt.lt(published_at))
         }
         if params.should_filter {
             if let Some(collection_id) = params.collection_id {
-                query = query.filter(bookmarks::Column::CollectionId.eq(collection_id))
+                query = query.filter(bookmark::Column::CollectionId.eq(collection_id))
             } else {
-                query = query.filter(collections::Column::IsDefault.eq(true))
+                query = query.filter(collection::Column::IsDefault.eq(true))
             }
         }
 
         query
-            .order_by_desc(bookmarks::Column::PublishedAt)
-            .order_by_desc(bookmarks::Column::OriginalPublishedAt)
-            .order_by_asc(bookmarks::Column::Title)
-            .order_by_asc(bookmarks::Column::OriginalTitle)
-            .order_by_asc(collections::Column::Id)
+            .order_by_desc(bookmark::Column::PublishedAt)
+            .order_by_desc(bookmark::Column::OriginalPublishedAt)
+            .order_by_asc(bookmark::Column::Title)
+            .order_by_asc(bookmark::Column::OriginalTitle)
+            .order_by_asc(collection::Column::Id)
             .limit(params.limit as u64)
             .into_model::<BookmarkSelect>()
             .all(&self.db)
@@ -72,17 +72,17 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let mut query = collections::Entity::find()
+                    let mut query = collection::Entity::find()
                         .select_only()
-                        .column(collections::Column::Id);
+                        .column(collection::Column::Id);
                     if let Some(collection_id) = data.collection_id {
-                        query = query.filter(collections::Column::Id.eq(collection_id));
+                        query = query.filter(collection::Column::Id.eq(collection_id));
                     } else {
-                        query = query.filter(collections::Column::IsDefault.eq(true))
+                        query = query.filter(collection::Column::IsDefault.eq(true))
                     }
 
                     let Some(collection) = query
-                        .filter(collections::Column::ProfileId.eq(data.profile_id))
+                        .filter(collection::Column::ProfileId.eq(data.profile_id))
                         .into_model::<CollectionSelect>()
                         .one(txn)
                         .await
@@ -101,7 +101,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         }
                     };
 
-                    let bookmark_model = bookmarks::ActiveModel {
+                    let bookmark_model = bookmark::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         link: Set(data.url.clone()),
                         original_title: Set(data.bookmark.title),
@@ -115,17 +115,17 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         ..Default::default()
                     };
 
-                    bookmarks::Entity::insert(bookmark_model)
+                    bookmark::Entity::insert(bookmark_model)
                         .on_conflict(
                             OnConflict::columns([
-                                bookmarks::Column::CollectionId,
-                                bookmarks::Column::Link,
+                                bookmark::Column::CollectionId,
+                                bookmark::Column::Link,
                             ])
                             .update_columns([
-                                bookmarks::Column::Title,
-                                bookmarks::Column::ThumbnailUrl,
-                                bookmarks::Column::PublishedAt,
-                                bookmarks::Column::Author,
+                                bookmark::Column::Title,
+                                bookmark::Column::ThumbnailUrl,
+                                bookmark::Column::PublishedAt,
+                                bookmark::Column::Author,
                             ])
                             .to_owned(),
                         )
@@ -133,21 +133,21 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(bookmark) = bookmarks::Entity::find()
+                    let Some(bookmark) = bookmark::Entity::find()
                         .select_only()
                         .columns(BOOKMARK_COLUMNS)
                         .expr_as(
                             Expr::case(
-                                collections::Column::IsDefault.eq(true),
+                                collection::Column::IsDefault.eq(true),
                                 Expr::value(Option::<Uuid>::None),
                             )
-                            .finally(bookmarks::Column::CollectionId.into_expr()),
+                            .finally(bookmark::Column::CollectionId.into_expr()),
                             "collection_id",
                         )
-                        .join(JoinType::Join, bookmarks::Relation::Collections.def())
-                        .filter(bookmarks::Column::CollectionId.eq(collection.id))
-                        .filter(bookmarks::Column::Link.eq(data.url))
-                        .filter(collections::Column::ProfileId.eq(data.profile_id))
+                        .join(JoinType::Join, bookmark::Relation::Collection.def())
+                        .filter(bookmark::Column::CollectionId.eq(collection.id))
+                        .filter(bookmark::Column::Link.eq(data.url))
+                        .filter(collection::Column::ProfileId.eq(data.profile_id))
                         .into_model::<BookmarkSelect>()
                         .one(txn)
                         .await
@@ -182,7 +182,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         return Err(Error::NotFound(params.id));
                     };
 
-                    let mut model = bookmarks::ActiveModel {
+                    let mut model = bookmark::ActiveModel {
                         id: Set(params.id),
                         ..Default::default()
                     };
@@ -200,7 +200,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         model.author = Set(data.author);
                     }
 
-                    let model = bookmarks::Entity::update(model)
+                    let model = bookmark::Entity::update(model)
                         .exec(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -210,17 +210,17 @@ impl BookmarksRepository for BookmarksSqlRepository {
                             UpdateTagList::Add(tag_ids) => {
                                 let models = tag_ids
                                     .into_iter()
-                                    .map(|id| bookmark_tags::ActiveModel {
+                                    .map(|id| bookmark_tag::ActiveModel {
                                         tag_id: Set(id),
                                         bookmark_id: Set(params.id),
                                     })
                                     .collect::<Vec<_>>();
 
-                                bookmark_tags::Entity::insert_many(models)
+                                bookmark_tag::Entity::insert_many(models)
                                     .on_conflict(
                                         OnConflict::columns([
-                                            bookmark_tags::Column::BookmarkId,
-                                            bookmark_tags::Column::TagId,
+                                            bookmark_tag::Column::BookmarkId,
+                                            bookmark_tag::Column::TagId,
                                         ])
                                         .do_nothing()
                                         .to_owned(),
@@ -230,29 +230,29 @@ impl BookmarksRepository for BookmarksSqlRepository {
                                     .map_err(|e| Error::Unknown(e.into()))?;
                             }
                             UpdateTagList::Remove(tag_ids) => {
-                                bookmark_tags::Entity::delete_many()
-                                    .filter(bookmark_tags::Column::BookmarkId.eq(params.id))
-                                    .filter(bookmark_tags::Column::TagId.is_in(tag_ids))
+                                bookmark_tag::Entity::delete_many()
+                                    .filter(bookmark_tag::Column::BookmarkId.eq(params.id))
+                                    .filter(bookmark_tag::Column::TagId.is_in(tag_ids))
                                     .exec(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
                             }
                             UpdateTagList::Set(tag_ids) => {
-                                bookmark_tags::Entity::delete_many()
-                                    .filter(bookmark_tags::Column::BookmarkId.eq(params.id))
+                                bookmark_tag::Entity::delete_many()
+                                    .filter(bookmark_tag::Column::BookmarkId.eq(params.id))
                                     .exec(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
 
                                 let models = tag_ids
                                     .into_iter()
-                                    .map(|id| bookmark_tags::ActiveModel {
+                                    .map(|id| bookmark_tag::ActiveModel {
                                         tag_id: Set(id),
                                         bookmark_id: Set(params.id),
                                     })
                                     .collect::<Vec<_>>();
 
-                                bookmark_tags::Entity::insert_many(models)
+                                bookmark_tag::Entity::insert_many(models)
                                     .exec_without_returning(txn)
                                     .await
                                     .map_err(|e| Error::Unknown(e.into()))?;
@@ -280,11 +280,11 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(bookmark) = bookmarks::Entity::find_by_id(params.id)
+                    let Some(bookmark) = bookmark::Entity::find_by_id(params.id)
                         .select_only()
-                        .column(bookmarks::Column::Id)
-                        .join(JoinType::Join, bookmarks::Relation::Collections.def())
-                        .filter(collections::Column::ProfileId.eq(params.profile_id))
+                        .column(bookmark::Column::Id)
+                        .join(JoinType::Join, bookmark::Relation::Collection.def())
+                        .filter(collection::Column::ProfileId.eq(params.profile_id))
                         .into_model::<BookmarkDelete>()
                         .one(txn)
                         .await
@@ -293,7 +293,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         return Err(Error::NotFound(params.id));
                     };
 
-                    bookmarks::Entity::delete_by_id(bookmark.id)
+                    bookmark::Entity::delete_by_id(bookmark.id)
                         .exec(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -356,34 +356,34 @@ struct BookmarkDelete {
     id: Uuid,
 }
 
-const BOOKMARK_COLUMNS: [bookmarks::Column; 12] = [
-    bookmarks::Column::Id,
-    bookmarks::Column::Link,
-    bookmarks::Column::Title,
-    bookmarks::Column::ThumbnailUrl,
-    bookmarks::Column::PublishedAt,
-    bookmarks::Column::Author,
-    bookmarks::Column::OriginalTitle,
-    bookmarks::Column::OriginalThumbnailUrl,
-    bookmarks::Column::OriginalPublishedAt,
-    bookmarks::Column::OriginalAuthor,
-    bookmarks::Column::CreatedAt,
-    bookmarks::Column::UpdatedAt,
+const BOOKMARK_COLUMNS: [bookmark::Column; 12] = [
+    bookmark::Column::Id,
+    bookmark::Column::Link,
+    bookmark::Column::Title,
+    bookmark::Column::ThumbnailUrl,
+    bookmark::Column::PublishedAt,
+    bookmark::Column::Author,
+    bookmark::Column::OriginalTitle,
+    bookmark::Column::OriginalThumbnailUrl,
+    bookmark::Column::OriginalPublishedAt,
+    bookmark::Column::OriginalAuthor,
+    bookmark::Column::CreatedAt,
+    bookmark::Column::UpdatedAt,
 ];
 
 fn bookmark_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<BookmarkSelect>> {
-    bookmarks::Entity::find_by_id(id)
+    bookmark::Entity::find_by_id(id)
         .select_only()
         .columns(BOOKMARK_COLUMNS)
         .expr_as(
             Expr::case(
-                collections::Column::IsDefault.eq(true),
+                collection::Column::IsDefault.eq(true),
                 Expr::value(Option::<Uuid>::None),
             )
-            .finally(bookmarks::Column::CollectionId.into_expr()),
+            .finally(bookmark::Column::CollectionId.into_expr()),
             "collection_id",
         )
-        .join(JoinType::Join, bookmarks::Relation::Collections.def())
-        .filter(collections::Column::ProfileId.eq(profile_id))
+        .join(JoinType::Join, bookmark::Relation::Collection.def())
+        .filter(collection::Column::ProfileId.eq(profile_id))
         .into_model::<BookmarkSelect>()
 }

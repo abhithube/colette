@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "bookmarks")]
+#[sea_orm(table_name = "bookmark")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
@@ -30,36 +30,36 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::bookmark_tags::Entity")]
-    BookmarkTags,
+    #[sea_orm(has_many = "super::bookmark_tag::Entity")]
+    BookmarkTag,
     #[sea_orm(
-        belongs_to = "super::collections::Entity",
+        belongs_to = "super::collection::Entity",
         from = "Column::CollectionId",
-        to = "super::collections::Column::Id",
+        to = "super::collection::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Collections,
+    Collection,
 }
 
-impl Related<super::bookmark_tags::Entity> for Entity {
+impl Related<super::bookmark_tag::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::BookmarkTags.def()
+        Relation::BookmarkTag.def()
     }
 }
 
-impl Related<super::collections::Entity> for Entity {
+impl Related<super::collection::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Collections.def()
+        Relation::Collection.def()
     }
 }
 
-impl Related<super::tags::Entity> for Entity {
+impl Related<super::tag::Entity> for Entity {
     fn to() -> RelationDef {
-        super::bookmark_tags::Relation::Tags.def()
+        super::bookmark_tag::Relation::Tag.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::bookmark_tags::Relation::Bookmarks.def().rev())
+        Some(super::bookmark_tag::Relation::Bookmark.def().rev())
     }
 }
 

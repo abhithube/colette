@@ -40,8 +40,8 @@ impl MigrationTrait for Migration {
             .get_connection()
             .execute_unprepared(
                 "
-CREATE UNIQUE INDEX collections_profile_id_is_default_key
-    ON collections (profile_id, is_default)
+CREATE UNIQUE INDEX collection_profile_id_is_default_key
+    ON \"collection\" (profile_id, is_default)
  WHERE is_default",
             )
             .await?;
@@ -83,7 +83,7 @@ CREATE UNIQUE INDEX collections_profile_id_is_default_key
         manager
             .create_index(
                 Index::create()
-                    .name("bookmarks_collection_id_link_key")
+                    .name("bookmark_collection_id_link_key")
                     .table(Bookmark::Table)
                     .if_not_exists()
                     .col(Bookmark::CollectionId)
@@ -95,12 +95,12 @@ CREATE UNIQUE INDEX collections_profile_id_is_default_key
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                postgres::create_updated_at_trigger(manager, "collections").await?;
-                postgres::create_updated_at_trigger(manager, "bookmarks").await?;
+                postgres::create_updated_at_trigger(manager, "collection").await?;
+                postgres::create_updated_at_trigger(manager, "bookmark").await?;
             }
             DatabaseBackend::Sqlite => {
-                sqlite::create_updated_at_trigger(manager, "collections").await?;
-                sqlite::create_updated_at_trigger(manager, "bookmarks").await?;
+                sqlite::create_updated_at_trigger(manager, "collection").await?;
+                sqlite::create_updated_at_trigger(manager, "bookmark").await?;
             }
             _ => {}
         }
@@ -123,7 +123,6 @@ CREATE UNIQUE INDEX collections_profile_id_is_default_key
 
 #[derive(DeriveIden)]
 pub enum Collection {
-    #[sea_orm(iden = "collections")]
     Table,
     Id,
     Title,
@@ -135,7 +134,6 @@ pub enum Collection {
 
 #[derive(DeriveIden)]
 pub enum Bookmark {
-    #[sea_orm(iden = "bookmarks")]
     Table,
     Id,
     Link,

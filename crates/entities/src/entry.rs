@@ -3,10 +3,10 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "entries")]
+#[sea_orm(table_name = "entry")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: i64,
+    #[sea_orm(primary_key)]
+    pub id: i32,
     #[sea_orm(column_type = "Text", unique)]
     pub link: String,
     #[sea_orm(column_type = "Text")]
@@ -22,13 +22,13 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::feed_entries::Entity")]
-    FeedEntries,
+    #[sea_orm(has_many = "super::feed_entry::Entity")]
+    FeedEntry,
 }
 
-impl Related<super::feed_entries::Entity> for Entity {
+impl Related<super::feed_entry::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::FeedEntries.def()
+        Relation::FeedEntry.def()
     }
 }
 

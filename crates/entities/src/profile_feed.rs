@@ -3,14 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "profile_feeds")]
+#[sea_orm(table_name = "profile_feed")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     #[sea_orm(column_type = "Text", nullable)]
     pub custom_title: Option<String>,
     pub profile_id: Uuid,
-    pub feed_id: i64,
+    pub feed_id: i32,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -18,57 +18,57 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::feeds::Entity",
+        belongs_to = "super::feed::Entity",
         from = "Column::FeedId",
-        to = "super::feeds::Column::Id",
+        to = "super::feed::Column::Id",
         on_update = "NoAction",
         on_delete = "Restrict"
     )]
-    Feeds,
-    #[sea_orm(has_many = "super::profile_feed_entries::Entity")]
-    ProfileFeedEntries,
-    #[sea_orm(has_many = "super::profile_feed_tags::Entity")]
-    ProfileFeedTags,
+    Feed,
     #[sea_orm(
-        belongs_to = "super::profiles::Entity",
+        belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
-        to = "super::profiles::Column::Id",
+        to = "super::profile::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Profiles,
+    Profile,
+    #[sea_orm(has_many = "super::profile_feed_entry::Entity")]
+    ProfileFeedEntry,
+    #[sea_orm(has_many = "super::profile_feed_tag::Entity")]
+    ProfileFeedTag,
 }
 
-impl Related<super::feeds::Entity> for Entity {
+impl Related<super::feed::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Feeds.def()
+        Relation::Feed.def()
     }
 }
 
-impl Related<super::profile_feed_entries::Entity> for Entity {
+impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ProfileFeedEntries.def()
+        Relation::Profile.def()
     }
 }
 
-impl Related<super::profile_feed_tags::Entity> for Entity {
+impl Related<super::profile_feed_entry::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ProfileFeedTags.def()
+        Relation::ProfileFeedEntry.def()
     }
 }
 
-impl Related<super::profiles::Entity> for Entity {
+impl Related<super::profile_feed_tag::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Profiles.def()
+        Relation::ProfileFeedTag.def()
     }
 }
 
-impl Related<super::tags::Entity> for Entity {
+impl Related<super::tag::Entity> for Entity {
     fn to() -> RelationDef {
-        super::profile_feed_tags::Relation::Tags.def()
+        super::profile_feed_tag::Relation::Tag.def()
     }
     fn via() -> Option<RelationDef> {
-        Some(super::profile_feed_tags::Relation::ProfileFeeds.def().rev())
+        Some(super::profile_feed_tag::Relation::ProfileFeed.def().rev())
     }
 }
 
