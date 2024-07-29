@@ -46,21 +46,21 @@ pub struct Bookmark {
     pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
-    pub title: String,
+    #[schema(required)]
+    pub title: Option<String>,
     #[schema(format = "uri", required)]
     pub thumbnail_url: Option<String>,
     #[schema(required)]
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(required)]
-    pub custom_title: Option<String>,
+    pub original_title: String,
     #[schema(format = "uri", required)]
-    pub custom_thumbnail_url: Option<String>,
+    pub original_thumbnail_url: Option<String>,
     #[schema(required)]
-    pub custom_published_at: Option<DateTime<Utc>>,
+    pub original_published_at: Option<DateTime<Utc>>,
     #[schema(required)]
-    pub custom_author: Option<String>,
+    pub original_author: Option<String>,
     #[schema(required)]
     pub collection_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -76,10 +76,10 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            custom_title: value.custom_title,
-            custom_thumbnail_url: value.custom_thumbnail_url,
-            custom_published_at: value.custom_published_at,
-            custom_author: value.custom_author,
+            original_title: value.original_title,
+            original_thumbnail_url: value.original_thumbnail_url,
+            original_published_at: value.original_published_at,
+            original_author: value.original_author,
             collection_id: value.collection_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
