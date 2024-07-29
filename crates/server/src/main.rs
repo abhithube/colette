@@ -1,9 +1,3 @@
-#[cfg(all(feature = "postgres", feature = "sqlite"))]
-compile_error!("features \"postgres\" and \"sqlite\" are mutually exclusive");
-
-#[cfg(not(any(feature = "postgres", feature = "sqlite")))]
-compile_error!("Either feature \"postgres\" or \"sqlite\" must be enabled");
-
 use std::{error::Error, str::FromStr, sync::Arc};
 
 use app::App;
@@ -24,13 +18,14 @@ use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
 use migrations::{Migrator, MigratorTrait};
-use sea_orm::{ConnectOptions, Database};
+use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::time;
-use tower_sessions::session_store::ExpiredDeletion;
-#[cfg(feature = "postgres")]
-use tower_sessions_sqlx_store::PostgresStore;
-#[cfg(feature = "sqlite")]
-use tower_sessions_sqlx_store::SqliteStore;
+use tower_sessions::{
+    session::{Id, Record},
+    session_store::ExpiredDeletion,
+    SessionStore,
+};
+use tower_sessions_sqlx_store::{PostgresStore, SqliteStore};
 
 mod app;
 mod auth;
@@ -61,23 +56,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let tags_repository = Arc::new(TagsSqlRepository::new(db.clone()));
     let users_repository = Arc::new(UsersSqlRepository::new(db.clone()));
 
-    let (session_store, cleanup) = {
-        #[cfg(feature = "postgres")]
-        let store = PostgresStore::new(db.get_postgres_connection_pool().clone());
-        #[cfg(feature = "sqlite")]
-        let store = SqliteStore::new(db.get_sqlite_connection_pool().clone());
-
-        let deletion_task = {
+    let (session_database, deletion_task) = match db.get_database_backend() {
+        DatabaseBackend::Postgres => {
+            let store = PostgresStore::new(db.get_postgres_connection_pool().clone());
             store.migrate().await?;
 
-            tokio::task::spawn(
+            let deletion_task = tokio::task::spawn(
                 store
                     .clone()
                     .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-            )
-        };
+            );
 
-        (store, deletion_task)
+            (SessionDatabase::Postgres(store), deletion_task)
+        }
+        DatabaseBackend::Sqlite => {
+            let store = SqliteStore::new(db.get_sqlite_connection_pool().clone());
+            store.migrate().await?;
+
+            let deletion_task = tokio::task::spawn(
+                store
+                    .clone()
+                    .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+            );
+
+            (SessionDatabase::Sqlite(store), deletion_task)
+        }
+        _ => panic!("Only PostgreSQL and SQLite supported"),
     };
 
     let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
@@ -168,9 +172,55 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tags_service: TagsService::new(tags_repository).into(),
     };
 
-    App::new(state, config, session_store).start().await?;
+    App::new(state, config, session_database).start().await?;
 
-    cleanup.await??;
+    deletion_task.await??;
 
     Ok(())
+}
+
+#[derive(Clone, Debug)]
+pub enum SessionDatabase {
+    Postgres(PostgresStore),
+    Sqlite(SqliteStore),
+}
+
+#[async_trait::async_trait]
+impl SessionStore for SessionDatabase {
+    async fn create(
+        &self,
+        session_record: &mut Record,
+    ) -> Result<(), tower_sessions::session_store::Error> {
+        match self {
+            SessionDatabase::Postgres(store) => store.create(session_record).await,
+            SessionDatabase::Sqlite(store) => store.create(session_record).await,
+        }
+    }
+
+    async fn save(
+        &self,
+        session_record: &Record,
+    ) -> Result<(), tower_sessions::session_store::Error> {
+        match self {
+            SessionDatabase::Postgres(store) => store.save(session_record).await,
+            SessionDatabase::Sqlite(store) => store.save(session_record).await,
+        }
+    }
+
+    async fn load(
+        &self,
+        session_id: &Id,
+    ) -> Result<Option<Record>, tower_sessions::session_store::Error> {
+        match self {
+            SessionDatabase::Postgres(store) => store.load(session_id).await,
+            SessionDatabase::Sqlite(store) => store.load(session_id).await,
+        }
+    }
+
+    async fn delete(&self, session_id: &Id) -> Result<(), tower_sessions::session_store::Error> {
+        match self {
+            SessionDatabase::Postgres(store) => store.delete(session_id).await,
+            SessionDatabase::Sqlite(store) => store.delete(session_id).await,
+        }
+    }
 }

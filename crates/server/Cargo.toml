@@ -42,7 +42,10 @@ tower-http = { version = "0.5.2", default-features = false, features = [
 tower-sessions = { version = "0.12.2", default-features = false, features = [
   "axum-core",
 ] }
-tower-sessions-sqlx-store = { version = "0.12.0", default-features = false }
+tower-sessions-sqlx-store = { version = "0.12.0", default-features = false, features = [
+  "postgres",
+  "sqlite",
+] }
 utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
   "chrono",
   "preserve_order",
@@ -56,8 +59,3 @@ uuid = { workspace = true, features = ["serde"] }
 validator = { version = "0.18.1", default-features = false, features = [
   "derive",
 ] }
-
-[features]
-default = ["postgres"]
-postgres = ["tower-sessions-sqlx-store/postgres"]
-sqlite = ["tower-sessions-sqlx-store/sqlite"]

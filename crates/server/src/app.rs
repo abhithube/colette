@@ -6,7 +6,7 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_config::Config;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
+use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -22,6 +22,7 @@ use crate::{
     feeds::Api as Feeds,
     profiles::Api as Profiles,
     tags::Api as Tags,
+    SessionDatabase,
 };
 
 #[derive(Clone, rust_embed::Embed)]
@@ -46,14 +47,14 @@ struct Asset;
 )]
 struct ApiDoc;
 
-pub struct App<Store: SessionStore + Clone> {
+pub struct App {
     state: Context,
     config: Config,
-    session_store: Store,
+    session_store: SessionDatabase,
 }
 
-impl<Store: SessionStore + Clone> App<Store> {
-    pub fn new(state: Context, config: Config, session_store: Store) -> Self {
+impl App {
+    pub fn new(state: Context, config: Config, session_store: SessionDatabase) -> Self {
         Self {
             state,
             config,
