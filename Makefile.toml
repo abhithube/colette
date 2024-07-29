@@ -1,8 +1,4 @@
-env_files = [
-  { path = ".env" },
-  { path = ".env.production" },
-  { path = ".env.sqlite", profile = "sqlite" },
-]
+env_files = [{ path = ".env" }, { path = ".env.sqlite", profile = "sqlite" }]
 
 config.default_to_workspace = false
 
@@ -18,30 +14,6 @@ env_files = [".env.production"]
 [tasks.build]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
-
-[tasks.build-sqlite]
-command = "cargo"
-args = [
-  "build",
-  "--release",
-  "--no-default-features",
-  "--features",
-  "sqlite",
-  "-p",
-  "colette-server",
-]
-
-[tasks.prepare]
-cwd = "./crates/postgres"
-command = "cargo"
-args = ["sqlx", "prepare"]
-env_files = [".env"]
-
-[tasks.prepare-sqlite]
-cwd = "./crates/sqlite"
-command = "cargo"
-args = ["sqlx", "prepare"]
-env_files = [".env.sqlite"]
 
 [tasks.migrate]
 command = "sea-orm-cli"
