@@ -3,7 +3,7 @@ pub use collections::Collection;
 pub use entries::Entry;
 pub use feeds::Feed;
 pub use profiles::Profile;
-pub use tags::Tag;
+pub use tags::{Tag, TagDetails};
 pub use users::User;
 
 pub mod auth;
