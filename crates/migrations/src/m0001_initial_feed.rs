@@ -1,6 +1,8 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 
+use crate::postgres;
+
 #[derive(DeriveMigrationName)]
 pub struct Migration;
 
@@ -74,8 +76,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            #[cfg(feature = "postgres")]
-            crate::postgres::create_updated_at_fn(manager).await?;
+            postgres::create_updated_at_fn(manager).await?;
         }
 
         Ok(())

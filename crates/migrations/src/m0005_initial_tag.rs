@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
     m0002_initial_user::Profile, m0003_initial_profile_feed::ProfileFeed,
-    m0004_initial_collection::Bookmark,
+    m0004_initial_collection::Bookmark, postgres, sqlite,
 };
 
 #[derive(DeriveMigrationName)]
@@ -94,12 +94,10 @@ impl MigrationTrait for Migration {
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                #[cfg(feature = "postgres")]
-                crate::postgres::create_updated_at_trigger(manager, "tags").await?;
+                postgres::create_updated_at_trigger(manager, "tags").await?;
             }
             DatabaseBackend::Sqlite => {
-                #[cfg(feature = "sqlite")]
-                crate::sqlite::create_updated_at_trigger(manager, "tags").await?;
+                sqlite::create_updated_at_trigger(manager, "tags").await?;
             }
             _ => {}
         }

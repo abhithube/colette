@@ -5,9 +5,7 @@ mod m0002_initial_user;
 mod m0003_initial_profile_feed;
 mod m0004_initial_collection;
 mod m0005_initial_tag;
-#[cfg(feature = "postgres")]
 mod postgres;
-#[cfg(feature = "sqlite")]
 mod sqlite;
 
 pub struct Migrator;
