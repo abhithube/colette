@@ -16,7 +16,7 @@ use colette_core::{
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_postgres::{
+use colette_repositories::{
     BookmarksSqlRepository, CollectionsSqlRepository, EntriesSqlRepository, FeedsSqlRepository,
     ProfilesSqlRepository, TagsSqlRepository, UsersSqlRepository,
 };

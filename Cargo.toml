@@ -7,7 +7,7 @@ members = [
   "crates/migrations",
   "crates/password",
   "crates/plugins",
-  "crates/postgres",
+  "crates/repositories",
   "crates/scraper",
   "crates/server",
   "crates/tasks",
@@ -25,7 +25,7 @@ colette-entities.path = "crates/entities"
 colette-migrations.path = "crates/migrations"
 colette-password.path = "crates/password"
 colette-plugins.path = "crates/plugins"
-colette-postgres.path = "crates/postgres"
+colette-repositories.path = "crates/repositories"
 colette-scraper.path = "crates/scraper"
 colette-tasks.path = "crates/tasks"
 futures = { version = "0.3.30", default-features = false }
