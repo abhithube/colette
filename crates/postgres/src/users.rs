@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
@@ -8,7 +9,6 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, SelectModel, Selector,
     Set, SqlErr, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 pub struct UsersSqlRepository {

@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, FixedOffset, Utc};
 use colette_core::{
     bookmarks::{
         BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
@@ -13,7 +14,6 @@ use sea_orm::{
     QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
     TransactionError, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, FixedOffset, Utc};
 use uuid::Uuid;
 
 pub struct BookmarksSqlRepository {

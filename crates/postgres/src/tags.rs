@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     common::{self, FindManyParams, FindOneParams},
     tags::{Error, TagsCreateData, TagsRepository, TagsUpdateData},
@@ -9,7 +10,6 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, QuerySelect, SelectModel,
     Selector, Set, TransactionError, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 pub struct TagsSqlRepository {

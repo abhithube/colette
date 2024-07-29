@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     common::FindOneParams,
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
@@ -8,7 +9,6 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, JoinType, QueryFilter, QueryOrder, QuerySelect,
     RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 pub struct EntriesSqlRepository {

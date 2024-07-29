@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     profiles::{
         Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
@@ -12,7 +13,6 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 pub struct ProfilesSqlRepository {
@@ -203,10 +203,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
             })
     }
 
-    async fn stream(
-        &self,
-        feed_id: i64,
-    ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
+    async fn stream(&self, feed_id: i64) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
         profiles::Entity::find()
             .select_only()
             .column(profiles::Column::Id)

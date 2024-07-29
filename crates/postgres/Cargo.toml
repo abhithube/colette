@@ -6,10 +6,9 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
+chrono.workspace = true
 colette-core.workspace = true
-colette-database.workspace = true
 colette-entities.workspace = true
 futures.workspace = true
 sea-orm.workspace = true
-sqlx = { workspace = true, features = ["postgres"] }
 uuid = { workspace = true, features = ["v4"] }

@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     collections::{CollectionsCreateData, CollectionsRepository, CollectionsUpdateData, Error},
     common::{self, FindManyParams, FindOneParams},
@@ -9,7 +10,6 @@ use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
-use sqlx::types::chrono::{DateTime, FixedOffset};
 use uuid::Uuid;
 
 pub struct CollectionsSqlRepository {
