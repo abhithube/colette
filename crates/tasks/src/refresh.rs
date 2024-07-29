@@ -31,7 +31,7 @@ impl RefreshTask {
         }
     }
 
-    async fn refresh(&self, feed_id: i64, mut url: String) {
+    async fn refresh(&self, feed_id: i32, mut url: String) {
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
         let feed = self.scraper.scrape(&mut url).unwrap();

@@ -510,7 +510,7 @@ pub struct StreamSelect {
 impl From<StreamSelect> for StreamFeed {
     fn from(value: StreamSelect) -> Self {
         Self {
-            id: value.id.into(),
+            id: value.id,
             url: value.url,
         }
     }

@@ -58,7 +58,7 @@ pub trait ProfilesRepository: Send + Sync {
 
     async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
 
-    async fn stream(&self, feed_id: i64) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }
 
 pub struct ProfilesService {

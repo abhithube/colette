@@ -111,7 +111,7 @@ pub struct BackupFeed {
 
 #[derive(Clone, Debug)]
 pub struct StreamFeed {
-    pub id: i64,
+    pub id: i32,
     pub url: String,
 }
 
