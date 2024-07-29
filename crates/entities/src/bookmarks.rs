@@ -9,20 +9,20 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_type = "Text")]
     pub link: String,
-    #[sea_orm(column_type = "Text")]
-    pub title: String,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub title: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_type = "Text", nullable)]
     pub author: Option<String>,
+    #[sea_orm(column_type = "Text")]
+    pub original_title: String,
     #[sea_orm(column_type = "Text", nullable)]
-    pub custom_title: Option<String>,
+    pub original_thumbnail_url: Option<String>,
+    pub original_published_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_type = "Text", nullable)]
-    pub custom_thumbnail_url: Option<String>,
-    pub custom_published_at: Option<DateTimeWithTimeZone>,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub custom_author: Option<String>,
+    pub original_author: Option<String>,
     pub collection_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,

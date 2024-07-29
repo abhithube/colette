@@ -207,20 +207,20 @@ pub struct BookmarksCreateData {
 
 #[derive(Clone, Debug)]
 pub struct BookmarksUpdateData {
-    pub custom_title: Option<String>,
-    pub custom_thumbnail_url: Option<String>,
-    pub custom_published_at: Option<DateTime<Utc>>,
-    pub custom_author: Option<String>,
+    pub title: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
     pub tags: Option<UpdateTagList>,
 }
 
 impl From<UpdateBookmark> for BookmarksUpdateData {
     fn from(value: UpdateBookmark) -> Self {
         Self {
-            custom_title: value.title,
-            custom_thumbnail_url: value.thumbnail_url,
-            custom_published_at: value.published_at,
-            custom_author: value.author,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
             tags: value.tags,
         }
     }

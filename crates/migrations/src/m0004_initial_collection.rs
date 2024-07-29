@@ -53,14 +53,14 @@ CREATE UNIQUE INDEX collections_profile_id_is_default_key
                     .if_not_exists()
                     .col(uuid(Bookmark::Id).primary_key())
                     .col(text(Bookmark::Link))
-                    .col(text(Bookmark::Title))
+                    .col(text_null(Bookmark::Title))
                     .col(text_null(Bookmark::ThumbnailUrl))
                     .col(timestamp_with_time_zone_null(Bookmark::PublishedAt))
                     .col(text_null(Bookmark::Author))
-                    .col(text_null(Bookmark::CustomTitle))
-                    .col(text_null(Bookmark::CustomThumbnailUrl))
-                    .col(timestamp_with_time_zone_null(Bookmark::CustomPublishedAt))
-                    .col(text_null(Bookmark::CustomAuthor))
+                    .col(text(Bookmark::OriginalTitle))
+                    .col(text_null(Bookmark::OriginalThumbnailUrl))
+                    .col(timestamp_with_time_zone_null(Bookmark::OriginalPublishedAt))
+                    .col(text_null(Bookmark::OriginalAuthor))
                     .col(uuid(Bookmark::CollectionId))
                     .foreign_key(
                         ForeignKey::create()
@@ -143,10 +143,10 @@ pub enum Bookmark {
     ThumbnailUrl,
     PublishedAt,
     Author,
-    CustomTitle,
-    CustomThumbnailUrl,
-    CustomPublishedAt,
-    CustomAuthor,
+    OriginalTitle,
+    OriginalThumbnailUrl,
+    OriginalPublishedAt,
+    OriginalAuthor,
     CollectionId,
     CreatedAt,
     UpdatedAt,

@@ -55,10 +55,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
         }
 
         query
-            .order_by_desc(bookmarks::Column::CustomPublishedAt)
             .order_by_desc(bookmarks::Column::PublishedAt)
-            .order_by_asc(bookmarks::Column::CustomTitle)
+            .order_by_desc(bookmarks::Column::OriginalPublishedAt)
             .order_by_asc(bookmarks::Column::Title)
+            .order_by_asc(bookmarks::Column::OriginalTitle)
             .order_by_asc(collections::Column::Id)
             .limit(params.limit as u64)
             .into_model::<BookmarkSelect>()
@@ -104,13 +104,13 @@ impl BookmarksRepository for BookmarksSqlRepository {
                     let bookmark_model = bookmarks::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         link: Set(data.url.clone()),
-                        title: Set(data.bookmark.title),
-                        thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
-                        published_at: Set(data
+                        original_title: Set(data.bookmark.title),
+                        original_thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
+                        original_published_at: Set(data
                             .bookmark
                             .published
                             .map(DateTime::<FixedOffset>::from)),
-                        author: Set(data.bookmark.author),
+                        original_author: Set(data.bookmark.author),
                         collection_id: Set(collection.id),
                         ..Default::default()
                     };
@@ -186,18 +186,18 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         id: Set(params.id),
                         ..Default::default()
                     };
-                    if data.custom_title.is_some() {
-                        model.custom_title = Set(data.custom_title);
+                    if data.title.is_some() {
+                        model.title = Set(data.title);
                     }
-                    if data.custom_thumbnail_url.is_some() {
-                        model.custom_thumbnail_url = Set(data.custom_thumbnail_url);
+                    if data.thumbnail_url.is_some() {
+                        model.thumbnail_url = Set(data.thumbnail_url);
                     }
-                    if data.custom_published_at.is_some() {
-                        model.custom_published_at =
-                            Set(data.custom_published_at.map(DateTime::<FixedOffset>::from));
+                    if data.published_at.is_some() {
+                        model.published_at =
+                            Set(data.published_at.map(DateTime::<FixedOffset>::from));
                     }
-                    if data.custom_author.is_some() {
-                        model.custom_author = Set(data.custom_author);
+                    if data.author.is_some() {
+                        model.author = Set(data.author);
                     }
 
                     let model = bookmarks::Entity::update(model)
@@ -260,10 +260,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         }
                     }
 
-                    bookmark.custom_title = model.custom_title;
-                    bookmark.custom_thumbnail_url = model.custom_thumbnail_url;
-                    bookmark.custom_published_at = model.custom_published_at;
-                    bookmark.custom_author = model.custom_author;
+                    bookmark.original_title = model.original_title;
+                    bookmark.original_thumbnail_url = model.original_thumbnail_url;
+                    bookmark.original_published_at = model.original_published_at;
+                    bookmark.original_author = model.original_author;
                     bookmark.updated_at = model.updated_at;
 
                     Ok(bookmark.into())
@@ -313,14 +313,14 @@ impl BookmarksRepository for BookmarksSqlRepository {
 struct BookmarkSelect {
     id: Uuid,
     link: String,
-    title: String,
+    title: Option<String>,
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<FixedOffset>>,
     author: Option<String>,
-    custom_title: Option<String>,
-    custom_thumbnail_url: Option<String>,
-    custom_published_at: Option<DateTime<FixedOffset>>,
-    custom_author: Option<String>,
+    original_title: String,
+    original_thumbnail_url: Option<String>,
+    original_published_at: Option<DateTime<FixedOffset>>,
+    original_author: Option<String>,
     collection_id: Option<Uuid>,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
@@ -331,14 +331,14 @@ impl From<BookmarkSelect> for Bookmark {
         Self {
             id: value.id,
             link: value.link,
-            title: value.custom_title,
+            title: value.title,
             published_at: value.published_at.map(DateTime::<Utc>::from),
             author: value.author,
             thumbnail_url: value.thumbnail_url,
-            original_title: value.title,
-            original_published_at: value.custom_published_at.map(DateTime::<Utc>::from),
-            original_author: value.custom_author,
-            original_thumbnail_url: value.custom_thumbnail_url,
+            original_title: value.original_title,
+            original_published_at: value.original_published_at.map(DateTime::<Utc>::from),
+            original_author: value.original_author,
+            original_thumbnail_url: value.original_thumbnail_url,
             collection_id: value.collection_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
@@ -363,10 +363,10 @@ const BOOKMARK_COLUMNS: [bookmarks::Column; 12] = [
     bookmarks::Column::ThumbnailUrl,
     bookmarks::Column::PublishedAt,
     bookmarks::Column::Author,
-    bookmarks::Column::CustomTitle,
-    bookmarks::Column::CustomThumbnailUrl,
-    bookmarks::Column::CustomPublishedAt,
-    bookmarks::Column::CustomAuthor,
+    bookmarks::Column::OriginalTitle,
+    bookmarks::Column::OriginalThumbnailUrl,
+    bookmarks::Column::OriginalPublishedAt,
+    bookmarks::Column::OriginalAuthor,
     bookmarks::Column::CreatedAt,
     bookmarks::Column::UpdatedAt,
 ];
