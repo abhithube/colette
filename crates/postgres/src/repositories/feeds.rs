@@ -1,10 +1,12 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{self, FindManyParams},
+    common::{self, FindManyParams, UpdateTagList},
     feeds::{Error, FeedsCreateData, FeedsRepository, FeedsUpdateData, StreamFeed},
     Feed,
 };
-use colette_entities::{entries, feed_entries, feeds, profile_feed_entries, profile_feeds};
+use colette_entities::{
+    entries, feed_entries, feeds, profile_feed_entries, profile_feed_tags, profile_feeds,
+};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
@@ -285,6 +287,61 @@ impl FeedsRepository for FeedsSqlRepository {
                             }
                             _ => Error::Unknown(e.into()),
                         })?;
+
+                    if let Some(tags) = data.tags {
+                        match tags {
+                            UpdateTagList::Add(tag_ids) => {
+                                let models = tag_ids
+                                    .into_iter()
+                                    .map(|id| profile_feed_tags::ActiveModel {
+                                        tag_id: Set(id),
+                                        profile_feed_id: Set(params.id),
+                                    })
+                                    .collect::<Vec<_>>();
+
+                                profile_feed_tags::Entity::insert_many(models)
+                                    .on_conflict(
+                                        OnConflict::columns([
+                                            profile_feed_tags::Column::ProfileFeedId,
+                                            profile_feed_tags::Column::TagId,
+                                        ])
+                                        .do_nothing()
+                                        .to_owned(),
+                                    )
+                                    .exec_without_returning(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                            UpdateTagList::Remove(tag_ids) => {
+                                profile_feed_tags::Entity::delete_many()
+                                    .filter(profile_feed_tags::Column::ProfileFeedId.eq(params.id))
+                                    .filter(profile_feed_tags::Column::TagId.is_in(tag_ids))
+                                    .exec(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                            UpdateTagList::Set(tag_ids) => {
+                                profile_feed_tags::Entity::delete_many()
+                                    .filter(profile_feed_tags::Column::ProfileFeedId.eq(params.id))
+                                    .exec(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                                let models = tag_ids
+                                    .into_iter()
+                                    .map(|id| profile_feed_tags::ActiveModel {
+                                        tag_id: Set(id),
+                                        profile_feed_id: Set(params.id),
+                                    })
+                                    .collect::<Vec<_>>();
+
+                                profile_feed_tags::Entity::insert_many(models)
+                                    .exec_without_returning(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                        }
+                    }
 
                     let Some(feed) = feed_by_id(params.id, params.profile_id)
                         .one(txn)

@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindManyParams, FindOneParams, Paginated, Session},
+    common::{FindManyParams, FindOneParams, Paginated, Session, UpdateTagList},
     utils::{
         backup::{self, BackupManager},
         scraper::{
@@ -37,6 +37,7 @@ pub struct CreateFeed {
 #[derive(Clone, Debug)]
 pub struct UpdateFeed {
     pub title: Option<String>,
+    pub tags: Option<UpdateTagList>,
 }
 
 #[derive(Clone, Debug)]
@@ -315,12 +316,14 @@ pub struct FeedsCreateData {
 #[derive(Clone, Debug)]
 pub struct FeedsUpdateData {
     pub custom_title: Option<String>,
+    pub tags: Option<UpdateTagList>,
 }
 
 impl From<UpdateFeed> for FeedsUpdateData {
     fn from(value: UpdateFeed) -> Self {
         Self {
             custom_title: value.title,
+            tags: value.tags,
         }
     }
 }

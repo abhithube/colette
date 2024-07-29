@@ -11,10 +11,13 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     bookmarks::{self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark},
     collections,
+    common::UpdateTagList,
 };
 use uuid::Uuid;
 
-use crate::common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session};
+use crate::common::{
+    BaseError, BookmarkList, Context, Error, Id, Paginated, Session, TagListUpdate,
+};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -276,6 +279,7 @@ pub struct BookmarkUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub author: Option<String>,
+    pub tags: Option<TagListUpdate>,
 }
 
 impl From<BookmarkUpdate> for UpdateBookmark {
@@ -285,6 +289,7 @@ impl From<BookmarkUpdate> for UpdateBookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
+            tags: value.tags.map(UpdateTagList::from),
         }
     }
 }

@@ -8,11 +8,14 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
+use colette_core::{
+    common::UpdateTagList,
+    feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed},
+};
 use uuid::Uuid;
 
 use crate::common::{
-    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session,
+    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session, TagListUpdate,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -275,11 +278,15 @@ pub struct FeedUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
+    pub tags: Option<TagListUpdate>,
 }
 
 impl From<FeedUpdate> for UpdateFeed {
     fn from(value: FeedUpdate) -> Self {
-        Self { title: value.title }
+        Self {
+            title: value.title,
+            tags: value.tags.map(UpdateTagList::from),
+        }
     }
 }
 

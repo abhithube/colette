@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     collections,
-    common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
+    common::{FindOneParams, Paginated, Session, UpdateTagList, PAGINATION_LIMIT},
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
@@ -41,6 +41,7 @@ pub struct UpdateBookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub tags: Option<UpdateTagList>,
 }
 
 #[derive(Clone, Debug)]
@@ -210,6 +211,7 @@ pub struct BookmarksUpdateData {
     pub custom_thumbnail_url: Option<String>,
     pub custom_published_at: Option<DateTime<Utc>>,
     pub custom_author: Option<String>,
+    pub tags: Option<UpdateTagList>,
 }
 
 impl From<UpdateBookmark> for BookmarksUpdateData {
@@ -219,6 +221,7 @@ impl From<UpdateBookmark> for BookmarksUpdateData {
             custom_thumbnail_url: value.thumbnail_url,
             custom_published_at: value.published_at,
             custom_author: value.author,
+            tags: value.tags,
         }
     }
 }

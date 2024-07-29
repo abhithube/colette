@@ -4,10 +4,10 @@ use colette_core::{
         BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
         Error,
     },
-    common::{self, FindOneParams},
+    common::{self, FindOneParams, UpdateTagList},
     Bookmark,
 };
-use colette_entities::{bookmarks, collections};
+use colette_entities::{bookmark_tags, bookmarks, collections};
 use sea_orm::{
     prelude::Expr, sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
     QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
@@ -204,6 +204,61 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         .exec(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
+
+                    if let Some(tags) = data.tags {
+                        match tags {
+                            UpdateTagList::Add(tag_ids) => {
+                                let models = tag_ids
+                                    .into_iter()
+                                    .map(|id| bookmark_tags::ActiveModel {
+                                        tag_id: Set(id),
+                                        bookmark_id: Set(params.id),
+                                    })
+                                    .collect::<Vec<_>>();
+
+                                bookmark_tags::Entity::insert_many(models)
+                                    .on_conflict(
+                                        OnConflict::columns([
+                                            bookmark_tags::Column::BookmarkId,
+                                            bookmark_tags::Column::TagId,
+                                        ])
+                                        .do_nothing()
+                                        .to_owned(),
+                                    )
+                                    .exec_without_returning(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                            UpdateTagList::Remove(tag_ids) => {
+                                bookmark_tags::Entity::delete_many()
+                                    .filter(bookmark_tags::Column::BookmarkId.eq(params.id))
+                                    .filter(bookmark_tags::Column::TagId.is_in(tag_ids))
+                                    .exec(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                            UpdateTagList::Set(tag_ids) => {
+                                bookmark_tags::Entity::delete_many()
+                                    .filter(bookmark_tags::Column::BookmarkId.eq(params.id))
+                                    .exec(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                                let models = tag_ids
+                                    .into_iter()
+                                    .map(|id| bookmark_tags::ActiveModel {
+                                        tag_id: Set(id),
+                                        bookmark_id: Set(params.id),
+                                    })
+                                    .collect::<Vec<_>>();
+
+                                bookmark_tags::Entity::insert_many(models)
+                                    .exec_without_returning(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?;
+                            }
+                        }
+                    }
 
                     bookmark.custom_title = model.custom_title;
                     bookmark.custom_thumbnail_url = model.custom_thumbnail_url;
