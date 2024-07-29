@@ -3,7 +3,6 @@
 	"files": {
 		"ignore": [
 			"./node_modules/**/*",
-			"./packages/postgres/drizzle/**/*",
 			"./packages/web/src/components/ui/**/*",
 			"./packages/web/src/lib/openapi.d.ts"
 		]
