@@ -28,7 +28,6 @@ colette-password.workspace = true
 colette-postgres.workspace = true
 colette-plugins.workspace = true
 colette-scraper.workspace = true
-colette-sqlite = { workspace = true, optional = true }
 colette-tasks.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
@@ -59,6 +58,6 @@ validator = { version = "0.18.1", default-features = false, features = [
 ] }
 
 [features]
-default = ["sqlite"]
+default = ["postgres"]
 postgres = ["tower-sessions-sqlx-store/postgres"]
 sqlite = ["tower-sessions-sqlx-store/sqlite"]

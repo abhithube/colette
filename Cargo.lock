@@ -640,15 +640,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-database"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "colette-core",
- "uuid",
-]
-
-[[package]]
 name = "colette-entities"
 version = "0.1.0"
 dependencies = [
@@ -690,12 +681,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "chrono",
  "colette-core",
- "colette-database",
  "colette-entities",
  "futures",
  "sea-orm",
- "sqlx",
  "uuid",
 ]
 
@@ -731,7 +721,6 @@ dependencies = [
  "colette-plugins",
  "colette-postgres",
  "colette-scraper",
- "colette-sqlite",
  "colette-tasks",
  "cron",
  "rust-embed",
@@ -746,18 +735,6 @@ dependencies = [
  "utoipa-scalar",
  "uuid",
  "validator",
-]
-
-[[package]]
-name = "colette-sqlite"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "colette-core",
- "colette-database",
- "futures",
- "sqlx",
- "uuid",
 ]
 
 [[package]]
