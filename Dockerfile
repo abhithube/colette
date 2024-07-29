@@ -9,7 +9,7 @@ RUN npm ci
 RUN npm i -D typescript
 RUN npm run build --workspace=@colette/web
 
-FROM rust:1.79-alpine AS base
+FROM rust:1.80-alpine AS base
 WORKDIR /app
 ARG TARGET
 RUN apk add --no-cache musl-dev
