@@ -42,7 +42,7 @@ mod feeds;
 mod profiles;
 mod tags;
 
-const CRON_CLEANUP: &str = "0 0 * * * *";
+const CRON_CLEANUP: &str = "0 0 0 * * *";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
