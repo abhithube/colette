@@ -22,7 +22,6 @@ pub struct Feed {
     pub link: String,
     pub title: String,
     pub url: Option<String>,
-    pub custom_title: Option<String>,
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -36,7 +35,6 @@ pub struct CreateFeed {
 
 #[derive(Clone, Debug)]
 pub struct UpdateFeed {
-    pub title: Option<String>,
     pub tags: Option<UpdateTagList>,
 }
 
@@ -315,16 +313,12 @@ pub struct FeedsCreateData {
 
 #[derive(Clone, Debug)]
 pub struct FeedsUpdateData {
-    pub custom_title: Option<String>,
     pub tags: Option<UpdateTagList>,
 }
 
 impl From<UpdateFeed> for FeedsUpdateData {
     fn from(value: UpdateFeed) -> Self {
-        Self {
-            custom_title: value.title,
-            tags: value.tags,
-        }
+        Self { tags: value.tags }
     }
 }
 

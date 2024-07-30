@@ -269,25 +269,6 @@ impl FeedsRepository for FeedsSqlRepository {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
-                    let mut model = profile_feed::ActiveModel {
-                        id: Set(params.id),
-                        ..Default::default()
-                    };
-                    if data.custom_title.is_some() {
-                        model.custom_title = Set(data.custom_title)
-                    }
-
-                    profile_feed::Entity::update(model)
-                        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
-                        .exec(txn)
-                        .await
-                        .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => {
-                                Error::NotFound(params.id)
-                            }
-                            _ => Error::Unknown(e.into()),
-                        })?;
-
                     if let Some(tags) = data.tags {
                         match tags {
                             UpdateTagList::Add(tag_ids) => {
@@ -468,7 +449,6 @@ struct FeedSelect {
     link: String,
     title: String,
     url: Option<String>,
-    custom_title: Option<String>,
     profile_id: Uuid,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
@@ -482,7 +462,6 @@ impl From<FeedSelect> for Feed {
             link: value.link,
             title: value.title,
             url: value.url,
-            custom_title: value.custom_title,
             profile_id: value.profile_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),

@@ -62,8 +62,6 @@ pub struct Feed {
     pub title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
-    #[schema(required)]
-    pub custom_title: Option<String>,
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -78,7 +76,6 @@ impl From<colette_core::Feed> for Feed {
             link: value.link,
             title: value.title,
             url: value.url,
-            custom_title: value.custom_title,
             profile_id: value.profile_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
@@ -275,16 +272,12 @@ pub async fn update_feed(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
     pub tags: Option<TagListUpdate>,
 }
 
 impl From<FeedUpdate> for UpdateFeed {
     fn from(value: FeedUpdate) -> Self {
         Self {
-            title: value.title,
             tags: value.tags.map(UpdateTagList::from),
         }
     }
