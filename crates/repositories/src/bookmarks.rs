@@ -56,9 +56,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
 
         query
             .order_by_desc(bookmark::Column::PublishedAt)
-            .order_by_desc(bookmark::Column::OriginalPublishedAt)
             .order_by_asc(bookmark::Column::Title)
-            .order_by_asc(bookmark::Column::OriginalTitle)
             .order_by_asc(collection::Column::Id)
             .limit(params.limit as u64)
             .into_model::<BookmarkSelect>()
@@ -104,13 +102,13 @@ impl BookmarksRepository for BookmarksSqlRepository {
                     let bookmark_model = bookmark::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         link: Set(data.url.clone()),
-                        original_title: Set(data.bookmark.title),
-                        original_thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
-                        original_published_at: Set(data
+                        title: Set(data.bookmark.title),
+                        thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
+                        published_at: Set(data
                             .bookmark
                             .published
                             .map(DateTime::<FixedOffset>::from)),
-                        original_author: Set(data.bookmark.author),
+                        author: Set(data.bookmark.author),
                         collection_id: Set(collection.id),
                         ..Default::default()
                     };
@@ -174,36 +172,13 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(mut bookmark) = bookmark_by_id(params.id, params.profile_id)
+                    let Some(bookmark) = bookmark_by_id(params.id, params.profile_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
                         return Err(Error::NotFound(params.id));
                     };
-
-                    let mut model = bookmark::ActiveModel {
-                        id: Set(params.id),
-                        ..Default::default()
-                    };
-                    if data.title.is_some() {
-                        model.title = Set(data.title);
-                    }
-                    if data.thumbnail_url.is_some() {
-                        model.thumbnail_url = Set(data.thumbnail_url);
-                    }
-                    if data.published_at.is_some() {
-                        model.published_at =
-                            Set(data.published_at.map(DateTime::<FixedOffset>::from));
-                    }
-                    if data.author.is_some() {
-                        model.author = Set(data.author);
-                    }
-
-                    let model = bookmark::Entity::update(model)
-                        .exec(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
 
                     if let Some(tags) = data.tags {
                         match tags {
@@ -260,12 +235,6 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         }
                     }
 
-                    bookmark.original_title = model.original_title;
-                    bookmark.original_thumbnail_url = model.original_thumbnail_url;
-                    bookmark.original_published_at = model.original_published_at;
-                    bookmark.original_author = model.original_author;
-                    bookmark.updated_at = model.updated_at;
-
                     Ok(bookmark.into())
                 })
             })
@@ -313,14 +282,10 @@ impl BookmarksRepository for BookmarksSqlRepository {
 struct BookmarkSelect {
     id: Uuid,
     link: String,
-    title: Option<String>,
+    title: String,
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<FixedOffset>>,
     author: Option<String>,
-    original_title: String,
-    original_thumbnail_url: Option<String>,
-    original_published_at: Option<DateTime<FixedOffset>>,
-    original_author: Option<String>,
     collection_id: Option<Uuid>,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
@@ -335,10 +300,6 @@ impl From<BookmarkSelect> for Bookmark {
             published_at: value.published_at.map(DateTime::<Utc>::from),
             author: value.author,
             thumbnail_url: value.thumbnail_url,
-            original_title: value.original_title,
-            original_published_at: value.original_published_at.map(DateTime::<Utc>::from),
-            original_author: value.original_author,
-            original_thumbnail_url: value.original_thumbnail_url,
             collection_id: value.collection_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
@@ -356,17 +317,13 @@ struct BookmarkDelete {
     id: Uuid,
 }
 
-const BOOKMARK_COLUMNS: [bookmark::Column; 12] = [
+const BOOKMARK_COLUMNS: [bookmark::Column; 8] = [
     bookmark::Column::Id,
     bookmark::Column::Link,
     bookmark::Column::Title,
     bookmark::Column::ThumbnailUrl,
     bookmark::Column::PublishedAt,
     bookmark::Column::Author,
-    bookmark::Column::OriginalTitle,
-    bookmark::Column::OriginalThumbnailUrl,
-    bookmark::Column::OriginalPublishedAt,
-    bookmark::Column::OriginalAuthor,
     bookmark::Column::CreatedAt,
     bookmark::Column::UpdatedAt,
 ];
