@@ -3,7 +3,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 
 use crate::{
     m0002_initial_user::Profile, m0003_initial_profile_feed::ProfileFeed,
-    m0004_initial_collection::Bookmark, postgres, sqlite,
+    m0004_initial_bookmark::Bookmark, postgres, sqlite,
 };
 
 #[derive(DeriveMigrationName)]

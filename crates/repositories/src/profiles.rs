@@ -7,7 +7,7 @@ use colette_core::{
     },
     Profile,
 };
-use colette_entities::{collection, profile, profile_feed};
+use colette_entities::{profile, profile_feed};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
@@ -85,19 +85,6 @@ impl ProfilesRepository for ProfilesSqlRepository {
                     };
 
                     profile::Entity::insert(profile_model)
-                        .exec_without_returning(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let collection_model = collection::ActiveModel {
-                        id: Set(Uuid::new_v4()),
-                        title: Set("Default".to_owned()),
-                        is_default: Set(true),
-                        profile_id: Set(new_id),
-                        ..Default::default()
-                    };
-
-                    collection::Entity::insert(collection_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;

@@ -4,7 +4,7 @@ use colette_core::{
     users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
 };
-use colette_entities::{collection, profile, user};
+use colette_entities::{profile, user};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, SelectModel, Selector,
     Set, SqlErr, TransactionTrait,
@@ -71,19 +71,6 @@ impl UsersRepository for UsersSqlRepository {
                     };
 
                     profile::Entity::insert(profile_model)
-                        .exec_without_returning(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let collection_model = collection::ActiveModel {
-                        id: Set(Uuid::new_v4()),
-                        title: Set("Default".to_owned()),
-                        is_default: Set(true),
-                        profile_id: Set(new_profile_id),
-                        ..Default::default()
-                    };
-
-                    collection::Entity::insert(collection_model)
                         .exec_without_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;

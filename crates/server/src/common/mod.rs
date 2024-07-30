@@ -4,7 +4,6 @@ use axum::extract::FromRef;
 use colette_core::{
     auth::AuthService,
     bookmarks::BookmarksService,
-    collections::CollectionsService,
     common::{self, UpdateTagList},
     entries::EntriesService,
     feeds::FeedsService,
@@ -17,7 +16,6 @@ use uuid::Uuid;
 
 use crate::{
     bookmarks::Bookmark,
-    collections::Collection,
     entries::Entry,
     feeds::{Feed, FeedDetected},
     profiles::Profile,
@@ -31,7 +29,6 @@ mod session;
 pub struct Context {
     pub auth_service: Arc<AuthService>,
     pub bookmark_service: Arc<BookmarksService>,
-    pub collections_service: Arc<CollectionsService>,
     pub entries_service: Arc<EntriesService>,
     pub feeds_service: Arc<FeedsService>,
     pub profiles_service: Arc<ProfilesService>,
@@ -43,7 +40,7 @@ pub struct Context {
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, FeedDetectedList = Paginated<FeedDetected>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
+#[aliases(BookmarkList = Paginated<Bookmark>, FeedDetectedList = Paginated<FeedDetected>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: serde::Serialize> {
     pub has_more: bool,

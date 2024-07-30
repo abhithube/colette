@@ -13,10 +13,9 @@ use utoipa_scalar::{Scalar, Servable};
 use crate::{
     auth::Api as Auth,
     bookmarks::Api as Bookmarks,
-    collections::Api as Collections,
     common::{
-        BaseError, BookmarkList, CollectionList, Context, EntryList, FeedDetectedList, FeedList,
-        ProfileList, TagListUpdate,
+        BaseError, BookmarkList, Context, EntryList, FeedDetectedList, FeedList, ProfileList,
+        TagListUpdate,
     },
     entries::Api as Entries,
     feeds::Api as Feeds,
@@ -37,13 +36,12 @@ struct Asset;
     nest(
         (path = "/auth", api = Auth),
         (path = "/bookmarks", api = Bookmarks),
-        (path = "/collections", api = Collections),
         (path = "/entries", api = Entries),
         (path = "/feeds", api = Feeds),
         (path = "/profiles", api = Profiles),
         (path = "/tags", api = Tags)
     ),
-    components(schemas(BaseError, BookmarkList, CollectionList, FeedDetectedList, EntryList, FeedList, ProfileList, TagListUpdate))
+    components(schemas(BaseError, BookmarkList, FeedDetectedList, EntryList, FeedList, ProfileList, TagListUpdate))
 )]
 struct ApiDoc;
 
@@ -74,7 +72,6 @@ impl App {
                     )
                     .merge(Auth::router())
                     .merge(Bookmarks::router())
-                    .merge(Collections::router())
                     .merge(Entries::router())
                     .merge(Feeds::router())
                     .merge(Profiles::router())

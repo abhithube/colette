@@ -5,7 +5,6 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    collections,
     common::{FindOneParams, Paginated, Session, UpdateTagList, PAGINATION_LIMIT},
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
@@ -20,7 +19,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub collection_id: Option<Uuid>,
+    pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -28,7 +27,6 @@ pub struct Bookmark {
 #[derive(Clone, Debug)]
 pub struct CreateBookmark {
     pub url: String,
-    pub collection_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug)]
@@ -120,7 +118,6 @@ impl BookmarksService {
                 published_at: params.published_at,
                 should_filter: params.collection_id.is_none()
                     && params.is_default.is_some_and(|e| e),
-                collection_id: params.collection_id,
             })
             .await?;
 
@@ -144,7 +141,6 @@ impl BookmarksService {
             .create(BookmarksCreateData {
                 url: data.url,
                 bookmark: scraped,
-                collection_id: data.collection_id,
                 profile_id: session.profile_id,
             })
             .await?;
@@ -190,14 +186,12 @@ pub struct BookmarksFindManyParams {
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
     pub should_filter: bool,
-    pub collection_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug)]
 pub struct BookmarksCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
-    pub collection_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
@@ -226,9 +220,6 @@ impl From<UpdateBookmark> for BookmarksUpdateData {
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
     NotFound(Uuid),
-
-    #[error(transparent)]
-    Collection(#[from] collections::Error),
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),

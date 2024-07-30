@@ -8,11 +8,10 @@ use colette_core::{
     common::{self, FindOneParams, UpdateTagList},
     Bookmark,
 };
-use colette_entities::{bookmark, bookmark_tag, collection};
+use colette_entities::{bookmark, bookmark_tag};
 use sea_orm::{
-    prelude::Expr, sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
-    QueryFilter, QueryOrder, QuerySelect, RelationTrait, SelectModel, Selector, Set,
-    TransactionError, TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect, SelectModel, Selector, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -32,32 +31,16 @@ impl BookmarksRepository for BookmarksSqlRepository {
         let mut query = bookmark::Entity::find()
             .select_only()
             .columns(BOOKMARK_COLUMNS)
-            .expr_as(
-                Expr::case(
-                    collection::Column::IsDefault.eq(true),
-                    Expr::value(Option::<Uuid>::None),
-                )
-                .finally(bookmark::Column::CollectionId.into_expr()),
-                "collection_id",
-            )
-            .join(JoinType::Join, bookmark::Relation::Collection.def())
-            .filter(collection::Column::ProfileId.eq(params.profile_id));
+            .filter(bookmark::Column::ProfileId.eq(params.profile_id));
 
         if let Some(published_at) = params.published_at {
             query = query.filter(bookmark::Column::PublishedAt.lt(published_at))
-        }
-        if params.should_filter {
-            if let Some(collection_id) = params.collection_id {
-                query = query.filter(bookmark::Column::CollectionId.eq(collection_id))
-            } else {
-                query = query.filter(collection::Column::IsDefault.eq(true))
-            }
         }
 
         query
             .order_by_desc(bookmark::Column::PublishedAt)
             .order_by_asc(bookmark::Column::Title)
-            .order_by_asc(collection::Column::Id)
+            .order_by_asc(bookmark::Column::Id)
             .limit(params.limit as u64)
             .into_model::<BookmarkSelect>()
             .all(&self.db)
@@ -70,35 +53,6 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let mut query = collection::Entity::find()
-                        .select_only()
-                        .column(collection::Column::Id);
-                    if let Some(collection_id) = data.collection_id {
-                        query = query.filter(collection::Column::Id.eq(collection_id));
-                    } else {
-                        query = query.filter(collection::Column::IsDefault.eq(true))
-                    }
-
-                    let Some(collection) = query
-                        .filter(collection::Column::ProfileId.eq(data.profile_id))
-                        .into_model::<CollectionSelect>()
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        if let Some(collection_id) = data.collection_id {
-                            return Err(Error::Collection(
-                                colette_core::collections::Error::NotFound(collection_id),
-                            ));
-                        } else {
-                            return Err(Error::Collection(
-                                colette_core::collections::Error::Unknown(anyhow!(
-                                    "Failed to fetch default collection"
-                                )),
-                            ));
-                        }
-                    };
-
                     let bookmark_model = bookmark::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         link: Set(data.url.clone()),
@@ -109,14 +63,14 @@ impl BookmarksRepository for BookmarksSqlRepository {
                             .published
                             .map(DateTime::<FixedOffset>::from)),
                         author: Set(data.bookmark.author),
-                        collection_id: Set(collection.id),
+                        profile_id: Set(data.profile_id),
                         ..Default::default()
                     };
 
                     bookmark::Entity::insert(bookmark_model)
                         .on_conflict(
                             OnConflict::columns([
-                                bookmark::Column::CollectionId,
+                                bookmark::Column::ProfileId,
                                 bookmark::Column::Link,
                             ])
                             .update_columns([
@@ -134,18 +88,8 @@ impl BookmarksRepository for BookmarksSqlRepository {
                     let Some(bookmark) = bookmark::Entity::find()
                         .select_only()
                         .columns(BOOKMARK_COLUMNS)
-                        .expr_as(
-                            Expr::case(
-                                collection::Column::IsDefault.eq(true),
-                                Expr::value(Option::<Uuid>::None),
-                            )
-                            .finally(bookmark::Column::CollectionId.into_expr()),
-                            "collection_id",
-                        )
-                        .join(JoinType::Join, bookmark::Relation::Collection.def())
-                        .filter(bookmark::Column::CollectionId.eq(collection.id))
+                        .filter(bookmark::Column::ProfileId.eq(data.profile_id))
                         .filter(bookmark::Column::Link.eq(data.url))
-                        .filter(collection::Column::ProfileId.eq(data.profile_id))
                         .into_model::<BookmarkSelect>()
                         .one(txn)
                         .await
@@ -246,35 +190,17 @@ impl BookmarksRepository for BookmarksSqlRepository {
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(bookmark) = bookmark::Entity::find_by_id(params.id)
-                        .select_only()
-                        .column(bookmark::Column::Id)
-                        .join(JoinType::Join, bookmark::Relation::Collection.def())
-                        .filter(collection::Column::ProfileId.eq(params.profile_id))
-                        .into_model::<BookmarkDelete>()
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    bookmark::Entity::delete_by_id(bookmark.id)
-                        .exec(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
-                })
-            })
+        let result = bookmark::Entity::delete_by_id(params.id)
+            .filter(bookmark::Column::ProfileId.eq(params.profile_id))
+            .exec(&self.db)
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
     }
 }
 
@@ -286,7 +212,7 @@ struct BookmarkSelect {
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<FixedOffset>>,
     author: Option<String>,
-    collection_id: Option<Uuid>,
+    profile_id: Uuid,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
 }
@@ -300,30 +226,21 @@ impl From<BookmarkSelect> for Bookmark {
             published_at: value.published_at.map(DateTime::<Utc>::from),
             author: value.author,
             thumbnail_url: value.thumbnail_url,
-            collection_id: value.collection_id,
+            profile_id: value.profile_id,
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
         }
     }
 }
 
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct CollectionSelect {
-    id: Uuid,
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct BookmarkDelete {
-    id: Uuid,
-}
-
-const BOOKMARK_COLUMNS: [bookmark::Column; 8] = [
+const BOOKMARK_COLUMNS: [bookmark::Column; 9] = [
     bookmark::Column::Id,
     bookmark::Column::Link,
     bookmark::Column::Title,
     bookmark::Column::ThumbnailUrl,
     bookmark::Column::PublishedAt,
     bookmark::Column::Author,
+    bookmark::Column::ProfileId,
     bookmark::Column::CreatedAt,
     bookmark::Column::UpdatedAt,
 ];
@@ -332,15 +249,6 @@ fn bookmark_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<BookmarkSe
     bookmark::Entity::find_by_id(id)
         .select_only()
         .columns(BOOKMARK_COLUMNS)
-        .expr_as(
-            Expr::case(
-                collection::Column::IsDefault.eq(true),
-                Expr::value(Option::<Uuid>::None),
-            )
-            .finally(bookmark::Column::CollectionId.into_expr()),
-            "collection_id",
-        )
-        .join(JoinType::Join, bookmark::Relation::Collection.def())
-        .filter(collection::Column::ProfileId.eq(profile_id))
+        .filter(bookmark::Column::ProfileId.eq(profile_id))
         .into_model::<BookmarkSelect>()
 }

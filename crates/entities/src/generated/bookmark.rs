@@ -16,7 +16,7 @@ pub struct Model {
     pub published_at: Option<DateTimeWithTimeZone>,
     #[sea_orm(column_type = "Text", nullable)]
     pub author: Option<String>,
-    pub collection_id: Uuid,
+    pub profile_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -26,13 +26,13 @@ pub enum Relation {
     #[sea_orm(has_many = "super::bookmark_tag::Entity")]
     BookmarkTag,
     #[sea_orm(
-        belongs_to = "super::collection::Entity",
-        from = "Column::CollectionId",
-        to = "super::collection::Column::Id",
+        belongs_to = "super::profile::Entity",
+        from = "Column::ProfileId",
+        to = "super::profile::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Collection,
+    Profile,
 }
 
 impl Related<super::bookmark_tag::Entity> for Entity {
@@ -41,9 +41,9 @@ impl Related<super::bookmark_tag::Entity> for Entity {
     }
 }
 
-impl Related<super::collection::Entity> for Entity {
+impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Collection.def()
+        Relation::Profile.def()
     }
 }
 

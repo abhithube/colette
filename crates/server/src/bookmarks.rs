@@ -10,7 +10,6 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmarks::{self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark},
-    collections,
     common::UpdateTagList,
 };
 use uuid::Uuid;
@@ -54,8 +53,6 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(required)]
-    pub collection_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -69,7 +66,6 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            collection_id: value.collection_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
         }
@@ -164,12 +160,6 @@ pub async fn create_bookmark(
             bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
                 message: e.to_string(),
             })),
-            bookmarks::Error::Collection(e) => match e {
-                collections::Error::NotFound(_) => Ok(CreateResponse::NotFound(BaseError {
-                    message: e.to_string(),
-                })),
-                _ => Err(Error::Unknown),
-            },
             _ => Err(Error::Unknown),
         },
     }
@@ -181,16 +171,11 @@ pub struct BookmarkCreate {
     #[schema(format = "uri")]
     #[validate(url(message = "not a valid URL"))]
     pub url: String,
-    #[schema(nullable = false)]
-    pub collection_id: Option<Uuid>,
 }
 
 impl From<BookmarkCreate> for CreateBookmark {
     fn from(value: BookmarkCreate) -> Self {
-        Self {
-            url: value.url,
-            collection_id: value.collection_id,
-        }
+        Self { url: value.url }
     }
 }
 
@@ -198,9 +183,6 @@ impl From<BookmarkCreate> for CreateBookmark {
 pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
     Created(Box<Bookmark>),
-
-    #[response(status = 404, description = "Collection not found")]
-    NotFound(BaseError),
 
     #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
@@ -214,7 +196,6 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }

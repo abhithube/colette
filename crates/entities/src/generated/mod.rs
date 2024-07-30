@@ -4,7 +4,6 @@ pub mod prelude;
 
 pub mod bookmark;
 pub mod bookmark_tag;
-pub mod collection;
 pub mod entry;
 pub mod feed;
 pub mod feed_entry;

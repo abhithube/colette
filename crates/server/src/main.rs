@@ -4,15 +4,14 @@ use app::App;
 use chrono::Local;
 use colette_backup::OpmlManager;
 use colette_core::{
-    auth::AuthService, bookmarks::BookmarksService, collections::CollectionsService,
-    entries::EntriesService, feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
-    utils::task::Task,
+    auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
+    profiles::ProfilesService, tags::TagsService, utils::task::Task,
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repositories::{
-    BookmarksSqlRepository, CollectionsSqlRepository, EntriesSqlRepository, FeedsSqlRepository,
-    ProfilesSqlRepository, TagsSqlRepository, UsersSqlRepository,
+    BookmarksSqlRepository, EntriesSqlRepository, FeedsSqlRepository, ProfilesSqlRepository,
+    TagsSqlRepository, UsersSqlRepository,
 };
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
@@ -30,7 +29,6 @@ use tower_sessions_sqlx_store::{PostgresStore, SqliteStore};
 mod app;
 mod auth;
 mod bookmarks;
-mod collections;
 mod common;
 mod entries;
 mod feeds;
@@ -49,7 +47,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Migrator::up(&db, None).await?;
 
     let bookmarks_repository = Arc::new(BookmarksSqlRepository::new(db.clone()));
-    let collections_repository = Arc::new(CollectionsSqlRepository::new(db.clone()));
     let entries_repository = Arc::new(EntriesSqlRepository::new(db.clone()));
     let feeds_repository = Arc::new(FeedsSqlRepository::new(db.clone()));
     let profiles_repository = Arc::new(ProfilesSqlRepository::new(db.clone()));
@@ -164,7 +161,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
         )
         .into(),
-        collections_service: CollectionsService::new(collections_repository).into(),
         entries_service: EntriesService::new(entries_repository).into(),
         feeds_service: FeedsService::new(feeds_repository, feed_scraper, Arc::new(OpmlManager))
             .into(),

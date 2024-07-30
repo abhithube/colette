@@ -12,43 +12,6 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Collection::Table)
-                    .if_not_exists()
-                    .col(uuid(Collection::Id).primary_key())
-                    .col(text(Collection::Title))
-                    .col(boolean(Collection::IsDefault).default(Expr::value(false)))
-                    .col(uuid(Collection::ProfileId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(Collection::Table, Collection::ProfileId)
-                            .to(Profile::Table, Profile::Id)
-                            .on_delete(ForeignKeyAction::Cascade),
-                    )
-                    .col(
-                        timestamp_with_time_zone(Collection::CreatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        timestamp_with_time_zone(Collection::UpdatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .get_connection()
-            .execute_unprepared(
-                "
-CREATE UNIQUE INDEX collection_profile_id_is_default_key
-    ON \"collection\" (profile_id, is_default)
- WHERE is_default",
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
                     .table(Bookmark::Table)
                     .if_not_exists()
                     .col(uuid(Bookmark::Id).primary_key())
@@ -57,11 +20,11 @@ CREATE UNIQUE INDEX collection_profile_id_is_default_key
                     .col(text_null(Bookmark::ThumbnailUrl))
                     .col(timestamp_with_time_zone_null(Bookmark::PublishedAt))
                     .col(text_null(Bookmark::Author))
-                    .col(uuid(Bookmark::CollectionId))
+                    .col(uuid(Bookmark::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
-                            .from(Bookmark::Table, Bookmark::CollectionId)
-                            .to(Collection::Table, Collection::Id)
+                            .from(Bookmark::Table, Bookmark::ProfileId)
+                            .to(Profile::Table, Profile::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(
@@ -79,10 +42,10 @@ CREATE UNIQUE INDEX collection_profile_id_is_default_key
         manager
             .create_index(
                 Index::create()
-                    .name("bookmark_collection_id_link_key")
+                    .name("bookmark_profile_id_link_key")
                     .table(Bookmark::Table)
                     .if_not_exists()
-                    .col(Bookmark::CollectionId)
+                    .col(Bookmark::ProfileId)
                     .col(Bookmark::Link)
                     .unique()
                     .to_owned(),
@@ -91,11 +54,9 @@ CREATE UNIQUE INDEX collection_profile_id_is_default_key
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
-                postgres::create_updated_at_trigger(manager, "collection").await?;
                 postgres::create_updated_at_trigger(manager, "bookmark").await?;
             }
             DatabaseBackend::Sqlite => {
-                sqlite::create_updated_at_trigger(manager, "collection").await?;
                 sqlite::create_updated_at_trigger(manager, "bookmark").await?;
             }
             _ => {}
@@ -109,23 +70,8 @@ CREATE UNIQUE INDEX collection_profile_id_is_default_key
             .drop_table(Table::drop().table(Bookmark::Table).to_owned())
             .await?;
 
-        manager
-            .drop_table(Table::drop().table(Collection::Table).to_owned())
-            .await?;
-
         Ok(())
     }
-}
-
-#[derive(DeriveIden)]
-pub enum Collection {
-    Table,
-    Id,
-    Title,
-    IsDefault,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
 }
 
 #[derive(DeriveIden)]
@@ -137,7 +83,7 @@ pub enum Bookmark {
     ThumbnailUrl,
     PublishedAt,
     Author,
-    CollectionId,
+    ProfileId,
     CreatedAt,
     UpdatedAt,
 }
