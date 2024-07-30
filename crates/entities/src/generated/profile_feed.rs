@@ -7,8 +7,6 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub custom_title: Option<String>,
     pub profile_id: Uuid,
     pub feed_id: i32,
     pub created_at: DateTimeWithTimeZone,
