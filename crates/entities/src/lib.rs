@@ -5,18 +5,21 @@ use sea_orm::{prelude::Uuid, ColumnTrait, Linked, RelationDef, RelationTrait};
 
 mod generated;
 
-impl From<bookmark::Model> for Bookmark {
-    fn from(value: bookmark::Model) -> Self {
+pub struct BookmarkWithTags(pub bookmark::Model, pub Option<Vec<tag::Model>>);
+
+impl From<BookmarkWithTags> for Bookmark {
+    fn from(BookmarkWithTags(bookmark, tags): BookmarkWithTags) -> Self {
         Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at.map(DateTime::<Utc>::from),
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            profile_id: value.profile_id,
-            created_at: value.created_at.into(),
-            updated_at: value.updated_at.into(),
+            id: bookmark.id,
+            link: bookmark.link,
+            title: bookmark.title,
+            published_at: bookmark.published_at.map(DateTime::<Utc>::from),
+            author: bookmark.author,
+            thumbnail_url: bookmark.thumbnail_url,
+            profile_id: bookmark.profile_id,
+            created_at: bookmark.created_at.into(),
+            updated_at: bookmark.updated_at.into(),
+            tags: tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
 }
@@ -105,6 +108,21 @@ impl From<user::Model> for User {
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct BookmarkToTag;
+
+impl Linked for BookmarkToTag {
+    type FromEntity = bookmark::Entity;
+    type ToEntity = tag::Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![
+            bookmark::Relation::BookmarkTag.def(),
+            bookmark_tag::Relation::Tag.def(),
+        ]
     }
 }
 

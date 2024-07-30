@@ -7,10 +7,10 @@ use colette_core::{
     common::{self, FindOneParams, UpdateTagList},
     Bookmark,
 };
-use colette_entities::{bookmark, bookmark_tag};
+use colette_entities::{bookmark, bookmark_tag, BookmarkToTag, BookmarkWithTags};
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, QueryTrait, Select, Set, TransactionError, TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, ModelTrait, QueryFilter,
+    QueryOrder, QuerySelect, QueryTrait, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -27,18 +27,33 @@ impl BookmarksSqlRepository {
 #[async_trait::async_trait]
 impl BookmarksRepository for BookmarksSqlRepository {
     async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
-        select(None, params.profile_id)
+        let query = bookmark::Entity::find()
+            .filter(bookmark::Column::ProfileId.eq(params.profile_id))
             .apply_if(params.published_at, |query, v| {
                 query.filter(bookmark::Column::PublishedAt.lt(v))
             })
             .order_by_desc(bookmark::Column::PublishedAt)
             .order_by_asc(bookmark::Column::Title)
             .order_by_asc(bookmark::Column::Id)
-            .limit(params.limit as u64)
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Bookmark::from).collect())
-            .map_err(|e| Error::Unknown(e.into()))
+            .limit(params.limit as u64);
+
+        match params.with_tags {
+            true => query
+                .find_with_linked(BookmarkToTag)
+                .all(&self.db)
+                .await
+                .map(|e| {
+                    e.into_iter()
+                        .map(|(bookmark, tags)| BookmarkWithTags(bookmark, Some(tags)).into())
+                        .collect()
+                }),
+            false => query.all(&self.db).await.map(|e| {
+                e.into_iter()
+                    .map(|bookmark| BookmarkWithTags(bookmark, None).into())
+                    .collect()
+            }),
+        }
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn create(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
@@ -68,7 +83,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(bookmark.into())
+        Ok(BookmarkWithTags(bookmark, None).into())
     }
 
     async fn update(
@@ -79,7 +94,8 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(bookmark) = select(Some(params.id), params.profile_id)
+                    let Some(bookmark) = bookmark::Entity::find_by_id(params.id)
+                        .filter(bookmark::Column::ProfileId.eq(params.profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -142,7 +158,13 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         }
                     }
 
-                    Ok(bookmark.into())
+                    let tags = bookmark
+                        .find_linked(BookmarkToTag)
+                        .all(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(BookmarkWithTags(bookmark, Some(tags)).into())
                 })
             })
             .await
@@ -165,13 +187,4 @@ impl BookmarksRepository for BookmarksSqlRepository {
 
         Ok(())
     }
-}
-
-fn select(id: Option<Uuid>, profile_id: Uuid) -> Select<bookmark::Entity> {
-    let query = match id {
-        Some(id) => bookmark::Entity::find_by_id(id),
-        None => bookmark::Entity::find(),
-    };
-
-    query.filter(bookmark::Column::ProfileId.eq(profile_id))
 }

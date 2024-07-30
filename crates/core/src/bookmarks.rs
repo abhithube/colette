@@ -9,6 +9,7 @@ use crate::{
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
+    Tag,
 };
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ pub struct Bookmark {
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub tags: Option<Vec<Tag>>,
 }
 
 #[derive(Clone, Debug)]
@@ -41,8 +43,7 @@ pub struct UpdateBookmark {
 #[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
-    pub collection_id: Option<Uuid>,
-    pub is_default: Option<bool>,
+    pub with_tags: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -116,8 +117,7 @@ impl BookmarksService {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
-                should_filter: params.collection_id.is_none()
-                    && params.is_default.is_some_and(|e| e),
+                with_tags: params.with_tags,
             })
             .await?;
 
@@ -185,7 +185,7 @@ pub struct BookmarksFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
-    pub should_filter: bool,
+    pub with_tags: bool,
 }
 
 #[derive(Clone, Debug)]

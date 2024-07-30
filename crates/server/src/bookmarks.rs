@@ -14,8 +14,9 @@ use colette_core::{
 };
 use uuid::Uuid;
 
-use crate::common::{
-    BaseError, BookmarkList, Context, Error, Id, Paginated, Session, TagListUpdate,
+use crate::{
+    common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session, TagListUpdate},
+    tags::Tag,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -55,6 +56,9 @@ pub struct Bookmark {
     pub author: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub tags: Option<Vec<Tag>>,
 }
 
 impl From<colette_core::Bookmark> for Bookmark {
@@ -68,6 +72,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             author: value.author,
             created_at: value.created_at,
             updated_at: value.updated_at,
+            tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
 }
@@ -104,18 +109,19 @@ pub async fn list_bookmarks(
 pub struct ListBookmarksQuery {
     #[param(nullable = false)]
     pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false)]
-    pub collection_id: Option<Uuid>,
-    #[param(nullable = false)]
-    pub is_default: Option<bool>,
+    #[param(nullable = false, default = with_tags_default)]
+    pub with_tags: Option<bool>,
+}
+
+fn with_tags_default() -> bool {
+    false
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
             published_at: value.published_at,
-            collection_id: value.collection_id,
-            is_default: value.is_default,
+            with_tags: value.with_tags.unwrap_or(with_tags_default()),
         }
     }
 }
@@ -140,7 +146,7 @@ impl IntoResponse for ListResponse {
     request_body = BookmarkCreate,
     responses(CreateResponse),
     operation_id = "createBookmark",
-    description = "Add a bookmark to a collection",
+    description = "Add a bookmark to a profile",
     tag = "Bookmarks"
   )]
 #[axum::debug_handler]
