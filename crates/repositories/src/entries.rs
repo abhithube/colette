@@ -5,11 +5,13 @@ use colette_core::{
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
-use colette_entities::{entry, feed_entry, profile_feed, profile_feed_entry, PfeWithEntry};
+use colette_entities::{
+    entry, feed_entry, profile_feed, profile_feed_entry, PfeWithEntry, ProfileFeedEntryToEntry,
+};
 use sea_orm::{
     prelude::Expr, sea_query::Alias, ColumnTrait, DatabaseConnection, EntityTrait, JoinType,
-    Linked, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RelationDef, RelationTrait,
-    SelectModel, SelectTwo, Selector, Set, TransactionError, TransactionTrait,
+    QueryFilter, QueryOrder, QuerySelect, QueryTrait, RelationTrait, SelectModel, SelectTwo,
+    Selector, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -153,21 +155,6 @@ fn entry_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<EntrySelect>>
         .join(JoinType::Join, feed_entry::Relation::Entry.def())
         .filter(profile_feed::Column::ProfileId.eq(profile_id))
         .into_model::<EntrySelect>()
-}
-
-#[derive(Debug)]
-pub struct ProfileFeedEntryToEntry;
-
-impl Linked for ProfileFeedEntryToEntry {
-    type FromEntity = profile_feed_entry::Entity;
-    type ToEntity = entry::Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![
-            profile_feed_entry::Relation::FeedEntry.def(),
-            feed_entry::Relation::Entry.def(),
-        ]
-    }
 }
 
 fn select(

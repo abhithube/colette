@@ -1,7 +1,7 @@
 use chrono::{DateTime, FixedOffset, Utc};
 use colette_core::{Bookmark, Entry, Feed, Profile, Tag, User};
 pub use generated::*;
-use sea_orm::{prelude::Uuid, ColumnTrait};
+use sea_orm::{prelude::Uuid, ColumnTrait, Linked, RelationDef, RelationTrait};
 
 mod generated;
 
@@ -105,5 +105,20 @@ impl From<user::Model> for User {
             created_at: value.created_at.into(),
             updated_at: value.updated_at.into(),
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct ProfileFeedEntryToEntry;
+
+impl Linked for ProfileFeedEntryToEntry {
+    type FromEntity = profile_feed_entry::Entity;
+    type ToEntity = entry::Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![
+            profile_feed_entry::Relation::FeedEntry.def(),
+            feed_entry::Relation::Entry.def(),
+        ]
     }
 }
