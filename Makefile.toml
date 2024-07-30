@@ -21,4 +21,4 @@ args = ["migrate", "fresh", "-d", "./crates/migrations"]
 
 [tasks.generate]
 command = "sea-orm-cli"
-args = ["generate", "entity", "-l", "-o", "./crates/entities/src"]
+args = ["generate", "entity", "-o", "./crates/entities/src/generated"]
