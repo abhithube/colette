@@ -9,12 +9,6 @@ use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-}
-
-#[derive(Clone, Debug)]
-pub struct TagDetails {
-    pub id: Uuid,
-    pub title: String,
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -34,15 +28,11 @@ pub struct UpdateTag {
 pub trait TagsRepository: Send + Sync {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_one(&self, params: FindOneParams) -> Result<TagDetails, Error>;
+    async fn find_one(&self, params: FindOneParams) -> Result<Tag, Error>;
 
-    async fn create(&self, data: TagsCreateData) -> Result<TagDetails, Error>;
+    async fn create(&self, data: TagsCreateData) -> Result<Tag, Error>;
 
-    async fn update(
-        &self,
-        params: FindOneParams,
-        data: TagsUpdateData,
-    ) -> Result<TagDetails, Error>;
+    async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
 
     async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
 }
@@ -72,7 +62,7 @@ impl TagsService {
         Ok(paginated)
     }
 
-    pub async fn get(&self, id: Uuid, session: Session) -> Result<TagDetails, Error> {
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
             .find_one(FindOneParams {
@@ -84,7 +74,7 @@ impl TagsService {
         Ok(tag)
     }
 
-    pub async fn create(&self, data: CreateTag, session: Session) -> Result<TagDetails, Error> {
+    pub async fn create(&self, data: CreateTag, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
             .create(TagsCreateData {
@@ -96,12 +86,7 @@ impl TagsService {
         Ok(tag)
     }
 
-    pub async fn update(
-        &self,
-        id: Uuid,
-        data: UpdateTag,
-        session: Session,
-    ) -> Result<TagDetails, Error> {
+    pub async fn update(&self, id: Uuid, data: UpdateTag, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
             .update(

@@ -16,7 +16,7 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, Session, TagList};
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(list_tags, get_tag, create_tag, update_tag, delete_tag),
-    components(schemas(Tag, TagDetails, TagCreate, TagUpdate))
+    components(schemas(Tag, TagCreate, TagUpdate))
 )]
 pub struct Api;
 
@@ -39,29 +39,13 @@ impl Api {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-}
-
-impl From<colette_core::Tag> for Tag {
-    fn from(value: colette_core::Tag) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TagDetails {
-    pub id: Uuid,
-    pub title: String,
     pub profile_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<colette_core::TagDetails> for TagDetails {
-    fn from(value: colette_core::TagDetails) -> Self {
+impl From<colette_core::Tag> for Tag {
+    fn from(value: colette_core::Tag) -> Self {
         Self {
             id: value.id,
             title: value.title,
@@ -125,7 +109,7 @@ pub async fn get_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.get(id, session.into()).await.map(TagDetails::from);
+    let result = service.get(id, session.into()).await.map(Tag::from);
 
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
@@ -141,7 +125,7 @@ pub async fn get_tag(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Tag by ID")]
-    Ok(TagDetails),
+    Ok(Tag),
 
     #[response(status = 404, description = "Tag not found")]
     NotFound(BaseError),
@@ -174,7 +158,7 @@ pub async fn create_tag(
     let result = service
         .create(body.into(), session.into())
         .await
-        .map(TagDetails::from);
+        .map(Tag::from);
 
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
@@ -199,7 +183,7 @@ impl From<TagCreate> for CreateTag {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created tag")]
-    Created(TagDetails),
+    Created(Tag),
 
     #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
@@ -235,7 +219,7 @@ pub async fn update_tag(
     let result = service
         .update(id, body.into(), session.into())
         .await
-        .map(TagDetails::from);
+        .map(Tag::from);
 
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
@@ -265,7 +249,7 @@ impl From<TagUpdate> for UpdateTag {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated tag")]
-    Ok(TagDetails),
+    Ok(Tag),
 
     #[response(status = 404, description = "Tag not found")]
     NotFound(BaseError),

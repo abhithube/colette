@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
     common::{self, FindManyParams, FindOneParams},
-    tags::{Error, Tag, TagsCreateData, TagsRepository, TagsUpdateData},
-    TagDetails,
+    tags::{Error, TagsCreateData, TagsRepository, TagsUpdateData},
+    Tag,
 };
 use colette_entities::tag;
 use sea_orm::{
@@ -27,7 +27,7 @@ impl TagsRepository for TagsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error> {
         tag::Entity::find()
             .select_only()
-            .columns([tag::Column::Id, tag::Column::Title])
+            .columns(TAG_COLUMNS)
             .filter(tag::Column::ProfileId.eq(params.profile_id))
             .into_model::<TagSelect>()
             .all(&self.db)
@@ -36,7 +36,7 @@ impl TagsRepository for TagsSqlRepository {
             .map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn find_one(&self, params: common::FindOneParams) -> Result<TagDetails, Error> {
+    async fn find_one(&self, params: common::FindOneParams) -> Result<Tag, Error> {
         let Some(tag) = tag_by_id(params.id, params.profile_id)
             .one(&self.db)
             .await
@@ -48,9 +48,9 @@ impl TagsRepository for TagsSqlRepository {
         Ok(tag.into())
     }
 
-    async fn create(&self, data: TagsCreateData) -> Result<TagDetails, Error> {
+    async fn create(&self, data: TagsCreateData) -> Result<Tag, Error> {
         self.db
-            .transaction::<_, TagDetails, Error>(|txn| {
+            .transaction::<_, Tag, Error>(|txn| {
                 Box::pin(async move {
                     let new_id = Uuid::new_v4();
                     let model = tag::ActiveModel {
@@ -83,13 +83,9 @@ impl TagsRepository for TagsSqlRepository {
             })
     }
 
-    async fn update(
-        &self,
-        params: FindOneParams,
-        data: TagsUpdateData,
-    ) -> Result<TagDetails, Error> {
+    async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error> {
         self.db
-            .transaction::<_, TagDetails, Error>(|txn| {
+            .transaction::<_, Tag, Error>(|txn| {
                 Box::pin(async move {
                     let mut model = tag::ActiveModel {
                         id: Set(params.id),
@@ -147,28 +143,13 @@ impl TagsRepository for TagsSqlRepository {
 struct TagSelect {
     id: Uuid,
     title: String,
-}
-
-impl From<TagSelect> for Tag {
-    fn from(value: TagSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-        }
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct TagDetailsSelect {
-    id: Uuid,
-    title: String,
     profile_id: Uuid,
     created_at: DateTime<FixedOffset>,
     updated_at: DateTime<FixedOffset>,
 }
 
-impl From<TagDetailsSelect> for TagDetails {
-    fn from(value: TagDetailsSelect) -> Self {
+impl From<TagSelect> for Tag {
+    fn from(value: TagSelect) -> Self {
         Self {
             id: value.id,
             title: value.title,
@@ -179,16 +160,18 @@ impl From<TagDetailsSelect> for TagDetails {
     }
 }
 
-fn tag_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<TagDetailsSelect>> {
+const TAG_COLUMNS: [colette_entities::tag::Column; 5] = [
+    tag::Column::Id,
+    tag::Column::Title,
+    tag::Column::ProfileId,
+    tag::Column::CreatedAt,
+    tag::Column::UpdatedAt,
+];
+
+fn tag_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<TagSelect>> {
     tag::Entity::find_by_id(id)
         .select_only()
-        .columns([
-            tag::Column::Id,
-            tag::Column::Title,
-            tag::Column::ProfileId,
-            tag::Column::CreatedAt,
-            tag::Column::UpdatedAt,
-        ])
+        .columns(TAG_COLUMNS)
         .filter(tag::Column::ProfileId.eq(profile_id))
-        .into_model::<TagDetailsSelect>()
+        .into_model::<TagSelect>()
 }
