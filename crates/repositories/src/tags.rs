@@ -1,14 +1,10 @@
-use anyhow::anyhow;
 use colette_core::{
     common::{self, FindManyParams, FindOneParams},
     tags::{Error, TagsCreateData, TagsRepository, TagsUpdateData},
     Tag,
 };
 use colette_entities::tag;
-use sea_orm::{
-    ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set, TransactionError,
-    TransactionTrait,
-};
+use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set};
 use uuid::Uuid;
 
 pub struct TagsSqlRepository {
@@ -46,72 +42,40 @@ impl TagsRepository for TagsSqlRepository {
     }
 
     async fn create(&self, data: TagsCreateData) -> Result<Tag, Error> {
-        self.db
-            .transaction::<_, Tag, Error>(|txn| {
-                Box::pin(async move {
-                    let new_id = Uuid::new_v4();
-                    let model = tag::ActiveModel {
-                        id: Set(new_id),
-                        title: Set(data.title),
-                        profile_id: Set(data.profile_id),
-                        ..Default::default()
-                    };
+        let model = tag::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            title: Set(data.title),
+            profile_id: Set(data.profile_id),
+            ..Default::default()
+        };
 
-                    tag::Entity::insert(model)
-                        .exec_without_returning(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let Some(tag) = tag::Entity::find_by_id(new_id)
-                        .filter(tag::Column::ProfileId.eq(data.profile_id))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!("Failed to fetch created tag")));
-                    };
-
-                    Ok(tag.into())
-                })
-            })
+        let model = tag::Entity::insert(model)
+            .exec_with_returning(&self.db)
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(model.into())
     }
 
     async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error> {
-        self.db
-            .transaction::<_, Tag, Error>(|txn| {
-                Box::pin(async move {
-                    let mut model = tag::ActiveModel {
-                        id: Set(params.id),
-                        ..Default::default()
-                    };
-                    if let Some(title) = data.title {
-                        model.title = Set(title);
-                    }
+        let mut model = tag::ActiveModel {
+            id: Set(params.id),
+            ..Default::default()
+        };
+        if let Some(title) = data.title {
+            model.title = Set(title);
+        }
 
-                    let tag = tag::Entity::update(model)
-                        .filter(tag::Column::ProfileId.eq(params.profile_id))
-                        .exec(txn)
-                        .await
-                        .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => {
-                                Error::NotFound(params.id)
-                            }
-                            _ => Error::Unknown(e.into()),
-                        })?;
-
-                    Ok(tag.into())
-                })
-            })
+        let tag = tag::Entity::update(model)
+            .filter(tag::Column::ProfileId.eq(params.profile_id))
+            .exec(&self.db)
             .await
             .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
+                DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        Ok(tag.into())
     }
 
     async fn delete(&self, params: common::FindOneParams) -> Result<(), Error> {

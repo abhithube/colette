@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmarks::{
@@ -47,59 +46,33 @@ impl BookmarksRepository for BookmarksSqlRepository {
     }
 
     async fn create(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
-        self.db
-            .transaction::<_, Bookmark, Error>(|txn| {
-                Box::pin(async move {
-                    let bookmark_model = bookmark::ActiveModel {
-                        id: Set(Uuid::new_v4()),
-                        link: Set(data.url.clone()),
-                        title: Set(data.bookmark.title),
-                        thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
-                        published_at: Set(data
-                            .bookmark
-                            .published
-                            .map(DateTime::<FixedOffset>::from)),
-                        author: Set(data.bookmark.author),
-                        profile_id: Set(data.profile_id),
-                        ..Default::default()
-                    };
+        let model = bookmark::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            link: Set(data.url.clone()),
+            title: Set(data.bookmark.title),
+            thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
+            published_at: Set(data.bookmark.published.map(DateTime::<FixedOffset>::from)),
+            author: Set(data.bookmark.author),
+            profile_id: Set(data.profile_id),
+            ..Default::default()
+        };
 
-                    bookmark::Entity::insert(bookmark_model)
-                        .on_conflict(
-                            OnConflict::columns([
-                                bookmark::Column::ProfileId,
-                                bookmark::Column::Link,
-                            ])
-                            .update_columns([
-                                bookmark::Column::Title,
-                                bookmark::Column::ThumbnailUrl,
-                                bookmark::Column::PublishedAt,
-                                bookmark::Column::Author,
-                            ])
-                            .to_owned(),
-                        )
-                        .exec_without_returning(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let Some(bookmark) = bookmark::Entity::find()
-                        .filter(bookmark::Column::ProfileId.eq(data.profile_id))
-                        .filter(bookmark::Column::Link.eq(data.url))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!("Failed to fetch created bookmark")));
-                    };
-
-                    Ok(bookmark.into())
-                })
-            })
+        let bookmark = bookmark::Entity::insert(model)
+            .on_conflict(
+                OnConflict::columns([bookmark::Column::ProfileId, bookmark::Column::Link])
+                    .update_columns([
+                        bookmark::Column::Title,
+                        bookmark::Column::ThumbnailUrl,
+                        bookmark::Column::PublishedAt,
+                        bookmark::Column::Author,
+                    ])
+                    .to_owned(),
+            )
+            .exec_with_returning(&self.db)
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(bookmark.into())
     }
 
     async fn update(

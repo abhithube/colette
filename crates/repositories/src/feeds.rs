@@ -91,62 +91,35 @@ impl FeedsRepository for FeedsSqlRepository {
                         ..Default::default()
                     };
 
-                    feed::Entity::insert(feed_model)
+                    let feed_model = feed::Entity::insert(feed_model)
                         .on_conflict(
                             OnConflict::column(feed::Column::Link)
                                 .update_columns([feed::Column::Title, feed::Column::Url])
                                 .to_owned(),
                         )
-                        .exec_without_returning(txn)
+                        .exec_with_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(feed) = feed::Entity::find()
-                        .select_only()
-                        .column(feed::Column::Id)
-                        .filter(feed::Column::Link.eq(link))
-                        .into_model::<IntInsert>()
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!("Failed to fetch created feed")));
-                    };
-
-                    let profile_feed_model = profile_feed::ActiveModel {
+                    let pf_model = profile_feed::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         profile_id: Set(data.profile_id),
-                        feed_id: Set(feed.id),
+                        feed_id: Set(feed_model.id),
                         ..Default::default()
                     };
 
-                    profile_feed::Entity::insert(profile_feed_model)
+                    let pf_model = profile_feed::Entity::insert(pf_model)
                         .on_conflict(
                             OnConflict::columns([
                                 profile_feed::Column::ProfileId,
                                 profile_feed::Column::FeedId,
                             ])
-                            .do_nothing_on([profile_feed::Column::Id])
+                            .do_nothing()
                             .to_owned(),
                         )
-                        .exec_without_returning(txn)
+                        .exec_with_returning(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let Some(profile_feed) = profile_feed::Entity::find()
-                        .select_only()
-                        .column(profile_feed::Column::Id)
-                        .filter(profile_feed::Column::ProfileId.eq(data.profile_id))
-                        .filter(profile_feed::Column::FeedId.eq(feed.id))
-                        .into_model::<UuidInsert>()
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!(
-                            "Failed to fetch created profile feed"
-                        )));
-                    };
 
                     for e in data.feed.entries {
                         let link = e.link.to_string();
@@ -160,7 +133,7 @@ impl FeedsRepository for FeedsSqlRepository {
                             ..Default::default()
                         };
 
-                        entry::Entity::insert(entry_model)
+                        let entry_model = entry::Entity::insert(entry_model)
                             .on_conflict(
                                 OnConflict::column(entry::Column::Link)
                                     .update_columns([
@@ -172,78 +145,51 @@ impl FeedsRepository for FeedsSqlRepository {
                                     ])
                                     .to_owned(),
                             )
-                            .exec_without_returning(txn)
+                            .exec_with_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(entry) = entry::Entity::find()
-                            .select_only()
-                            .column(entry::Column::Id)
-                            .filter(entry::Column::Link.eq(link))
-                            .into_model::<IntInsert>()
-                            .one(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                        else {
-                            return Err(Error::Unknown(anyhow!("Failed to fetch created entry")));
-                        };
-
-                        let feed_entry_model = feed_entry::ActiveModel {
-                            feed_id: Set(feed.id),
-                            entry_id: Set(entry.id),
+                        let fe_model = feed_entry::ActiveModel {
+                            feed_id: Set(feed_model.id),
+                            entry_id: Set(entry_model.id),
                             ..Default::default()
                         };
 
-                        feed_entry::Entity::insert(feed_entry_model)
+                        let fe_model = feed_entry::Entity::insert(fe_model)
                             .on_conflict(
                                 OnConflict::columns([
                                     feed_entry::Column::FeedId,
                                     feed_entry::Column::EntryId,
                                 ])
-                                .do_nothing_on([feed_entry::Column::Id])
+                                .do_nothing()
                                 .to_owned(),
                             )
-                            .exec_without_returning(txn)
+                            .exec_with_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let Some(feed_entry) = feed_entry::Entity::find()
-                            .select_only()
-                            .column(feed_entry::Column::Id)
-                            .filter(feed_entry::Column::FeedId.eq(feed.id))
-                            .filter(feed_entry::Column::EntryId.eq(entry.id))
-                            .into_model::<IntInsert>()
-                            .one(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                        else {
-                            return Err(Error::Unknown(anyhow!(
-                                "Failed to fetch created feed entry"
-                            )));
-                        };
-
-                        let profile_feed_entry = profile_feed_entry::ActiveModel {
+                        let pfe_model = profile_feed_entry::ActiveModel {
                             id: Set(Uuid::new_v4()),
-                            profile_feed_id: Set(profile_feed.id),
-                            feed_entry_id: Set(feed_entry.id),
+                            profile_feed_id: Set(pf_model.id),
+                            feed_entry_id: Set(fe_model.id),
                             ..Default::default()
                         };
 
-                        profile_feed_entry::Entity::insert(profile_feed_entry)
+                        profile_feed_entry::Entity::insert(pfe_model)
                             .on_conflict(
                                 OnConflict::columns([
                                     profile_feed_entry::Column::ProfileFeedId,
                                     profile_feed_entry::Column::FeedEntryId,
                                 ])
-                                .do_nothing_on([profile_feed_entry::Column::Id])
+                                .do_nothing()
                                 .to_owned(),
                             )
-                            .exec_without_returning(txn)
+                            .exec(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    let Some(feed) = feed_by_id(profile_feed.id, data.profile_id)
+                    let Some(feed) = feed_by_id(pf_model.id, data.profile_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -468,16 +414,6 @@ impl From<FeedSelect> for Feed {
             unread_count: value.unread_count,
         }
     }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct IntInsert {
-    id: i32,
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct UuidInsert {
-    id: Uuid,
 }
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]

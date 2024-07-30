@@ -57,9 +57,8 @@ impl UsersRepository for UsersSqlRepository {
                             _ => Error::Unknown(e.into()),
                         })?;
 
-                    let new_profile_id = Uuid::new_v4();
                     let profile_model = profile::ActiveModel {
-                        id: Set(new_profile_id),
+                        id: Set(Uuid::new_v4()),
                         title: Set("Default".to_owned()),
                         is_default: Set(true),
                         user_id: Set(new_user_id),

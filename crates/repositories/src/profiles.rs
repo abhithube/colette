@@ -70,40 +70,21 @@ impl ProfilesRepository for ProfilesSqlRepository {
     }
 
     async fn create(&self, data: ProfilesCreateData) -> Result<Profile, Error> {
-        self.db
-            .transaction::<_, Profile, Error>(|txn| {
-                Box::pin(async move {
-                    let new_id = Uuid::new_v4();
-                    let profile_model = profile::ActiveModel {
-                        id: Set(new_id),
-                        title: Set(data.title),
-                        image_url: Set(data.image_url),
-                        user_id: Set(data.user_id),
-                        ..Default::default()
-                    };
+        let new_id = Uuid::new_v4();
+        let model = profile::ActiveModel {
+            id: Set(new_id),
+            title: Set(data.title),
+            image_url: Set(data.image_url),
+            user_id: Set(data.user_id),
+            ..Default::default()
+        };
 
-                    profile::Entity::insert(profile_model)
-                        .exec_without_returning(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let Some(profile) = profile::Entity::find_by_id(new_id)
-                        .filter(profile::Column::UserId.eq(data.user_id))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!("Failed to fetch created profile")));
-                    };
-
-                    Ok(profile.into())
-                })
-            })
+        let model = profile::Entity::insert(model)
+            .exec_with_returning(&self.db)
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(model.into())
     }
 
     async fn update(
@@ -111,39 +92,27 @@ impl ProfilesRepository for ProfilesSqlRepository {
         params: ProfilesFindByIdParams,
         data: ProfilesUpdateData,
     ) -> Result<Profile, Error> {
-        self.db
-            .transaction::<_, Profile, Error>(|txn| {
-                Box::pin(async move {
-                    let mut model = profile::ActiveModel {
-                        id: Set(params.id),
-                        ..Default::default()
-                    };
-                    if let Some(title) = data.title {
-                        model.title = Set(title);
-                    }
-                    if data.image_url.is_some() {
-                        model.image_url = Set(data.image_url)
-                    }
+        let mut model = profile::ActiveModel {
+            id: Set(params.id),
+            ..Default::default()
+        };
+        if let Some(title) = data.title {
+            model.title = Set(title);
+        }
+        if data.image_url.is_some() {
+            model.image_url = Set(data.image_url)
+        }
 
-                    let profile = profile::Entity::update(model)
-                        .filter(profile::Column::UserId.eq(params.user_id))
-                        .exec(txn)
-                        .await
-                        .map_err(|e| match e {
-                            DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => {
-                                Error::NotFound(params.id)
-                            }
-                            _ => Error::Unknown(e.into()),
-                        })?;
-
-                    Ok(profile.into())
-                })
-            })
+        let model = profile::Entity::update(model)
+            .filter(profile::Column::UserId.eq(params.user_id))
+            .exec(&self.db)
             .await
             .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
+                DbErr::RecordNotFound(_) | DbErr::RecordNotUpdated => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        Ok(model.into())
     }
 
     async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
