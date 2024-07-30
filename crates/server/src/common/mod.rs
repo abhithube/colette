@@ -2,13 +2,8 @@ use std::sync::Arc;
 
 use axum::extract::FromRef;
 use colette_core::{
-    auth::AuthService,
-    bookmarks::BookmarksService,
-    common::{self, UpdateTagList},
-    entries::EntriesService,
-    feeds::FeedsService,
-    profiles::ProfilesService,
-    tags::TagsService,
+    auth::AuthService, bookmarks::BookmarksService, common, entries::EntriesService,
+    feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
 };
 pub use error::{BaseError, Error};
 pub use session::{Session, SESSION_KEY};
@@ -55,24 +50,6 @@ where
         Self {
             has_more: value.has_more,
             data: value.data.into_iter().map(T::from).collect(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum TagListUpdate {
-    Add(Vec<Uuid>),
-    Remove(Vec<Uuid>),
-    Set(Vec<Uuid>),
-}
-
-impl From<TagListUpdate> for UpdateTagList {
-    fn from(value: TagListUpdate) -> Self {
-        match value {
-            TagListUpdate::Add(list) => UpdateTagList::Add(list),
-            TagListUpdate::Remove(list) => UpdateTagList::Remove(list),
-            TagListUpdate::Set(list) => UpdateTagList::Set(list),
         }
     }
 }

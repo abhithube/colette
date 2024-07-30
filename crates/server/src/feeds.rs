@@ -7,14 +7,11 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::{
-    common::UpdateTagList,
-    feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed},
-};
+use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
 use uuid::Uuid;
 
 use crate::common::{
-    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session, TagListUpdate,
+    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -265,14 +262,12 @@ pub async fn update_feed(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
-    pub tags: Option<TagListUpdate>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<FeedUpdate> for UpdateFeed {
     fn from(value: FeedUpdate) -> Self {
-        Self {
-            tags: value.tags.map(UpdateTagList::from),
-        }
+        Self { tags: value.tags }
     }
 }
 

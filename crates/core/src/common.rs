@@ -24,10 +24,3 @@ pub struct Session {
     pub user_id: Uuid,
     pub profile_id: Uuid,
 }
-
-#[derive(Clone, Debug)]
-pub enum UpdateTagList {
-    Add(Vec<Uuid>),
-    Remove(Vec<Uuid>),
-    Set(Vec<Uuid>),
-}

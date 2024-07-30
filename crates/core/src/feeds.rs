@@ -7,13 +7,14 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindManyParams, FindOneParams, Paginated, Session, UpdateTagList},
+    common::{FindManyParams, FindOneParams, Paginated, Session},
     utils::{
         backup::{self, BackupManager},
         scraper::{
             self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
         },
     },
+    Tag,
 };
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ pub struct Feed {
     pub link: String,
     pub title: String,
     pub url: Option<String>,
+    pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }
 
@@ -32,7 +34,7 @@ pub struct CreateFeed {
 
 #[derive(Clone, Debug)]
 pub struct UpdateFeed {
-    pub tags: Option<UpdateTagList>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Clone, Debug)]
@@ -310,7 +312,7 @@ pub struct FeedsCreateData {
 
 #[derive(Clone, Debug)]
 pub struct FeedsUpdateData {
-    pub tags: Option<UpdateTagList>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<UpdateFeed> for FeedsUpdateData {

@@ -15,7 +15,6 @@ use crate::{
     bookmarks::Api as Bookmarks,
     common::{
         BaseError, BookmarkList, Context, EntryList, FeedDetectedList, FeedList, ProfileList,
-        TagListUpdate,
     },
     entries::Api as Entries,
     feeds::Api as Feeds,
@@ -41,7 +40,7 @@ struct Asset;
         (path = "/profiles", api = Profiles),
         (path = "/tags", api = Tags)
     ),
-    components(schemas(BaseError, BookmarkList, FeedDetectedList, EntryList, FeedList, ProfileList, TagListUpdate))
+    components(schemas(BaseError, BookmarkList, FeedDetectedList, EntryList, FeedList, ProfileList))
 )]
 struct ApiDoc;
 

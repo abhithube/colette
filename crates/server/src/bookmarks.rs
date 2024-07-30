@@ -8,14 +8,13 @@ use axum::{
 };
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::{
-    bookmarks::{self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark},
-    common::UpdateTagList,
+use colette_core::bookmarks::{
+    self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark,
 };
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session, TagListUpdate},
+    common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session},
     tags::Tag,
 };
 
@@ -240,29 +239,12 @@ pub async fn update_bookmark(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-    #[schema(format = "uri", nullable = false)]
-    #[validate(url(message = "not a valid URL"))]
-    pub thumbnail_url: Option<String>,
-    #[schema(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub author: Option<String>,
-    pub tags: Option<TagListUpdate>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<BookmarkUpdate> for UpdateBookmark {
     fn from(value: BookmarkUpdate) -> Self {
-        Self {
-            title: value.title,
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author,
-            tags: value.tags.map(UpdateTagList::from),
-        }
+        Self { tags: value.tags }
     }
 }
 
