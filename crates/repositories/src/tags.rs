@@ -4,7 +4,7 @@ use colette_core::{
     Tag,
 };
 use colette_entities::tag;
-use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Set};
+use sea_orm::{ColumnTrait, DatabaseConnection, DbErr, EntityTrait, QueryFilter, Select, Set};
 use uuid::Uuid;
 
 pub struct TagsSqlRepository {
@@ -20,8 +20,7 @@ impl TagsSqlRepository {
 #[async_trait::async_trait]
 impl TagsRepository for TagsSqlRepository {
     async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error> {
-        tag::Entity::find()
-            .filter(tag::Column::ProfileId.eq(params.profile_id))
+        select(None, params.profile_id)
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Tag::from).collect())
@@ -29,8 +28,7 @@ impl TagsRepository for TagsSqlRepository {
     }
 
     async fn find_one(&self, params: common::FindOneParams) -> Result<Tag, Error> {
-        let Some(tag) = tag::Entity::find_by_id(params.id)
-            .filter(tag::Column::ProfileId.eq(params.profile_id))
+        let Some(tag) = select(Some(params.id), params.profile_id)
             .one(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?
@@ -91,4 +89,13 @@ impl TagsRepository for TagsSqlRepository {
 
         Ok(())
     }
+}
+
+fn select(id: Option<Uuid>, profile_id: Uuid) -> Select<tag::Entity> {
+    let query = match id {
+        Some(id) => tag::Entity::find_by_id(id),
+        None => tag::Entity::find(),
+    };
+
+    query.filter(tag::Column::ProfileId.eq(profile_id))
 }

@@ -10,7 +10,7 @@ use colette_entities::{profile, profile_feed};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, Set, TransactionError, TransactionTrait,
+    QuerySelect, RelationTrait, Select, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -27,8 +27,7 @@ impl ProfilesSqlRepository {
 #[async_trait::async_trait]
 impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
-        profile::Entity::find()
-            .filter(profile::Column::UserId.eq(params.user_id))
+        select(None, params.user_id)
             .order_by_asc(profile::Column::Title)
             .order_by_asc(profile::Column::Id)
             .all(&self.db)
@@ -40,8 +39,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
         match params {
             ProfilesFindOneParams::ById(params) => {
-                let Some(profile) = profile::Entity::find_by_id(params.id)
-                    .filter(profile::Column::UserId.eq(params.user_id))
+                let Some(profile) = select(Some(params.id), params.user_id)
                     .one(&self.db)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -52,9 +50,8 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 Ok(profile.into())
             }
             ProfilesFindOneParams::Default { user_id } => {
-                let Some(profile) = profile::Entity::find()
+                let Some(profile) = select(None, user_id)
                     .filter(profile::Column::IsDefault.eq(true))
-                    .filter(profile::Column::UserId.eq(user_id))
                     .one(&self.db)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -117,11 +114,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(profile) = profile::Entity::find_by_id(params.id)
-                        .select_only()
-                        .column(profile::Column::IsDefault)
-                        .filter(profile::Column::UserId.eq(params.user_id))
-                        .into_model::<ProfileDelete>()
+                    let Some(profile) = select(Some(params.id), params.user_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -170,11 +163,6 @@ impl ProfilesRepository for ProfilesSqlRepository {
 }
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct ProfileDelete {
-    is_default: bool,
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct StreamSelect {
     pub id: Uuid,
 }
@@ -183,4 +171,13 @@ impl From<StreamSelect> for StreamProfile {
     fn from(value: StreamSelect) -> Self {
         Self { id: value.id }
     }
+}
+
+fn select(id: Option<Uuid>, user_id: Uuid) -> Select<profile::Entity> {
+    let query = match id {
+        Some(id) => profile::Entity::find_by_id(id),
+        None => profile::Entity::find(),
+    };
+
+    query.filter(profile::Column::UserId.eq(user_id))
 }

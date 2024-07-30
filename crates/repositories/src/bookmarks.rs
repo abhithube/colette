@@ -10,7 +10,7 @@ use colette_core::{
 use colette_entities::{bookmark, bookmark_tag};
 use sea_orm::{
     sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, Set, TransactionError, TransactionTrait,
+    QuerySelect, QueryTrait, Select, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -27,14 +27,10 @@ impl BookmarksSqlRepository {
 #[async_trait::async_trait]
 impl BookmarksRepository for BookmarksSqlRepository {
     async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
-        let mut query =
-            bookmark::Entity::find().filter(bookmark::Column::ProfileId.eq(params.profile_id));
-
-        if let Some(published_at) = params.published_at {
-            query = query.filter(bookmark::Column::PublishedAt.lt(published_at))
-        }
-
-        query
+        select(None, params.profile_id)
+            .apply_if(params.published_at, |query, v| {
+                query.filter(bookmark::Column::PublishedAt.lt(v))
+            })
             .order_by_desc(bookmark::Column::PublishedAt)
             .order_by_asc(bookmark::Column::Title)
             .order_by_asc(bookmark::Column::Id)
@@ -83,8 +79,7 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(bookmark) = bookmark::Entity::find_by_id(params.id)
-                        .filter(bookmark::Column::ProfileId.eq(params.profile_id))
+                    let Some(bookmark) = select(Some(params.id), params.profile_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -170,4 +165,13 @@ impl BookmarksRepository for BookmarksSqlRepository {
 
         Ok(())
     }
+}
+
+fn select(id: Option<Uuid>, profile_id: Uuid) -> Select<bookmark::Entity> {
+    let query = match id {
+        Some(id) => bookmark::Entity::find_by_id(id),
+        None => bookmark::Entity::find(),
+    };
+
+    query.filter(bookmark::Column::ProfileId.eq(profile_id))
 }
