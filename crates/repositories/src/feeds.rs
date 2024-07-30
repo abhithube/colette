@@ -108,7 +108,7 @@ impl FeedsRepository for FeedsSqlRepository {
                         ..Default::default()
                     };
 
-                    let pf_model = profile_feed::Entity::insert(pf_model)
+                    let pf_model = match profile_feed::Entity::insert(pf_model)
                         .on_conflict(
                             OnConflict::columns([
                                 profile_feed::Column::ProfileId,
@@ -119,7 +119,25 @@ impl FeedsRepository for FeedsSqlRepository {
                         )
                         .exec_with_returning(txn)
                         .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                    {
+                        Ok(model) => Ok(model),
+                        Err(DbErr::RecordNotFound(_)) => {
+                            let Some(model) = profile_feed::Entity::find()
+                                .filter(profile_feed::Column::ProfileId.eq(data.profile_id))
+                                .filter(profile_feed::Column::FeedId.eq(feed_model.id))
+                                .one(txn)
+                                .await
+                                .map_err(|e| Error::Unknown(e.into()))?
+                            else {
+                                return Err(Error::Unknown(anyhow!(
+                                    "Failed to fetch created profile feed"
+                                )));
+                            };
+
+                            Ok(model)
+                        }
+                        _ => Err(Error::Unknown(anyhow!("Failed to create profile feed"))),
+                    }?;
 
                     for e in data.feed.entries {
                         let link = e.link.to_string();
@@ -155,7 +173,7 @@ impl FeedsRepository for FeedsSqlRepository {
                             ..Default::default()
                         };
 
-                        let fe_model = feed_entry::Entity::insert(fe_model)
+                        let fe_model = match feed_entry::Entity::insert(fe_model)
                             .on_conflict(
                                 OnConflict::columns([
                                     feed_entry::Column::FeedId,
@@ -166,7 +184,25 @@ impl FeedsRepository for FeedsSqlRepository {
                             )
                             .exec_with_returning(txn)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        {
+                            Ok(model) => Ok(model),
+                            Err(DbErr::RecordNotFound(_)) => {
+                                let Some(model) = feed_entry::Entity::find()
+                                    .filter(feed_entry::Column::FeedId.eq(feed_model.id))
+                                    .filter(feed_entry::Column::EntryId.eq(entry_model.id))
+                                    .one(txn)
+                                    .await
+                                    .map_err(|e| Error::Unknown(e.into()))?
+                                else {
+                                    return Err(Error::Unknown(anyhow!(
+                                        "Failed to fetch created feed entry"
+                                    )));
+                                };
+
+                                Ok(model)
+                            }
+                            _ => Err(Error::Unknown(anyhow!("Failed to create feed entry"))),
+                        }?;
 
                         let pfe_model = profile_feed_entry::ActiveModel {
                             id: Set(Uuid::new_v4()),
@@ -184,7 +220,7 @@ impl FeedsRepository for FeedsSqlRepository {
                                 .do_nothing()
                                 .to_owned(),
                             )
-                            .exec(txn)
+                            .exec_without_returning(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
