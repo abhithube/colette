@@ -14,7 +14,10 @@ use uuid::Uuid;
 use crate::common::{BaseError, Context, EntryList, Error, Id, Paginated, Session};
 
 #[derive(utoipa::OpenApi)]
-#[openapi(paths(list_entries, update_entry), components(schemas(Entry)))]
+#[openapi(
+    paths(list_entries, update_entry),
+    components(schemas(Entry, EntryUpdate))
+)]
 pub struct Api;
 
 impl Api {
