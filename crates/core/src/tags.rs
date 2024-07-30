@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
@@ -9,9 +8,6 @@ use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    pub profile_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug)]

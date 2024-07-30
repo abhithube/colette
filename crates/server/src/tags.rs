@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use chrono::{DateTime, Utc};
 use colette_core::tags::{self, CreateTag, TagsService, UpdateTag};
 use uuid::Uuid;
 
@@ -39,9 +38,6 @@ impl Api {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    pub profile_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::Tag> for Tag {
@@ -49,9 +45,6 @@ impl From<colette_core::Tag> for Tag {
         Self {
             id: value.id,
             title: value.title,
-            profile_id: value.profile_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
         }
     }
 }

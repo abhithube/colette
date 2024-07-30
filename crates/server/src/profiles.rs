@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use chrono::{DateTime, Utc};
 use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile};
 use uuid::Uuid;
 
@@ -49,8 +48,6 @@ pub struct Profile {
     #[schema(format = "uri", required)]
     pub image_url: Option<String>,
     pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::Profile> for Profile {
@@ -60,8 +57,6 @@ impl From<colette_core::Profile> for Profile {
             title: value.title,
             image_url: value.image_url,
             user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
         }
     }
 }

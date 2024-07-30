@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use futures::stream::BoxStream;
 use uuid::Uuid;
 
@@ -12,8 +11,6 @@ pub struct Profile {
     pub title: String,
     pub image_url: Option<String>,
     pub user_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Clone, Debug)]

@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use chrono::{DateTime, Utc};
 use colette_core::{
     auth::{self, AuthService},
     users,
@@ -40,8 +39,6 @@ pub struct User {
     pub id: Uuid,
     #[schema(format = "email")]
     pub email: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::User> for User {
@@ -49,8 +46,6 @@ impl From<colette_core::User> for User {
         Self {
             id: value.id,
             email: value.email,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
         }
     }
 }

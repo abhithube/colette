@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use chrono::{DateTime, Utc};
 use colette_core::{
     common::UpdateTagList,
     feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed},
@@ -62,9 +61,6 @@ pub struct Feed {
     pub title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
-    pub profile_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
     #[schema(nullable = false)]
     pub unread_count: Option<i64>,
 }
@@ -76,9 +72,6 @@ impl From<colette_core::Feed> for Feed {
             link: value.link,
             title: value.title,
             url: value.url,
-            profile_id: value.profile_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
             unread_count: value.unread_count,
         }
     }
