@@ -11,7 +11,7 @@ use colette_entities::{profile, profile_feed};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ColumnTrait, DatabaseConnection, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, SelectModel, Selector, Set, TransactionError, TransactionTrait,
+    QuerySelect, RelationTrait, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -29,12 +29,9 @@ impl ProfilesSqlRepository {
 impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error> {
         profile::Entity::find()
-            .select_only()
-            .columns(PROFILE_COLUMNS)
             .filter(profile::Column::UserId.eq(params.user_id))
             .order_by_asc(profile::Column::Title)
             .order_by_asc(profile::Column::Id)
-            .into_model::<ProfileSelect>()
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Profile::from).collect())
@@ -44,7 +41,8 @@ impl ProfilesRepository for ProfilesSqlRepository {
     async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
         match params {
             ProfilesFindOneParams::ById(params) => {
-                let Some(profile) = profile_by_id(params.id, params.user_id)
+                let Some(profile) = profile::Entity::find_by_id(params.id)
+                    .filter(profile::Column::UserId.eq(params.user_id))
                     .one(&self.db)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -89,7 +87,8 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(profile) = profile_by_id(new_id, data.user_id)
+                    let Some(profile) = profile::Entity::find_by_id(new_id)
+                        .filter(profile::Column::UserId.eq(data.user_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -126,7 +125,7 @@ impl ProfilesRepository for ProfilesSqlRepository {
                         model.image_url = Set(data.image_url)
                     }
 
-                    profile::Entity::update(model)
+                    let profile = profile::Entity::update(model)
                         .filter(profile::Column::UserId.eq(params.user_id))
                         .exec(txn)
                         .await
@@ -136,14 +135,6 @@ impl ProfilesRepository for ProfilesSqlRepository {
                             }
                             _ => Error::Unknown(e.into()),
                         })?;
-
-                    let Some(profile) = profile_by_id(params.id, params.user_id)
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::Unknown(anyhow!("Failed to fetch updated profile")));
-                    };
 
                     Ok(profile.into())
                 })
@@ -248,21 +239,4 @@ impl From<StreamSelect> for StreamProfile {
     fn from(value: StreamSelect) -> Self {
         Self { id: value.id }
     }
-}
-
-const PROFILE_COLUMNS: [profile::Column; 6] = [
-    profile::Column::Id,
-    profile::Column::Title,
-    profile::Column::ImageUrl,
-    profile::Column::UserId,
-    profile::Column::CreatedAt,
-    profile::Column::UpdatedAt,
-];
-
-fn profile_by_id(id: Uuid, user_id: Uuid) -> Selector<SelectModel<ProfileSelect>> {
-    profile::Entity::find_by_id(id)
-        .select_only()
-        .columns(PROFILE_COLUMNS)
-        .filter(profile::Column::UserId.eq(user_id))
-        .into_model::<ProfileSelect>()
 }

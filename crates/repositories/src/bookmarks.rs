@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmarks::{
         BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
@@ -11,7 +11,7 @@ use colette_core::{
 use colette_entities::{bookmark, bookmark_tag};
 use sea_orm::{
     sea_query::OnConflict, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, SelectModel, Selector, Set, TransactionError, TransactionTrait,
+    QuerySelect, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -28,10 +28,8 @@ impl BookmarksSqlRepository {
 #[async_trait::async_trait]
 impl BookmarksRepository for BookmarksSqlRepository {
     async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error> {
-        let mut query = bookmark::Entity::find()
-            .select_only()
-            .columns(BOOKMARK_COLUMNS)
-            .filter(bookmark::Column::ProfileId.eq(params.profile_id));
+        let mut query =
+            bookmark::Entity::find().filter(bookmark::Column::ProfileId.eq(params.profile_id));
 
         if let Some(published_at) = params.published_at {
             query = query.filter(bookmark::Column::PublishedAt.lt(published_at))
@@ -42,7 +40,6 @@ impl BookmarksRepository for BookmarksSqlRepository {
             .order_by_asc(bookmark::Column::Title)
             .order_by_asc(bookmark::Column::Id)
             .limit(params.limit as u64)
-            .into_model::<BookmarkSelect>()
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Bookmark::from).collect())
@@ -86,11 +83,8 @@ impl BookmarksRepository for BookmarksSqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?;
 
                     let Some(bookmark) = bookmark::Entity::find()
-                        .select_only()
-                        .columns(BOOKMARK_COLUMNS)
                         .filter(bookmark::Column::ProfileId.eq(data.profile_id))
                         .filter(bookmark::Column::Link.eq(data.url))
-                        .into_model::<BookmarkSelect>()
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -116,7 +110,8 @@ impl BookmarksRepository for BookmarksSqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(bookmark) = bookmark_by_id(params.id, params.profile_id)
+                    let Some(bookmark) = bookmark::Entity::find_by_id(params.id)
+                        .filter(bookmark::Column::ProfileId.eq(params.profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -202,53 +197,4 @@ impl BookmarksRepository for BookmarksSqlRepository {
 
         Ok(())
     }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct BookmarkSelect {
-    id: Uuid,
-    link: String,
-    title: String,
-    thumbnail_url: Option<String>,
-    published_at: Option<DateTime<FixedOffset>>,
-    author: Option<String>,
-    profile_id: Uuid,
-    created_at: DateTime<FixedOffset>,
-    updated_at: DateTime<FixedOffset>,
-}
-
-impl From<BookmarkSelect> for Bookmark {
-    fn from(value: BookmarkSelect) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at.map(DateTime::<Utc>::from),
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            profile_id: value.profile_id,
-            created_at: value.created_at.into(),
-            updated_at: value.updated_at.into(),
-        }
-    }
-}
-
-const BOOKMARK_COLUMNS: [bookmark::Column; 9] = [
-    bookmark::Column::Id,
-    bookmark::Column::Link,
-    bookmark::Column::Title,
-    bookmark::Column::ThumbnailUrl,
-    bookmark::Column::PublishedAt,
-    bookmark::Column::Author,
-    bookmark::Column::ProfileId,
-    bookmark::Column::CreatedAt,
-    bookmark::Column::UpdatedAt,
-];
-
-fn bookmark_by_id(id: Uuid, profile_id: Uuid) -> Selector<SelectModel<BookmarkSelect>> {
-    bookmark::Entity::find_by_id(id)
-        .select_only()
-        .columns(BOOKMARK_COLUMNS)
-        .filter(bookmark::Column::ProfileId.eq(profile_id))
-        .into_model::<BookmarkSelect>()
 }

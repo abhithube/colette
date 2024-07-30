@@ -643,6 +643,8 @@ dependencies = [
 name = "colette-entities"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "colette-core",
  "sea-orm",
 ]
 

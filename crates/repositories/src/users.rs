@@ -6,8 +6,7 @@ use colette_core::{
 };
 use colette_entities::{profile, user};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QuerySelect, SelectModel, Selector,
-    Set, SqlErr, TransactionTrait,
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, SqlErr, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -25,10 +24,7 @@ impl UsersSqlRepository {
 impl UsersRepository for UsersSqlRepository {
     async fn find_one(&self, params: UsersFindOneParams) -> Result<User, Error> {
         let Some(user) = user::Entity::find()
-            .select_only()
-            .columns(USER_COLUMNS)
             .filter(user::Column::Email.eq(&params.email))
-            .into_model::<UserSelect>()
             .one(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?
@@ -75,7 +71,7 @@ impl UsersRepository for UsersSqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let Some(user) = user_by_id(new_user_id)
+                    let Some(user) = user::Entity::find_by_id(new_user_id)
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
@@ -110,19 +106,4 @@ impl From<UserSelect> for User {
             updated_at: value.updated_at.into(),
         }
     }
-}
-
-const USER_COLUMNS: [user::Column; 5] = [
-    user::Column::Id,
-    user::Column::Email,
-    user::Column::Password,
-    user::Column::CreatedAt,
-    user::Column::UpdatedAt,
-];
-
-fn user_by_id(id: Uuid) -> Selector<SelectModel<UserSelect>> {
-    user::Entity::find_by_id(id)
-        .select_only()
-        .columns(USER_COLUMNS)
-        .into_model::<UserSelect>()
 }
