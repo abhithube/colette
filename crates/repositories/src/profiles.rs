@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
 use colette_core::{
     profiles::{
         Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
@@ -56,7 +55,6 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 let Some(profile) = profile::Entity::find()
                     .filter(profile::Column::IsDefault.eq(true))
                     .filter(profile::Column::UserId.eq(user_id))
-                    .into_model::<ProfileSelect>()
                     .one(&self.db)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -168,29 +166,6 @@ impl ProfilesRepository for ProfilesSqlRepository {
                 .boxed()
             })
             .map_err(|e| Error::Unknown(e.into()))
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct ProfileSelect {
-    id: Uuid,
-    title: String,
-    image_url: Option<String>,
-    user_id: Uuid,
-    created_at: DateTime<FixedOffset>,
-    updated_at: DateTime<FixedOffset>,
-}
-
-impl From<ProfileSelect> for Profile {
-    fn from(value: ProfileSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            image_url: value.image_url,
-            user_id: value.user_id,
-            created_at: value.created_at.into(),
-            updated_at: value.updated_at.into(),
-        }
     }
 }
 

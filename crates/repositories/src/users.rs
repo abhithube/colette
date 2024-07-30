@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
 use colette_core::{
     users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
     User,
@@ -83,26 +82,5 @@ impl UsersRepository for UsersSqlRepository {
             })
             .await
             .map_err(|e| Error::Unknown(e.into()))
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-struct UserSelect {
-    id: Uuid,
-    email: String,
-    password: String,
-    created_at: DateTime<FixedOffset>,
-    updated_at: DateTime<FixedOffset>,
-}
-
-impl From<UserSelect> for User {
-    fn from(value: UserSelect) -> Self {
-        Self {
-            id: value.id,
-            email: value.email,
-            password: value.password,
-            created_at: value.created_at.into(),
-            updated_at: value.updated_at.into(),
-        }
     }
 }
