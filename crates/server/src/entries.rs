@@ -15,7 +15,7 @@ use crate::common::{BaseError, Context, EntryList, Error, Id, Paginated, Session
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_entries, update_entry),
+    paths(list_entries, get_entry, update_entry),
     components(schemas(Entry, EntryUpdate))
 )]
 pub struct Api;
@@ -26,7 +26,7 @@ impl Api {
             "/entries",
             Router::new()
                 .route("/", routing::get(list_entries))
-                .route("/:id", routing::patch(update_entry)),
+                .route("/:id", routing::get(get_entry).patch(update_entry)),
         )
     }
 }
@@ -123,6 +123,50 @@ impl IntoResponse for ListResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    params(Id),
+    responses(GetResponse),
+    operation_id = "getEntry",
+    description = "Get a feed entry by ID",
+    tag = "Entries"
+)]
+#[axum::debug_handler]
+pub async fn get_entry(
+    State(service): State<Arc<EntriesService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    match service.get(id, session.into()).await.map(Entry::from) {
+        Ok(data) => Ok(GetResponse::Ok(data)),
+        Err(e) => match e {
+            entries::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Entry by ID")]
+    Ok(Entry),
+
+    #[response(status = 404, description = "Entry not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }
 }

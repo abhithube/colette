@@ -31,6 +31,22 @@ impl EntriesRepository for PostgresRepository {
         .map_err(|e| Error::Unknown(e.into()))
     }
 
+    async fn find_one_entry(&self, params: FindOneParams) -> Result<colette_core::Entry, Error> {
+        sqlx::query_file_as!(
+            Entry,
+            "queries/entries/find_one.sql",
+            params.id,
+            params.profile_id,
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(colette_core::Entry::from)
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
+    }
+
     async fn update_entry(
         &self,
         params: FindOneParams,

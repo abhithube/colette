@@ -34,6 +34,8 @@ pub struct ListEntriesParams {
 pub trait EntriesRepository: Send + Sync {
     async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error>;
 
+    async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error>;
+
     async fn update_entry(
         &self,
         params: FindOneParams,
@@ -70,6 +72,15 @@ impl EntriesService {
             has_more: entries.len() > PAGINATION_LIMIT,
             data: entries.into_iter().take(PAGINATION_LIMIT).collect(),
         })
+    }
+
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Entry, Error> {
+        self.repo
+            .find_one_entry(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await
     }
 
     pub async fn update(
