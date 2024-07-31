@@ -10,11 +10,10 @@ SELECT
   pfe.profile_feed_id AS feed_id
 FROM
   profile_feed_entries AS pfe
-  INNER JOIN profile_feeds AS pf ON pf.id = pfe.profile_feed_id
   INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
   INNER JOIN entries AS e ON e.id = fe.entry_id
 WHERE
-  pf.profile_id = $1
+  pfe.profile_id = $1
   AND (
     $3::timestamptz IS NULL
     OR e.published_at < $3
@@ -31,4 +30,4 @@ ORDER BY
   e.published_at DESC,
   pfe.id DESC
 LIMIT
-  $2
+  $2;

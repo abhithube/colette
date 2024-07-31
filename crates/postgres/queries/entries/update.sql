@@ -3,11 +3,9 @@ WITH
     UPDATE profile_feed_entries AS pfe
     SET
       has_read = coalesce($3, pfe.has_read)
-    FROM
-      profile_feeds AS pf
     WHERE
       pfe.id = $1
-      AND pf.profile_id = $2
+      AND pfe.profile_id = $2
     RETURNING
       pfe.id,
       pfe.has_read,
@@ -27,4 +25,4 @@ SELECT
 FROM
   pfe
   INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
-  INNER JOIN entries AS e ON e.id = fe.entry_id
+  INNER JOIN entries AS e ON e.id = fe.entry_id;
