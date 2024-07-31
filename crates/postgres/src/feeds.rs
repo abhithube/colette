@@ -100,10 +100,26 @@ impl FeedsRepository for PostgresRepository {
 
     async fn update_feed(
         &self,
-        _params: FindOneParams,
-        _data: FeedsUpdateData,
+        params: FindOneParams,
+        data: FeedsUpdateData,
     ) -> Result<colette_core::Feed, Error> {
-        todo!()
+        match data.tags {
+            Some(tags) => sqlx::query_file_as!(
+                Feed,
+                "queries/feeds/update.sql",
+                params.id,
+                params.profile_id,
+                &tags
+            )
+            .fetch_one(&self.pool)
+            .await
+            .map(colette_core::Feed::from)
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            }),
+            None => self.find_one_feed(params).await,
+        }
     }
 
     async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error> {

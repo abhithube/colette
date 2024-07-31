@@ -73,10 +73,26 @@ impl BookmarksRepository for PostgresRepository {
 
     async fn update_bookmark(
         &self,
-        _params: FindOneParams,
-        _data: BookmarksUpdateData,
+        params: FindOneParams,
+        data: BookmarksUpdateData,
     ) -> Result<colette_core::Bookmark, Error> {
-        todo!()
+        match data.tags {
+            Some(tags) => sqlx::query_file_as!(
+                Bookmark,
+                "queries/bookmarks/update.sql",
+                params.id,
+                params.profile_id,
+                &tags
+            )
+            .fetch_one(&self.pool)
+            .await
+            .map(colette_core::Bookmark::from)
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            }),
+            None => self.find_one_bookmark(params).await,
+        }
     }
 
     async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error> {
