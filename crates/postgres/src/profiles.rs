@@ -23,23 +23,25 @@ impl ProfilesRepository for PostgresRepository {
 
     async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
         match params {
-            ProfilesFindOneParams::ById(params) => {
-                sqlx::query_file_as!(
-                    Profile,
-                    "queries/profiles/find_one.sql",
-                    params.id,
-                    params.user_id
-                )
-                .fetch_one(&self.pool)
-                .await
-            }
+            ProfilesFindOneParams::ById(params) => sqlx::query_file_as!(
+                Profile,
+                "queries/profiles/find_one.sql",
+                params.id,
+                params.user_id
+            )
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            }),
             ProfilesFindOneParams::Default { user_id } => {
                 sqlx::query_file_as!(Profile, "queries/profiles/find_default.sql", user_id)
                     .fetch_one(&self.pool)
                     .await
+                    .map_err(|e| Error::Unknown(e.into()))
             }
         }
-        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn create_profile(&self, data: ProfilesCreateData) -> Result<Profile, Error> {
@@ -71,7 +73,10 @@ impl ProfilesRepository for PostgresRepository {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 
     async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {

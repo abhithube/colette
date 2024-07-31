@@ -29,7 +29,10 @@ impl TagsRepository for PostgresRepository {
         .fetch_one(&self.pool)
         .await
         .map(colette_core::Tag::from)
-        .map_err(|e| Error::Unknown(e.into()))
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<colette_core::Tag, Error> {
@@ -55,7 +58,10 @@ impl TagsRepository for PostgresRepository {
         .fetch_one(&self.pool)
         .await
         .map(colette_core::Tag::from)
-        .map_err(|e| Error::Unknown(e.into()))
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 
     async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error> {

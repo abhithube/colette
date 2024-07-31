@@ -46,7 +46,10 @@ impl EntriesRepository for PostgresRepository {
         .fetch_one(&self.pool)
         .await
         .map(colette_core::Entry::from)
-        .map_err(|e| Error::Unknown(e.into()))
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
