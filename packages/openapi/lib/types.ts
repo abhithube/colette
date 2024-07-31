@@ -10,8 +10,8 @@ export type EntryList = schemas['EntryList']
 export type FeedList = schemas['FeedList']
 export type ProfileList = schemas['ProfileList']
 
-export type CreateFeed = schemas['CreateFeed']
-export type CreateProfile = schemas['CreateProfile']
+export type FeedCreate = schemas['FeedCreate']
+export type ProfileCreate = schemas['ProfileCreate']
 export type Login = schemas['Login']
 
 export type ListEntriesQuery = NonNullable<

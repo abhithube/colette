@@ -7,7 +7,7 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { CreateFeed, Feed, FeedList } from './types'
+import type { Feed, FeedCreate, FeedList } from './types'
 
 export class FeedsAPI {
 	constructor(private client: Client) {}
@@ -47,7 +47,7 @@ export class FeedsAPI {
 	}
 
 	async create(
-		body: CreateFeed,
+		body: FeedCreate,
 		options?: Omit<FetchOptions<operations['createFeed']>, 'body'>,
 	): Promise<Feed> {
 		const res = await this.client.POST('/feeds', {

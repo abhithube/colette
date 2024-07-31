@@ -7,7 +7,7 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { CreateProfile, Profile, ProfileList } from './types'
+import type { Profile, ProfileCreate, ProfileList } from './types'
 
 export class ProfilesAPI {
 	constructor(private client: Client) {}
@@ -35,7 +35,7 @@ export class ProfilesAPI {
 	}
 
 	async create(
-		body: CreateProfile,
+		body: ProfileCreate,
 		options?: Omit<FetchOptions<operations['createProfile']>, 'body'>,
 	): Promise<Profile> {
 		const res = await this.client.POST('/profiles', {

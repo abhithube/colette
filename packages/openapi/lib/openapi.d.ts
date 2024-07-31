@@ -48,7 +48,8 @@ export interface paths {
         /** @description List the active profile bookmarks */
         get: operations["listBookmarks"];
         put?: never;
-        post?: never;
+        /** @description Add a bookmark to a profile */
+        post: operations["createBookmark"];
         delete?: never;
         options?: never;
         head?: never;
@@ -62,50 +63,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Get a bookmark by ID */
+        get: operations["getBookmark"];
         put?: never;
         post?: never;
         /** @description Delete a bookmark by ID */
         delete: operations["deleteBookmark"];
         options?: never;
         head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/collections": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description List the active profile collections */
-        get: operations["listCollections"];
-        put?: never;
-        /** @description Create a bookmarks collection */
-        post: operations["createCollection"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/collections/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get a collection by ID */
-        get: operations["getCollection"];
-        put?: never;
-        post?: never;
-        /** @description Delete a collection by ID */
-        delete: operations["deleteCollection"];
-        options?: never;
-        head?: never;
-        patch?: never;
+        /** @description Update a bookmark by ID */
+        patch: operations["updateBookmark"];
         trace?: never;
     };
     "/entries": {
@@ -123,6 +90,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/entries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update a feed entry by ID */
+        patch: operations["updateEntry"];
         trace?: never;
     };
     "/feeds": {
@@ -156,6 +140,58 @@ export interface paths {
         post?: never;
         /** @description Delete a feed by ID */
         delete: operations["deleteFeed"];
+        options?: never;
+        head?: never;
+        /** @description Update a feed by ID */
+        patch: operations["updateFeed"];
+        trace?: never;
+    };
+    "/feeds/detect": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Detects web feeds on a page */
+        post: operations["detectFeeds"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feeds/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Import OPML feeds into profile */
+        post: operations["importFeeds"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feeds/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Export OPML feeds from profile */
+        post: operations["exportFeeds"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -210,7 +246,45 @@ export interface paths {
         delete: operations["deleteProfile"];
         options?: never;
         head?: never;
+        /** @description Update a profile by ID */
+        patch: operations["updateProfile"];
+        trace?: never;
+    };
+    "/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List the active profile tags */
+        get: operations["listTags"];
+        put?: never;
+        /** @description Create a tag */
+        post: operations["createTag"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/tags/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a tag by ID */
+        get: operations["getTag"];
+        put?: never;
+        post?: never;
+        /** @description Delete a tag by ID */
+        delete: operations["deleteTag"];
+        options?: never;
+        head?: never;
+        /** @description Update a tag by ID */
+        patch: operations["updateTag"];
         trace?: never;
     };
 }
@@ -228,51 +302,22 @@ export interface components {
             link: string;
             title: string;
             /** Format: uri */
-            thumbnailUrl?: string | null;
+            thumbnailUrl: string | null;
             /** Format: date-time */
-            publishedAt?: string | null;
-            author?: string | null;
-            customTitle?: string | null;
+            publishedAt: string | null;
+            author: string | null;
+            tags?: components["schemas"]["Tag"][];
+        };
+        BookmarkCreate: {
             /** Format: uri */
-            customThumbnailUrl?: string | null;
-            /** Format: date-time */
-            customPublishedAt?: string | null;
-            customAuthor?: string | null;
-            /** Format: uuid */
-            collectionId: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
+            url: string;
         };
         BookmarkList: {
             hasMore: boolean;
             data: components["schemas"]["Bookmark"][];
         };
-        Collection: {
-            /** Format: uuid */
-            id: string;
-            title: string;
-            /** Format: uuid */
-            profileId: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CollectionList: {
-            hasMore: boolean;
-            data: components["schemas"]["Collection"][];
-        };
-        CreateCollection: {
-            title: string;
-        };
-        CreateFeed: {
-            url: string;
-        };
-        CreateProfile: {
-            title: string;
-            imageUrl?: string;
+        BookmarkUpdate: {
+            tags?: string[] | null;
         };
         Entry: {
             /** Format: uuid */
@@ -281,11 +326,11 @@ export interface components {
             link: string;
             title: string;
             /** Format: date-time */
-            publishedAt?: string | null;
-            description?: string | null;
-            author?: string | null;
+            publishedAt: string | null;
+            description: string | null;
+            author: string | null;
             /** Format: uri */
-            thumbnailUrl?: string | null;
+            thumbnailUrl: string | null;
             hasRead: boolean;
             /** Format: uuid */
             feedId: string;
@@ -294,6 +339,9 @@ export interface components {
             hasMore: boolean;
             data: components["schemas"]["Entry"][];
         };
+        EntryUpdate: {
+            hasRead?: boolean | null;
+        };
         Feed: {
             /** Format: uuid */
             id: string;
@@ -301,18 +349,38 @@ export interface components {
             link: string;
             title: string;
             /** Format: uri */
-            url?: string | null;
-            customTitle?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
+            url: string | null;
+            tags?: components["schemas"]["Tag"][];
             /** Format: int64 */
-            unreadCount?: number | null;
+            unreadCount?: number;
+        };
+        FeedCreate: {
+            /** Format: uri */
+            url: string;
+        };
+        FeedDetect: {
+            /** Format: uri */
+            url: string;
+        };
+        FeedDetected: {
+            /** Format: uri */
+            url: string;
+            title: string;
+        };
+        FeedDetectedList: {
+            hasMore: boolean;
+            data: components["schemas"]["FeedDetected"][];
         };
         FeedList: {
             hasMore: boolean;
             data: components["schemas"]["Feed"][];
+        };
+        FeedUpdate: {
+            tags?: string[] | null;
+        };
+        File: {
+            /** Format: Binary */
+            data: string;
         };
         Login: {
             /** Format: email */
@@ -324,32 +392,47 @@ export interface components {
             id: string;
             title: string;
             /** Format: uri */
-            imageUrl?: string | null;
+            imageUrl: string | null;
             /** Format: uuid */
             userId: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
+        };
+        ProfileCreate: {
+            title: string;
+            imageUrl?: string;
         };
         ProfileList: {
             hasMore: boolean;
             data: components["schemas"]["Profile"][];
+        };
+        ProfileUpdate: {
+            title?: string;
+            imageUrl?: string;
         };
         Register: {
             /** Format: email */
             email: string;
             password: string;
         };
+        Tag: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+        };
+        TagCreate: {
+            title: string;
+        };
+        TagList: {
+            hasMore: boolean;
+            data: components["schemas"]["Tag"][];
+        };
+        TagUpdate: {
+            title?: string;
+        };
         User: {
             /** Format: uuid */
             id: string;
             /** Format: email */
             email: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
         };
     };
     responses: never;
@@ -447,9 +530,8 @@ export interface operations {
     listBookmarks: {
         parameters: {
             query?: {
-                publishedAt?: string | null;
-                collectionId?: string | null;
-                isDefault?: boolean | null;
+                publishedAt?: string;
+                withTags?: boolean;
             };
             header?: never;
             path?: never;
@@ -464,6 +546,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BookmarkList"];
+                };
+            };
+        };
+    };
+    createBookmark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookmarkCreate"];
+            };
+        };
+        responses: {
+            /** @description Created bookmark */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bookmark"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Failed to fetch or parse bookmark */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    getBookmark: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bookmark by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Bookmark"];
+                };
+            };
+            /** @description Bookmark not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -497,46 +652,37 @@ export interface operations {
             };
         };
     };
-    listCollections: {
+    updateBookmark: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BookmarkUpdate"];
+            };
+        };
         responses: {
-            /** @description Paginated list of collections */
+            /** @description Updated bookmark */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CollectionList"];
+                    "application/json": components["schemas"]["Bookmark"];
                 };
             };
-        };
-    };
-    createCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCollection"];
-            };
-        };
-        responses: {
-            /** @description Created collection */
-            201: {
+            /** @description Bookmark not found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Collection"];
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Invalid input */
@@ -550,72 +696,12 @@ export interface operations {
             };
         };
     };
-    getCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Collection by ID */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Collection"];
-                };
-            };
-            /** @description Collection not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseError"];
-                };
-            };
-        };
-    };
-    deleteCollection: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successfully deleted collection */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Collection not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BaseError"];
-                };
-            };
-        };
-    };
     listEntries: {
         parameters: {
             query?: {
-                publishedAt?: string | null;
-                feedId?: string | null;
-                hasRead?: boolean | null;
+                publishedAt?: string;
+                feedId?: string;
+                hasRead?: boolean;
             };
             header?: never;
             path?: never;
@@ -630,6 +716,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntryList"];
+                };
+            };
+        };
+    };
+    updateEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description Entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -663,7 +793,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateFeed"];
+                "application/json": components["schemas"]["FeedCreate"];
             };
         };
         responses: {
@@ -756,6 +886,134 @@ export interface operations {
             };
         };
     };
+    updateFeed: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated feed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Feed"];
+                };
+            };
+            /** @description Feed not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    detectFeeds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedDetect"];
+            };
+        };
+        responses: {
+            /** @description Detected feeds */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedDetectedList"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Failed to fetch or parse feed */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    importFeeds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["File"];
+            };
+        };
+        responses: {
+            /** @description Successfully started import */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    exportFeeds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OPML file */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+        };
+    };
     listProfiles: {
         parameters: {
             query?: never;
@@ -785,7 +1043,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateProfile"];
+                "application/json": components["schemas"]["ProfileCreate"];
             };
         };
         responses: {
@@ -858,6 +1116,207 @@ export interface operations {
             };
             /** @description Deleting default profile */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    listTags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of tags */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TagList"];
+                };
+            };
+        };
+    };
+    createTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagCreate"];
+            };
+        };
+        responses: {
+            /** @description Created tag */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    getTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Tag by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Tag not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    deleteTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully deleted tag */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Tag not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    updateTag: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated tag */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Tag not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
