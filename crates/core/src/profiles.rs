@@ -93,6 +93,15 @@ impl ProfilesService {
             .await
     }
 
+    pub async fn get_default(&self, session: Session) -> Result<Profile, Error> {
+        self.repo
+            .find_one_profile(ProfilesFindOneParams::ById(ProfilesFindByIdParams {
+                id: session.profile_id,
+                user_id: session.user_id,
+            }))
+            .await
+    }
+
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
         self.repo
             .create_profile(ProfilesCreateData {

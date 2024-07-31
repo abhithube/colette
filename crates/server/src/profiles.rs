@@ -17,6 +17,7 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Sessi
     paths(
         list_profiles,
         get_active_profile,
+        get_profile,
         create_profile,
         update_profile,
         delete_profile
@@ -34,7 +35,9 @@ impl Api {
                 .route("/@me", routing::get(get_active_profile))
                 .route(
                     "/:id",
-                    routing::patch(update_profile).delete(delete_profile),
+                    routing::get(get_profile)
+                        .patch(update_profile)
+                        .delete(delete_profile),
                 ),
         )
     }
@@ -100,6 +103,50 @@ impl IntoResponse for ListResponse {
 
 #[utoipa::path(
     get,
+    path = "/{id}",
+    params(Id),
+    responses(GetResponse),
+    operation_id = "getProfile",
+    description = "Get a profile by ID",
+    tag = "Profiles"
+)]
+#[axum::debug_handler]
+pub async fn get_profile(
+    State(service): State<Arc<ProfilesService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    match service.get(id, session.into()).await.map(Profile::from) {
+        Ok(data) => Ok(GetResponse::Ok(data)),
+        Err(e) => match e {
+            profiles::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Profile by ID")]
+    Ok(Profile),
+
+    #[response(status = 404, description = "Profile not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveProfile",
@@ -111,11 +158,7 @@ pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .get(session.profile_id, session.into())
-        .await
-        .map(Profile::from)
-    {
+    match service.get_default(session.into()).await.map(Profile::from) {
         Ok(data) => Ok(GetActiveResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
     }
