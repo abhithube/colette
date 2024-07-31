@@ -1,0 +1,17 @@
+[package]
+name = "colette-postgres"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+colette-core.workspace = true
+futures.workspace = true
+sqlx = { version = "0.8.0", default-features = false, features = [
+  "macros",
+  "postgres",
+  "uuid",
+] }
+time = { version = "0.3.36", default-features = false }
+uuid.workspace = true

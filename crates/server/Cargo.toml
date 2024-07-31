@@ -23,18 +23,20 @@ cron = { version = "0.12.1", default-features = false }
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
-colette-migrations.workspace = true
 colette-password.workspace = true
-colette-repositories.workspace = true
 colette-plugins.workspace = true
+colette-postgres.workspace = true
 colette-scraper.workspace = true
 colette-tasks.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
-sea-orm.workspace = true
 serde.workspace = true
 serde_json = { version = "1.0.121", default-features = false }
+sqlx = { version = "0.8.0", default-features = false, features = [
+  "migrate",
+  "runtime-tokio",
+] }
 thiserror.workspace = true
 tokio.workspace = true
 tower-http = { version = "0.5.2", default-features = false, features = [
@@ -43,9 +45,8 @@ tower-http = { version = "0.5.2", default-features = false, features = [
 tower-sessions = { version = "0.12.2", default-features = false, features = [
   "axum-core",
 ] }
-tower-sessions-sqlx-store = { version = "0.12.0", default-features = false, features = [
+tower-sessions-sqlx-store = { version = "0.13.0", default-features = false, features = [
   "postgres",
-  "sqlite",
 ] }
 utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
   "chrono",
@@ -56,6 +57,7 @@ utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
 utoipa-scalar = { version = "0.2.0-alpha.0", default-features = false, features = [
   "axum",
 ] }
+url.workspace = true
 uuid = { workspace = true, features = ["serde"] }
 validator = { version = "0.18.1", default-features = false, features = [
   "derive",
