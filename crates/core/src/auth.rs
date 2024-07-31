@@ -46,15 +46,13 @@ impl AuthService {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let user = self
-            .users_repo
+        self.users_repo
             .create_user(UsersCreateData {
                 email: data.email,
                 password: hashed,
             })
-            .await?;
-
-        Ok(user)
+            .await
+            .map_err(|e| e.into())
     }
 
     pub async fn login(&self, data: Login) -> Result<Profile, Error> {
@@ -76,12 +74,10 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        let profile = self
-            .profiles_repo
+        self.profiles_repo
             .find_one_profile(ProfilesFindOneParams::Default { user_id: user.id })
-            .await?;
-
-        Ok(profile)
+            .await
+            .map_err(|e| e.into())
     }
 }
 

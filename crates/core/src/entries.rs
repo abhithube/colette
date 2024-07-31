@@ -66,12 +66,10 @@ impl EntriesService {
             })
             .await?;
 
-        let paginated = Paginated::<Entry> {
+        Ok(Paginated::<Entry> {
             has_more: entries.len() > PAGINATION_LIMIT,
             data: entries.into_iter().take(PAGINATION_LIMIT).collect(),
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn update(
@@ -80,8 +78,7 @@ impl EntriesService {
         data: UpdateEntry,
         session: Session,
     ) -> Result<Entry, Error> {
-        let entry = self
-            .repo
+        self.repo
             .update_entry(
                 FindOneParams {
                     id,
@@ -89,9 +86,7 @@ impl EntriesService {
                 },
                 data.into(),
             )
-            .await?;
-
-        Ok(entry)
+            .await
     }
 }
 

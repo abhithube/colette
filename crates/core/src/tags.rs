@@ -50,41 +50,32 @@ impl TagsService {
             })
             .await?;
 
-        let paginated = Paginated::<Tag> {
+        Ok(Paginated::<Tag> {
             has_more: false,
             data: tags,
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
-        let tag = self
-            .repo
+        self.repo
             .find_one_tag(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(tag)
+            .await
     }
 
     pub async fn create(&self, data: CreateTag, session: Session) -> Result<Tag, Error> {
-        let tag = self
-            .repo
+        self.repo
             .create_tag(TagsCreateData {
                 title: data.title,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(tag)
+            .await
     }
 
     pub async fn update(&self, id: Uuid, data: UpdateTag, session: Session) -> Result<Tag, Error> {
-        let tag = self
-            .repo
+        self.repo
             .update_tag(
                 FindOneParams {
                     id,
@@ -92,9 +83,7 @@ impl TagsService {
                 },
                 data.into(),
             )
-            .await?;
-
-        Ok(tag)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
@@ -103,9 +92,7 @@ impl TagsService {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 }
 

@@ -119,24 +119,19 @@ impl BookmarksService {
             })
             .await?;
 
-        let paginated = Paginated::<Bookmark> {
+        Ok(Paginated::<Bookmark> {
             has_more: bookmarks.len() > PAGINATION_LIMIT,
             data: bookmarks.into_iter().take(PAGINATION_LIMIT).collect(),
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Bookmark, Error> {
-        let bookmark = self
-            .repo
+        self.repo
             .find_one_bookmark(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(bookmark)
+            .await
     }
 
     pub async fn create(
@@ -146,16 +141,13 @@ impl BookmarksService {
     ) -> Result<Bookmark, Error> {
         let scraped = self.scraper.scrape(&mut data.url)?;
 
-        let bookmark = self
-            .repo
+        self.repo
             .create_bookmark(BookmarksCreateData {
                 url: data.url,
                 bookmark: scraped,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(bookmark)
+            .await
     }
 
     pub async fn update(
@@ -164,8 +156,7 @@ impl BookmarksService {
         data: UpdateBookmark,
         session: Session,
     ) -> Result<Bookmark, Error> {
-        let bookmark = self
-            .repo
+        self.repo
             .update_bookmark(
                 FindOneParams {
                     id,
@@ -173,9 +164,7 @@ impl BookmarksService {
                 },
                 data.into(),
             )
-            .await?;
-
-        Ok(bookmark)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
@@ -184,9 +173,7 @@ impl BookmarksService {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 }
 

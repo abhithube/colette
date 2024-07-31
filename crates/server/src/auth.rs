@@ -64,9 +64,7 @@ pub async fn register(
     State(service): State<Arc<AuthService>>,
     Valid(Json(body)): Valid<Json<Register>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.register(body.into()).await.map(User::from);
-
-    match result {
+    match service.register(body.into()).await.map(User::from) {
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
             auth::Error::Users(users::Error::Conflict(_)) => {
@@ -138,9 +136,7 @@ pub async fn login(
     session_store: tower_sessions::Session,
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.login(body.into()).await.map(Profile::from);
-
-    match result {
+    match service.login(body.into()).await.map(Profile::from) {
         Ok(data) => {
             let session = Session {
                 user_id: data.user_id,

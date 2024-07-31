@@ -74,12 +74,11 @@ pub async fn list_profiles(
     State(service): State<Arc<ProfilesService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .list(session.into())
         .await
-        .map(Paginated::<Profile>::from);
-
-    match result {
+        .map(Paginated::<Profile>::from)
+    {
         Ok(data) => Ok(ListResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -112,12 +111,11 @@ pub async fn get_active_profile(
     State(service): State<Arc<ProfilesService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .get(session.profile_id, session.into())
         .await
-        .map(Profile::from);
-
-    match result {
+        .map(Profile::from)
+    {
         Ok(data) => Ok(GetActiveResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -152,12 +150,11 @@ pub async fn create_profile(
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .create(body.into(), session.into())
         .await
-        .map(Profile::from);
-
-    match result {
+        .map(Profile::from)
+    {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -220,12 +217,11 @@ pub async fn update_profile(
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .update(id, body.into(), session.into())
         .await
-        .map(Profile::from);
-
-    match result {
+        .map(Profile::from)
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -285,9 +281,7 @@ pub async fn delete_profile(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.delete(id, session.into()).await;
-
-    match result {
+    match service.delete(id, session.into()).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

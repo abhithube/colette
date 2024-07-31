@@ -92,12 +92,11 @@ pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .list(session.into())
         .await
-        .map(Paginated::<Feed>::from);
-
-    match result {
+        .map(Paginated::<Feed>::from)
+    {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -132,9 +131,7 @@ pub async fn get_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.get(id, session.into()).await.map(Feed::from);
-
-    match result {
+    match service.get(id, session.into()).await.map(Feed::from) {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -178,12 +175,11 @@ pub async fn create_feed(
     session: Session,
     Valid(Json(body)): Valid<Json<FeedCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .create(body.into(), session.into())
         .await
-        .map(Feed::from);
-
-    match result {
+        .map(Feed::from)
+    {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
             feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
@@ -248,12 +244,11 @@ pub async fn update_feed(
     session: Session,
     Valid(Json(body)): Valid<Json<FeedUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .update(id, body.into(), session.into())
         .await
-        .map(Feed::from);
-
-    match result {
+        .map(Feed::from)
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -314,9 +309,7 @@ pub async fn delete_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.delete(id, session.into()).await;
-
-    match result {
+    match service.delete(id, session.into()).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
@@ -359,12 +352,11 @@ pub async fn detect_feeds(
     State(service): State<Arc<FeedsService>>,
     Valid(Json(body)): Valid<Json<FeedDetect>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .detect(body.into())
         .await
-        .map(Paginated::<FeedDetected>::from);
-
-    match result {
+        .map(Paginated::<FeedDetected>::from)
+    {
         Ok(data) => Ok(DetectResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::Scraper(_) => Ok(DetectResponse::BadGateway(BaseError {
@@ -450,9 +442,7 @@ pub async fn import_feeds(
 
     let raw = field.text().await.map_err(|_| Error::Unknown)?;
 
-    let result = service.import(ImportFeeds { raw }, session.into()).await;
-
-    match result {
+    match service.import(ImportFeeds { raw }, session.into()).await {
         Ok(()) => Ok(ImportResponse::NoContent),
         _ => Err(Error::Unknown),
     }
@@ -493,9 +483,7 @@ pub async fn export_feeds(
     State(service): State<Arc<FeedsService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.export(session.into()).await;
-
-    match result {
+    match service.export(session.into()).await {
         Ok(data) => Ok(ExportResponse::Ok(data.as_bytes().into())),
         _ => Err(Error::Unknown),
     }

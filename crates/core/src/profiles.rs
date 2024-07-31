@@ -78,35 +78,29 @@ impl ProfilesService {
             })
             .await?;
 
-        let paginated = Paginated::<Profile> {
+        Ok(Paginated::<Profile> {
             has_more: false,
             data: profiles,
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
-        let params = ProfilesFindOneParams::ById(ProfilesFindByIdParams {
-            id,
-            user_id: session.user_id,
-        });
-        let profile = self.repo.find_one_profile(params).await?;
-
-        Ok(profile)
+        self.repo
+            .find_one_profile(ProfilesFindOneParams::ById(ProfilesFindByIdParams {
+                id,
+                user_id: session.user_id,
+            }))
+            .await
     }
 
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
-        let profile = self
-            .repo
+        self.repo
             .create_profile(ProfilesCreateData {
                 title: data.title,
                 image_url: data.image_url,
                 user_id: session.user_id,
             })
-            .await?;
-
-        Ok(profile)
+            .await
     }
 
     pub async fn update(
@@ -115,8 +109,7 @@ impl ProfilesService {
         data: UpdateProfile,
         session: Session,
     ) -> Result<Profile, Error> {
-        let profile = self
-            .repo
+        self.repo
             .update_profile(
                 ProfilesFindByIdParams {
                     id,
@@ -124,9 +117,7 @@ impl ProfilesService {
                 },
                 data.into(),
             )
-            .await?;
-
-        Ok(profile)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
@@ -135,9 +126,7 @@ impl ProfilesService {
                 id,
                 user_id: session.user_id,
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 }
 

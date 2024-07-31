@@ -185,39 +185,31 @@ impl FeedsService {
             })
             .await?;
 
-        let paginated = Paginated::<Feed> {
+        Ok(Paginated::<Feed> {
             has_more: false,
             data: feeds,
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
-        let feed = self
-            .repo
+        self.repo
             .find_one_feed(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(feed)
+            .await
     }
 
     pub async fn create(&self, mut data: CreateFeed, session: Session) -> Result<Feed, Error> {
         let scraped = self.scraper.scrape(&mut data.url)?;
 
-        let feed = self
-            .repo
+        self.repo
             .create_feed(FeedsCreateData {
                 url: data.url,
                 feed: scraped,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(feed)
+            .await
     }
 
     pub async fn update(
@@ -226,8 +218,7 @@ impl FeedsService {
         data: UpdateFeed,
         session: Session,
     ) -> Result<Feed, Error> {
-        let feed = self
-            .repo
+        self.repo
             .update_feed(
                 FindOneParams {
                     id,
@@ -235,9 +226,7 @@ impl FeedsService {
                 },
                 data.into(),
             )
-            .await?;
-
-        Ok(feed)
+            .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
@@ -246,9 +235,7 @@ impl FeedsService {
                 id,
                 profile_id: session.profile_id,
             })
-            .await?;
-
-        Ok(())
+            .await
     }
 
     pub async fn detect(&self, mut data: DetectFeeds) -> Result<Paginated<DetectedFeed>, Error> {
@@ -264,12 +251,10 @@ impl FeedsService {
             })
         }
 
-        let paginated = Paginated::<DetectedFeed> {
+        Ok(Paginated::<DetectedFeed> {
             has_more: false,
             data: feeds,
-        };
-
-        Ok(paginated)
+        })
     }
 
     pub async fn import(&self, data: ImportFeeds, session: Session) -> Result<(), Error> {
@@ -301,9 +286,7 @@ impl FeedsService {
             })
             .collect::<Vec<_>>();
 
-        let raw = self.opml.export(data)?;
-
-        Ok(raw)
+        self.opml.export(data).map_err(|e| e.into())
     }
 }
 

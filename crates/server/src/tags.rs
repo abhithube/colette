@@ -62,12 +62,11 @@ pub async fn list_tags(
     State(service): State<Arc<TagsService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .list(session.into())
         .await
-        .map(Paginated::<Tag>::from);
-
-    match result {
+        .map(Paginated::<Tag>::from)
+    {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -102,9 +101,7 @@ pub async fn get_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.get(id, session.into()).await.map(Tag::from);
-
-    match result {
+    match service.get(id, session.into()).await.map(Tag::from) {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -148,12 +145,11 @@ pub async fn create_tag(
     session: Session,
     Valid(Json(body)): Valid<Json<TagCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .create(body.into(), session.into())
         .await
-        .map(Tag::from);
-
-    match result {
+        .map(Tag::from)
+    {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -209,12 +205,11 @@ pub async fn update_tag(
     session: Session,
     Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .update(id, body.into(), session.into())
         .await
-        .map(Tag::from);
-
-    match result {
+        .map(Tag::from)
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -277,9 +272,7 @@ pub async fn delete_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.delete(id, session.into()).await;
-
-    match result {
+    match service.delete(id, session.into()).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

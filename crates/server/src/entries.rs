@@ -81,12 +81,11 @@ pub async fn list_entries(
     Valid(Query(query)): Valid<Query<ListEntriesQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .list(query.into(), session.into())
         .await
-        .map(Paginated::<Entry>::from);
-
-    match result {
+        .map(Paginated::<Entry>::from)
+    {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -145,12 +144,11 @@ pub async fn update_entry(
     session: Session,
     Valid(Json(body)): Valid<Json<EntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .update(id, body.into(), session.into())
         .await
-        .map(Entry::from);
-
-    match result {
+        .map(Entry::from)
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {

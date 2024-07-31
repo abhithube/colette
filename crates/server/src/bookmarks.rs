@@ -95,12 +95,11 @@ pub async fn list_bookmarks(
     Valid(Query(query)): Valid<Query<ListBookmarksQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .list(query.into(), session.into())
         .await
-        .map(Paginated::<Bookmark>::from);
-
-    match result {
+        .map(Paginated::<Bookmark>::from)
+    {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -158,9 +157,7 @@ pub async fn get_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.get(id, session.into()).await.map(Bookmark::from);
-
-    match result {
+    match service.get(id, session.into()).await.map(Bookmark::from) {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             bookmarks::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -204,12 +201,11 @@ pub async fn create_bookmark(
     session: Session,
     Valid(Json(body)): Valid<Json<BookmarkCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .create(body.into(), session.into())
         .await
-        .map(Bookmark::from);
-
-    match result {
+        .map(Bookmark::from)
+    {
         Ok(data) => Ok(CreateResponse::Created(Box::new(data))),
         Err(e) => match e {
             bookmarks::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
@@ -274,12 +270,11 @@ pub async fn update_bookmark(
     session: Session,
     Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service
+    match service
         .update(id, body.into(), session.into())
         .await
-        .map(Bookmark::from);
-
-    match result {
+        .map(Bookmark::from)
+    {
         Ok(data) => Ok(UpdateResponse::Ok(Box::new(data))),
         Err(e) => match e {
             bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -340,9 +335,7 @@ pub async fn delete_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = service.delete(id, session.into()).await;
-
-    match result {
+    match service.delete(id, session.into()).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
