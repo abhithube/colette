@@ -45,7 +45,7 @@ tower-sessions = { version = "0.12.2", default-features = false, features = [
 tower-sessions-sqlx-store = { version = "0.13.0", default-features = false, features = [
   "postgres",
 ] }
-utoipa = { version = "5.0.0-alpha.0", default-features = false, features = [
+utoipa = { version = "5.0.0-alpha.1", default-features = false, features = [
   "chrono",
   "preserve_order",
   "preserve_path_order",
