@@ -1,4 +1,3 @@
-ARG DATABASE_URL="sqlite:///data/sqlite.db?mode=rwc"
 ARG TARGET="aarch64-unknown-linux-musl"
 
 FROM node:22-alpine AS web-build
@@ -28,10 +27,7 @@ COPY --from=web-build /app/packages/web/dist /packages/web/dist
 RUN cargo build --target $TARGET --release
 
 FROM gcr.io/distroless/static AS release
-ARG DATABASE_URL
 ARG TARGET
-ENV DATABASE_URL=$DATABASE_URL
-VOLUME ["/data"]
 EXPOSE 8000
 COPY --from=rust-build /app/target/$TARGET/release/colette-server /
 ENTRYPOINT ["/colette-server"]

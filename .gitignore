@@ -1,6 +1,4 @@
 /node_modules/
 /target/
 /.env
-/.env.*
-/sqlite.db*
 .DS_Store
