@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM bookmarks\nWHERE\n  id = $1\n  AND profile_id = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "869db4c1981daa05d7eff3de27e06b15416ddf880895421ce7caa729562cc4cf"
+}

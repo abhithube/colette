@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM profile_feeds\nWHERE\n  id = $1\n  AND profile_id = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f0d7400cb5c4a8896a03173d1c4342dde3b0b0d7758a195f0da716ba36cdf5ae"
+}

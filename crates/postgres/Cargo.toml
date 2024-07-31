@@ -11,6 +11,8 @@ futures.workspace = true
 sqlx = { version = "0.8.0", default-features = false, features = [
   "macros",
   "postgres",
+  "runtime-tokio",
+  "time",
   "uuid",
 ] }
 time = { version = "0.3.36", default-features = false }

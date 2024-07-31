@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE tags AS t\nSET\n  title = coalesce($3, t.title)\nWHERE\n  id = $1\n  AND profile_id = $2\nRETURNING\n  id,\n  title;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "9945d27773d997d9e5a2123048212f1f17d149aee9fef1bacd8a86a46559c9d5"
+}

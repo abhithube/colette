@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  p.id\nFROM\n  profiles AS p\n  JOIN profile_feeds AS pf ON pf.profile_id = p.id\nWHERE\n  pf.feed_id = $1;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6b3dfd4f8c8d908b25e2f02fa266e2e387c68e03648b592eb2cdd43545f5e8bd"
+}

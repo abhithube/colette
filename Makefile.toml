@@ -9,12 +9,16 @@ args = ["run", "-p", "colette-server"]
 [tasks.run]
 command = "cargo"
 args = ["run", "--release", "-p", "colette-server"]
-env_files = [".env.production"]
 
 [tasks.build]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
 
-[tasks.migrate]
+[tasks.reset]
 command = "sqlx"
 args = ["db", "reset"]
+
+[tasks.prepare]
+cwd = "./crates/postgres"
+command = "cargo"
+args = ["sqlx", "prepare"]
