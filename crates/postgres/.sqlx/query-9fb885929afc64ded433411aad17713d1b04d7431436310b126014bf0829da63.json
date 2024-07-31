@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH\n  pfe AS (\n    UPDATE profile_feed_entries AS pfe\n    SET\n      has_read = coalesce($3, pfe.has_read)\n    FROM\n      profile_feeds AS pf\n    WHERE\n      pfe.id = $1\n      AND pf.profile_id = $2\n    RETURNING\n      pfe.id,\n      pfe.has_read,\n      pfe.profile_feed_id,\n      pfe.feed_entry_id\n  )\nSELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id feed_id\nFROM\n  pfe\n  JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  JOIN entries AS e ON e.id = fe.entry_id",
+  "query": "WITH\n  pfe AS (\n    UPDATE profile_feed_entries AS pfe\n    SET\n      has_read = coalesce($3, pfe.has_read)\n    FROM\n      profile_feeds AS pf\n    WHERE\n      pfe.id = $1\n      AND pf.profile_id = $2\n    RETURNING\n      pfe.id,\n      pfe.has_read,\n      pfe.profile_feed_id,\n      pfe.feed_entry_id\n  )\nSELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id feed_id\nFROM\n  pfe\n  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entries AS e ON e.id = fe.entry_id",
   "describe": {
     "columns": [
       {
@@ -68,5 +68,5 @@
       false
     ]
   },
-  "hash": "40eba587290ce57fa306c4bfcdedd657f00013b812829d5081bb59e3021befce"
+  "hash": "9fb885929afc64ded433411aad17713d1b04d7431436310b126014bf0829da63"
 }

@@ -13,7 +13,7 @@ SELECT
   count(pfe.id) AS unread_count
 FROM
   profile_feeds AS pf
-  JOIN feeds AS f ON f.id = pf.feed_id
+  INNER JOIN feeds AS f ON f.id = pf.feed_id
   LEFT JOIN profile_feed_tags AS pft ON pft.profile_feed_id = pf.id
   LEFT JOIN tags AS t ON pft.tag_id = t.id
   LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.id

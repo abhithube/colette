@@ -26,5 +26,5 @@ SELECT
   pfe.profile_feed_id feed_id
 FROM
   pfe
-  JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
-  JOIN entries AS e ON e.id = fe.entry_id
+  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
+  INNER JOIN entries AS e ON e.id = fe.entry_id

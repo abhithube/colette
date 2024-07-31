@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pf.id,\n  f.link,\n  f.title,\n  f.url,\n  coalesce(\n    array_agg(ROW (t.id, t.title)) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\",\n  count(pfe.id) AS unread_count\nFROM\n  profile_feeds AS pf\n  JOIN feeds AS f ON f.id = pf.feed_id\n  LEFT JOIN profile_feed_tags AS pft ON pft.profile_feed_id = pf.id\n  LEFT JOIN tags AS t ON pft.tag_id = t.id\n  LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.id\n  AND pfe.has_read = FALSE\nWHERE\n  pf.profile_id = $1\nGROUP BY\n  pf.id,\n  f.link,\n  f.title,\n  f.url\nORDER BY\n  f.title ASC;",
+  "query": "SELECT\n  pf.id,\n  f.link,\n  f.title,\n  f.url,\n  coalesce(\n    array_agg(ROW (t.id, t.title)) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\",\n  count(pfe.id) AS unread_count\nFROM\n  profile_feeds AS pf\n  INNER JOIN feeds AS f ON f.id = pf.feed_id\n  LEFT JOIN profile_feed_tags AS pft ON pft.profile_feed_id = pf.id\n  LEFT JOIN tags AS t ON pft.tag_id = t.id\n  LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.id\n  AND pfe.has_read = FALSE\nWHERE\n  pf.profile_id = $1\nGROUP BY\n  pf.id,\n  f.link,\n  f.title,\n  f.url\nORDER BY\n  f.title ASC;",
   "describe": {
     "columns": [
       {
@@ -48,5 +48,5 @@
       null
     ]
   },
-  "hash": "0816220fde9907be7cfa5ad9f1ef6618ebf39b7d481e08ac90116ee71a8dfab9"
+  "hash": "162d81d97eb931e576716826d951792a5e887f0182a1691eb778e2f09ebaeab9"
 }

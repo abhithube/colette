@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  p.id\nFROM\n  profiles AS p\n  JOIN profile_feeds AS pf ON pf.profile_id = p.id\nWHERE\n  pf.feed_id = $1;",
+  "query": "SELECT\n  p.id\nFROM\n  profiles AS p\n  INNER JOIN profile_feeds AS pf ON pf.profile_id = p.id\nWHERE\n  pf.feed_id = $1;",
   "describe": {
     "columns": [
       {
@@ -18,5 +18,5 @@
       false
     ]
   },
-  "hash": "6b3dfd4f8c8d908b25e2f02fa266e2e387c68e03648b592eb2cdd43545f5e8bd"
+  "hash": "ba4cefc1847e5f5964d7bd47e2a997488196a9cf294ecead80b8cd41bf8b99af"
 }

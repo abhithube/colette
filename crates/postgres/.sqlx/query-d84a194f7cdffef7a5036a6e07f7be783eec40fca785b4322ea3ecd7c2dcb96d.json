@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entries AS pfe\n  JOIN profile_feeds AS pf ON pf.id = pfe.profile_feed_id\n  JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  JOIN entries AS e ON e.id = fe.entry_id\nWHERE\n  pf.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\nORDER BY\n  e.published_at DESC,\n  pfe.id DESC\nLIMIT\n  $2",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entries AS pfe\n  INNER JOIN profile_feeds AS pf ON pf.id = pfe.profile_feed_id\n  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entries AS e ON e.id = fe.entry_id\nWHERE\n  pf.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\nORDER BY\n  e.published_at DESC,\n  pfe.id DESC\nLIMIT\n  $2",
   "describe": {
     "columns": [
       {
@@ -70,5 +70,5 @@
       false
     ]
   },
-  "hash": "d08250fd0d8b3b7a5a76da0092065028a639edd7381ad1026a3dc75f306e0741"
+  "hash": "d84a194f7cdffef7a5036a6e07f7be783eec40fca785b4322ea3ecd7c2dcb96d"
 }
