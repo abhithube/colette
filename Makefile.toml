@@ -1,4 +1,4 @@
-env_files = [{ path = ".env" }, { path = ".env.sqlite", profile = "sqlite" }]
+env_files = [".env"]
 
 config.default_to_workspace = false
 
@@ -16,9 +16,5 @@ command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
 
 [tasks.migrate]
-command = "sea-orm-cli"
-args = ["migrate", "fresh", "-d", "./crates/migrations"]
-
-[tasks.generate]
-command = "sea-orm-cli"
-args = ["generate", "entity", "-o", "./crates/entities/src/generated"]
+command = "sqlx"
+args = ["db", "reset"]
