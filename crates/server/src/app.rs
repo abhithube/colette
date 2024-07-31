@@ -7,6 +7,7 @@ use colette_config::Config;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
+use tower_sessions_sqlx_store::PostgresStore;
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -20,7 +21,6 @@ use crate::{
     feeds::Api as Feeds,
     profiles::Api as Profiles,
     tags::Api as Tags,
-    SessionDatabase,
 };
 
 #[derive(Clone, rust_embed::Embed)]
@@ -47,15 +47,15 @@ struct ApiDoc;
 pub struct App {
     state: Context,
     config: Config,
-    session_store: SessionDatabase,
+    store: PostgresStore,
 }
 
 impl App {
-    pub fn new(state: Context, config: Config, session_store: SessionDatabase) -> Self {
+    pub fn new(state: Context, config: Config, store: PostgresStore) -> Self {
         Self {
             state,
             config,
-            session_store,
+            store,
         }
     }
 
@@ -83,7 +83,7 @@ impl App {
                 None,
             ))
             .layer(
-                SessionManagerLayer::new(self.session_store)
+                SessionManagerLayer::new(self.store)
                     .with_secure(false)
                     .with_expiry(Expiry::OnInactivity(Duration::days(1))),
             );
