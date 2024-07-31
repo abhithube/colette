@@ -48,7 +48,7 @@ impl AuthService {
 
         let user = self
             .users_repo
-            .create(UsersCreateData {
+            .create_user(UsersCreateData {
                 email: data.email,
                 password: hashed,
             })
@@ -60,7 +60,7 @@ impl AuthService {
     pub async fn login(&self, data: Login) -> Result<Profile, Error> {
         let user = self
             .users_repo
-            .find_one(UsersFindOneParams { email: data.email })
+            .find_one_user(UsersFindOneParams { email: data.email })
             .await
             .map_err(|e| match e {
                 users::Error::NotFound(_) => Error::NotAuthenticated,
@@ -78,7 +78,7 @@ impl AuthService {
 
         let profile = self
             .profiles_repo
-            .find_one(ProfilesFindOneParams::Default { user_id: user.id })
+            .find_one_profile(ProfilesFindOneParams::Default { user_id: user.id })
             .await?;
 
         Ok(profile)

@@ -20,7 +20,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Option<Vec<Tag>>,
+    pub tags: Vec<Tag>,
 }
 
 #[derive(Clone, Debug)]
@@ -73,17 +73,20 @@ pub struct BookmarkPluginRegistry<'a> {
 
 #[async_trait::async_trait]
 pub trait BookmarksRepository: Send + Sync {
-    async fn find_many(&self, params: BookmarksFindManyParams) -> Result<Vec<Bookmark>, Error>;
+    async fn find_many_bookmarks(
+        &self,
+        params: BookmarksFindManyParams,
+    ) -> Result<Vec<Bookmark>, Error>;
 
-    async fn create(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
+    async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
 
-    async fn update(
+    async fn update_bookmark(
         &self,
         params: FindOneParams,
         data: BookmarksUpdateData,
     ) -> Result<Bookmark, Error>;
 
-    async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
 pub struct BookmarksService {
@@ -106,7 +109,7 @@ impl BookmarksService {
     ) -> Result<Paginated<Bookmark>, Error> {
         let bookmarks = self
             .repo
-            .find_many(BookmarksFindManyParams {
+            .find_many_bookmarks(BookmarksFindManyParams {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
@@ -131,7 +134,7 @@ impl BookmarksService {
 
         let bookmark = self
             .repo
-            .create(BookmarksCreateData {
+            .create_bookmark(BookmarksCreateData {
                 url: data.url,
                 bookmark: scraped,
                 profile_id: session.profile_id,
@@ -149,7 +152,7 @@ impl BookmarksService {
     ) -> Result<Bookmark, Error> {
         let bookmark = self
             .repo
-            .update(
+            .update_bookmark(
                 FindOneParams {
                     id,
                     profile_id: session.profile_id,
@@ -163,7 +166,7 @@ impl BookmarksService {
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete(FindOneParams {
+            .delete_bookmark(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })

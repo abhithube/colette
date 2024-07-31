@@ -23,7 +23,7 @@ pub struct Feed {
     pub link: String,
     pub title: String,
     pub url: Option<String>,
-    pub tags: Option<Vec<Tag>>,
+    pub tags: Vec<Tag>,
     pub unread_count: Option<i64>,
 }
 
@@ -114,19 +114,23 @@ pub struct StreamFeed {
 
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
-    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Feed>, Error>;
+    async fn find_many_feeds(&self, params: FindManyParams) -> Result<Vec<Feed>, Error>;
 
-    async fn find_one(&self, params: FindOneParams) -> Result<Feed, Error>;
+    async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error>;
 
-    async fn create(&self, data: FeedsCreateData) -> Result<Feed, Error>;
+    async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error>;
 
-    async fn update(&self, params: FindOneParams, data: FeedsUpdateData) -> Result<Feed, Error>;
+    async fn update_feed(
+        &self,
+        params: FindOneParams,
+        data: FeedsUpdateData,
+    ) -> Result<Feed, Error>;
 
-    async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error>;
 
-    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
+    fn stream_feeds(&self) -> BoxStream<Result<StreamFeed, Error>>;
 
-    async fn cleanup(&self) -> Result<(), Error>;
+    async fn cleanup_feeds(&self) -> Result<(), Error>;
 }
 
 pub trait Detector: Send + Sync {
@@ -176,7 +180,7 @@ impl FeedsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repo
-            .find_many(FindManyParams {
+            .find_many_feeds(FindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -192,7 +196,7 @@ impl FeedsService {
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
         let feed = self
             .repo
-            .find_one(FindOneParams {
+            .find_one_feed(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })
@@ -206,7 +210,7 @@ impl FeedsService {
 
         let feed = self
             .repo
-            .create(FeedsCreateData {
+            .create_feed(FeedsCreateData {
                 url: data.url,
                 feed: scraped,
                 profile_id: session.profile_id,
@@ -224,7 +228,7 @@ impl FeedsService {
     ) -> Result<Feed, Error> {
         let feed = self
             .repo
-            .update(
+            .update_feed(
                 FindOneParams {
                     id,
                     profile_id: session.profile_id,
@@ -238,7 +242,7 @@ impl FeedsService {
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete(FindOneParams {
+            .delete_feed(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })

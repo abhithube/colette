@@ -22,15 +22,15 @@ pub struct UpdateTag {
 
 #[async_trait::async_trait]
 pub trait TagsRepository: Send + Sync {
-    async fn find_many(&self, params: FindManyParams) -> Result<Vec<Tag>, Error>;
+    async fn find_many_tags(&self, params: FindManyParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_one(&self, params: FindOneParams) -> Result<Tag, Error>;
+    async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error>;
 
-    async fn create(&self, data: TagsCreateData) -> Result<Tag, Error>;
+    async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error>;
 
-    async fn update(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
+    async fn update_tag(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
 
-    async fn delete(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
 pub struct TagsService {
@@ -45,7 +45,7 @@ impl TagsService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repo
-            .find_many(FindManyParams {
+            .find_many_tags(FindManyParams {
                 profile_id: session.profile_id,
             })
             .await?;
@@ -61,7 +61,7 @@ impl TagsService {
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
-            .find_one(FindOneParams {
+            .find_one_tag(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })
@@ -73,7 +73,7 @@ impl TagsService {
     pub async fn create(&self, data: CreateTag, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
-            .create(TagsCreateData {
+            .create_tag(TagsCreateData {
                 title: data.title,
                 profile_id: session.profile_id,
             })
@@ -85,7 +85,7 @@ impl TagsService {
     pub async fn update(&self, id: Uuid, data: UpdateTag, session: Session) -> Result<Tag, Error> {
         let tag = self
             .repo
-            .update(
+            .update_tag(
                 FindOneParams {
                     id,
                     profile_id: session.profile_id,
@@ -99,7 +99,7 @@ impl TagsService {
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete(FindOneParams {
+            .delete_tag(FindOneParams {
                 id,
                 profile_id: session.profile_id,
             })

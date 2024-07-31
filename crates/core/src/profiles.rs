@@ -41,21 +41,24 @@ pub struct StreamProfile {
 
 #[async_trait::async_trait]
 pub trait ProfilesRepository: Send + Sync {
-    async fn find_many(&self, params: ProfilesFindManyParams) -> Result<Vec<Profile>, Error>;
+    async fn find_many_profiles(
+        &self,
+        params: ProfilesFindManyParams,
+    ) -> Result<Vec<Profile>, Error>;
 
-    async fn find_one(&self, params: ProfilesFindOneParams) -> Result<Profile, Error>;
+    async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error>;
 
-    async fn create(&self, data: ProfilesCreateData) -> Result<Profile, Error>;
+    async fn create_profile(&self, data: ProfilesCreateData) -> Result<Profile, Error>;
 
-    async fn update(
+    async fn update_profile(
         &self,
         params: ProfilesFindByIdParams,
         data: ProfilesUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
+    async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
 
-    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
+    fn stream_profiles(&self, feed_id: i32) -> BoxStream<Result<StreamProfile, Error>>;
 }
 
 pub struct ProfilesService {
@@ -70,7 +73,7 @@ impl ProfilesService {
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
         let profiles = self
             .repo
-            .find_many(ProfilesFindManyParams {
+            .find_many_profiles(ProfilesFindManyParams {
                 user_id: session.user_id,
             })
             .await?;
@@ -88,7 +91,7 @@ impl ProfilesService {
             id,
             user_id: session.user_id,
         });
-        let profile = self.repo.find_one(params).await?;
+        let profile = self.repo.find_one_profile(params).await?;
 
         Ok(profile)
     }
@@ -96,7 +99,7 @@ impl ProfilesService {
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
         let profile = self
             .repo
-            .create(ProfilesCreateData {
+            .create_profile(ProfilesCreateData {
                 title: data.title,
                 image_url: data.image_url,
                 user_id: session.user_id,
@@ -114,7 +117,7 @@ impl ProfilesService {
     ) -> Result<Profile, Error> {
         let profile = self
             .repo
-            .update(
+            .update_profile(
                 ProfilesFindByIdParams {
                     id,
                     user_id: session.user_id,
@@ -128,7 +131,7 @@ impl ProfilesService {
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete(ProfilesFindByIdParams {
+            .delete_profile(ProfilesFindByIdParams {
                 id,
                 user_id: session.user_id,
             })

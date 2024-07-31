@@ -19,7 +19,7 @@ impl CleanupTask {
 impl Task for CleanupTask {
     async fn run(&self) -> Result<(), task::Error> {
         self.repo
-            .cleanup()
+            .cleanup_feeds()
             .await
             .map_err(|e| task::Error(e.into()))?;
 

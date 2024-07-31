@@ -32,9 +32,13 @@ pub struct ListEntriesParams {
 
 #[async_trait::async_trait]
 pub trait EntriesRepository: Send + Sync {
-    async fn find_many(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error>;
+    async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error>;
 
-    async fn update(&self, params: FindOneParams, data: EntriesUpdateData) -> Result<Entry, Error>;
+    async fn update_entry(
+        &self,
+        params: FindOneParams,
+        data: EntriesUpdateData,
+    ) -> Result<Entry, Error>;
 }
 
 pub struct EntriesService {
@@ -53,7 +57,7 @@ impl EntriesService {
     ) -> Result<Paginated<Entry>, Error> {
         let entries = self
             .repo
-            .find_many(EntriesFindManyParams {
+            .find_many_entries(EntriesFindManyParams {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
@@ -78,7 +82,7 @@ impl EntriesService {
     ) -> Result<Entry, Error> {
         let entry = self
             .repo
-            .update(
+            .update_entry(
                 FindOneParams {
                     id,
                     profile_id: session.profile_id,

@@ -10,8 +10,9 @@ use axum_valid::Valid;
 use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
 use uuid::Uuid;
 
-use crate::common::{
-    BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session,
+use crate::{
+    common::{BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
+    tags::Tag,
 };
 
 #[derive(utoipa::OpenApi)]
@@ -58,6 +59,9 @@ pub struct Feed {
     pub title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
+    #[schema(required = false)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<Tag>,
     #[schema(nullable = false)]
     pub unread_count: Option<i64>,
 }
@@ -69,6 +73,7 @@ impl From<colette_core::Feed> for Feed {
             link: value.link,
             title: value.title,
             url: value.url,
+            tags: value.tags.into_iter().map(Tag::from).collect(),
             unread_count: value.unread_count,
         }
     }

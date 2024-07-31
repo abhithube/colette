@@ -9,9 +9,9 @@ pub struct User {
 
 #[async_trait::async_trait]
 pub trait UsersRepository: Send + Sync {
-    async fn find_one(&self, params: UsersFindOneParams) -> Result<User, Error>;
+    async fn find_one_user(&self, params: UsersFindOneParams) -> Result<User, Error>;
 
-    async fn create(&self, data: UsersCreateData) -> Result<User, Error>;
+    async fn create_user(&self, data: UsersCreateData) -> Result<User, Error>;
 }
 
 #[derive(Clone, Debug)]

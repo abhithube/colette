@@ -53,9 +53,9 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
-    pub tags: Option<Vec<Tag>>,
+    #[schema(required = false)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<Tag>,
 }
 
 impl From<colette_core::Bookmark> for Bookmark {
@@ -67,7 +67,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
+            tags: value.tags.into_iter().map(Tag::from).collect(),
         }
     }
 }
