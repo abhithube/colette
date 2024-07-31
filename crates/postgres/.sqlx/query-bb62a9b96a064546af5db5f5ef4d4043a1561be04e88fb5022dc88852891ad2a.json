@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  b.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author,\n  coalesce(\n    array_agg(ROW (t.id, t.title)) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\"\nFROM\n  bookmarks b\n  LEFT JOIN bookmark_tags AS bt ON bt.bookmark_id = b.id\n  LEFT JOIN tags AS t ON bt.tag_id = t.id\nWHERE\n  b.id = $1\n  AND b.profile_id = $2\nGROUP BY\n  b.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags!: Vec<Tag>",
+        "type_info": "RecordArray"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "bb62a9b96a064546af5db5f5ef4d4043a1561be04e88fb5022dc88852891ad2a"
+}

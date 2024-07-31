@@ -32,6 +32,25 @@ impl BookmarksRepository for PostgresRepository {
         .map_err(|e| Error::Unknown(e.into()))
     }
 
+    async fn find_one_bookmark(
+        &self,
+        params: FindOneParams,
+    ) -> Result<colette_core::Bookmark, Error> {
+        sqlx::query_file_as!(
+            Bookmark,
+            "queries/bookmarks/find_one.sql",
+            params.id,
+            params.profile_id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(colette_core::Bookmark::from)
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
+    }
+
     async fn create_bookmark(
         &self,
         data: BookmarksCreateData,

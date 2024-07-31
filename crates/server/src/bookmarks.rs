@@ -20,7 +20,13 @@ use crate::{
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_bookmarks, create_bookmark, update_bookmark, delete_bookmark),
+    paths(
+        list_bookmarks,
+        get_bookmark,
+        create_bookmark,
+        update_bookmark,
+        delete_bookmark
+    ),
     components(schemas(Bookmark, BookmarkCreate, BookmarkUpdate))
 )]
 pub struct Api;
@@ -33,7 +39,9 @@ impl Api {
                 .route("/", routing::get(list_bookmarks).post(create_bookmark))
                 .route(
                     "/:id",
-                    routing::patch(update_bookmark).delete(delete_bookmark),
+                    routing::get(get_bookmark)
+                        .patch(update_bookmark)
+                        .delete(delete_bookmark),
                 ),
         )
     }
@@ -131,6 +139,52 @@ impl IntoResponse for ListResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/{id}",
+    params(Id),
+    responses(GetResponse),
+    operation_id = "getBookmark",
+    description = "Get a bookmark by ID",
+    tag = "Bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn get_bookmark(
+    State(service): State<Arc<BookmarksService>>,
+    Path(Id(id)): Path<Id>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = service.get(id, session.into()).await.map(Bookmark::from);
+
+    match result {
+        Ok(data) => Ok(GetResponse::Ok(data)),
+        Err(e) => match e {
+            bookmarks::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Bookmark by ID")]
+    Ok(Bookmark),
+
+    #[response(status = 404, description = "Bookmark not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }
 }

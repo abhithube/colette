@@ -78,6 +78,8 @@ pub trait BookmarksRepository: Send + Sync {
         params: BookmarksFindManyParams,
     ) -> Result<Vec<Bookmark>, Error>;
 
+    async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error>;
+
     async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
 
     async fn update_bookmark(
@@ -123,6 +125,18 @@ impl BookmarksService {
         };
 
         Ok(paginated)
+    }
+
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Bookmark, Error> {
+        let bookmark = self
+            .repo
+            .find_one_bookmark(FindOneParams {
+                id,
+                profile_id: session.profile_id,
+            })
+            .await?;
+
+        Ok(bookmark)
     }
 
     pub async fn create(
