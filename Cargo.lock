@@ -326,7 +326,6 @@ dependencies = [
  "thiserror",
  "tower-http",
  "tower-sessions",
- "tower-sessions-sqlx-store",
  "utoipa",
  "utoipa-scalar",
  "uuid",

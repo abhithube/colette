@@ -4,8 +4,7 @@ use axum::{
 };
 use colette_config::Config;
 use tower_http::cors::CorsLayer;
-use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
-use tower_sessions_sqlx_store::PostgresStore;
+use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -38,14 +37,14 @@ use crate::{
 )]
 struct ApiDoc;
 
-pub struct App<'a> {
+pub struct App<'a, Store: SessionStore + Clone> {
     state: Context,
     config: &'a Config,
-    store: PostgresStore,
+    store: Store,
 }
 
-impl<'a> App<'a> {
-    pub fn new(state: Context, config: &'a Config, store: PostgresStore) -> Self {
+impl<'a, Store: SessionStore + Clone> App<'a, Store> {
+    pub fn new(state: Context, config: &'a Config, store: Store) -> Self {
         Self {
             state,
             config,
