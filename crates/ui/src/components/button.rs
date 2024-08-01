@@ -1,3 +1,4 @@
+use leptix_primitives::primitive;
 use leptos::*;
 use tailwind_fuse::*;
 
@@ -5,9 +6,13 @@ use tailwind_fuse::*;
 pub fn Button(
     #[prop(into, optional)] variant: MaybeSignal<ButtonVariant>,
     #[prop(into, optional)] size: MaybeSignal<ButtonSize>,
+
+    #[prop(optional)] node_ref: NodeRef<html::AnyElement>,
+    #[prop(into, optional)] as_child: MaybeProp<bool>,
+
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
-    children: Children,
+    children: ChildrenFn,
 ) -> impl IntoView {
     let class = create_memo(move |_| {
         let variant = variant();
@@ -17,9 +22,15 @@ pub fn Button(
     });
 
     view! {
-        <button {..attributes} class=class>
+        <primitive::Primitive
+            {..attributes}
+            element=html::button
+            node_ref=node_ref
+            as_child=as_child
+            attr:class=class
+        >
             {children()}
-        </button>
+        </primitive::Primitive>
     }
 }
 
