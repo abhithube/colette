@@ -29,7 +29,8 @@ colette-tasks.path = "crates/tasks"
 futures = { version = "0.3.30", default-features = false }
 http = { version = "1.1.0", default-features = false, features = ["std"] }
 lazy-regex = { version = "3.2.0", default-features = false, features = [
-  "lite",
+  "std",
+  "perf",
 ] }
 quick-xml = { version = "0.36.1", features = ["serialize"] }
 serde = { version = "1.0.204", default-features = false }
