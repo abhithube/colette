@@ -1,5 +1,5 @@
 [package]
-name = "colette-server"
+name = "colette-api"
 version = "0.1.0"
 edition = "2021"
 

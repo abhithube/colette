@@ -312,6 +312,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-api"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "axum",
+ "axum-embed",
+ "axum-valid",
+ "chrono",
+ "colette-backup",
+ "colette-config",
+ "colette-core",
+ "colette-password",
+ "colette-plugins",
+ "colette-postgres",
+ "colette-scraper",
+ "colette-tasks",
+ "cron",
+ "rust-embed",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "tower-sessions",
+ "tower-sessions-sqlx-store",
+ "url",
+ "utoipa",
+ "utoipa-scalar",
+ "uuid",
+ "validator",
+]
+
+[[package]]
 name = "colette-backup"
 version = "0.1.0"
 dependencies = [
@@ -390,40 +424,6 @@ dependencies = [
  "serde",
  "ureq",
  "url",
-]
-
-[[package]]
-name = "colette-server"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "axum",
- "axum-embed",
- "axum-valid",
- "chrono",
- "colette-backup",
- "colette-config",
- "colette-core",
- "colette-password",
- "colette-plugins",
- "colette-postgres",
- "colette-scraper",
- "colette-tasks",
- "cron",
- "rust-embed",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror",
- "tokio",
- "tower-http",
- "tower-sessions",
- "tower-sessions-sqlx-store",
- "url",
- "utoipa",
- "utoipa-scalar",
- "uuid",
- "validator",
 ]
 
 [[package]]
