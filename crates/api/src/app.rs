@@ -2,7 +2,6 @@ use axum::{
     http::{header, HeaderValue, Method},
     routing, Router,
 };
-use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_config::Config;
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
@@ -21,10 +20,6 @@ use crate::{
     profiles::Api as Profiles,
     tags::Api as Tags,
 };
-
-#[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
-struct Asset;
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -76,11 +71,6 @@ impl<'a> App<'a> {
                     .merge(Tags::router())
                     .with_state(self.state),
             )
-            .fallback_service(ServeEmbed::<Asset>::with_parameters(
-                Some(String::from("index.html")),
-                FallbackBehavior::Ok,
-                None,
-            ))
             .layer(
                 SessionManagerLayer::new(self.store)
                     .with_secure(false)

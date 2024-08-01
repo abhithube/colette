@@ -318,12 +318,10 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "axum",
- "axum-embed",
  "axum-valid",
  "chrono",
  "colette-config",
  "colette-core",
- "rust-embed",
  "serde",
  "thiserror",
  "tower-http",
@@ -421,6 +419,7 @@ name = "colette-server"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "axum-embed",
  "chrono",
  "colette-api",
  "colette-backup",
@@ -432,6 +431,7 @@ dependencies = [
  "colette-scraper",
  "colette-tasks",
  "cron",
+ "rust-embed",
  "sqlx",
  "tokio",
  "tower-sessions",

@@ -1,5 +1,6 @@
 use std::{error::Error, str::FromStr, sync::Arc};
 
+use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Local;
 use colette_api::{App, Context};
 use colette_backup::OpmlManager;
@@ -19,6 +20,10 @@ use tower_sessions::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
 
 const CRON_CLEANUP: &str = "0 0 0 * * *";
+
+#[derive(Clone, rust_embed::Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/../../packages/web/dist"]
+struct Asset;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -122,7 +127,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tags_service: TagsService::new(repository).into(),
     };
 
-    let app = App::new(state, &config, store).build_router();
+    let app = App::new(state, &config, store)
+        .build_router()
+        .fallback_service(ServeEmbed::<Asset>::with_parameters(
+            Some(String::from("index.html")),
+            FallbackBehavior::Ok,
+            None,
+        ));
 
     let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
     axum::serve(listener, app).await?;
