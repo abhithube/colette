@@ -13,6 +13,7 @@ axum = { version = "0.7.5", default-features = false, features = [
 ], optional = true }
 console_error_panic_hook = { version = "0.1.7", default-features = false }
 http.workspace = true
+leptix_primitives = { version = "0.2.1", default-features = false }
 leptos = { version = "0.6.13", default-features = false, features = [
     "nightly",
 ] }
@@ -22,6 +23,9 @@ leptos_meta = { version = "0.6.13", default-features = false, features = [
 ] }
 leptos_router = { version = "0.6.13", default-features = false, features = [
     "nightly",
+] }
+tailwind_fuse = { version = "0.3.1", default-features = false, features = [
+    "variant",
 ] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["fs", "sync"], optional = true }
@@ -44,6 +48,7 @@ ssr = [
     "leptos_meta/ssr",
     "leptos_router/ssr",
     "dep:tracing",
+    "leptix_primitives/ssr",
 ]
 
 [package.metadata.leptos]
@@ -58,7 +63,12 @@ site-root = "target/site"
 site-pkg-dir = "pkg"
 
 # [Optional] The source CSS file. If it ends with .sass or .scss then it will be compiled by dart-sass into CSS. The CSS is optimized by Lightning CSS before being written to <site-root>/<site-pkg>/app.css
-style-file = "style/main.scss"
+style-file = "style/output.css"
+
+# The tailwind input file.
+#
+# Optional, Activates the tailwind build
+tailwind-input-file = "input.css"
 
 # Assets source dir. All files found here will be copied and synchronized to site-root.
 # The assets-dir cannot have a sub directory with the same name/path as site-pkg-dir.
