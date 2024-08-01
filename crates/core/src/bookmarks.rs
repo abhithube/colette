@@ -36,7 +36,6 @@ pub struct UpdateBookmark {
 #[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
-    pub with_tags: bool,
 }
 
 #[derive(Clone, Debug)]
@@ -115,7 +114,6 @@ impl BookmarksService {
                 profile_id: session.profile_id,
                 limit: (PAGINATION_LIMIT + 1) as i64,
                 published_at: params.published_at,
-                with_tags: params.with_tags,
             })
             .await?;
 
@@ -182,7 +180,6 @@ pub struct BookmarksFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
-    pub with_tags: bool,
 }
 
 #[derive(Clone, Debug)]

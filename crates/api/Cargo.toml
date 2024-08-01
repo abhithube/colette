@@ -25,7 +25,6 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 serde.workspace = true
-serde_json = { version = "1.0.121", default-features = false }
 sqlx = { version = "0.8.0", default-features = false, features = ["migrate"] }
 thiserror.workspace = true
 tokio.workspace = true

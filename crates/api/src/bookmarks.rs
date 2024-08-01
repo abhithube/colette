@@ -111,19 +111,12 @@ pub async fn list_bookmarks(
 pub struct ListBookmarksQuery {
     #[param(nullable = false)]
     pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false, default = with_tags_default)]
-    pub with_tags: Option<bool>,
-}
-
-fn with_tags_default() -> bool {
-    false
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
             published_at: value.published_at,
-            with_tags: value.with_tags.unwrap_or(with_tags_default()),
         }
     }
 }
