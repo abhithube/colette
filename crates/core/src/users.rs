@@ -15,8 +15,9 @@ pub trait UsersRepository: Send + Sync {
 }
 
 #[derive(Clone, Debug)]
-pub struct UsersFindOneParams {
-    pub email: String,
+pub enum UsersFindOneParams {
+    Id(Uuid),
+    Email(String),
 }
 
 #[derive(Clone, Debug)]

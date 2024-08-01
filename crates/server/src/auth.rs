@@ -19,7 +19,10 @@ use crate::{
 };
 
 #[derive(utoipa::OpenApi)]
-#[openapi(paths(register, login), components(schemas(Register, Login, User)))]
+#[openapi(
+    paths(register, login, get_active_user),
+    components(schemas(Register, Login, User))
+)]
 pub struct Api;
 
 impl Api {
@@ -28,7 +31,8 @@ impl Api {
             "/auth",
             Router::new()
                 .route("/register", routing::post(register))
-                .route("/login", routing::post(login)),
+                .route("/login", routing::post(login))
+                .route("/@me", routing::get(get_active_user)),
         )
     }
 }
@@ -195,6 +199,39 @@ impl IntoResponse for LoginResponse {
             Self::Ok(data) => Json(data).into_response(),
             Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/@me",
+    responses(GetActiveResponse),
+    operation_id = "getActiveUser",
+    description = "Get the active user",
+    tag = "Auth"
+)]
+#[axum::debug_handler]
+pub async fn get_active_user(
+    State(service): State<Arc<AuthService>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    match service.get_active(session.into()).await.map(User::from) {
+        Ok(data) => Ok(GetActiveResponse::Ok(data)),
+        Err(_) => Err(Error::Unknown),
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetActiveResponse {
+    #[response(status = 200, description = "Active user")]
+    Ok(User),
+}
+
+impl IntoResponse for GetActiveResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
         }
     }
 }
