@@ -8,6 +8,7 @@ members = [
   "crates/plugins",
   "crates/postgres",
   "crates/scraper",
+  "crates/server",
   "crates/tasks",
 ]
 resolver = "2"
@@ -16,6 +17,7 @@ resolver = "2"
 anyhow = { version = "1.0.86", default-features = false, features = ["std"] }
 async-trait = { version = "0.1.81", default-features = false }
 chrono = { version = "0.4.38", default-features = false }
+colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"

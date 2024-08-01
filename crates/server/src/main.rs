@@ -1,7 +1,7 @@
 use std::{error::Error, str::FromStr, sync::Arc};
 
-use app::App;
 use chrono::Local;
+use colette_api::{App, Context};
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
@@ -18,15 +18,6 @@ use tokio::time;
 use tower_sessions::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
 
-mod app;
-mod auth;
-mod bookmarks;
-mod common;
-mod entries;
-mod feeds;
-mod profiles;
-mod tags;
-
 const CRON_CLEANUP: &str = "0 0 0 * * *";
 
 #[tokio::main]
@@ -38,13 +29,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     sqlx::migrate!("../../migrations").run(&pool).await?;
 
     let repository = Arc::new(PostgresRepository::new(pool.clone()));
-
-    // let bookmarks_repository = Arc::new(BookmarksSqlRepository::new(db.clone()));
-    // let entries_repository = Arc::new(EntriesSqlRepository::new(db.clone()));
-    // let feeds_repository = Arc::new(FeedsSqlRepository::new(db.clone()));
-    // let profiles_repository = Arc::new(ProfilesSqlRepository::new(db.clone()));
-    // let tags_repository = Arc::new(TagsSqlRepository::new(db.clone()));
-    // let users_repository = Arc::new(UsersSqlRepository::new(db.clone()));
 
     let store = PostgresStore::new(pool.clone());
     store.migrate().await?;
@@ -119,7 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         });
     }
 
-    let state = common::Context {
+    let state = Context {
         auth_service: AuthService::new(
             repository.clone(),
             repository.clone(),

@@ -320,15 +320,8 @@ dependencies = [
  "axum-embed",
  "axum-valid",
  "chrono",
- "colette-backup",
  "colette-config",
  "colette-core",
- "colette-password",
- "colette-plugins",
- "colette-postgres",
- "colette-scraper",
- "colette-tasks",
- "cron",
  "rust-embed",
  "serde",
  "serde_json",
@@ -424,6 +417,27 @@ dependencies = [
  "serde",
  "ureq",
  "url",
+]
+
+[[package]]
+name = "colette-server"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colette-api",
+ "colette-backup",
+ "colette-config",
+ "colette-core",
+ "colette-password",
+ "colette-plugins",
+ "colette-postgres",
+ "colette-scraper",
+ "colette-tasks",
+ "cron",
+ "sqlx",
+ "tokio",
+ "tower-sessions",
+ "tower-sessions-sqlx-store",
 ]
 
 [[package]]

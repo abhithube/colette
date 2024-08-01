@@ -1,0 +1,25 @@
+[package]
+name = "colette-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono.workspace = true
+colette-api.workspace = true
+colette-backup.workspace = true
+colette-config.workspace = true
+colette-core.workspace = true
+colette-password.workspace = true
+colette-plugins.workspace = true
+colette-postgres.workspace = true
+colette-scraper.workspace = true
+colette-tasks.workspace = true
+cron = { version = "0.12.1", default-features = false }
+sqlx = { version = "0.8.0", default-features = false, features = ["migrate"] }
+tokio.workspace = true
+tower-sessions = { version = "0.12.2", default-features = false, features = [
+  "axum-core",
+] }
+tower-sessions-sqlx-store = { version = "0.13.0", default-features = false, features = [
+  "postgres",
+] }
