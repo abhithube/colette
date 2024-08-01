@@ -137,6 +137,7 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -157,6 +158,7 @@ dependencies = [
  "sync_wrapper 0.1.2",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -315,7 +317,6 @@ dependencies = [
 name = "colette-api"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "axum",
  "axum-embed",
  "axum-valid",
@@ -324,13 +325,10 @@ dependencies = [
  "colette-core",
  "rust-embed",
  "serde",
- "sqlx",
  "thiserror",
- "tokio",
  "tower-http",
  "tower-sessions",
  "tower-sessions-sqlx-store",
- "url",
  "utoipa",
  "utoipa-scalar",
  "uuid",
@@ -422,6 +420,7 @@ dependencies = [
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
+ "axum",
  "chrono",
  "colette-api",
  "colette-backup",
@@ -2662,6 +2661,7 @@ dependencies = [
  "tokio",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

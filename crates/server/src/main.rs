@@ -14,7 +14,7 @@ use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
 use sqlx::PgPool;
-use tokio::time;
+use tokio::{net::TcpListener, time};
 use tower_sessions::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
 
@@ -122,7 +122,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tags_service: TagsService::new(repository).into(),
     };
 
-    App::new(state, config, store).start().await?;
+    let app = App::new(state, &config, store).build_router();
+
+    let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
+    axum::serve(listener, app).await?;
 
     deletion_task.await??;
 

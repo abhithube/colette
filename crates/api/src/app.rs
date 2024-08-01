@@ -4,7 +4,6 @@ use axum::{
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_config::Config;
-use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store::PostgresStore;
@@ -44,14 +43,14 @@ struct Asset;
 )]
 struct ApiDoc;
 
-pub struct App {
+pub struct App<'a> {
     state: Context,
-    config: Config,
+    config: &'a Config,
     store: PostgresStore,
 }
 
-impl App {
-    pub fn new(state: Context, config: Config, store: PostgresStore) -> Self {
+impl<'a> App<'a> {
+    pub fn new(state: Context, config: &'a Config, store: PostgresStore) -> Self {
         Self {
             state,
             config,
@@ -59,7 +58,7 @@ impl App {
         }
     }
 
-    pub async fn start(self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn build_router(self) -> Router {
         let mut app = Router::new()
             .nest(
                 "/api/v1",
@@ -105,10 +104,6 @@ impl App {
             )
         }
 
-        let listener =
-            TcpListener::bind(format!("{}:{}", self.config.host, self.config.port)).await?;
-        axum::serve(listener, app).await?;
-
-        Ok(())
+        app
     }
 }

@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+axum = { version = "0.7.5", features = ["tokio"] }
 chrono.workspace = true
 colette-api.workspace = true
 colette-backup.workspace = true
