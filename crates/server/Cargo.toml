@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.7.5", features = ["tokio"] }
 axum-embed = { version = "0.1.0", default-features = false }
-chrono.workspace = true
 colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
@@ -16,7 +15,6 @@ colette-plugins.workspace = true
 colette-postgres.workspace = true
 colette-scraper.workspace = true
 colette-tasks.workspace = true
-cron = { version = "0.12.1", default-features = false }
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }

@@ -1,20 +1,18 @@
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
-use chrono::Local;
 use colette_api::{App, AppState};
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
-    profiles::ProfilesService, tags::TagsService, utils::task::Task,
+    profiles::ProfilesService, tags::TagsService,
 };
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_postgres::PostgresRepository;
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
-use colette_tasks::{CleanupTask, RefreshTask};
-use cron::Schedule;
-use tokio::{net::TcpListener, time};
+use colette_tasks::handle_refresh_task;
+use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
 
@@ -44,66 +42,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
 
     if app_config.refresh_enabled {
-        let feed_scraper = feed_scraper.clone();
-        let repository = repository.clone();
-
-        let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
-
-        tokio::spawn(async move {
-            let refresh_task =
-                RefreshTask::new(feed_scraper.clone(), repository.clone(), repository.clone());
-
-            loop {
-                let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
-                let duration = (upcoming - Local::now()).to_std().unwrap();
-
-                time::sleep(duration).await;
-
-                let start = Local::now();
-                println!("Started refresh task at: {}", start);
-
-                match refresh_task.run().await {
-                    Ok(_) => {
-                        let elasped = (Local::now().time() - start.time()).num_milliseconds();
-                        println!("Finished refresh task in {} ms", elasped);
-                    }
-                    Err(e) => {
-                        println!("Failed refresh task: {}", e);
-                    }
-                }
-            }
-        });
+        handle_refresh_task(
+            &app_config.cron_refresh,
+            feed_scraper.clone(),
+            repository.clone(),
+            repository.clone(),
+        )
     }
 
-    {
-        let repository = repository.clone();
-
-        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
-
-        tokio::spawn(async move {
-            let cleanup_task = CleanupTask::new(repository.clone());
-
-            loop {
-                let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
-                let duration = (upcoming - Local::now()).to_std().unwrap();
-
-                time::sleep(duration).await;
-
-                let start = Local::now();
-                println!("Started cleanup task at: {}", start);
-
-                match cleanup_task.run().await {
-                    Ok(_) => {
-                        let elasped = (Local::now().time() - start.time()).num_milliseconds();
-                        println!("Finished cleanup task in {} ms", elasped);
-                    }
-                    Err(e) => {
-                        println!("Failed cleanup task: {}", e);
-                    }
-                }
-            }
-        });
-    }
+    colette_tasks::handle_cleanup_task(CRON_CLEANUP, repository.clone());
 
     let app_state = AppState {
         auth_service: AuthService::new(

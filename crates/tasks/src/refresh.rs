@@ -1,6 +1,6 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
-use chrono::Utc;
+use chrono::{Local, Utc};
 use colette_core::{
     feeds::{FeedsCreateData, FeedsRepository, ProcessedFeed},
     profiles::ProfilesRepository,
@@ -9,6 +9,7 @@ use colette_core::{
         task::{self, Task},
     },
 };
+use cron::Schedule;
 use futures::StreamExt;
 use tokio::sync::Semaphore;
 
@@ -76,4 +77,37 @@ impl Task for RefreshTask {
 
         Ok(())
     }
+}
+
+pub fn handle_refresh_task(
+    cron: &str,
+    scraper: Arc<dyn Scraper<ProcessedFeed>>,
+    feeds_repo: Arc<dyn FeedsRepository>,
+    profiles_repo: Arc<dyn ProfilesRepository>,
+) {
+    let schedule = Schedule::from_str(cron).unwrap();
+
+    tokio::spawn(async move {
+        let refresh_task = RefreshTask::new(scraper, feeds_repo, profiles_repo);
+
+        loop {
+            let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
+            let duration = (upcoming - Local::now()).to_std().unwrap();
+
+            tokio::time::sleep(duration).await;
+
+            let start = Local::now();
+            println!("Started refresh task at: {}", start);
+
+            match refresh_task.run().await {
+                Ok(_) => {
+                    let elasped = (Local::now().time() - start.time()).num_milliseconds();
+                    println!("Finished refresh task in {} ms", elasped);
+                }
+                Err(e) => {
+                    println!("Failed refresh task: {}", e);
+                }
+            }
+        }
+    });
 }
