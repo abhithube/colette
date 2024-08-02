@@ -546,7 +546,6 @@ dependencies = [
  "colette-tasks",
  "cron",
  "rust-embed",
- "sqlx",
  "tokio",
  "tower-sessions",
  "tower-sessions-sqlx-store",

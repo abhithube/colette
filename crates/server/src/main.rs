@@ -14,7 +14,6 @@ use colette_postgres::PostgresRepository;
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_tasks::{CleanupTask, RefreshTask};
 use cron::Schedule;
-use sqlx::PgPool;
 use tokio::{net::TcpListener, time};
 use tower_sessions::ExpiredDeletion;
 use tower_sessions_sqlx_store::PostgresStore;
@@ -29,9 +28,7 @@ struct Asset;
 async fn main() -> Result<(), Box<dyn Error>> {
     let config = colette_config::load_config()?;
 
-    let pool = PgPool::connect(&config.database_url).await?;
-
-    sqlx::migrate!("../../migrations").run(&pool).await?;
+    let pool = colette_postgres::initialize(&config.database_url).await?;
 
     let repository = Arc::new(PostgresRepository::new(pool.clone()));
 

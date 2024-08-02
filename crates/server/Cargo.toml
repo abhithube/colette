@@ -20,7 +20,6 @@ cron = { version = "0.12.1", default-features = false }
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
-sqlx = { version = "0.8.0", default-features = false, features = ["migrate"] }
 tokio.workspace = true
 tower-sessions = { version = "0.12.2", default-features = false, features = [
   "axum-core",

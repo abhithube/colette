@@ -17,3 +17,11 @@ impl PostgresRepository {
         Self { pool }
     }
 }
+
+pub async fn initialize(url: &str) -> Result<PgPool, sqlx::Error> {
+    let pool = PgPool::connect(url).await?;
+
+    sqlx::migrate!("../../migrations").run(&pool).await?;
+
+    Ok(pool)
+}
