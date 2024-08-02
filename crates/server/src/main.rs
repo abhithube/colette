@@ -1,7 +1,10 @@
 use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
-use colette_api::{App, AppState};
+use colette_api::{
+    auth::AuthState, bookmarks::BookmarksState, entries::EntriesState, feeds::FeedsState,
+    profiles::ProfilesState, tags::TagsState, Api, ApiState,
+};
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
@@ -52,27 +55,40 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, repository.clone());
 
-    let app_state = AppState {
-        auth_service: AuthService::new(
-            repository.clone(),
-            repository.clone(),
-            Arc::new(Argon2Hasher {}),
-        )
-        .into(),
-        bookmark_service: BookmarksService::new(
-            repository.clone(),
-            Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
-        )
-        .into(),
-        entries_service: EntriesService::new(repository.clone()).into(),
-        feeds_service: FeedsService::new(repository.clone(), feed_scraper, Arc::new(OpmlManager))
+    let api_state = ApiState {
+        auth_state: AuthState {
+            service: AuthService::new(
+                repository.clone(),
+                repository.clone(),
+                Arc::new(Argon2Hasher {}),
+            )
             .into(),
-        profiles_service: ProfilesService::new(repository.clone()).into(),
-        tags_service: TagsService::new(repository).into(),
+        },
+        bookmarks_state: BookmarksState {
+            service: BookmarksService::new(
+                repository.clone(),
+                Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+            )
+            .into(),
+        },
+        entries_state: EntriesState {
+            service: EntriesService::new(repository.clone()).into(),
+        },
+        feeds_state: FeedsState {
+            service: FeedsService::new(repository.clone(), feed_scraper, Arc::new(OpmlManager))
+                .into(),
+        },
+        profiles_state: ProfilesState {
+            service: ProfilesService::new(repository.clone()).into(),
+        },
+        tags_state: TagsState {
+            service: TagsService::new(repository).into(),
+        },
     };
 
-    let api = App::new(app_state, &app_config, session_store)
+    let api = Api::new(&api_state, &app_config, session_store)
         .build()
+        .with_state(api_state)
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,

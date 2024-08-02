@@ -12,9 +12,14 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{AppState, BaseError, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
+    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
     tags::Tag,
 };
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct FeedsState {
+    pub service: Arc<FeedsService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -33,7 +38,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<FeedsState> {
         Router::new().nest(
             "/feeds",
             Router::new()

@@ -10,7 +10,12 @@ use axum_valid::Valid;
 use colette_core::tags::{self, CreateTag, TagsService, UpdateTag};
 use uuid::Uuid;
 
-use crate::common::{AppState, BaseError, Error, Id, Paginated, Session, TagList};
+use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct TagsState {
+    pub service: Arc<TagsService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -20,7 +25,7 @@ use crate::common::{AppState, BaseError, Error, Id, Paginated, Session, TagList}
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<TagsState> {
         Router::new().nest(
             "/tags",
             Router::new()

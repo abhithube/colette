@@ -11,7 +11,12 @@ use chrono::{DateTime, Utc};
 use colette_core::entries::{self, EntriesService, ListEntriesParams, UpdateEntry};
 use uuid::Uuid;
 
-use crate::common::{BaseError, AppState, EntryList, Error, Id, Paginated, Session};
+use crate::common::{BaseError, EntryList, Error, Id, Paginated, Session};
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct EntriesState {
+    pub service: Arc<EntriesService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -21,7 +26,7 @@ use crate::common::{BaseError, AppState, EntryList, Error, Id, Paginated, Sessio
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<EntriesState> {
         Router::new().nest(
             "/entries",
             Router::new()

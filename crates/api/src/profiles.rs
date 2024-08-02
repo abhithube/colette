@@ -11,7 +11,12 @@ use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile
 use url::Url;
 use uuid::Uuid;
 
-use crate::common::{AppState, BaseError, Error, Id, Paginated, ProfileList, Session};
+use crate::common::{BaseError, Error, Id, Paginated, ProfileList, Session};
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct ProfilesState {
+    pub service: Arc<ProfilesService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -28,7 +33,7 @@ use crate::common::{AppState, BaseError, Error, Id, Paginated, ProfileList, Sess
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<ProfilesState> {
         Router::new().nest(
             "/profiles",
             Router::new()

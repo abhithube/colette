@@ -14,9 +14,14 @@ use colette_core::{
 use uuid::Uuid;
 
 use crate::{
-    common::{AppState, BaseError, Error, Session, SESSION_KEY},
+    common::{BaseError, Error, Session, SESSION_KEY},
     profiles::Profile,
 };
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct AuthState {
+    pub service: Arc<AuthService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -26,7 +31,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<AuthState> {
         Router::new().nest(
             "/auth",
             Router::new()

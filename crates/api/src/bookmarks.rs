@@ -15,9 +15,14 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{AppState, BaseError, BookmarkList, Error, Id, Paginated, Session},
+    common::{BaseError, BookmarkList, Error, Id, Paginated, Session},
     tags::Tag,
 };
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct BookmarksState {
+    pub service: Arc<BookmarksService>,
+}
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -33,7 +38,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<AppState> {
+    pub fn router() -> Router<BookmarksState> {
         Router::new().nest(
             "/bookmarks",
             Router::new()

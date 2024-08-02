@@ -1,19 +1,14 @@
-use std::sync::Arc;
-
 use axum::{
     async_trait,
     extract::{
         rejection::{JsonRejection, QueryRejection},
-        FromRef, FromRequestParts,
+        FromRequestParts,
     },
     http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
-use colette_core::{
-    auth, auth::AuthService, bookmarks::BookmarksService, common, entries::EntriesService,
-    feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
-};
+use colette_core::{auth, common};
 use serde::{Deserialize, Serialize};
 use tower_sessions::session;
 use uuid::Uuid;
@@ -25,16 +20,6 @@ use crate::{
     profiles::Profile,
     tags::Tag,
 };
-
-#[derive(Clone, FromRef)]
-pub struct AppState {
-    pub auth_service: Arc<AuthService>,
-    pub bookmark_service: Arc<BookmarksService>,
-    pub entries_service: Arc<EntriesService>,
-    pub feeds_service: Arc<FeedsService>,
-    pub profiles_service: Arc<ProfilesService>,
-    pub tags_service: Arc<TagsService>,
-}
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
