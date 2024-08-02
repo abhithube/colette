@@ -10,6 +10,23 @@ args = ["run", "-p", "colette-server"]
 command = "cargo"
 args = ["run", "--release", "-p", "colette-server"]
 
+[tasks.watch-tw]
+cwd = "./crates/ui"
+command = "npx"
+args = [
+  "tailwindcss",
+  "-i",
+  "./input.css",
+  "-o",
+  "./style/output.css",
+  "--watch",
+]
+
+[tasks.watch-ui]
+install_crate = "cargo-leptos"
+command = "cargo"
+args = ["leptos", "watch"]
+
 [tasks.build]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
@@ -20,7 +37,7 @@ command = "npx"
 args = ["tailwindcss", "-i", "./input.css", "-o", "./style/output.css"]
 
 [tasks.build-ui]
-dependencies = ["build-tailwind"]
+dependencies = ["build-tw"]
 install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "build", "--release"]
