@@ -4,6 +4,7 @@ use colette_core::{
 };
 use http::Response;
 use scraper::{Html, Selector};
+use url::Url;
 
 use crate::utils::select;
 
@@ -23,7 +24,7 @@ impl<'a> DefaultFeedDetector<'a> {
 }
 
 impl Detector for DefaultFeedDetector<'_> {
-    fn detect(&self, _url: &str, resp: Response<String>) -> Result<Vec<String>, ExtractError> {
+    fn detect(&self, _url: &Url, resp: Response<String>) -> Result<Vec<Url>, ExtractError> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 
@@ -35,7 +36,9 @@ impl Detector for DefaultFeedDetector<'_> {
                     .next()
                     .and_then(|e| select(e, &opt.node))
             })
-            .collect::<Vec<_>>();
+            .map(|e| Url::parse(&e))
+            .collect::<Result<_, _>>()
+            .map_err(|e| ExtractError(e.into()))?;
 
         Ok(urls)
     }

@@ -40,9 +40,8 @@ impl<'a> DefaultBookmarkScraper<'a> {
 }
 
 impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
-    fn scrape(&self, url: &mut String) -> Result<ProcessedBookmark, Error> {
-        let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
-        let host = parsed.host_str().ok_or(Error::Parse)?;
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+        let host = url.host_str().ok_or(Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let extractor = self.registry.extractors.get(host);

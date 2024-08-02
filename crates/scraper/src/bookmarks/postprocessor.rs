@@ -14,7 +14,7 @@ impl Postprocessor for DefaultBookmarkPostprocessor {
 
     fn postprocess(
         &self,
-        _url: &str,
+        _url: &Url,
         extracted: ExtractedBookmark,
     ) -> Result<ProcessedBookmark, PostprocessError> {
         let Some(title) = extracted.title else {

@@ -29,7 +29,7 @@ pub struct Feed {
 
 #[derive(Clone, Debug)]
 pub struct CreateFeed {
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Clone, Debug)]
@@ -39,7 +39,7 @@ pub struct UpdateFeed {
 
 #[derive(Clone, Debug)]
 pub struct DetectFeeds {
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Clone, Debug)]
@@ -134,11 +134,7 @@ pub trait FeedsRepository: Send + Sync {
 }
 
 pub trait Detector: Send + Sync {
-    fn detect(
-        &self,
-        url: &str,
-        resp: Response<String>,
-    ) -> Result<Vec<String>, scraper::ExtractError>;
+    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, scraper::ExtractError>;
 }
 
 pub enum DetectorPlugin<'a> {
@@ -147,7 +143,7 @@ pub enum DetectorPlugin<'a> {
 }
 
 pub trait FeedScraper: Scraper<ProcessedFeed> {
-    fn detect(&self, url: &mut String) -> Result<Vec<String>, scraper::Error>;
+    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, scraper::Error>;
 }
 
 pub struct FeedPluginRegistry<'a> {
@@ -205,7 +201,7 @@ impl FeedsService {
 
         self.repo
             .create_feed(FeedsCreateData {
-                url: data.url,
+                url: data.url.into(),
                 feed: scraped,
                 profile_id: session.profile_id,
             })
@@ -246,7 +242,7 @@ impl FeedsService {
         for mut url in urls.into_iter() {
             let feed = self.scraper.scrape(&mut url)?;
             feeds.push(DetectedFeed {
-                url,
+                url: url.into(),
                 title: feed.title,
             })
         }
@@ -259,13 +255,8 @@ impl FeedsService {
 
     pub async fn import(&self, data: ImportFeeds, session: Session) -> Result<(), Error> {
         for feed in self.opml.import(&data.raw)? {
-            self.create(
-                CreateFeed {
-                    url: feed.xml_url.to_string(),
-                },
-                session.clone(),
-            )
-            .await?;
+            self.create(CreateFeed { url: feed.xml_url }, session.clone())
+                .await?;
         }
 
         Ok(())

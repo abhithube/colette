@@ -5,6 +5,7 @@ use colette_core::{
 };
 use http::Response;
 use scraper::{Html, Selector};
+use url::Url;
 
 use super::{atom::AtomFeed, rss::RSSFeed};
 use crate::utils::TextSelector;
@@ -14,7 +15,7 @@ pub struct DefaultFeedExtractor {}
 impl Extractor for DefaultFeedExtractor {
     type T = ExtractedFeed;
 
-    fn extract(&self, _url: &str, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
         let (parts, body) = resp.into_parts();
 
         let content_type = parts
@@ -51,7 +52,7 @@ pub struct HtmlExtractor<'a> {
 impl Extractor for HtmlExtractor<'_> {
     type T = ExtractedFeed;
 
-    fn extract(&self, _url: &str, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 

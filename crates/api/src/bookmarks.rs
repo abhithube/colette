@@ -11,10 +11,11 @@ use chrono::{DateTime, Utc};
 use colette_core::bookmarks::{
     self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark,
 };
+use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, AppState, Error, Id, Paginated, Session},
+    common::{AppState, BaseError, BookmarkList, Error, Id, Paginated, Session},
     tags::Tag,
 };
 
@@ -213,8 +214,7 @@ pub async fn create_bookmark(
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
-    #[validate(url(message = "not a valid URL"))]
-    pub url: String,
+    pub url: Url,
 }
 
 impl From<BookmarkCreate> for CreateBookmark {

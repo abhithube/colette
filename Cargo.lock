@@ -439,6 +439,7 @@ dependencies = [
  "thiserror",
  "tower-http",
  "tower-sessions",
+ "url",
  "utoipa",
  "utoipa-scalar",
  "uuid",
@@ -557,6 +558,7 @@ dependencies = [
  "cron",
  "futures",
  "tokio",
+ "url",
 ]
 
 [[package]]

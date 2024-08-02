@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use http::{HeaderMap, Request, Response};
+use url::Url;
 
 #[derive(Clone, Debug)]
 pub enum Node<'a> {
@@ -21,7 +22,7 @@ impl<'a> ExtractorQuery<'a> {
 }
 
 pub trait Downloader: Send + Sync {
-    fn download(&self, url: &mut String) -> Result<Response<String>, DownloadError>;
+    fn download(&self, url: &mut Url) -> Result<Response<String>, DownloadError>;
 }
 
 pub type DownloaderFn<T> = fn(&str) -> Result<Request<T>, DownloadError>;
@@ -35,7 +36,7 @@ pub enum DownloaderPlugin<T = ()> {
 pub trait Extractor: Send + Sync {
     type T;
 
-    fn extract(&self, url: &str, resp: Response<String>) -> Result<Self::T, ExtractError>;
+    fn extract(&self, url: &Url, resp: Response<String>) -> Result<Self::T, ExtractError>;
 }
 
 pub enum ExtractorPlugin<T, U> {
@@ -47,7 +48,7 @@ pub trait Postprocessor: Send + Sync {
     type T;
     type U;
 
-    fn postprocess(&self, url: &str, extracted: Self::T) -> Result<Self::U, PostprocessError>;
+    fn postprocess(&self, url: &Url, extracted: Self::T) -> Result<Self::U, PostprocessError>;
 }
 
 pub enum PostprocessorPlugin<T, U, V> {
@@ -56,7 +57,7 @@ pub enum PostprocessorPlugin<T, U, V> {
 }
 
 pub trait Scraper<T>: Send + Sync {
-    fn scrape(&self, url: &mut String) -> Result<T, Error>;
+    fn scrape(&self, url: &mut Url) -> Result<T, Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

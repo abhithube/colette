@@ -8,10 +8,11 @@ use axum::{
 };
 use axum_valid::Valid;
 use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
+use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, AppState, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
+    common::{AppState, BaseError, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
     tags::Tag,
 };
 
@@ -194,8 +195,7 @@ pub async fn create_feed(
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
     #[schema(format = "uri")]
-    #[validate(url(message = "not a valid URL"))]
-    pub url: String,
+    pub url: Url,
 }
 
 impl From<FeedCreate> for CreateFeed {
@@ -371,8 +371,7 @@ pub async fn detect_feeds(
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetect {
     #[schema(format = "uri")]
-    #[validate(url(message = "not a valid URL"))]
-    pub url: String,
+    pub url: Url,
 }
 
 impl From<FeedDetect> for feeds::DetectFeeds {

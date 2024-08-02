@@ -25,7 +25,7 @@ pub struct Bookmark {
 
 #[derive(Clone, Debug)]
 pub struct CreateBookmark {
-    pub url: String,
+    pub url: Url,
 }
 
 #[derive(Clone, Debug)]
@@ -141,7 +141,7 @@ impl BookmarksService {
 
         self.repo
             .create_bookmark(BookmarksCreateData {
-                url: data.url,
+                url: data.url.into(),
                 bookmark: scraped,
                 profile_id: session.profile_id,
             })

@@ -16,7 +16,7 @@ impl Postprocessor for DefaultFeedPostprocessor {
 
     fn postprocess(
         &self,
-        _url: &str,
+        _url: &Url,
         extracted: ExtractedFeed,
     ) -> Result<ProcessedFeed, PostprocessError> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {

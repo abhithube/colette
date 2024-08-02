@@ -44,9 +44,8 @@ impl<'a> DefaultFeedScraper<'a> {
 }
 
 impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
-    fn scrape(&self, url: &mut String) -> Result<ProcessedFeed, Error> {
-        let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
-        let host = parsed.host_str().ok_or(Error::Parse)?;
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
+        let host = url.host_str().ok_or(Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let extractor = self.registry.extractors.get(host);
@@ -74,9 +73,8 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 }
 
 impl FeedScraper for DefaultFeedScraper<'_> {
-    fn detect(&self, url: &mut String) -> Result<Vec<String>, Error> {
-        let parsed = Url::parse(url).map_err(|_| Error::Parse)?;
-        let host = parsed.host_str().ok_or(Error::Parse)?;
+    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, Error> {
+        let host = url.host_str().ok_or(Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let detector = self.registry.detectors.get(host);

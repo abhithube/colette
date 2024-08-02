@@ -4,6 +4,7 @@ use colette_core::{
 };
 use http::Response;
 use scraper::Html;
+use url::Url;
 
 use crate::{
     base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
@@ -32,7 +33,7 @@ impl Extractor for DefaultBookmarkExtractor<'_> {
 
     fn extract(
         &self,
-        _url: &str,
+        _url: &Url,
         resp: Response<String>,
     ) -> Result<ExtractedBookmark, ExtractError> {
         let raw = resp.into_body();

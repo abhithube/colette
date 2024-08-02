@@ -12,6 +12,7 @@ use colette_core::{
 use cron::Schedule;
 use futures::StreamExt;
 use tokio::sync::Semaphore;
+use url::Url;
 
 pub struct RefreshTask {
     scraper: Arc<dyn Scraper<ProcessedFeed>>,
@@ -32,10 +33,12 @@ impl RefreshTask {
         }
     }
 
-    async fn refresh(&self, feed_id: i32, mut url: String) {
+    async fn refresh(&self, feed_id: i32, url: String) {
+        let mut parsed = Url::parse(&url).unwrap();
+
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
-        let feed = self.scraper.scrape(&mut url).unwrap();
+        let feed = self.scraper.scrape(&mut parsed).unwrap();
 
         let mut profiles_stream = self.profiles_repo.stream_profiles(feed_id);
 

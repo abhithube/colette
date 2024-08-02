@@ -8,9 +8,10 @@ use axum::{
 };
 use axum_valid::Valid;
 use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile};
+use url::Url;
 use uuid::Uuid;
 
-use crate::common::{BaseError, AppState, Error, Id, Paginated, ProfileList, Session};
+use crate::common::{AppState, BaseError, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -211,15 +212,14 @@ pub struct ProfileCreate {
     pub title: String,
 
     #[schema(nullable = false)]
-    #[validate(url(message = "not a valid URL"))]
-    pub image_url: Option<String>,
+    pub image_url: Option<Url>,
 }
 
 impl From<ProfileCreate> for CreateProfile {
     fn from(value: ProfileCreate) -> Self {
         Self {
             title: value.title,
-            image_url: value.image_url,
+            image_url: value.image_url.map(String::from),
         }
     }
 }
@@ -283,15 +283,14 @@ pub struct ProfileUpdate {
     pub title: Option<String>,
 
     #[schema(nullable = false)]
-    #[validate(url(message = "not a valid URL"))]
-    pub image_url: Option<String>,
+    pub image_url: Option<Url>,
 }
 
 impl From<ProfileUpdate> for UpdateProfile {
     fn from(value: ProfileUpdate) -> Self {
         Self {
             title: value.title,
-            image_url: value.image_url,
+            image_url: value.image_url.map(String::from),
         }
     }
 }
