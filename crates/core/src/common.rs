@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: usize = 24;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Paginated<T> {
     pub has_more: bool,
     pub data: Vec<T>,

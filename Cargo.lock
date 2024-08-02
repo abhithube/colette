@@ -473,6 +473,7 @@ dependencies = [
  "chrono",
  "futures",
  "http 1.1.0",
+ "serde",
  "thiserror",
  "url",
  "uuid",

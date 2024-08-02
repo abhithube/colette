@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{Paginated, Session};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Profile {
     pub id: Uuid,
     pub title: String,
@@ -13,25 +13,16 @@ pub struct Profile {
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct CreateProfile {
     pub title: String,
     pub image_url: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateProfile {
     pub title: Option<String>,
     pub image_url: Option<String>,
-}
-
-impl From<UpdateProfile> for ProfilesUpdateData {
-    fn from(value: UpdateProfile) -> Self {
-        Self {
-            title: value.title,
-            image_url: value.image_url,
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -167,6 +158,15 @@ pub struct ProfilesCreateData {
 pub struct ProfilesUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
+}
+
+impl From<UpdateProfile> for ProfilesUpdateData {
+    fn from(value: UpdateProfile) -> Self {
+        Self {
+            title: value.title,
+            image_url: value.image_url,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

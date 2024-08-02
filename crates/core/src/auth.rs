@@ -8,13 +8,13 @@ use crate::{
     Profile, User,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct Register {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct Login {
     pub email: String,
     pub password: String,

@@ -4,18 +4,18 @@ use uuid::Uuid;
 
 use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct CreateTag {
     pub title: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateTag {
     pub title: Option<String>,
 }

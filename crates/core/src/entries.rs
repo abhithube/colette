@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Entry {
     pub id: Uuid,
     pub link: String,
@@ -18,7 +18,7 @@ pub struct Entry {
     pub feed_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateEntry {
     pub has_read: Option<bool>,
 }

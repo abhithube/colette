@@ -12,7 +12,7 @@ use crate::{
     Tag,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize)]
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
@@ -23,12 +23,12 @@ pub struct Bookmark {
     pub tags: Vec<Tag>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct CreateBookmark {
     pub url: Url,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateBookmark {
     pub tags: Option<Vec<Uuid>>,
 }
