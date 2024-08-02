@@ -25,12 +25,12 @@ install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "build", "--release"]
 
-[tasks.reset]
+[tasks.db-reset]
 install_crate = "sqlx-cli"
 command = "sqlx"
 args = ["db", "reset"]
 
-[tasks.prepare]
+[tasks.db-prepare]
 install_crate = "sqlx-cli"
 cwd = "./crates/postgres"
 command = "cargo"
