@@ -15,10 +15,12 @@ command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
 
 [tasks.reset]
+install_crate = "sqlx-cli"
 command = "sqlx"
 args = ["db", "reset"]
 
 [tasks.prepare]
+install_crate = "sqlx-cli"
 cwd = "./crates/postgres"
 command = "cargo"
 args = ["sqlx", "prepare"]
