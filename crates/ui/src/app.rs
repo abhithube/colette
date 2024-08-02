@@ -2,7 +2,10 @@ use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
 
-use crate::error_template::{AppError, ErrorTemplate};
+use crate::{
+    error_template::{AppError, ErrorTemplate},
+    routes::login::Login,
+};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -20,14 +23,10 @@ pub fn App() -> impl IntoView {
         }>
             <main>
                 <Routes>
-                    <Route path="" view=Home />
+                    <Route path="/" view=|| view! { <div>"Home"</div> } />
+                    <Route path="/login" view=Login />
                 </Routes>
             </main>
         </Router>
     }
-}
-
-#[component]
-fn Home() -> impl IntoView {
-    view! { <h1>"Hello world!"</h1> }
 }
