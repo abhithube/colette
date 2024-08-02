@@ -7,10 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-axum = { version = "0.7.5", default-features = false, features = [
-    "http1",
-    "tokio",
-], optional = true }
+axum = { workspace = true, optional = true }
 console_error_panic_hook = { version = "0.1.7", default-features = false }
 http.workspace = true
 leptix_primitives = { version = "0.2.1", default-features = false }
@@ -28,27 +25,26 @@ tailwind_fuse = { version = "0.3.1", default-features = false, features = [
     "variant",
 ] }
 thiserror.workspace = true
-tokio = { workspace = true, features = ["fs", "sync"], optional = true }
+tokio = { workspace = true, optional = true }
 tower = { version = "0.4.13", default-features = false, optional = true }
-tower-http = { version = "0.5.2", default-features = false, features = [
-    "fs",
-], optional = true }
+tower-http = { workspace = true, optional = true }
 tracing = { version = "0.1.40", default-features = false, optional = true }
 wasm-bindgen = { version = "=0.2.92", default-features = false }
 
 [features]
+default = ["ssr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
+    "dep:leptos_axum",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",
-    "dep:leptos_axum",
+    "dep:tracing",
     "leptos/ssr",
     "leptos_meta/ssr",
-    "leptos_router/ssr",
-    "dep:tracing",
     "leptix_primitives/ssr",
+    "leptos_router/ssr",
 ]
 
 [package.metadata.leptos]

@@ -17,7 +17,13 @@ resolver = "2"
 [workspace.dependencies]
 anyhow = { version = "1.0.86", default-features = false, features = ["std"] }
 async-trait = { version = "0.1.81", default-features = false }
-chrono = { version = "0.4.38", default-features = false }
+axum = { version = "0.7.5", default-features = false, features = [
+  "http1",
+  "macros",
+  "multipart",
+  "tokio",
+] }
+chrono = { version = "0.4.38", default-features = false, features = ["serde"] }
 colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
@@ -40,8 +46,12 @@ tokio = { version = "1.39.2", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
+tower-http = { version = "0.5.2", default-features = false, features = [
+  "cors",
+  "fs",
+] }
 url = { version = "2.5.2", default-features = false }
-uuid = { version = "1.10.0", default-features = false }
+uuid = { version = "1.10.0", default-features = false, features = ["serde"] }
 
 [profile.release]
 codegen-units = 1
