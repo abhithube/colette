@@ -26,9 +26,9 @@ tailwind_fuse = { version = "0.3.1", default-features = false, features = [
 ] }
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
-tower = { version = "0.4.13", default-features = false, optional = true }
+tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
-tracing = { version = "0.1.40", default-features = false, optional = true }
+tracing = { workspace = true, optional = true }
 wasm-bindgen = { version = "=0.2.92", default-features = false }
 
 [features]

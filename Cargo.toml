@@ -39,17 +39,19 @@ lazy-regex = { version = "3.2.0", default-features = false, features = [
   "std",
   "perf",
 ] }
-quick-xml = { version = "0.36.1", features = ["serialize"] }
+quick-xml = { version = "0.36.1", features = ["overlapped-lists", "serialize"] }
 serde = { version = "1.0.204", default-features = false }
 thiserror = { version = "1.0.63", default-features = false }
 tokio = { version = "1.39.2", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
+tower = { version = "0.4.13", default-features = false }
 tower-http = { version = "0.5.2", default-features = false, features = [
   "cors",
   "fs",
 ] }
+tracing = { version = "0.1.40", default-features = false }
 url = { version = "2.5.2", default-features = false, features = ["serde"] }
 uuid = { version = "1.10.0", default-features = false, features = ["serde"] }
 
