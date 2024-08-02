@@ -1,38 +1,108 @@
 #[cfg(feature = "ssr")]
 #[tokio::main]
-async fn main() {
-    use axum::Router;
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    use std::sync::Arc;
+
+    use colette_api::{
+        auth::AuthState, bookmarks::BookmarksState, entries::EntriesState, feeds::FeedsState,
+        profiles::ProfilesState, tags::TagsState, Api, ApiState,
+    };
+    use colette_backup::OpmlManager;
+    use colette_core::{
+        auth::AuthService, bookmarks::BookmarksService, entries::EntriesService,
+        feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
+    };
+    use colette_password::Argon2Hasher;
+    use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+    use colette_postgres::PostgresRepository;
+    use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
+    use colette_tasks::handle_refresh_task;
+    use colette_ui::{app::*, fileserv::file_and_error_handler};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use colette_ui::app::*;
-    use colette_ui::fileserv::file_and_error_handler;
+    use tower_sessions::ExpiredDeletion;
+    use tower_sessions_sqlx_store::PostgresStore;
 
-    // Setting get_configuration(None) means we'll be using cargo-leptos's env values
-    // For deployment these variables are:
-    // <https://github.com/leptos-rs/start-axum#executing-a-server-on-a-remote-machine-without-the-toolchain>
-    // Alternately a file can be specified such as Some("Cargo.toml")
-    // The file would need to be included with the executable when moved to deployment
-    let conf = get_configuration(None).await.unwrap();
+    const CRON_CLEANUP: &str = "0 0 0 * * *";
+
+    let app_config = colette_config::load_config()?;
+
+    let pool = colette_postgres::initialize(&app_config.database_url).await?;
+
+    let repository = Arc::new(PostgresRepository::new(pool.clone()));
+
+    let session_store = PostgresStore::new(pool.clone());
+    session_store.migrate().await?;
+
+    let deletion_task = tokio::task::spawn(
+        session_store
+            .clone()
+            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+    );
+
+    let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
+
+    if app_config.refresh_enabled {
+        handle_refresh_task(
+            &app_config.cron_refresh,
+            feed_scraper.clone(),
+            repository.clone(),
+            repository.clone(),
+        )
+    }
+
+    colette_tasks::handle_cleanup_task(CRON_CLEANUP, repository.clone());
+
+    let api_state = ApiState {
+        auth_state: AuthState {
+            service: AuthService::new(
+                repository.clone(),
+                repository.clone(),
+                Arc::new(Argon2Hasher {}),
+            )
+            .into(),
+        },
+        bookmarks_state: BookmarksState {
+            service: BookmarksService::new(
+                repository.clone(),
+                Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+            )
+            .into(),
+        },
+        entries_state: EntriesState {
+            service: EntriesService::new(repository.clone()).into(),
+        },
+        feeds_state: FeedsState {
+            service: FeedsService::new(repository.clone(), feed_scraper, Arc::new(OpmlManager))
+                .into(),
+        },
+        profiles_state: ProfilesState {
+            service: ProfilesService::new(repository.clone()).into(),
+        },
+        tags_state: TagsState {
+            service: TagsService::new(repository).into(),
+        },
+    };
+
+    let conf = get_configuration(None).await?;
     let leptos_options = conf.leptos_options;
-    let addr = leptos_options.site_addr;
+
     let routes = generate_route_list(App);
 
-    // build our application with a route
-    let app = Router::new()
+    let app = Api::new(&api_state, &app_config, session_store)
+        .build()
+        .with_state(api_state)
         .leptos_routes(&leptos_options, routes, App)
         .fallback(file_and_error_handler)
-        .with_state(leptos_options);
+        .with_state(leptos_options.clone());
 
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    logging::log!("listening on http://{}", &addr);
-    axum::serve(listener, app.into_make_service())
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(&leptos_options.site_addr).await?;
+    axum::serve(listener, app.into_make_service()).await?;
+
+    deletion_task.await??;
+
+    Ok(())
 }
 
 #[cfg(not(feature = "ssr"))]
-pub fn main() {
-    // no client-side main function
-    // unless we want this to work with e.g., Trunk for a purely client-side app
-    // see lib.rs for hydration function instead
-}
+pub fn main() {}

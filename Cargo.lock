@@ -567,6 +567,15 @@ name = "colette-ui"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "colette-api",
+ "colette-backup",
+ "colette-config",
+ "colette-core",
+ "colette-password",
+ "colette-plugins",
+ "colette-postgres",
+ "colette-scraper",
+ "colette-tasks",
  "console_error_panic_hook",
  "http 1.1.0",
  "leptix_primitives",
@@ -579,6 +588,8 @@ dependencies = [
  "tokio",
  "tower",
  "tower-http",
+ "tower-sessions",
+ "tower-sessions-sqlx-store",
  "tracing",
  "wasm-bindgen",
 ]

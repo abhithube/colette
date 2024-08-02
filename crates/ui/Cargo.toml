@@ -8,6 +8,15 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
+colette-api = { workspace = true, optional = true }
+colette-backup = { workspace = true, optional = true }
+colette-config = { workspace = true, optional = true }
+colette-core = { workspace = true }
+colette-password = { workspace = true, optional = true }
+colette-plugins = { workspace = true, optional = true }
+colette-postgres = { workspace = true, optional = true }
+colette-scraper = { workspace = true, optional = true }
+colette-tasks = { workspace = true, optional = true }
 console_error_panic_hook = { version = "0.1.7", default-features = false }
 http.workspace = true
 leptix_primitives = { version = "0.2.1", default-features = false }
@@ -28,6 +37,12 @@ thiserror.workspace = true
 tokio = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
+tower-sessions = { version = "0.12.2", default-features = false, features = [
+    "axum-core",
+], optional = true }
+tower-sessions-sqlx-store = { version = "0.13.0", default-features = false, features = [
+    "postgres",
+], optional = true }
 tracing = { workspace = true, optional = true }
 wasm-bindgen = { version = "=0.2.92", default-features = false }
 
@@ -36,10 +51,20 @@ default = ["ssr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
     "dep:axum",
+    "dep:colette-api",
+    "dep:colette-backup",
+    "dep:colette-config",
+    "dep:colette-password",
+    "dep:colette-plugins",
+    "dep:colette-postgres",
+    "dep:colette-scraper",
+    "dep:colette-tasks",
     "dep:leptos_axum",
     "dep:tokio",
     "dep:tower",
     "dep:tower-http",
+    "dep:tower-sessions",
+    "dep:tower-sessions-sqlx-store",
     "dep:tracing",
     "leptos/ssr",
     "leptos_meta/ssr",
