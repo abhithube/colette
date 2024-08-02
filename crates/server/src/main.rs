@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Local;
-use colette_api::{App, Context};
+use colette_api::{Api, Context};
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tags_service: TagsService::new(repository).into(),
     };
 
-    let app = App::new(state, &config, store)
+    let api = Api::new(state, &config, store)
         .build_router()
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
@@ -136,7 +136,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ));
 
     let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, api).await?;
 
     deletion_task.await??;
 
