@@ -2,6 +2,8 @@ use leptix_primitives::{radio_group, Direction, Orientation};
 use leptos::*;
 use tailwind_fuse::*;
 
+use crate::components::ui::icons::Circle;
+
 #[component]
 pub fn RadioGroup(
     #[prop(into, optional)] name: MaybeProp<String>,
@@ -74,20 +76,7 @@ pub fn RadioGroupItem(
             attr:class=class
         >
             <radio_group::RadioGroupIndicator attr:class="flex items-center justify-center">
-                <svg
-                    class="h-2.5 w-2.5 fill-current text-current"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <circle cx="12" cy="12" r="10" />
-                </svg>
+                <Circle attr:class="h-2.5 w-2.5 fill-current text-current" />
             </radio_group::RadioGroupIndicator>
         // {children.with_value(|children| children())}
         </radio_group::RadioGroupItem>
