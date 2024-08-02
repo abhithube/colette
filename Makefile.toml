@@ -14,6 +14,17 @@ args = ["run", "--release", "-p", "colette-server"]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
 
+[tasks.build-tw]
+cwd = "./crates/ui"
+command = "npx"
+args = ["tailwindcss", "-i", "./input.css", "-o", "./style/output.css"]
+
+[tasks.build-ui]
+dependencies = ["build-tailwind"]
+install_crate = "cargo-leptos"
+command = "cargo"
+args = ["leptos", "build", "--release"]
+
 [tasks.reset]
 install_crate = "sqlx-cli"
 command = "sqlx"
