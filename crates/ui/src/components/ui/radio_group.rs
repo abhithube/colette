@@ -5,7 +5,7 @@ use tailwind_fuse::*;
 use crate::components::ui::icons::Circle;
 
 #[component]
-pub fn RadioGroup(
+pub fn Root(
     #[prop(into, optional)] name: MaybeProp<String>,
     #[prop(into, optional)] value: MaybeProp<String>,
     #[prop(into, optional)] default_value: MaybeProp<String>,
@@ -46,7 +46,7 @@ pub fn RadioGroup(
 }
 
 #[component]
-pub fn RadioGroupItem(
+pub fn Item(
     #[prop(into)] value: MaybeSignal<String>,
     #[prop(into, optional)] disabled: MaybeSignal<bool>,
     #[prop(default=(|_|{}).into(), into)] on_focus: Callback<ev::FocusEvent>,

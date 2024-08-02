@@ -2,7 +2,7 @@ use leptos::*;
 use tailwind_fuse::*;
 
 #[component]
-pub fn Card(
+pub fn Root(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,
@@ -22,7 +22,7 @@ pub fn Card(
 }
 
 #[component]
-pub fn CardHeader(
+pub fn Header(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,
@@ -37,7 +37,7 @@ pub fn CardHeader(
 }
 
 #[component]
-pub fn CardTitle(
+pub fn Title(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,
@@ -57,7 +57,7 @@ pub fn CardTitle(
 }
 
 #[component]
-pub fn CardDescription(
+pub fn Description(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,
@@ -72,7 +72,7 @@ pub fn CardDescription(
 }
 
 #[component]
-pub fn CardContent(
+pub fn Content(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,
@@ -87,7 +87,7 @@ pub fn CardContent(
 }
 
 #[component]
-pub fn CardFooter(
+pub fn Footer(
     #[prop(into, optional)] class: MaybeSignal<String>,
     #[prop(attrs)] attributes: Vec<(&'static str, Attribute)>,
     children: Children,

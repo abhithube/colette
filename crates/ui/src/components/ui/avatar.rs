@@ -3,7 +3,7 @@ use leptos::*;
 use tailwind_fuse::*;
 
 #[component]
-pub fn Avatar(
+pub fn Root(
     #[prop(optional)] node_ref: NodeRef<html::AnyElement>,
     #[prop(optional, into)] as_child: MaybeProp<bool>,
 
@@ -26,7 +26,7 @@ pub fn Avatar(
 }
 
 #[component]
-pub fn AvatarImage(
+pub fn Image(
     #[prop(default=(|_|{}).into(), into)] on_loading_status_change: Callback<
         avatar::ImageLoadingStatus,
     >,
@@ -55,7 +55,7 @@ pub fn AvatarImage(
 }
 
 #[component]
-pub fn AvatarFallback(
+pub fn Fallback(
     #[prop(optional, into)] delay_ms: MaybeSignal<f64>,
     #[prop(optional)] node_ref: NodeRef<html::AnyElement>,
     #[prop(optional, into)] as_child: MaybeProp<bool>,
