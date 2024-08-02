@@ -2,7 +2,7 @@ use std::{error::Error, str::FromStr, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use chrono::Local;
-use colette_api::{Api, Context};
+use colette_api::{App, AppState};
 use colette_backup::OpmlManager;
 use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
@@ -26,28 +26,28 @@ struct Asset;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let config = colette_config::load_config()?;
+    let app_config = colette_config::load_config()?;
 
-    let pool = colette_postgres::initialize(&config.database_url).await?;
+    let pool = colette_postgres::initialize(&app_config.database_url).await?;
 
     let repository = Arc::new(PostgresRepository::new(pool.clone()));
 
-    let store = PostgresStore::new(pool.clone());
-    store.migrate().await?;
+    let session_store = PostgresStore::new(pool.clone());
+    session_store.migrate().await?;
 
     let deletion_task = tokio::task::spawn(
-        store
+        session_store
             .clone()
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
 
     let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
 
-    if config.refresh_enabled {
+    if app_config.refresh_enabled {
         let feed_scraper = feed_scraper.clone();
         let repository = repository.clone();
 
-        let schedule = Schedule::from_str(&config.cron_refresh).unwrap();
+        let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
 
         tokio::spawn(async move {
             let refresh_task =
@@ -105,7 +105,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         });
     }
 
-    let state = Context {
+    let app_state = AppState {
         auth_service: AuthService::new(
             repository.clone(),
             repository.clone(),
@@ -124,15 +124,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tags_service: TagsService::new(repository).into(),
     };
 
-    let api = Api::new(state, &config, store)
-        .build_router()
+    let api = App::new(app_state, &app_config, session_store)
+        .build()
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
             None,
         ));
 
-    let listener = TcpListener::bind(format!("{}:{}", config.host, config.port)).await?;
+    let listener = TcpListener::bind(format!("{}:{}", app_config.host, app_config.port)).await?;
     axum::serve(listener, api).await?;
 
     deletion_task.await??;

@@ -14,7 +14,7 @@ use colette_core::bookmarks::{
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Context, Error, Id, Paginated, Session},
+    common::{BaseError, BookmarkList, AppState, Error, Id, Paginated, Session},
     tags::Tag,
 };
 
@@ -32,7 +32,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<Context> {
+    pub fn router() -> Router<AppState> {
         Router::new().nest(
             "/bookmarks",
             Router::new()

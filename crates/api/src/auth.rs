@@ -14,7 +14,7 @@ use colette_core::{
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Context, Error, Session, SESSION_KEY},
+    common::{AppState, BaseError, Error, Session, SESSION_KEY},
     profiles::Profile,
 };
 
@@ -26,7 +26,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<Context> {
+    pub fn router() -> Router<AppState> {
         Router::new().nest(
             "/auth",
             Router::new()

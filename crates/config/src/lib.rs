@@ -1,7 +1,7 @@
 use serde::{Deserialize, Deserializer};
 
 #[derive(Clone, Debug, serde::Deserialize)]
-pub struct Config {
+pub struct AppConfig {
     #[serde(default = "default_host")]
     pub host: String,
     #[serde(default = "default_port")]
@@ -45,6 +45,6 @@ fn default_cron_refresh() -> String {
     String::from("0 */15 * * * *")
 }
 
-pub fn load_config() -> Result<Config, envy::Error> {
-    envy::from_env::<Config>()
+pub fn load_config() -> Result<AppConfig, envy::Error> {
+    envy::from_env::<AppConfig>()
 }

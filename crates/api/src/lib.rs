@@ -2,8 +2,8 @@ use axum::{
     http::{header, HeaderValue, Method},
     routing, Router,
 };
-use colette_config::Config;
-pub use common::{Context, Session};
+use colette_config::AppConfig;
+pub use common::{AppState, Session};
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
@@ -44,22 +44,22 @@ pub mod tags;
 )]
 struct ApiDoc;
 
-pub struct Api<'a, Store: SessionStore + Clone> {
-    state: Context,
-    config: &'a Config,
-    store: Store,
+pub struct App<'a, Store: SessionStore + Clone> {
+    app_state: AppState,
+    app_config: &'a AppConfig,
+    session_store: Store,
 }
 
-impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
-    pub fn new(state: Context, config: &'a Config, store: Store) -> Self {
+impl<'a, Store: SessionStore + Clone> App<'a, Store> {
+    pub fn new(app_state: AppState, app_config: &'a AppConfig, session_store: Store) -> Self {
         Self {
-            state,
-            config,
-            store,
+            app_state,
+            app_config,
+            session_store,
         }
     }
 
-    pub fn build_router(self) -> Router {
+    pub fn build(self) -> Router {
         let mut app = Router::new()
             .nest(
                 "/api/v1",
@@ -75,17 +75,17 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .merge(Feeds::router())
                     .merge(Profiles::router())
                     .merge(Tags::router())
-                    .with_state(self.state),
+                    .with_state(self.app_state),
             )
             .layer(
-                SessionManagerLayer::new(self.store)
+                SessionManagerLayer::new(self.session_store)
                     .with_secure(false)
                     .with_expiry(Expiry::OnInactivity(Duration::days(1))),
             );
 
-        if !self.config.origin_urls.is_empty() {
+        if !self.app_config.origin_urls.is_empty() {
             let origins = self
-                .config
+                .app_config
                 .origin_urls
                 .iter()
                 .filter_map(|e| e.parse::<HeaderValue>().ok())

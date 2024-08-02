@@ -11,7 +11,7 @@ use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFe
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Context, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
+    common::{BaseError, AppState, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
     tags::Tag,
 };
 
@@ -32,7 +32,7 @@ use crate::{
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<Context> {
+    pub fn router() -> Router<AppState> {
         Router::new().nest(
             "/feeds",
             Router::new()

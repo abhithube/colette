@@ -10,7 +10,7 @@ use axum_valid::Valid;
 use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Session};
+use crate::common::{BaseError, AppState, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
@@ -27,7 +27,7 @@ use crate::common::{BaseError, Context, Error, Id, Paginated, ProfileList, Sessi
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<Context> {
+    pub fn router() -> Router<AppState> {
         Router::new().nest(
             "/profiles",
             Router::new()

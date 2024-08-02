@@ -27,7 +27,7 @@ use crate::{
 };
 
 #[derive(Clone, FromRef)]
-pub struct Context {
+pub struct AppState {
     pub auth_service: Arc<AuthService>,
     pub bookmark_service: Arc<BookmarksService>,
     pub entries_service: Arc<EntriesService>,
