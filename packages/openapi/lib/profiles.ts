@@ -7,7 +7,12 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { Profile, ProfileCreate, ProfileList } from './types'
+import type {
+	Profile,
+	ProfileCreate,
+	ProfileList,
+	ProfileUpdate,
+} from './types'
 
 export class ProfilesAPI {
 	constructor(private client: Client) {}
@@ -18,6 +23,29 @@ export class ProfilesAPI {
 		const res = await this.client.GET('/profiles', options)
 		if (res.error) {
 			throw new APIError('unknown error')
+		}
+
+		return res.data
+	}
+
+	async get(
+		id: string,
+		options?: Omit<FetchOptions<operations['getProfile']>, 'params'>,
+	): Promise<Profile> {
+		const res = await this.client.GET('/profiles/{id}', {
+			params: {
+				path: {
+					id,
+				},
+			},
+			...options,
+		})
+		if (res.error) {
+			if (res.response.status === 404) {
+				throw new NotFoundError(res.error.message)
+			}
+
+			throw new APIError(res.error.message)
 		}
 
 		return res.data
@@ -47,7 +75,39 @@ export class ProfilesAPI {
 				throw new UnprocessableContentError(res.error.message)
 			}
 
-			throw new APIError('unknown error')
+			throw new APIError(res.error.message)
+		}
+
+		return res.data
+	}
+
+	async update(
+		id: string,
+		body: ProfileUpdate,
+		options?: Omit<
+			FetchOptions<operations['updateProfile']>,
+			'params' | 'body'
+		>,
+	): Promise<Profile> {
+		const res = await this.client.PATCH('/profiles/{id}', {
+			params: {
+				path: {
+					id,
+				},
+			},
+			body,
+			...options,
+		})
+		if (res.error) {
+			if (res.response.status === 404) {
+				throw new NotFoundError(res.error.message)
+			}
+
+			if (res.response.status === 422) {
+				throw new UnprocessableContentError(res.error.message)
+			}
+
+			throw new APIError(res.error.message)
 		}
 
 		return res.data
