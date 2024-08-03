@@ -25,6 +25,7 @@ utoipa = { version = "5.0.0-alpha.1", default-features = false, features = [
   "preserve_order",
   "preserve_path_order",
   "uuid",
+  "url",
 ] }
 utoipa-scalar = { version = "0.2.0-alpha.0", default-features = false, features = [
   "axum",
