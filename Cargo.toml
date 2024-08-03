@@ -4,9 +4,9 @@ members = [
   "crates/backup",
   "crates/config",
   "crates/core",
+  "crates/db",
   "crates/password",
   "crates/plugins",
-  "crates/postgres",
   "crates/scraper",
   "crates/server",
   "crates/tasks",
@@ -28,9 +28,9 @@ colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
+colette-db.path = "crates/db"
 colette-password.path = "crates/password"
 colette-plugins.path = "crates/plugins"
-colette-postgres.path = "crates/postgres"
 colette-scraper.path = "crates/scraper"
 colette-tasks.path = "crates/tasks"
 futures = { version = "0.3.30", default-features = false }

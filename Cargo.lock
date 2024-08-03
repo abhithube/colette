@@ -480,6 +480,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-db"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-core",
+ "futures",
+ "sqlx",
+ "time",
+ "uuid",
+]
+
+[[package]]
 name = "colette-password"
 version = "0.1.0"
 dependencies = [
@@ -498,19 +511,6 @@ dependencies = [
  "http 1.1.0",
  "lazy-regex",
  "url",
-]
-
-[[package]]
-name = "colette-postgres"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "colette-core",
- "futures",
- "sqlx",
- "time",
- "uuid",
 ]
 
 [[package]]
@@ -538,9 +538,9 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-db",
  "colette-password",
  "colette-plugins",
- "colette-postgres",
  "colette-scraper",
  "colette-tasks",
  "rust-embed",
@@ -571,9 +571,9 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-db",
  "colette-password",
  "colette-plugins",
- "colette-postgres",
  "colette-scraper",
  "colette-tasks",
  "console_error_panic_hook",
