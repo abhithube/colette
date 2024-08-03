@@ -56,6 +56,7 @@ pub struct Profile {
     pub title: String,
     #[schema(format = "uri", required)]
     pub image_url: Option<String>,
+    pub is_default: bool,
     pub user_id: Uuid,
 }
 
@@ -65,6 +66,7 @@ impl From<colette_core::Profile> for Profile {
             id: value.id,
             title: value.title,
             image_url: value.image_url,
+            is_default: value.is_default,
             user_id: value.user_id,
         }
     }

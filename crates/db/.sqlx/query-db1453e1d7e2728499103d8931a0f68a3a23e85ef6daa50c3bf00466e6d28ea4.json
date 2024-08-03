@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE profiles AS p\nSET\n  title = coalesce($3, p.title),\n  image_url = coalesce($4, p.image_url)\nWHERE\n  id = $1\n  AND user_id = $2\nRETURNING\n  id,\n  title,\n  image_url,\n  user_id;",
+  "query": "SELECT\n  id,\n  title,\n  image_url,\n  is_default,\n  user_id\nFROM\n  profiles\nWHERE\n  user_id = $1;",
   "describe": {
     "columns": [
       {
@@ -20,24 +20,27 @@
       },
       {
         "ordinal": 3,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
         "name": "user_id",
         "type_info": "Uuid"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Uuid",
-        "Text",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "b29cbebe994f9a5eb8c9f598f2a07c82f8f27618a43e4bbe7cc76f6ddefc1d9e"
+  "hash": "db1453e1d7e2728499103d8931a0f68a3a23e85ef6daa50c3bf00466e6d28ea4"
 }

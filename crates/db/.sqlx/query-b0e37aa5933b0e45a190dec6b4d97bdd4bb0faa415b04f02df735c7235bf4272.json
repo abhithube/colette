@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  title,\n  image_url,\n  user_id\nFROM\n  profiles\nWHERE\n  user_id = $1;",
+  "query": "SELECT\n  id,\n  title,\n  image_url,\n  is_default,\n  user_id\nFROM\n  profiles\nWHERE\n  user_id = $1\n  AND is_default;",
   "describe": {
     "columns": [
       {
@@ -20,6 +20,11 @@
       },
       {
         "ordinal": 3,
+        "name": "is_default",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
         "name": "user_id",
         "type_info": "Uuid"
       }
@@ -33,8 +38,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "a8847a4d301f2bd9e44a1972b3065487da4d38527848ace59eb362c393c9028c"
+  "hash": "b0e37aa5933b0e45a190dec6b4d97bdd4bb0faa415b04f02df735c7235bf4272"
 }

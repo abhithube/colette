@@ -10,6 +10,7 @@ pub struct Profile {
     pub id: Uuid,
     pub title: String,
     pub image_url: Option<String>,
+    pub is_default: bool,
     pub user_id: Uuid,
 }
 
