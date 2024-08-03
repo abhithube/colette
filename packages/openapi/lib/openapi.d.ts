@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/@me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get the active user */
+        get: operations["getActiveUser"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/bookmarks": {
         parameters: {
             query?: never;
@@ -99,7 +116,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Get a feed entry by ID */
+        get: operations["getEntry"];
         put?: never;
         post?: never;
         delete?: never;
@@ -239,7 +257,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** @description Get a profile by ID */
+        get: operations["getProfile"];
         put?: never;
         post?: never;
         /** @description Delete a profile by ID */
@@ -398,6 +417,7 @@ export interface components {
         };
         ProfileCreate: {
             title: string;
+            /** Format: uri */
             imageUrl?: string;
         };
         ProfileList: {
@@ -406,6 +426,7 @@ export interface components {
         };
         ProfileUpdate: {
             title?: string;
+            /** Format: uri */
             imageUrl?: string;
         };
         Register: {
@@ -527,11 +548,30 @@ export interface operations {
             };
         };
     };
+    getActiveUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Active user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
     listBookmarks: {
         parameters: {
             query?: {
                 publishedAt?: string;
-                withTags?: boolean;
             };
             header?: never;
             path?: never;
@@ -716,6 +756,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntryList"];
+                };
+            };
+        };
+    };
+    getEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entry by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Entry"];
+                };
+            };
+            /** @description Entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
@@ -1083,6 +1154,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Profile"];
+                };
+            };
+        };
+    };
+    getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Profile by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Profile not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };
