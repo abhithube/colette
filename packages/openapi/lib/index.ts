@@ -4,12 +4,14 @@ import { EntriesAPI } from './entries'
 import { FeedsAPI } from './feeds'
 import type { paths } from './openapi'
 import { ProfilesAPI } from './profiles'
+import { TagsAPI } from './tags'
 
 export class API {
 	auth: AuthAPI
 	entries: EntriesAPI
 	feeds: FeedsAPI
 	profiles: ProfilesAPI
+	tags: TagsAPI
 
 	constructor(options: ClientOptions) {
 		const client = createClient<paths>(options)
@@ -18,6 +20,7 @@ export class API {
 		this.entries = new EntriesAPI(client)
 		this.feeds = new FeedsAPI(client)
 		this.profiles = new ProfilesAPI(client)
+		this.tags = new TagsAPI(client)
 	}
 }
 
