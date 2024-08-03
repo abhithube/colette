@@ -9,7 +9,7 @@ export class EntriesAPI {
 
 	async list(
 		query?: ListEntriesQuery,
-		options?: FetchOptions<operations['listEntries']>,
+		options?: Omit<FetchOptions<operations['listEntries']>, 'params'>,
 	): Promise<EntryList> {
 		const res = await this.client.GET('/entries', {
 			params: {
