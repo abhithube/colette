@@ -56,9 +56,7 @@ export function UnsubscribeAlert({
 		<AlertDialog open={isOpen} onOpenChange={setOpen}>
 			<AlertDialogContent>
 				<AlertDialogHeader>
-					<AlertDialogTitle>
-						Unsubscribe from {feed.customTitle ?? feed.title}?
-					</AlertDialogTitle>
+					<AlertDialogTitle>Unsubscribe from {feed.title}?</AlertDialogTitle>
 					<AlertDialogDescription>
 						Are you sure you want to unsubscribe? This action cannot be undone.
 					</AlertDialogDescription>
