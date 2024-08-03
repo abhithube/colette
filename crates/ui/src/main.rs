@@ -12,9 +12,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         auth::AuthService, bookmarks::BookmarksService, entries::EntriesService,
         feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
     };
+    use colette_db::PostgresRepository;
     use colette_password::Argon2Hasher;
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-    use colette_postgres::PostgresRepository;
     use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
     use colette_tasks::handle_refresh_task;
     use colette_ui::{app::*, fileserv::file_and_error_handler};
@@ -27,7 +27,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_config = colette_config::load_config()?;
 
-    let pool = colette_postgres::initialize(&app_config.database_url).await?;
+    let pool = colette_db::initialize(&app_config.database_url).await?;
 
     let repository = Arc::new(PostgresRepository::new(pool.clone()));
 
