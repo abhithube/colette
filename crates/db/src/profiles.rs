@@ -80,34 +80,20 @@ impl ProfilesRepository for PostgresRepository {
     }
 
     async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let is_default =
-            sqlx::query_file_scalar!("queries/profiles/is_default.sql", params.user_id)
-                .fetch_one(&mut *tx)
+            sqlx::query_file_scalar!("queries/profiles/delete.sql", params.id, params.user_id)
+                .fetch_one(&self.pool)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                    _ => Error::Unknown(e.into()),
+                })?;
 
         if is_default {
             return Err(Error::DeletingDefault);
         }
 
-        let result = sqlx::query_file!("queries/profiles/delete.sql", params.id, params.user_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected() == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        todo!()
+        Ok(())
     }
 
     fn stream_profiles(&self, feed_id: i32) -> BoxStream<Result<StreamProfile, Error>> {
