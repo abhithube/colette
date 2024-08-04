@@ -6,9 +6,15 @@ type Props = {
 	bookmarks: Bookmark[]
 	hasMore: boolean
 	loadMore?: () => void
+	created?: Bookmark
 }
 
-export function BookmarkGrid({ bookmarks, hasMore = false, loadMore }: Props) {
+export function BookmarkGrid({
+	bookmarks,
+	hasMore = false,
+	loadMore,
+	created,
+}: Props) {
 	const { ref } = useInView({
 		threshold: 0,
 		onChange: (inView) => {
@@ -16,9 +22,18 @@ export function BookmarkGrid({ bookmarks, hasMore = false, loadMore }: Props) {
 		},
 	})
 
+	if (created) {
+		bookmarks = bookmarks.filter((v) => v.id !== created.id)
+	}
+
 	return (
 		<>
 			<div className="grid grid-cols-3 gap-4 px-8">
+				{created && (
+					<div className="rounded-lg border-2 border-secondary">
+						<BookmarkCard bookmark={created} />
+					</div>
+				)}
 				{bookmarks.map((bookmark) => (
 					<BookmarkCard key={bookmark.id} bookmark={bookmark} />
 				))}
