@@ -1,11 +1,15 @@
-import type { API, Feed, FeedCreate } from '@colette/openapi'
+import type { API, Feed, FeedCreate, ListFeedsQuery } from '@colette/openapi'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
-export const listFeedsOptions = (profileId: string, api: API) =>
+export const listFeedsOptions = (
+	query: ListFeedsQuery,
+	profileId: string,
+	api: API,
+) =>
 	queryOptions({
-		queryKey: ['profiles', profileId, 'feeds'],
+		queryKey: ['profiles', profileId, 'feeds', query],
 		queryFn: ({ signal }) =>
-			api.feeds.list({
+			api.feeds.list(query, {
 				signal,
 			}),
 	})
