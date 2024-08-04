@@ -7,15 +7,21 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { Feed, FeedCreate, FeedList } from './types'
+import type { Feed, FeedCreate, FeedList, ListFeedsQuery } from './types'
 
 export class FeedsAPI {
 	constructor(private client: Client) {}
 
 	async list(
-		options?: FetchOptions<operations['listFeeds']>,
+		query?: ListFeedsQuery,
+		options?: Omit<FetchOptions<operations['listFeeds']>, 'params'>,
 	): Promise<FeedList> {
-		const res = await this.client.GET('/feeds', options)
+		const res = await this.client.GET('/feeds', {
+			params: {
+				query,
+			},
+			...options,
+		})
 		if (res.error) {
 			throw new APIError('unknown error')
 		}

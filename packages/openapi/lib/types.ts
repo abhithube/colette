@@ -33,3 +33,6 @@ export type ListBookmarksQuery = NonNullable<
 export type ListEntriesQuery = NonNullable<
 	operations['listEntries']['parameters']['query']
 >
+export type ListFeedsQuery = NonNullable<
+	operations['listFeeds']['parameters']['query']
+>

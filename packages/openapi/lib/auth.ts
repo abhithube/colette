@@ -18,7 +18,6 @@ export class AuthAPI {
 			if (res.response.status === 401) {
 				throw new UnauthorizedError(res.error.message)
 			}
-
 			if (res.response.status === 409) {
 				throw new ConflictError(res.error.message)
 			}
@@ -37,7 +36,6 @@ export class AuthAPI {
 			if (res.response.status === 401) {
 				throw new UnauthorizedError(res.error.message)
 			}
-
 			if (res.response.status === 422) {
 				throw new UnprocessableContentError(res.error.message)
 			}

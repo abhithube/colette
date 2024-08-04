@@ -76,7 +76,6 @@ export class TagsAPI {
 			if (res.response.status === 404) {
 				throw new NotFoundError(res.error.message)
 			}
-
 			if (res.response.status === 422) {
 				throw new UnprocessableContentError(res.error.message)
 			}

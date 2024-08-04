@@ -412,6 +412,7 @@ export interface components {
             title: string;
             /** Format: uri */
             imageUrl: string | null;
+            isDefault: boolean;
             /** Format: uuid */
             userId: string;
         };
@@ -572,6 +573,7 @@ export interface operations {
         parameters: {
             query?: {
                 publishedAt?: string;
+                tags?: string[];
             };
             header?: never;
             path?: never;
@@ -837,7 +839,9 @@ export interface operations {
     };
     listFeeds: {
         parameters: {
-            query?: never;
+            query?: {
+                tags?: string[];
+            };
             header?: never;
             path?: never;
             cookie?: never;
