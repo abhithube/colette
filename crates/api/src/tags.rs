@@ -97,6 +97,7 @@ impl From<ListTagsQuery> for ListTagsParams {
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
 pub enum TagType {
     #[default]
     All,
