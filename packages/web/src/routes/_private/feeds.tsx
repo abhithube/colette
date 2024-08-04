@@ -17,7 +17,7 @@ import { SubscribeModal } from './-components/subscribe-modal'
 
 export const Route = createFileRoute('/_private/feeds')({
 	loader: async ({ context }) => {
-		const options = listFeedsOptions(context.profile.id, context.api)
+		const options = listFeedsOptions({}, context.profile.id, context.api)
 
 		await context.queryClient.ensureQueryData(options)
 
