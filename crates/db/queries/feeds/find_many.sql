@@ -4,7 +4,7 @@ SELECT
   f.title,
   f.url,
   coalesce(
-    array_agg(ROW (t.id, t.title)) FILTER (
+    array_agg(DISTINCT ROW (t.id, t.title)) FILTER (
       WHERE
         t.id IS NOT NULL
     ),
