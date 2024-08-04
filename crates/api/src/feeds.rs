@@ -91,6 +91,7 @@ impl From<colette_core::Feed> for Feed {
 #[utoipa::path(
     get,
     path = "",
+    params(ListFeedsQuery),
     responses(ListResponse),
     operation_id = "listFeeds",
     description = "List the active profile feeds",
