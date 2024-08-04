@@ -1279,7 +1279,9 @@ export interface operations {
     };
     listTags: {
         parameters: {
-            query?: never;
+            query?: {
+                tagType?: "all" | "bookmarks" | "feeds";
+            };
             header?: never;
             path?: never;
             cookie?: never;

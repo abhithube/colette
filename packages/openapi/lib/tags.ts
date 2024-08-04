@@ -2,13 +2,21 @@ import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
 import { APIError, NotFoundError, UnprocessableContentError } from './error'
 import type { operations } from './openapi'
-import type { Tag, TagCreate, TagList, TagUpdate } from './types'
+import type { ListTagsQuery, Tag, TagCreate, TagList, TagUpdate } from './types'
 
 export class TagsAPI {
 	constructor(private client: Client) {}
 
-	async list(options?: FetchOptions<operations['listTags']>): Promise<TagList> {
-		const res = await this.client.GET('/tags', options)
+	async list(
+		query: ListTagsQuery,
+		options?: FetchOptions<operations['listTags']>,
+	): Promise<TagList> {
+		const res = await this.client.GET('/tags', {
+			params: {
+				query,
+			},
+			...options,
+		})
 		if (res.error) {
 			throw new APIError('unknown error')
 		}

@@ -36,3 +36,6 @@ export type ListEntriesQuery = NonNullable<
 export type ListFeedsQuery = NonNullable<
 	operations['listFeeds']['parameters']['query']
 >
+export type ListTagsQuery = NonNullable<
+	operations['listTags']['parameters']['query']
+>
