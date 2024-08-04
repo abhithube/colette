@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
+use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::bookmarks::{
@@ -98,7 +99,7 @@ impl From<colette_core::Bookmark> for Bookmark {
 #[axum::debug_handler]
 pub async fn list_bookmarks(
     State(service): State<Arc<BookmarksService>>,
-    Valid(Query(query)): Valid<Query<ListBookmarksQuery>>,
+    Query(query): Query<ListBookmarksQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
@@ -111,7 +112,7 @@ pub async fn list_bookmarks(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {

@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Multipart, Path, Query, State},
+    extract::{Multipart, Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
+use axum_extra::extract::Query;
 use axum_valid::Valid;
 use colette_core::feeds::{
     self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, ListFeedsParams, UpdateFeed,
@@ -98,7 +99,7 @@ impl From<colette_core::Feed> for Feed {
 #[axum::debug_handler]
 pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
-    Valid(Query(query)): Valid<Query<ListFeedsQuery>>,
+    Query(query): Query<ListFeedsQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
@@ -111,7 +112,7 @@ pub async fn list_feeds(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListFeedsQuery {
