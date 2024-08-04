@@ -573,7 +573,8 @@ export interface operations {
         parameters: {
             query?: {
                 publishedAt?: string;
-                tags?: string[];
+                filterByTags?: boolean;
+                "tag[]"?: string[];
             };
             header?: never;
             path?: never;
@@ -840,7 +841,8 @@ export interface operations {
     listFeeds: {
         parameters: {
             query?: {
-                tags?: string[];
+                filterByTags?: boolean;
+                "tag[]"?: string[];
             };
             header?: never;
             path?: never;

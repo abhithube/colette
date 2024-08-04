@@ -118,12 +118,21 @@ pub async fn list_feeds(
 #[into_params(parameter_in = Query)]
 pub struct ListFeedsQuery {
     #[param(nullable = false)]
-    pub tags: Option<Vec<Uuid>>,
+    pub filter_by_tags: Option<bool>,
+    #[param(nullable = false)]
+    #[serde(default, rename = "tag[]")]
+    pub tags: Vec<Uuid>,
 }
 
 impl From<ListFeedsQuery> for ListFeedsParams {
     fn from(value: ListFeedsQuery) -> Self {
-        Self { tags: value.tags }
+        Self {
+            tags: if value.filter_by_tags.unwrap_or(!value.tags.is_empty()) {
+                Some(value.tags)
+            } else {
+                None
+            },
+        }
     }
 }
 
