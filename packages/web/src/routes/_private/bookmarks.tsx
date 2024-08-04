@@ -10,6 +10,7 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarLink } from '../-components/sidebar-link'
+import { AddBookmarkModal } from './-components/add-bookmark-modal'
 
 export const Route = createFileRoute('/_private/bookmarks')({
 	component: Component,
@@ -44,6 +45,7 @@ function Component() {
 										<Plus className="h-4 w-4 shrink-0" />
 									</Button>
 								</DialogTrigger>
+								<AddBookmarkModal close={() => setOpen(false)} />
 							</Dialog>
 						</div>
 					</div>
