@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::tags::{self, CreateTag, TagsService, UpdateTag};
+use colette_core::tags::{self, CreateTag, ListTagsParams, TagsService, UpdateTag};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
@@ -57,6 +57,7 @@ impl From<colette_core::Tag> for Tag {
 #[utoipa::path(
     get,
     path = "",
+    params(ListTagsQuery),
     responses(ListResponse),
     operation_id = "listTags",
     description = "List the active profile tags",
@@ -65,15 +66,51 @@ impl From<colette_core::Tag> for Tag {
 #[axum::debug_handler]
 pub async fn list_tags(
     State(service): State<Arc<TagsService>>,
+    Valid(Query(query)): Valid<Query<ListTagsQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
-        .list(session.into())
+        .list(query.into(), session.into())
         .await
         .map(Paginated::<Tag>::from)
     {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct ListTagsQuery {
+    #[param(inline)]
+    #[serde(default = "TagType::default")]
+    pub tag_type: TagType,
+}
+
+impl From<ListTagsQuery> for ListTagsParams {
+    fn from(value: ListTagsQuery) -> Self {
+        Self {
+            tag_type: value.tag_type.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
+pub enum TagType {
+    #[default]
+    All,
+    Bookmarks,
+    Feeds,
+}
+
+impl From<TagType> for tags::TagType {
+    fn from(value: TagType) -> Self {
+        match value {
+            TagType::All => Self::All,
+            TagType::Bookmarks => Self::Bookmarks,
+            TagType::Feeds => Self::Feeds,
+        }
     }
 }
 

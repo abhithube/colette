@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::common::{FindManyParams, FindOneParams, Paginated, Session};
+use crate::common::{FindOneParams, Paginated, Session};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
@@ -20,9 +20,21 @@ pub struct UpdateTag {
     pub title: Option<String>,
 }
 
+#[derive(Clone, Debug, serde::Deserialize)]
+pub struct ListTagsParams {
+    pub tag_type: TagType,
+}
+
+#[derive(Clone, Debug, serde::Deserialize)]
+pub enum TagType {
+    All,
+    Bookmarks,
+    Feeds,
+}
+
 #[async_trait::async_trait]
 pub trait TagsRepository: Send + Sync {
-    async fn find_many_tags(&self, params: FindManyParams) -> Result<Vec<Tag>, Error>;
+    async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error>;
 
     async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error>;
 
@@ -42,11 +54,16 @@ impl TagsService {
         Self { repo }
     }
 
-    pub async fn list(&self, session: Session) -> Result<Paginated<Tag>, Error> {
+    pub async fn list(
+        &self,
+        params: ListTagsParams,
+        session: Session,
+    ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repo
-            .find_many_tags(FindManyParams {
+            .find_many_tags(TagsFindManyParams {
                 profile_id: session.profile_id,
+                tag_type: params.tag_type,
             })
             .await?;
 
@@ -94,6 +111,12 @@ impl TagsService {
             })
             .await
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct TagsFindManyParams {
+    pub profile_id: Uuid,
+    pub tag_type: TagType,
 }
 
 #[derive(Clone, Debug)]

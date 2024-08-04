@@ -1,6 +1,6 @@
 use colette_core::{
-    common::{FindManyParams, FindOneParams},
-    tags::{Error, TagsCreateData, TagsRepository, TagsUpdateData},
+    common::FindOneParams,
+    tags::{Error, TagType, TagsCreateData, TagsFindManyParams, TagsRepository, TagsUpdateData},
 };
 use uuid::Uuid;
 
@@ -10,13 +10,35 @@ use crate::PostgresRepository;
 impl TagsRepository for PostgresRepository {
     async fn find_many_tags(
         &self,
-        params: FindManyParams,
+        params: TagsFindManyParams,
     ) -> Result<Vec<colette_core::Tag>, Error> {
-        sqlx::query_file_as!(Tag, "queries/tags/find_many.sql", params.profile_id)
-            .fetch_all(&self.pool)
-            .await
-            .map(|e| e.into_iter().map(colette_core::Tag::from).collect())
-            .map_err(|e| Error::Unknown(e.into()))
+        match params.tag_type {
+            TagType::All => {
+                sqlx::query_file_as!(Tag, "queries/tags/find_many.sql", params.profile_id)
+                    .fetch_all(&self.pool)
+                    .await
+            }
+            TagType::Bookmarks => {
+                sqlx::query_file_as!(
+                    Tag,
+                    "queries/tags/find_many_bookmark_tags.sql",
+                    params.profile_id
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+            TagType::Feeds => {
+                sqlx::query_file_as!(
+                    Tag,
+                    "queries/tags/find_many_profile_feed_tags.sql",
+                    params.profile_id
+                )
+                .fetch_all(&self.pool)
+                .await
+            }
+        }
+        .map(|e| e.into_iter().map(colette_core::Tag::from).collect())
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn find_one_tag(&self, params: FindOneParams) -> Result<colette_core::Tag, Error> {
