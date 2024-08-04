@@ -20,7 +20,14 @@ WHERE
   b.profile_id = $1
   AND (
     $3::UUID [] IS NULL
-    OR t.id = ANY ($3)
+    OR b.id IN (
+      SELECT DISTINCT
+        bookmark_id
+      FROM
+        bookmark_tags
+      WHERE
+        tag_id = ANY ($3)
+    )
   )
 GROUP BY
   b.id,
