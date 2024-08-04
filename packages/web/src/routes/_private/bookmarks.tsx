@@ -6,18 +6,40 @@ import {
 	ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { Separator } from '@/components/ui/separator'
+import { listTagsOptions } from '@colette/query'
+import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarLink } from '../-components/sidebar-link'
 import { AddBookmarkModal } from './-components/add-bookmark-modal'
+import { TagItem } from './-components/tag-item'
 
 export const Route = createFileRoute('/_private/bookmarks')({
+	loader: async ({ context }) => {
+		const options = listTagsOptions(
+			{ tagType: 'bookmarks' },
+			context.profile.id,
+			context.api,
+		)
+
+		await context.queryClient.ensureQueryData(options)
+
+		return {
+			options,
+		}
+	},
 	component: Component,
 })
 
 function Component() {
+	const { options } = Route.useLoaderData()
+
+	const { data: tags } = useQuery(options)
+
 	const [isOpen, setOpen] = useState(false)
+
+	if (!tags) return
 
 	return (
 		<div className="flex h-full w-full">
@@ -37,7 +59,7 @@ function Component() {
 					<div className="h-full pt-4">
 						<div className="flex h-8 items-center justify-between px-4">
 							<span className="grow font-semibold text-muted-foreground text-xs">
-								Bookmarks
+								Tags
 							</span>
 							<Dialog open={isOpen} onOpenChange={setOpen}>
 								<DialogTrigger asChild>
@@ -47,6 +69,19 @@ function Component() {
 								</DialogTrigger>
 								<AddBookmarkModal close={() => setOpen(false)} />
 							</Dialog>
+						</div>
+						<div className="mt-1 h-full space-y-1 overflow-y-auto px-4">
+							{tags.data.length > 0 ? (
+								<>
+									{tags.data.map((tag) => (
+										<TagItem key={tag.id} tag={tag} />
+									))}
+								</>
+							) : (
+								<div className="font-light text-sm">
+									You have not created any tags yet. Click + to add one.
+								</div>
+							)}
 						</div>
 					</div>
 				</ResizablePanel>
