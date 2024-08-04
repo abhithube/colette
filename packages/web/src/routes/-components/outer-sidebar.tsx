@@ -44,7 +44,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 			<TooltipProvider>
 				<Tooltip>
 					<TooltipTrigger>
-						<SidebarLink to="/collections" activeOptions={{ exact: false }}>
+						<SidebarLink to="/bookmarks" activeOptions={{ exact: false }}>
 							<Bookmark className="h-5 w-5 shrink-0" />
 						</SidebarLink>
 					</TooltipTrigger>
