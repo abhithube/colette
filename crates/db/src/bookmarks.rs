@@ -24,7 +24,8 @@ impl BookmarksRepository for PostgresRepository {
             Bookmark,
             "queries/bookmarks/find_many.sql",
             params.profile_id,
-            params.limit
+            params.limit,
+            params.tags.as_deref()
         )
         .fetch_all(&self.pool)
         .await

@@ -18,6 +18,10 @@ FROM
   LEFT JOIN tags AS t ON bt.tag_id = t.id
 WHERE
   b.profile_id = $1
+  AND (
+    $3::UUID [] IS NULL
+    OR t.id = ANY ($3)
+  )
 GROUP BY
   b.id,
   b.link,

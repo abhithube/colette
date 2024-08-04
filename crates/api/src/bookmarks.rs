@@ -117,12 +117,15 @@ pub async fn list_bookmarks(
 pub struct ListBookmarksQuery {
     #[param(nullable = false)]
     pub published_at: Option<DateTime<Utc>>,
+    #[param(nullable = false)]
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
             published_at: value.published_at,
+            tags: value.tags,
         }
     }
 }

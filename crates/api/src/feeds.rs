@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Multipart, Path, State},
+    extract::{Multipart, Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::feeds::{self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, UpdateFeed};
+use colette_core::feeds::{
+    self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, ListFeedsParams, UpdateFeed,
+};
 use url::Url;
 use uuid::Uuid;
 
@@ -96,15 +98,30 @@ impl From<colette_core::Feed> for Feed {
 #[axum::debug_handler]
 pub async fn list_feeds(
     State(service): State<Arc<FeedsService>>,
+    Valid(Query(query)): Valid<Query<ListFeedsQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
-        .list(session.into())
+        .list(query.into(), session.into())
         .await
         .map(Paginated::<Feed>::from)
     {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct ListFeedsQuery {
+    #[param(nullable = false)]
+    pub tags: Option<Vec<Uuid>>,
+}
+
+impl From<ListFeedsQuery> for ListFeedsParams {
+    fn from(value: ListFeedsQuery) -> Self {
+        Self { tags: value.tags }
     }
 }
 

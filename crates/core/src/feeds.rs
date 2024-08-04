@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindManyParams, FindOneParams, Paginated, Session},
+    common::{FindOneParams, Paginated, Session},
     utils::{
         backup::{self, BackupManager},
         scraper::{
@@ -34,6 +34,11 @@ pub struct CreateFeed {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateFeed {
+    pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ListFeedsParams {
     pub tags: Option<Vec<Uuid>>,
 }
 
@@ -114,7 +119,7 @@ pub struct StreamFeed {
 
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
-    async fn find_many_feeds(&self, params: FindManyParams) -> Result<Vec<Feed>, Error>;
+    async fn find_many_feeds(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error>;
 
     async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error>;
 
@@ -173,11 +178,16 @@ impl FeedsService {
         }
     }
 
-    pub async fn list(&self, session: Session) -> Result<Paginated<Feed>, Error> {
+    pub async fn list(
+        &self,
+        params: ListFeedsParams,
+        session: Session,
+    ) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repo
-            .find_many_feeds(FindManyParams {
+            .find_many_feeds(FeedsFindManyParams {
                 profile_id: session.profile_id,
+                tags: params.tags,
             })
             .await?;
 
@@ -263,7 +273,7 @@ impl FeedsService {
     }
 
     pub async fn export(&self, session: Session) -> Result<String, Error> {
-        let feeds = self.list(session).await?;
+        let feeds = self.list(ListFeedsParams { tags: None }, session).await?;
 
         let data = feeds
             .data
@@ -279,6 +289,12 @@ impl FeedsService {
 
         self.opml.export(data).map_err(|e| e.into())
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct FeedsFindManyParams {
+    pub profile_id: Uuid,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Clone, Debug)]

@@ -1,6 +1,8 @@
 use colette_core::{
-    common::{FindManyParams, FindOneParams},
-    feeds::{Error, FeedsCreateData, FeedsRepository, FeedsUpdateData, StreamFeed},
+    common::FindOneParams,
+    feeds::{
+        Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData, StreamFeed,
+    },
 };
 use futures::{stream::BoxStream, StreamExt};
 use time::OffsetDateTime;
@@ -12,13 +14,18 @@ use crate::{common::convert_chrono_to_time, tags::Tag, PostgresRepository};
 impl FeedsRepository for PostgresRepository {
     async fn find_many_feeds(
         &self,
-        params: FindManyParams,
+        params: FeedsFindManyParams,
     ) -> Result<Vec<colette_core::Feed>, Error> {
-        sqlx::query_file_as!(Feed, "queries/feeds/find_many.sql", params.profile_id)
-            .fetch_all(&self.pool)
-            .await
-            .map(|e| e.into_iter().map(colette_core::Feed::from).collect())
-            .map_err(|e| Error::Unknown(e.into()))
+        sqlx::query_file_as!(
+            Feed,
+            "queries/feeds/find_many.sql",
+            params.profile_id,
+            params.tags.as_deref()
+        )
+        .fetch_all(&self.pool)
+        .await
+        .map(|e| e.into_iter().map(colette_core::Feed::from).collect())
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn find_one_feed(&self, params: FindOneParams) -> Result<colette_core::Feed, Error> {
