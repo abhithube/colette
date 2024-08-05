@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  t.id,\n  t.title,\n  count(b.id) AS bookmark_count,\n  count(pf.id) AS feed_count\nFROM\n  tags AS t\n  LEFT JOIN bookmark_tags AS bt ON bt.tag_id = t.id\n  LEFT JOIN bookmarks AS b ON b.id = bt.bookmark_id\n  LEFT JOIN profile_feed_tags AS pft ON pft.tag_id = t.id\n  LEFT JOIN profile_feeds AS pf ON pf.id = pft.profile_feed_id\nWHERE\n  t.id = $1\n  AND t.profile_id = $2\nGROUP BY\n  t.id;",
+  "query": "SELECT\n  t.id,\n  t.title,\n  count(pb.id) AS bookmark_count,\n  count(pf.id) AS feed_count\nFROM\n  tags AS t\n  LEFT JOIN profile_bookmark_tags AS pbt ON pbt.tag_id = t.id\n  LEFT JOIN profile_bookmarks AS pb ON pb.id = pbt.profile_bookmark_id\n  LEFT JOIN profile_feed_tags AS pft ON pft.tag_id = t.id\n  LEFT JOIN profile_feeds AS pf ON pf.id = pft.profile_feed_id\nWHERE\n  t.id = $1\n  AND t.profile_id = $2\nGROUP BY\n  t.id;",
   "describe": {
     "columns": [
       {
@@ -37,5 +37,5 @@
       null
     ]
   },
-  "hash": "3231d7fe3e111fa61d2494df5e1b8827b741e67e49e0ee49a6b193726bd38b8f"
+  "hash": "64b9a6a0486b063f8a84d28dfc37353d3b3c1081356337fd96cc5ad9c9b21516"
 }

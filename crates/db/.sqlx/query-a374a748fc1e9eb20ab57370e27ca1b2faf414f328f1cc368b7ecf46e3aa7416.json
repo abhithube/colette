@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  b.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author,\n  coalesce(\n    array_agg(ROW (t.id, t.title)) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\"\nFROM\n  bookmarks b\n  LEFT JOIN bookmark_tags AS bt ON bt.bookmark_id = b.id\n  LEFT JOIN tags AS t ON bt.tag_id = t.id\nWHERE\n  b.profile_id = $1\n  AND (\n    $3::UUID [] IS NULL\n    OR b.id IN (\n      SELECT DISTINCT\n        bookmark_id\n      FROM\n        bookmark_tags\n      WHERE\n        tag_id = ANY ($3)\n    )\n  )\nGROUP BY\n  b.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author\nORDER BY\n  b.published_at DESC,\n  b.title ASC,\n  b.id ASC\nLIMIT\n  $2;",
+  "query": "SELECT\n  pb.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author,\n  coalesce(\n    array_agg(ROW (t.id, t.title)) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\"\nFROM\n  profile_bookmarks AS pb\n  INNER JOIN bookmarks AS b ON b.id = pb.bookmark_id\n  LEFT JOIN profile_bookmark_tags AS pbt ON pbt.profile_bookmark_id = pb.id\n  LEFT JOIN tags AS t ON pbt.tag_id = t.id\nWHERE\n  pb.profile_id = $1\n  AND (\n    $3::UUID [] IS NULL\n    OR pb.id IN (\n      SELECT DISTINCT\n        profile_bookmark_id\n      FROM\n        profile_bookmark_tags\n      WHERE\n        tag_id = ANY ($3)\n    )\n  )\nGROUP BY\n  pb.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author\nORDER BY\n  b.published_at DESC,\n  b.title ASC,\n  pb.id ASC\nLIMIT\n  $2;",
   "describe": {
     "columns": [
       {
@@ -56,5 +56,5 @@
       null
     ]
   },
-  "hash": "c33fe272fe0ff1e4b9d0ff96840741c471dfb1d7d13255ac727e8ff937abe107"
+  "hash": "a374a748fc1e9eb20ab57370e27ca1b2faf414f328f1cc368b7ecf46e3aa7416"
 }

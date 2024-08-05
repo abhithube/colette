@@ -21,7 +21,7 @@ impl TagsRepository for PostgresRepository {
             TagType::Bookmarks => {
                 sqlx::query_file_as!(
                     Tag,
-                    "queries/tags/find_many_bookmark_tags.sql",
+                    "queries/tags/find_many_profile_bookmark_tags.sql",
                     params.profile_id
                 )
                 .fetch_all(&self.pool)

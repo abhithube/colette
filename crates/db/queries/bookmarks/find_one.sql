@@ -1,5 +1,5 @@
 SELECT
-  b.id,
+  pb.id,
   b.link,
   b.title,
   b.thumbnail_url,
@@ -13,14 +13,15 @@ SELECT
     ARRAY[]::record[]
   ) AS "tags!: Vec<Tag>"
 FROM
-  bookmarks b
-  LEFT JOIN bookmark_tags AS bt ON bt.bookmark_id = b.id
-  LEFT JOIN tags AS t ON bt.tag_id = t.id
+  profile_bookmarks AS pb
+  INNER JOIN bookmarks AS b ON b.id = pb.bookmark_id
+  LEFT JOIN profile_bookmark_tags AS pbt ON pbt.profile_bookmark_id = pb.id
+  LEFT JOIN tags AS t ON pbt.tag_id = t.id
 WHERE
-  b.id = $1
-  AND b.profile_id = $2
+  pb.id = $1
+  AND pb.profile_id = $2
 GROUP BY
-  b.id,
+  pb.id,
   b.link,
   b.title,
   b.thumbnail_url,
