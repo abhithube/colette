@@ -175,6 +175,9 @@ pub enum Error {
     #[error("profile not found with id: {0}")]
     NotFound(Uuid),
 
+    #[error("profile already exists with title: {0}")]
+    Conflict(String),
+
     #[error("default profile cannot be deleted")]
     DeletingDefault,
 

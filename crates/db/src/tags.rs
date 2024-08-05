@@ -62,7 +62,10 @@ impl TagsRepository for PostgresRepository {
             .fetch_one(&self.pool)
             .await
             .map(colette_core::Tag::from)
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn update_tag(

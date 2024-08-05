@@ -200,7 +200,12 @@ pub async fn create_tag(
         .map(Tag::from)
     {
         Ok(data) => Ok(CreateResponse::Created(data)),
-        Err(_) => Err(Error::Unknown),
+        Err(e) => match e {
+            tags::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
     }
 }
 
@@ -223,6 +228,9 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created tag")]
     Created(Tag),
 
+    #[response(status = 409, description = "Tag already exists")]
+    Conflict(BaseError),
+
     #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
@@ -232,6 +240,7 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }

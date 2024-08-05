@@ -143,6 +143,9 @@ pub enum Error {
     #[error("tag not found with id: {0}")]
     NotFound(Uuid),
 
+    #[error("tag already exists with title: {0}")]
+    Conflict(String),
+
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
