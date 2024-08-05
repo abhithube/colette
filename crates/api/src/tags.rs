@@ -43,6 +43,10 @@ impl Api {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    #[schema(nullable = false)]
+    bookmark_count: Option<i64>,
+    #[schema(nullable = false)]
+    feed_count: Option<i64>,
 }
 
 impl From<colette_core::Tag> for Tag {
@@ -50,6 +54,8 @@ impl From<colette_core::Tag> for Tag {
         Self {
             id: value.id,
             title: value.title,
+            bookmark_count: value.bookmark_count,
+            feed_count: value.feed_count,
         }
     }
 }

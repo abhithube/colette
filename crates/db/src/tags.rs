@@ -104,6 +104,8 @@ impl TagsRepository for PostgresRepository {
 pub(crate) struct Tag {
     id: Uuid,
     title: String,
+    bookmark_count: Option<i64>,
+    feed_count: Option<i64>,
 }
 
 impl From<Tag> for colette_core::Tag {
@@ -111,6 +113,8 @@ impl From<Tag> for colette_core::Tag {
         Self {
             id: value.id,
             title: value.title,
+            bookmark_count: value.bookmark_count,
+            feed_count: value.feed_count,
         }
     }
 }
