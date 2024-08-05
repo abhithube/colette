@@ -120,16 +120,16 @@ pub struct ListBookmarksQuery {
     pub published_at: Option<DateTime<Utc>>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[serde(default, rename = "tag[]")]
-    pub tags: Vec<Uuid>,
+    #[serde(rename = "tag[]")]
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
             published_at: value.published_at,
-            tags: if value.filter_by_tags.unwrap_or(!value.tags.is_empty()) {
-                Some(value.tags)
+            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
+                value.tags
             } else {
                 None
             },

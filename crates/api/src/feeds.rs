@@ -120,15 +120,15 @@ pub struct ListFeedsQuery {
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(nullable = false)]
-    #[serde(default, rename = "tag[]")]
-    pub tags: Vec<Uuid>,
+    #[serde(rename = "tag[]")]
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<ListFeedsQuery> for ListFeedsParams {
     fn from(value: ListFeedsQuery) -> Self {
         Self {
-            tags: if value.filter_by_tags.unwrap_or(!value.tags.is_empty()) {
-                Some(value.tags)
+            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
+                value.tags
             } else {
                 None
             },
