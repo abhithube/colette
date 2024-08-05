@@ -9,9 +9,10 @@ CREATE TABLE IF NOT EXISTS profiles (
   title text NOT NULL,
   image_url text,
   is_default boolean NOT NULL DEFAULT FALSE,
-  user_id UUID NOT NULL REFERENCES users (id) ON DELETE cascade
+  user_id UUID NOT NULL REFERENCES users (id) ON DELETE cascade,
+  UNIQUE (user_id, title)
 );
 
-CREATE UNIQUE index if NOT EXISTS profiles_user_id_is_default_idx ON profiles (user_id, is_default)
+CREATE UNIQUE index if NOT EXISTS profiles_user_id_is_default_key ON profiles (user_id, is_default)
 WHERE
   is_default;

@@ -1,7 +1,8 @@
 CREATE TABLE IF NOT EXISTS tags (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title text NOT NULL,
-  profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade
+  profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade,
+  UNIQUE (profile_id, title)
 );
 
 CREATE TABLE IF NOT EXISTS profile_feed_tags (
