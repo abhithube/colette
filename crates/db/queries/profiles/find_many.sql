@@ -7,4 +7,6 @@ SELECT
 FROM
   profiles
 WHERE
-  user_id = $1;
+  user_id = $1
+ORDER BY
+  title ASC;

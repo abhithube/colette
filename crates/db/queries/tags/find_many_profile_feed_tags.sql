@@ -12,4 +12,6 @@ FROM
 WHERE
   pft.profile_id = $1
 GROUP BY
-  t.id;
+  t.id
+ORDER BY
+  t.title ASC;

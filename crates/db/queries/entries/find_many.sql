@@ -28,6 +28,7 @@ WHERE
   )
 ORDER BY
   e.published_at DESC,
+  e.title ASC,
   pfe.id DESC
 LIMIT
   $2;
