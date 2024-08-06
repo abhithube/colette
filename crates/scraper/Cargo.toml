@@ -9,9 +9,9 @@ chrono.workspace = true
 colette-core.workspace = true
 http.workspace = true
 quick-xml.workspace = true
-scraper = { version = "0.20.0", default-features = false }
+scraper = { version = "0.20", default-features = false }
 serde.workspace = true
-ureq = { version = "2.10.0", default-features = false, features = [
+ureq = { version = "2", default-features = false, features = [
   "http-crate",
   "tls",
 ] }

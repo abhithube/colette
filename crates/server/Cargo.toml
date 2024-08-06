@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum.workspace = true
-axum-embed = { version = "0.1.0", default-features = false }
+axum-embed = { version = "0.1", default-features = false }
 colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
@@ -15,13 +15,13 @@ colette-password.workspace = true
 colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-tasks.workspace = true
-rust-embed = { version = "8.5.0", default-features = false, features = [
+rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 tokio.workspace = true
-tower-sessions = { version = "0.12.2", default-features = false, features = [
+tower-sessions = { version = "0.12", default-features = false, features = [
   "axum-core",
 ] }
-tower-sessions-sqlx-store = { version = "0.13.0", default-features = false, features = [
+tower-sessions-sqlx-store = { version = "0.13", default-features = false, features = [
   "postgres",
 ] }

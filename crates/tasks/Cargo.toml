@@ -7,7 +7,7 @@ edition = "2021"
 async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
-cron = { version = "0.12.1", default-features = false }
+cron = { version = "0.12", default-features = false }
 futures.workspace = true
 tokio.workspace = true
 url.workspace = true

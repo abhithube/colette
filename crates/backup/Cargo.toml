@@ -7,4 +7,4 @@ edition = "2021"
 colette-core.workspace = true
 quick-xml.workspace = true
 serde.workspace = true
-url = { workspace = true, features = ["serde"] }
+url.workspace = true
