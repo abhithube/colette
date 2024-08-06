@@ -120,6 +120,7 @@ pub struct ListBookmarksQuery {
     pub published_at: Option<DateTime<Utc>>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
+    #[param(nullable = false)]
     #[serde(rename = "tag[]")]
     pub tags: Option<Vec<Uuid>>,
 }
