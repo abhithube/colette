@@ -1,0 +1,63 @@
+import {
+	ensureInfiniteQueryData,
+	getTagOptions,
+	listEntriesOptions,
+} from '@colette/query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { EntryGrid } from '../-components/entry-grid'
+
+export const Route = createFileRoute('/_private/feeds/tags/$id')({
+	loader: async ({ context, params }) => {
+		const entryOptions = listEntriesOptions(
+			{ 'tag[]': [params.id] },
+			context.profile.id,
+			context.api,
+		)
+		const tagOptions = getTagOptions(params.id, context.api)
+
+		await Promise.all([
+			ensureInfiniteQueryData(context.queryClient, entryOptions as any),
+			context.queryClient.ensureQueryData(tagOptions),
+		])
+
+		return {
+			entryOptions,
+			tagOptions,
+		}
+	},
+	component: Component,
+})
+
+function Component() {
+	const { entryOptions, tagOptions } = Route.useLoaderData()
+
+	const {
+		data: entries,
+		hasNextPage,
+		fetchNextPage,
+	} = useInfiniteQuery(entryOptions)
+	const { data: tag } = useQuery(tagOptions)
+
+	useEffect(() => {
+		window.scrollTo(0, 0)
+	}, [])
+
+	if (!entries || !tag) return
+
+	return (
+		<>
+			<header className="sticky top-0 w-full bg-background p-8">
+				<h1 className="truncate font-medium text-3xl">{tag.title}</h1>
+			</header>
+			<main className="pb-8">
+				<EntryGrid
+					entries={entries.pages.flatMap((page) => page.data)}
+					hasMore={hasNextPage}
+					loadMore={fetchNextPage}
+				/>
+			</main>
+		</>
+	)
+}

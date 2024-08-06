@@ -749,6 +749,7 @@ export interface operations {
                 publishedAt?: string;
                 feedId?: string;
                 hasRead?: boolean;
+                "tag[]"?: string[];
             };
             header?: never;
             path?: never;

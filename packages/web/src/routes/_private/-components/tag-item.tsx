@@ -24,7 +24,7 @@ export function TagItem({ tag, type }: Props) {
 			inactiveProps={{
 				className: 'hover:bg-muted/50',
 			}}
-			to="/bookmarks/tags/$id"
+			to={type === 'bookmark' ? '/bookmarks/tags/$id' : '/feeds/tags/$id'}
 			params={{
 				id: tag.id,
 			}}
