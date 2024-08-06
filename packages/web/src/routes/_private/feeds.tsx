@@ -122,7 +122,7 @@ function Component() {
 							{tags.data.length > 0 ? (
 								<>
 									{tags.data.map((tag) => (
-										<TagItem key={tag.id} tag={tag} />
+										<TagItem key={tag.id} tag={tag} type="feed" />
 									))}
 								</>
 							) : (

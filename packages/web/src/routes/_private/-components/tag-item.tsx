@@ -4,14 +4,16 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 import type { Tag } from '@colette/openapi'
 import { Link } from '@tanstack/react-router'
 
 type Props = {
 	tag: Tag
+	type: 'bookmark' | 'feed'
 }
 
-export function TagItem({ tag }: Props) {
+export function TagItem({ tag, type }: Props) {
 	return (
 		<Link
 			key={tag.id}
@@ -31,7 +33,16 @@ export function TagItem({ tag }: Props) {
 			<TooltipProvider>
 				<Tooltip>
 					<TooltipTrigger asChild>
-						<span className="grow truncate">{tag.title}</span>
+						<>
+							<span className="grow truncate">{tag.title}</span>
+							<span
+								className={cn(
+									'text-muted-foreground tabular-nums group-[.active]:text-secondary',
+								)}
+							>
+								{type === 'bookmark' ? tag.bookmarkCount : tag.feedCount}
+							</span>
+						</>
 					</TooltipTrigger>
 					<TooltipContent>{tag.title}</TooltipContent>
 				</Tooltip>

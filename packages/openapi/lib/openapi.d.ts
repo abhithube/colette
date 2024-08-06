@@ -439,6 +439,10 @@ export interface components {
             /** Format: uuid */
             id: string;
             title: string;
+            /** Format: int64 */
+            bookmarkCount?: number;
+            /** Format: int64 */
+            feedCount?: number;
         };
         TagCreate: {
             title: string;
@@ -1133,6 +1137,15 @@ export interface operations {
                     "application/json": components["schemas"]["Profile"];
                 };
             };
+            /** @description Profile already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
             /** @description Invalid input */
             422: {
                 headers: {
@@ -1319,6 +1332,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Tag"];
+                };
+            };
+            /** @description Tag already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
             /** @description Invalid input */
