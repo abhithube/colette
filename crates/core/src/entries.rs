@@ -28,6 +28,7 @@ pub struct ListEntriesParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[async_trait::async_trait]
@@ -65,6 +66,7 @@ impl EntriesService {
                 published_at: params.published_at,
                 feed_id: params.feed_id,
                 has_read: params.has_read,
+                tags: params.tags,
             })
             .await?;
 
@@ -108,6 +110,7 @@ pub struct EntriesFindManyParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Clone, Debug)]

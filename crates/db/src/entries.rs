@@ -23,7 +23,8 @@ impl EntriesRepository for PostgresRepository {
             params.limit,
             params.published_at.map(convert_chrono_to_time),
             params.feed_id,
-            params.has_read
+            params.has_read,
+            params.tags.as_deref()
         )
         .fetch_all(&self.pool)
         .await

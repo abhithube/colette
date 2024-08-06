@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entries AS pfe\n  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entries AS e ON e.id = fe.entry_id\nWHERE\n  pfe.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\nORDER BY\n  e.published_at DESC,\n  e.title ASC,\n  pfe.id DESC\nLIMIT\n  $2;",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entries AS pfe\n  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entries AS e ON e.id = fe.entry_id\nWHERE\n  pfe.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\n  AND (\n    $6::UUID [] IS NULL\n    OR pfe.profile_feed_id IN (\n      SELECT DISTINCT\n        profile_feed_id\n      FROM\n        profile_feed_tags\n      WHERE\n        tag_id = ANY ($6)\n    )\n  )\nORDER BY\n  e.published_at DESC,\n  e.title ASC,\n  pfe.id DESC\nLIMIT\n  $2;",
   "describe": {
     "columns": [
       {
@@ -55,7 +55,8 @@
         "Int8",
         "Timestamptz",
         "Uuid",
-        "Bool"
+        "Bool",
+        "UuidArray"
       ]
     },
     "nullable": [
@@ -70,5 +71,5 @@
       false
     ]
   },
-  "hash": "085b35596b70eb15625d6a14f1b9bb472213c30e2a707fa01ab7634a169276ab"
+  "hash": "6845d24e14bd05b92149d93ae2c70bff210e16d0e782158072dc7cf873982454"
 }

@@ -26,6 +26,17 @@ WHERE
     $5::boolean IS NULL
     OR pfe.has_read = $5
   )
+  AND (
+    $6::UUID [] IS NULL
+    OR pfe.profile_feed_id IN (
+      SELECT DISTINCT
+        profile_feed_id
+      FROM
+        profile_feed_tags
+      WHERE
+        tag_id = ANY ($6)
+    )
+  )
 ORDER BY
   e.published_at DESC,
   e.title ASC,

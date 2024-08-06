@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
+use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::entries::{self, EntriesService, ListEntriesParams, UpdateEntry};
@@ -83,7 +84,7 @@ impl From<colette_core::Entry> for Entry {
 #[axum::debug_handler]
 pub async fn list_entries(
     State(service): State<Arc<EntriesService>>,
-    Valid(Query(query)): Valid<Query<ListEntriesQuery>>,
+    Query(query): Query<ListEntriesQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
@@ -96,7 +97,7 @@ pub async fn list_entries(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {
@@ -106,6 +107,9 @@ pub struct ListEntriesQuery {
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
+    #[param(nullable = false)]
+    #[serde(rename = "tag[]")]
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<ListEntriesQuery> for ListEntriesParams {
@@ -114,6 +118,7 @@ impl From<ListEntriesQuery> for ListEntriesParams {
             published_at: value.published_at,
             feed_id: value.feed_id,
             has_read: value.has_read,
+            tags: value.tags,
         }
     }
 }
