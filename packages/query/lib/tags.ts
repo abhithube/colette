@@ -1,5 +1,5 @@
-import type { API, ListTagsQuery } from '@colette/openapi'
-import { queryOptions } from '@tanstack/react-query'
+import type { API, ListTagsQuery, Tag, TagCreate } from '@colette/openapi'
+import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listTagsOptions = (
 	query: ListTagsQuery,
@@ -22,3 +22,13 @@ export const getTagOptions = (id: string, api: API) =>
 				signal,
 			}),
 	})
+
+export const createTagOptions = (
+	options: Omit<UseMutationOptions<Tag, Error, TagCreate>, 'mutationFn'>,
+	api: API,
+) => {
+	return {
+		...options,
+		mutationFn: (body) => api.tags.create(body),
+	} as UseMutationOptions<Tag, Error, TagCreate>
+}

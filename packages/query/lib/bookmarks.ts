@@ -1,5 +1,13 @@
-import type { API, ListBookmarksQuery } from '@colette/openapi'
-import { infiniteQueryOptions } from '@tanstack/react-query'
+import type {
+	API,
+	Bookmark,
+	BookmarkCreate,
+	ListBookmarksQuery,
+} from '@colette/openapi'
+import {
+	type UseMutationOptions,
+	infiniteQueryOptions,
+} from '@tanstack/react-query'
 
 export const listBookmarksOptions = (
 	query: ListBookmarksQuery,
@@ -25,3 +33,16 @@ export const listBookmarksOptions = (
 				: undefined
 		},
 	})
+
+export const createBookmarkOptions = (
+	options: Omit<
+		UseMutationOptions<Bookmark, Error, BookmarkCreate>,
+		'mutationFn'
+	>,
+	api: API,
+) => {
+	return {
+		...options,
+		mutationFn: (body) => api.bookmarks.create(body),
+	} as UseMutationOptions<Bookmark, Error, BookmarkCreate>
+}

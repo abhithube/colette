@@ -1,4 +1,10 @@
-import type { API, Feed, FeedCreate, ListFeedsQuery } from '@colette/openapi'
+import type {
+	API,
+	Feed,
+	FeedCreate,
+	File,
+	ListFeedsQuery,
+} from '@colette/openapi'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listFeedsOptions = (
@@ -42,4 +48,14 @@ export const deleteFeedOptions = (
 		...options,
 		mutationFn: () => api.feeds.delete(id),
 	} as UseMutationOptions
+}
+
+export const importFeedsOptions = (
+	options: Omit<UseMutationOptions<void, Error, File>, 'mutationFn'>,
+	api: API,
+) => {
+	return {
+		...options,
+		mutationFn: (body) => api.feeds.import(body),
+	} as UseMutationOptions<void, Error, File>
 }
