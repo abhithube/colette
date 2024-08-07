@@ -44,8 +44,10 @@ pub struct Tag {
     pub id: Uuid,
     pub title: String,
     #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
     #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     feed_count: Option<i64>,
 }
 
