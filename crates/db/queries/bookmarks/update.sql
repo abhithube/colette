@@ -15,7 +15,26 @@ WITH
       pb.id = $1
       AND pb.profile_id = $2
   ),
+  t_insert AS (
+    INSERT INTO
+      tags (title, profile_id)
+    SELECT
+      unnest($3::TEXT[]),
+      pb.profile_id
+    FROM
+      pb
+    ON CONFLICT (profile_id, title) DO nothing
+    RETURNING
+      id,
+      title
+  ),
   t AS (
+    SELECT
+      id,
+      title
+    FROM
+      t_insert
+    UNION ALL
     SELECT
       t.id,
       t.title
@@ -23,7 +42,7 @@ WITH
       tags t,
       pb
     WHERE
-      t.id = ANY ($3::UUID [])
+      t.title = ANY ($3::TEXT[])
       AND t.profile_id = pb.profile_id
   ),
   pbt_insert AS (
@@ -42,10 +61,16 @@ WITH
       tag_id
   ),
   pbt_delete AS (
-    DELETE FROM profile_bookmark_tags USING pb
+    DELETE FROM profile_bookmark_tags USING pb,
+    t
     WHERE
       profile_bookmark_id = pb.id
-      AND tag_id != ALL ($3::UUID [])
+      AND tag_id NOT IN (
+        SELECT
+          t.id
+        FROM
+          t
+      )
   ),
   pbt AS (
     SELECT

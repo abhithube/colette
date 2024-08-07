@@ -9,15 +9,16 @@ use axum::{
 use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::bookmarks::{
-    self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark,
+use colette_core::{
+    bookmarks::{self, BookmarksService, CreateBookmark, ListBookmarksParams, UpdateBookmark},
+    tags::CreateTag,
 };
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     common::{BaseError, BookmarkList, Error, Id, Paginated, Session},
-    tags::Tag,
+    tags::{Tag, TagCreate},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -297,12 +298,16 @@ pub async fn update_bookmark(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<BookmarkUpdate> for UpdateBookmark {
     fn from(value: BookmarkUpdate) -> Self {
-        Self { tags: value.tags }
+        Self {
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(CreateTag::from).collect()),
+        }
     }
 }
 

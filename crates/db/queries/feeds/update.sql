@@ -21,15 +21,34 @@ WITH
       f.title,
       f.url
   ),
+  t_insert AS (
+    INSERT INTO
+      tags (title, profile_id)
+    SELECT
+      unnest($3::TEXT[]),
+      pf.profile_id
+    FROM
+      pf
+    ON CONFLICT (profile_id, title) DO nothing
+    RETURNING
+      id,
+      title
+  ),
   t AS (
+    SELECT
+      id,
+      title
+    FROM
+      t_insert
+    UNION ALL
     SELECT
       t.id,
       t.title
     FROM
-      tags AS t,
+      tags t,
       pf
     WHERE
-      t.id = ANY ($3::UUID [])
+      t.title = ANY ($3::TEXT[])
       AND t.profile_id = pf.profile_id
   ),
   pft_insert AS (
@@ -51,7 +70,12 @@ WITH
     DELETE FROM profile_feed_tags USING pf
     WHERE
       profile_feed_id = pf.id
-      AND tag_id != ALL ($3::UUID [])
+      AND tag_id NOT IN (
+        SELECT
+          t.id
+        FROM
+          t
+      )
   ),
   pft AS (
     SELECT

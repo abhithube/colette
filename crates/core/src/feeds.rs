@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, Session},
+    tags::CreateTag,
     utils::{
         backup::{self, BackupManager},
         scraper::{
@@ -34,7 +35,7 @@ pub struct CreateFeed {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateFeed {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<CreateTag>>,
 }
 
 #[derive(Clone, Debug)]
@@ -306,12 +307,14 @@ pub struct FeedsCreateData {
 
 #[derive(Clone, Debug)]
 pub struct FeedsUpdateData {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<UpdateFeed> for FeedsUpdateData {
     fn from(value: UpdateFeed) -> Self {
-        Self { tags: value.tags }
+        Self {
+            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
+        }
     }
 }
 

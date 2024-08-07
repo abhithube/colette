@@ -8,15 +8,18 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use axum_valid::Valid;
-use colette_core::feeds::{
-    self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, ListFeedsParams, UpdateFeed,
+use colette_core::{
+    feeds::{
+        self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, ListFeedsParams, UpdateFeed,
+    },
+    tags::CreateTag,
 };
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     common::{BaseError, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
-    tags::Tag,
+    tags::{Tag, TagCreate},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -295,12 +298,16 @@ pub async fn update_feed(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<FeedUpdate> for UpdateFeed {
     fn from(value: FeedUpdate) -> Self {
-        Self { tags: value.tags }
+        Self {
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(CreateTag::from).collect()),
+        }
     }
 }
 

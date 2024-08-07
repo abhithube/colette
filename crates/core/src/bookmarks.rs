@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
+    tags::CreateTag,
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
@@ -30,7 +31,7 @@ pub struct CreateBookmark {
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct UpdateBookmark {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<CreateTag>>,
 }
 
 #[derive(Clone, Debug)]
@@ -194,12 +195,14 @@ pub struct BookmarksCreateData {
 
 #[derive(Clone, Debug)]
 pub struct BookmarksUpdateData {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<UpdateBookmark> for BookmarksUpdateData {
     fn from(value: UpdateBookmark) -> Self {
-        Self { tags: value.tags }
+        Self {
+            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
+        }
     }
 }
 
