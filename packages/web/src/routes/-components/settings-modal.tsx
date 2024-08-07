@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { importFeedsOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -41,8 +41,6 @@ export function SettingsModal({ close }: Props) {
 		resolver: zodResolver(formSchema),
 	})
 
-	const queryClient = useQueryClient()
-
 	const { mutateAsync: importFeeds } = useMutation(
 		importFeedsOptions(
 			{
@@ -53,7 +51,7 @@ export function SettingsModal({ close }: Props) {
 					setLoading(false)
 					close()
 
-					await queryClient.invalidateQueries({
+					await context.queryClient.invalidateQueries({
 						queryKey: ['profiles', context.profile.id, 'feeds'],
 					})
 				},

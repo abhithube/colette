@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input'
 import { BadGatewayError, UnprocessableContentError } from '@colette/openapi'
 import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
@@ -46,7 +46,6 @@ export function SubscribeModal({ close }: Props) {
 	})
 
 	const navigate = useNavigate()
-	const queryClient = useQueryClient()
 
 	const { mutateAsync: createFeed } = useMutation(
 		createFeedOptions(
@@ -59,7 +58,7 @@ export function SubscribeModal({ close }: Props) {
 					setLoading(false)
 					close()
 
-					await queryClient.invalidateQueries({
+					await context.queryClient.invalidateQueries({
 						queryKey: ['profiles', context.profile.id, 'feeds'],
 					})
 

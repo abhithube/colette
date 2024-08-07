@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import type { Feed } from '@colette/openapi'
 import { deleteFeedOptions } from '@colette/query'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { Route } from '../../feeds'
 
@@ -30,8 +30,6 @@ export function UnsubscribeAlert({
 	const matchRoute = useMatchRoute()
 	const params = matchRoute({ to: '/feeds/$id' })
 
-	const queryClient = useQueryClient()
-
 	const { mutateAsync: unsubscribe } = useMutation(
 		deleteFeedOptions(
 			feed.id,
@@ -43,7 +41,7 @@ export function UnsubscribeAlert({
 						})
 					}
 
-					await queryClient.invalidateQueries({
+					await context.queryClient.invalidateQueries({
 						queryKey: ['profiles', context.profile.id, 'feeds'],
 					})
 				},
