@@ -20,7 +20,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Route } from '../../feeds'
@@ -36,8 +35,6 @@ type Props = {
 export function SubscribeModal({ close }: Props) {
 	const context = Route.useRouteContext()
 
-	const [loading, setLoading] = useState(false)
-
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -47,15 +44,11 @@ export function SubscribeModal({ close }: Props) {
 
 	const navigate = useNavigate()
 
-	const { mutateAsync: createFeed } = useMutation(
+	const { mutateAsync: createFeed, isPending } = useMutation(
 		createFeedOptions(
 			{
-				onMutate: () => {
-					setLoading(true)
-				},
 				onSuccess: async (data) => {
 					form.reset()
-					setLoading(false)
 					close()
 
 					await context.queryClient.invalidateQueries({
@@ -109,8 +102,8 @@ export function SubscribeModal({ close }: Props) {
 						/>
 					</div>
 					<DialogFooter>
-						<Button disabled={loading}>
-							{loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						<Button disabled={isPending}>
+							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Submit
 						</Button>
 					</DialogFooter>

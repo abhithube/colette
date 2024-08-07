@@ -19,7 +19,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Route } from '../../bookmarks'
@@ -35,8 +34,6 @@ type Props = {
 export function AddBookmarkModal({ close }: Props) {
 	const context = Route.useRouteContext()
 
-	const [isLoading, setLoading] = useState(false)
-
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
 		defaultValues: {
@@ -46,14 +43,11 @@ export function AddBookmarkModal({ close }: Props) {
 
 	const navigate = useNavigate()
 
-	const { mutateAsync: createBookmark } = useMutation(
+	const { mutateAsync: createBookmark, isPending } = useMutation(
 		createBookmarkOptions(
 			{
-				onMutate: () => {
-					setLoading(true)
-				},
 				onSuccess: () => {
-					setLoading(false)
+					form.reset()
 					close()
 
 					navigate({
@@ -87,8 +81,8 @@ export function AddBookmarkModal({ close }: Props) {
 						/>
 					</div>
 					<DialogFooter>
-						<Button disabled={isLoading}>
-							{isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+						<Button disabled={isPending}>
+							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							Submit
 						</Button>
 					</DialogFooter>
