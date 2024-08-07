@@ -27,7 +27,16 @@ export function FeedEntryCard({ entry }: Props) {
 	const context = Route.useRouteContext()
 
 	const { mutateAsync: updateEntry } = useMutation(
-		updateEntryOptions({}, context.api),
+		updateEntryOptions(
+			{
+				onSuccess: async () => {
+					await context.queryClient.invalidateQueries({
+						queryKey: ['profiles', context.profile.id, 'entries'],
+					})
+				},
+			},
+			context.api,
+		),
 	)
 
 	return (
