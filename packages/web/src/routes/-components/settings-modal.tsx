@@ -14,6 +14,7 @@ import {
 	FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { importFeedsOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
@@ -42,29 +43,33 @@ export function SettingsModal({ close }: Props) {
 
 	const queryClient = useQueryClient()
 
-	const { mutateAsync: importBackup } = useMutation({
-		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			await context.api.feeds.import({
-				data: await values.file.text(),
-			})
-		},
-		onMutate: () => {
-			setLoading(true)
-		},
-		onSuccess: async () => {
-			setLoading(false)
-			close()
+	const { mutateAsync: importFeeds } = useMutation(
+		importFeedsOptions(
+			{
+				onMutate: () => {
+					setLoading(true)
+				},
+				onSuccess: async () => {
+					setLoading(false)
+					close()
 
-			await queryClient.invalidateQueries({
-				queryKey: ['profiles', context.profile.id, 'feeds'],
-			})
-		},
-	})
+					await queryClient.invalidateQueries({
+						queryKey: ['profiles', context.profile.id, 'feeds'],
+					})
+				},
+			},
+			context.api,
+		),
+	)
 
 	return (
 		<DialogContent className="max-w-[425px]">
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => importBackup(data))}>
+				<form
+					onSubmit={form.handleSubmit(async (data) =>
+						importFeeds({ data: await data.file.text() }),
+					)}
+				>
 					<DialogHeader>
 						<DialogTitle>Import Feeds</DialogTitle>
 						<DialogDescription>

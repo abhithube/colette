@@ -14,6 +14,7 @@ import {
 	FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { createBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
@@ -45,29 +46,29 @@ export function AddBookmarkModal({ close }: Props) {
 
 	const navigate = useNavigate()
 
-	const { mutateAsync: createFeed } = useMutation({
-		mutationFn: async (values: z.infer<typeof formSchema>) => {
-			return context.api.bookmarks.create({
-				url: values.url,
-			})
-		},
-		onMutate: () => {
-			setLoading(true)
-		},
-		onSuccess: () => {
-			setLoading(false)
-			close()
+	const { mutateAsync: createBookmark } = useMutation(
+		createBookmarkOptions(
+			{
+				onMutate: () => {
+					setLoading(true)
+				},
+				onSuccess: () => {
+					setLoading(false)
+					close()
 
-			navigate({
-				to: '/bookmarks/stash',
-			})
-		},
-	})
+					navigate({
+						to: '/bookmarks/stash',
+					})
+				},
+			},
+			context.api,
+		),
+	)
 
 	return (
 		<DialogContent className="max-w-[400px]">
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => createFeed(data))}>
+				<form onSubmit={form.handleSubmit((data) => createBookmark(data))}>
 					<DialogHeader>
 						<DialogTitle>Add Bookmark</DialogTitle>
 						<DialogDescription>Add a bookmark to the stash.</DialogDescription>
