@@ -46,65 +46,61 @@ function Component() {
 	return (
 		<div className="flex h-full w-full">
 			<ResizablePanelGroup direction="horizontal">
-				<ResizablePanel
-					className="space-y-4 pt-4"
-					minSize={15}
-					defaultSize={20}
-					maxSize={30}
-					collapsible
-				>
-					<div className="flex items-center justify-between px-4">
-						<h1 className="font-medium text-3xl">Bookmarks</h1>
-						<Dialog
-							open={isBookmarkModalOpen}
-							onOpenChange={setBookmarkModalOpen}
-						>
-							<DialogTrigger asChild>
-								<Button className="space-x-2">
-									<span className="text-sm">New</span>
-									<PlusCircle className="h-4 w-4 shrink-0" />
-								</Button>
-							</DialogTrigger>
-							<AddBookmarkModal close={() => setBookmarkModalOpen(false)} />
-						</Dialog>
-					</div>
-					<div className="space-y-1 px-4">
-						<SidebarLink to="/bookmarks" activeOptions={{ exact: true }}>
-							<Home className="h-4 w-4 shrink-0" />
-							<span className="grow truncate">All Bookmarks</span>
-						</SidebarLink>
-						<SidebarLink to="/bookmarks/stash">
-							<History className="h-4 w-4 shrink-0" />
-							<span className="grow truncate">Stash</span>
-						</SidebarLink>
-					</div>
-					<Separator />
-					<div className="h-full">
-						<div className="flex h-8 items-center justify-between px-4">
-							<span className="grow font-semibold text-muted-foreground text-xs">
-								Tags
-							</span>
-							<Dialog open={isTagModalOpen} onOpenChange={setTagModalOpen}>
+				<ResizablePanel minSize={15} defaultSize={20} maxSize={30} collapsible>
+					<div className="h-full space-y-4 overflow-y-auto py-4">
+						<div className="flex items-center justify-between px-4">
+							<h1 className="font-medium text-3xl">Bookmarks</h1>
+							<Dialog
+								open={isBookmarkModalOpen}
+								onOpenChange={setBookmarkModalOpen}
+							>
 								<DialogTrigger asChild>
-									<Button className="h-8 w-8 justify-center" variant="ghost">
-										<Plus className="h-4 w-4 shrink-0" />
+									<Button className="space-x-2">
+										<span className="text-sm">New</span>
+										<PlusCircle className="h-4 w-4 shrink-0" />
 									</Button>
 								</DialogTrigger>
-								<AddTagModal close={() => setTagModalOpen(false)} />
+								<AddBookmarkModal close={() => setBookmarkModalOpen(false)} />
 							</Dialog>
 						</div>
-						<div className="mt-1 h-full space-y-1 overflow-y-auto px-4">
-							{tags.data.length > 0 ? (
-								<>
-									{tags.data.map((tag) => (
-										<TagItem key={tag.id} tag={tag} type="bookmark" />
-									))}
-								</>
-							) : (
-								<div className="font-light text-sm">
-									You have not created any tags yet. Click + to add one.
-								</div>
-							)}
+						<div className="space-y-1 px-4">
+							<SidebarLink to="/bookmarks" activeOptions={{ exact: true }}>
+								<Home className="h-4 w-4 shrink-0" />
+								<span className="grow truncate">All Bookmarks</span>
+							</SidebarLink>
+							<SidebarLink to="/bookmarks/stash">
+								<History className="h-4 w-4 shrink-0" />
+								<span className="grow truncate">Stash</span>
+							</SidebarLink>
+						</div>
+						<Separator />
+						<div>
+							<div className="flex h-8 items-center justify-between px-4">
+								<span className="grow font-semibold text-muted-foreground text-xs">
+									Tags
+								</span>
+								<Dialog open={isTagModalOpen} onOpenChange={setTagModalOpen}>
+									<DialogTrigger asChild>
+										<Button className="h-8 w-8 justify-center" variant="ghost">
+											<Plus className="h-4 w-4 shrink-0" />
+										</Button>
+									</DialogTrigger>
+									<AddTagModal close={() => setTagModalOpen(false)} />
+								</Dialog>
+							</div>
+							<div className="mt-1 space-y-1 px-4">
+								{tags.data.length > 0 ? (
+									<>
+										{tags.data.map((tag) => (
+											<TagItem key={tag.id} tag={tag} type="bookmark" />
+										))}
+									</>
+								) : (
+									<div className="font-light text-sm">
+										You have not created any tags yet. Click + to add one.
+									</div>
+								)}
+							</div>
 						</div>
 					</div>
 				</ResizablePanel>
