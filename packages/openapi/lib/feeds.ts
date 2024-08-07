@@ -7,7 +7,7 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { Feed, FeedCreate, FeedList, ListFeedsQuery } from './types'
+import type { Feed, FeedCreate, FeedList, File, ListFeedsQuery } from './types'
 
 export class FeedsAPI {
 	constructor(private client: Client) {}
@@ -92,6 +92,27 @@ export class FeedsAPI {
 			}
 
 			throw new APIError(res.error.message)
+		}
+	}
+
+	async import(
+		body: File,
+		options?: Omit<
+			FetchOptions<operations['importFeeds']>,
+			'body' | 'bodySerializer'
+		>,
+	): Promise<void> {
+		const res = await this.client.POST('/feeds/import', {
+			body,
+			bodySerializer: (body) => {
+				const fd = new FormData()
+				fd.append('file', body.data)
+				return fd
+			},
+			...options,
+		})
+		if (res.error) {
+			throw new APIError('unknown error')
 		}
 	}
 }
