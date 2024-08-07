@@ -19,6 +19,7 @@ const router = createRouter({
 		queryClient,
 		api,
 	},
+	defaultPreload: 'intent',
 })
 
 declare module '@tanstack/react-router' {
