@@ -6,7 +6,11 @@ import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/')({
 	loader: async ({ context }) => {
-		const options = listEntriesOptions({}, context.profile.id, context.api)
+		const options = listEntriesOptions(
+			{ hasRead: false },
+			context.profile.id,
+			context.api,
+		)
 
 		await ensureInfiniteQueryData(context.queryClient, options as any)
 

@@ -11,7 +11,10 @@ import { FeedEntryGrid } from './-components/feed-entry-grid'
 export const Route = createFileRoute('/_private/feeds/tags/$id')({
 	loader: async ({ context, params }) => {
 		const entryOptions = listEntriesOptions(
-			{ 'tag[]': [params.id] },
+			{
+				hasRead: false,
+				'tag[]': [params.id],
+			},
 			context.profile.id,
 			context.api,
 		)

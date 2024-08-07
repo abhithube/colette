@@ -15,6 +15,7 @@ export const Route = createFileRoute('/_private/feeds/$id')({
 		const entryOptions = listEntriesOptions(
 			{
 				feedId: params.id,
+				hasRead: false,
 			},
 			context.profile.id,
 			context.api,
