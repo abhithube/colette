@@ -2,7 +2,7 @@ import { ensureInfiniteQueryData, listBookmarksOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { BookmarkGrid } from '../-components/bookmark-grid'
+import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/')({
 	loader: async ({ context }) => {

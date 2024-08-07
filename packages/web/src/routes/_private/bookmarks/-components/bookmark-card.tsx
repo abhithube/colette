@@ -6,7 +6,7 @@ import {
 	EntryPublished,
 	EntryThumbnail,
 	EntryTitle,
-} from './entry-parts'
+} from '../../-components/entry-parts'
 
 type Props = {
 	bookmark: Bookmark

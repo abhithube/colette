@@ -2,7 +2,7 @@ import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { EntryGrid } from '../-components/entry-grid'
+import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/archived')({
 	loader: async ({ context }) => {
@@ -47,7 +47,7 @@ function Component() {
 						<span className="text-muted-foreground">No archived entries.</span>
 					</div>
 				)}
-				<EntryGrid
+				<FeedEntryGrid
 					entries={entries}
 					hasMore={hasNextPage}
 					loadMore={fetchNextPage}

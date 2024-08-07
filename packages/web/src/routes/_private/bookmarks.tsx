@@ -12,9 +12,9 @@ import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { History, Home, Plus, PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarLink } from '../-components/sidebar-link'
-import { AddBookmarkModal } from './-components/add-bookmark-modal'
 import { AddTagModal } from './-components/add-tag-modal'
 import { TagItem } from './-components/tag-item'
+import { AddBookmarkModal } from './bookmarks/-components/add-bookmark-modal'
 
 export const Route = createFileRoute('/_private/bookmarks')({
 	loader: async ({ context }) => {

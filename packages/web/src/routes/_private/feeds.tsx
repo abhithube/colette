@@ -13,9 +13,9 @@ import { History, Home, Plus, PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarLink } from '../-components/sidebar-link'
 import { AddTagModal } from './-components/add-tag-modal'
-import { FeedItem } from './-components/feed-item'
-import { SubscribeModal } from './-components/subscribe-modal'
 import { TagItem } from './-components/tag-item'
+import { FeedItem } from './feeds/-components/feed-item'
+import { SubscribeModal } from './feeds/-components/subscribe-modal'
 
 export const Route = createFileRoute('/_private/feeds')({
 	loader: async ({ context }) => {

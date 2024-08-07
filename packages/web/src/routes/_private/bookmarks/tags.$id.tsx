@@ -6,7 +6,7 @@ import {
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { BookmarkGrid } from '../-components/bookmark-grid'
+import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/tags/$id')({
 	loader: async ({ context, params }) => {

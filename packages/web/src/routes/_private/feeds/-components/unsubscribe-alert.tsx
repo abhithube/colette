@@ -12,7 +12,7 @@ import type { Feed } from '@colette/openapi'
 import { deleteFeedOptions } from '@colette/query'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
-import { Route } from '../feeds'
+import { Route } from '../../feeds'
 
 export function UnsubscribeAlert({
 	feed,

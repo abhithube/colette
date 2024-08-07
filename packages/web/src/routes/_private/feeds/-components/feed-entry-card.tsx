@@ -6,13 +6,13 @@ import {
 	EntryPublished,
 	EntryThumbnail,
 	EntryTitle,
-} from './entry-parts'
+} from '../../-components/entry-parts'
 
 type Props = {
 	entry: Entry
 }
 
-export function EntryCard({ entry }: Props) {
+export function FeedEntryCard({ entry }: Props) {
 	return (
 		<Card className="overflow-hidden shadow-md">
 			<EntryThumbnail src={entry.thumbnailUrl} alt={entry.title} />

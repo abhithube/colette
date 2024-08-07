@@ -6,7 +6,7 @@ import {
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { EntryGrid } from '../-components/entry-grid'
+import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/tags/$id')({
 	loader: async ({ context, params }) => {
@@ -52,7 +52,7 @@ function Component() {
 				<h1 className="truncate font-medium text-3xl">{tag.title}</h1>
 			</header>
 			<main className="pb-8">
-				<EntryGrid
+				<FeedEntryGrid
 					entries={entries.pages.flatMap((page) => page.data)}
 					hasMore={hasNextPage}
 					loadMore={fetchNextPage}

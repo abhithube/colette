@@ -1,7 +1,7 @@
 import { Separator } from '@/components/ui/separator'
 import type { Entry } from '@colette/openapi'
 import { useInView } from 'react-intersection-observer'
-import { EntryCard } from './entry-card'
+import { FeedEntryCard } from './feed-entry-card'
 
 type Props = {
 	entries: Entry[]
@@ -9,7 +9,7 @@ type Props = {
 	loadMore?: () => void
 }
 
-export function EntryGrid({ entries, hasMore, loadMore }: Props) {
+export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
 	const day = 1000 * 60 * 60 * 24
 	const date = Date.now()
 	const today = date - day
@@ -54,7 +54,7 @@ export function EntryGrid({ entries, hasMore, loadMore }: Props) {
 						<div className="grid grid-cols-3 gap-4">
 							{entries.map((entry) => (
 								<div key={entry.id}>
-									<EntryCard entry={entry} />
+									<FeedEntryCard entry={entry} />
 								</div>
 							))}
 						</div>

@@ -21,7 +21,7 @@ import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { Route } from '../bookmarks'
+import { Route } from '../../bookmarks'
 
 const formSchema = z.object({
 	url: z.string().url(),
