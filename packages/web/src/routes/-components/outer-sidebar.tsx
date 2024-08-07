@@ -9,6 +9,7 @@ import type { Profile } from '@colette/openapi'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { ProfileModal } from './profile-modal'
+import { SettingsModal } from './settings-modal'
 import { SidebarButton } from './sidebar-button'
 import { SidebarLink } from './sidebar-link'
 
@@ -18,6 +19,7 @@ type Props = {
 
 export const OuterSidebar = ({ profile }: Props) => {
 	const [isProfileModalOpen, setProfileModalOpen] = useState(false)
+	const [isSettingsModalOpen, setSettingsModalOpen] = useState(false)
 
 	return (
 		<nav className="flex h-full flex-col space-y-4 border-r p-4">
@@ -80,16 +82,21 @@ export const OuterSidebar = ({ profile }: Props) => {
 					close={() => setProfileModalOpen(false)}
 				/>
 			</Dialog>
-			<TooltipProvider>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<SidebarButton>
-							<Settings className="h-5 w-5 shrink-0" />
-						</SidebarButton>
-					</TooltipTrigger>
-					<TooltipContent side="right">Settings</TooltipContent>
-				</Tooltip>
-			</TooltipProvider>
+			<Dialog open={isSettingsModalOpen} onOpenChange={setSettingsModalOpen}>
+				<TooltipProvider>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<DialogTrigger asChild>
+								<SidebarButton>
+									<Settings className="h-5 w-5 shrink-0" />
+								</SidebarButton>
+							</DialogTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right">Settings</TooltipContent>
+					</Tooltip>
+				</TooltipProvider>
+				<SettingsModal close={() => setSettingsModalOpen(false)} />
+			</Dialog>
 		</nav>
 	)
 }
