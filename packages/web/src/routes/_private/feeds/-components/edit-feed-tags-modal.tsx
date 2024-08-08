@@ -22,8 +22,8 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { TagsSelect } from '../../-components/tags-select'
 import { Route } from '../../../_private'
-import { TagsSelect } from './tags-select'
 
 const formSchema = z.object({
 	tags: z.string().array(),
