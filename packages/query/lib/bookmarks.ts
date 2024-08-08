@@ -2,6 +2,7 @@ import type {
 	API,
 	Bookmark,
 	BookmarkCreate,
+	BookmarkUpdate,
 	ListBookmarksQuery,
 } from '@colette/openapi'
 import {
@@ -45,4 +46,17 @@ export const createBookmarkOptions = (
 		...options,
 		mutationFn: (body) => api.bookmarks.create(body),
 	} as UseMutationOptions<Bookmark, Error, BookmarkCreate>
+}
+
+export const updateBookmarkOptions = (
+	options: Omit<
+		UseMutationOptions<Bookmark, Error, { id: string; body: BookmarkUpdate }>,
+		'mutationFn'
+	>,
+	api: API,
+) => {
+	return {
+		...options,
+		mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
+	} as UseMutationOptions<Bookmark, Error, { id: string; body: BookmarkUpdate }>
 }
