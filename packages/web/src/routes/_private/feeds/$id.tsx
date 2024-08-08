@@ -13,9 +13,9 @@ import {
 } from '@colette/query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CircleX, ExternalLink, ListChecks, Tags } from 'lucide-react'
+import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { EditFeedTagsModal } from './-components/edit-feed-tags-modal'
+import { EditFeedModal } from './-components/edit-feed-modal'
 import { FeedEntryGrid } from './-components/feed-entry-grid'
 import { UnsubscribeAlert } from './-components/unsubscribe-alert'
 
@@ -56,7 +56,7 @@ function Component() {
 		fetchNextPage,
 	} = useInfiniteQuery(entryOptions)
 
-	const [isTagsModalOpen, setTagsModalOpen] = useState(false)
+	const [isEditModalOpen, setEditModalOpen] = useState(false)
 	const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
@@ -77,9 +77,9 @@ function Component() {
 							<span>Open Link</span>
 						</a>
 					</HeaderActionItem>
-					<HeaderActionItem onClick={() => setTagsModalOpen(true)}>
-						<Icon value={Tags} />
-						<span>Edit Tags</span>
+					<HeaderActionItem onClick={() => setEditModalOpen(true)}>
+						<Icon value={Pencil} />
+						<span>Edit</span>
 					</HeaderActionItem>
 					<HeaderActionItem>
 						<Icon value={ListChecks} />
@@ -106,8 +106,8 @@ function Component() {
 				isOpen={isUnsubscribeAlertOpen}
 				setOpen={setUnsubscribeAlertOpen}
 			/>
-			<Dialog open={isTagsModalOpen} onOpenChange={setTagsModalOpen}>
-				<EditFeedTagsModal feed={feed} close={() => setTagsModalOpen(false)} />
+			<Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
+				<EditFeedModal feed={feed} close={() => setEditModalOpen(false)} />
 			</Dialog>
 		</>
 	)

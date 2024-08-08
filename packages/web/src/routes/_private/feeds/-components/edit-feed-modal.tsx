@@ -34,7 +34,7 @@ type Props = {
 	close: () => void
 }
 
-export function EditFeedTagsModal({ feed, close }: Props) {
+export function EditFeedModal({ feed, close }: Props) {
 	const context = Route.useRouteContext()
 
 	const { data: tags } = useQuery(
@@ -80,8 +80,8 @@ export function EditFeedTagsModal({ feed, close }: Props) {
 					)}
 				>
 					<DialogHeader>
-						<DialogTitle>Edit {feed.title} Tags</DialogTitle>
-						<DialogDescription>Edit a feed's tags.</DialogDescription>
+						<DialogTitle>Edit {feed.title}</DialogTitle>
+						<DialogDescription>Edit a feed's data.</DialogDescription>
 					</DialogHeader>
 					<div className="flex flex-col space-y-4 py-4">
 						<FormField
