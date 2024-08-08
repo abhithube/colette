@@ -9,5 +9,15 @@ export const Route = createFileRoute('/login')({
 			})
 		}
 	},
-	component: LoginForm,
+	component: Component,
 })
+
+function Component() {
+	return (
+		<div className="flex h-screen items-center justify-center">
+			<div className="w-[400px]">
+				<LoginForm />
+			</div>
+		</div>
+	)
+}
