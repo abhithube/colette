@@ -60,16 +60,8 @@ export function UnsubscribeAlert({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel onClick={(e) => e.stopPropagation()}>
-						Cancel
-					</AlertDialogCancel>
-					<AlertDialogAction
-						onClick={(e) => {
-							e.stopPropagation()
-
-							unsubscribe()
-						}}
-					>
+					<AlertDialogCancel>Cancel</AlertDialogCancel>
+					<AlertDialogAction onClick={() => unsubscribe()}>
 						Continue
 					</AlertDialogAction>
 				</AlertDialogFooter>

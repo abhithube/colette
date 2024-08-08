@@ -84,11 +84,7 @@ function Component() {
 					</HeaderActionItem>
 					<HeaderActionItem
 						variant="destructive"
-						onClick={(e) => {
-							e.stopPropagation()
-
-							setUnsubscribeAlertOpen(true)
-						}}
+						onClick={() => setUnsubscribeAlertOpen(true)}
 					>
 						<Icon value={CircleX} />
 						<span>Unsubscribe</span>

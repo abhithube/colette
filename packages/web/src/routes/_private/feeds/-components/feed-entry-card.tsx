@@ -51,27 +51,20 @@ export function FeedEntryCard({ entry }: Props) {
 							<Icon className="text-muted-foreground" value={MoreHorizontal} />
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56">
-							<DropdownMenuItem
-								onClick={(e) => {
-									e.stopPropagation()
-
-									window.open(entry.link)
-								}}
-							>
-								Open in new tab
-								<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
+							<DropdownMenuItem asChild>
+								<a href={entry.link} target="_blank" rel="noreferrer">
+									Open in new tab
+								</a>
 							</DropdownMenuItem>
 							<DropdownMenuItem
-								onClick={async (e) => {
-									e.stopPropagation()
-
-									await updateEntry({
+								onClick={() =>
+									updateEntry({
 										id: entry.id,
 										body: {
 											hasRead: !entry.hasRead,
 										},
 									})
-								}}
+								}
 							>
 								Mark as {entry.hasRead ? 'unread' : 'read'}
 								<DropdownMenuShortcut>⇧⌘R</DropdownMenuShortcut>
