@@ -42,7 +42,7 @@ function Component() {
 			<Header>
 				<HeaderTitle>All Feeds</HeaderTitle>
 			</Header>
-			<main className="pb-8">
+			<main>
 				<FeedEntryGrid
 					entries={entries.pages.flatMap((page) => page.data)}
 					hasMore={hasNextPage}

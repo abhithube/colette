@@ -28,7 +28,7 @@ export function BookmarkGrid({
 
 	return (
 		<>
-			<div className="grid grid-cols-3 gap-4 px-8">
+			<div className="grid grid-cols-3 gap-4 px-8 pb-8">
 				{created && (
 					<div className="rounded-lg border-2 border-secondary">
 						<BookmarkCard bookmark={created} />

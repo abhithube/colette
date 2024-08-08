@@ -38,7 +38,7 @@ function Component() {
 			<Header>
 				<HeaderTitle>All Bookmarks</HeaderTitle>
 			</Header>
-			<main className="pb-8">
+			<main>
 				<BookmarkGrid
 					bookmarks={bookmarks.pages.flatMap((page) => page.data)}
 					hasMore={hasNextPage}

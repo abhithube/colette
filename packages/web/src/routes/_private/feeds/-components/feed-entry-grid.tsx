@@ -41,7 +41,7 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
 
 	return (
 		<>
-			<div className="space-y-8 px-8">
+			<div className="space-y-8 px-8 pb-8">
 				{list.map(([title, entries]) => (
 					<div key={title} className="space-y-6">
 						<div className="flex items-center space-x-8">

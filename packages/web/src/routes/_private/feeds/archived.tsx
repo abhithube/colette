@@ -42,7 +42,7 @@ function Component() {
 			<Header>
 				<HeaderTitle>Archived</HeaderTitle>
 			</Header>
-			<main className="pb-8">
+			<main>
 				{entries.length === 0 && (
 					<div className="mx-8">
 						<span className="text-muted-foreground">No archived entries.</span>

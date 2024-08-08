@@ -42,7 +42,7 @@ function Component() {
 			<Header>
 				<HeaderTitle>Stash</HeaderTitle>
 			</Header>
-			<main className="pb-8">
+			<main>
 				<BookmarkGrid
 					bookmarks={bookmarks.pages.flatMap((page) => page.data)}
 					hasMore={hasNextPage}
