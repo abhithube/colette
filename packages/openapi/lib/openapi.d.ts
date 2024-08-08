@@ -336,7 +336,7 @@ export interface components {
             data: components["schemas"]["Bookmark"][];
         };
         BookmarkUpdate: {
-            tags?: string[] | null;
+            tags?: components["schemas"]["TagCreate"][] | null;
         };
         Entry: {
             /** Format: uuid */
@@ -395,7 +395,7 @@ export interface components {
             data: components["schemas"]["Feed"][];
         };
         FeedUpdate: {
-            tags?: string[] | null;
+            tags?: components["schemas"]["TagCreate"][] | null;
         };
         File: {
             /** Format: Binary */
