@@ -9,10 +9,9 @@ import {
 import type { Profile } from '@colette/openapi'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
+import { SidebarButton, SidebarLink } from '../../components/sidebar'
 import { ProfileModal } from './profile-modal'
 import { SettingsModal } from './settings-modal'
-import { SidebarButton } from './sidebar-button'
-import { SidebarLink } from './sidebar-link'
 
 type Props = {
 	profile: Profile
