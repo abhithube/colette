@@ -14,21 +14,25 @@ import {
 	PopoverContent,
 	PopoverTrigger,
 } from '@/components/ui/popover'
-import type { Tag } from '@colette/openapi'
 import { ChevronsUpDown, X } from 'lucide-react'
 import { useState } from 'react'
 
+type Option = {
+	value: string
+	label: string
+}
+
 type Props = {
-	options: Tag[]
+	options: Option[]
 	value: string[]
 	onChange: (value: string[]) => void
 }
 
-export function TagsSelect({ options, value: currentValue, onChange }: Props) {
+export function MultiSelect({ options, value: currentValue, onChange }: Props) {
 	const [open, setOpen] = useState(false)
 
 	const filtered = options.filter(
-		(option) => !currentValue.includes(option.title),
+		(option) => !currentValue.includes(option.value),
 	)
 
 	return (
@@ -76,19 +80,19 @@ export function TagsSelect({ options, value: currentValue, onChange }: Props) {
 			</PopoverTrigger>
 			<PopoverContent className="min-w-[var(--radix-popover-trigger-width)] p-0">
 				<Command>
-					<CommandInput placeholder="Search tags..." />
+					<CommandInput placeholder="Search..." />
 					<CommandList>
 						<CommandEmpty>No item found.</CommandEmpty>
 						<CommandGroup className="max-h-64 overflow-auto">
-							{filtered.map((tag) => (
+							{filtered.map((option) => (
 								<CommandItem
-									key={tag.title}
+									key={option.value}
 									onSelect={() => {
-										onChange([...currentValue, tag.title].toSorted())
+										onChange([...currentValue, option.value].toSorted())
 										setOpen(true)
 									}}
 								>
-									{tag.title}
+									{option.label}
 								</CommandItem>
 							))}
 						</CommandGroup>

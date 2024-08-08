@@ -1,4 +1,5 @@
 import { Icon } from '@/components/icon'
+import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import {
 	DialogContent,
@@ -22,7 +23,6 @@ import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { TagsSelect } from '../../-components/tags-select'
 import { Route } from '../../../_private'
 
 const formSchema = z.object({
@@ -86,8 +86,11 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
 							render={({ field }) => (
 								<FormItem className="flex flex-col">
 									<FormLabel>Tags</FormLabel>
-									<TagsSelect
-										options={tags.data}
+									<MultiSelect
+										options={tags.data.map(({ title }) => ({
+											value: title,
+											label: title,
+										}))}
 										value={field.value}
 										onChange={(value) => {
 											form.setValue('tags', value)
