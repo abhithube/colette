@@ -1,13 +1,5 @@
 import { Favicon } from '@/components/favicon'
 import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuSeparator,
-	DropdownMenuShortcut,
-	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
 	Tooltip,
 	TooltipContent,
 	TooltipProvider,
@@ -16,19 +8,11 @@ import {
 import { cn } from '@/lib/utils'
 import type { Feed } from '@colette/openapi'
 import { Link } from '@tanstack/react-router'
-import { MoreHorizontal } from 'lucide-react'
-import { useState } from 'react'
-import { UnsubscribeAlert } from './unsubscribe-alert'
-
 type Props = {
 	feed: Feed
 }
 
 export function FeedItem({ feed }: Props) {
-	const [isHovering, setHovering] = useState(false)
-	const [isDropdownOpen, setDropdownOpen] = useState(false)
-	const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
-
 	return (
 		<Link
 			key={feed.id}
@@ -44,8 +28,6 @@ export function FeedItem({ feed }: Props) {
 				id: feed.id,
 			}}
 			search
-			onMouseEnter={() => setHovering(true)}
-			onMouseLeave={() => setHovering(false)}
 		>
 			<Favicon domain={new URL(feed.link).hostname} />
 			<TooltipProvider>
@@ -57,54 +39,14 @@ export function FeedItem({ feed }: Props) {
 				</Tooltip>
 			</TooltipProvider>
 			<div className="flex w-[3ch] shrink-0 justify-center">
-				<DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
-					<DropdownMenuTrigger>
-						{isHovering || isDropdownOpen ? (
-							<MoreHorizontal className="h-5 text-muted-foreground" />
-						) : (
-							<span
-								className={cn(
-									'text-muted-foreground tabular-nums',
-									feed.unreadCount === 0 && 'hidden',
-								)}
-							>
-								{feed.unreadCount}
-							</span>
-						)}
-					</DropdownMenuTrigger>
-					<DropdownMenuContent className="w-56">
-						<DropdownMenuItem
-							onClick={(e) => {
-								e.stopPropagation()
-
-								window.open(feed.link)
-							}}
-						>
-							Open in new tab
-							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
-						</DropdownMenuItem>
-						<DropdownMenuItem>
-							Mark all as read
-							<DropdownMenuShortcut>⇧⌘R</DropdownMenuShortcut>
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							onClick={(e) => {
-								e.stopPropagation()
-
-								setUnsubscribeAlertOpen(true)
-							}}
-						>
-							Unsubscribe
-							<DropdownMenuShortcut>⇧⌘O</DropdownMenuShortcut>
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-				<UnsubscribeAlert
-					feed={feed}
-					isOpen={isUnsubscribeAlertOpen}
-					setOpen={setUnsubscribeAlertOpen}
-				/>
+				<span
+					className={cn(
+						'text-muted-foreground tabular-nums',
+						feed.unreadCount === 0 && 'hidden',
+					)}
+				>
+					{feed.unreadCount}
+				</span>
 			</div>
 		</Link>
 	)
