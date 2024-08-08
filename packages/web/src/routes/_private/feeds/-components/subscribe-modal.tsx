@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
 	DialogContent,
@@ -103,7 +104,9 @@ export function SubscribeModal({ close }: Props) {
 					</div>
 					<DialogFooter>
 						<Button disabled={isPending}>
-							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							{isPending && (
+								<Icon className="mr-2 animate-spin" value={Loader2} />
+							)}
 							Submit
 						</Button>
 					</DialogFooter>

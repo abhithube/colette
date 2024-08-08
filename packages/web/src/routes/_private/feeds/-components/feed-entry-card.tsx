@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import {
 	DropdownMenu,
@@ -47,7 +48,7 @@ export function FeedEntryCard({ entry }: Props) {
 					<EntryTitle title={entry.title} link={entry.link} />
 					<DropdownMenu>
 						<DropdownMenuTrigger>
-							<MoreHorizontal className="h-5 text-muted-foreground" />
+							<Icon className="text-muted-foreground" value={MoreHorizontal} />
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56">
 							<DropdownMenuItem

@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import {
@@ -57,7 +58,7 @@ function Component() {
 								<DialogTrigger asChild>
 									<Button className="space-x-2">
 										<span className="text-sm">New</span>
-										<PlusCircle className="h-4 w-4 shrink-0" />
+										<Icon value={PlusCircle} />
 									</Button>
 								</DialogTrigger>
 								<AddBookmarkModal close={() => setBookmarkModalOpen(false)} />
@@ -65,11 +66,11 @@ function Component() {
 						</div>
 						<div className="space-y-1 px-4">
 							<SidebarLink to="/bookmarks" activeOptions={{ exact: true }}>
-								<Home className="h-4 w-4 shrink-0" />
+								<Icon value={Home} />
 								<span className="grow truncate">All Bookmarks</span>
 							</SidebarLink>
 							<SidebarLink to="/bookmarks/stash">
-								<History className="h-4 w-4 shrink-0" />
+								<Icon value={History} />
 								<span className="grow truncate">Stash</span>
 							</SidebarLink>
 						</div>
@@ -82,7 +83,7 @@ function Component() {
 								<Dialog open={isTagModalOpen} onOpenChange={setTagModalOpen}>
 									<DialogTrigger asChild>
 										<Button className="h-8 w-8 justify-center" variant="ghost">
-											<Plus className="h-4 w-4 shrink-0" />
+											<Icon value={Plus} />
 										</Button>
 									</DialogTrigger>
 									<AddTagModal close={() => setTagModalOpen(false)} />

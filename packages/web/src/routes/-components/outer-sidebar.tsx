@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import {
 	Tooltip,
@@ -27,7 +28,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 				<Tooltip>
 					<TooltipTrigger>
 						<SidebarLink to="/">
-							<Home className="h-5 w-5 shrink-0" />
+							<Icon size="lg" value={Home} />
 						</SidebarLink>
 					</TooltipTrigger>
 					<TooltipContent side="right">Home</TooltipContent>
@@ -37,7 +38,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 				<Tooltip>
 					<TooltipTrigger>
 						<SidebarLink to="/feeds" activeOptions={{ exact: false }}>
-							<Rss className="h-5 w-5 shrink-0" />
+							<Icon size="lg" value={Rss} />
 						</SidebarLink>
 					</TooltipTrigger>
 					<TooltipContent side="right">Feed</TooltipContent>
@@ -47,7 +48,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 				<Tooltip>
 					<TooltipTrigger>
 						<SidebarLink to="/bookmarks" activeOptions={{ exact: false }}>
-							<Bookmark className="h-5 w-5 shrink-0" />
+							<Icon size="lg" value={Bookmark} />
 						</SidebarLink>
 					</TooltipTrigger>
 					<TooltipContent side="right">Bookmarks</TooltipContent>
@@ -57,7 +58,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<SidebarButton>
-							<Search className="h-5 w-5 shrink-0" />
+							<Icon size="lg" value={Search} />
 						</SidebarButton>
 					</TooltipTrigger>
 					<TooltipContent side="right">Search</TooltipContent>
@@ -70,7 +71,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 						<TooltipTrigger asChild>
 							<DialogTrigger asChild>
 								<SidebarButton>
-									<User className="h-5 w-5 shrink-0" />
+									<Icon size="lg" value={User} />
 								</SidebarButton>
 							</DialogTrigger>
 						</TooltipTrigger>
@@ -88,7 +89,7 @@ export const OuterSidebar = ({ profile }: Props) => {
 						<TooltipTrigger asChild>
 							<DialogTrigger asChild>
 								<SidebarButton>
-									<Settings className="h-5 w-5 shrink-0" />
+									<Icon size="lg" value={Settings} />
 								</SidebarButton>
 							</DialogTrigger>
 						</TooltipTrigger>

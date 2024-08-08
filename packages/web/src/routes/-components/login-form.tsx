@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
 	Form,
@@ -99,7 +100,7 @@ export const LoginForm = () => {
 					)}
 				/>
 				<Button disabled={isPending}>
-					{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+					{isPending && <Icon className="mr-2 animate-spin" value={Loader2} />}
 					Login
 				</Button>
 			</form>

@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardTitle } from '@/components/ui/card'
@@ -59,7 +60,7 @@ export function ProfileModal({ profile }: Props) {
 										{p.id === profile.id ? (
 											'Active'
 										) : p.id === selected ? (
-											<CheckCircle className="h-4 w-4 shrink-0" />
+											<Icon value={CheckCircle} />
 										) : (
 											''
 										)}
@@ -71,7 +72,7 @@ export function ProfileModal({ profile }: Props) {
 				))}
 				<div className="flex flex-col items-center justify-center space-y-2">
 					<Button variant="outline" className="h-10 w-10 rounded-full">
-						<Plus className="h-4 w-4 shrink-0" />
+						<Icon value={Plus} />
 					</Button>
 					<span className="text-muted-foreground text-sm">Create new</span>
 				</div>

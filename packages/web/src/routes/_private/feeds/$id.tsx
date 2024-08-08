@@ -4,6 +4,7 @@ import {
 	HeaderActionItem,
 	HeaderTitle,
 } from '@/components/header'
+import { Icon } from '@/components/icon'
 import {
 	ensureInfiniteQueryData,
 	getFeedOptions,
@@ -69,16 +70,16 @@ function Component() {
 				<HeaderActionGroup>
 					<HeaderActionItem asChild>
 						<a href={feed.link} target="_blank" rel="noreferrer">
-							<ExternalLink className="h-4 w-4 shrink-0" />
+							<Icon value={ExternalLink} />
 							<span>Open Link</span>
 						</a>
 					</HeaderActionItem>
 					<HeaderActionItem>
-						<Tags className="h-4 w-4 shrink-0" />
+						<Icon value={Tags} />
 						<span>Edit Tags</span>
 					</HeaderActionItem>
 					<HeaderActionItem>
-						<ListChecks className="h-4 w-4 shrink-0" />
+						<Icon value={ListChecks} />
 						<span>Mark as Read</span>
 					</HeaderActionItem>
 					<HeaderActionItem
@@ -89,7 +90,7 @@ function Component() {
 							setUnsubscribeAlertOpen(true)
 						}}
 					>
-						<CircleX className="h-4 w-4 shrink-0" />
+						<Icon value={CircleX} />
 						<span>Unsubscribe</span>
 					</HeaderActionItem>
 				</HeaderActionGroup>

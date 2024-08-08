@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import {
@@ -64,8 +65,8 @@ function Component() {
 							<Dialog open={isFeedModalOpen} onOpenChange={setFeedModalOpen}>
 								<DialogTrigger asChild>
 									<Button className="space-x-2">
+										<Icon value={PlusCircle} />
 										<span className="text-sm">New</span>
-										<PlusCircle className="h-4 w-4 shrink-0" />
 									</Button>
 								</DialogTrigger>
 								<SubscribeModal close={() => setFeedModalOpen(false)} />
@@ -73,11 +74,11 @@ function Component() {
 						</div>
 						<div className="space-y-1 px-4">
 							<SidebarLink to="/feeds" activeOptions={{ exact: true }}>
-								<Home className="h-4 w-4 shrink-0" />
+								<Icon value={Home} />
 								<span className="grow truncate">All Feeds</span>
 							</SidebarLink>
 							<SidebarLink to="/feeds/archived">
-								<History className="h-4 w-4 shrink-0" />
+								<Icon value={History} />
 								<span className="grow truncate">Archived</span>
 							</SidebarLink>
 						</div>
@@ -107,7 +108,7 @@ function Component() {
 								<Dialog open={isTagModalOpen} onOpenChange={setTagModalOpen}>
 									<DialogTrigger asChild>
 										<Button className="h-8 w-8 justify-center" variant="ghost">
-											<Plus className="h-4 w-4 shrink-0" />
+											<Icon value={Plus} />
 										</Button>
 									</DialogTrigger>
 									<AddTagModal close={() => setTagModalOpen(false)} />
