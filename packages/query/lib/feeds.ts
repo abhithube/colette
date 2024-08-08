@@ -2,6 +2,7 @@ import type {
 	API,
 	Feed,
 	FeedCreate,
+	FeedUpdate,
 	File,
 	ListFeedsQuery,
 } from '@colette/openapi'
@@ -37,6 +38,19 @@ export const createFeedOptions = (
 		...options,
 		mutationFn: (body) => api.feeds.create(body),
 	} as UseMutationOptions<Feed, Error, FeedCreate>
+}
+
+export const updateFeedOptions = (
+	options: Omit<
+		UseMutationOptions<Feed, Error, { id: string; body: FeedUpdate }>,
+		'mutationFn'
+	>,
+	api: API,
+) => {
+	return {
+		...options,
+		mutationFn: ({ id, body }) => api.feeds.update(id, body),
+	} as UseMutationOptions<Feed, Error, { id: string; body: FeedUpdate }>
 }
 
 export const deleteFeedOptions = (

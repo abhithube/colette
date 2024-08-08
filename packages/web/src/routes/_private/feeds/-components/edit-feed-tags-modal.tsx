@@ -15,7 +15,7 @@ import {
 	FormLabel,
 } from '@/components/ui/form'
 import type { Feed } from '@colette/openapi'
-import { listTagsOptions } from '@colette/query'
+import { listTagsOptions, updateFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
@@ -45,17 +45,18 @@ export function EditFeedTagsModal({ feed, close }: Props) {
 		resolver: zodResolver(formSchema),
 	})
 
-	const { mutateAsync: createFeed, isPending } = useMutation({
-		mutationFn: async (values: z.infer<typeof formSchema>) =>
-			context.api.feeds.update(feed.id, {
-				tags: values.tags.map((title) => ({ title })),
-			}),
-		onSuccess: async (data) => {
-			await context.queryClient.setQueryData(['feeds', feed.id], data)
+	const { mutateAsync: updateFeed, isPending } = useMutation(
+		updateFeedOptions(
+			{
+				onSuccess: async (data) => {
+					await context.queryClient.setQueryData(['feeds', feed.id], data)
 
-			close()
-		},
-	})
+					close()
+				},
+			},
+			context.api,
+		),
+	)
 
 	useEffect(() => {
 		form.reset({
@@ -68,7 +69,16 @@ export function EditFeedTagsModal({ feed, close }: Props) {
 	return (
 		<DialogContent>
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => createFeed(data))}>
+				<form
+					onSubmit={form.handleSubmit((data) =>
+						updateFeed({
+							id: feed.id,
+							body: {
+								tags: data.tags.map((title) => ({ title })),
+							},
+						}),
+					)}
+				>
 					<DialogHeader>
 						<DialogTitle>Edit {feed.title} Tags</DialogTitle>
 						<DialogDescription>Edit a feed's tags.</DialogDescription>
