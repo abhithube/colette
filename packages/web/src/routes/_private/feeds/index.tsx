@@ -1,3 +1,4 @@
+import { Header, HeaderTitle } from '@/components/header'
 import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -38,9 +39,9 @@ function Component() {
 
 	return (
 		<>
-			<header className="sticky top-0 w-full bg-background p-8">
-				<h1 className="font-medium text-3xl">All Feeds</h1>
-			</header>
+			<Header>
+				<HeaderTitle>All Feeds</HeaderTitle>
+			</Header>
 			<main className="pb-8">
 				<FeedEntryGrid
 					entries={entries.pages.flatMap((page) => page.data)}

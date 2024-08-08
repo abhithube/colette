@@ -1,3 +1,4 @@
+import { Header, HeaderTitle } from '@/components/header'
 import {
 	ensureInfiniteQueryData,
 	getFeedOptions,
@@ -54,9 +55,9 @@ function Component() {
 
 	return (
 		<>
-			<header className="sticky top-0 w-full bg-background p-8">
-				<h1 className="truncate font-medium text-3xl">{feed.title}</h1>
-			</header>
+			<Header>
+				<HeaderTitle>{feed.title}</HeaderTitle>
+			</Header>
 			<main className="pb-8">
 				<FeedEntryGrid
 					entries={entries.pages.flatMap((page) => page.data)}

@@ -1,3 +1,4 @@
+import { Header, HeaderTitle } from '@/components/header'
 import { ensureInfiniteQueryData, listBookmarksOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -34,9 +35,9 @@ function Component() {
 
 	return (
 		<>
-			<header className="sticky top-0 w-full bg-background p-8">
-				<h1 className="truncate font-medium text-3xl">All Bookmarks</h1>
-			</header>
+			<Header>
+				<HeaderTitle>All Bookmarks</HeaderTitle>
+			</Header>
 			<main className="pb-8">
 				<BookmarkGrid
 					bookmarks={bookmarks.pages.flatMap((page) => page.data)}
