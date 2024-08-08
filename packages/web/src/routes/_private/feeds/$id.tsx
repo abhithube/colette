@@ -12,8 +12,9 @@ import {
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleX, ExternalLink, ListChecks, Tags } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FeedEntryGrid } from './-components/feed-entry-grid'
+import { UnsubscribeAlert } from './-components/unsubscribe-alert'
 
 export const Route = createFileRoute('/_private/feeds/$id')({
 	loader: async ({ context, params }) => {
@@ -52,6 +53,8 @@ function Component() {
 		fetchNextPage,
 	} = useInfiniteQuery(entryOptions)
 
+	const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		window.scrollTo(0, 0)
@@ -78,7 +81,14 @@ function Component() {
 						<ListChecks className="h-4 w-4 shrink-0" />
 						<span>Mark as Read</span>
 					</HeaderActionItem>
-					<HeaderActionItem variant="destructive">
+					<HeaderActionItem
+						variant="destructive"
+						onClick={(e) => {
+							e.stopPropagation()
+
+							setUnsubscribeAlertOpen(true)
+						}}
+					>
 						<CircleX className="h-4 w-4 shrink-0" />
 						<span>Unsubscribe</span>
 					</HeaderActionItem>
@@ -91,6 +101,11 @@ function Component() {
 					loadMore={fetchNextPage}
 				/>
 			</main>
+			<UnsubscribeAlert
+				feed={feed}
+				isOpen={isUnsubscribeAlertOpen}
+				setOpen={setUnsubscribeAlertOpen}
+			/>
 		</>
 	)
 }
