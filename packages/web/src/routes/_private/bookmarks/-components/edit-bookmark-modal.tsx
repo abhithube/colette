@@ -1,5 +1,4 @@
 import { Icon } from '@/components/icon'
-import { MultiSelect } from '@/components/multi-select'
 import { Button } from '@/components/ui/button'
 import {
 	DialogContent,
@@ -15,6 +14,14 @@ import {
 	FormItem,
 	FormLabel,
 } from '@/components/ui/form'
+import {
+	MultiSelect,
+	MultiSelectContent,
+	MultiSelectItem,
+	MultiSelectList,
+	MultiSelectTrigger,
+	MultiSelectValue,
+} from '@/components/ui/multi-select'
 import type { Bookmark } from '@colette/openapi'
 import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -87,15 +94,24 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
 								<FormItem className="flex flex-col">
 									<FormLabel>Tags</FormLabel>
 									<MultiSelect
-										options={tags.data.map(({ title }) => ({
-											value: title,
-											label: title,
-										}))}
-										value={field.value}
-										onChange={(value) => {
+										onValueChange={(value) => {
 											form.setValue('tags', value)
 										}}
-									/>
+										{...field}
+									>
+										<MultiSelectTrigger>
+											<MultiSelectValue placeholder="Select tags..." />
+										</MultiSelectTrigger>
+										<MultiSelectContent>
+											<MultiSelectList>
+												{tags.data.map((tag) => (
+													<MultiSelectItem key={tag.id} value={tag.title}>
+														{tag.title}
+													</MultiSelectItem>
+												))}
+											</MultiSelectList>
+										</MultiSelectContent>
+									</MultiSelect>
 									<FormDescription>Tags to add to the bookmark</FormDescription>
 								</FormItem>
 							)}
