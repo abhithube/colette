@@ -47,7 +47,7 @@ export function FeedEntryCard({ entry }: Props) {
 					<EntryTitle title={entry.title} link={entry.link} />
 					<DropdownMenu>
 						<DropdownMenuTrigger>
-							<MoreHorizontal className="h-5 text-muted-foreground hover:text-primary" />
+							<MoreHorizontal className="h-5 text-muted-foreground" />
 						</DropdownMenuTrigger>
 						<DropdownMenuContent className="w-56">
 							<DropdownMenuItem

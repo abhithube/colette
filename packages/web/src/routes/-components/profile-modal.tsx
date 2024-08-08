@@ -44,7 +44,7 @@ export function ProfileModal({ profile }: Props) {
 						<Card
 							className={cn(
 								'w-28 cursor-pointer p-4',
-								selected === p.id && 'border-secondary',
+								selected === p.id && 'border-primary',
 							)}
 							onClick={() => setSelected(p.id)}
 						>
@@ -59,7 +59,7 @@ export function ProfileModal({ profile }: Props) {
 										{p.id === profile.id ? (
 											'Active'
 										) : p.id === selected ? (
-											<CheckCircle className="h-4 w-4 shrink-0 text-secondary" />
+											<CheckCircle className="h-4 w-4 shrink-0" />
 										) : (
 											''
 										)}

@@ -17,9 +17,9 @@ export function TagItem({ tag, type }: Props) {
 	return (
 		<Link
 			key={tag.id}
-			className="group flex w-full items-center justify-between space-x-4 rounded-md px-4 py-2 font-medium text-primary text-sm"
+			className="group flex w-full items-center justify-between space-x-4 rounded-md px-4 py-2 font-medium text-sm"
 			activeProps={{
-				className: 'bg-muted active text-secondary',
+				className: 'bg-muted active',
 			}}
 			inactiveProps={{
 				className: 'hover:bg-muted/50',
@@ -35,11 +35,7 @@ export function TagItem({ tag, type }: Props) {
 					<TooltipTrigger asChild>
 						<>
 							<span className="grow truncate">{tag.title}</span>
-							<span
-								className={cn(
-									'text-muted-foreground tabular-nums group-[.active]:text-secondary',
-								)}
-							>
+							<span className={cn('text-muted-foreground tabular-nums')}>
 								{type === 'bookmark' ? tag.bookmarkCount : tag.feedCount}
 							</span>
 						</>

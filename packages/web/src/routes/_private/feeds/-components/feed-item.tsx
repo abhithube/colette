@@ -32,9 +32,9 @@ export function FeedItem({ feed }: Props) {
 	return (
 		<Link
 			key={feed.id}
-			className="group flex w-full items-center justify-between space-x-4 rounded-md px-4 py-2 font-medium text-primary text-sm"
+			className="group flex w-full items-center justify-between space-x-4 rounded-md px-4 py-2 font-medium text-sm"
 			activeProps={{
-				className: 'bg-muted active text-secondary',
+				className: 'bg-muted active',
 			}}
 			inactiveProps={{
 				className: 'hover:bg-muted/50',
@@ -60,11 +60,11 @@ export function FeedItem({ feed }: Props) {
 				<DropdownMenu open={isDropdownOpen} onOpenChange={setDropdownOpen}>
 					<DropdownMenuTrigger>
 						{isHovering || isDropdownOpen ? (
-							<MoreHorizontal className="h-5 text-muted-foreground hover:text-primary" />
+							<MoreHorizontal className="h-5 text-muted-foreground" />
 						) : (
 							<span
 								className={cn(
-									'text-muted-foreground tabular-nums group-[.active]:text-secondary',
+									'text-muted-foreground tabular-nums',
 									feed.unreadCount === 0 && 'hidden',
 								)}
 							>
