@@ -77,6 +77,7 @@ export function EditFeedModal({ feed, close }: Props) {
 		<DialogContent>
 			<Form {...form}>
 				<form
+					className="space-y-4"
 					onSubmit={form.handleSubmit((data) =>
 						updateFeed({
 							id: feed.id,
@@ -90,37 +91,35 @@ export function EditFeedModal({ feed, close }: Props) {
 						<DialogTitle>Edit {feed.title}</DialogTitle>
 						<DialogDescription>Edit a feed's data.</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col space-y-4 py-4">
-						<FormField
-							control={form.control}
-							name="tags"
-							render={({ field }) => (
-								<FormItem className="flex flex-col">
-									<FormLabel>Tags</FormLabel>
-									<MultiSelect
-										onValueChange={(value) => {
-											form.setValue('tags', value)
-										}}
-										{...field}
-									>
-										<MultiSelectTrigger>
-											<MultiSelectValue placeholder="Select tags..." />
-										</MultiSelectTrigger>
-										<MultiSelectContent>
-											<MultiSelectList>
-												{tags.data.map((tag) => (
-													<MultiSelectItem key={tag.id} value={tag.title}>
-														{tag.title}
-													</MultiSelectItem>
-												))}
-											</MultiSelectList>
-										</MultiSelectContent>
-									</MultiSelect>
-									<FormDescription>Tags to add to the feed</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="tags"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Tags</FormLabel>
+								<MultiSelect
+									onValueChange={(value) => {
+										form.setValue('tags', value)
+									}}
+									{...field}
+								>
+									<MultiSelectTrigger>
+										<MultiSelectValue placeholder="Select tags..." />
+									</MultiSelectTrigger>
+									<MultiSelectContent>
+										<MultiSelectList>
+											{tags.data.map((tag) => (
+												<MultiSelectItem key={tag.id} value={tag.title}>
+													{tag.title}
+												</MultiSelectItem>
+											))}
+										</MultiSelectList>
+									</MultiSelectContent>
+								</MultiSelect>
+								<FormDescription>Tags to add to the feed</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (

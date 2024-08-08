@@ -73,6 +73,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
 		<DialogContent>
 			<Form {...form}>
 				<form
+					className="space-y-4"
 					onSubmit={form.handleSubmit((data) =>
 						updateBookmark({
 							id: bookmark.id,
@@ -86,37 +87,35 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
 						<DialogTitle>Edit {bookmark.title}</DialogTitle>
 						<DialogDescription>Edit a bookmark's data.</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col space-y-4 py-4">
-						<FormField
-							control={form.control}
-							name="tags"
-							render={({ field }) => (
-								<FormItem className="flex flex-col">
-									<FormLabel>Tags</FormLabel>
-									<MultiSelect
-										onValueChange={(value) => {
-											form.setValue('tags', value)
-										}}
-										{...field}
-									>
-										<MultiSelectTrigger>
-											<MultiSelectValue placeholder="Select tags..." />
-										</MultiSelectTrigger>
-										<MultiSelectContent>
-											<MultiSelectList>
-												{tags.data.map((tag) => (
-													<MultiSelectItem key={tag.id} value={tag.title}>
-														{tag.title}
-													</MultiSelectItem>
-												))}
-											</MultiSelectList>
-										</MultiSelectContent>
-									</MultiSelect>
-									<FormDescription>Tags to add to the bookmark</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="tags"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Tags</FormLabel>
+								<MultiSelect
+									onValueChange={(value) => {
+										form.setValue('tags', value)
+									}}
+									{...field}
+								>
+									<MultiSelectTrigger>
+										<MultiSelectValue placeholder="Select tags..." />
+									</MultiSelectTrigger>
+									<MultiSelectContent>
+										<MultiSelectList>
+											{tags.data.map((tag) => (
+												<MultiSelectItem key={tag.id} value={tag.title}>
+													{tag.title}
+												</MultiSelectItem>
+											))}
+										</MultiSelectList>
+									</MultiSelectContent>
+								</MultiSelect>
+								<FormDescription>Tags to add to the bookmark</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (

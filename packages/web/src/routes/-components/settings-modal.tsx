@@ -59,6 +59,7 @@ export function SettingsModal({ close }: Props) {
 		<DialogContent>
 			<Form {...form}>
 				<form
+					className="space-y-4"
 					onSubmit={form.handleSubmit(async (data) =>
 						importFeeds({ data: await data.file.text() }),
 					)}
@@ -69,26 +70,22 @@ export function SettingsModal({ close }: Props) {
 							Upload an OPML file to import feeds.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col py-4">
-						<FormField
-							control={form.control}
-							name="file"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>File</FormLabel>
-									<Input
-										type="file"
-										onChange={(ev) =>
-											field.onChange(
-												ev.target.files ? ev.target.files[0] : null,
-											)
-										}
-									/>
-									<FormDescription>OPML file to upload</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="file"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>File</FormLabel>
+								<Input
+									type="file"
+									onChange={(ev) =>
+										field.onChange(ev.target.files ? ev.target.files[0] : null)
+									}
+								/>
+								<FormDescription>OPML file to upload</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (

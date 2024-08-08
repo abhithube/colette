@@ -63,24 +63,25 @@ export function AddBookmarkModal({ close }: Props) {
 	return (
 		<DialogContent>
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => createBookmark(data))}>
+				<form
+					className="space-y-4"
+					onSubmit={form.handleSubmit((data) => createBookmark(data))}
+				>
 					<DialogHeader>
 						<DialogTitle>Add Bookmark</DialogTitle>
 						<DialogDescription>Add a bookmark to the stash.</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col space-y-4 py-4">
-						<FormField
-							control={form.control}
-							name="url"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>URL</FormLabel>
-									<Input {...field} />
-									<FormDescription>URL of the bookmark</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="url"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>URL</FormLabel>
+								<Input {...field} />
+								<FormDescription>URL of the bookmark</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (

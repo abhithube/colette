@@ -82,26 +82,27 @@ export function SubscribeModal({ close }: Props) {
 	return (
 		<DialogContent>
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => createFeed(data))}>
+				<form
+					className="space-y-4"
+					onSubmit={form.handleSubmit((data) => createFeed(data))}
+				>
 					<DialogHeader>
 						<DialogTitle>Add Feed</DialogTitle>
 						<DialogDescription>
 							Subscribe to a RSS or Atom feed and receive the latest updates.
 						</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col py-4">
-						<FormField
-							control={form.control}
-							name="url"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>URL</FormLabel>
-									<Input {...field} />
-									<FormDescription>URL of the RSS or Atom Feed</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="url"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>URL</FormLabel>
+								<Input {...field} />
+								<FormDescription>URL of the RSS or Atom Feed</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (

@@ -63,24 +63,25 @@ export function AddTagModal({ close }: Props) {
 	return (
 		<DialogContent>
 			<Form {...form}>
-				<form onSubmit={form.handleSubmit((data) => createTag(data))}>
+				<form
+					className="space-y-4"
+					onSubmit={form.handleSubmit((data) => createTag(data))}
+				>
 					<DialogHeader>
 						<DialogTitle>Add Tag</DialogTitle>
 						<DialogDescription>Add a tag.</DialogDescription>
 					</DialogHeader>
-					<div className="flex flex-col space-y-4 py-4">
-						<FormField
-							control={form.control}
-							name="title"
-							render={({ field }) => (
-								<FormItem>
-									<FormLabel>Title</FormLabel>
-									<Input {...field} />
-									<FormDescription>Title of the tag</FormDescription>
-								</FormItem>
-							)}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="title"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Title</FormLabel>
+								<Input {...field} />
+								<FormDescription>Title of the tag</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<DialogFooter>
 						<Button disabled={isPending}>
 							{isPending && (
