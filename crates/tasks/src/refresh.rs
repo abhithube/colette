@@ -33,12 +33,15 @@ impl RefreshTask {
         }
     }
 
-    async fn refresh(&self, feed_id: i32, url: String) {
+    async fn refresh(&self, feed_id: i32, url: String) -> Result<(), task::Error> {
         let mut parsed = Url::parse(&url).unwrap();
 
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
-        let feed = self.scraper.scrape(&mut parsed).unwrap();
+        let feed = self
+            .scraper
+            .scrape(&mut parsed)
+            .map_err(|e| task::Error(e.into()))?;
 
         let mut profiles_stream = self.profiles_repo.stream_profiles(feed_id);
 
@@ -50,8 +53,10 @@ impl RefreshTask {
                     profile_id: profile.id,
                 })
                 .await
-                .unwrap();
+                .map_err(|e| task::Error(e.into()))?;
         }
+
+        Ok(())
     }
 }
 
@@ -70,7 +75,9 @@ impl Task for RefreshTask {
                     let _ = semaphore.acquire().await.unwrap();
 
                     if let Ok(feed) = item {
-                        self.refresh(feed.id, feed.url).await
+                        if let Err(e) = self.refresh(feed.id, feed.url).await {
+                            println!("{}", e)
+                        }
                     }
                 }
             })
