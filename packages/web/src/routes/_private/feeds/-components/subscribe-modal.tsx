@@ -79,7 +79,7 @@ export function SubscribeModal({ close }: Props) {
 	)
 
 	return (
-		<DialogContent className="max-w-[400px]">
+		<DialogContent>
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit((data) => createFeed(data))}>
 					<DialogHeader>

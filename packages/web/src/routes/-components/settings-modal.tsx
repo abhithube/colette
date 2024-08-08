@@ -55,7 +55,7 @@ export function SettingsModal({ close }: Props) {
 	)
 
 	return (
-		<DialogContent className="max-w-[425px]">
+		<DialogContent>
 			<Form {...form}>
 				<form
 					onSubmit={form.handleSubmit(async (data) =>

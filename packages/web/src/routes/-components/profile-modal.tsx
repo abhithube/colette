@@ -32,7 +32,7 @@ export function ProfileModal({ profile }: Props) {
 	if (!profiles) return
 
 	return (
-		<DialogContent className="max-w-[425px]">
+		<DialogContent>
 			<DialogHeader>
 				<DialogTitle>Profile</DialogTitle>
 				<DialogDescription>Select a profile</DialogDescription>

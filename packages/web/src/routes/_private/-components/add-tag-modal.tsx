@@ -60,7 +60,7 @@ export function AddTagModal({ close }: Props) {
 	)
 
 	return (
-		<DialogContent className="max-w-[400px]">
+		<DialogContent>
 			<Form {...form}>
 				<form onSubmit={form.handleSubmit((data) => createTag(data))}>
 					<DialogHeader>
