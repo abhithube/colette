@@ -1,0 +1,61 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  f AS (\n    INSERT INTO\n      feeds (link, title, url)\n    VALUES\n      ($2, $3, $4)\n    ON CONFLICT (link) DO\n    UPDATE\n    SET\n      title = excluded.title,\n      url = excluded.url\n    RETURNING\n      id,\n      link,\n      title,\n      url\n  ),\n  pf_insert AS (\n    INSERT INTO\n      profile_feeds (profile_id, feed_id)\n    SELECT\n      $1,\n      f.id\n    FROM\n      f\n    ON CONFLICT (profile_id, feed_id) DO nothing\n    RETURNING\n      id,\n      profile_id,\n      feed_id\n  ),\n  pf AS (\n    SELECT\n      id AS \"id!\",\n      profile_id,\n      feed_id\n    FROM\n      pf_insert\n    UNION ALL\n    SELECT\n      pf.id,\n      pf.profile_id,\n      pf.feed_id\n    FROM\n      profile_feeds pf,\n      f\n    WHERE\n      pf.profile_id = $1\n      AND pf.feed_id = f.id\n  ),\n  e AS (\n    INSERT INTO\n      entries (\n        link,\n        title,\n        published_at,\n        description,\n        author,\n        thumbnail_url\n      )\n    SELECT\n      *\n    FROM\n      unnest(\n        $5::TEXT[],\n        $6::TEXT[],\n        $7::TIMESTAMPTZ[],\n        $8::TEXT[],\n        $9::TEXT[],\n        $10::TEXT[]\n      )\n    ON CONFLICT (link) DO\n    UPDATE\n    SET\n      title = excluded.title,\n      published_at = excluded.published_at,\n      description = excluded.description,\n      author = excluded.author,\n      thumbnail_url = excluded.thumbnail_url\n    RETURNING\n      id\n  ),\n  fe_insert AS (\n    INSERT INTO\n      feed_entries (feed_id, entry_id)\n    SELECT\n      f.id,\n      e.id\n    FROM\n      f,\n      e\n    ON CONFLICT (feed_id, entry_id) DO nothing\n    RETURNING\n      id\n  ),\n  fe AS (\n    SELECT\n      id\n    FROM\n      fe_insert\n    UNION ALL\n    SELECT\n      fe.id\n    FROM\n      feed_entries fe,\n      f,\n      e\n    WHERE\n      fe.feed_id = f.id\n      AND fe.entry_id IN (\n        SELECT\n          id\n        FROM\n          e\n      )\n  ),\n  pfe AS (\n    INSERT INTO\n      profile_feed_entries (profile_feed_id, feed_entry_id, profile_id)\n    SELECT\n      pf.\"id!\",\n      fe.id,\n      pf.profile_id\n    FROM\n      pf,\n      fe\n    ON CONFLICT (profile_feed_id, feed_entry_id) DO nothing\n    RETURNING\n      id\n  )\nSELECT\n  pf.\"id!\",\n  f.link,\n  f.title,\n  f.url,\n  coalesce(\n    array_agg(\n      DISTINCT ROW (t.id, t.title, NULL::int8, NULL::int8)\n    ) FILTER (\n      WHERE\n        t.id IS NOT NULL\n    ),\n    ARRAY[]::record[]\n  ) AS \"tags!: Vec<Tag>\",\n  count(pfe.id) AS unread_count\nFROM\n  pf\n  INNER JOIN f ON f.id = pf.feed_id\n  LEFT JOIN profile_feed_tags AS pft ON pft.profile_feed_id = pf.\"id!\"\n  LEFT JOIN tags AS t ON pft.tag_id = t.id\n  LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.\"id!\"\n  AND pfe.has_read = FALSE\nGROUP BY\n  pf.\"id!\",\n  f.link,\n  f.title,\n  f.url;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "tags!: Vec<Tag>",
+        "type_info": "RecordArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "TimestamptzArray",
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "16d9d3f19274aa2b89cc96a7d49267e3172ea7b8af2e6fa3e88221ab2b8371cc"
+}

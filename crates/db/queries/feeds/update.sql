@@ -99,7 +99,9 @@ SELECT
   pf.title,
   pf.url,
   coalesce(
-    array_agg(ROW (t.id, t.title, NULL::int8, NULL::int8)) FILTER (
+    array_agg(
+      DISTINCT ROW (t.id, t.title, NULL::int8, NULL::int8)
+    ) FILTER (
       WHERE
         t.id IS NOT NULL
     ),
