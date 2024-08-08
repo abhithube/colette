@@ -7,7 +7,14 @@ import {
 	UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
-import type { Feed, FeedCreate, FeedList, File, ListFeedsQuery } from './types'
+import type {
+	Feed,
+	FeedCreate,
+	FeedList,
+	FeedUpdate,
+	File,
+	ListFeedsQuery,
+} from './types'
 
 export class FeedsAPI {
 	constructor(private client: Client) {}
@@ -66,6 +73,34 @@ export class FeedsAPI {
 			}
 			if (res.response.status === 502) {
 				throw new BadGatewayError(res.error.message)
+			}
+
+			throw new APIError(res.error.message)
+		}
+
+		return res.data
+	}
+
+	async update(
+		id: string,
+		body: FeedUpdate,
+		options?: Omit<FetchOptions<operations['updateFeed']>, 'params' | 'body'>,
+	): Promise<Feed> {
+		const res = await this.client.PATCH('/feeds/{id}', {
+			params: {
+				path: {
+					id,
+				},
+			},
+			body,
+			...options,
+		})
+		if (res.error) {
+			if (res.response.status === 404) {
+				throw new NotFoundError(res.error.message)
+			}
+			if (res.response.status === 422) {
+				throw new UnprocessableContentError(res.error.message)
 			}
 
 			throw new APIError(res.error.message)

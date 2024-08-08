@@ -25,6 +25,7 @@ export type TagCreate = schemas['TagCreate']
 
 export type BookmarkUpdate = schemas['BookmarkUpdate']
 export type EntryUpdate = schemas['EntryUpdate']
+export type FeedUpdate = schemas['FeedUpdate']
 export type ProfileUpdate = schemas['ProfileUpdate']
 export type TagUpdate = schemas['TagUpdate']
 
