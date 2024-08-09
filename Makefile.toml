@@ -47,6 +47,11 @@ install_crate = "sqlx-cli"
 command = "sqlx"
 args = ["db", "reset"]
 
+[tasks.orm-reset]
+install_crate = "sea-orm-cli"
+command = "sea-orm-cli"
+args = ["migrate", "fresh", "-d", "./crates/migrations"]
+
 [tasks.db-prepare]
 install_crate = "sqlx-cli"
 cwd = "./crates/postgres"

@@ -1,0 +1,16 @@
+[package]
+name = "colette-migrations"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "migrations"
+path = "src/lib.rs"
+
+[dependencies]
+async-std = { version = "1", features = ["attributes", "tokio1"] }
+sea-orm-migration = { version = "~1.0", default-features = false, features = [
+  "cli",
+  "runtime-tokio",
+  "sqlx-postgres",
+] }
