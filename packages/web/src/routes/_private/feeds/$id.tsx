@@ -69,7 +69,7 @@ function Component() {
 	return (
 		<>
 			<Header>
-				<HeaderTitle>{feed.title}</HeaderTitle>
+				<HeaderTitle>{feed.title ?? feed.originalTitle}</HeaderTitle>
 				<HeaderActionGroup>
 					<HeaderActionItem asChild>
 						<a href={feed.link} target="_blank" rel="noreferrer">

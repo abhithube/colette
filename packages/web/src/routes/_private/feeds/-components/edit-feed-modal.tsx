@@ -14,6 +14,7 @@ import {
 	FormItem,
 	FormLabel,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
 	MultiSelect,
 	MultiSelectContent,
@@ -33,6 +34,7 @@ import { z } from 'zod'
 import { Route } from '../../../_private'
 
 const formSchema = z.object({
+	title: z.string().min(1),
 	tags: z.string().array(),
 })
 
@@ -88,9 +90,20 @@ export function EditFeedModal({ feed, close }: Props) {
 					)}
 				>
 					<DialogHeader>
-						<DialogTitle>Edit {feed.title}</DialogTitle>
+						<DialogTitle>Edit {feed.title ?? feed.originalTitle}</DialogTitle>
 						<DialogDescription>Edit a feed's data.</DialogDescription>
 					</DialogHeader>
+					<FormField
+						control={form.control}
+						name="title"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Title</FormLabel>
+								<Input {...field} />
+								<FormDescription>Custom title</FormDescription>
+							</FormItem>
+						)}
+					/>
 					<FormField
 						control={form.control}
 						name="tags"

@@ -366,7 +366,8 @@ export interface components {
             id: string;
             /** Format: uri */
             link: string;
-            title: string;
+            title: string | null;
+            originalTitle: string;
             /** Format: uri */
             url: string | null;
             tags?: components["schemas"]["Tag"][];

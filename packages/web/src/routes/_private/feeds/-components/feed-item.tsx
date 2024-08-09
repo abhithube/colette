@@ -25,9 +25,9 @@ export function FeedItem({ feed }: Props) {
 			<TooltipProvider>
 				<Tooltip>
 					<TooltipTrigger className="grow truncate text-left">
-						{feed.title}
+						{feed.title ?? feed.originalTitle}
 					</TooltipTrigger>
-					<TooltipContent>{feed.title}</TooltipContent>
+					<TooltipContent>{feed.title ?? feed.originalTitle}</TooltipContent>
 				</Tooltip>
 			</TooltipProvider>
 			<div className="flex w-[3ch] shrink-0 justify-center">
