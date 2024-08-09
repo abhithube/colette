@@ -1,7 +1,7 @@
 WITH
   u AS (
     INSERT INTO
-      users (email, password)
+      "user" (email, password)
     VALUES
       ($1, $2)
     RETURNING
@@ -11,7 +11,7 @@ WITH
   ),
   p AS (
     INSERT INTO
-      profiles (title, is_default, user_id)
+      profile (title, is_default, user_id)
     SELECT
       'Default',
       TRUE,

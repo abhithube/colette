@@ -9,9 +9,9 @@ SELECT
   pfe.has_read,
   pfe.profile_feed_id AS feed_id
 FROM
-  profile_feed_entries AS pfe
-  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
-  INNER JOIN entries AS e ON e.id = fe.entry_id
+  profile_feed_entry AS pfe
+  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id
+  INNER JOIN entry AS e ON e.id = fe.entry_id
 WHERE
   pfe.profile_id = $1
   AND (
@@ -32,7 +32,7 @@ WHERE
       SELECT DISTINCT
         profile_feed_id
       FROM
-        profile_feed_tags
+        profile_feed_tag
       WHERE
         tag_id = ANY ($6)
     )

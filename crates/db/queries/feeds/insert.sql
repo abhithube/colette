@@ -1,7 +1,7 @@
 WITH
   f AS (
     INSERT INTO
-      feeds (link, title, url)
+      feed (link, title, url)
     VALUES
       ($2, $3, $4)
     ON CONFLICT (link) DO
@@ -17,7 +17,7 @@ WITH
   ),
   pf_insert AS (
     INSERT INTO
-      profile_feeds (profile_id, feed_id)
+      profile_feed (profile_id, feed_id)
     SELECT
       $1,
       f.id
@@ -45,7 +45,7 @@ WITH
       pf.profile_id,
       pf.feed_id
     FROM
-      profile_feeds pf,
+      profile_feed pf,
       f
     WHERE
       pf.profile_id = $1
@@ -53,7 +53,7 @@ WITH
   ),
   e AS (
     INSERT INTO
-      entries (
+      entry (
         link,
         title,
         published_at,
@@ -85,7 +85,7 @@ WITH
   ),
   fe_insert AS (
     INSERT INTO
-      feed_entries (feed_id, entry_id)
+      feed_entry (feed_id, entry_id)
     SELECT
       f.id,
       e.id
@@ -105,7 +105,7 @@ WITH
     SELECT
       fe.id
     FROM
-      feed_entries fe,
+      feed_entry fe,
       f,
       e
     WHERE
@@ -119,7 +119,7 @@ WITH
   ),
   pfe AS (
     INSERT INTO
-      profile_feed_entries (profile_feed_id, feed_entry_id, profile_id)
+      profile_feed_entry (profile_feed_id, feed_entry_id, profile_id)
     SELECT
       pf."id!",
       fe.id,
@@ -137,8 +137,8 @@ WITH
       t.title,
       pft.profile_feed_id
     FROM
-      profile_feed_tags AS pft
-      INNER JOIN tags AS t ON t.id = pft.tag_id
+      profile_feed_tag AS pft
+      INNER JOIN tag AS t ON t.id = pft.tag_id
     ORDER BY
       t.title ASC
   )
@@ -171,7 +171,7 @@ FROM
   pf
   INNER JOIN f ON f.id = pf.feed_id
   LEFT JOIN pft ON pft.profile_feed_id = pf."id!"
-  LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf."id!"
+  LEFT JOIN profile_feed_entry AS pfe ON pfe.profile_feed_id = pf."id!"
   AND pfe.has_read = FALSE
 GROUP BY
   pf."id!",

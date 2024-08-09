@@ -5,8 +5,8 @@ WITH
       t.title,
       pft.profile_feed_id
     FROM
-      profile_feed_tags AS pft
-      INNER JOIN tags AS t ON t.id = pft.tag_id
+      profile_feed_tag AS pft
+      INNER JOIN tag AS t ON t.id = pft.tag_id
     ORDER BY
       t.title ASC
   )
@@ -36,10 +36,10 @@ SELECT
   ) AS "tags!: Json<Vec<Tag>>",
   count(pfe.id) AS unread_count
 FROM
-  profile_feeds AS pf
-  INNER JOIN feeds AS f ON f.id = pf.feed_id
+  profile_feed AS pf
+  INNER JOIN feed AS f ON f.id = pf.feed_id
   LEFT JOIN pft ON pft.profile_feed_id = pf.id
-  LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.id
+  LEFT JOIN profile_feed_entry AS pfe ON pfe.profile_feed_id = pf.id
   AND pfe.has_read = FALSE
 WHERE
   pf.id = $1

@@ -9,15 +9,15 @@ WITH
       b.author,
       pb.profile_id
     FROM
-      profile_bookmarks AS pb
-      INNER JOIN bookmarks AS b ON b.id = pb.bookmark_id
+      profile_bookmark AS pb
+      INNER JOIN bookmark AS b ON b.id = pb.bookmark_id
     WHERE
       pb.id = $1
       AND pb.profile_id = $2
   ),
   t_insert AS (
     INSERT INTO
-      tags (title, profile_id)
+      tag (title, profile_id)
     SELECT
       unnest($3::TEXT[]),
       pb.profile_id
@@ -39,7 +39,7 @@ WITH
       t.id,
       t.title
     FROM
-      tags t,
+      tag t,
       pb
     WHERE
       t.title = ANY ($3::TEXT[])
@@ -47,7 +47,7 @@ WITH
   ),
   pbt_insert AS (
     INSERT INTO
-      profile_bookmark_tags (profile_bookmark_id, tag_id, profile_id)
+      profile_bookmark_tag (profile_bookmark_id, tag_id, profile_id)
     SELECT
       pb.id,
       t.id,
@@ -61,7 +61,7 @@ WITH
       tag_id
   ),
   pbt_delete AS (
-    DELETE FROM profile_bookmark_tags USING pb,
+    DELETE FROM profile_bookmark_tag USING pb,
     t
     WHERE
       profile_bookmark_id = pb.id
@@ -83,7 +83,7 @@ WITH
       pbt.profile_bookmark_id,
       pbt.tag_id
     FROM
-      profile_bookmark_tags pbt,
+      profile_bookmark_tag pbt,
       pb
     WHERE
       pbt.profile_bookmark_id = pb.id

@@ -4,15 +4,15 @@ WITH
       id,
       is_default
     FROM
-      profiles
+      profile
     WHERE
       id = $1
       AND user_id = $2
   ),
   p_delete AS (
-    DELETE FROM profiles USING p
+    DELETE FROM profile USING p
     WHERE
-      profiles.id = p.id
+      profile.id = p.id
       AND NOT p.is_default
   )
 SELECT

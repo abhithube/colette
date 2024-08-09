@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  u AS (\n    INSERT INTO\n      \"user\" (email, password)\n    VALUES\n      ($1, $2)\n    RETURNING\n      id,\n      email,\n      password\n  ),\n  p AS (\n    INSERT INTO\n      profile (title, is_default, user_id)\n    SELECT\n      'Default',\n      TRUE,\n      u.id\n    FROM\n      u\n  )\nSELECT\n  u.id,\n  u.email,\n  u.password\nFROM\n  u;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "password",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "bd5ce6a3d5b35bf4190f6db164beac4d12983652da0bd148ea2b9dba66ff5864"
+}

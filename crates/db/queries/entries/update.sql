@@ -1,6 +1,6 @@
 WITH
   pfe AS (
-    UPDATE profile_feed_entries AS pfe
+    UPDATE profile_feed_entry AS pfe
     SET
       has_read = coalesce($3, pfe.has_read)
     WHERE
@@ -24,5 +24,5 @@ SELECT
   pfe.profile_feed_id feed_id
 FROM
   pfe
-  INNER JOIN feed_entries AS fe ON fe.id = pfe.feed_entry_id
-  INNER JOIN entries AS e ON e.id = fe.entry_id;
+  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id
+  INNER JOIN entry AS e ON e.id = fe.entry_id;

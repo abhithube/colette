@@ -5,7 +5,7 @@ SELECT
   is_default,
   user_id
 FROM
-  profiles
+  profile
 WHERE
   user_id = $1
   AND is_default;

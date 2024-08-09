@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entry AS pfe\n  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entry AS e ON e.id = fe.entry_id\nWHERE\n  pfe.id = $1\n  AND pfe.profile_id = $2;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "has_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 8,
+        "name": "feed_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "bfa18ba115362c4aa338c652040703f55ebe59a9eaf2405b127f8ee92ef1691a"
+}

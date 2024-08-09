@@ -1,7 +1,7 @@
 WITH
   b AS (
     INSERT INTO
-      bookmarks (link, title, thumbnail_url, published_at, author)
+      bookmark (link, title, thumbnail_url, published_at, author)
     VALUES
       ($1, $2, $3, $4, $5)
     ON CONFLICT (link) DO
@@ -21,7 +21,7 @@ WITH
   ),
   pb_insert AS (
     INSERT INTO
-      profile_bookmarks (profile_id, bookmark_id)
+      profile_bookmark (profile_id, bookmark_id)
     SELECT
       $6,
       b.id
@@ -46,7 +46,7 @@ WITH
       pb.profile_id,
       pb.bookmark_id
     FROM
-      profile_bookmarks pb,
+      profile_bookmark pb,
       b
     WHERE
       pb.profile_id = $6
@@ -58,8 +58,8 @@ WITH
       t.title,
       pbt.profile_bookmark_id
     FROM
-      profile_bookmark_tags AS pbt
-      INNER JOIN tags AS t ON t.id = pbt.tag_id
+      profile_bookmark_tag AS pbt
+      INNER JOIN tag AS t ON t.id = pbt.tag_id
     ORDER BY
       t.title ASC
   )

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  p AS (\n    SELECT\n      id,\n      is_default\n    FROM\n      profile\n    WHERE\n      id = $1\n      AND user_id = $2\n  ),\n  p_delete AS (\n    DELETE FROM profile USING p\n    WHERE\n      profile.id = p.id\n      AND NOT p.is_default\n  )\nSELECT\n  p.is_default\nFROM\n  p;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "is_default",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "9497831c252913977a25b1b29deddb58cc334b6762765edf12feb93e06c28bd9"
+}

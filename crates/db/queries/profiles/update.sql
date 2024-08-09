@@ -1,4 +1,4 @@
-UPDATE profiles AS p
+UPDATE profile AS p
 SET
   title = coalesce($3, p.title),
   image_url = coalesce($4, p.image_url)

@@ -3,6 +3,6 @@ SELECT
   email,
   password
 FROM
-  users
+  "user"
 WHERE
   id = $1;

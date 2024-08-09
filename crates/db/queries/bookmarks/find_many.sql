@@ -5,8 +5,8 @@ WITH
       t.title,
       pbt.profile_bookmark_id
     FROM
-      profile_bookmark_tags AS pbt
-      INNER JOIN tags AS t ON t.id = pbt.tag_id
+      profile_bookmark_tag AS pbt
+      INNER JOIN tag AS t ON t.id = pbt.tag_id
     ORDER BY
       t.title ASC
   )
@@ -36,8 +36,8 @@ SELECT
     '[]'
   ) AS "tags!: Json<Vec<Tag>>"
 FROM
-  profile_bookmarks AS pb
-  INNER JOIN bookmarks AS b ON b.id = pb.bookmark_id
+  profile_bookmark AS pb
+  INNER JOIN bookmark AS b ON b.id = pb.bookmark_id
   LEFT JOIN pbt ON pbt.profile_bookmark_id = pb.id
 WHERE
   pb.profile_id = $1
@@ -47,7 +47,7 @@ WHERE
       SELECT DISTINCT
         profile_bookmark_id
       FROM
-        profile_bookmark_tags
+        profile_bookmark_tag
       WHERE
         tag_id = ANY ($3)
     )

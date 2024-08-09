@@ -9,9 +9,9 @@ WITH
       f.url,
       count(pfe.id) AS unread_count
     FROM
-      profile_feeds AS pf
-      INNER JOIN feeds AS f ON f.id = pf.feed_id
-      LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf.id
+      profile_feed AS pf
+      INNER JOIN feed AS f ON f.id = pf.feed_id
+      LEFT JOIN profile_feed_entry AS pfe ON pfe.profile_feed_id = pf.id
       AND pfe.has_read = FALSE
     WHERE
       pf.id = $1
@@ -24,7 +24,7 @@ WITH
   ),
   t_insert AS (
     INSERT INTO
-      tags (title, profile_id)
+      tag (title, profile_id)
     SELECT
       unnest($3::TEXT[]),
       pf.profile_id
@@ -46,7 +46,7 @@ WITH
       t.id,
       t.title
     FROM
-      tags t,
+      tag t,
       pf
     WHERE
       t.title = ANY ($3::TEXT[])
@@ -54,7 +54,7 @@ WITH
   ),
   pft_insert AS (
     INSERT INTO
-      profile_feed_tags (profile_feed_id, tag_id, profile_id)
+      profile_feed_tag (profile_feed_id, tag_id, profile_id)
     SELECT
       pf.id,
       t.id,
@@ -68,7 +68,7 @@ WITH
       tag_id
   ),
   pft_delete AS (
-    DELETE FROM profile_feed_tags USING pf
+    DELETE FROM profile_feed_tag USING pf
     WHERE
       profile_feed_id = pf.id
       AND tag_id NOT IN (
@@ -89,7 +89,7 @@ WITH
       pft.profile_feed_id,
       pft.tag_id
     FROM
-      profile_feed_tags pft,
+      profile_feed_tag pft,
       pf
     WHERE
       pft.profile_feed_id = pf.id
