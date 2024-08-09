@@ -813,6 +813,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-entities"
+version = "0.1.0"
+dependencies = [
+ "sea-orm",
+]
+
+[[package]]
 name = "colette-migrations"
 version = "0.1.0"
 dependencies = [
@@ -3506,6 +3513,7 @@ checksum = "f9d4ec1cdd8bdd3553d3c946079f58efa33fedc477f32603652652abcef96fe6"
 dependencies = [
  "async-stream",
  "async-trait",
+ "chrono",
  "futures",
  "log",
  "ouroboros",
@@ -3518,6 +3526,7 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
+ "uuid",
 ]
 
 [[package]]
@@ -3574,10 +3583,12 @@ version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7e5073b2cfed767511a57d18115f3b3d8bcb5690bf8c89518caec6cb22c0cd74"
 dependencies = [
+ "chrono",
  "educe",
  "inherent",
  "ordered-float",
  "sea-query-derive",
+ "uuid",
 ]
 
 [[package]]
@@ -3586,8 +3597,10 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "754965d4aee6145bec25d0898e5c931e6c22859789ce62fd85a42a15ed5a8ce3"
 dependencies = [
+ "chrono",
  "sea-query",
  "sqlx",
+ "uuid",
 ]
 
 [[package]]
@@ -4008,6 +4021,7 @@ dependencies = [
  "atoi",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -4089,6 +4103,7 @@ dependencies = [
  "bitflags 2.6.0",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "digest",
  "dotenvy",
@@ -4132,6 +4147,7 @@ dependencies = [
  "base64 0.21.7",
  "bitflags 2.6.0",
  "byteorder",
+ "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -4169,6 +4185,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b244ef0a8414da0bed4bb1910426e890b19e5e9bccc27ada6b797d05c55ae0aa"
 dependencies = [
  "atoi",
+ "chrono",
  "flume",
  "futures-channel",
  "futures-core",

@@ -5,6 +5,7 @@ members = [
   "crates/config",
   "crates/core",
   "crates/db",
+  "crates/entities",
   "crates/migrations",
   "crates/password",
   "crates/plugins",
@@ -41,6 +42,12 @@ lazy-regex = { version = "3", default-features = false, features = [
   "perf",
 ] }
 quick-xml = { version = "0.36", features = ["overlapped-lists", "serialize"] }
+sea-orm = { version = "~1.0", default-features = false, features = [
+  "macros",
+  "sqlx-postgres",
+  "with-chrono",
+  "with-uuid",
+] }
 serde = { version = "1", default-features = false }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1", default-features = false, features = [
