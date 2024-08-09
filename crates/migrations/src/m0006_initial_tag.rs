@@ -84,10 +84,13 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(ProfileBookmarkTag::Table)
                     .if_not_exists()
-                    .col(uuid(ProfileBookmarkTag::BookmarkId))
+                    .col(uuid(ProfileBookmarkTag::ProfileBookmarkId))
                     .foreign_key(
                         ForeignKey::create()
-                            .from(ProfileBookmarkTag::Table, ProfileBookmarkTag::BookmarkId)
+                            .from(
+                                ProfileBookmarkTag::Table,
+                                ProfileBookmarkTag::ProfileBookmarkId,
+                            )
                             .to(ProfileBookmark::Table, ProfileBookmark::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
@@ -100,7 +103,7 @@ impl MigrationTrait for Migration {
                     )
                     .primary_key(
                         Index::create()
-                            .col(ProfileBookmarkTag::BookmarkId)
+                            .col(ProfileBookmarkTag::ProfileBookmarkId)
                             .col(ProfileBookmarkTag::TagId),
                     )
                     .col(uuid(ProfileBookmarkTag::ProfileId))
@@ -171,7 +174,7 @@ pub enum ProfileFeedTag {
 #[derive(DeriveIden)]
 pub enum ProfileBookmarkTag {
     Table,
-    BookmarkId,
+    ProfileBookmarkId,
     TagId,
     ProfileId,
     CreatedAt,

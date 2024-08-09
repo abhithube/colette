@@ -6,7 +6,7 @@ use sea_orm::entity::prelude::*;
 #[sea_orm(table_name = "profile_bookmark_tag")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
-    pub bookmark_id: Uuid,
+    pub profile_bookmark_id: Uuid,
     #[sea_orm(primary_key, auto_increment = false)]
     pub tag_id: Uuid,
     pub profile_id: Uuid,
@@ -26,7 +26,7 @@ pub enum Relation {
     Profile,
     #[sea_orm(
         belongs_to = "super::profile_bookmark::Entity",
-        from = "Column::BookmarkId",
+        from = "Column::ProfileBookmarkId",
         to = "super::profile_bookmark::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
