@@ -26,12 +26,14 @@ WITH
     ON CONFLICT (profile_id, feed_id) DO nothing
     RETURNING
       id,
+      title,
       profile_id,
       feed_id
   ),
   pf AS (
     SELECT
       id AS "id!",
+      title,
       profile_id,
       feed_id
     FROM
@@ -39,6 +41,7 @@ WITH
     UNION ALL
     SELECT
       pf.id,
+      pf.title,
       pf.profile_id,
       pf.feed_id
     FROM
@@ -131,7 +134,8 @@ WITH
 SELECT
   pf."id!",
   f.link,
-  f.title,
+  pf.title,
+  f.title AS original_title,
   f.url,
   coalesce(
     array_agg(
@@ -152,6 +156,7 @@ FROM
   AND pfe.has_read = FALSE
 GROUP BY
   pf."id!",
+  pf.title,
   f.link,
   f.title,
   f.url;

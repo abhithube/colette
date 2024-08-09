@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS profile_feeds (
   id UUID NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  title text,
   profile_id UUID NOT NULL REFERENCES profiles (id) ON DELETE cascade,
   feed_id int NOT NULL REFERENCES feeds (id) ON DELETE restrict,
   UNIQUE (profile_id, feed_id)

@@ -1,7 +1,8 @@
 SELECT
   pf.id,
   f.link,
-  f.title,
+  pf.title,
+  f.title AS original_title,
   f.url,
   coalesce(
     array_agg(

@@ -1,7 +1,8 @@
 SELECT
   pf.id,
   f.link,
-  f.title,
+  pf.title,
+  f.title AS original_title,
   f.url,
   coalesce(
     array_agg(
@@ -39,4 +40,5 @@ GROUP BY
   f.title,
   f.url
 ORDER BY
+  pf.title ASC,
   f.title ASC;

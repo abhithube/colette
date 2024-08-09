@@ -22,7 +22,8 @@ use crate::{
 pub struct Feed {
     pub id: Uuid,
     pub link: String,
-    pub title: String,
+    pub title: Option<String>,
+    pub original_title: String,
     pub url: Option<String>,
     pub tags: Vec<Tag>,
     pub unread_count: Option<i64>,
@@ -281,7 +282,7 @@ impl FeedsService {
             .into_iter()
             .filter_map(|e| {
                 Some(BackupFeed {
-                    title: e.title,
+                    title: e.title.unwrap_or(e.original_title),
                     xml_url: e.url.and_then(|e| Url::parse(&e).ok())?,
                     html_url: Url::parse(&e.link).ok(),
                 })

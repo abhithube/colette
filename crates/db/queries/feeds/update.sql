@@ -4,7 +4,8 @@ WITH
       pf.id,
       pf.profile_id,
       f.link,
-      f.title,
+      pf.title,
+      f.title AS original_title,
       f.url,
       count(pfe.id) AS unread_count
     FROM
@@ -97,6 +98,7 @@ SELECT
   pf.id,
   pf.link,
   pf.title,
+  pf.original_title,
   pf.url,
   coalesce(
     array_agg(
@@ -116,5 +118,6 @@ GROUP BY
   pf.id,
   pf.link,
   pf.title,
+  pf.original_title,
   pf.url,
   pf.unread_count;

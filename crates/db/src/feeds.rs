@@ -164,7 +164,8 @@ impl FeedsRepository for PostgresRepository {
 struct Feed {
     id: Uuid,
     link: String,
-    title: String,
+    title: Option<String>,
+    original_title: String,
     url: Option<String>,
     tags: Vec<Tag>,
     unread_count: Option<i64>,
@@ -176,6 +177,7 @@ impl From<Feed> for colette_core::Feed {
             id: value.id,
             link: value.link,
             title: value.title,
+            original_title: value.original_title,
             url: value.url,
             tags: value
                 .tags
