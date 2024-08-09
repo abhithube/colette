@@ -37,6 +37,19 @@ impl MigrationTrait for Migration {
             .await?;
 
         manager
+            .create_index(
+                Index::create()
+                    .name("tag_profile_id_title_idx")
+                    .table(Tag::Table)
+                    .if_not_exists()
+                    .col(Tag::ProfileId)
+                    .col(Tag::Title)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
             .create_table(
                 Table::create()
                     .table(ProfileFeedTag::Table)
