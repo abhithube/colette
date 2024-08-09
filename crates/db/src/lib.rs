@@ -1,7 +1,6 @@
 use sqlx::PgPool;
 
 mod bookmarks;
-mod common;
 mod entries;
 mod feeds;
 mod profiles;

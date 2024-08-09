@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     common::FindOneParams,
     feeds::{
@@ -6,10 +7,9 @@ use colette_core::{
 };
 use futures::{stream::BoxStream, StreamExt};
 use sqlx::types::Json;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::{common::convert_chrono_to_time, tags::Tag, PostgresRepository};
+use crate::{tags::Tag, PostgresRepository};
 
 #[async_trait::async_trait]
 impl FeedsRepository for PostgresRepository {
@@ -59,7 +59,7 @@ impl FeedsRepository for PostgresRepository {
             .feed
             .entries
             .iter()
-            .map(|entry| entry.published.map(convert_chrono_to_time))
+            .map(|entry| entry.published)
             .collect::<Vec<_>>();
         let descriptions = data
             .feed
@@ -95,7 +95,7 @@ impl FeedsRepository for PostgresRepository {
             url,
             &links as &[&str],
             &titles as &[&str],
-            &published_dates as &[Option<OffsetDateTime>],
+            &published_dates as &[Option<DateTime<Utc>>],
             &descriptions as &[Option<&str>],
             &authors as &[Option<&str>],
             &thumbnails as &[Option<&str>]

@@ -1,14 +1,11 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     common::FindOneParams,
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
 };
-use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::{
-    common::{convert_chrono_to_time, convert_time_to_chrono},
-    PostgresRepository,
-};
+use crate::PostgresRepository;
 
 #[async_trait::async_trait]
 impl EntriesRepository for PostgresRepository {
@@ -21,7 +18,7 @@ impl EntriesRepository for PostgresRepository {
             "queries/entries/find_many.sql",
             params.profile_id,
             params.limit,
-            params.published_at.map(convert_chrono_to_time),
+            params.published_at,
             params.feed_id,
             params.has_read,
             params.tags.as_deref()
@@ -75,7 +72,7 @@ pub struct Entry {
     pub id: Uuid,
     pub link: String,
     pub title: String,
-    pub published_at: Option<OffsetDateTime>,
+    pub published_at: Option<DateTime<Utc>>,
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,
@@ -89,7 +86,7 @@ impl From<Entry> for colette_core::Entry {
             id: value.id,
             link: value.link,
             title: value.title,
-            published_at: value.published_at.map(convert_time_to_chrono),
+            published_at: value.published_at,
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url,

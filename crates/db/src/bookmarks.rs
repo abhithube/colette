@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     bookmarks::{
         BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
@@ -6,14 +7,9 @@ use colette_core::{
     common::FindOneParams,
 };
 use sqlx::types::Json;
-use time::OffsetDateTime;
 use uuid::Uuid;
 
-use crate::{
-    common::{convert_chrono_to_time, convert_time_to_chrono},
-    tags::Tag,
-    PostgresRepository,
-};
+use crate::{tags::Tag, PostgresRepository};
 
 #[async_trait::async_trait]
 impl BookmarksRepository for PostgresRepository {
@@ -63,7 +59,7 @@ impl BookmarksRepository for PostgresRepository {
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
-            data.bookmark.published.map(convert_chrono_to_time),
+            data.bookmark.published,
             data.bookmark.author,
             data.profile_id
         )
@@ -118,7 +114,7 @@ struct Bookmark {
     link: String,
     title: String,
     thumbnail_url: Option<String>,
-    published_at: Option<OffsetDateTime>,
+    published_at: Option<DateTime<Utc>>,
     author: Option<String>,
     tags: Json<Vec<Tag>>,
 }
@@ -130,7 +126,7 @@ impl From<Bookmark> for colette_core::Bookmark {
             link: value.link,
             title: value.title,
             thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at.map(convert_time_to_chrono),
+            published_at: value.published_at,
             author: value.author,
             tags: value
                 .tags
