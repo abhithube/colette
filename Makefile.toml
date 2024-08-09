@@ -55,7 +55,7 @@ args = ["migrate", "fresh", "-d", "./crates/migrations"]
 [tasks.orm-generate]
 install_crate = "sea-orm-cli"
 command = "sea-orm-cli"
-args = ["generate", "entity", "-o", "./crates/entities/src", "-l"]
+args = ["generate", "entity", "-o", "./crates/entities/src/generated"]
 
 [tasks.db-prepare]
 install_crate = "sqlx-cli"
