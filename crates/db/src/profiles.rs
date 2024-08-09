@@ -5,7 +5,11 @@ use colette_core::{
     },
     Profile,
 };
+use colette_entities::profile;
 use futures::{stream::BoxStream, StreamExt};
+use sea_orm::{
+    ColumnTrait, EntityTrait, ModelTrait, QueryFilter, TransactionError, TransactionTrait,
+};
 
 use crate::PostgresRepository;
 
@@ -83,20 +87,35 @@ impl ProfilesRepository for PostgresRepository {
     }
 
     async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
-        let is_default =
-            sqlx::query_file_scalar!("queries/profiles/delete.sql", params.id, params.user_id)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                    _ => Error::Unknown(e.into()),
-                })?;
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(profile) = profile::Entity::find_by_id(params.id)
+                        .filter(profile::Column::UserId.eq(params.user_id))
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
 
-        if is_default {
-            return Err(Error::DeletingDefault);
-        }
+                    if profile.is_default {
+                        return Err(Error::DeletingDefault);
+                    }
 
-        Ok(())
+                    profile
+                        .delete(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     fn stream_profiles(&self, feed_id: i32) -> BoxStream<Result<StreamProfile, Error>> {

@@ -6,6 +6,8 @@ use colette_core::{
     },
     common::FindOneParams,
 };
+use colette_entities::profile_bookmark;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use sqlx::types::Json;
 use uuid::Uuid;
 
@@ -94,13 +96,13 @@ impl BookmarksRepository for PostgresRepository {
     }
 
     async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error> {
-        let result =
-            sqlx::query_file!("queries/bookmarks/delete.sql", params.id, params.profile_id)
-                .execute(&self.pool)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+        let result = profile_bookmark::Entity::delete_by_id(params.id)
+            .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
+            .exec(&self.db)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        if result.rows_affected() == 0 {
+        if result.rows_affected == 0 {
             return Err(Error::NotFound(params.id));
         }
 

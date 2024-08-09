@@ -1,3 +1,4 @@
+use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
 use sqlx::PgPool;
 
 mod bookmarks;
@@ -9,11 +10,15 @@ mod users;
 
 pub struct PostgresRepository {
     pub(crate) pool: PgPool,
+    pub(crate) db: DatabaseConnection,
 }
 
 impl PostgresRepository {
     pub fn new(pool: PgPool) -> Self {
-        Self { pool }
+        Self {
+            pool: pool.clone(),
+            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
+        }
     }
 }
 

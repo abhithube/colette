@@ -2,6 +2,8 @@ use colette_core::{
     common::FindOneParams,
     tags::{Error, TagType, TagsCreateData, TagsFindManyParams, TagsRepository, TagsUpdateData},
 };
+use colette_entities::tag;
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use uuid::Uuid;
 
 use crate::PostgresRepository;
@@ -90,12 +92,13 @@ impl TagsRepository for PostgresRepository {
     }
 
     async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = sqlx::query_file!("queries/tags/delete.sql", params.id, params.profile_id)
-            .execute(&self.pool)
+        let result = tag::Entity::delete_by_id(params.id)
+            .filter(tag::Column::ProfileId.eq(params.profile_id))
+            .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if result.rows_affected() == 0 {
+        if result.rows_affected == 0 {
             return Err(Error::NotFound(params.id));
         }
 

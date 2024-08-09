@@ -7,7 +7,9 @@ edition = "2021"
 async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
+colette-entities.workspace = true
 futures.workspace = true
+sea-orm.workspace = true
 serde.workspace = true
 sqlx = { version = "0.7", default-features = false, features = [
   "json",

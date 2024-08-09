@@ -5,7 +5,9 @@ use colette_core::{
         Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
 };
+use colette_entities::profile_feed;
 use futures::{stream::BoxStream, StreamExt};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use sqlx::types::Json;
 use uuid::Uuid;
 
@@ -131,12 +133,13 @@ impl FeedsRepository for PostgresRepository {
     }
 
     async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = sqlx::query_file!("queries/feeds/delete.sql", params.id, params.profile_id)
-            .execute(&self.pool)
+        let result = profile_feed::Entity::delete_by_id(params.id)
+            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+            .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if result.rows_affected() == 0 {
+        if result.rows_affected == 0 {
             return Err(Error::NotFound(params.id));
         }
 
