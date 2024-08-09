@@ -101,14 +101,23 @@ SELECT
   pf.original_title,
   pf.url,
   coalesce(
-    array_agg(
-      DISTINCT ROW (t.id, t.title, NULL::int8, NULL::int8)
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id',
+        t.id,
+        'title',
+        t.title,
+        'bookmark_count',
+        NULL::int8,
+        'feed_count',
+        NULL::int8
+      )
     ) FILTER (
       WHERE
         t.id IS NOT NULL
     ),
-    ARRAY[]::record[]
-  ) AS "tags!: Vec<Tag>",
+    '[]'
+  ) AS "tags!: Json<Vec<Tag>>",
   pf.unread_count
 FROM
   pf

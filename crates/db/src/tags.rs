@@ -103,7 +103,7 @@ impl TagsRepository for PostgresRepository {
     }
 }
 
-#[derive(Clone, Debug, sqlx::Type)]
+#[derive(Clone, Debug, serde::Deserialize)]
 pub(crate) struct Tag {
     id: Uuid,
     title: String,

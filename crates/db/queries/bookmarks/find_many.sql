@@ -1,3 +1,15 @@
+WITH
+  pbt AS (
+    SELECT
+      t.id,
+      t.title,
+      pbt.profile_bookmark_id
+    FROM
+      profile_bookmark_tags AS pbt
+      INNER JOIN tags AS t ON t.id = pbt.tag_id
+    ORDER BY
+      t.title ASC
+  )
 SELECT
   pb.id,
   b.link,
@@ -6,17 +18,27 @@ SELECT
   b.published_at,
   b.author,
   coalesce(
-    array_agg(ROW (t.id, t.title, NULL::int8, NULL::int8)) FILTER (
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id',
+        pbt.id,
+        'title',
+        pbt.title,
+        'bookmark_count',
+        NULL::int8,
+        'feed_count',
+        NULL::int8
+      )
+    ) FILTER (
       WHERE
-        t.id IS NOT NULL
+        pbt.id IS NOT NULL
     ),
-    ARRAY[]::record[]
-  ) AS "tags!: Vec<Tag>"
+    '[]'
+  ) AS "tags!: Json<Vec<Tag>>"
 FROM
   profile_bookmarks AS pb
   INNER JOIN bookmarks AS b ON b.id = pb.bookmark_id
-  LEFT JOIN profile_bookmark_tags AS pbt ON pbt.profile_bookmark_id = pb.id
-  LEFT JOIN tags AS t ON pbt.tag_id = t.id
+  LEFT JOIN pbt ON pbt.profile_bookmark_id = pb.id
 WHERE
   pb.profile_id = $1
   AND (

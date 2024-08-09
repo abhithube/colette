@@ -96,12 +96,23 @@ SELECT
   pb.published_at,
   pb.author,
   coalesce(
-    array_agg(ROW (t.id, t.title, NULL::int8, NULL::int8)) FILTER (
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id',
+        t.id,
+        'title',
+        t.title,
+        'bookmark_count',
+        NULL::int8,
+        'feed_count',
+        NULL::int8
+      )
+    ) FILTER (
       WHERE
         t.id IS NOT NULL
     ),
-    ARRAY[]::record[]
-  ) AS "tags!: Vec<Tag>"
+    '[]'
+  ) AS "tags!: Json<Vec<Tag>>"
 FROM
   pb
   LEFT JOIN pbt ON pbt.profile_bookmark_id = pb.id

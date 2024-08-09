@@ -130,6 +130,17 @@ WITH
     ON CONFLICT (profile_feed_id, feed_entry_id) DO nothing
     RETURNING
       id
+  ),
+  pft AS (
+    SELECT
+      t.id,
+      t.title,
+      pft.profile_feed_id
+    FROM
+      profile_feed_tags AS pft
+      INNER JOIN tags AS t ON t.id = pft.tag_id
+    ORDER BY
+      t.title ASC
   )
 SELECT
   pf."id!",
@@ -138,20 +149,28 @@ SELECT
   f.title AS original_title,
   f.url,
   coalesce(
-    array_agg(
-      DISTINCT ROW (t.id, t.title, NULL::int8, NULL::int8)
+    json_agg(
+      DISTINCT jsonb_build_object(
+        'id',
+        pft.id,
+        'title',
+        pft.title,
+        'bookmark_count',
+        NULL::int8,
+        'feed_count',
+        NULL::int8
+      )
     ) FILTER (
       WHERE
-        t.id IS NOT NULL
+        pft.id IS NOT NULL
     ),
-    ARRAY[]::record[]
-  ) AS "tags!: Vec<Tag>",
+    '[]'
+  ) AS "tags!: Json<Vec<Tag>>",
   count(pfe.id) AS unread_count
 FROM
   pf
   INNER JOIN f ON f.id = pf.feed_id
-  LEFT JOIN profile_feed_tags AS pft ON pft.profile_feed_id = pf."id!"
-  LEFT JOIN tags AS t ON pft.tag_id = t.id
+  LEFT JOIN pft ON pft.profile_feed_id = pf."id!"
   LEFT JOIN profile_feed_entries AS pfe ON pfe.profile_feed_id = pf."id!"
   AND pfe.has_read = FALSE
 GROUP BY

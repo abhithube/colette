@@ -5,6 +5,7 @@ use colette_core::{
     },
     common::FindOneParams,
 };
+use sqlx::types::Json;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -119,7 +120,7 @@ struct Bookmark {
     thumbnail_url: Option<String>,
     published_at: Option<OffsetDateTime>,
     author: Option<String>,
-    tags: Vec<Tag>,
+    tags: Json<Vec<Tag>>,
 }
 
 impl From<Bookmark> for colette_core::Bookmark {
@@ -133,6 +134,7 @@ impl From<Bookmark> for colette_core::Bookmark {
             author: value.author,
             tags: value
                 .tags
+                .0
                 .into_iter()
                 .map(colette_core::Tag::from)
                 .collect(),

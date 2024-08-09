@@ -510,6 +510,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "futures",
+ "serde",
  "sqlx",
  "time",
  "uuid",

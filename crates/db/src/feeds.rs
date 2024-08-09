@@ -5,6 +5,7 @@ use colette_core::{
     },
 };
 use futures::{stream::BoxStream, StreamExt};
+use sqlx::types::Json;
 use time::OffsetDateTime;
 use uuid::Uuid;
 
@@ -167,7 +168,7 @@ struct Feed {
     title: Option<String>,
     original_title: String,
     url: Option<String>,
-    tags: Vec<Tag>,
+    tags: Json<Vec<Tag>>,
     unread_count: Option<i64>,
 }
 
@@ -181,6 +182,7 @@ impl From<Feed> for colette_core::Feed {
             url: value.url,
             tags: value
                 .tags
+                .0
                 .into_iter()
                 .map(colette_core::Tag::from)
                 .collect(),
