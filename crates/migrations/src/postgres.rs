@@ -7,7 +7,11 @@ pub async fn create_updated_at_fn<'a>(manager: &'a SchemaManager<'a>) -> Result<
             "
      CREATE OR REPLACE FUNCTION handle_updated_at() RETURNS trigger AS $$
       BEGIN
-            NEW.updated_at = CURRENT_TIMESTAMP;
+            IF (OLD.* IS DISTINCT FROM NEW.*) THEN
+                NEW.updated_at = CURRENT_TIMESTAMP;
+            ELSE
+                NEW.updated_at = OLD.updated_at;
+            END IF;
             RETURN NEW;
         END;
 $$ LANGUAGE plpgsql",
@@ -17,7 +21,7 @@ $$ LANGUAGE plpgsql",
 
 pub async fn create_updated_at_trigger<'a>(
     manager: &'a SchemaManager<'a>,
-    table_name: &str,
+    table: &str,
 ) -> Result<ExecResult, DbErr> {
     manager
         .get_connection()
@@ -27,7 +31,7 @@ pub async fn create_updated_at_trigger<'a>(
  BEFORE UPDATE ON \"{table}\"
     FOR EACH ROW
 EXECUTE FUNCTION handle_updated_at()",
-            table = table_name,
+            table = table,
         ))
         .await
 }
