@@ -3,26 +3,14 @@
 pub mod prelude;
 
 pub mod bookmark;
-pub mod bookmarks;
-pub mod entries;
 pub mod entry;
 pub mod feed;
-pub mod feed_entries;
 pub mod feed_entry;
-pub mod feeds;
 pub mod profile;
 pub mod profile_bookmark;
 pub mod profile_bookmark_tag;
-pub mod profile_bookmark_tags;
-pub mod profile_bookmarks;
 pub mod profile_feed;
-pub mod profile_feed_entries;
 pub mod profile_feed_entry;
 pub mod profile_feed_tag;
-pub mod profile_feed_tags;
-pub mod profile_feeds;
-pub mod profiles;
 pub mod tag;
-pub mod tags;
 pub mod user;
-pub mod users;
