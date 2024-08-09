@@ -17,7 +17,7 @@ impl TagsRepository for PostgresRepository {
         match params.tag_type {
             TagType::All => {
                 sqlx::query_file_as!(Tag, "queries/tags/find_many.sql", params.profile_id)
-                    .fetch_all(&self.pool)
+                    .fetch_all(self.db.get_postgres_connection_pool())
                     .await
             }
             TagType::Bookmarks => {
@@ -26,7 +26,7 @@ impl TagsRepository for PostgresRepository {
                     "queries/tags/find_many_profile_bookmark_tags.sql",
                     params.profile_id
                 )
-                .fetch_all(&self.pool)
+                .fetch_all(self.db.get_postgres_connection_pool())
                 .await
             }
             TagType::Feeds => {
@@ -35,7 +35,7 @@ impl TagsRepository for PostgresRepository {
                     "queries/tags/find_many_profile_feed_tags.sql",
                     params.profile_id
                 )
-                .fetch_all(&self.pool)
+                .fetch_all(self.db.get_postgres_connection_pool())
                 .await
             }
         }
@@ -50,7 +50,7 @@ impl TagsRepository for PostgresRepository {
             params.id,
             params.profile_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Tag::from)
         .map_err(|e| match e {
@@ -67,7 +67,7 @@ impl TagsRepository for PostgresRepository {
             data.title,
             data.profile_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Tag::from)
         .map_err(|e| match e {
@@ -88,7 +88,7 @@ impl TagsRepository for PostgresRepository {
             params.profile_id,
             data.title
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Tag::from)
         .map_err(|e| match e {

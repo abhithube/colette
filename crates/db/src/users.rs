@@ -12,7 +12,7 @@ impl UsersRepository for PostgresRepository {
         match params {
             UsersFindOneParams::Id(id) => {
                 sqlx::query_file_as!(User, "queries/users/find_one.sql", id)
-                    .fetch_one(&self.pool)
+                    .fetch_one(self.db.get_postgres_connection_pool())
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
@@ -21,7 +21,7 @@ impl UsersRepository for PostgresRepository {
             }
             UsersFindOneParams::Email(email) => {
                 sqlx::query_file_as!(User, "queries/users/find_by_email.sql", email)
-                    .fetch_one(&self.pool)
+                    .fetch_one(self.db.get_postgres_connection_pool())
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
@@ -40,7 +40,7 @@ impl UsersRepository for PostgresRepository {
             data.password,
             Uuid::new_v4(),
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.email),

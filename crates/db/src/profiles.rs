@@ -21,7 +21,7 @@ impl ProfilesRepository for PostgresRepository {
         params: ProfilesFindManyParams,
     ) -> Result<Vec<Profile>, Error> {
         sqlx::query_file_as!(Profile, "queries/profiles/find_many.sql", params.user_id,)
-            .fetch_all(&self.pool)
+            .fetch_all(self.db.get_postgres_connection_pool())
             .await
             .map_err(|e| Error::Unknown(e.into()))
     }
@@ -34,7 +34,7 @@ impl ProfilesRepository for PostgresRepository {
                 params.id,
                 params.user_id
             )
-            .fetch_one(&self.pool)
+            .fetch_one(self.db.get_postgres_connection_pool())
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -42,7 +42,7 @@ impl ProfilesRepository for PostgresRepository {
             }),
             ProfilesFindOneParams::Default { user_id } => {
                 sqlx::query_file_as!(Profile, "queries/profiles/find_default.sql", user_id)
-                    .fetch_one(&self.pool)
+                    .fetch_one(self.db.get_postgres_connection_pool())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))
             }
@@ -59,7 +59,7 @@ impl ProfilesRepository for PostgresRepository {
             false,
             data.user_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
@@ -80,7 +80,7 @@ impl ProfilesRepository for PostgresRepository {
             data.title,
             data.image_url
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map_err(|e| match e {
             sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -123,7 +123,7 @@ impl ProfilesRepository for PostgresRepository {
     fn stream_profiles(&self, feed_id: i32) -> BoxStream<Result<StreamProfile, Error>> {
         Box::pin(
             sqlx::query_file_as!(StreamProfile, "queries/profiles/stream.sql", feed_id)
-                .fetch(&self.pool)
+                .fetch(self.db.get_postgres_connection_pool())
                 .map(|e| e.map_err(|e| Error::Unknown(e.into()))),
         )
     }

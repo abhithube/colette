@@ -23,7 +23,7 @@ impl EntriesRepository for PostgresRepository {
             params.has_read,
             params.tags.as_deref()
         )
-        .fetch_all(&self.pool)
+        .fetch_all(self.db.get_postgres_connection_pool())
         .await
         .map(|e| e.into_iter().map(colette_core::Entry::from).collect())
         .map_err(|e| Error::Unknown(e.into()))
@@ -36,7 +36,7 @@ impl EntriesRepository for PostgresRepository {
             params.id,
             params.profile_id,
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Entry::from)
         .map_err(|e| match e {
@@ -57,7 +57,7 @@ impl EntriesRepository for PostgresRepository {
             params.profile_id,
             data.has_read
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Entry::from)
         .map_err(|e| match e {

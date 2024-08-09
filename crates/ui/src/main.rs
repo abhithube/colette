@@ -27,11 +27,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let app_config = colette_config::load_config()?;
 
-    let pool = colette_db::initialize(&app_config.database_url).await?;
+    let db = colette_db::initialize(&app_config.database_url).await?;
 
-    let repository = Arc::new(PostgresRepository::new(pool.clone()));
+    let repository = Arc::new(PostgresRepository::new(db.clone()));
 
-    let session_store = PostgresStore::new(pool.clone());
+    let session_store = PostgresStore::new(db.get_postgres_connection_pool().clone());
     session_store.migrate().await?;
 
     let deletion_task = tokio::task::spawn(

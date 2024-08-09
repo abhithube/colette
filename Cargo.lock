@@ -806,6 +806,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "colette-entities",
+ "colette-migrations",
  "futures",
  "sea-orm",
  "serde",

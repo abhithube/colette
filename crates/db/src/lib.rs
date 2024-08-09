@@ -1,5 +1,5 @@
-use sea_orm::{DatabaseConnection, SqlxPostgresConnector};
-use sqlx::PgPool;
+use migrations::{Migrator, MigratorTrait};
+use sea_orm::{Database, DatabaseConnection, DbErr};
 
 mod bookmarks;
 mod entries;
@@ -9,23 +9,19 @@ mod tags;
 mod users;
 
 pub struct PostgresRepository {
-    pub(crate) pool: PgPool,
     pub(crate) db: DatabaseConnection,
 }
 
 impl PostgresRepository {
-    pub fn new(pool: PgPool) -> Self {
-        Self {
-            pool: pool.clone(),
-            db: SqlxPostgresConnector::from_sqlx_postgres_pool(pool),
-        }
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
-pub async fn initialize(url: &str) -> Result<PgPool, sqlx::Error> {
-    let pool = PgPool::connect(url).await?;
+pub async fn initialize(url: &str) -> Result<DatabaseConnection, DbErr> {
+    let db = Database::connect(url).await?;
 
-    sqlx::migrate!("../../migrations").run(&pool).await?;
+    Migrator::up(&db, None).await?;
 
-    Ok(pool)
+    Ok(db)
 }

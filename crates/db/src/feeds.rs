@@ -25,7 +25,7 @@ impl FeedsRepository for PostgresRepository {
             params.profile_id,
             params.tags.as_deref()
         )
-        .fetch_all(&self.pool)
+        .fetch_all(self.db.get_postgres_connection_pool())
         .await
         .map(|e| e.into_iter().map(colette_core::Feed::from).collect())
         .map_err(|e| Error::Unknown(e.into()))
@@ -38,7 +38,7 @@ impl FeedsRepository for PostgresRepository {
             params.id,
             params.profile_id
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Feed::from)
         .map_err(|e| Error::Unknown(e.into()))
@@ -103,7 +103,7 @@ impl FeedsRepository for PostgresRepository {
             &authors as &[Option<&str>],
             &thumbnails as &[Option<&str>]
         )
-        .fetch_one(&self.pool)
+        .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Feed::from)
         .map_err(|e| Error::Unknown(e.into()))
@@ -122,7 +122,7 @@ impl FeedsRepository for PostgresRepository {
                 params.profile_id,
                 &tags
             )
-            .fetch_one(&self.pool)
+            .fetch_one(self.db.get_postgres_connection_pool())
             .await
             .map(colette_core::Feed::from)
             .map_err(|e| match e {
@@ -150,14 +150,14 @@ impl FeedsRepository for PostgresRepository {
     fn stream_feeds(&self) -> BoxStream<Result<StreamFeed, Error>> {
         Box::pin(
             sqlx::query_file_as!(StreamFeed, "queries/feeds/stream.sql")
-                .fetch(&self.pool)
+                .fetch(self.db.get_postgres_connection_pool())
                 .map(|e| e.map_err(|e| Error::Unknown(e.into()))),
         )
     }
 
     async fn cleanup_feeds(&self) -> Result<(), Error> {
         sqlx::query_file!("queries/feeds/cleanup.sql")
-            .execute(&self.pool)
+            .execute(self.db.get_postgres_connection_pool())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
