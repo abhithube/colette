@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  tag (title, profile_id)\nVALUES\n  ($1, $2)\nRETURNING\n  id,\n  title,\n  0 AS \"bookmark_count: i64\",\n  0 AS \"feed_count: i64\";",
+  "query": "INSERT INTO\n  tag (id, title, profile_id)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id,\n  title,\n  0 AS \"bookmark_count: i64\",\n  0 AS \"feed_count: i64\";",
   "describe": {
     "columns": [
       {
@@ -26,6 +26,7 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
         "Text",
         "Uuid"
       ]
@@ -37,5 +38,5 @@
       null
     ]
   },
-  "hash": "f469741384ab8a2e46e4dd8a095c5129b9b90807d79b8973139cc5aeb07c3abb"
+  "hash": "6c945d26b3cb8955e1a142f547829cd875b7c4b1117a708e1f5a9e173eae3338"
 }

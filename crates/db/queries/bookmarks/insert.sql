@@ -3,7 +3,7 @@ WITH
     INSERT INTO
       bookmark (link, title, thumbnail_url, published_at, author)
     VALUES
-      ($1, $2, $3, $4, $5)
+      ($3, $4, $5, $6, $7)
     ON CONFLICT (link) DO
     UPDATE
     SET
@@ -21,9 +21,10 @@ WITH
   ),
   pb_insert AS (
     INSERT INTO
-      profile_bookmark (profile_id, bookmark_id)
+      profile_bookmark (id, profile_id, bookmark_id)
     SELECT
-      $6,
+      $1,
+      $2,
       b.id
     FROM
       b
@@ -49,7 +50,7 @@ WITH
       profile_bookmark pb,
       b
     WHERE
-      pb.profile_id = $6
+      pb.profile_id = $2
       AND pb.bookmark_id = b.id
   ),
   pbt AS (

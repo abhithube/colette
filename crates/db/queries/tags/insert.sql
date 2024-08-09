@@ -1,7 +1,7 @@
 INSERT INTO
-  tag (title, profile_id)
+  tag (id, title, profile_id)
 VALUES
-  ($1, $2)
+  ($1, $2, $3)
 RETURNING
   id,
   title,

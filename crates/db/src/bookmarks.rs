@@ -58,12 +58,13 @@ impl BookmarksRepository for PostgresRepository {
         sqlx::query_file_as!(
             Bookmark,
             "queries/bookmarks/insert.sql",
+            Uuid::new_v4(),
+            data.profile_id,
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
             data.bookmark.published,
             data.bookmark.author,
-            data.profile_id
         )
         .fetch_one(&self.pool)
         .await

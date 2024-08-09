@@ -91,6 +91,7 @@ impl FeedsRepository for PostgresRepository {
         sqlx::query_file_as!(
             Feed,
             "queries/feeds/insert.sql",
+            Uuid::new_v4(),
             data.profile_id,
             link,
             data.feed.title,

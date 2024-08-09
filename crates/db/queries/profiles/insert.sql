@@ -1,7 +1,7 @@
 INSERT INTO
-  profile (title, image_url, is_default, user_id)
+  profile (id, title, image_url, is_default, user_id)
 VALUES
-  ($1, $2, $3, $4)
+  ($1, $2, $3, $4, $5)
 RETURNING
   id,
   title,

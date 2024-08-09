@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  b AS (\n    INSERT INTO\n      bookmark (link, title, thumbnail_url, published_at, author)\n    VALUES\n      ($3, $4, $5, $6, $7)\n    ON CONFLICT (link) DO\n    UPDATE\n    SET\n      title = excluded.title,\n      thumbnail_url = excluded.thumbnail_url,\n      published_at = excluded.published_at,\n      author = excluded.author\n    RETURNING\n      id,\n      link,\n      title,\n      thumbnail_url,\n      published_at,\n      author\n  ),\n  pb_insert AS (\n    INSERT INTO\n      profile_bookmark (id, profile_id, bookmark_id)\n    SELECT\n      $1,\n      $2,\n      b.id\n    FROM\n      b\n    ON CONFLICT (profile_id, bookmark_id) DO nothing\n    RETURNING\n      id,\n      profile_id,\n      bookmark_id\n  ),\n  pb AS (\n    SELECT\n      id AS \"id!\",\n      profile_id,\n      bookmark_id\n    FROM\n      pb_insert\n    UNION ALL\n    SELECT\n      pb.id,\n      pb.profile_id,\n      pb.bookmark_id\n    FROM\n      profile_bookmark pb,\n      b\n    WHERE\n      pb.profile_id = $2\n      AND pb.bookmark_id = b.id\n  ),\n  pbt AS (\n    SELECT\n      t.id,\n      t.title,\n      pbt.profile_bookmark_id\n    FROM\n      profile_bookmark_tag AS pbt\n      INNER JOIN tag AS t ON t.id = pbt.tag_id\n    ORDER BY\n      t.title ASC\n  )\nSELECT\n  pb.\"id!\",\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author,\n  coalesce(\n    json_agg(\n      DISTINCT jsonb_build_object(\n        'id',\n        pbt.id,\n        'title',\n        pbt.title,\n        'bookmark_count',\n        NULL::int8,\n        'feed_count',\n        NULL::int8\n      )\n    ) FILTER (\n      WHERE\n        pbt.id IS NOT NULL\n    ),\n    '[]'\n  ) AS \"tags!: Json<Vec<Tag>>\"\nFROM\n  pb\n  INNER JOIN b ON b.id = pb.bookmark_id\n  LEFT JOIN pbt ON pbt.profile_bookmark_id = pb.\"id!\"\nGROUP BY\n  pb.\"id!\",\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags!: Json<Vec<Tag>>",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "060c5c3d045a294341e8d0d8c7ddb332d825ad55b72f3bfcb1ef699394d7e712"
+}

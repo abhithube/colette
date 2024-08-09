@@ -60,14 +60,20 @@ impl TagsRepository for PostgresRepository {
     }
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<colette_core::Tag, Error> {
-        sqlx::query_file_as!(Tag, "queries/tags/insert.sql", data.title, data.profile_id)
-            .fetch_one(&self.pool)
-            .await
-            .map(colette_core::Tag::from)
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-                _ => Error::Unknown(e.into()),
-            })
+        sqlx::query_file_as!(
+            Tag,
+            "queries/tags/insert.sql",
+            Uuid::new_v4(),
+            data.title,
+            data.profile_id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map(colette_core::Tag::from)
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })
     }
 
     async fn update_tag(

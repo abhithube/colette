@@ -3,7 +3,7 @@ WITH
     INSERT INTO
       feed (link, title, url)
     VALUES
-      ($2, $3, $4)
+      ($3, $4, $5)
     ON CONFLICT (link) DO
     UPDATE
     SET
@@ -17,9 +17,10 @@ WITH
   ),
   pf_insert AS (
     INSERT INTO
-      profile_feed (profile_id, feed_id)
+      profile_feed (id, profile_id, feed_id)
     SELECT
       $1,
+      $2,
       f.id
     FROM
       f
@@ -48,7 +49,7 @@ WITH
       profile_feed pf,
       f
     WHERE
-      pf.profile_id = $1
+      pf.profile_id = $2
       AND pf.feed_id = f.id
   ),
   e AS (
@@ -65,12 +66,12 @@ WITH
       *
     FROM
       unnest(
-        $5::TEXT[],
         $6::TEXT[],
-        $7::TIMESTAMPTZ[],
-        $8::TEXT[],
+        $7::TEXT[],
+        $8::TIMESTAMPTZ[],
         $9::TEXT[],
-        $10::TEXT[]
+        $10::TEXT[],
+        $11::TEXT[]
       )
     ON CONFLICT (link) DO
     UPDATE

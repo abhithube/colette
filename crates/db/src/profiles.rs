@@ -10,6 +10,7 @@ use futures::{stream::BoxStream, StreamExt};
 use sea_orm::{
     ColumnTrait, EntityTrait, ModelTrait, QueryFilter, TransactionError, TransactionTrait,
 };
+use uuid::Uuid;
 
 use crate::PostgresRepository;
 
@@ -52,6 +53,7 @@ impl ProfilesRepository for PostgresRepository {
         sqlx::query_file_as!(
             Profile,
             "queries/profiles/insert.sql",
+            Uuid::new_v4(),
             data.title,
             data.image_url,
             false,

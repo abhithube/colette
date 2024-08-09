@@ -62,7 +62,7 @@ tower-http = { version = "0.5", default-features = false, features = [
 ] }
 tracing = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false, features = ["serde"] }
-uuid = { version = "1", default-features = false, features = ["serde"] }
+uuid = { version = "1", default-features = false, features = ["serde", "v4"] }
 
 [profile.release]
 codegen-units = 1
