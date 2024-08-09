@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                     .table(ProfileFeed::Table)
                     .if_not_exists()
                     .col(uuid(ProfileFeed::Id).primary_key())
+                    .col(text_null(ProfileFeed::Title))
                     .col(uuid(ProfileFeed::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -127,6 +128,7 @@ impl MigrationTrait for Migration {
 pub enum ProfileFeed {
     Table,
     Id,
+    Title,
     ProfileId,
     FeedId,
     CreatedAt,
