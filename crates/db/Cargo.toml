@@ -9,7 +9,7 @@ chrono.workspace = true
 colette-core.workspace = true
 futures.workspace = true
 serde.workspace = true
-sqlx = { version = "0.8", default-features = false, features = [
+sqlx = { version = "0.7", default-features = false, features = [
   "json",
   "macros",
   "migrate",
