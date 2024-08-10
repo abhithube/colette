@@ -42,11 +42,6 @@ install_crate = "cargo-leptos"
 command = "cargo"
 args = ["leptos", "build", "--release"]
 
-[tasks.db-reset]
-install_crate = "sqlx-cli"
-command = "sqlx"
-args = ["db", "reset"]
-
 [tasks.orm-reset]
 install_crate = "sea-orm-cli"
 command = "sea-orm-cli"
