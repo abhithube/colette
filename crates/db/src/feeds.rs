@@ -1,59 +1,95 @@
+use std::collections::HashMap;
+
 use colette_core::{
     common::FindOneParams,
     feeds::{
         Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
+    Feed,
 };
 use colette_entities::{
     entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
+    PfWithFeedAndTagsAndUnreadCount, ProfileFeedToTag,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
     sea_query::{Func, OnConflict, Query},
-    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, LoaderTrait, ModelTrait,
-    QueryFilter, QuerySelect, Set, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    LoaderTrait, ModelTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
+    TransactionError, TransactionTrait,
 };
-use sqlx::types::Json;
 use uuid::Uuid;
 
-use crate::{tags::Tag, PostgresRepository};
+use crate::PostgresRepository;
 
 #[async_trait::async_trait]
 impl FeedsRepository for PostgresRepository {
-    async fn find_many_feeds(
-        &self,
-        params: FeedsFindManyParams,
-    ) -> Result<Vec<colette_core::Feed>, Error> {
-        sqlx::query_file_as!(
-            Feed,
-            "queries/feeds/find_many.sql",
-            params.profile_id,
-            params.tags.as_deref()
-        )
-        .fetch_all(self.db.get_postgres_connection_pool())
-        .await
-        .map(|e| e.into_iter().map(colette_core::Feed::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))
+    async fn find_many_feeds(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error> {
+        let models = profile_feed::Entity::find()
+            .find_also_related(feed::Entity)
+            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+            .order_by_asc(profile_feed::Column::Title)
+            .order_by_asc(feed::Column::Title)
+            .all(&self.db)
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
+                    .collect::<Vec<_>>()
+            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let pf_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
+
+        let tag_models = pf_models
+            .load_many_to_many(
+                tag::Entity::find().order_by_asc(tag::Column::Title),
+                profile_feed_tag::Entity,
+                &self.db,
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let pf_ids = pf_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+        let counts: Vec<(Uuid, i64)> = profile_feed_entry::Entity::find()
+            .select_only()
+            .column(profile_feed_entry::Column::ProfileFeedId)
+            .column_as(profile_feed_entry::Column::Id.count(), "count")
+            .filter(profile_feed_entry::Column::ProfileFeedId.is_in(pf_ids))
+            .filter(profile_feed_entry::Column::HasRead.eq(false))
+            .group_by(profile_feed_entry::Column::ProfileFeedId)
+            .into_tuple()
+            .all(&self.db)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
+
+        let feeds = models
+            .into_iter()
+            .zip(tag_models.into_iter())
+            .map(|((pf, feed), tags)| {
+                let unread_count = count_map.get(&pf.id).cloned().unwrap_or_default();
+                Feed::from(PfWithFeedAndTagsAndUnreadCount {
+                    pf,
+                    feed,
+                    tags,
+                    unread_count,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        Ok(feeds)
     }
 
-    async fn find_one_feed(&self, params: FindOneParams) -> Result<colette_core::Feed, Error> {
-        sqlx::query_file_as!(
-            Feed,
-            "queries/feeds/find_one.sql",
-            params.id,
-            params.profile_id
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Feed::from)
-        .map_err(|e| Error::Unknown(e.into()))
+    async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error> {
+        find_by_id(&self.db, params).await
     }
 
-    async fn create_feed(&self, data: FeedsCreateData) -> Result<colette_core::Feed, Error> {
-        let id = self
-            .db
-            .transaction::<_, Uuid, Error>(|txn| {
+    async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error> {
+        self.db
+            .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
                     let link = data.feed.link.to_string();
                     let active_model = feed::ActiveModel {
@@ -217,32 +253,30 @@ impl FeedsRepository for PostgresRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    Ok(pf_id)
+                    find_by_id(
+                        txn,
+                        FindOneParams {
+                            id: pf_id,
+                            profile_id: data.profile_id,
+                        },
+                    )
+                    .await
                 })
             })
             .await
             .map_err(|e| match e {
-                TransactionError::Transaction(e) => {
-                    println!("{:?}", e);
-                    e
-                }
+                TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_feed(FindOneParams {
-            id,
-            profile_id: data.profile_id,
-        })
-        .await
+            })
     }
 
     async fn update_feed(
         &self,
         params: FindOneParams,
         data: FeedsUpdateData,
-    ) -> Result<colette_core::Feed, Error> {
+    ) -> Result<Feed, Error> {
         self.db
-            .transaction::<_, (), Error>(|txn| {
+            .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
                     let Some(pf_model) = profile_feed::Entity::find_by_id(params.id)
                         .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
@@ -327,16 +361,14 @@ impl FeedsRepository for PostgresRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    Ok(())
+                    find_by_id(txn, params).await
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_feed(params).await
+            })
     }
 
     async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error> {
@@ -439,33 +471,6 @@ impl FeedsRepository for PostgresRepository {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Feed {
-    id: Uuid,
-    link: String,
-    title: Option<String>,
-    original_title: String,
-    url: Option<String>,
-    tags: Option<Json<Vec<Tag>>>,
-    unread_count: Option<i64>,
-}
-
-impl From<Feed> for colette_core::Feed {
-    fn from(value: Feed) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            original_title: value.original_title,
-            url: value.url,
-            tags: value
-                .tags
-                .map(|e| e.0.into_iter().map(colette_core::Tag::from).collect()),
-            unread_count: value.unread_count,
-        }
-    }
-}
-
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct StreamSelect {
     pub id: i32,
@@ -479,4 +484,38 @@ impl From<StreamSelect> for StreamFeed {
             url: value.url,
         }
     }
+}
+
+async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Result<Feed, Error> {
+    let Some((pf_model, Some(feed_model))) = profile_feed::Entity::find_by_id(params.id)
+        .find_also_related(feed::Entity)
+        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+        .one(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?
+    else {
+        return Err(Error::NotFound(params.id));
+    };
+
+    let tag_models = pf_model
+        .find_linked(ProfileFeedToTag)
+        .order_by_asc(tag::Column::Title)
+        .all(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    let unread_count = profile_feed_entry::Entity::find()
+        .filter(profile_feed_entry::Column::ProfileFeedId.eq(pf_model.id))
+        .count(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    let feed = Feed::from(PfWithFeedAndTagsAndUnreadCount {
+        pf: pf_model,
+        feed: feed_model,
+        tags: tag_models,
+        unread_count: unread_count as i64,
+    });
+
+    Ok(feed)
 }
