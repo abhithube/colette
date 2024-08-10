@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at,\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entry AS pfe\n  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entry AS e ON e.id = fe.entry_id\nWHERE\n  pfe.id = $1\n  AND pfe.profile_id = $2;",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at AS \"published_at: DateTime<Utc>\",\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entry AS pfe\n  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entry AS e ON e.id = fe.entry_id\nWHERE\n  pfe.id = $1\n  AND pfe.profile_id = $2;",
   "describe": {
     "columns": [
       {
@@ -20,7 +20,7 @@
       },
       {
         "ordinal": 3,
-        "name": "published_at",
+        "name": "published_at: DateTime<Utc>",
         "type_info": "Timestamptz"
       },
       {
@@ -67,5 +67,5 @@
       false
     ]
   },
-  "hash": "bfa18ba115362c4aa338c652040703f55ebe59a9eaf2405b127f8ee92ef1691a"
+  "hash": "1ac0a024395e84dda2769938ba3111b5f92d5809d45e1680dda4cb6954d95739"
 }

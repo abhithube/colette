@@ -1,0 +1,60 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  pbt AS (\n    SELECT\n      t.id,\n      t.title,\n      pbt.profile_bookmark_id\n    FROM\n      profile_bookmark_tag AS pbt\n      INNER JOIN tag AS t ON t.id = pbt.tag_id\n    ORDER BY\n      t.title ASC\n  )\nSELECT\n  pb.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at AS \"published_at: DateTime<Utc>\",\n  b.author,\n  coalesce(\n    json_agg(\n      DISTINCT jsonb_build_object(\n        'id',\n        pbt.id,\n        'title',\n        pbt.title,\n        'bookmark_count',\n        NULL::int8,\n        'feed_count',\n        NULL::int8\n      )\n    ) FILTER (\n      WHERE\n        pbt.id IS NOT NULL\n    ),\n    '[]'\n  ) AS \"tags!: Json<Vec<Tag>>\"\nFROM\n  profile_bookmark AS pb\n  INNER JOIN bookmark AS b ON b.id = pb.bookmark_id\n  LEFT JOIN pbt ON pbt.profile_bookmark_id = pb.id\nWHERE\n  pb.profile_id = $1\n  AND (\n    $3::UUID [] IS NULL\n    OR pb.id IN (\n      SELECT DISTINCT\n        profile_bookmark_id\n      FROM\n        profile_bookmark_tag\n      WHERE\n        tag_id = ANY ($3)\n    )\n  )\nGROUP BY\n  pb.id,\n  b.link,\n  b.title,\n  b.thumbnail_url,\n  b.published_at,\n  b.author\nORDER BY\n  b.published_at DESC,\n  b.title ASC,\n  pb.id ASC\nLIMIT\n  $2;",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "published_at: DateTime<Utc>",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags!: Json<Vec<Tag>>",
+        "type_info": "Json"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int8",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "50646f8a0f1fb3e4a8cf6a81bf63fca1dcdf6354f261ea8af528c3805643d604"
+}

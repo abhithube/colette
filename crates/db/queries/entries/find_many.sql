@@ -2,7 +2,7 @@ SELECT
   pfe.id,
   e.link,
   e.title,
-  e.published_at,
+  e.published_at AS "published_at: DateTime<Utc>",
   e.description,
   e.author,
   e.thumbnail_url,

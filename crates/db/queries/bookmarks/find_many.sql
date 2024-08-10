@@ -15,7 +15,7 @@ SELECT
   b.link,
   b.title,
   b.thumbnail_url,
-  b.published_at,
+  b.published_at AS "published_at: DateTime<Utc>",
   b.author,
   coalesce(
     json_agg(

@@ -23,7 +23,7 @@ impl EntriesRepository for PostgresRepository {
             "queries/entries/find_many.sql",
             params.profile_id,
             params.limit,
-            params.published_at,
+            params.published_at as _,
             params.feed_id,
             params.has_read,
             params.tags.as_deref()
