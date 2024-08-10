@@ -13,11 +13,4 @@ colette-migrations.workspace = true
 futures.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
-sqlx = { version = "0.8", default-features = false, features = [
-  "json",
-  "macros",
-  "postgres",
-  "runtime-tokio",
-  "uuid",
-] }
 uuid.workspace = true
