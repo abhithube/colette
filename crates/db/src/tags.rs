@@ -159,6 +159,7 @@ impl From<Tag> for colette_core::Tag {
         Self {
             id: value.id,
             title: value.title,
+            slug: value.slug,
             bookmark_count: value.bookmark_count,
             feed_count: value.feed_count,
         }

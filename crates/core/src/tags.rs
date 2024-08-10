@@ -8,6 +8,7 @@ use crate::common::{FindOneParams, Paginated, Session};
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    pub slug: String,
     pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
 }

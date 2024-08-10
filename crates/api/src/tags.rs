@@ -43,6 +43,7 @@ impl Api {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    pub slug: String,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -56,6 +57,7 @@ impl From<colette_core::Tag> for Tag {
         Self {
             id: value.id,
             title: value.title,
+            slug: value.slug,
             bookmark_count: value.bookmark_count,
             feed_count: value.feed_count,
         }
