@@ -8,10 +8,9 @@ use colette_entities::{
     entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use migrations::OnConflict;
 use sea_orm::{
     prelude::Expr,
-    sea_query::{Func, Query},
+    sea_query::{Func, OnConflict, Query},
     ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set, TransactionError,
     TransactionTrait,
 };
