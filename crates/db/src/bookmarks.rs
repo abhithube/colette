@@ -1,66 +1,71 @@
-use chrono::{DateTime, FixedOffset, Utc};
+use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmarks::{
         BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
         Error,
     },
     common::FindOneParams,
+    Bookmark,
 };
-use colette_entities::{bookmark, profile_bookmark, profile_bookmark_tag, tag};
+use colette_entities::{
+    bookmark, profile_bookmark, profile_bookmark_tag, tag, PbWithBookmarkAndTags,
+    ProfileBookmarkToTag,
+};
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, DbErr, EntityTrait, QueryFilter, Set, TransactionError,
-    TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, LoaderTrait,
+    ModelTrait, QueryFilter, QueryOrder, Set, TransactionError, TransactionTrait,
 };
-use sqlx::types::Json;
 use uuid::Uuid;
 
-use crate::{tags::Tag, PostgresRepository};
+use crate::PostgresRepository;
 
 #[async_trait::async_trait]
 impl BookmarksRepository for PostgresRepository {
     async fn find_many_bookmarks(
         &self,
         params: BookmarksFindManyParams,
-    ) -> Result<Vec<colette_core::Bookmark>, Error> {
-        sqlx::query_file_as!(
-            Bookmark,
-            "queries/bookmarks/find_many.sql",
-            params.profile_id,
-            params.limit,
-            params.tags.as_deref()
-        )
-        .fetch_all(self.db.get_postgres_connection_pool())
-        .await
-        .map(|e| e.into_iter().map(colette_core::Bookmark::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))
+    ) -> Result<Vec<Bookmark>, Error> {
+        let models = profile_bookmark::Entity::find()
+            .find_also_related(bookmark::Entity)
+            .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
+            .order_by_asc(bookmark::Column::Title)
+            .all(&self.db)
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
+                    .collect::<Vec<_>>()
+            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let pb_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
+
+        let tag_models = pb_models
+            .load_many_to_many(
+                tag::Entity::find().order_by_asc(tag::Column::Title),
+                profile_bookmark_tag::Entity,
+                &self.db,
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let bookmarks = models
+            .into_iter()
+            .zip(tag_models.into_iter())
+            .map(|((pb, bookmark), tags)| {
+                Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags })
+            })
+            .collect::<Vec<_>>();
+
+        Ok(bookmarks)
     }
 
-    async fn find_one_bookmark(
-        &self,
-        params: FindOneParams,
-    ) -> Result<colette_core::Bookmark, Error> {
-        sqlx::query_file_as!(
-            Bookmark,
-            "queries/bookmarks/find_one.sql",
-            params.id,
-            params.profile_id
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Bookmark::from)
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+    async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error> {
+        find_by_id(&self.db, params).await
     }
 
-    async fn create_bookmark(
-        &self,
-        data: BookmarksCreateData,
-    ) -> Result<colette_core::Bookmark, Error> {
-        let id = self
-            .db
-            .transaction::<_, Uuid, Error>(|txn| {
+    async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
+        self.db
+            .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
                     let active_model = bookmark::ActiveModel {
                         link: Set(data.url),
@@ -128,29 +133,30 @@ impl BookmarksRepository for PostgresRepository {
                         Err(e) => Err(Error::Unknown(e.into())),
                     }?;
 
-                    Ok(pb_id)
+                    find_by_id(
+                        txn,
+                        FindOneParams {
+                            id: pb_id,
+                            profile_id: data.profile_id,
+                        },
+                    )
+                    .await
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_bookmark(FindOneParams {
-            id,
-            profile_id: data.profile_id,
-        })
-        .await
+            })
     }
 
     async fn update_bookmark(
         &self,
         params: FindOneParams,
         data: BookmarksUpdateData,
-    ) -> Result<colette_core::Bookmark, Error> {
+    ) -> Result<Bookmark, Error> {
         self.db
-            .transaction::<_, (), Error>(|txn| {
+            .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
                     let Some(pb_model) = profile_bookmark::Entity::find_by_id(params.id)
                         .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
@@ -223,16 +229,14 @@ impl BookmarksRepository for PostgresRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    Ok(())
+                    find_by_id(txn, params).await
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_bookmark(params).await
+            })
     }
 
     async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error> {
@@ -250,29 +254,32 @@ impl BookmarksRepository for PostgresRepository {
     }
 }
 
-#[derive(Clone, Debug)]
-struct Bookmark {
-    id: Uuid,
-    link: String,
-    title: String,
-    thumbnail_url: Option<String>,
-    published_at: Option<DateTime<Utc>>,
-    author: Option<String>,
-    tags: Option<Json<Vec<Tag>>>,
-}
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    params: FindOneParams,
+) -> Result<Bookmark, Error> {
+    let Some((pb_model, Some(bookmark_model))) = profile_bookmark::Entity::find_by_id(params.id)
+        .find_also_related(bookmark::Entity)
+        .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
+        .one(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?
+    else {
+        return Err(Error::NotFound(params.id));
+    };
 
-impl From<Bookmark> for colette_core::Bookmark {
-    fn from(value: Bookmark) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author,
-            tags: value
-                .tags
-                .map(|e| e.0.into_iter().map(colette_core::Tag::from).collect()),
-        }
-    }
+    let tag_models = pb_model
+        .find_linked(ProfileBookmarkToTag)
+        .order_by_asc(tag::Column::Title)
+        .all(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    let bookmark = Bookmark::from(PbWithBookmarkAndTags {
+        pb: pb_model,
+        bookmark: bookmark_model,
+        tags: tag_models,
+    });
+
+    Ok(bookmark)
 }

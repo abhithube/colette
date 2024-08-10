@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Entry, Feed, Profile, Tag, User};
+use colette_core::{Bookmark, Entry, Feed, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Linked, Related, RelationDef, RelationTrait};
 
@@ -23,6 +23,27 @@ impl From<PfeWithEntry> for Entry {
             thumbnail_url: value.entry.thumbnail_url,
             has_read: value.pfe.has_read,
             feed_id: value.pfe.profile_feed_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PbWithBookmarkAndTags {
+    pub pb: profile_bookmark::Model,
+    pub bookmark: bookmark::Model,
+    pub tags: Vec<tag::Model>,
+}
+
+impl From<PbWithBookmarkAndTags> for Bookmark {
+    fn from(value: PbWithBookmarkAndTags) -> Self {
+        Self {
+            id: value.pb.id,
+            link: value.bookmark.link,
+            title: value.bookmark.title,
+            thumbnail_url: value.bookmark.thumbnail_url,
+            published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
+            author: value.bookmark.author,
+            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
         }
     }
 }
@@ -80,6 +101,32 @@ impl From<user::Model> for User {
             email: value.email,
             password: value.password,
         }
+    }
+}
+
+impl Related<tag::Entity> for profile_bookmark::Entity {
+    fn to() -> RelationDef {
+        profile_bookmark_tag::Relation::Tag.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(profile_bookmark::Relation::ProfileBookmarkTag.def())
+    }
+}
+
+#[derive(Debug)]
+pub struct ProfileBookmarkToTag;
+
+impl Linked for ProfileBookmarkToTag {
+    type FromEntity = profile_bookmark::Entity;
+
+    type ToEntity = tag::Entity;
+
+    fn link(&self) -> Vec<RelationDef> {
+        vec![
+            profile_bookmark::Relation::ProfileBookmarkTag.def(),
+            profile_bookmark_tag::Relation::Tag.def(),
+        ]
     }
 }
 
