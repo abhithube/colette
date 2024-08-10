@@ -2,9 +2,10 @@
 	"$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
 	"files": {
 		"ignore": [
-			"./node_modules/**/*",
-			"./packages/web/src/components/ui/**/*",
-			"./packages/web/src/lib/openapi.d.ts"
+			"./crates/**/*",
+			"./packages/openapi/lib/openapi.d.ts",
+			"./packages/web/src/routeTree.gen.ts",
+			"./packages/web/src/components/ui/**/*"
 		]
 	},
 	"javascript": {
@@ -25,5 +26,10 @@
 				"noExplicitAny": "warn"
 			}
 		}
+	},
+	"vcs": {
+		"enabled": true,
+		"clientKind": "git",
+		"useIgnoreFile": true
 	}
 }
