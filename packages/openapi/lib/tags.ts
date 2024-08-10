@@ -25,13 +25,13 @@ export class TagsAPI {
   }
 
   async get(
-    slug: string,
+    id: string,
     options?: Omit<FetchOptions<operations['getTag']>, 'params'>,
   ): Promise<Tag> {
-    const res = await this.client.GET('/tags/{slug}', {
+    const res = await this.client.GET('/tags/{id}', {
       params: {
         path: {
-          slug,
+          id,
         },
       },
       ...options,
@@ -67,14 +67,14 @@ export class TagsAPI {
   }
 
   async update(
-    slug: string,
+    id: string,
     body: TagUpdate,
     options?: Omit<FetchOptions<operations['updateTag']>, 'params' | 'body'>,
   ): Promise<Tag> {
-    const res = await this.client.PATCH('/tags/{slug}', {
+    const res = await this.client.PATCH('/tags/{id}', {
       params: {
         path: {
-          slug,
+          id,
         },
       },
       body,
@@ -95,13 +95,13 @@ export class TagsAPI {
   }
 
   async delete(
-    slug: string,
+    id: string,
     options?: Omit<FetchOptions<operations['deleteTag']>, 'params'>,
   ): Promise<void> {
-    const res = await this.client.DELETE('/tags/{slug}', {
+    const res = await this.client.DELETE('/tags/{id}', {
       params: {
         path: {
-          slug,
+          id,
         },
       },
       ...options,

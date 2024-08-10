@@ -287,22 +287,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/tags/{slug}": {
+    "/tags/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get a tag by slug */
+        /** @description Get a tag by ID */
         get: operations["getTag"];
         put?: never;
         post?: never;
-        /** @description Delete a tag by slug */
+        /** @description Delete a tag by ID */
         delete: operations["deleteTag"];
         options?: never;
         head?: never;
-        /** @description Update a tag by slug */
+        /** @description Update a tag by ID */
         patch: operations["updateTag"];
         trace?: never;
     };
@@ -441,7 +441,6 @@ export interface components {
             /** Format: uuid */
             id: string;
             title: string;
-            slug: string;
             /** Format: int64 */
             bookmarkCount?: number;
             /** Format: int64 */
@@ -1363,13 +1362,13 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                slug: string;
+                id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Tag by slug */
+            /** @description Tag by ID */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1394,7 +1393,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                slug: string;
+                id: string;
             };
             cookie?: never;
         };
@@ -1423,7 +1422,7 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                slug: string;
+                id: string;
             };
             cookie?: never;
         };
