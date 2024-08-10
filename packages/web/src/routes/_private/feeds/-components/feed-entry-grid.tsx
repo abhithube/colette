@@ -51,7 +51,7 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
               </span>
               <Separator className="flex-1" />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {entries.map((entry) => (
                 <div key={entry.id}>
                   <FeedEntryCard entry={entry} />
