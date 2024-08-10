@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait.workspace = true
 axum.workspace = true
 axum-embed = { version = "0.1", default-features = false }
 colette-api.workspace = true
@@ -18,10 +19,12 @@ colette-tasks.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
+sea-orm.workspace = true
 tokio.workspace = true
 tower-sessions = { version = "0.12", default-features = false, features = [
   "axum-core",
 ] }
 tower-sessions-sqlx-store = { version = "0.13", default-features = false, features = [
   "postgres",
+  "sqlite",
 ] }
