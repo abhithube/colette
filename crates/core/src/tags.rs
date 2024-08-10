@@ -2,13 +2,12 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::common::{Paginated, Session};
+use crate::common::{FindOneParams, Paginated, Session};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    pub slug: String,
     pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
 }
@@ -39,17 +38,13 @@ pub enum TagType {
 pub trait TagsRepository: Send + Sync {
     async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_one_tag(&self, params: TagsFindOneParams) -> Result<Tag, Error>;
+    async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error>;
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error>;
 
-    async fn update_tag(
-        &self,
-        params: TagsFindOneParams,
-        data: TagsUpdateData,
-    ) -> Result<Tag, Error>;
+    async fn update_tag(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
 
-    async fn delete_tag(&self, params: TagsFindOneParams) -> Result<(), Error>;
+    async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error>;
 }
 
 pub struct TagsService {
@@ -80,10 +75,10 @@ impl TagsService {
         })
     }
 
-    pub async fn get(&self, slug: String, session: Session) -> Result<Tag, Error> {
+    pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
         self.repo
-            .find_one_tag(TagsFindOneParams {
-                slug,
+            .find_one_tag(FindOneParams {
+                id,
                 profile_id: session.profile_id,
             })
             .await
@@ -98,16 +93,11 @@ impl TagsService {
             .await
     }
 
-    pub async fn update(
-        &self,
-        slug: String,
-        data: UpdateTag,
-        session: Session,
-    ) -> Result<Tag, Error> {
+    pub async fn update(&self, id: Uuid, data: UpdateTag, session: Session) -> Result<Tag, Error> {
         self.repo
             .update_tag(
-                TagsFindOneParams {
-                    slug,
+                FindOneParams {
+                    id,
                     profile_id: session.profile_id,
                 },
                 data.into(),
@@ -115,10 +105,10 @@ impl TagsService {
             .await
     }
 
-    pub async fn delete(&self, slug: String, session: Session) -> Result<(), Error> {
+    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
         self.repo
-            .delete_tag(TagsFindOneParams {
-                slug,
+            .delete_tag(FindOneParams {
+                id,
                 profile_id: session.profile_id,
             })
             .await
@@ -129,12 +119,6 @@ impl TagsService {
 pub struct TagsFindManyParams {
     pub profile_id: Uuid,
     pub tag_type: TagType,
-}
-
-#[derive(Clone, Debug)]
-pub struct TagsFindOneParams {
-    pub slug: String,
-    pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
@@ -156,8 +140,8 @@ impl From<UpdateTag> for TagsUpdateData {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("tag not found with slug: {0}")]
-    NotFound(String),
+    #[error("tag not found with ID: {0}")]
+    NotFound(Uuid),
 
     #[error("tag already exists with title: {0}")]
     Conflict(String),

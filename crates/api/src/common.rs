@@ -25,10 +25,6 @@ use crate::{
 #[into_params(names("id"))]
 pub struct Id(pub Uuid);
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
-#[into_params(names("slug"))]
-pub struct Slug(pub String);
-
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[aliases(BookmarkList = Paginated<Bookmark>, FeedDetectedList = Paginated<FeedDetected>, EntryList = Paginated<Entry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]

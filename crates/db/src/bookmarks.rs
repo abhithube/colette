@@ -142,7 +142,6 @@ impl BookmarksRepository for PostgresRepository {
                             .map(|title| tag::ActiveModel {
                                 id: Set(Uuid::new_v4()),
                                 title: Set(title.clone()),
-                                slug: Set(slug::slugify(title)),
                                 profile_id: Set(params.profile_id),
                                 ..Default::default()
                             })

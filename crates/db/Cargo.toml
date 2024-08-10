@@ -13,7 +13,6 @@ colette-migrations.workspace = true
 futures.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
-slug = { version = "0.1", default-features = false }
 sqlx = { version = "0.8", default-features = false, features = [
   "json",
   "macros",

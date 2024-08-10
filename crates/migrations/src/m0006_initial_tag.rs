@@ -19,7 +19,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(Tag::Id).primary_key())
                     .col(text(Tag::Title))
-                    .col(text(Tag::Slug))
                     .col(uuid(Tag::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -45,19 +44,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(Tag::ProfileId)
                     .col(Tag::Title)
-                    .unique()
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_index(
-                Index::create()
-                    .name("tag_profile_id_slug_idx")
-                    .table(Tag::Table)
-                    .if_not_exists()
-                    .col(Tag::ProfileId)
-                    .col(Tag::Slug)
                     .unique()
                     .to_owned(),
             )
@@ -183,7 +169,6 @@ pub enum Tag {
     Table,
     Id,
     Title,
-    Slug,
     ProfileId,
     CreatedAt,
     UpdatedAt,
