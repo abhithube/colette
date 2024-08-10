@@ -1,9 +1,11 @@
 use colette_core::{
     common::FindOneParams,
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
+    Entry,
 };
 use colette_entities::{entry, profile_feed_entry, PfeWithEntry, ProfileFeedEntryToEntry};
 use sea_orm::{
+    sea_query::{Alias, Expr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
     QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
 };
@@ -12,10 +14,7 @@ use crate::PostgresRepository;
 
 #[async_trait::async_trait]
 impl EntriesRepository for PostgresRepository {
-    async fn find_many_entries(
-        &self,
-        params: EntriesFindManyParams,
-    ) -> Result<Vec<colette_core::Entry>, Error> {
+    async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
         let mut conditions =
             Condition::all().add(profile_feed_entry::Column::ProfileId.eq(params.profile_id));
         if let Some(published_at) = params.published_at {
@@ -28,8 +27,8 @@ impl EntriesRepository for PostgresRepository {
         let models = profile_feed_entry::Entity::find()
             .find_also_linked(ProfileFeedEntryToEntry)
             .filter(conditions)
-            .order_by_desc(entry::Column::PublishedAt)
-            .order_by_asc(entry::Column::Title)
+            .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
+            .order_by_asc(Expr::col((Alias::new("r1"), entry::Column::Title)))
             .order_by_asc(profile_feed_entry::Column::Id)
             .limit(params.limit)
             .all(&self.db)
@@ -39,14 +38,14 @@ impl EntriesRepository for PostgresRepository {
         let entries = models
             .into_iter()
             .filter_map(|(pfe, entry_opt)| {
-                entry_opt.map(|entry| colette_core::Entry::from(PfeWithEntry { pfe, entry }))
+                entry_opt.map(|entry| Entry::from(PfeWithEntry { pfe, entry }))
             })
             .collect::<Vec<_>>();
 
         Ok(entries)
     }
 
-    async fn find_one_entry(&self, params: FindOneParams) -> Result<colette_core::Entry, Error> {
+    async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error> {
         find_by_id(&self.db, params).await
     }
 
@@ -54,9 +53,9 @@ impl EntriesRepository for PostgresRepository {
         &self,
         params: FindOneParams,
         data: EntriesUpdateData,
-    ) -> Result<colette_core::Entry, Error> {
+    ) -> Result<Entry, Error> {
         self.db
-            .transaction::<_, colette_core::Entry, Error>(|txn| {
+            .transaction::<_, Entry, Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) = profile_feed_entry::Entity::find_by_id(params.id)
                         .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
@@ -90,10 +89,7 @@ impl EntriesRepository for PostgresRepository {
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    params: FindOneParams,
-) -> Result<colette_core::Entry, Error> {
+async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Result<Entry, Error> {
     let Some((pfe, Some(entry))) = profile_feed_entry::Entity::find_by_id(params.id)
         .find_also_linked(ProfileFeedEntryToEntry)
         .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
@@ -104,7 +100,7 @@ async fn find_by_id<Db: ConnectionTrait>(
         return Err(Error::NotFound(params.id));
     };
 
-    let entry = colette_core::Entry::from(PfeWithEntry { pfe, entry });
+    let entry = Entry::from(PfeWithEntry { pfe, entry });
 
     Ok(entry)
 }
