@@ -11,17 +11,15 @@ import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/tags/$slug')({
   loader: async ({ context, params }) => {
+    const tagOptions = getTagOptions(params.slug, context.api)
+    const tag = await context.queryClient.ensureQueryData(tagOptions)
+
     const bookmarkOptions = listBookmarksOptions(
-      { 'tag[]': [params.slug] },
+      { 'tag[]': [tag.title] },
       context.profile.id,
       context.api,
     )
-    const tagOptions = getTagOptions(params.slug, context.api)
-
-    await Promise.all([
-      ensureInfiniteQueryData(context.queryClient, bookmarkOptions as any),
-      context.queryClient.ensureQueryData(tagOptions),
-    ])
+    await ensureInfiniteQueryData(context.queryClient, bookmarkOptions as any)
 
     return {
       bookmarkOptions,

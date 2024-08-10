@@ -11,20 +11,18 @@ import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/tags/$slug')({
   loader: async ({ context, params }) => {
+    const tagOptions = getTagOptions(params.slug, context.api)
+    const tag = await context.queryClient.ensureQueryData(tagOptions)
+
     const entryOptions = listEntriesOptions(
       {
         hasRead: false,
-        'tag[]': [params.slug],
+        'tag[]': [tag.title],
       },
       context.profile.id,
       context.api,
     )
-    const tagOptions = getTagOptions(params.slug, context.api)
-
-    await Promise.all([
-      ensureInfiniteQueryData(context.queryClient, entryOptions as any),
-      context.queryClient.ensureQueryData(tagOptions),
-    ])
+    await ensureInfiniteQueryData(context.queryClient, entryOptions as any)
 
     return {
       entryOptions,
