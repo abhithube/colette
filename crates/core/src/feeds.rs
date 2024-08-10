@@ -309,17 +309,14 @@ pub struct FeedsCreateData {
 
 #[derive(Clone, Debug)]
 pub struct FeedsUpdateData {
-    pub title: Option<String>,
-    pub update_title: bool,
+    pub title: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
 }
 
 impl From<UpdateFeed> for FeedsUpdateData {
     fn from(value: UpdateFeed) -> Self {
-        let update_title = value.title.is_some();
         Self {
-            title: value.title.flatten(),
-            update_title,
+            title: value.title,
             tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
         }
     }
