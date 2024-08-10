@@ -3,7 +3,10 @@ use colette_core::{
     tags::{Error, TagType, TagsCreateData, TagsFindManyParams, TagsRepository, TagsUpdateData},
 };
 use colette_entities::tag;
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, SqlErr,
+    TransactionError, TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::PostgresRepository;
@@ -60,20 +63,28 @@ impl TagsRepository for PostgresRepository {
     }
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<colette_core::Tag, Error> {
-        sqlx::query_file_as!(
-            Tag,
-            "queries/tags/insert.sql",
-            Uuid::new_v4(),
-            data.title,
-            data.profile_id
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Tag::from)
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-            _ => Error::Unknown(e.into()),
-        })
+        let model = tag::ActiveModel {
+            id: Set(Uuid::new_v4()),
+            title: Set(data.title.clone()),
+            profile_id: Set(data.profile_id),
+            ..Default::default()
+        };
+
+        let tag = tag::Entity::insert(model)
+            .exec_with_returning(&self.db)
+            .await
+            .map_err(|e| match e.sql_err() {
+                Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        Ok(Tag {
+            id: tag.id,
+            title: tag.title,
+            bookmark_count: Some(0),
+            feed_count: Some(0),
+        }
+        .into())
     }
 
     async fn update_tag(
@@ -81,20 +92,40 @@ impl TagsRepository for PostgresRepository {
         params: FindOneParams,
         data: TagsUpdateData,
     ) -> Result<colette_core::Tag, Error> {
-        sqlx::query_file_as!(
-            Tag,
-            "queries/tags/update.sql",
-            params.id,
-            params.profile_id,
-            data.title
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Tag::from)
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(model) = tag::Entity::find_by_id(params.id)
+                        .filter(tag::Column::ProfileId.eq(params.profile_id))
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+                    let mut active_model = model.into_active_model();
+
+                    if let Some(title) = data.title {
+                        active_model.title.set_if_not_equals(title);
+                    }
+
+                    if active_model.is_changed() {
+                        active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        self.find_one_tag(params).await
     }
 
     async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error> {

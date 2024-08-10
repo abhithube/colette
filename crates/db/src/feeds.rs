@@ -1,13 +1,18 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     common::FindOneParams,
     feeds::{
         Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
 };
-use colette_entities::profile_feed;
+use colette_entities::{
+    entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
+};
 use futures::{stream::BoxStream, StreamExt};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use migrations::OnConflict;
+use sea_orm::{
+    prelude::Expr, sea_query::Query, ColumnTrait, DbErr, EntityTrait, QueryFilter, Set,
+    TransactionError, TransactionTrait,
+};
 use sqlx::types::Json;
 use uuid::Uuid;
 
@@ -45,68 +50,189 @@ impl FeedsRepository for PostgresRepository {
     }
 
     async fn create_feed(&self, data: FeedsCreateData) -> Result<colette_core::Feed, Error> {
-        let links = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.link.as_str())
-            .collect::<Vec<_>>();
-        let titles = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.title.as_str())
-            .collect::<Vec<_>>();
-        let published_dates = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.published)
-            .collect::<Vec<_>>();
-        let descriptions = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.description.as_deref())
-            .collect::<Vec<_>>();
-        let authors = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.author.as_deref())
-            .collect::<Vec<_>>();
-        let thumbnails = data
-            .feed
-            .entries
-            .iter()
-            .map(|entry| entry.thumbnail.as_ref().map(|e| e.as_str()))
-            .collect::<Vec<_>>();
+        let id = self
+            .db
+            .transaction::<_, Uuid, Error>(|txn| {
+                Box::pin(async move {
+                    let link = data.feed.link.to_string();
+                    let active_model = feed::ActiveModel {
+                        link: Set(link.clone()),
+                        title: Set(data.feed.title),
+                        url: Set(if data.url == link {
+                            None
+                        } else {
+                            Some(data.url)
+                        }),
+                        ..Default::default()
+                    };
 
-        let link = data.feed.link.as_str();
-        let url = if data.url == link {
-            None
-        } else {
-            Some(&data.url)
-        };
-        sqlx::query_file_as!(
-            Feed,
-            "queries/feeds/insert.sql",
-            Uuid::new_v4(),
-            data.profile_id,
-            link,
-            data.feed.title,
-            url,
-            &links as &[&str],
-            &titles as &[&str],
-            &published_dates as &[Option<DateTime<Utc>>],
-            &descriptions as &[Option<&str>],
-            &authors as &[Option<&str>],
-            &thumbnails as &[Option<&str>]
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
+                    let result = feed::Entity::insert(active_model)
+                        .on_conflict(
+                            OnConflict::column(feed::Column::Link)
+                                .update_columns([feed::Column::Title, feed::Column::Url])
+                                .to_owned(),
+                        )
+                        .exec(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+                    let feed_id = result.last_insert_id;
+
+                    let active_model = profile_feed::ActiveModel {
+                        id: Set(Uuid::new_v4()),
+                        profile_id: Set(data.profile_id),
+                        feed_id: Set(feed_id),
+                        ..Default::default()
+                    };
+
+                    let pf_id = match profile_feed::Entity::insert(active_model)
+                        .on_conflict(
+                            OnConflict::columns([
+                                profile_feed::Column::ProfileId,
+                                profile_feed::Column::FeedId,
+                            ])
+                            .do_nothing()
+                            .to_owned(),
+                        )
+                        .exec(txn)
+                        .await
+                    {
+                        Ok(result) => Ok(result.last_insert_id),
+                        Err(DbErr::RecordNotInserted) => {
+                            let Some(model) = profile_feed::Entity::find()
+                                .filter(profile_feed::Column::ProfileId.eq(data.profile_id))
+                                .filter(profile_feed::Column::FeedId.eq(feed_id))
+                                .one(txn)
+                                .await
+                                .map_err(|e| Error::Unknown(e.into()))?
+                            else {
+                                return Err(Error::Unknown(anyhow::anyhow!(
+                                    "Failed to fetch created profile feed"
+                                )));
+                            };
+
+                            Ok(model.id)
+                        }
+                        Err(e) => Err(Error::Unknown(e.into())),
+                    }?;
+
+                    let links = data
+                        .feed
+                        .entries
+                        .iter()
+                        .map(|e| e.link.to_string())
+                        .collect::<Vec<_>>();
+
+                    let active_models = data
+                        .feed
+                        .entries
+                        .into_iter()
+                        .map(|e| entry::ActiveModel {
+                            link: Set(e.link.to_string()),
+                            title: Set(e.title),
+                            published_at: Set(e.published.map(|e| e.into())),
+                            description: Set(e.description),
+                            author: Set(e.author),
+                            thumbnail_url: Set(e.thumbnail.map(String::from)),
+                            ..Default::default()
+                        })
+                        .collect::<Vec<_>>();
+
+                    entry::Entity::insert_many(active_models)
+                        .on_empty_do_nothing()
+                        .on_conflict(
+                            OnConflict::column(entry::Column::Link)
+                                .update_columns([
+                                    entry::Column::Title,
+                                    entry::Column::PublishedAt,
+                                    entry::Column::Description,
+                                    entry::Column::Author,
+                                    entry::Column::ThumbnailUrl,
+                                ])
+                                .to_owned(),
+                        )
+                        .exec(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    let entry_models = entry::Entity::find()
+                        .filter(entry::Column::Link.is_in(links))
+                        .all(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+                    let entry_ids = entry_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+                    let active_models = entry_models
+                        .into_iter()
+                        .map(|e| feed_entry::ActiveModel {
+                            feed_id: Set(feed_id),
+                            entry_id: Set(e.id),
+                            ..Default::default()
+                        })
+                        .collect::<Vec<_>>();
+
+                    feed_entry::Entity::insert_many(active_models)
+                        .on_empty_do_nothing()
+                        .on_conflict(
+                            OnConflict::columns([
+                                feed_entry::Column::FeedId,
+                                feed_entry::Column::EntryId,
+                            ])
+                            .do_nothing()
+                            .to_owned(),
+                        )
+                        .exec(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    let fe_models = feed_entry::Entity::find()
+                        .filter(feed_entry::Column::FeedId.eq(feed_id))
+                        .filter(feed_entry::Column::EntryId.is_in(entry_ids))
+                        .all(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    let active_models = fe_models
+                        .into_iter()
+                        .map(|e| profile_feed_entry::ActiveModel {
+                            id: Set(Uuid::new_v4()),
+                            profile_feed_id: Set(pf_id),
+                            feed_entry_id: Set(e.id),
+                            profile_id: Set(data.profile_id),
+                            ..Default::default()
+                        })
+                        .collect::<Vec<_>>();
+
+                    profile_feed_entry::Entity::insert_many(active_models)
+                        .on_empty_do_nothing()
+                        .on_conflict(
+                            OnConflict::columns([
+                                profile_feed_entry::Column::ProfileFeedId,
+                                profile_feed_entry::Column::FeedEntryId,
+                            ])
+                            .do_nothing()
+                            .to_owned(),
+                        )
+                        .exec(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(pf_id)
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => {
+                    println!("{:?}", e);
+                    e
+                }
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        self.find_one_feed(FindOneParams {
+            id,
+            profile_id: data.profile_id,
+        })
         .await
-        .map(colette_core::Feed::from)
-        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn update_feed(
@@ -114,23 +240,89 @@ impl FeedsRepository for PostgresRepository {
         params: FindOneParams,
         data: FeedsUpdateData,
     ) -> Result<colette_core::Feed, Error> {
-        match data.tags {
-            Some(tags) => sqlx::query_file_as!(
-                Feed,
-                "queries/feeds/update.sql",
-                params.id,
-                params.profile_id,
-                &tags
-            )
-            .fetch_one(self.db.get_postgres_connection_pool())
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(pf_model) = profile_feed::Entity::find_by_id(params.id)
+                        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+
+                    if let Some(tags) = data.tags {
+                        let active_models = tags
+                            .clone()
+                            .into_iter()
+                            .map(|title| tag::ActiveModel {
+                                id: Set(Uuid::new_v4()),
+                                title: Set(title),
+                                profile_id: Set(params.profile_id),
+                                ..Default::default()
+                            })
+                            .collect::<Vec<_>>();
+
+                        tag::Entity::insert_many(active_models)
+                            .on_empty_do_nothing()
+                            .on_conflict(
+                                OnConflict::columns([tag::Column::ProfileId, tag::Column::Title])
+                                    .do_nothing()
+                                    .to_owned(),
+                            )
+                            .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        let tag_models = tag::Entity::find()
+                            .filter(tag::Column::Title.is_in(&tags))
+                            .all(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                        let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+                        profile_feed_tag::Entity::delete_many()
+                            .filter(profile_feed_tag::Column::TagId.is_not_in(tag_ids.clone()))
+                            .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        let active_models = tag_ids
+                            .into_iter()
+                            .map(|tag_id| profile_feed_tag::ActiveModel {
+                                profile_feed_id: Set(pf_model.id),
+                                tag_id: Set(tag_id),
+                                profile_id: Set(params.profile_id),
+                                ..Default::default()
+                            })
+                            .collect::<Vec<_>>();
+
+                        profile_feed_tag::Entity::insert_many(active_models)
+                            .on_empty_do_nothing()
+                            .on_conflict(
+                                OnConflict::columns([
+                                    profile_feed_tag::Column::ProfileFeedId,
+                                    profile_feed_tag::Column::TagId,
+                                ])
+                                .do_nothing()
+                                .to_owned(),
+                            )
+                            .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    Ok(())
+                })
+            })
             .await
-            .map(colette_core::Feed::from)
             .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            }),
-            None => self.find_one_feed(params).await,
-        }
+            })?;
+
+        self.find_one_feed(params).await
     }
 
     async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error> {
@@ -156,12 +348,65 @@ impl FeedsRepository for PostgresRepository {
     }
 
     async fn cleanup_feeds(&self) -> Result<(), Error> {
-        sqlx::query_file!("queries/feeds/cleanup.sql")
-            .execute(self.db.get_postgres_connection_pool())
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        self.db
+            .transaction::<_, (), DbErr>(|txn| {
+                Box::pin(async move {
+                    let subquery = Query::select()
+                        .from(profile_feed_entry::Entity)
+                        .and_where(
+                            Expr::col((
+                                profile_feed_entry::Entity,
+                                profile_feed_entry::Column::FeedEntryId,
+                            ))
+                            .equals((feed_entry::Entity, feed_entry::Column::Id)),
+                        )
+                        .to_owned();
 
-        Ok(())
+                    let result = feed_entry::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
+                    if result.rows_affected > 0 {
+                        println!("Deleted {} orphaned feed entries", result.rows_affected);
+                    }
+
+                    let subquery = Query::select()
+                        .from(feed_entry::Entity)
+                        .and_where(
+                            Expr::col((feed_entry::Entity, feed_entry::Column::EntryId))
+                                .equals((entry::Entity, entry::Column::Id)),
+                        )
+                        .to_owned();
+
+                    let result = entry::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
+                    if result.rows_affected > 0 {
+                        println!("Deleted {} orphaned entries", result.rows_affected);
+                    }
+
+                    let subquery = Query::select()
+                        .from(profile_feed::Entity)
+                        .and_where(
+                            Expr::col((profile_feed::Entity, profile_feed::Column::FeedId))
+                                .equals((feed::Entity, feed::Column::Id)),
+                        )
+                        .to_owned();
+
+                    let result = feed::Entity::delete_many()
+                        .filter(Expr::exists(subquery).not())
+                        .exec(txn)
+                        .await?;
+                    if result.rows_affected > 0 {
+                        println!("Deleted {} orphaned feeds", result.rows_affected);
+                    }
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 

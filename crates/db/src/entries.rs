@@ -3,6 +3,11 @@ use colette_core::{
     common::FindOneParams,
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
 };
+use colette_entities::profile_feed_entry;
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, TransactionError,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::PostgresRepository;
@@ -50,20 +55,40 @@ impl EntriesRepository for PostgresRepository {
         params: FindOneParams,
         data: EntriesUpdateData,
     ) -> Result<colette_core::Entry, Error> {
-        sqlx::query_file_as!(
-            Entry,
-            "queries/entries/update.sql",
-            params.id,
-            params.profile_id,
-            data.has_read
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Entry::from)
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(model) = profile_feed_entry::Entity::find_by_id(params.id)
+                        .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+                    let mut active_model = model.into_active_model();
+
+                    if let Some(has_read) = data.has_read {
+                        active_model.has_read.set_if_not_equals(has_read);
+                    }
+
+                    if active_model.is_changed() {
+                        active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })?;
+
+        self.find_one_entry(params).await
     }
 }
 
