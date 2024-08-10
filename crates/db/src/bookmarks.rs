@@ -29,6 +29,7 @@ impl BookmarksRepository for PostgresRepository {
             .find_also_related(bookmark::Entity)
             .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
             .order_by_asc(bookmark::Column::Title)
+            .order_by_asc(profile_bookmark::Column::Id)
             .all(&self.db)
             .await
             .map(|e| {

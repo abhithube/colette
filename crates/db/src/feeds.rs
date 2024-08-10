@@ -31,6 +31,7 @@ impl FeedsRepository for PostgresRepository {
             .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
             .order_by_asc(profile_feed::Column::Title)
             .order_by_asc(feed::Column::Title)
+            .order_by_asc(profile_feed::Column::Id)
             .all(&self.db)
             .await
             .map(|e| {

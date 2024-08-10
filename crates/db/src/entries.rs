@@ -28,7 +28,6 @@ impl EntriesRepository for PostgresRepository {
             .find_also_linked(ProfileFeedEntryToEntry)
             .filter(conditions)
             .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
-            .order_by_asc(Expr::col((Alias::new("r1"), entry::Column::Title)))
             .order_by_asc(profile_feed_entry::Column::Id)
             .limit(params.limit)
             .all(&self.db)
