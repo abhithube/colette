@@ -16,12 +16,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use colette_password::Argon2Hasher;
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
     use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
+    use colette_session::{PostgresStore, SessionBackend, SqliteStore};
     use colette_tasks::handle_refresh_task;
     use colette_ui::{app::*, fileserv::file_and_error_handler};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
+    use sea_orm::{ConnectionTrait, DatabaseBackend};
     use tower_sessions::ExpiredDeletion;
-    use tower_sessions_sqlx_store::PostgresStore;
 
     const CRON_CLEANUP: &str = "0 0 0 * * *";
 
@@ -31,11 +32,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let repository = Arc::new(PostgresRepository::new(db.clone()));
 
-    let session_store = PostgresStore::new(db.get_postgres_connection_pool().clone());
-    session_store.migrate().await?;
+    let session_backend = match db.get_database_backend() {
+        DatabaseBackend::Postgres => {
+            let store = PostgresStore::new(db.get_postgres_connection_pool().to_owned());
+            store.migrate().await?;
+
+            SessionBackend::Postgres(store)
+        }
+        DatabaseBackend::Sqlite => {
+            let store = SqliteStore::new(db.get_sqlite_connection_pool().to_owned());
+            store.migrate().await?;
+
+            SessionBackend::Sqlite(store)
+        }
+        _ => panic!("only PostgreSQL and SQLite are supported"),
+    };
 
     let deletion_task = tokio::task::spawn(
-        session_store
+        session_backend
             .clone()
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
@@ -89,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let routes = generate_route_list(App);
 
-    let app = Api::new(&api_state, &app_config, session_store)
+    let app = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)
         .leptos_routes(&leptos_options, routes, App)
