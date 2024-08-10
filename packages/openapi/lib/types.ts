@@ -30,14 +30,14 @@ export type ProfileUpdate = schemas['ProfileUpdate']
 export type TagUpdate = schemas['TagUpdate']
 
 export type ListBookmarksQuery = NonNullable<
-	operations['listBookmarks']['parameters']['query']
+  operations['listBookmarks']['parameters']['query']
 >
 export type ListEntriesQuery = NonNullable<
-	operations['listEntries']['parameters']['query']
+  operations['listEntries']['parameters']['query']
 >
 export type ListFeedsQuery = NonNullable<
-	operations['listFeeds']['parameters']['query']
+  operations['listFeeds']['parameters']['query']
 >
 export type ListTagsQuery = NonNullable<
-	operations['listTags']['parameters']['query']
+  operations['listTags']['parameters']['query']
 >

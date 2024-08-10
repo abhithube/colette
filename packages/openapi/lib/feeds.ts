@@ -1,153 +1,153 @@
 import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
 import {
-	APIError,
-	BadGatewayError,
-	NotFoundError,
-	UnprocessableContentError,
+  APIError,
+  BadGatewayError,
+  NotFoundError,
+  UnprocessableContentError,
 } from './error'
 import type { operations } from './openapi'
 import type {
-	Feed,
-	FeedCreate,
-	FeedList,
-	FeedUpdate,
-	File,
-	ListFeedsQuery,
+  Feed,
+  FeedCreate,
+  FeedList,
+  FeedUpdate,
+  File,
+  ListFeedsQuery,
 } from './types'
 
 export class FeedsAPI {
-	constructor(private client: Client) {}
+  constructor(private client: Client) {}
 
-	async list(
-		query?: ListFeedsQuery,
-		options?: Omit<FetchOptions<operations['listFeeds']>, 'params'>,
-	): Promise<FeedList> {
-		const res = await this.client.GET('/feeds', {
-			params: {
-				query,
-			},
-			...options,
-		})
-		if (res.error) {
-			throw new APIError('unknown error')
-		}
+  async list(
+    query?: ListFeedsQuery,
+    options?: Omit<FetchOptions<operations['listFeeds']>, 'params'>,
+  ): Promise<FeedList> {
+    const res = await this.client.GET('/feeds', {
+      params: {
+        query,
+      },
+      ...options,
+    })
+    if (res.error) {
+      throw new APIError('unknown error')
+    }
 
-		return res.data
-	}
+    return res.data
+  }
 
-	async get(
-		id: string,
-		options?: Omit<FetchOptions<operations['getFeed']>, 'params'>,
-	): Promise<Feed> {
-		const res = await this.client.GET('/feeds/{id}', {
-			params: {
-				path: {
-					id,
-				},
-			},
-			...options,
-		})
-		if (res.error) {
-			if (res.response.status === 404) {
-				throw new NotFoundError(res.error.message)
-			}
+  async get(
+    id: string,
+    options?: Omit<FetchOptions<operations['getFeed']>, 'params'>,
+  ): Promise<Feed> {
+    const res = await this.client.GET('/feeds/{id}', {
+      params: {
+        path: {
+          id,
+        },
+      },
+      ...options,
+    })
+    if (res.error) {
+      if (res.response.status === 404) {
+        throw new NotFoundError(res.error.message)
+      }
 
-			throw new APIError(res.error.message)
-		}
+      throw new APIError(res.error.message)
+    }
 
-		return res.data
-	}
+    return res.data
+  }
 
-	async create(
-		body: FeedCreate,
-		options?: Omit<FetchOptions<operations['createFeed']>, 'body'>,
-	): Promise<Feed> {
-		const res = await this.client.POST('/feeds', {
-			body,
-			...options,
-		})
-		if (res.error) {
-			if (res.response.status === 422) {
-				throw new UnprocessableContentError(res.error.message)
-			}
-			if (res.response.status === 502) {
-				throw new BadGatewayError(res.error.message)
-			}
+  async create(
+    body: FeedCreate,
+    options?: Omit<FetchOptions<operations['createFeed']>, 'body'>,
+  ): Promise<Feed> {
+    const res = await this.client.POST('/feeds', {
+      body,
+      ...options,
+    })
+    if (res.error) {
+      if (res.response.status === 422) {
+        throw new UnprocessableContentError(res.error.message)
+      }
+      if (res.response.status === 502) {
+        throw new BadGatewayError(res.error.message)
+      }
 
-			throw new APIError(res.error.message)
-		}
+      throw new APIError(res.error.message)
+    }
 
-		return res.data
-	}
+    return res.data
+  }
 
-	async update(
-		id: string,
-		body: FeedUpdate,
-		options?: Omit<FetchOptions<operations['updateFeed']>, 'params' | 'body'>,
-	): Promise<Feed> {
-		const res = await this.client.PATCH('/feeds/{id}', {
-			params: {
-				path: {
-					id,
-				},
-			},
-			body,
-			...options,
-		})
-		if (res.error) {
-			if (res.response.status === 404) {
-				throw new NotFoundError(res.error.message)
-			}
-			if (res.response.status === 422) {
-				throw new UnprocessableContentError(res.error.message)
-			}
+  async update(
+    id: string,
+    body: FeedUpdate,
+    options?: Omit<FetchOptions<operations['updateFeed']>, 'params' | 'body'>,
+  ): Promise<Feed> {
+    const res = await this.client.PATCH('/feeds/{id}', {
+      params: {
+        path: {
+          id,
+        },
+      },
+      body,
+      ...options,
+    })
+    if (res.error) {
+      if (res.response.status === 404) {
+        throw new NotFoundError(res.error.message)
+      }
+      if (res.response.status === 422) {
+        throw new UnprocessableContentError(res.error.message)
+      }
 
-			throw new APIError(res.error.message)
-		}
+      throw new APIError(res.error.message)
+    }
 
-		return res.data
-	}
+    return res.data
+  }
 
-	async delete(
-		id: string,
-		options?: Omit<FetchOptions<operations['deleteFeed']>, 'params'>,
-	): Promise<void> {
-		const res = await this.client.DELETE('/feeds/{id}', {
-			params: {
-				path: {
-					id,
-				},
-			},
-			...options,
-		})
-		if (res.error) {
-			if (res.response.status === 404) {
-				throw new NotFoundError(res.error.message)
-			}
+  async delete(
+    id: string,
+    options?: Omit<FetchOptions<operations['deleteFeed']>, 'params'>,
+  ): Promise<void> {
+    const res = await this.client.DELETE('/feeds/{id}', {
+      params: {
+        path: {
+          id,
+        },
+      },
+      ...options,
+    })
+    if (res.error) {
+      if (res.response.status === 404) {
+        throw new NotFoundError(res.error.message)
+      }
 
-			throw new APIError(res.error.message)
-		}
-	}
+      throw new APIError(res.error.message)
+    }
+  }
 
-	async import(
-		body: File,
-		options?: Omit<
-			FetchOptions<operations['importFeeds']>,
-			'body' | 'bodySerializer'
-		>,
-	): Promise<void> {
-		const res = await this.client.POST('/feeds/import', {
-			body,
-			bodySerializer: (body) => {
-				const fd = new FormData()
-				fd.append('file', body.data)
-				return fd
-			},
-			...options,
-		})
-		if (res.error) {
-			throw new APIError('unknown error')
-		}
-	}
+  async import(
+    body: File,
+    options?: Omit<
+      FetchOptions<operations['importFeeds']>,
+      'body' | 'bodySerializer'
+    >,
+  ): Promise<void> {
+    const res = await this.client.POST('/feeds/import', {
+      body,
+      bodySerializer: (body) => {
+        const fd = new FormData()
+        fd.append('file', body.data)
+        return fd
+      },
+      ...options,
+    })
+    if (res.error) {
+      throw new APIError('unknown error')
+    }
+  }
 }

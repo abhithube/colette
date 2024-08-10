@@ -2,31 +2,31 @@ import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { OuterSidebar } from './-components/outer-sidebar'
 
 export const Route = createFileRoute('/_private')({
-	beforeLoad: async ({ context }) => {
-		if (!context.profile) {
-			throw redirect({
-				to: '/login',
-			})
-		}
+  beforeLoad: async ({ context }) => {
+    if (!context.profile) {
+      throw redirect({
+        to: '/login',
+      })
+    }
 
-		return {
-			profile: context.profile,
-		}
-	},
-	component: Component,
+    return {
+      profile: context.profile,
+    }
+  },
+  component: Component,
 })
 
 function Component() {
-	const { profile } = Route.useRouteContext()
+  const { profile } = Route.useRouteContext()
 
-	if (!profile) return
+  if (!profile) return
 
-	return (
-		<div className="flex h-screen">
-			<OuterSidebar profile={profile} />
-			<div className="w-full overflow-y-auto">
-				<Outlet />
-			</div>
-		</div>
-	)
+  return (
+    <div className="flex h-screen">
+      <OuterSidebar profile={profile} />
+      <div className="w-full overflow-y-auto">
+        <Outlet />
+      </div>
+    </div>
+  )
 }

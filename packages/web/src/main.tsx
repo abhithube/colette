@@ -9,31 +9,31 @@ import { routeTree } from './routeTree.gen'
 
 const queryClient = new QueryClient()
 const api = new API({
-	baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '',
-	credentials: 'include',
+  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '',
+  credentials: 'include',
 })
 
 const router = createRouter({
-	routeTree,
-	context: {
-		queryClient,
-		api,
-	},
-	defaultPreload: 'intent',
+  routeTree,
+  context: {
+    queryClient,
+    api,
+  },
+  defaultPreload: 'intent',
 })
 
 declare module '@tanstack/react-router' {
-	interface Register {
-		router: typeof router
-	}
+  interface Register {
+    router: typeof router
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-	<React.StrictMode>
-		<ThemeProvider>
-			<QueryClientProvider client={queryClient}>
-				<RouterProvider router={router} />
-			</QueryClientProvider>
-		</ThemeProvider>
-	</React.StrictMode>,
+  <React.StrictMode>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>
+    </ThemeProvider>
+  </React.StrictMode>,
 )

@@ -6,33 +6,33 @@ import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
 
 export const Route = createRootRouteWithContext<{
-	queryClient: QueryClient
-	api: API
+  queryClient: QueryClient
+  api: API
 }>()({
-	beforeLoad: async ({ context }) => {
-		try {
-			const profile = await context.queryClient.fetchQuery(
-				getDefaultProfileOptions(context.api),
-			)
+  beforeLoad: async ({ context }) => {
+    try {
+      const profile = await context.queryClient.fetchQuery(
+        getDefaultProfileOptions(context.api),
+      )
 
-			return {
-				profile,
-			}
-		} catch (_) {
-			return {
-				profile: undefined,
-			}
-		}
-	},
-	component: Component,
+      return {
+        profile,
+      }
+    } catch (_) {
+      return {
+        profile: undefined,
+      }
+    }
+  },
+  component: Component,
 })
 
 function Component() {
-	return (
-		<>
-			<Outlet />
-			<TanStackRouterDevtools />
-			<ReactQueryDevtools />
-		</>
-	)
+  return (
+    <>
+      <Outlet />
+      <TanStackRouterDevtools />
+      <ReactQueryDevtools />
+    </>
+  )
 }

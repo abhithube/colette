@@ -1,18 +1,18 @@
 import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog'
 import {
-	Form,
-	FormDescription,
-	FormField,
-	FormItem,
-	FormLabel,
+  Form,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { createBookmarkOptions } from '@colette/query'
@@ -25,73 +25,73 @@ import { z } from 'zod'
 import { Route } from '../../bookmarks'
 
 const formSchema = z.object({
-	url: z.string().url(),
+  url: z.string().url(),
 })
 
 type Props = {
-	close: () => void
+  close: () => void
 }
 
 export function AddBookmarkModal({ close }: Props) {
-	const context = Route.useRouteContext()
+  const context = Route.useRouteContext()
 
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
-		defaultValues: {
-			url: '',
-		},
-	})
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      url: '',
+    },
+  })
 
-	const navigate = useNavigate()
+  const navigate = useNavigate()
 
-	const { mutateAsync: createBookmark, isPending } = useMutation(
-		createBookmarkOptions(
-			{
-				onSuccess: () => {
-					form.reset()
-					close()
+  const { mutateAsync: createBookmark, isPending } = useMutation(
+    createBookmarkOptions(
+      {
+        onSuccess: () => {
+          form.reset()
+          close()
 
-					navigate({
-						to: '/bookmarks/stash',
-					})
-				},
-			},
-			context.api,
-		),
-	)
+          navigate({
+            to: '/bookmarks/stash',
+          })
+        },
+      },
+      context.api,
+    ),
+  )
 
-	return (
-		<DialogContent>
-			<Form {...form}>
-				<form
-					className="space-y-4"
-					onSubmit={form.handleSubmit((data) => createBookmark(data))}
-				>
-					<DialogHeader>
-						<DialogTitle>Add Bookmark</DialogTitle>
-						<DialogDescription>Add a bookmark to the stash.</DialogDescription>
-					</DialogHeader>
-					<FormField
-						control={form.control}
-						name="url"
-						render={({ field }) => (
-							<FormItem>
-								<FormLabel>URL</FormLabel>
-								<Input {...field} />
-								<FormDescription>URL of the bookmark</FormDescription>
-							</FormItem>
-						)}
-					/>
-					<DialogFooter>
-						<Button disabled={isPending}>
-							{isPending && (
-								<Icon className="mr-2 animate-spin" value={Loader2} />
-							)}
-							Submit
-						</Button>
-					</DialogFooter>
-				</form>
-			</Form>
-		</DialogContent>
-	)
+  return (
+    <DialogContent>
+      <Form {...form}>
+        <form
+          className="space-y-4"
+          onSubmit={form.handleSubmit((data) => createBookmark(data))}
+        >
+          <DialogHeader>
+            <DialogTitle>Add Bookmark</DialogTitle>
+            <DialogDescription>Add a bookmark to the stash.</DialogDescription>
+          </DialogHeader>
+          <FormField
+            control={form.control}
+            name="url"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>URL</FormLabel>
+                <Input {...field} />
+                <FormDescription>URL of the bookmark</FormDescription>
+              </FormItem>
+            )}
+          />
+          <DialogFooter>
+            <Button disabled={isPending}>
+              {isPending && (
+                <Icon className="mr-2 animate-spin" value={Loader2} />
+              )}
+              Submit
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    </DialogContent>
+  )
 }

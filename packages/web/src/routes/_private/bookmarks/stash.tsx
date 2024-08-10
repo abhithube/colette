@@ -6,49 +6,49 @@ import { useEffect } from 'react'
 import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/stash')({
-	loader: async ({ context }) => {
-		const options = listBookmarksOptions(
-			{ filterByTags: true, 'tag[]': [] },
-			context.profile.id,
-			context.api,
-		)
+  loader: async ({ context }) => {
+    const options = listBookmarksOptions(
+      { filterByTags: true, 'tag[]': [] },
+      context.profile.id,
+      context.api,
+    )
 
-		await ensureInfiniteQueryData(context.queryClient, options as any)
+    await ensureInfiniteQueryData(context.queryClient, options as any)
 
-		return {
-			options,
-		}
-	},
-	component: Component,
+    return {
+      options,
+    }
+  },
+  component: Component,
 })
 
 function Component() {
-	const { options } = Route.useLoaderData()
+  const { options } = Route.useLoaderData()
 
-	const {
-		data: bookmarks,
-		hasNextPage,
-		fetchNextPage,
-	} = useInfiniteQuery(options)
+  const {
+    data: bookmarks,
+    hasNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery(options)
 
-	useEffect(() => {
-		window.scrollTo(0, 0)
-	}, [])
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [])
 
-	if (!bookmarks) return
+  if (!bookmarks) return
 
-	return (
-		<>
-			<Header>
-				<HeaderTitle>Stash</HeaderTitle>
-			</Header>
-			<main>
-				<BookmarkGrid
-					bookmarks={bookmarks.pages.flatMap((page) => page.data)}
-					hasMore={hasNextPage}
-					loadMore={fetchNextPage}
-				/>
-			</main>
-		</>
-	)
+  return (
+    <>
+      <Header>
+        <HeaderTitle>Stash</HeaderTitle>
+      </Header>
+      <main>
+        <BookmarkGrid
+          bookmarks={bookmarks.pages.flatMap((page) => page.data)}
+          hasMore={hasNextPage}
+          loadMore={fetchNextPage}
+        />
+      </main>
+    </>
+  )
 }
