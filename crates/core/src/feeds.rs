@@ -42,7 +42,7 @@ pub struct UpdateFeed {
 
 #[derive(Clone, Debug)]
 pub struct ListFeedsParams {
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]
@@ -297,7 +297,7 @@ impl FeedsService {
 #[derive(Clone, Debug)]
 pub struct FeedsFindManyParams {
     pub profile_id: Uuid,
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]

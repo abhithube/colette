@@ -27,14 +27,15 @@ WHERE
     OR pfe.has_read = $5
   )
   AND (
-    $6::UUID [] IS NULL
+    $6::TEXT[] IS NULL
     OR pfe.profile_feed_id IN (
       SELECT DISTINCT
-        profile_feed_id
+        pft.profile_feed_id
       FROM
-        profile_feed_tag
+        profile_feed_tag pft
+        INNER JOIN tag AS t ON t.id = pft.tag_id
       WHERE
-        tag_id = ANY ($6)
+        t.title = ANY ($6)
     )
   )
 ORDER BY

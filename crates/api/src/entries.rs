@@ -107,9 +107,9 @@ pub struct ListEntriesQuery {
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
-    #[param(nullable = false)]
+    #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<ListEntriesQuery> for ListEntriesParams {

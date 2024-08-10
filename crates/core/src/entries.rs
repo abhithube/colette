@@ -28,7 +28,7 @@ pub struct ListEntriesParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[async_trait::async_trait]
@@ -110,7 +110,7 @@ pub struct EntriesFindManyParams {
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]

@@ -125,9 +125,9 @@ pub async fn list_feeds(
 pub struct ListFeedsQuery {
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[param(nullable = false)]
+    #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<ListFeedsQuery> for ListFeedsParams {

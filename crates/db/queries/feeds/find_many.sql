@@ -47,14 +47,15 @@ FROM
 WHERE
   pf.profile_id = $1
   AND (
-    $2::UUID [] IS NULL
+    $2::TEXT[] IS NULL
     OR pf.id IN (
       SELECT DISTINCT
-        profile_feed_id
+        pft.profile_feed_id
       FROM
-        profile_feed_tag
+        profile_feed_tag pft
+        INNER JOIN tag AS t ON t.id = pft.tag_id
       WHERE
-        tag_id = ANY ($2)
+        t.title = ANY ($2)
     )
   )
 GROUP BY

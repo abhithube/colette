@@ -37,7 +37,7 @@ pub struct UpdateBookmark {
 #[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
     pub published_at: Option<DateTime<Utc>>,
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
@@ -183,7 +183,7 @@ pub struct BookmarksFindManyParams {
     pub profile_id: Uuid,
     pub limit: i64,
     pub published_at: Option<DateTime<Utc>>,
-    pub tags: Option<Vec<Uuid>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]

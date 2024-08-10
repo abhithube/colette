@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at AS \"published_at: DateTime<Utc>\",\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entry AS pfe\n  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entry AS e ON e.id = fe.entry_id\nWHERE\n  pfe.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\n  AND (\n    $6::UUID [] IS NULL\n    OR pfe.profile_feed_id IN (\n      SELECT DISTINCT\n        profile_feed_id\n      FROM\n        profile_feed_tag\n      WHERE\n        tag_id = ANY ($6)\n    )\n  )\nORDER BY\n  e.published_at DESC,\n  e.title ASC,\n  pfe.id DESC\nLIMIT\n  $2;",
+  "query": "SELECT\n  pfe.id,\n  e.link,\n  e.title,\n  e.published_at AS \"published_at: DateTime<Utc>\",\n  e.description,\n  e.author,\n  e.thumbnail_url,\n  pfe.has_read,\n  pfe.profile_feed_id AS feed_id\nFROM\n  profile_feed_entry AS pfe\n  INNER JOIN feed_entry AS fe ON fe.id = pfe.feed_entry_id\n  INNER JOIN entry AS e ON e.id = fe.entry_id\nWHERE\n  pfe.profile_id = $1\n  AND (\n    $3::timestamptz IS NULL\n    OR e.published_at < $3\n  )\n  AND (\n    $4::UUID IS NULL\n    OR pfe.profile_feed_id = $4\n  )\n  AND (\n    $5::boolean IS NULL\n    OR pfe.has_read = $5\n  )\n  AND (\n    $6::TEXT[] IS NULL\n    OR pfe.profile_feed_id IN (\n      SELECT DISTINCT\n        pft.profile_feed_id\n      FROM\n        profile_feed_tag pft\n        INNER JOIN tag AS t ON t.id = pft.tag_id\n      WHERE\n        t.title = ANY ($6)\n    )\n  )\nORDER BY\n  e.published_at DESC,\n  e.title ASC,\n  pfe.id DESC\nLIMIT\n  $2;",
   "describe": {
     "columns": [
       {
@@ -56,7 +56,7 @@
         "Timestamptz",
         "Uuid",
         "Bool",
-        "UuidArray"
+        "TextArray"
       ]
     },
     "nullable": [
@@ -71,5 +71,5 @@
       false
     ]
   },
-  "hash": "d2e46599d2ef06a4ae1a939391fae20c341fff312dbb716e094d9b382885f961"
+  "hash": "563c8b525a108f718626500073b59ae6386283c3d138c8d1e7ddd078f7aad759"
 }

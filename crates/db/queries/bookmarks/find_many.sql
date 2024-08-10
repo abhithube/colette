@@ -45,14 +45,15 @@ FROM
 WHERE
   pb.profile_id = $1
   AND (
-    $3::UUID [] IS NULL
+    $3::TEXT[] IS NULL
     OR pb.id IN (
       SELECT DISTINCT
-        profile_bookmark_id
+        pbt.profile_bookmark_id
       FROM
-        profile_bookmark_tag
+        profile_bookmark_tag pbt
+        INNER JOIN tag AS t ON t.id = pbt.tag_id
       WHERE
-        tag_id = ANY ($3)
+        t.title = ANY ($3)
     )
   )
 GROUP BY
