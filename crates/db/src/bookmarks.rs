@@ -257,7 +257,7 @@ struct Bookmark {
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
-    tags: Json<Vec<Tag>>,
+    tags: Option<Json<Vec<Tag>>>,
 }
 
 impl From<Bookmark> for colette_core::Bookmark {
@@ -271,10 +271,7 @@ impl From<Bookmark> for colette_core::Bookmark {
             author: value.author,
             tags: value
                 .tags
-                .0
-                .into_iter()
-                .map(colette_core::Tag::from)
-                .collect(),
+                .map(|e| e.0.into_iter().map(colette_core::Tag::from).collect()),
         }
     }
 }

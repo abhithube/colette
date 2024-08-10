@@ -445,7 +445,7 @@ struct Feed {
     title: Option<String>,
     original_title: String,
     url: Option<String>,
-    tags: Json<Vec<Tag>>,
+    tags: Option<Json<Vec<Tag>>>,
     unread_count: Option<i64>,
 }
 
@@ -459,10 +459,7 @@ impl From<Feed> for colette_core::Feed {
             url: value.url,
             tags: value
                 .tags
-                .0
-                .into_iter()
-                .map(colette_core::Tag::from)
-                .collect(),
+                .map(|e| e.0.into_iter().map(colette_core::Tag::from).collect()),
             unread_count: value.unread_count,
         }
     }

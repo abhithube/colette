@@ -73,9 +73,9 @@ pub struct Feed {
     pub original_title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
-    #[schema(required = false)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<Tag>,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<Tag>>,
     #[schema(nullable = false)]
     pub unread_count: Option<i64>,
 }
@@ -88,7 +88,7 @@ impl From<colette_core::Feed> for Feed {
             title: value.title,
             original_title: value.original_title,
             url: value.url,
-            tags: value.tags.into_iter().map(Tag::from).collect(),
+            tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
             unread_count: value.unread_count,
         }
     }
@@ -308,6 +308,7 @@ pub struct FeedUpdate {
     )]
     #[validate(length(min = 1))]
     pub title: Option<Option<String>>,
+    #[schema(nullable = false)]
     pub tags: Option<Vec<TagCreate>>,
 }
 

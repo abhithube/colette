@@ -69,9 +69,9 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(required = false)]
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub tags: Vec<Tag>,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<Tag>>,
 }
 
 impl From<colette_core::Bookmark> for Bookmark {
@@ -83,7 +83,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            tags: value.tags.into_iter().map(Tag::from).collect(),
+            tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
 }
@@ -298,6 +298,7 @@ pub async fn update_bookmark(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
+    #[schema(nullable = false)]
     pub tags: Option<Vec<TagCreate>>,
 }
 

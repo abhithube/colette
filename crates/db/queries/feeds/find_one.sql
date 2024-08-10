@@ -33,7 +33,7 @@ SELECT
         pft.id IS NOT NULL
     ),
     '[]'
-  ) AS "tags!: Json<Vec<Tag>>",
+  ) AS "tags: Json<Vec<Tag>>",
   count(pfe.id) AS unread_count
 FROM
   profile_feed AS pf

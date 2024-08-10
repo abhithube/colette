@@ -21,7 +21,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Vec<Tag>,
+    pub tags: Option<Vec<Tag>>,
 }
 
 #[derive(Clone, Debug, serde::Deserialize)]

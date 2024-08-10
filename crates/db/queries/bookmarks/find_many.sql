@@ -34,7 +34,7 @@ SELECT
         pbt.id IS NOT NULL
     ),
     '[]'
-  ) AS "tags!: Json<Vec<Tag>>"
+  ) AS "tags: Json<Vec<Tag>>"
 FROM
   profile_bookmark AS pb
   INNER JOIN bookmark AS b ON b.id = pb.bookmark_id
