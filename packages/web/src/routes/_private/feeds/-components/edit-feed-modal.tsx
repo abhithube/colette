@@ -73,6 +73,7 @@ export function EditFeedModal({ feed, close }: Props) {
   useEffect(() => {
     form.reset({
       tags: feed.tags?.map((tag) => tag.title) ?? [],
+      title: feed.title ?? feed.originalTitle,
     })
   }, [form, feed])
 
@@ -83,15 +84,44 @@ export function EditFeedModal({ feed, close }: Props) {
       <Form {...form}>
         <form
           className="space-y-4"
-          onSubmit={form.handleSubmit((data) =>
+          onSubmit={form.handleSubmit((data) => {
+            let title: string | null | undefined = data.title
+            if (title === feed.title) {
+              title = undefined
+            } else if (title === feed.originalTitle) {
+              if (!feed.title) {
+                title = undefined
+              } else {
+                title = null
+              }
+            }
+
+            let tags: string[] | undefined = data.tags
+            if (feed.tags) {
+              const current = feed.tags
+              if (
+                tags.length === current.length &&
+                tags.every(
+                  (title) =>
+                    current.find((tag) => tag.title === title) !== undefined,
+                )
+              ) {
+                tags = undefined
+              }
+            }
+
+            if (title === undefined && tags === undefined) {
+              return close()
+            }
+
             updateFeed({
               id: feed.id,
               body: {
-                title: data.title,
-                tags: data.tags.map((title) => ({ title })),
+                title,
+                tags: tags?.map((title) => ({ title })),
               },
-            }),
-          )}
+            })
+          })}
         >
           <DialogHeader>
             <DialogTitle>Edit {feed.title ?? feed.originalTitle}</DialogTitle>

@@ -74,14 +74,32 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
       <Form {...form}>
         <form
           className="space-y-4"
-          onSubmit={form.handleSubmit((data) =>
+          onSubmit={form.handleSubmit((data) => {
+            let tags: string[] | undefined = data.tags
+            if (bookmark.tags) {
+              const current = bookmark.tags
+              if (
+                tags.length === current.length &&
+                tags.every(
+                  (title) =>
+                    current.find((tag) => tag.title === title) !== undefined,
+                )
+              ) {
+                tags = undefined
+              }
+            }
+
+            if (tags === undefined) {
+              return close()
+            }
+
             updateBookmark({
               id: bookmark.id,
               body: {
-                tags: data.tags.map((title) => ({ title })),
+                tags: tags.map((title) => ({ title })),
               },
-            }),
-          )}
+            })
+          })}
         >
           <DialogHeader>
             <DialogTitle>Edit {bookmark.title}</DialogTitle>
