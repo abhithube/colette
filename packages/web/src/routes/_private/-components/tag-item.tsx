@@ -16,9 +16,9 @@ type Props = {
 export function TagItem({ tag, type }: Props) {
   return (
     <SidebarLink
-      to={type === 'bookmark' ? '/bookmarks/tags/$id' : '/feeds/tags/$id'}
+      to={type === 'bookmark' ? '/bookmarks/tags/$slug' : '/feeds/tags/$slug'}
       params={{
-        id: tag.id,
+        slug: tag.slug,
       }}
     >
       <TooltipProvider>

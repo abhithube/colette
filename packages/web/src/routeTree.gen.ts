@@ -21,8 +21,8 @@ import { Route as PrivateBookmarksIndexImport } from './routes/_private/bookmark
 import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
 import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
 import { Route as PrivateBookmarksStashImport } from './routes/_private/bookmarks/stash'
-import { Route as PrivateFeedsTagsIdImport } from './routes/_private/feeds/tags.$id'
-import { Route as PrivateBookmarksTagsIdImport } from './routes/_private/bookmarks/tags.$id'
+import { Route as PrivateFeedsTagsSlugImport } from './routes/_private/feeds/tags.$slug'
+import { Route as PrivateBookmarksTagsSlugImport } from './routes/_private/bookmarks/tags.$slug'
 
 // Create/Update Routes
 
@@ -76,13 +76,13 @@ const PrivateBookmarksStashRoute = PrivateBookmarksStashImport.update({
   getParentRoute: () => PrivateBookmarksRoute,
 } as any)
 
-const PrivateFeedsTagsIdRoute = PrivateFeedsTagsIdImport.update({
-  path: '/tags/$id',
+const PrivateFeedsTagsSlugRoute = PrivateFeedsTagsSlugImport.update({
+  path: '/tags/$slug',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
-const PrivateBookmarksTagsIdRoute = PrivateBookmarksTagsIdImport.update({
-  path: '/tags/$id',
+const PrivateBookmarksTagsSlugRoute = PrivateBookmarksTagsSlugImport.update({
+  path: '/tags/$slug',
   getParentRoute: () => PrivateBookmarksRoute,
 } as any)
 
@@ -160,18 +160,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivateFeedsIndexImport
       parentRoute: typeof PrivateFeedsImport
     }
-    '/_private/bookmarks/tags/$id': {
-      id: '/_private/bookmarks/tags/$id'
-      path: '/tags/$id'
-      fullPath: '/bookmarks/tags/$id'
-      preLoaderRoute: typeof PrivateBookmarksTagsIdImport
+    '/_private/bookmarks/tags/$slug': {
+      id: '/_private/bookmarks/tags/$slug'
+      path: '/tags/$slug'
+      fullPath: '/bookmarks/tags/$slug'
+      preLoaderRoute: typeof PrivateBookmarksTagsSlugImport
       parentRoute: typeof PrivateBookmarksImport
     }
-    '/_private/feeds/tags/$id': {
-      id: '/_private/feeds/tags/$id'
-      path: '/tags/$id'
-      fullPath: '/feeds/tags/$id'
-      preLoaderRoute: typeof PrivateFeedsTagsIdImport
+    '/_private/feeds/tags/$slug': {
+      id: '/_private/feeds/tags/$slug'
+      path: '/tags/$slug'
+      fullPath: '/feeds/tags/$slug'
+      preLoaderRoute: typeof PrivateFeedsTagsSlugImport
       parentRoute: typeof PrivateFeedsImport
     }
   }
@@ -184,13 +184,13 @@ export const routeTree = rootRoute.addChildren({
     PrivateBookmarksRoute: PrivateBookmarksRoute.addChildren({
       PrivateBookmarksStashRoute,
       PrivateBookmarksIndexRoute,
-      PrivateBookmarksTagsIdRoute,
+      PrivateBookmarksTagsSlugRoute,
     }),
     PrivateFeedsRoute: PrivateFeedsRoute.addChildren({
       PrivateFeedsIdRoute,
       PrivateFeedsArchivedRoute,
       PrivateFeedsIndexRoute,
-      PrivateFeedsTagsIdRoute,
+      PrivateFeedsTagsSlugRoute,
     }),
     PrivateIndexRoute,
   }),
@@ -226,7 +226,7 @@ export const routeTree = rootRoute.addChildren({
       "children": [
         "/_private/bookmarks/stash",
         "/_private/bookmarks/",
-        "/_private/bookmarks/tags/$id"
+        "/_private/bookmarks/tags/$slug"
       ]
     },
     "/_private/feeds": {
@@ -236,7 +236,7 @@ export const routeTree = rootRoute.addChildren({
         "/_private/feeds/$id",
         "/_private/feeds/archived",
         "/_private/feeds/",
-        "/_private/feeds/tags/$id"
+        "/_private/feeds/tags/$slug"
       ]
     },
     "/_private/": {
@@ -263,12 +263,12 @@ export const routeTree = rootRoute.addChildren({
       "filePath": "_private/feeds/index.tsx",
       "parent": "/_private/feeds"
     },
-    "/_private/bookmarks/tags/$id": {
-      "filePath": "_private/bookmarks/tags.$id.tsx",
+    "/_private/bookmarks/tags/$slug": {
+      "filePath": "_private/bookmarks/tags.$slug.tsx",
       "parent": "/_private/bookmarks"
     },
-    "/_private/feeds/tags/$id": {
-      "filePath": "_private/feeds/tags.$id.tsx",
+    "/_private/feeds/tags/$slug": {
+      "filePath": "_private/feeds/tags.$slug.tsx",
       "parent": "/_private/feeds"
     }
   }

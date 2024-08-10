@@ -14,11 +14,11 @@ export const listTagsOptions = (
       }),
   })
 
-export const getTagOptions = (id: string, api: API) =>
+export const getTagOptions = (slug: string, api: API) =>
   queryOptions({
-    queryKey: ['feeds', id],
+    queryKey: ['tags', slug],
     queryFn: ({ signal }) =>
-      api.tags.get(id, {
+      api.tags.get(slug, {
         signal,
       }),
   })

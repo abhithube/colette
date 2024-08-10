@@ -2,29 +2,32 @@ import { Header, HeaderTitle } from '@/components/header'
 import {
   ensureInfiniteQueryData,
   getTagOptions,
-  listBookmarksOptions,
+  listEntriesOptions,
 } from '@colette/query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { BookmarkGrid } from './-components/bookmark-grid'
+import { FeedEntryGrid } from './-components/feed-entry-grid'
 
-export const Route = createFileRoute('/_private/bookmarks/tags/$id')({
+export const Route = createFileRoute('/_private/feeds/tags/$slug')({
   loader: async ({ context, params }) => {
-    const bookmarkOptions = listBookmarksOptions(
-      { 'tag[]': [params.id] },
+    const entryOptions = listEntriesOptions(
+      {
+        hasRead: false,
+        'tag[]': [params.slug],
+      },
       context.profile.id,
       context.api,
     )
-    const tagOptions = getTagOptions(params.id, context.api)
+    const tagOptions = getTagOptions(params.slug, context.api)
 
     await Promise.all([
-      ensureInfiniteQueryData(context.queryClient, bookmarkOptions as any),
+      ensureInfiniteQueryData(context.queryClient, entryOptions as any),
       context.queryClient.ensureQueryData(tagOptions),
     ])
 
     return {
-      bookmarkOptions,
+      entryOptions,
       tagOptions,
     }
   },
@@ -32,20 +35,20 @@ export const Route = createFileRoute('/_private/bookmarks/tags/$id')({
 })
 
 function Component() {
-  const { bookmarkOptions, tagOptions } = Route.useLoaderData()
+  const { entryOptions, tagOptions } = Route.useLoaderData()
 
   const {
-    data: bookmarks,
+    data: entries,
     hasNextPage,
     fetchNextPage,
-  } = useInfiniteQuery(bookmarkOptions)
+  } = useInfiniteQuery(entryOptions)
   const { data: tag } = useQuery(tagOptions)
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  if (!bookmarks || !tag) return
+  if (!entries || !tag) return
 
   return (
     <>
@@ -53,8 +56,8 @@ function Component() {
         <HeaderTitle>{tag.title}</HeaderTitle>
       </Header>
       <main>
-        <BookmarkGrid
-          bookmarks={bookmarks.pages.flatMap((page) => page.data)}
+        <FeedEntryGrid
+          entries={entries.pages.flatMap((page) => page.data)}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}
         />
