@@ -8,6 +8,7 @@ mod m0004_initial_bookmark;
 mod m0005_initial_profile_bookmark;
 mod m0006_initial_tag;
 mod postgres;
+mod sqlite;
 
 pub struct Migrator;
 

@@ -1,7 +1,8 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
+use strum::IntoEnumIterator;
 
-use crate::postgres;
+use crate::{postgres, sqlite};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -71,9 +72,28 @@ CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
             .execute_unprepared(&profile_user_id_is_default_idx)
             .await?;
 
-        if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, User::Table.to_string()).await?;
-            postgres::create_updated_at_trigger(manager, Profile::Table.to_string()).await?;
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, User::Table.to_string()).await?;
+                postgres::create_updated_at_trigger(manager, Profile::Table.to_string()).await?;
+            }
+            DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    User::Table.to_string(),
+                    User::iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+                )
+                .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    Profile::Table.to_string(),
+                    Profile::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<String>>(),
+                )
+                .await?;
+            }
+            _ => {}
         }
 
         Ok(())
@@ -92,9 +112,11 @@ CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
     }
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum User {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Email,
     Password,
@@ -102,9 +124,11 @@ pub enum User {
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum Profile {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Title,
     ImageUrl,

@@ -1,10 +1,11 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
+use strum::IntoEnumIterator;
 
 use crate::{
     m0001_initial_feed::{Feed, FeedEntry},
     m0002_initial_user::Profile,
-    postgres,
+    postgres, sqlite,
 };
 
 #[derive(DeriveMigrationName)]
@@ -110,8 +111,22 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, ProfileFeed::Table.to_string()).await?;
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, ProfileFeed::Table.to_string())
+                    .await?;
+            }
+            DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    ProfileFeed::Table.to_string(),
+                    ProfileFeed::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>(),
+                )
+                .await?;
+            }
+            _ => {}
         }
 
         Ok(())
@@ -130,9 +145,11 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileFeed {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Title,
     ProfileId,

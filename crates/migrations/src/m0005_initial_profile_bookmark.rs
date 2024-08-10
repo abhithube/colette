@@ -1,7 +1,8 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
+use strum::IntoEnumIterator;
 
-use crate::{m0002_initial_user::Profile, m0004_initial_bookmark::Bookmark, postgres};
+use crate::{m0002_initial_user::Profile, m0004_initial_bookmark::Bookmark, postgres, sqlite};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -60,9 +61,22 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
+                    .await?;
+            }
+            DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    ProfileBookmark::Table.to_string(),
+                    ProfileBookmark::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>(),
+                )
                 .await?;
+            }
+            _ => {}
         }
 
         Ok(())
@@ -77,9 +91,11 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileBookmark {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     ProfileId,
     BookmarkId,

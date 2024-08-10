@@ -1,9 +1,10 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
+use strum::IntoEnumIterator;
 
 use crate::{
     m0002_initial_user::Profile, m0003_initial_profile_feed::ProfileFeed,
-    m0005_initial_profile_bookmark::ProfileBookmark, postgres,
+    m0005_initial_profile_bookmark::ProfileBookmark, postgres, sqlite,
 };
 
 #[derive(DeriveMigrationName)]
@@ -144,11 +145,39 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, Tag::Table.to_string()).await?;
-            postgres::create_updated_at_trigger(manager, ProfileFeedTag::Table.to_string()).await?;
-            postgres::create_updated_at_trigger(manager, ProfileBookmarkTag::Table.to_string())
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, Tag::Table.to_string()).await?;
+                postgres::create_updated_at_trigger(manager, ProfileFeedTag::Table.to_string())
+                    .await?;
+                postgres::create_updated_at_trigger(manager, ProfileBookmarkTag::Table.to_string())
+                    .await?;
+            }
+            DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    Tag::Table.to_string(),
+                    Tag::iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+                )
                 .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    ProfileFeedTag::Table.to_string(),
+                    ProfileFeedTag::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<String>>(),
+                )
+                .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    ProfileBookmarkTag::Table.to_string(),
+                    ProfileBookmarkTag::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>(),
+                )
+                .await?;
+            }
+            _ => {}
         }
 
         Ok(())
@@ -171,9 +200,11 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum Tag {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Title,
     ProfileId,
@@ -181,8 +212,9 @@ pub enum Tag {
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileFeedTag {
+    #[strum(disabled)]
     Table,
     ProfileFeedId,
     TagId,
@@ -191,8 +223,9 @@ pub enum ProfileFeedTag {
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileBookmarkTag {
+    #[strum(disabled)]
     Table,
     ProfileBookmarkId,
     TagId,

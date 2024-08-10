@@ -1,7 +1,8 @@
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
+use strum::IntoEnumIterator;
 
-use crate::postgres;
+use crate::{postgres, sqlite};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -105,10 +106,35 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, Feed::Table.to_string()).await?;
-            postgres::create_updated_at_trigger(manager, Entry::Table.to_string()).await?;
-            postgres::create_updated_at_trigger(manager, FeedEntry::Table.to_string()).await?;
+        match manager.get_database_backend() {
+            DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, Feed::Table.to_string()).await?;
+                postgres::create_updated_at_trigger(manager, Entry::Table.to_string()).await?;
+                postgres::create_updated_at_trigger(manager, FeedEntry::Table.to_string()).await?;
+            }
+            DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    Feed::Table.to_string(),
+                    Feed::iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+                )
+                .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    Entry::Table.to_string(),
+                    Entry::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<String>>(),
+                )
+                .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    FeedEntry::Table.to_string(),
+                    FeedEntry::iter().map(|e| e.to_string()).collect::<Vec<_>>(),
+                )
+                .await?;
+            }
+            _ => {}
         }
 
         Ok(())
@@ -131,9 +157,11 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum Feed {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Link,
     Title,
@@ -142,9 +170,11 @@ pub enum Feed {
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum Entry {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     Link,
     Title,
@@ -156,9 +186,11 @@ pub enum Entry {
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum FeedEntry {
+    #[strum(disabled)]
     Table,
+    #[strum(disabled)]
     Id,
     FeedId,
     EntryId,
