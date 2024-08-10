@@ -11,8 +11,8 @@ use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
     sea_query::{Func, OnConflict, Query},
-    ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, DbErr, EntityTrait, IntoActiveModel, QueryFilter, QuerySelect,
+    Set, TransactionError, TransactionTrait,
 };
 use sqlx::types::Json;
 use uuid::Uuid;
@@ -252,6 +252,18 @@ impl FeedsRepository for PostgresRepository {
                     else {
                         return Err(Error::NotFound(params.id));
                     };
+
+                    let mut active_model = pf_model.clone().into_active_model();
+                    if data.update_title {
+                        active_model.title = Set(data.title)
+                    }
+
+                    if active_model.is_changed() {
+                        active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
 
                     if let Some(tags) = data.tags {
                         let active_models = tags

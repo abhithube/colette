@@ -301,12 +301,20 @@ pub async fn update_feed(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    #[validate(length(min = 1))]
+    pub title: Option<Option<String>>,
     pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<FeedUpdate> for UpdateFeed {
     fn from(value: FeedUpdate) -> Self {
         Self {
+            title: value.title,
             tags: value
                 .tags
                 .map(|e| e.into_iter().map(CreateTag::from).collect()),

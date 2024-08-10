@@ -16,6 +16,7 @@ chrono.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
 serde.workspace = true
+serde_with = { version = "3", default-features = false }
 thiserror.workspace = true
 tower-http.workspace = true
 tower-sessions = { version = "0.12", default-features = false, features = [
