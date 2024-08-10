@@ -22,6 +22,4 @@ rust-embed = { version = "8", default-features = false, features = [
 ] }
 sea-orm.workspace = true
 tokio.workspace = true
-tower-sessions = { version = "0.12", default-features = false, features = [
-  "axum-core",
-] }
+tower-sessions.workspace = true

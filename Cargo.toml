@@ -66,6 +66,9 @@ tower-http = { version = "0.5", default-features = false, features = [
   "cors",
   "fs",
 ] }
+tower-sessions = { version = "0.12", default-features = false, features = [
+  "axum-core",
+] }
 tracing = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false, features = ["serde"] }
 uuid = { version = "1", default-features = false, features = ["serde", "v4"] }
