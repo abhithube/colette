@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{Bookmark, Entry, Feed, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Linked, Related, RelationDef, RelationTrait};
+use uuid::Uuid;
 
 mod generated;
 
@@ -90,6 +91,27 @@ impl From<tag::Model> for Tag {
             slug: value.slug,
             bookmark_count: None,
             feed_count: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialTag {
+    id: Uuid,
+    title: String,
+    slug: String,
+    bookmark_count: i64,
+    feed_count: i64,
+}
+
+impl From<PartialTag> for Tag {
+    fn from(value: PartialTag) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            slug: value.slug,
+            bookmark_count: Some(value.bookmark_count),
+            feed_count: Some(value.feed_count),
         }
     }
 }

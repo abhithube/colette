@@ -1,11 +1,15 @@
-use colette_core::tags::{
-    Error, TagType, TagsCreateData, TagsFindManyParams, TagsFindOneParams, TagsRepository,
-    TagsUpdateData,
+use colette_core::{
+    tags::{
+        Error, TagType, TagsCreateData, TagsFindManyParams, TagsFindOneParams, TagsRepository,
+        TagsUpdateData,
+    },
+    Tag,
 };
-use colette_entities::tag;
+use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, Set, SqlErr,
-    TransactionError, TransactionTrait,
+    sea_query::{Alias, Expr},
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, JoinType,
+    QueryFilter, QuerySelect, RelationTrait, Set, SqlErr, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -13,56 +17,55 @@ use crate::PostgresRepository;
 
 #[async_trait::async_trait]
 impl TagsRepository for PostgresRepository {
-    async fn find_many_tags(
-        &self,
-        params: TagsFindManyParams,
-    ) -> Result<Vec<colette_core::Tag>, Error> {
-        match params.tag_type {
-            TagType::All => {
-                sqlx::query_file_as!(Tag, "queries/tags/find_many.sql", params.profile_id)
-                    .fetch_all(self.db.get_postgres_connection_pool())
-                    .await
-            }
+    async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error> {
+        let mut query = tag::Entity::find()
+            .expr_as(
+                Expr::col((
+                    Alias::new("pbt"),
+                    profile_bookmark_tag::Column::ProfileBookmarkId,
+                ))
+                .count(),
+                "bookmark_count",
+            )
+            .expr_as(
+                Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
+                "feed_count",
+            )
+            .filter(tag::Column::ProfileId.eq(params.profile_id))
+            .join_as(
+                JoinType::LeftJoin,
+                tag::Relation::ProfileBookmarkTag.def(),
+                Alias::new("pbt"),
+            )
+            .join_as(
+                JoinType::LeftJoin,
+                tag::Relation::ProfileFeedTag.def(),
+                Alias::new("pft"),
+            )
+            .group_by(tag::Column::Id);
+
+        query = match params.tag_type {
             TagType::Bookmarks => {
-                sqlx::query_file_as!(
-                    Tag,
-                    "queries/tags/find_many_profile_bookmark_tags.sql",
-                    params.profile_id
-                )
-                .fetch_all(self.db.get_postgres_connection_pool())
-                .await
+                query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
             }
-            TagType::Feeds => {
-                sqlx::query_file_as!(
-                    Tag,
-                    "queries/tags/find_many_profile_feed_tags.sql",
-                    params.profile_id
-                )
-                .fetch_all(self.db.get_postgres_connection_pool())
-                .await
-            }
-        }
-        .map(|e| e.into_iter().map(colette_core::Tag::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))
+            TagType::Feeds => query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def()),
+            _ => query,
+        };
+
+        let tags = query
+            .into_model::<PartialTag>()
+            .all(&self.db)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(tags.into_iter().map(Tag::from).collect::<Vec<_>>())
     }
 
-    async fn find_one_tag(&self, params: TagsFindOneParams) -> Result<colette_core::Tag, Error> {
-        sqlx::query_file_as!(
-            Tag,
-            "queries/tags/find_one.sql",
-            params.slug.clone(),
-            params.profile_id
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Tag::from)
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.slug),
-            _ => Error::Unknown(e.into()),
-        })
+    async fn find_one_tag(&self, params: TagsFindOneParams) -> Result<Tag, Error> {
+        find_by_slug(&self.db, params).await
     }
 
-    async fn create_tag(&self, data: TagsCreateData) -> Result<colette_core::Tag, Error> {
+    async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error> {
         let model = tag::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
@@ -85,17 +88,16 @@ impl TagsRepository for PostgresRepository {
             slug: tag.slug,
             bookmark_count: Some(0),
             feed_count: Some(0),
-        }
-        .into())
+        })
     }
 
     async fn update_tag(
         &self,
         params: TagsFindOneParams,
         data: TagsUpdateData,
-    ) -> Result<colette_core::Tag, Error> {
+    ) -> Result<Tag, Error> {
         self.db
-            .transaction::<_, (), Error>(|txn| {
+            .transaction::<_, Tag, Error>(|txn| {
                 let params = params.clone();
                 Box::pin(async move {
                     let Some(model) = tag::Entity::find()
@@ -120,16 +122,14 @@ impl TagsRepository for PostgresRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    Ok(())
+                    find_by_slug(txn, params).await
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_tag(params).await
+            })
     }
 
     async fn delete_tag(&self, params: TagsFindOneParams) -> Result<(), Error> {
@@ -148,23 +148,43 @@ impl TagsRepository for PostgresRepository {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
-pub(crate) struct Tag {
-    id: Uuid,
-    title: String,
-    slug: String,
-    bookmark_count: Option<i64>,
-    feed_count: Option<i64>,
-}
+async fn find_by_slug<Db: ConnectionTrait>(
+    db: &Db,
+    params: TagsFindOneParams,
+) -> Result<Tag, Error> {
+    let Some(tag) = tag::Entity::find()
+        .expr_as(
+            Expr::col((
+                Alias::new("pbt"),
+                profile_bookmark_tag::Column::ProfileBookmarkId,
+            ))
+            .count(),
+            "bookmark_count",
+        )
+        .expr_as(
+            Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
+            "feed_count",
+        )
+        .filter(tag::Column::Slug.eq(params.slug.clone()))
+        .filter(tag::Column::ProfileId.eq(params.profile_id))
+        .join_as(
+            JoinType::LeftJoin,
+            tag::Relation::ProfileBookmarkTag.def(),
+            Alias::new("pbt"),
+        )
+        .join_as(
+            JoinType::LeftJoin,
+            tag::Relation::ProfileFeedTag.def(),
+            Alias::new("pft"),
+        )
+        .group_by(tag::Column::Id)
+        .into_model::<PartialTag>()
+        .one(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?
+    else {
+        return Err(Error::NotFound(params.slug));
+    };
 
-impl From<Tag> for colette_core::Tag {
-    fn from(value: Tag) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            slug: value.slug,
-            bookmark_count: value.bookmark_count,
-            feed_count: value.feed_count,
-        }
-    }
+    Ok(tag.into())
 }

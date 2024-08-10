@@ -818,6 +818,7 @@ dependencies = [
  "chrono",
  "colette-core",
  "sea-orm",
+ "uuid",
 ]
 
 [[package]]
