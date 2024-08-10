@@ -10,7 +10,7 @@ use axum_valid::Valid;
 use colette_core::tags::{self, CreateTag, ListTagsParams, TagsService, UpdateTag};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
+use crate::common::{BaseError, Error, Paginated, Session, Slug, TagList};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagsState {
@@ -31,7 +31,7 @@ impl Api {
             Router::new()
                 .route("/", routing::get(list_tags).post(create_tag))
                 .route(
-                    "/:id",
+                    "/:slug",
                     routing::get(get_tag).patch(update_tag).delete(delete_tag),
                 ),
         )
@@ -141,20 +141,20 @@ impl IntoResponse for ListResponse {
 
 #[utoipa::path(
     get,
-    path = "/{id}",
-    params(Id),
+    path = "/{slug}",
+    params(Slug),
     responses(GetResponse),
     operation_id = "getTag",
-    description = "Get a tag by ID",
+    description = "Get a tag by slug",
     tag = "Tags"
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
     State(service): State<Arc<TagsService>>,
-    Path(Id(id)): Path<Id>,
+    Path(Slug(slug)): Path<Slug>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get(id, session.into()).await.map(Tag::from) {
+    match service.get(slug, session.into()).await.map(Tag::from) {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -167,7 +167,7 @@ pub async fn get_tag(
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
-    #[response(status = 200, description = "Tag by ID")]
+    #[response(status = 200, description = "Tag by slug")]
     Ok(Tag),
 
     #[response(status = 404, description = "Tag not found")]
@@ -252,23 +252,23 @@ impl IntoResponse for CreateResponse {
 
 #[utoipa::path(
     patch,
-    path = "/{id}",
-    params(Id),
+    path = "/{slug}",
+    params(Slug),
     request_body = TagUpdate,
     responses(UpdateResponse),
     operation_id = "updateTag",
-    description = "Update a tag by ID",
+    description = "Update a tag by slug",
     tag = "Tags"
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
     State(service): State<Arc<TagsService>>,
-    Path(Id(id)): Path<Id>,
+    Path(Slug(slug)): Path<Slug>,
     session: Session,
     Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     match service
-        .update(id, body.into(), session.into())
+        .update(slug, body.into(), session.into())
         .await
         .map(Tag::from)
     {
@@ -321,20 +321,20 @@ impl IntoResponse for UpdateResponse {
 
 #[utoipa::path(
     delete,
-    path = "/{id}",
-    params(Id),
+    path = "/{slug}",
+    params(Slug),
     responses(DeleteResponse),
     operation_id = "deleteTag",
-    description = "Delete a tag by ID",
+    description = "Delete a tag by slug",
     tag = "Tags"
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(
     State(service): State<Arc<TagsService>>,
-    Path(Id(id)): Path<Id>,
+    Path(Slug(slug)): Path<Slug>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete(id, session.into()).await {
+    match service.delete(slug, session.into()).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

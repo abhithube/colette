@@ -1,6 +1,6 @@
-use colette_core::{
-    common::FindOneParams,
-    tags::{Error, TagType, TagsCreateData, TagsFindManyParams, TagsRepository, TagsUpdateData},
+use colette_core::tags::{
+    Error, TagType, TagsCreateData, TagsFindManyParams, TagsFindOneParams, TagsRepository,
+    TagsUpdateData,
 };
 use colette_entities::tag;
 use sea_orm::{
@@ -46,18 +46,18 @@ impl TagsRepository for PostgresRepository {
         .map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn find_one_tag(&self, params: FindOneParams) -> Result<colette_core::Tag, Error> {
+    async fn find_one_tag(&self, params: TagsFindOneParams) -> Result<colette_core::Tag, Error> {
         sqlx::query_file_as!(
             Tag,
             "queries/tags/find_one.sql",
-            params.id,
+            params.slug.clone(),
             params.profile_id
         )
         .fetch_one(self.db.get_postgres_connection_pool())
         .await
         .map(colette_core::Tag::from)
         .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            sqlx::Error::RowNotFound => Error::NotFound(params.slug),
             _ => Error::Unknown(e.into()),
         })
     }
@@ -91,19 +91,21 @@ impl TagsRepository for PostgresRepository {
 
     async fn update_tag(
         &self,
-        params: FindOneParams,
+        params: TagsFindOneParams,
         data: TagsUpdateData,
     ) -> Result<colette_core::Tag, Error> {
         self.db
             .transaction::<_, (), Error>(|txn| {
+                let params = params.clone();
                 Box::pin(async move {
-                    let Some(model) = tag::Entity::find_by_id(params.id)
+                    let Some(model) = tag::Entity::find()
+                        .filter(tag::Column::Slug.eq(params.slug.clone()))
                         .filter(tag::Column::ProfileId.eq(params.profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(params.slug));
                     };
                     let mut active_model = model.into_active_model();
 
@@ -130,15 +132,16 @@ impl TagsRepository for PostgresRepository {
         self.find_one_tag(params).await
     }
 
-    async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = tag::Entity::delete_by_id(params.id)
+    async fn delete_tag(&self, params: TagsFindOneParams) -> Result<(), Error> {
+        let result = tag::Entity::delete_many()
+            .filter(tag::Column::Slug.eq(params.slug.clone()))
             .filter(tag::Column::ProfileId.eq(params.profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(params.slug));
         }
 
         Ok(())

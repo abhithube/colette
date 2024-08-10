@@ -11,7 +11,7 @@ FROM
   LEFT JOIN profile_feed_tag AS pft ON pft.tag_id = t.id
   LEFT JOIN profile_feed AS pf ON pf.id = pft.profile_feed_id
 WHERE
-  t.id = $1
+  t.slug = $1
   AND t.profile_id = $2
 GROUP BY
   t.id;
