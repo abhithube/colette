@@ -9,11 +9,10 @@ use colette_core::{
 };
 use colette_entities::{
     bookmark, profile_bookmark, profile_bookmark_tag, tag, PbWithBookmarkAndTags,
-    ProfileBookmarkToTag,
 };
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, LoaderTrait,
-    ModelTrait, QueryFilter, QueryOrder, Set, TransactionError, TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait,
+    LoaderTrait, QueryFilter, QueryOrder, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -25,39 +24,7 @@ impl BookmarksRepository for PostgresRepository {
         &self,
         params: BookmarksFindManyParams,
     ) -> Result<Vec<Bookmark>, Error> {
-        let models = profile_bookmark::Entity::find()
-            .find_also_related(bookmark::Entity)
-            .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
-            .order_by_asc(bookmark::Column::Title)
-            .order_by_asc(profile_bookmark::Column::Id)
-            .all(&self.db)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
-                    .collect::<Vec<_>>()
-            })
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let pb_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
-
-        let tag_models = pb_models
-            .load_many_to_many(
-                tag::Entity::find().order_by_asc(tag::Column::Title),
-                profile_bookmark_tag::Entity,
-                &self.db,
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let bookmarks = models
-            .into_iter()
-            .zip(tag_models.into_iter())
-            .map(|((pb, bookmark), tags)| {
-                Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags })
-            })
-            .collect::<Vec<_>>();
-
-        Ok(bookmarks)
+        find(&self.db, None, params.profile_id).await
     }
 
     async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error> {
@@ -255,32 +222,54 @@ impl BookmarksRepository for PostgresRepository {
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(
+async fn find<Db: ConnectionTrait>(
     db: &Db,
-    params: FindOneParams,
-) -> Result<Bookmark, Error> {
-    let Some((pb_model, Some(bookmark_model))) = profile_bookmark::Entity::find_by_id(params.id)
-        .find_also_related(bookmark::Entity)
-        .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
-        .one(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?
-    else {
-        return Err(Error::NotFound(params.id));
-    };
+    id: Option<Uuid>,
+    profile_id: Uuid,
+) -> Result<Vec<Bookmark>, Error> {
+    let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
+    if let Some(id) = id {
+        conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
+    }
 
-    let tag_models = pb_model
-        .find_linked(ProfileBookmarkToTag)
-        .order_by_asc(tag::Column::Title)
+    let models = profile_bookmark::Entity::find()
+        .find_also_related(bookmark::Entity)
+        .filter(conditions)
+        .order_by_asc(bookmark::Column::Title)
+        .order_by_asc(profile_bookmark::Column::Id)
         .all(db)
+        .await
+        .map(|e| {
+            e.into_iter()
+                .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
+                .collect::<Vec<_>>()
+        })
+        .map_err(|e| Error::Unknown(e.into()))?;
+    let pb_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
+
+    let tag_models = pb_models
+        .load_many_to_many(
+            tag::Entity::find().order_by_asc(tag::Column::Title),
+            profile_bookmark_tag::Entity,
+            db,
+        )
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
-    let bookmark = Bookmark::from(PbWithBookmarkAndTags {
-        pb: pb_model,
-        bookmark: bookmark_model,
-        tags: tag_models,
-    });
+    let bookmarks = models
+        .into_iter()
+        .zip(tag_models.into_iter())
+        .map(|((pb, bookmark), tags)| Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags }))
+        .collect::<Vec<_>>();
 
-    Ok(bookmark)
+    Ok(bookmarks)
+}
+
+pub async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    params: FindOneParams,
+) -> Result<Bookmark, Error> {
+    let bookmarks = find(db, Some(params.id), params.profile_id).await?;
+
+    bookmarks.first().cloned().ok_or(Error::NotFound(params.id))
 }

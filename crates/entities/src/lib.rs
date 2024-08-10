@@ -136,22 +136,6 @@ impl Related<tag::Entity> for profile_bookmark::Entity {
     }
 }
 
-#[derive(Debug)]
-pub struct ProfileBookmarkToTag;
-
-impl Linked for ProfileBookmarkToTag {
-    type FromEntity = profile_bookmark::Entity;
-
-    type ToEntity = tag::Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![
-            profile_bookmark::Relation::ProfileBookmarkTag.def(),
-            profile_bookmark_tag::Relation::Tag.def(),
-        ]
-    }
-}
-
 impl Related<tag::Entity> for profile_feed::Entity {
     fn to() -> RelationDef {
         profile_feed_tag::Relation::Tag.def()
