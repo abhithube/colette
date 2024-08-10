@@ -5,11 +5,12 @@ use colette_core::{
     },
     Profile,
 };
-use colette_entities::profile;
-use futures::{stream::BoxStream, StreamExt};
+use colette_entities::{profile, profile_feed};
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, ModelTrait,
-    QueryFilter, QueryOrder, Set, SqlErr, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, JoinType,
+    ModelTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, SqlErr, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -147,12 +148,36 @@ impl ProfilesRepository for PostgresRepository {
             })
     }
 
-    fn stream_profiles(&self, feed_id: i32) -> BoxStream<Result<StreamProfile, Error>> {
-        Box::pin(
-            sqlx::query_file_as!(StreamProfile, "queries/profiles/stream.sql", feed_id)
-                .fetch(self.db.get_postgres_connection_pool())
-                .map(|e| e.map_err(|e| Error::Unknown(e.into()))),
-        )
+    async fn stream_profiles(
+        &self,
+        feed_id: i32,
+    ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
+        profile::Entity::find()
+            .join(JoinType::InnerJoin, profile::Relation::ProfileFeed.def())
+            .filter(profile_feed::Column::FeedId.eq(feed_id))
+            .into_model::<StreamSelect>()
+            .stream(&self.db)
+            .await
+            .map(|e| {
+                e.map(|e| {
+                    e.map(StreamProfile::from)
+                        .map_err(|e| Error::Unknown(e.into()))
+                })
+                .map_err(|e| Error::Unknown(e.into()))
+                .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct StreamSelect {
+    pub id: Uuid,
+}
+
+impl From<StreamSelect> for StreamProfile {
+    fn from(value: StreamSelect) -> Self {
+        Self { id: value.id }
     }
 }
 

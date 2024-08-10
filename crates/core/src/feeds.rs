@@ -135,7 +135,7 @@ pub trait FeedsRepository: Send + Sync {
 
     async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error>;
 
-    fn stream_feeds(&self) -> BoxStream<Result<StreamFeed, Error>>;
+    async fn stream_feeds(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 
     async fn cleanup_feeds(&self) -> Result<(), Error>;
 }

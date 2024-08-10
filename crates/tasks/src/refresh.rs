@@ -43,7 +43,11 @@ impl RefreshTask {
             .scrape(&mut parsed)
             .map_err(|e| task::Error(e.into()))?;
 
-        let mut profiles_stream = self.profiles_repo.stream_profiles(feed_id);
+        let mut profiles_stream = self
+            .profiles_repo
+            .stream_profiles(feed_id)
+            .await
+            .map_err(|e| task::Error(e.into()))?;
 
         while let Some(Ok(profile)) = profiles_stream.next().await {
             self.feeds_repo
@@ -65,7 +69,11 @@ impl Task for RefreshTask {
     async fn run(&self) -> Result<(), task::Error> {
         let semaphore = Arc::new(Semaphore::new(5));
 
-        let feeds_stream = self.feeds_repo.stream_feeds();
+        let feeds_stream = self
+            .feeds_repo
+            .stream_feeds()
+            .await
+            .map_err(|e| task::Error(e.into()))?;
 
         let tasks = feeds_stream
             .map(|item| {

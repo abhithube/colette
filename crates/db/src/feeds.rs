@@ -7,11 +7,13 @@ use colette_core::{
 use colette_entities::{
     entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
 };
-use futures::{stream::BoxStream, StreamExt};
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use migrations::OnConflict;
 use sea_orm::{
-    prelude::Expr, sea_query::Query, ColumnTrait, DbErr, EntityTrait, QueryFilter, Set,
-    TransactionError, TransactionTrait,
+    prelude::Expr,
+    sea_query::{Func, Query},
+    ColumnTrait, DbErr, EntityTrait, QueryFilter, QuerySelect, Set, TransactionError,
+    TransactionTrait,
 };
 use sqlx::types::Json;
 use uuid::Uuid;
@@ -339,12 +341,27 @@ impl FeedsRepository for PostgresRepository {
         Ok(())
     }
 
-    fn stream_feeds(&self) -> BoxStream<Result<StreamFeed, Error>> {
-        Box::pin(
-            sqlx::query_file_as!(StreamFeed, "queries/feeds/stream.sql")
-                .fetch(self.db.get_postgres_connection_pool())
-                .map(|e| e.map_err(|e| Error::Unknown(e.into()))),
-        )
+    async fn stream_feeds(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
+        feed::Entity::find()
+            .expr_as(
+                Func::coalesce([
+                    Expr::col(feed::Column::Url).into(),
+                    Expr::col(feed::Column::Link).into(),
+                ]),
+                "url",
+            )
+            .into_model::<StreamSelect>()
+            .stream(&self.db)
+            .await
+            .map(|e| {
+                e.map(|e| {
+                    e.map(StreamFeed::from)
+                        .map_err(|e| Error::Unknown(e.into()))
+                })
+                .map_err(|e| Error::Unknown(e.into()))
+                .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn cleanup_feeds(&self) -> Result<(), Error> {
@@ -436,6 +453,21 @@ impl From<Feed> for colette_core::Feed {
                 .map(colette_core::Tag::from)
                 .collect(),
             unread_count: value.unread_count,
+        }
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct StreamSelect {
+    pub id: i32,
+    pub url: String,
+}
+
+impl From<StreamSelect> for StreamFeed {
+    fn from(value: StreamSelect) -> Self {
+        Self {
+            id: value.id,
+            url: value.url,
         }
     }
 }
