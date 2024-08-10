@@ -396,6 +396,7 @@ export interface components {
             data: components["schemas"]["Feed"][];
         };
         FeedUpdate: {
+            title?: string | null;
             tags?: components["schemas"]["TagCreate"][] | null;
         };
         File: {

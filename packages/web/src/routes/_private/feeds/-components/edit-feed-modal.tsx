@@ -59,6 +59,9 @@ export function EditFeedModal({ feed, close }: Props) {
       {
         onSuccess: async (data) => {
           await context.queryClient.setQueryData(['feeds', feed.id], data)
+          await context.queryClient.invalidateQueries({
+            queryKey: ['profiles', context.profile.id, 'feeds'],
+          })
 
           close()
         },
@@ -84,6 +87,7 @@ export function EditFeedModal({ feed, close }: Props) {
             updateFeed({
               id: feed.id,
               body: {
+                title: data.title,
                 tags: data.tags.map((title) => ({ title })),
               },
             }),
