@@ -1,4 +1,4 @@
-use migrations::{Migrator, MigratorTrait};
+use colette_migrations::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection, DbErr};
 
 mod bookmarks;
