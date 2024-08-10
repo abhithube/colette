@@ -15,6 +15,7 @@ colette-db.workspace = true
 colette-password.workspace = true
 colette-plugins.workspace = true
 colette-scraper.workspace = true
+colette-session.workspace = true
 colette-tasks.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
@@ -23,8 +24,4 @@ sea-orm.workspace = true
 tokio.workspace = true
 tower-sessions = { version = "0.12", default-features = false, features = [
   "axum-core",
-] }
-tower-sessions-sqlx-store = { version = "0.13", default-features = false, features = [
-  "postgres",
-  "sqlite",
 ] }

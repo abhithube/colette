@@ -11,6 +11,7 @@ members = [
   "crates/plugins",
   "crates/scraper",
   "crates/server",
+  "crates/session",
   "crates/tasks",
   "crates/ui",
 ]
@@ -36,6 +37,7 @@ colette-migrations.path = "crates/migrations"
 colette-password.path = "crates/password"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
+colette-session.path = "crates/session"
 colette-tasks.path = "crates/tasks"
 futures = { version = "0.3", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
