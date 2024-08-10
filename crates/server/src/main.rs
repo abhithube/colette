@@ -10,11 +10,11 @@ use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
     profiles::ProfilesService, tags::TagsService,
 };
-use colette_db::PostgresRepository;
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_session::{PostgresStore, SessionBackend, SqliteStore};
+use colette_sql::SqlRepository;
 use colette_tasks::handle_refresh_task;
 use sea_orm::{ConnectionTrait, DatabaseBackend};
 use tokio::net::TcpListener;
@@ -30,9 +30,9 @@ struct Asset;
 async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = colette_config::load_config()?;
 
-    let db = colette_db::initialize(&app_config.database_url).await?;
+    let db = colette_sql::initialize(&app_config.database_url).await?;
 
-    let repository = Arc::new(PostgresRepository::new(db.clone()));
+    let repository = Arc::new(SqlRepository::new(db.clone()));
 
     let session_backend = match db.get_database_backend() {
         DatabaseBackend::Postgres => {

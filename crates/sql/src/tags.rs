@@ -11,10 +11,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl TagsRepository for PostgresRepository {
+impl TagsRepository for SqlRepository {
     async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error> {
         let mut query = tag::Entity::find()
             .expr_as(

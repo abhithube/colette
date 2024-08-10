@@ -11,11 +11,11 @@ colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
-colette-db.workspace = true
 colette-password.workspace = true
 colette-plugins.workspace = true
 colette-scraper.workspace = true
 colette-session.workspace = true
+colette-sql.workspace = true
 colette-tasks.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",

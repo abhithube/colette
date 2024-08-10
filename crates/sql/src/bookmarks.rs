@@ -16,10 +16,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl BookmarksRepository for PostgresRepository {
+impl BookmarksRepository for SqlRepository {
     async fn find_many_bookmarks(
         &self,
         params: BookmarksFindManyParams,

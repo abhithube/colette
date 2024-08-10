@@ -10,10 +10,10 @@ use sea_orm::{
     QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
 };
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl EntriesRepository for PostgresRepository {
+impl EntriesRepository for SqlRepository {
     async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
         let mut conditions =
             Condition::all().add(profile_feed_entry::Column::ProfileId.eq(params.profile_id));

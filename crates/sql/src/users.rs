@@ -6,10 +6,10 @@ use colette_entities::{profile, user};
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set, SqlErr, TransactionTrait};
 use uuid::Uuid;
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl UsersRepository for PostgresRepository {
+impl UsersRepository for SqlRepository {
     async fn find_one_user(&self, params: UsersFindOneParams) -> Result<User, Error> {
         match params {
             UsersFindOneParams::Id(id) => {

@@ -12,11 +12,11 @@ colette-api = { workspace = true, optional = true }
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true }
-colette-db = { workspace = true, optional = true }
 colette-password = { workspace = true, optional = true }
 colette-plugins = { workspace = true, optional = true }
 colette-scraper = { workspace = true, optional = true }
 colette-session = { workspace = true, optional = true }
+colette-sql = { workspace = true, optional = true }
 colette-tasks = { workspace = true, optional = true }
 console_error_panic_hook = { version = "0.1", default-features = false }
 http.workspace = true
@@ -49,11 +49,11 @@ ssr = [
     "dep:colette-api",
     "dep:colette-backup",
     "dep:colette-config",
-    "dep:colette-db",
     "dep:colette-password",
     "dep:colette-plugins",
     "dep:colette-scraper",
     "dep:colette-session",
+    "dep:colette-sql",
     "dep:colette-tasks",
     "dep:leptos_axum",
     "dep:tokio",

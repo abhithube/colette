@@ -8,11 +8,11 @@ mod profiles;
 mod tags;
 mod users;
 
-pub struct PostgresRepository {
+pub struct SqlRepository {
     pub(crate) db: DatabaseConnection,
 }
 
-impl PostgresRepository {
+impl SqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }

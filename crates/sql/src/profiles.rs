@@ -14,10 +14,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl ProfilesRepository for PostgresRepository {
+impl ProfilesRepository for SqlRepository {
     async fn find_many_profiles(
         &self,
         params: ProfilesFindManyParams,

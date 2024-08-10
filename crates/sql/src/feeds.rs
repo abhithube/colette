@@ -21,10 +21,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::PostgresRepository;
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl FeedsRepository for PostgresRepository {
+impl FeedsRepository for SqlRepository {
     async fn find_many_feeds(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error> {
         let models = profile_feed::Entity::find()
             .find_also_related(feed::Entity)
