@@ -26,7 +26,7 @@ export const Route = createFileRoute('/_private/feeds')({
       context.api,
     )
     const tagOptions = listTagsOptions(
-      { tagType: 'bookmarks' },
+      { tagType: 'feeds' },
       context.profile.id,
       context.api,
     )
