@@ -1,14 +1,12 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     common::FindOneParams,
     entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
 };
-use colette_entities::profile_feed_entry;
+use colette_entities::{entry, profile_feed_entry, PfeWithEntry, ProfileFeedEntryToEntry};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
+    QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::PostgresRepository;
 
@@ -18,36 +16,38 @@ impl EntriesRepository for PostgresRepository {
         &self,
         params: EntriesFindManyParams,
     ) -> Result<Vec<colette_core::Entry>, Error> {
-        sqlx::query_file_as!(
-            Entry,
-            "queries/entries/find_many.sql",
-            params.profile_id,
-            params.limit,
-            params.published_at as _,
-            params.feed_id,
-            params.has_read,
-            params.tags.as_deref()
-        )
-        .fetch_all(self.db.get_postgres_connection_pool())
-        .await
-        .map(|e| e.into_iter().map(colette_core::Entry::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))
+        let mut conditions =
+            Condition::all().add(profile_feed_entry::Column::ProfileId.eq(params.profile_id));
+        if let Some(published_at) = params.published_at {
+            conditions = conditions.add(entry::Column::PublishedAt.lt(published_at));
+        }
+        if let Some(feed_id) = params.feed_id {
+            conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+        }
+
+        let models = profile_feed_entry::Entity::find()
+            .find_also_linked(ProfileFeedEntryToEntry)
+            .filter(conditions)
+            .order_by_desc(entry::Column::PublishedAt)
+            .order_by_asc(entry::Column::Title)
+            .order_by_asc(profile_feed_entry::Column::Id)
+            .limit(params.limit)
+            .all(&self.db)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let entries = models
+            .into_iter()
+            .filter_map(|(pfe, entry_opt)| {
+                entry_opt.map(|entry| colette_core::Entry::from(PfeWithEntry { pfe, entry }))
+            })
+            .collect::<Vec<_>>();
+
+        Ok(entries)
     }
 
     async fn find_one_entry(&self, params: FindOneParams) -> Result<colette_core::Entry, Error> {
-        sqlx::query_file_as!(
-            Entry,
-            "queries/entries/find_one.sql",
-            params.id,
-            params.profile_id,
-        )
-        .fetch_one(self.db.get_postgres_connection_pool())
-        .await
-        .map(colette_core::Entry::from)
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        find_by_id(&self.db, params).await
     }
 
     async fn update_entry(
@@ -56,7 +56,7 @@ impl EntriesRepository for PostgresRepository {
         data: EntriesUpdateData,
     ) -> Result<colette_core::Entry, Error> {
         self.db
-            .transaction::<_, (), Error>(|txn| {
+            .transaction::<_, colette_core::Entry, Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) = profile_feed_entry::Entity::find_by_id(params.id)
                         .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
@@ -79,44 +79,32 @@ impl EntriesRepository for PostgresRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    Ok(())
+                    find_by_id(txn, params).await
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })?;
-
-        self.find_one_entry(params).await
+            })
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct Entry {
-    pub id: Uuid,
-    pub link: String,
-    pub title: String,
-    pub published_at: Option<DateTime<Utc>>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<String>,
-    pub has_read: bool,
-    pub feed_id: Uuid,
-}
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    params: FindOneParams,
+) -> Result<colette_core::Entry, Error> {
+    let Some((pfe, Some(entry))) = profile_feed_entry::Entity::find_by_id(params.id)
+        .find_also_linked(ProfileFeedEntryToEntry)
+        .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
+        .one(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?
+    else {
+        return Err(Error::NotFound(params.id));
+    };
 
-impl From<Entry> for colette_core::Entry {
-    fn from(value: Entry) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at,
-            description: value.description,
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            has_read: value.has_read,
-            feed_id: value.feed_id,
-        }
-    }
+    let entry = colette_core::Entry::from(PfeWithEntry { pfe, entry });
+
+    Ok(entry)
 }

@@ -62,7 +62,7 @@ impl EntriesService {
             .repo
             .find_many_entries(EntriesFindManyParams {
                 profile_id: session.profile_id,
-                limit: (PAGINATION_LIMIT + 1) as i64,
+                limit: (PAGINATION_LIMIT + 1) as u64,
                 published_at: params.published_at,
                 feed_id: params.feed_id,
                 has_read: params.has_read,
@@ -106,7 +106,7 @@ impl EntriesService {
 #[derive(Clone, Debug)]
 pub struct EntriesFindManyParams {
     pub profile_id: Uuid,
-    pub limit: i64,
+    pub limit: u64,
     pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
