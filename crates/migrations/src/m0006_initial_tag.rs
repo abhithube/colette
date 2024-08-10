@@ -19,6 +19,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(Tag::Id).primary_key())
                     .col(text(Tag::Title))
+                    .col(text(Tag::Slug))
                     .col(uuid(Tag::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -169,6 +170,7 @@ pub enum Tag {
     Table,
     Id,
     Title,
+    Slug,
     ProfileId,
     CreatedAt,
     UpdatedAt,

@@ -66,6 +66,7 @@ impl TagsRepository for PostgresRepository {
         let model = tag::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
+            slug: Set(slug::slugify(data.title.clone())),
             profile_id: Set(data.profile_id),
             ..Default::default()
         };
@@ -81,6 +82,7 @@ impl TagsRepository for PostgresRepository {
         Ok(Tag {
             id: tag.id,
             title: tag.title,
+            slug: tag.slug,
             bookmark_count: Some(0),
             feed_count: Some(0),
         }
@@ -147,6 +149,7 @@ impl TagsRepository for PostgresRepository {
 pub(crate) struct Tag {
     id: Uuid,
     title: String,
+    slug: String,
     bookmark_count: Option<i64>,
     feed_count: Option<i64>,
 }

@@ -3,6 +3,7 @@ WITH
     SELECT
       t.id,
       t.title,
+      t.slug,
       pbt.profile_bookmark_id
     FROM
       profile_bookmark_tag AS pbt
@@ -24,6 +25,8 @@ SELECT
         pbt.id,
         'title',
         pbt.title,
+        'slug',
+        pbt.slug,
         'bookmark_count',
         NULL::int8,
         'feed_count',

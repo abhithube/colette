@@ -1,6 +1,7 @@
 SELECT
   t.id,
   t.title,
+  t.slug,
   count(pb.id) AS bookmark_count,
   count(pf.id) AS feed_count
 FROM
