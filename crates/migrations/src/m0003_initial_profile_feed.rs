@@ -91,10 +91,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        let profile_feed_entry_profile_feed_id_feed_entry_id_idx = format!(
+            "{profile_feed_entry}_{profile_feed_id}_{feed_entry_id}_idx",
+            profile_feed_entry = ProfileFeedEntry::Table.to_string(),
+            profile_feed_id = ProfileFeedEntry::ProfileFeedId.to_string(),
+            feed_entry_id = ProfileFeedEntry::FeedEntryId.to_string()
+        );
         manager
             .create_index(
                 Index::create()
-                    .name("profile_feed_entry_profile_feed_id_feed_entry_id_idx")
+                    .name(profile_feed_entry_profile_feed_id_feed_entry_id_idx)
                     .table(ProfileFeedEntry::Table)
                     .if_not_exists()
                     .col(ProfileFeedEntry::ProfileFeedId)
@@ -105,7 +111,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "profile_feed").await?;
+            postgres::create_updated_at_trigger(manager, ProfileFeed::Table.to_string()).await?;
         }
 
         Ok(())

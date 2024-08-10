@@ -4,7 +4,7 @@ pub async fn create_updated_at_fn<'a>(manager: &'a SchemaManager<'a>) -> Result<
     manager
         .get_connection()
         .execute_unprepared(
-            "
+            r#"
      CREATE OR REPLACE FUNCTION handle_updated_at() RETURNS trigger AS $$
       BEGIN
             IF (OLD.* IS DISTINCT FROM NEW.*) THEN
@@ -14,23 +14,23 @@ pub async fn create_updated_at_fn<'a>(manager: &'a SchemaManager<'a>) -> Result<
             END IF;
             RETURN NEW;
         END;
-$$ LANGUAGE plpgsql",
+$$ LANGUAGE plpgsql"#,
         )
         .await
 }
 
 pub async fn create_updated_at_trigger<'a>(
     manager: &'a SchemaManager<'a>,
-    table: &str,
+    table: String,
 ) -> Result<ExecResult, DbErr> {
     manager
         .get_connection()
         .execute_unprepared(&format!(
-            "
- CREATE OR REPLACE TRIGGER \"{table}_updated_at\"
- BEFORE UPDATE ON \"{table}\"
+            r#"
+ CREATE OR REPLACE TRIGGER "{table}_updated_at"
+ BEFORE UPDATE ON "{table}"
     FOR EACH ROW
-EXECUTE FUNCTION handle_updated_at()",
+EXECUTE FUNCTION handle_updated_at()"#,
             table = table,
         ))
         .await

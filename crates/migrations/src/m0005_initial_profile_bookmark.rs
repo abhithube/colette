@@ -41,10 +41,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        let profile_bookmark_profile_id_bookmark_id_idx = format!(
+            "{profile_bookmark}_{profile_id}_{bookmark_id}_idx",
+            profile_bookmark = ProfileBookmark::Table.to_string(),
+            profile_id = ProfileBookmark::ProfileId.to_string(),
+            bookmark_id = ProfileBookmark::BookmarkId.to_string()
+        );
         manager
             .create_index(
                 Index::create()
-                    .name("profile_bookmark_profile_id_bookmark_id_idx")
+                    .name(profile_bookmark_profile_id_bookmark_id_idx)
                     .table(ProfileBookmark::Table)
                     .if_not_exists()
                     .col(ProfileBookmark::ProfileId)
@@ -55,7 +61,8 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "profile_bookmark").await?;
+            postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
+                .await?;
         }
 
         Ok(())

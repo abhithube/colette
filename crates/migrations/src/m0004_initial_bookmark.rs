@@ -33,7 +33,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "bookmark").await?;
+            postgres::create_updated_at_trigger(manager, Bookmark::Table.to_string()).await?;
         }
 
         Ok(())

@@ -57,19 +57,23 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        let profile_user_id_is_default_idx = format!(
+            r#"
+CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
+    ON "{profile}" ("{user_id}", "{is_default}")
+ WHERE "{is_default}""#,
+            profile = Profile::Table.to_string(),
+            user_id = Profile::UserId.to_string(),
+            is_default = Profile::IsDefault.to_string()
+        );
         manager
             .get_connection()
-            .execute_unprepared(
-                "
-        CREATE UNIQUE INDEX profile_user_id_is_default_idx
-            ON \"profile\" (\"user_id\", \"is_default\")
-         WHERE \"is_default\"",
-            )
+            .execute_unprepared(&profile_user_id_is_default_idx)
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "user").await?;
-            postgres::create_updated_at_trigger(manager, "profile").await?;
+            postgres::create_updated_at_trigger(manager, User::Table.to_string()).await?;
+            postgres::create_updated_at_trigger(manager, Profile::Table.to_string()).await?;
         }
 
         Ok(())

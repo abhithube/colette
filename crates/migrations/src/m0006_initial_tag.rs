@@ -36,10 +36,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        let tag_profile_id_title_idx = format!(
+            "{tag}_{profile_id}_{title}_idx",
+            tag = Tag::Table.to_string(),
+            profile_id = Tag::ProfileId.to_string(),
+            title = Tag::Title.to_string()
+        );
         manager
             .create_index(
                 Index::create()
-                    .name("tag_profile_id_title_idx")
+                    .name(tag_profile_id_title_idx)
                     .table(Tag::Table)
                     .if_not_exists()
                     .col(Tag::ProfileId)
@@ -139,9 +145,10 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "tag").await?;
-            postgres::create_updated_at_trigger(manager, "profile_feed_tag").await?;
-            postgres::create_updated_at_trigger(manager, "profile_bookmark_tag").await?;
+            postgres::create_updated_at_trigger(manager, Tag::Table.to_string()).await?;
+            postgres::create_updated_at_trigger(manager, ProfileFeedTag::Table.to_string()).await?;
+            postgres::create_updated_at_trigger(manager, ProfileBookmarkTag::Table.to_string())
+                .await?;
         }
 
         Ok(())

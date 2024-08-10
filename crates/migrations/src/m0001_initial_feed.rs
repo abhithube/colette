@@ -86,10 +86,16 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
+        let feed_entry_feed_id_entry_id_idx = format!(
+            "{feed_entry}_{feed_id}_{entry_id}_idx",
+            feed_entry = FeedEntry::Table.to_string(),
+            feed_id = FeedEntry::FeedId.to_string(),
+            entry_id = FeedEntry::EntryId.to_string()
+        );
         manager
             .create_index(
                 Index::create()
-                    .name("feed_entry_feed_id_entry_id_idx")
+                    .name(feed_entry_feed_id_entry_id_idx)
                     .table(FeedEntry::Table)
                     .if_not_exists()
                     .col(FeedEntry::FeedId)
@@ -100,9 +106,9 @@ impl MigrationTrait for Migration {
             .await?;
 
         if manager.get_database_backend() == DatabaseBackend::Postgres {
-            postgres::create_updated_at_trigger(manager, "feed").await?;
-            postgres::create_updated_at_trigger(manager, "entry").await?;
-            postgres::create_updated_at_trigger(manager, "feed_entry").await?;
+            postgres::create_updated_at_trigger(manager, Feed::Table.to_string()).await?;
+            postgres::create_updated_at_trigger(manager, Entry::Table.to_string()).await?;
+            postgres::create_updated_at_trigger(manager, FeedEntry::Table.to_string()).await?;
         }
 
         Ok(())
