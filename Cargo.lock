@@ -860,6 +860,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-migrations",
  "colette-password",
  "colette-plugins",
  "colette-scraper",
@@ -890,10 +891,8 @@ dependencies = [
  "chrono",
  "colette-core",
  "colette-entities",
- "colette-migrations",
  "futures",
  "sea-orm",
- "serde",
  "uuid",
 ]
 
@@ -919,6 +918,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-migrations",
  "colette-password",
  "colette-plugins",
  "colette-scraper",

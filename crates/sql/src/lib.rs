@@ -1,5 +1,4 @@
-use colette_migrations::{Migrator, MigratorTrait};
-use sea_orm::{Database, DatabaseConnection, DbErr};
+use sea_orm::DatabaseConnection;
 
 mod bookmarks;
 mod entries;
@@ -16,12 +15,4 @@ impl SqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
-}
-
-pub async fn initialize(url: &str) -> Result<DatabaseConnection, DbErr> {
-    let db = Database::connect(url).await?;
-
-    Migrator::up(&db, None).await?;
-
-    Ok(db)
 }

@@ -12,6 +12,7 @@ colette-api = { workspace = true, optional = true }
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true }
+colette-migrations = { workspace = true, optional = true }
 colette-password = { workspace = true, optional = true }
 colette-plugins = { workspace = true, optional = true }
 colette-scraper = { workspace = true, optional = true }
@@ -49,6 +50,7 @@ ssr = [
     "dep:colette-api",
     "dep:colette-backup",
     "dep:colette-config",
+    "dep:colette-migrations",
     "dep:colette-password",
     "dep:colette-plugins",
     "dep:colette-scraper",

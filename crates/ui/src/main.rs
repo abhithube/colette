@@ -12,6 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         auth::AuthService, bookmarks::BookmarksService, entries::EntriesService,
         feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
     };
+    use colette_migrations::{Migrator, MigratorTrait};
     use colette_password::Argon2Hasher;
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
     use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
@@ -21,14 +22,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use colette_ui::{app::*, fileserv::file_and_error_handler};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use sea_orm::{ConnectionTrait, DatabaseBackend};
+    use sea_orm::{ConnectionTrait, Database, DatabaseBackend};
     use tower_sessions::ExpiredDeletion;
 
     const CRON_CLEANUP: &str = "0 0 0 * * *";
 
     let app_config = colette_config::load_config()?;
 
-    let db = colette_sql::initialize(&app_config.database_url).await?;
+    let db = Database::connect(&app_config.database_url).await?;
+    Migrator::up(&db, None).await?;
 
     let repository = Arc::new(SqlRepository::new(db.clone()));
 

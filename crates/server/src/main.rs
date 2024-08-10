@@ -10,13 +10,14 @@ use colette_core::{
     auth::AuthService, bookmarks::BookmarksService, entries::EntriesService, feeds::FeedsService,
     profiles::ProfilesService, tags::TagsService,
 };
+use colette_migrations::{Migrator, MigratorTrait};
 use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_session::{PostgresStore, SessionBackend, SqliteStore};
 use colette_sql::SqlRepository;
 use colette_tasks::handle_refresh_task;
-use sea_orm::{ConnectionTrait, DatabaseBackend};
+use sea_orm::{ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
 
@@ -30,7 +31,8 @@ struct Asset;
 async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = colette_config::load_config()?;
 
-    let db = colette_sql::initialize(&app_config.database_url).await?;
+    let db = Database::connect(&app_config.database_url).await?;
+    Migrator::up(&db, None).await?;
 
     let repository = Arc::new(SqlRepository::new(db.clone()));
 
