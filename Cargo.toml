@@ -26,6 +26,7 @@ axum = { version = "0.7", default-features = false, features = [
   "multipart",
   "tokio",
 ] }
+base64 = { version = "0.22", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["serde"] }
 colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"
@@ -54,6 +55,7 @@ sea-orm = { version = "1.1.0-rc.1", default-features = false, features = [
   "with-uuid",
 ] }
 serde = { version = "1", default-features = false }
+serde_json = { version = "1", default-features = false }
 strum = { version = "0.26", default-features = false }
 strum_macros = { version = "0.26", default-features = false }
 thiserror = { version = "1", default-features = false }

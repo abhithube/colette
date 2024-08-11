@@ -6,6 +6,7 @@ mod feeds;
 mod profiles;
 mod tags;
 mod users;
+mod utils;
 
 pub struct SqlRepository {
     pub(crate) db: DatabaseConnection,

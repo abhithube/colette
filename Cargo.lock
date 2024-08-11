@@ -888,11 +888,15 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "base64",
  "chrono",
  "colette-core",
  "colette-entities",
  "futures",
  "sea-orm",
+ "serde",
+ "serde_json",
+ "thiserror",
  "uuid",
 ]
 
