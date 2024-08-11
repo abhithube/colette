@@ -332,8 +332,8 @@ export interface components {
             url: string;
         };
         BookmarkList: {
-            hasMore: boolean;
             data: components["schemas"]["Bookmark"][];
+            cursor?: string;
         };
         BookmarkUpdate: {
             tags?: components["schemas"]["TagCreate"][];
@@ -388,12 +388,12 @@ export interface components {
             title: string;
         };
         FeedDetectedList: {
-            hasMore: boolean;
             data: components["schemas"]["FeedDetected"][];
+            cursor?: string;
         };
         FeedList: {
-            hasMore: boolean;
             data: components["schemas"]["Feed"][];
+            cursor?: string;
         };
         FeedUpdate: {
             title?: string | null;
@@ -424,8 +424,8 @@ export interface components {
             imageUrl?: string;
         };
         ProfileList: {
-            hasMore: boolean;
             data: components["schemas"]["Profile"][];
+            cursor?: string;
         };
         ProfileUpdate: {
             title?: string;
@@ -450,8 +450,8 @@ export interface components {
             title: string;
         };
         TagList: {
-            hasMore: boolean;
             data: components["schemas"]["Tag"][];
+            cursor?: string;
         };
         TagUpdate: {
             title?: string;
@@ -578,9 +578,9 @@ export interface operations {
     listBookmarks: {
         parameters: {
             query?: {
-                publishedAt?: string;
                 filterByTags?: boolean;
                 "tag[]"?: string[];
+                cursor?: string;
             };
             header?: never;
             path?: never;
