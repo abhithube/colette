@@ -320,7 +320,7 @@ pub async fn find_by_id<Db: ConnectionTrait>(
     id: Uuid,
     profile_id: Uuid,
 ) -> Result<Bookmark, Error> {
-    let bookmarks = find(db, Some(id), profile_id, None, None, None).await?;
+    let bookmarks = find(db, Some(id), profile_id, Some(1), None, None).await?;
 
     bookmarks.data.first().cloned().ok_or(Error::NotFound(id))
 }

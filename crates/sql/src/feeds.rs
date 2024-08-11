@@ -9,15 +9,15 @@ use colette_core::{
 };
 use colette_entities::{
     entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
-    PfWithFeedAndTagsAndUnreadCount, ProfileFeedToTag,
+    PfWithFeedAndTagsAndUnreadCount,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
     sea_query::{Func, OnConflict, Query, SimpleExpr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    JoinType, LoaderTrait, ModelTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
-    RelationTrait, Set, TransactionError, TransactionTrait,
+    JoinType, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -32,121 +32,7 @@ impl FeedsRepository for SqlRepository {
         cursor_raw: Option<String>,
         filters: Option<FeedsFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error> {
-        let mut query = profile_feed::Entity::find()
-            .find_also_related(feed::Entity)
-            .order_by_asc(SimpleExpr::FunctionCall(Func::coalesce([
-                Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
-                Expr::col((feed::Entity, feed::Column::Title)).into(),
-            ])))
-            .order_by_asc(profile_feed::Column::Id)
-            .limit(limit);
-
-        let mut conditions = Condition::all().add(profile_feed::Column::ProfileId.eq(profile_id));
-        if let Some(filters) = filters {
-            if let Some(tags) = filters.tags {
-                query = query
-                    .join(
-                        JoinType::InnerJoin,
-                        profile_feed::Relation::ProfileFeedTag.def(),
-                    )
-                    .join(JoinType::InnerJoin, profile_feed_tag::Relation::Tag.def());
-
-                conditions = conditions.add(tag::Column::Title.is_in(tags));
-            }
-        }
-        if let Some(raw) = cursor_raw.as_deref() {
-            let cursor =
-                utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
-
-            conditions = conditions.add(
-                Expr::tuple([
-                    Func::coalesce([
-                        Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
-                        Expr::col((feed::Entity, feed::Column::Title)).into(),
-                    ])
-                    .into(),
-                    Expr::col((profile_feed::Entity, profile_feed::Column::Id)).into(),
-                ])
-                .gt(Expr::tuple([
-                    Expr::value(cursor.title),
-                    Expr::value(cursor.id),
-                ])),
-            );
-        }
-
-        let models = query
-            .filter(conditions)
-            .all(&self.db)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
-                    .collect::<Vec<_>>()
-            })
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let pf_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
-
-        let tag_models = pf_models
-            .load_many_to_many(
-                tag::Entity::find().order_by_asc(tag::Column::Title),
-                profile_feed_tag::Entity,
-                &self.db,
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let pf_ids = pf_models.iter().map(|e| e.id).collect::<Vec<_>>();
-
-        let counts: Vec<(Uuid, i64)> = profile_feed_entry::Entity::find()
-            .select_only()
-            .column(profile_feed_entry::Column::ProfileFeedId)
-            .column_as(profile_feed_entry::Column::Id.count(), "count")
-            .filter(profile_feed_entry::Column::ProfileFeedId.is_in(pf_ids))
-            .filter(profile_feed_entry::Column::HasRead.eq(false))
-            .group_by(profile_feed_entry::Column::ProfileFeedId)
-            .into_tuple()
-            .all(&self.db)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
-
-        let mut feeds = models
-            .into_iter()
-            .zip(tag_models.into_iter())
-            .map(|((pf, feed), tags)| {
-                let unread_count = count_map.get(&pf.id).cloned().unwrap_or_default();
-                Feed::from(PfWithFeedAndTagsAndUnreadCount {
-                    pf,
-                    feed,
-                    tags,
-                    unread_count,
-                })
-            })
-            .collect::<Vec<_>>();
-        let mut cursor: Option<String> = None;
-
-        if feeds.len() > PAGINATION_LIMIT {
-            feeds = feeds.into_iter().take(PAGINATION_LIMIT).collect();
-
-            if let Some(last) = feeds.last() {
-                let c = Cursor {
-                    id: last.id,
-                    title: last
-                        .title
-                        .to_owned()
-                        .unwrap_or(last.original_title.to_owned()),
-                };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated::<Feed> {
-            cursor,
-            data: feeds,
-        })
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
     async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
@@ -545,42 +431,141 @@ impl From<StreamSelect> for StreamFeed {
     }
 }
 
+async fn find<Db: ConnectionTrait>(
+    db: &Db,
+    id: Option<Uuid>,
+    profile_id: Uuid,
+    limit: Option<u64>,
+    cursor_raw: Option<String>,
+    filters: Option<FeedsFindManyFilters>,
+) -> Result<Paginated<Feed>, Error> {
+    let mut query = profile_feed::Entity::find()
+        .find_also_related(feed::Entity)
+        .order_by_asc(SimpleExpr::FunctionCall(Func::coalesce([
+            Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
+            Expr::col((feed::Entity, feed::Column::Title)).into(),
+        ])))
+        .order_by_asc(profile_feed::Column::Id)
+        .limit(limit);
+
+    let mut conditions = Condition::all().add(profile_feed::Column::ProfileId.eq(profile_id));
+    if let Some(id) = id {
+        conditions = conditions.add(profile_feed::Column::Id.eq(id));
+    }
+    if let Some(filters) = filters {
+        if let Some(tags) = filters.tags {
+            query = query
+                .join(
+                    JoinType::InnerJoin,
+                    profile_feed::Relation::ProfileFeedTag.def(),
+                )
+                .join(JoinType::InnerJoin, profile_feed_tag::Relation::Tag.def());
+
+            conditions = conditions.add(tag::Column::Title.is_in(tags));
+        }
+    }
+    if let Some(raw) = cursor_raw.as_deref() {
+        let cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+
+        conditions = conditions.add(
+            Expr::tuple([
+                Func::coalesce([
+                    Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
+                    Expr::col((feed::Entity, feed::Column::Title)).into(),
+                ])
+                .into(),
+                Expr::col((profile_feed::Entity, profile_feed::Column::Id)).into(),
+            ])
+            .gt(Expr::tuple([
+                Expr::value(cursor.title),
+                Expr::value(cursor.id),
+            ])),
+        );
+    }
+
+    let models = query
+        .filter(conditions)
+        .all(db)
+        .await
+        .map(|e| {
+            e.into_iter()
+                .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
+                .collect::<Vec<_>>()
+        })
+        .map_err(|e| Error::Unknown(e.into()))?;
+    let pf_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
+
+    let tag_models = pf_models
+        .load_many_to_many(
+            tag::Entity::find().order_by_asc(tag::Column::Title),
+            profile_feed_tag::Entity,
+            db,
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    let pf_ids = pf_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+    let counts: Vec<(Uuid, i64)> = profile_feed_entry::Entity::find()
+        .select_only()
+        .column(profile_feed_entry::Column::ProfileFeedId)
+        .column_as(profile_feed_entry::Column::Id.count(), "count")
+        .filter(profile_feed_entry::Column::ProfileFeedId.is_in(pf_ids))
+        .filter(profile_feed_entry::Column::HasRead.eq(false))
+        .group_by(profile_feed_entry::Column::ProfileFeedId)
+        .into_tuple()
+        .all(db)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
+
+    let mut feeds = models
+        .into_iter()
+        .zip(tag_models.into_iter())
+        .map(|((pf, feed), tags)| {
+            let unread_count = count_map.get(&pf.id).cloned().unwrap_or_default();
+            Feed::from(PfWithFeedAndTagsAndUnreadCount {
+                pf,
+                feed,
+                tags,
+                unread_count,
+            })
+        })
+        .collect::<Vec<_>>();
+    let mut cursor: Option<String> = None;
+
+    if feeds.len() > PAGINATION_LIMIT {
+        feeds = feeds.into_iter().take(PAGINATION_LIMIT).collect();
+
+        if let Some(last) = feeds.last() {
+            let c = Cursor {
+                id: last.id,
+                title: last
+                    .title
+                    .to_owned()
+                    .unwrap_or(last.original_title.to_owned()),
+            };
+            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+            cursor = Some(encoded);
+        }
+    }
+
+    Ok(Paginated::<Feed> {
+        cursor,
+        data: feeds,
+    })
+}
+
 async fn find_by_id<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
     profile_id: Uuid,
 ) -> Result<Feed, Error> {
-    let Some((pf_model, Some(feed_model))) = profile_feed::Entity::find_by_id(id)
-        .find_also_related(feed::Entity)
-        .filter(profile_feed::Column::ProfileId.eq(profile_id))
-        .one(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?
-    else {
-        return Err(Error::NotFound(id));
-    };
+    let feeds = find(db, Some(id), profile_id, Some(1), None, None).await?;
 
-    let tag_models = pf_model
-        .find_linked(ProfileFeedToTag)
-        .order_by_asc(tag::Column::Title)
-        .all(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    let unread_count = profile_feed_entry::Entity::find()
-        .filter(profile_feed_entry::Column::ProfileFeedId.eq(pf_model.id))
-        .count(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    let feed = Feed::from(PfWithFeedAndTagsAndUnreadCount {
-        pf: pf_model,
-        feed: feed_model,
-        tags: tag_models,
-        unread_count: unread_count as i64,
-    });
-
-    Ok(feed)
+    feeds.data.first().cloned().ok_or(Error::NotFound(id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

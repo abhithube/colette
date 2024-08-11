@@ -6,9 +6,9 @@ use colette_core::{
 use colette_entities::{profile, profile_feed};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, JoinType,
-    ModelTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, SqlErr, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
+    JoinType, ModelTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, SqlErr,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -22,45 +22,7 @@ impl ProfilesRepository for SqlRepository {
         limit: Option<u64>,
         cursor_raw: Option<String>,
     ) -> Result<Paginated<Profile>, Error> {
-        let mut cursor = Cursor::default();
-        if let Some(raw) = cursor_raw.as_deref() {
-            cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        let mut query = profile::Entity::find()
-            .filter(profile::Column::UserId.eq(user_id))
-            .order_by_asc(profile::Column::Title)
-            .cursor_by(profile::Column::Title);
-
-        query.after(cursor.title);
-        if let Some(limit) = limit {
-            query.first(limit);
-        }
-
-        let mut profiles = query
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let mut cursor: Option<String> = None;
-
-        if profiles.len() > PAGINATION_LIMIT {
-            profiles = profiles.into_iter().take(PAGINATION_LIMIT).collect();
-
-            if let Some(last) = profiles.last() {
-                let c = Cursor {
-                    title: last.title.to_owned(),
-                };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated::<Profile> {
-            cursor,
-            data: profiles,
-        })
+        find(&self.db, None, user_id, limit, cursor_raw).await
     }
 
     async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error> {
@@ -212,21 +174,65 @@ impl From<StreamSelect> for StreamProfile {
     }
 }
 
+async fn find<Db: ConnectionTrait>(
+    db: &Db,
+    id: Option<Uuid>,
+    user_id: Uuid,
+    limit: Option<u64>,
+    cursor_raw: Option<String>,
+) -> Result<Paginated<Profile>, Error> {
+    let query = profile::Entity::find().order_by_asc(profile::Column::Title);
+
+    let mut conditions = Condition::all().add(profile::Column::UserId.eq(user_id));
+    if let Some(id) = id {
+        conditions = conditions.add(profile::Column::Id.eq(id));
+    }
+
+    let mut cursor = Cursor::default();
+    if let Some(raw) = cursor_raw.as_deref() {
+        cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+    }
+
+    let mut query = query.filter(conditions).cursor_by(profile::Column::Title);
+    query.after(cursor.title);
+    if let Some(limit) = limit {
+        query.first(limit);
+    }
+
+    let mut profiles = query
+        .all(db)
+        .await
+        .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
+    let mut cursor: Option<String> = None;
+
+    if profiles.len() > PAGINATION_LIMIT {
+        profiles = profiles.into_iter().take(PAGINATION_LIMIT).collect();
+
+        if let Some(last) = profiles.last() {
+            let c = Cursor {
+                title: last.title.to_owned(),
+            };
+            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+            cursor = Some(encoded);
+        }
+    }
+
+    Ok(Paginated::<Profile> {
+        cursor,
+        data: profiles,
+    })
+}
+
 async fn find_by_id<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
     user_id: Uuid,
 ) -> Result<colette_core::Profile, Error> {
-    let Some(profile) = profile::Entity::find_by_id(id)
-        .filter(profile::Column::UserId.eq(user_id))
-        .one(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?
-    else {
-        return Err(Error::NotFound(id));
-    };
+    let profiles = find(db, Some(id), user_id, Some(1), None).await?;
 
-    Ok(profile.into())
+    profiles.data.first().cloned().ok_or(Error::NotFound(id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

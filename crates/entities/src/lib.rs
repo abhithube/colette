@@ -144,22 +144,6 @@ impl Related<tag::Entity> for profile_feed::Entity {
 }
 
 #[derive(Debug)]
-pub struct ProfileFeedToTag;
-
-impl Linked for ProfileFeedToTag {
-    type FromEntity = profile_feed::Entity;
-
-    type ToEntity = tag::Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![
-            profile_feed::Relation::ProfileFeedTag.def(),
-            profile_feed_tag::Relation::Tag.def(),
-        ]
-    }
-}
-
-#[derive(Debug)]
 pub struct ProfileFeedEntryToEntry;
 
 impl Linked for ProfileFeedEntryToEntry {

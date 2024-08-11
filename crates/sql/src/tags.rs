@@ -6,8 +6,9 @@ use colette_core::{
 use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
     sea_query::{Alias, Expr},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, EntityTrait, IntoActiveModel, JoinType,
-    QueryFilter, QuerySelect, RelationTrait, Set, SqlErr, TransactionError, TransactionTrait,
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
+    JoinType, QueryFilter, QuerySelect, RelationTrait, Set, SqlErr, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -22,78 +23,7 @@ impl TagsRepository for SqlRepository {
         cursor_raw: Option<String>,
         filters: Option<TagsFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error> {
-        let mut cursor = Cursor::default();
-        if let Some(raw) = cursor_raw.as_deref() {
-            cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        let mut query = tag::Entity::find()
-            .expr_as(
-                Expr::col((
-                    Alias::new("pbt"),
-                    profile_bookmark_tag::Column::ProfileBookmarkId,
-                ))
-                .count(),
-                "bookmark_count",
-            )
-            .expr_as(
-                Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
-                "feed_count",
-            )
-            .filter(tag::Column::ProfileId.eq(profile_id))
-            .join_as(
-                JoinType::LeftJoin,
-                tag::Relation::ProfileBookmarkTag.def(),
-                Alias::new("pbt"),
-            )
-            .join_as(
-                JoinType::LeftJoin,
-                tag::Relation::ProfileFeedTag.def(),
-                Alias::new("pft"),
-            )
-            .group_by(tag::Column::Id);
-
-        if let Some(filters) = filters {
-            query = match filters.tag_type {
-                TagType::Bookmarks => {
-                    query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
-                }
-                TagType::Feeds => {
-                    query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def())
-                }
-                _ => query,
-            };
-        }
-
-        let mut query = query.cursor_by(tag::Column::Title);
-
-        query.after(cursor.title);
-        if let Some(limit) = limit {
-            query.first(limit);
-        }
-
-        let mut tags = query
-            .into_model::<PartialTag>()
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let mut cursor: Option<String> = None;
-
-        if tags.len() > PAGINATION_LIMIT {
-            tags = tags.into_iter().take(PAGINATION_LIMIT).collect();
-
-            if let Some(last) = tags.last() {
-                let c = Cursor {
-                    title: last.title.to_owned(),
-                };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
-
-                cursor = Some(encoded);
-            }
-        }
-
-        Ok(Paginated::<Tag> { cursor, data: tags })
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
     async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
@@ -179,12 +109,15 @@ impl TagsRepository for SqlRepository {
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(
+async fn find<Db: ConnectionTrait>(
     db: &Db,
-    id: Uuid,
+    id: Option<Uuid>,
     profile_id: Uuid,
-) -> Result<Tag, Error> {
-    let Some(tag) = tag::Entity::find_by_id(id)
+    limit: Option<u64>,
+    cursor_raw: Option<String>,
+    filters: Option<TagsFindManyFilters>,
+) -> Result<Paginated<Tag>, Error> {
+    let mut query = tag::Entity::find()
         .expr_as(
             Expr::col((
                 Alias::new("pbt"),
@@ -197,7 +130,6 @@ async fn find_by_id<Db: ConnectionTrait>(
             Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
             "feed_count",
         )
-        .filter(tag::Column::ProfileId.eq(profile_id))
         .join_as(
             JoinType::LeftJoin,
             tag::Relation::ProfileBookmarkTag.def(),
@@ -208,16 +140,65 @@ async fn find_by_id<Db: ConnectionTrait>(
             tag::Relation::ProfileFeedTag.def(),
             Alias::new("pft"),
         )
-        .group_by(tag::Column::Id)
-        .into_model::<PartialTag>()
-        .one(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?
-    else {
-        return Err(Error::NotFound(id));
-    };
+        .group_by(tag::Column::Id);
 
-    Ok(tag.into())
+    let mut conditions = Condition::all().add(tag::Column::ProfileId.eq(profile_id));
+    if let Some(id) = id {
+        conditions = conditions.add(tag::Column::Id.eq(id));
+    }
+    if let Some(filters) = filters {
+        query = match filters.tag_type {
+            TagType::Bookmarks => {
+                query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
+            }
+            TagType::Feeds => query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def()),
+            _ => query,
+        };
+    }
+
+    let mut cursor = Cursor::default();
+    if let Some(raw) = cursor_raw.as_deref() {
+        cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+    }
+
+    let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
+    query.after(cursor.title);
+    if let Some(limit) = limit {
+        query.first(limit);
+    }
+
+    let mut tags = query
+        .into_model::<PartialTag>()
+        .all(db)
+        .await
+        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
+    let mut cursor: Option<String> = None;
+
+    if tags.len() > PAGINATION_LIMIT {
+        tags = tags.into_iter().take(PAGINATION_LIMIT).collect();
+
+        if let Some(last) = tags.last() {
+            let c = Cursor {
+                title: last.title.to_owned(),
+            };
+            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+            cursor = Some(encoded);
+        }
+    }
+
+    Ok(Paginated::<Tag> { cursor, data: tags })
+}
+
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    id: Uuid,
+    profile_id: Uuid,
+) -> Result<Tag, Error> {
+    let tags = find(db, Some(id), profile_id, Some(1), None, None).await?;
+
+    tags.data.first().cloned().ok_or(Error::NotFound(id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
