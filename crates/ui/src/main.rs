@@ -8,10 +8,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         profiles::ProfilesState, tags::TagsState, Api, ApiState,
     };
     use colette_backup::OpmlManager;
-    use colette_core::{
-        auth::AuthService, bookmarks::BookmarksService, entries::EntriesService,
-        feeds::FeedsService, profiles::ProfilesService, tags::TagsService,
-    };
     use colette_migrations::{Migrator, MigratorTrait};
     use colette_password::Argon2Hasher;
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -22,14 +18,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use colette_ui::{app::*, fileserv::file_and_error_handler};
     use leptos::*;
     use leptos_axum::{generate_route_list, LeptosRoutes};
-    use sea_orm::{ConnectionTrait, Database, DatabaseBackend};
+    use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
     use tower_sessions::ExpiredDeletion;
 
     const CRON_CLEANUP: &str = "0 0 0 * * *";
 
     let app_config = colette_config::load_config()?;
 
-    let db = Database::connect(&app_config.database_url).await?;
+    let mut opts = ConnectOptions::new(&app_config.database_url);
+    opts.max_connections(100);
+
+    let db = Database::connect(opts).await?;
     Migrator::up(&db, None).await?;
 
     let repository = Arc::new(SqlRepository::new(db.clone()));
@@ -71,33 +70,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let api_state = ApiState {
         auth_state: AuthState {
-            service: AuthService::new(
-                repository.clone(),
-                repository.clone(),
-                Arc::new(Argon2Hasher {}),
-            )
-            .into(),
+            users_repository: repository.clone(),
+            profiles_repository: repository.clone(),
+            hasher: Arc::new(Argon2Hasher {}),
         },
         bookmarks_state: BookmarksState {
-            service: BookmarksService::new(
-                repository.clone(),
-                Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
-            )
-            .into(),
+            repository: repository.clone(),
+            scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
         },
         entries_state: EntriesState {
-            service: EntriesService::new(repository.clone()).into(),
+            repository: repository.clone(),
         },
         feeds_state: FeedsState {
-            service: FeedsService::new(repository.clone(), feed_scraper, Arc::new(OpmlManager))
-                .into(),
+            repository: repository.clone(),
+            scraper: feed_scraper,
+            opml: Arc::new(OpmlManager),
         },
         profiles_state: ProfilesState {
-            service: ProfilesService::new(repository.clone()).into(),
+            repository: repository.clone(),
         },
-        tags_state: TagsState {
-            service: TagsService::new(repository).into(),
-        },
+        tags_state: TagsState { repository },
     };
 
     let conf = get_configuration(None).await?;

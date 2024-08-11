@@ -7,10 +7,9 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Paginated, Session},
-    tags::CreateTag,
+    common::Paginated,
     utils::{
-        backup::{self, BackupManager},
+        backup,
         scraper::{
             self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
         },
@@ -27,37 +26,6 @@ pub struct Feed {
     pub url: Option<String>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct CreateFeed {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct UpdateFeed {
-    pub title: Option<Option<String>>,
-    pub tags: Option<Vec<CreateTag>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ListFeedsParams {
-    pub tags: Option<Vec<String>>,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct DetectFeeds {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct DetectedFeed {
-    pub url: String,
-    pub title: String,
-}
-
-pub struct ImportFeeds {
-    pub raw: String,
 }
 
 #[derive(Clone, Debug)]
@@ -169,118 +137,6 @@ pub struct FeedPluginRegistry<'a> {
         HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
 }
 
-pub struct FeedsService {
-    repo: Arc<dyn FeedsRepository>,
-    scraper: Arc<dyn FeedScraper>,
-    opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
-}
-
-impl FeedsService {
-    pub fn new(
-        repo: Arc<dyn FeedsRepository>,
-        scraper: Arc<dyn FeedScraper>,
-        opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
-    ) -> Self {
-        Self {
-            repo,
-            scraper,
-            opml,
-        }
-    }
-
-    pub async fn list(
-        &self,
-        params: ListFeedsParams,
-        session: Session,
-    ) -> Result<Paginated<Feed>, Error> {
-        self.repo
-            .find_many_feeds(
-                session.profile_id,
-                None,
-                None,
-                Some(FeedsFindManyFilters { tags: params.tags }),
-            )
-            .await
-    }
-
-    pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
-        self.repo.find_one_feed(id, session.profile_id).await
-    }
-
-    pub async fn create(&self, mut data: CreateFeed, session: Session) -> Result<Feed, Error> {
-        let scraped = self.scraper.scrape(&mut data.url)?;
-
-        self.repo
-            .create_feed(FeedsCreateData {
-                url: data.url.into(),
-                feed: scraped,
-                profile_id: session.profile_id,
-            })
-            .await
-    }
-
-    pub async fn update(
-        &self,
-        id: Uuid,
-        data: UpdateFeed,
-        session: Session,
-    ) -> Result<Feed, Error> {
-        self.repo
-            .update_feed(id, session.profile_id, data.into())
-            .await
-    }
-
-    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo.delete_feed(id, session.profile_id).await
-    }
-
-    pub async fn detect(&self, mut data: DetectFeeds) -> Result<Paginated<DetectedFeed>, Error> {
-        let urls = self.scraper.detect(&mut data.url)?;
-
-        let mut feeds: Vec<DetectedFeed> = vec![];
-
-        for mut url in urls.into_iter() {
-            let feed = self.scraper.scrape(&mut url)?;
-            feeds.push(DetectedFeed {
-                url: url.into(),
-                title: feed.title,
-            })
-        }
-
-        Ok(Paginated::<DetectedFeed> {
-            data: feeds,
-            cursor: None,
-        })
-    }
-
-    pub async fn import(&self, data: ImportFeeds, session: Session) -> Result<(), Error> {
-        for feed in self.opml.import(&data.raw)? {
-            self.create(CreateFeed { url: feed.xml_url }, session.clone())
-                .await?;
-        }
-
-        Ok(())
-    }
-
-    pub async fn export(&self, session: Session) -> Result<String, Error> {
-        let feeds = self.list(ListFeedsParams { tags: None }, session).await?;
-
-        let data = feeds
-            .data
-            .into_iter()
-            .filter_map(|e| {
-                Some(BackupFeed {
-                    title: e.title.unwrap_or(e.original_title),
-                    xml_url: e.url.and_then(|e| Url::parse(&e).ok())?,
-                    html_url: Url::parse(&e.link).ok(),
-                })
-            })
-            .collect::<Vec<_>>();
-
-        self.opml.export(data).map_err(|e| e.into())
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct FeedsFindManyFilters {
     pub tags: Option<Vec<String>>,
@@ -297,15 +153,6 @@ pub struct FeedsCreateData {
 pub struct FeedsUpdateData {
     pub title: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
-}
-
-impl From<UpdateFeed> for FeedsUpdateData {
-    fn from(value: UpdateFeed) -> Self {
-        Self {
-            title: value.title,
-            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

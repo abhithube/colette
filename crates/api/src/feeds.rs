@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use axum::{
     extract::{Multipart, Path, State},
@@ -10,9 +10,10 @@ use axum_extra::extract::Query;
 use axum_valid::Valid;
 use colette_core::{
     feeds::{
-        self, CreateFeed, DetectedFeed, FeedsService, ImportFeeds, ListFeedsParams, UpdateFeed,
+        self, BackupFeed, FeedScraper, FeedsCreateData, FeedsFindManyFilters, FeedsRepository,
+        FeedsUpdateData,
     },
-    tags::CreateTag,
+    utils::backup::BackupManager,
 };
 use url::Url;
 use uuid::Uuid;
@@ -24,7 +25,9 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedsState {
-    pub service: Arc<FeedsService>,
+    pub repository: Arc<dyn FeedsRepository>,
+    pub scraper: Arc<dyn FeedScraper>,
+    pub opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -105,15 +108,16 @@ impl From<colette_core::Feed> for Feed {
 )]
 #[axum::debug_handler]
 pub async fn list_feeds(
-    State(service): State<Arc<FeedsService>>,
+    State(repository): State<Arc<dyn FeedsRepository>>,
     Query(query): Query<ListFeedsQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .list(query.into(), session.into())
+    let result = repository
+        .find_many_feeds(session.profile_id, None, None, Some(query.into()))
         .await
-        .map(Paginated::<Feed>::from)
-    {
+        .map(Paginated::<Feed>::from);
+
+    match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -130,7 +134,7 @@ pub struct ListFeedsQuery {
     pub tags: Option<Vec<String>>,
 }
 
-impl From<ListFeedsQuery> for ListFeedsParams {
+impl From<ListFeedsQuery> for FeedsFindManyFilters {
     fn from(value: ListFeedsQuery) -> Self {
         Self {
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
@@ -167,11 +171,16 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_feed(
-    State(service): State<Arc<FeedsService>>,
+    State(repository): State<Arc<dyn FeedsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get(id, session.into()).await.map(Feed::from) {
+    let result = repository
+        .find_one_feed(id, session.profile_id)
+        .await
+        .map(Feed::from);
+
+    match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -211,22 +220,33 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_feed(
-    State(service): State<Arc<FeedsService>>,
+    State(FeedsState {
+        repository,
+        scraper,
+        ..
+    }): State<FeedsState>,
     session: Session,
-    Valid(Json(body)): Valid<Json<FeedCreate>>,
+    Valid(Json(mut body)): Valid<Json<FeedCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .create(body.into(), session.into())
+    let scraped = scraper.scrape(&mut body.url);
+    if let Err(e) = scraped {
+        return Ok(CreateResponse::BadGateway(BaseError {
+            message: e.to_string(),
+        }));
+    }
+
+    let result = repository
+        .create_feed(FeedsCreateData {
+            url: body.url.into(),
+            feed: scraped.unwrap(),
+            profile_id: session.profile_id,
+        })
         .await
-        .map(Feed::from)
-    {
+        .map(Feed::from);
+
+    match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
-        Err(e) => match e {
-            feeds::Error::Scraper(_) => Ok(CreateResponse::BadGateway(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown),
-        },
+        _ => Err(Error::Unknown),
     }
 }
 
@@ -235,12 +255,6 @@ pub async fn create_feed(
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
-}
-
-impl From<FeedCreate> for CreateFeed {
-    fn from(value: FeedCreate) -> Self {
-        Self { url: value.url }
-    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -278,16 +292,17 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_feed(
-    State(service): State<Arc<FeedsService>>,
+    State(repository): State<Arc<dyn FeedsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<FeedUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .update(id, body.into(), session.into())
+    let result = repository
+        .update_feed(id, session.profile_id, body.into())
         .await
-        .map(Feed::from)
-    {
+        .map(Feed::from);
+
+    match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -312,13 +327,11 @@ pub struct FeedUpdate {
     pub tags: Option<Vec<TagCreate>>,
 }
 
-impl From<FeedUpdate> for UpdateFeed {
+impl From<FeedUpdate> for FeedsUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(CreateTag::from).collect()),
+            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
         }
     }
 }
@@ -357,11 +370,13 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_feed(
-    State(service): State<Arc<FeedsService>>,
+    State(repository): State<Arc<dyn FeedsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete(id, session.into()).await {
+    let result = repository.delete_feed(id, session.profile_id).await;
+
+    match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
@@ -401,22 +416,36 @@ impl IntoResponse for DeleteResponse {
   )]
 #[axum::debug_handler]
 pub async fn detect_feeds(
-    State(service): State<Arc<FeedsService>>,
-    Valid(Json(body)): Valid<Json<FeedDetect>>,
+    State(scraper): State<Arc<dyn FeedScraper>>,
+    Valid(Json(mut body)): Valid<Json<FeedDetect>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .detect(body.into())
-        .await
-        .map(Paginated::<FeedDetected>::from)
-    {
-        Ok(data) => Ok(DetectResponse::Ok(data)),
-        Err(e) => match e {
-            feeds::Error::Scraper(_) => Ok(DetectResponse::BadGateway(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown),
-        },
+    let urls = scraper.detect(&mut body.url);
+    if let Err(e) = urls {
+        return Ok(DetectResponse::BadGateway(BaseError {
+            message: e.to_string(),
+        }));
     }
+
+    let mut feeds: Vec<FeedDetected> = vec![];
+
+    for mut url in urls.unwrap().into_iter() {
+        let feed = scraper.scrape(&mut url);
+        if let Err(e) = feed {
+            return Ok(DetectResponse::BadGateway(BaseError {
+                message: e.to_string(),
+            }));
+        }
+
+        feeds.push(FeedDetected {
+            url: url.into(),
+            title: feed.unwrap().title,
+        })
+    }
+
+    Ok(DetectResponse::Ok(Paginated::<FeedDetected> {
+        data: feeds,
+        cursor: None,
+    }))
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
@@ -426,27 +455,12 @@ pub struct FeedDetect {
     pub url: Url,
 }
 
-impl From<FeedDetect> for feeds::DetectFeeds {
-    fn from(value: FeedDetect) -> Self {
-        Self { url: value.url }
-    }
-}
-
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetected {
     #[schema(format = "uri")]
     pub url: String,
     pub title: String,
-}
-
-impl From<DetectedFeed> for FeedDetected {
-    fn from(value: DetectedFeed) -> Self {
-        Self {
-            url: value.url,
-            title: value.title,
-        }
-    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -483,7 +497,7 @@ impl IntoResponse for DetectResponse {
 )]
 #[axum::debug_handler]
 pub async fn import_feeds(
-    State(service): State<Arc<FeedsService>>,
+    State(state): State<FeedsState>,
     session: Session,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, Error> {
@@ -493,10 +507,16 @@ pub async fn import_feeds(
 
     let raw = field.text().await.map_err(|_| Error::Unknown)?;
 
-    match service.import(ImportFeeds { raw }, session.into()).await {
-        Ok(()) => Ok(ImportResponse::NoContent),
-        _ => Err(Error::Unknown),
+    for feed in state.opml.import(&raw).map_err(|_| Error::Unknown)? {
+        create_feed(
+            State(state.clone()),
+            session.clone(),
+            Valid(Json(FeedCreate { url: feed.xml_url })),
+        )
+        .await?;
     }
+
+    Ok(ImportResponse::NoContent)
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
@@ -531,13 +551,39 @@ impl IntoResponse for ImportResponse {
 )]
 #[axum::debug_handler]
 pub async fn export_feeds(
-    State(service): State<Arc<FeedsService>>,
+    State(state): State<FeedsState>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.export(session.into()).await {
-        Ok(data) => Ok(ExportResponse::Ok(data.as_bytes().into())),
-        _ => Err(Error::Unknown),
-    }
+    let response = list_feeds(
+        State(state.repository),
+        Query(ListFeedsQuery {
+            filter_by_tags: None,
+            tags: None,
+        }),
+        session,
+    )
+    .await?;
+
+    let ListResponse::Ok(feeds) = (&response as &dyn Any)
+        .downcast_ref::<ListResponse>()
+        .unwrap();
+
+    let data = feeds
+        .data
+        .iter()
+        .cloned()
+        .filter_map(|e| {
+            Some(BackupFeed {
+                title: e.title.unwrap_or(e.original_title),
+                xml_url: e.url.and_then(|e| Url::parse(&e).ok())?,
+                html_url: Url::parse(&e.link).ok(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let data = state.opml.export(data).map_err(|_| Error::Unknown)?;
+
+    Ok(ExportResponse::Ok(data.as_bytes().into()))
 }
 
 #[derive(Debug, utoipa::IntoResponses)]

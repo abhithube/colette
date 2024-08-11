@@ -8,8 +8,10 @@ use axum::{
 };
 use axum_valid::Valid;
 use colette_core::{
-    auth::{self, AuthService},
-    users,
+    auth,
+    profiles::ProfilesRepository,
+    users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
+    utils::password::PasswordHasher,
 };
 use uuid::Uuid;
 
@@ -20,7 +22,9 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    pub service: Arc<AuthService>,
+    pub users_repository: Arc<dyn UsersRepository>,
+    pub profiles_repository: Arc<dyn ProfilesRepository>,
+    pub hasher: Arc<dyn PasswordHasher>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -70,10 +74,28 @@ impl From<colette_core::User> for User {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(service): State<Arc<AuthService>>,
+    State(AuthState {
+        users_repository,
+        hasher,
+        ..
+    }): State<AuthState>,
     Valid(Json(body)): Valid<Json<Register>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.register(body.into()).await.map(User::from) {
+    let hashed = hasher
+        .hash(&body.password)
+        .await
+        .map_err(|_| Error::Unknown)?;
+
+    let result = users_repository
+        .create_user(UsersCreateData {
+            email: body.email,
+            password: hashed,
+        })
+        .await
+        .map(User::from)
+        .map_err(|e| e.into());
+
+    match result {
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
             auth::Error::Users(users::Error::Conflict(_)) => {
@@ -141,11 +163,50 @@ impl IntoResponse for RegisterResponse {
 )]
 #[axum::debug_handler]
 pub async fn login(
-    State(service): State<Arc<AuthService>>,
+    State(AuthState {
+        users_repository,
+        profiles_repository,
+        hasher,
+        ..
+    }): State<AuthState>,
     session_store: tower_sessions::Session,
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.login(body.into()).await.map(Profile::from) {
+    let result = users_repository
+        .find_one_user(UsersFindOneParams::Email(body.email))
+        .await;
+
+    if let Err(e) = result {
+        match e {
+            users::Error::NotFound(_) => {
+                return Ok(LoginResponse::Unauthorized(BaseError {
+                    message: "bad credentials".to_owned(),
+                }));
+            }
+            _ => {
+                return Err(Error::Unknown);
+            }
+        }
+    };
+    let user = result.unwrap();
+
+    let valid = hasher
+        .verify(&body.password, &user.password)
+        .await
+        .map_err(|_| Error::Unknown)?;
+    if !valid {
+        return Ok(LoginResponse::Unauthorized(BaseError {
+            message: "bad credentials".to_owned(),
+        }));
+    }
+
+    let result = profiles_repository
+        .find_one_profile(None, user.id)
+        .await
+        .map(Profile::from)
+        .map_err(|e| e.into());
+
+    match result {
         Ok(data) => {
             let session = Session {
                 user_id: data.user_id,
@@ -218,13 +279,16 @@ impl IntoResponse for LoginResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(
-    State(service): State<Arc<AuthService>>,
+    State(repository): State<Arc<dyn UsersRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get_active(session.into()).await.map(User::from) {
-        Ok(data) => Ok(GetActiveResponse::Ok(data)),
-        Err(_) => Err(Error::Unknown),
-    }
+    let user = repository
+        .find_one_user(UsersFindOneParams::Id(session.user_id))
+        .await
+        .map(User::from)
+        .map_err(|_| Error::Unknown)?;
+
+    Ok(GetActiveResponse::Ok(user))
 }
 
 #[derive(Debug, utoipa::IntoResponses)]

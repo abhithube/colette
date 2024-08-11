@@ -1,14 +1,13 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Paginated, Session, PAGINATION_LIMIT},
-    tags::CreateTag,
+    common::Paginated,
     utils::scraper::{
-        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
+        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin,
     },
     Tag,
 };
@@ -22,22 +21,6 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
     pub tags: Option<Vec<Tag>>,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct CreateBookmark {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct UpdateBookmark {
-    pub tags: Option<Vec<CreateTag>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ListBookmarksParams {
-    pub tags: Option<Vec<String>>,
-    pub cursor: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -96,70 +79,6 @@ pub trait BookmarksRepository: Send + Sync {
     async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
-pub struct BookmarksService {
-    repo: Arc<dyn BookmarksRepository>,
-    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
-}
-
-impl BookmarksService {
-    pub fn new(
-        repo: Arc<dyn BookmarksRepository>,
-        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
-    ) -> Self {
-        Self { repo, scraper }
-    }
-
-    pub async fn list(
-        &self,
-        params: ListBookmarksParams,
-        session: Session,
-    ) -> Result<Paginated<Bookmark>, Error> {
-        self.repo
-            .find_many_bookmarks(
-                session.profile_id,
-                Some((PAGINATION_LIMIT + 1) as u64),
-                params.cursor,
-                Some(BookmarksFindManyFilters { tags: params.tags }),
-            )
-            .await
-    }
-
-    pub async fn get(&self, id: Uuid, session: Session) -> Result<Bookmark, Error> {
-        self.repo.find_one_bookmark(id, session.profile_id).await
-    }
-
-    pub async fn create(
-        &self,
-        mut data: CreateBookmark,
-        session: Session,
-    ) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&mut data.url)?;
-
-        self.repo
-            .create_bookmark(BookmarksCreateData {
-                url: data.url.into(),
-                bookmark: scraped,
-                profile_id: session.profile_id,
-            })
-            .await
-    }
-
-    pub async fn update(
-        &self,
-        id: Uuid,
-        data: UpdateBookmark,
-        session: Session,
-    ) -> Result<Bookmark, Error> {
-        self.repo
-            .update_bookmark(id, session.profile_id, data.into())
-            .await
-    }
-
-    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo.delete_bookmark(id, session.profile_id).await
-    }
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct BookmarksFindManyFilters {
     pub tags: Option<Vec<String>>,
@@ -175,14 +94,6 @@ pub struct BookmarksCreateData {
 #[derive(Clone, Debug)]
 pub struct BookmarksUpdateData {
     pub tags: Option<Vec<String>>,
-}
-
-impl From<UpdateBookmark> for BookmarksUpdateData {
-    fn from(value: UpdateBookmark) -> Self {
-        Self {
-            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

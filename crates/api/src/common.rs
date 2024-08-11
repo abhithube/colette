@@ -55,15 +55,6 @@ pub struct Session {
     pub profile_id: Uuid,
 }
 
-impl From<Session> for common::Session {
-    fn from(value: Session) -> Self {
-        Self {
-            user_id: value.user_id,
-            profile_id: value.profile_id,
-        }
-    }
-}
-
 #[async_trait]
 impl<S> FromRequestParts<S> for Session
 where

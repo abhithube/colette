@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use futures::stream::BoxStream;
 use uuid::Uuid;
 
-use crate::common::{Paginated, Session};
+use crate::common::Paginated;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Profile {
@@ -12,18 +10,6 @@ pub struct Profile {
     pub image_url: Option<String>,
     pub is_default: bool,
     pub user_id: Uuid,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct CreateProfile {
-    pub title: String,
-    pub image_url: Option<String>,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct UpdateProfile {
-    pub title: Option<String>,
-    pub image_url: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -59,55 +45,6 @@ pub trait ProfilesRepository: Send + Sync {
     ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }
 
-pub struct ProfilesService {
-    repo: Arc<dyn ProfilesRepository>,
-}
-
-impl ProfilesService {
-    pub fn new(repo: Arc<dyn ProfilesRepository>) -> Self {
-        Self { repo }
-    }
-
-    pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
-        self.repo
-            .find_many_profiles(session.user_id, None, None)
-            .await
-    }
-
-    pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
-        self.repo.find_one_profile(Some(id), session.user_id).await
-    }
-
-    pub async fn get_default(&self, session: Session) -> Result<Profile, Error> {
-        self.repo.find_one_profile(None, session.user_id).await
-    }
-
-    pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
-        self.repo
-            .create_profile(ProfilesCreateData {
-                title: data.title,
-                image_url: data.image_url,
-                user_id: session.user_id,
-            })
-            .await
-    }
-
-    pub async fn update(
-        &self,
-        id: Uuid,
-        data: UpdateProfile,
-        session: Session,
-    ) -> Result<Profile, Error> {
-        self.repo
-            .update_profile(id, session.user_id, data.into())
-            .await
-    }
-
-    pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo.delete_profile(id, session.user_id).await
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ProfilesCreateData {
     pub title: String,
@@ -119,15 +56,6 @@ pub struct ProfilesCreateData {
 pub struct ProfilesUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
-}
-
-impl From<UpdateProfile> for ProfilesUpdateData {
-    fn from(value: UpdateProfile) -> Self {
-        Self {
-            title: value.title,
-            image_url: value.image_url,
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

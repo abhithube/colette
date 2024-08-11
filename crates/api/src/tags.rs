@@ -7,14 +7,16 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::tags::{self, CreateTag, ListTagsParams, TagsService, UpdateTag};
+use colette_core::tags::{
+    self, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData,
+};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagsState {
-    pub service: Arc<TagsService>,
+    pub repository: Arc<dyn TagsRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -73,15 +75,16 @@ impl From<colette_core::Tag> for Tag {
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
-    State(service): State<Arc<TagsService>>,
+    State(repository): State<Arc<dyn TagsRepository>>,
     Valid(Query(query)): Valid<Query<ListTagsQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .list(query.into(), session.into())
+    let result = repository
+        .find_many_tags(session.profile_id, None, None, query.into())
         .await
-        .map(Paginated::<Tag>::from)
-    {
+        .map(Paginated::<Tag>::from);
+
+    match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -96,7 +99,7 @@ pub struct ListTagsQuery {
     pub tag_type: TagType,
 }
 
-impl From<ListTagsQuery> for ListTagsParams {
+impl From<ListTagsQuery> for TagsFindManyFilters {
     fn from(value: ListTagsQuery) -> Self {
         Self {
             tag_type: value.tag_type.into(),
@@ -148,11 +151,16 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
-    State(service): State<Arc<TagsService>>,
+    State(repository): State<Arc<dyn TagsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get(id, session.into()).await.map(Tag::from) {
+    let result = repository
+        .find_one_tag(id, session.profile_id)
+        .await
+        .map(Tag::from);
+
+    match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -192,15 +200,19 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
-    State(service): State<Arc<TagsService>>,
+    State(repository): State<Arc<dyn TagsRepository>>,
     session: Session,
     Valid(Json(body)): Valid<Json<TagCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .create(body.into(), session.into())
+    let result = repository
+        .create_tag(TagsCreateData {
+            title: body.title,
+            profile_id: session.profile_id,
+        })
         .await
-        .map(Tag::from)
-    {
+        .map(Tag::from);
+
+    match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
             tags::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -217,12 +229,6 @@ pub struct TagCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
-}
-
-impl From<TagCreate> for CreateTag {
-    fn from(value: TagCreate) -> Self {
-        Self { title: value.title }
-    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -260,16 +266,17 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
-    State(service): State<Arc<TagsService>>,
+    State(repository): State<Arc<dyn TagsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .update(id, body.into(), session.into())
+    let result = repository
+        .update_tag(id, session.profile_id, body.into())
         .await
-        .map(Tag::from)
-    {
+        .map(Tag::from);
+
+    match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -288,7 +295,7 @@ pub struct TagUpdate {
     pub title: Option<String>,
 }
 
-impl From<TagUpdate> for UpdateTag {
+impl From<TagUpdate> for TagsUpdateData {
     fn from(value: TagUpdate) -> Self {
         Self { title: value.title }
     }
@@ -328,11 +335,13 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(
-    State(service): State<Arc<TagsService>>,
+    State(repository): State<Arc<dyn TagsRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete(id, session.into()).await {
+    let result = repository.delete_tag(id, session.profile_id).await;
+
+    match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tags::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

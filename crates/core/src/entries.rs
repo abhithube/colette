@@ -1,9 +1,7 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{Paginated, Session, PAGINATION_LIMIT};
+use crate::common::Paginated;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Entry {
@@ -16,19 +14,6 @@ pub struct Entry {
     pub thumbnail_url: Option<String>,
     pub has_read: bool,
     pub feed_id: Uuid,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-pub struct UpdateEntry {
-    pub has_read: Option<bool>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ListEntriesParams {
-    pub feed_id: Option<Uuid>,
-    pub has_read: Option<bool>,
-    pub tags: Option<Vec<String>>,
-    pub cursor: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -51,50 +36,6 @@ pub trait EntriesRepository: Send + Sync {
     ) -> Result<Entry, Error>;
 }
 
-pub struct EntriesService {
-    repo: Arc<dyn EntriesRepository>,
-}
-
-impl EntriesService {
-    pub fn new(repo: Arc<dyn EntriesRepository>) -> Self {
-        Self { repo }
-    }
-
-    pub async fn list(
-        &self,
-        params: ListEntriesParams,
-        session: Session,
-    ) -> Result<Paginated<Entry>, Error> {
-        self.repo
-            .find_many_entries(
-                session.profile_id,
-                Some((PAGINATION_LIMIT + 1) as u64),
-                params.cursor,
-                Some(EntriesFindManyFilters {
-                    feed_id: params.feed_id,
-                    has_read: params.has_read,
-                    tags: params.tags,
-                }),
-            )
-            .await
-    }
-
-    pub async fn get(&self, id: Uuid, session: Session) -> Result<Entry, Error> {
-        self.repo.find_one_entry(id, session.profile_id).await
-    }
-
-    pub async fn update(
-        &self,
-        id: Uuid,
-        data: UpdateEntry,
-        session: Session,
-    ) -> Result<Entry, Error> {
-        self.repo
-            .update_entry(id, session.profile_id, data.into())
-            .await
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct EntriesFindManyFilters {
     pub feed_id: Option<Uuid>,
@@ -105,14 +46,6 @@ pub struct EntriesFindManyFilters {
 #[derive(Clone, Debug)]
 pub struct EntriesUpdateData {
     pub has_read: Option<bool>,
-}
-
-impl From<UpdateEntry> for EntriesUpdateData {
-    fn from(value: UpdateEntry) -> Self {
-        Self {
-            has_read: value.has_read,
-        }
-    }
 }
 
 #[derive(Debug, thiserror::Error)]

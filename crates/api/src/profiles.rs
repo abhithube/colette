@@ -7,7 +7,7 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::profiles::{self, CreateProfile, ProfilesService, UpdateProfile};
+use colette_core::profiles::{self, ProfilesCreateData, ProfilesRepository, ProfilesUpdateData};
 use url::Url;
 use uuid::Uuid;
 
@@ -15,7 +15,7 @@ use crate::common::{BaseError, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfilesState {
-    pub service: Arc<ProfilesService>,
+    pub repository: Arc<dyn ProfilesRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -82,14 +82,15 @@ impl From<colette_core::Profile> for Profile {
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .list(session.into())
+    let result = repository
+        .find_many_profiles(session.user_id, None, None)
         .await
-        .map(Paginated::<Profile>::from)
-    {
+        .map(Paginated::<Profile>::from);
+
+    match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -120,11 +121,16 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get(id, session.into()).await.map(Profile::from) {
+    let result = repository
+        .find_one_profile(Some(id), session.user_id)
+        .await
+        .map(Profile::from);
+
+    match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -163,10 +169,15 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get_default(session.into()).await.map(Profile::from) {
+    let result = repository
+        .find_one_profile(None, session.user_id)
+        .await
+        .map(Profile::from);
+
+    match result {
         Ok(data) => Ok(GetActiveResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
     }
@@ -197,15 +208,19 @@ impl IntoResponse for GetActiveResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .create(body.into(), session.into())
-        .await
-        .map(Profile::from)
-    {
+    let result = repository
+        .create_profile(ProfilesCreateData {
+            title: body.title,
+            image_url: body.image_url.map(String::from),
+            user_id: session.user_id,
+        })
+        .await;
+
+    match result.map(Profile::from) {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
             profiles::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -225,15 +240,6 @@ pub struct ProfileCreate {
 
     #[schema(nullable = false)]
     pub image_url: Option<Url>,
-}
-
-impl From<ProfileCreate> for CreateProfile {
-    fn from(value: ProfileCreate) -> Self {
-        Self {
-            title: value.title,
-            image_url: value.image_url.map(String::from),
-        }
-    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -271,16 +277,17 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .update(id, body.into(), session.into())
+    let result = repository
+        .update_profile(id, session.user_id, body.into())
         .await
-        .map(Profile::from)
-    {
+        .map(Profile::from);
+
+    match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -302,7 +309,7 @@ pub struct ProfileUpdate {
     pub image_url: Option<Url>,
 }
 
-impl From<ProfileUpdate> for UpdateProfile {
+impl From<ProfileUpdate> for ProfilesUpdateData {
     fn from(value: ProfileUpdate) -> Self {
         Self {
             title: value.title,
@@ -335,11 +342,13 @@ pub enum UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
-    State(service): State<Arc<ProfilesService>>,
+    State(repository): State<Arc<dyn ProfilesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete(id, session.into()).await {
+    let result = repository.delete_profile(id, session.user_id).await;
+
+    match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

@@ -9,14 +9,17 @@ use axum::{
 use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
-use colette_core::entries::{self, EntriesService, ListEntriesParams, UpdateEntry};
+use colette_core::{
+    common::PAGINATION_LIMIT,
+    entries::{self, EntriesFindManyFilters, EntriesRepository, EntriesUpdateData},
+};
 use uuid::Uuid;
 
 use crate::common::{BaseError, EntryList, Error, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct EntriesState {
-    pub service: Arc<EntriesService>,
+    pub repository: Arc<dyn EntriesRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -83,15 +86,25 @@ impl From<colette_core::Entry> for Entry {
 )]
 #[axum::debug_handler]
 pub async fn list_entries(
-    State(service): State<Arc<EntriesService>>,
+    State(repository): State<Arc<dyn EntriesRepository>>,
     Query(query): Query<ListEntriesQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .list(query.into(), session.into())
+    let result = repository
+        .find_many_entries(
+            session.profile_id,
+            Some((PAGINATION_LIMIT + 1) as u64),
+            query.cursor,
+            Some(EntriesFindManyFilters {
+                feed_id: query.feed_id,
+                has_read: query.has_read,
+                tags: query.tags,
+            }),
+        )
         .await
-        .map(Paginated::<Entry>::from)
-    {
+        .map(Paginated::<Entry>::from);
+
+    match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
     }
@@ -110,17 +123,6 @@ pub struct ListEntriesQuery {
     pub tags: Option<Vec<String>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
-}
-
-impl From<ListEntriesQuery> for ListEntriesParams {
-    fn from(value: ListEntriesQuery) -> Self {
-        Self {
-            feed_id: value.feed_id,
-            has_read: value.has_read,
-            tags: value.tags,
-            cursor: value.cursor,
-        }
-    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -148,11 +150,16 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_entry(
-    State(service): State<Arc<EntriesService>>,
+    State(repository): State<Arc<dyn EntriesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get(id, session.into()).await.map(Entry::from) {
+    let result = repository
+        .find_one_entry(id, session.profile_id)
+        .await
+        .map(Entry::from);
+
+    match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
             entries::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -193,16 +200,17 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_entry(
-    State(service): State<Arc<EntriesService>>,
+    State(repository): State<Arc<dyn EntriesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<EntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .update(id, body.into(), session.into())
+    let result = repository
+        .update_entry(id, session.profile_id, body.into())
         .await
-        .map(Entry::from)
-    {
+        .map(Entry::from);
+
+    match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
             entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -219,7 +227,7 @@ pub struct EntryUpdate {
     pub has_read: Option<bool>,
 }
 
-impl From<EntryUpdate> for UpdateEntry {
+impl From<EntryUpdate> for EntriesUpdateData {
     fn from(value: EntryUpdate) -> Self {
         Self {
             has_read: value.has_read,
