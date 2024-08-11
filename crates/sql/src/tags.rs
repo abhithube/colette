@@ -4,6 +4,7 @@ use colette_core::{
     Tag,
 };
 use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
+use colette_utils::base_64;
 use sea_orm::{
     sea_query::{Alias, Expr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
@@ -12,7 +13,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::{utils, SqlRepository};
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
 impl TagsRepository for SqlRepository {
@@ -158,7 +159,7 @@ async fn find<Db: ConnectionTrait>(
 
     let mut cursor = Cursor::default();
     if let Some(raw) = cursor_raw.as_deref() {
-        cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+        cursor = base_64::decode::<Cursor>(raw)?;
     }
 
     let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
@@ -184,7 +185,7 @@ async fn find<Db: ConnectionTrait>(
                 let c = Cursor {
                     title: last.title.to_owned(),
                 };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+                let encoded = base_64::encode(&c)?;
 
                 cursor = Some(encoded);
             }

@@ -11,6 +11,7 @@ use colette_core::{
 use colette_entities::{
     bookmark, profile_bookmark, profile_bookmark_tag, tag, PbWithBookmarkAndTags,
 };
+use colette_utils::base_64;
 use sea_orm::{
     prelude::Expr, sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr,
     EntityTrait, JoinType, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
@@ -18,7 +19,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::{utils, SqlRepository};
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
 impl BookmarksRepository for SqlRepository {
@@ -254,7 +255,7 @@ async fn find<Db: ConnectionTrait>(
         }
     }
     if let Some(raw) = cursor_raw.as_deref() {
-        let cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+        let cursor = base_64::decode::<Cursor>(raw)?;
 
         conditions = conditions.add(
             Expr::tuple([
@@ -306,7 +307,7 @@ async fn find<Db: ConnectionTrait>(
                     id: last.id,
                     title: last.title.to_owned(),
                 };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+                let encoded = base_64::encode(&c)?;
 
                 cursor = Some(encoded);
             }

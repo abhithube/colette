@@ -12,6 +12,7 @@ use colette_entities::{
     entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
     PfWithFeedAndTagsAndUnreadCount,
 };
+use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
@@ -22,7 +23,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::{utils, SqlRepository};
+use crate::SqlRepository;
 
 #[async_trait::async_trait]
 impl FeedsRepository for SqlRepository {
@@ -466,7 +467,7 @@ async fn find<Db: ConnectionTrait>(
         }
     }
     if let Some(raw) = cursor_raw.as_deref() {
-        let cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+        let cursor = base_64::decode::<Cursor>(raw)?;
 
         conditions = conditions.add(
             Expr::tuple([
@@ -549,7 +550,7 @@ async fn find<Db: ConnectionTrait>(
                         .to_owned()
                         .unwrap_or(last.original_title.to_owned()),
                 };
-                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+                let encoded = base_64::encode(&c)?;
 
                 cursor = Some(encoded);
             }
