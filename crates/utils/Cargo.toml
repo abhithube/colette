@@ -1,0 +1,13 @@
+[package]
+name = "colette-utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+base64.workspace = true
+password-auth = { version = "1", default-features = false, features = [
+  "argon2",
+] }
+serde.workspace = true
+serde_json.workspace = true

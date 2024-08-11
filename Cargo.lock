@@ -939,6 +939,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-utils"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "password-auth",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "collection_literals"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

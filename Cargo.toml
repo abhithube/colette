@@ -13,6 +13,7 @@ members = [
   "crates/sql",
   "crates/tasks",
   "crates/ui",
+  "crates/utils",
 ]
 resolver = "2"
 
@@ -38,6 +39,7 @@ colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"
 colette-sql.path = "crates/sql"
 colette-tasks.path = "crates/tasks"
+colette-utils.path = "crates/utils"
 futures = { version = "0.3", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
 lazy-regex = { version = "3", default-features = false, features = [
