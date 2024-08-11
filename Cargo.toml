@@ -6,7 +6,6 @@ members = [
   "crates/core",
   "crates/entities",
   "crates/migrations",
-  "crates/password",
   "crates/plugins",
   "crates/scraper",
   "crates/server",
@@ -34,7 +33,6 @@ colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-entities.path = "crates/entities"
 colette-migrations.path = "crates/migrations"
-colette-password.path = "crates/password"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"

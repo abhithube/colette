@@ -13,7 +13,6 @@ colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true }
 colette-migrations = { workspace = true, optional = true }
-colette-password = { workspace = true, optional = true }
 colette-plugins = { workspace = true, optional = true }
 colette-scraper = { workspace = true, optional = true }
 colette-session = { workspace = true, optional = true }
@@ -25,14 +24,14 @@ leptix_primitives = { version = "0.2", default-features = false }
 leptos = { version = "0.6", default-features = false, features = ["nightly"] }
 leptos_axum = { version = "0.6", optional = true }
 leptos_meta = { version = "0.6", default-features = false, features = [
-    "nightly",
+  "nightly",
 ] }
 leptos_router = { version = "0.6", default-features = false, features = [
-    "nightly",
+  "nightly",
 ] }
 sea-orm.workspace = true
 tailwind_fuse = { version = "0.3", default-features = false, features = [
-    "variant",
+  "variant",
 ] }
 thiserror.workspace = true
 tokio = { workspace = true, optional = true }
@@ -46,27 +45,26 @@ wasm-bindgen = { version = "=0.2.92", default-features = false }
 default = ["ssr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
-    "dep:axum",
-    "dep:colette-api",
-    "dep:colette-backup",
-    "dep:colette-config",
-    "dep:colette-migrations",
-    "dep:colette-password",
-    "dep:colette-plugins",
-    "dep:colette-scraper",
-    "dep:colette-session",
-    "dep:colette-sql",
-    "dep:colette-tasks",
-    "dep:leptos_axum",
-    "dep:tokio",
-    "dep:tower",
-    "dep:tower-http",
-    "dep:tower-sessions",
-    "dep:tracing",
-    "leptos/ssr",
-    "leptos_meta/ssr",
-    "leptix_primitives/ssr",
-    "leptos_router/ssr",
+  "dep:axum",
+  "dep:colette-api",
+  "dep:colette-backup",
+  "dep:colette-config",
+  "dep:colette-migrations",
+  "dep:colette-plugins",
+  "dep:colette-scraper",
+  "dep:colette-session",
+  "dep:colette-sql",
+  "dep:colette-tasks",
+  "dep:leptos_axum",
+  "dep:tokio",
+  "dep:tower",
+  "dep:tower-http",
+  "dep:tower-sessions",
+  "dep:tracing",
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptix_primitives/ssr",
+  "leptos_router/ssr",
 ]
 
 [package.metadata.leptos]

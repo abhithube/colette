@@ -7,7 +7,6 @@ use colette_api::{
 };
 use colette_backup::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
-use colette_password::Argon2Hasher;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_session::{PostgresStore, SessionBackend, SqliteStore};
@@ -74,7 +73,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_state: AuthState {
             users_repository: repository.clone(),
             profiles_repository: repository.clone(),
-            hasher: Arc::new(Argon2Hasher {}),
         },
         bookmarks_state: BookmarksState {
             repository: repository.clone(),

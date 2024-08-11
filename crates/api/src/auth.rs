@@ -11,7 +11,6 @@ use colette_core::{
     auth,
     profiles::ProfilesRepository,
     users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
-    utils::password::PasswordHasher,
 };
 use uuid::Uuid;
 
@@ -24,7 +23,6 @@ use crate::{
 pub struct AuthState {
     pub users_repository: Arc<dyn UsersRepository>,
     pub profiles_repository: Arc<dyn ProfilesRepository>,
-    pub hasher: Arc<dyn PasswordHasher>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -74,22 +72,13 @@ impl From<colette_core::User> for User {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(AuthState {
-        users_repository,
-        hasher,
-        ..
-    }): State<AuthState>,
+    State(repository): State<Arc<dyn UsersRepository>>,
     Valid(Json(body)): Valid<Json<Register>>,
 ) -> Result<impl IntoResponse, Error> {
-    let hashed = hasher
-        .hash(&body.password)
-        .await
-        .map_err(|_| Error::Unknown)?;
-
-    let result = users_repository
+    let result = repository
         .create_user(UsersCreateData {
             email: body.email,
-            password: hashed,
+            password: password_auth::generate_hash(&body.password),
         })
         .await
         .map(User::from)
@@ -166,8 +155,6 @@ pub async fn login(
     State(AuthState {
         users_repository,
         profiles_repository,
-        hasher,
-        ..
     }): State<AuthState>,
     session_store: tower_sessions::Session,
     Valid(Json(body)): Valid<Json<Login>>,
@@ -190,14 +177,17 @@ pub async fn login(
     };
     let user = result.unwrap();
 
-    let valid = hasher
-        .verify(&body.password, &user.password)
-        .await
-        .map_err(|_| Error::Unknown)?;
-    if !valid {
-        return Ok(LoginResponse::Unauthorized(BaseError {
-            message: "bad credentials".to_owned(),
-        }));
+    if let Err(e) = password_auth::verify_password(&body.password, &user.password) {
+        match e {
+            password_auth::VerifyError::PasswordInvalid => {
+                return Ok(LoginResponse::Unauthorized(BaseError {
+                    message: "bad credentials".to_owned(),
+                }));
+            }
+            _ => {
+                return Err(Error::Unknown);
+            }
+        }
     }
 
     let result = profiles_repository

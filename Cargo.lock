@@ -748,6 +748,7 @@ dependencies = [
  "chrono",
  "colette-config",
  "colette-core",
+ "password-auth",
  "serde",
  "serde_with",
  "thiserror",
@@ -814,15 +815,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-password"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "colette-core",
- "password-auth",
-]
-
-[[package]]
 name = "colette-plugins"
 version = "0.1.0"
 dependencies = [
@@ -861,7 +853,6 @@ dependencies = [
  "colette-config",
  "colette-core",
  "colette-migrations",
- "colette-password",
  "colette-plugins",
  "colette-scraper",
  "colette-session",
@@ -923,7 +914,6 @@ dependencies = [
  "colette-config",
  "colette-core",
  "colette-migrations",
- "colette-password",
  "colette-plugins",
  "colette-scraper",
  "colette-session",
