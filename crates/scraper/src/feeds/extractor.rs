@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use colette_core::{
     feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
-    utils::scraper::{ExtractError, Extractor},
+    scraper::{ExtractError, Extractor},
 };
 use http::Response;
 use scraper::{Html, Selector};

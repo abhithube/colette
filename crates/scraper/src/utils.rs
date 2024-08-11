@@ -1,4 +1,4 @@
-use colette_core::utils::scraper::{ExtractorQuery, Node};
+use colette_core::scraper::{ExtractorQuery, Node};
 use scraper::{ElementRef, Html, Selector};
 
 pub trait TextSelector {

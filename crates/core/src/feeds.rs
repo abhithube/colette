@@ -7,12 +7,10 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
+    backup,
     common::Paginated,
-    utils::{
-        backup,
-        scraper::{
-            self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
-        },
+    scraper::{
+        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
     Tag,
 };

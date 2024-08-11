@@ -1,6 +1,6 @@
 use colette_core::{
     bookmarks::BookmarkExtractorOptions,
-    utils::scraper::{ExtractorQuery, Node},
+    scraper::{ExtractorQuery, Node},
 };
 
 pub fn base_extractor_options<'a>() -> BookmarkExtractorOptions<'a> {

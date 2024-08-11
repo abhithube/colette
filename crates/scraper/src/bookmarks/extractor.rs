@@ -1,6 +1,6 @@
 use colette_core::{
     bookmarks::{BookmarkExtractorOptions, ExtractedBookmark},
-    utils::scraper::{ExtractError, Extractor, ExtractorQuery},
+    scraper::{ExtractError, Extractor, ExtractorQuery},
 };
 use http::Response;
 use scraper::Html;

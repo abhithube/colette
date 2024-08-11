@@ -5,7 +5,7 @@ use colette_core::{
         BookmarkExtractorOptions, BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark,
     },
     feeds::{DetectorPlugin, FeedPluginRegistry, ProcessedFeed},
-    utils::scraper::{DownloaderPlugin, ExtractorPlugin, PostprocessorPlugin},
+    scraper::{DownloaderPlugin, ExtractorPlugin, PostprocessorPlugin},
 };
 use colette_scraper::{ExtractedFeed, FeedExtractorOptions};
 #[allow(unused_imports)]

@@ -4,7 +4,7 @@ use colette_core::{
     feeds::{
         Detector, DetectorPlugin, ExtractedFeed, FeedPluginRegistry, FeedScraper, ProcessedFeed,
     },
-    utils::scraper::{
+    scraper::{
         Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
         PostprocessorPlugin, Scraper,
     },

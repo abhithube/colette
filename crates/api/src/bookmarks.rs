@@ -15,7 +15,7 @@ use colette_core::{
         BookmarksUpdateData, ProcessedBookmark,
     },
     common::PAGINATION_LIMIT,
-    utils::scraper::Scraper,
+    scraper::Scraper,
 };
 use url::Url;
 use uuid::Uuid;

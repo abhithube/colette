@@ -6,9 +6,7 @@ use uuid::Uuid;
 
 use crate::{
     common::Paginated,
-    utils::scraper::{
-        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin,
-    },
+    scraper::{self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin},
     Tag,
 };
 

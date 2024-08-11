@@ -9,11 +9,11 @@ use axum::{
 use axum_extra::extract::Query;
 use axum_valid::Valid;
 use colette_core::{
+    backup::BackupManager,
     feeds::{
         self, BackupFeed, FeedScraper, FeedsCreateData, FeedsFindManyFilters, FeedsRepository,
         FeedsUpdateData,
     },
-    utils::backup::BackupManager,
 };
 use url::Url;
 use uuid::Uuid;

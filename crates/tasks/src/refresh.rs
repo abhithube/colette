@@ -4,7 +4,7 @@ use chrono::{Local, Utc};
 use colette_core::{
     feeds::{FeedsCreateData, FeedsRepository, ProcessedFeed},
     profiles::ProfilesRepository,
-    utils::scraper::Scraper,
+    scraper::Scraper,
 };
 use cron::Schedule;
 use futures::StreamExt;

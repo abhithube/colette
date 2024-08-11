@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use chrono::DateTime;
 use colette_core::{
     feeds::{ExtractedFeed, ProcessedEntry, ProcessedFeed},
-    utils::scraper::{PostprocessError, Postprocessor},
+    scraper::{PostprocessError, Postprocessor},
 };
 use url::Url;
 

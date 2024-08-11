@@ -1,6 +1,6 @@
 use colette_core::{
     feeds::Detector,
-    utils::scraper::{ExtractError, ExtractorQuery, Node},
+    scraper::{ExtractError, ExtractorQuery, Node},
 };
 use http::Response;
 use scraper::{Html, Selector};
