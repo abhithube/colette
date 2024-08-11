@@ -4,7 +4,7 @@ use colette_core::{
         BookmarksCreateData, BookmarksFindManyFilters, BookmarksRepository, BookmarksUpdateData,
         Error,
     },
-    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
+    common::{Paginated, PAGINATION_LIMIT},
     Bookmark,
 };
 use colette_entities::{
@@ -31,8 +31,8 @@ impl BookmarksRepository for SqlRepository {
         find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 
-    async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error> {
-        find_by_id(&self.db, params).await
+    async fn find_one_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
@@ -105,14 +105,7 @@ impl BookmarksRepository for SqlRepository {
                         Err(e) => Err(Error::Unknown(e.into())),
                     }?;
 
-                    find_by_id(
-                        txn,
-                        FindOneParams {
-                            id: pb_id,
-                            profile_id: data.profile_id,
-                        },
-                    )
-                    .await
+                    find_by_id(txn, pb_id, data.profile_id).await
                 })
             })
             .await
@@ -124,19 +117,20 @@ impl BookmarksRepository for SqlRepository {
 
     async fn update_bookmark(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: BookmarksUpdateData,
     ) -> Result<Bookmark, Error> {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(pb_model) = profile_bookmark::Entity::find_by_id(params.id)
-                        .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
+                    let Some(pb_model) = profile_bookmark::Entity::find_by_id(id)
+                        .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
 
                     if let Some(tags) = data.tags {
@@ -146,7 +140,7 @@ impl BookmarksRepository for SqlRepository {
                             .map(|title| tag::ActiveModel {
                                 id: Set(Uuid::new_v4()),
                                 title: Set(title.clone()),
-                                profile_id: Set(params.profile_id),
+                                profile_id: Set(profile_id),
                                 ..Default::default()
                             })
                             .collect::<Vec<_>>();
@@ -180,7 +174,7 @@ impl BookmarksRepository for SqlRepository {
                             .map(|tag_id| profile_bookmark_tag::ActiveModel {
                                 profile_bookmark_id: Set(pb_model.id),
                                 tag_id: Set(tag_id),
-                                profile_id: Set(params.profile_id),
+                                profile_id: Set(profile_id),
                                 ..Default::default()
                             })
                             .collect::<Vec<_>>();
@@ -200,7 +194,7 @@ impl BookmarksRepository for SqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    find_by_id(txn, id, profile_id).await
                 })
             })
             .await
@@ -210,15 +204,15 @@ impl BookmarksRepository for SqlRepository {
             })
     }
 
-    async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = profile_bookmark::Entity::delete_by_id(params.id)
-            .filter(profile_bookmark::Column::ProfileId.eq(params.profile_id))
+    async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        let result = profile_bookmark::Entity::delete_by_id(id)
+            .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(id));
         }
 
         Ok(())
@@ -306,15 +300,12 @@ async fn find<Db: ConnectionTrait>(
 
 pub async fn find_by_id<Db: ConnectionTrait>(
     db: &Db,
-    params: FindOneParams,
+    id: Uuid,
+    profile_id: Uuid,
 ) -> Result<Bookmark, Error> {
-    let bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let bookmarks = find(db, Some(id), profile_id, None, None, None).await?;
 
-    bookmarks
-        .data
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
+    bookmarks.data.first().cloned().ok_or(Error::NotFound(id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

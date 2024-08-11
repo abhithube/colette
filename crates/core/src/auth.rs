@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     common::Session,
-    profiles::{self, ProfilesFindOneParams, ProfilesRepository},
+    profiles::{self, ProfilesRepository},
     users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
     utils::password::PasswordHasher,
     Profile, User,
@@ -75,7 +75,7 @@ impl AuthService {
         }
 
         self.profiles_repo
-            .find_one_profile(ProfilesFindOneParams::Default { user_id: user.id })
+            .find_one_profile(None, user.id)
             .await
             .map_err(|e| e.into())
     }

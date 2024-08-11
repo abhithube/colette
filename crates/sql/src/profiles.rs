@@ -1,9 +1,6 @@
 use colette_core::{
     common::{Paginated, PAGINATION_LIMIT},
-    profiles::{
-        Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindOneParams,
-        ProfilesRepository, ProfilesUpdateData, StreamProfile,
-    },
+    profiles::{Error, ProfilesCreateData, ProfilesRepository, ProfilesUpdateData, StreamProfile},
     Profile,
 };
 use colette_entities::{profile, profile_feed};
@@ -66,12 +63,10 @@ impl ProfilesRepository for SqlRepository {
         })
     }
 
-    async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
-        match params {
-            ProfilesFindOneParams::ById(params) => {
-                find_by_id(&self.db, params.id, params.user_id).await
-            }
-            ProfilesFindOneParams::Default { user_id } => {
+    async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error> {
+        match id {
+            Some(id) => find_by_id(&self.db, id, user_id).await,
+            None => {
                 let Some(profile) = profile::Entity::find()
                     .filter(profile::Column::UserId.eq(user_id))
                     .filter(profile::Column::IsDefault.eq(true))
@@ -111,19 +106,20 @@ impl ProfilesRepository for SqlRepository {
 
     async fn update_profile(
         &self,
-        params: ProfilesFindByIdParams,
+        id: Uuid,
+        user_id: Uuid,
         data: ProfilesUpdateData,
     ) -> Result<Profile, Error> {
         self.db
             .transaction::<_, colette_core::Profile, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(mut model) = profile::Entity::find_by_id(params.id)
-                        .filter(profile::Column::UserId.eq(params.user_id))
+                    let Some(mut model) = profile::Entity::find_by_id(id)
+                        .filter(profile::Column::UserId.eq(user_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
                     let mut active_model = model.clone().into_active_model();
 
@@ -151,17 +147,17 @@ impl ProfilesRepository for SqlRepository {
             })
     }
 
-    async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error> {
+    async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(profile) = profile::Entity::find_by_id(params.id)
-                        .filter(profile::Column::UserId.eq(params.user_id))
+                    let Some(profile) = profile::Entity::find_by_id(id)
+                        .filter(profile::Column::UserId.eq(user_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
 
                     if profile.is_default {

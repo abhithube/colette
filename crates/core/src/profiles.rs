@@ -40,17 +40,18 @@ pub trait ProfilesRepository: Send + Sync {
         cursor: Option<String>,
     ) -> Result<Paginated<Profile>, Error>;
 
-    async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error>;
+    async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error>;
 
     async fn create_profile(&self, data: ProfilesCreateData) -> Result<Profile, Error>;
 
     async fn update_profile(
         &self,
-        params: ProfilesFindByIdParams,
+        id: Uuid,
+        user_id: Uuid,
         data: ProfilesUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete_profile(&self, params: ProfilesFindByIdParams) -> Result<(), Error>;
+    async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error>;
 
     async fn stream_profiles(
         &self,
@@ -74,21 +75,11 @@ impl ProfilesService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
-        self.repo
-            .find_one_profile(ProfilesFindOneParams::ById(ProfilesFindByIdParams {
-                id,
-                user_id: session.user_id,
-            }))
-            .await
+        self.repo.find_one_profile(Some(id), session.user_id).await
     }
 
     pub async fn get_default(&self, session: Session) -> Result<Profile, Error> {
-        self.repo
-            .find_one_profile(ProfilesFindOneParams::ById(ProfilesFindByIdParams {
-                id: session.profile_id,
-                user_id: session.user_id,
-            }))
-            .await
+        self.repo.find_one_profile(None, session.user_id).await
     }
 
     pub async fn create(&self, data: CreateProfile, session: Session) -> Result<Profile, Error> {
@@ -108,36 +99,13 @@ impl ProfilesService {
         session: Session,
     ) -> Result<Profile, Error> {
         self.repo
-            .update_profile(
-                ProfilesFindByIdParams {
-                    id,
-                    user_id: session.user_id,
-                },
-                data.into(),
-            )
+            .update_profile(id, session.user_id, data.into())
             .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo
-            .delete_profile(ProfilesFindByIdParams {
-                id,
-                user_id: session.user_id,
-            })
-            .await
+        self.repo.delete_profile(id, session.user_id).await
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct ProfilesFindByIdParams {
-    pub id: Uuid,
-    pub user_id: Uuid,
-}
-
-#[derive(Clone, Debug)]
-pub enum ProfilesFindOneParams {
-    ById(ProfilesFindByIdParams),
-    Default { user_id: Uuid },
 }
 
 #[derive(Clone, Debug)]

@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
+    common::{Paginated, PAGINATION_LIMIT},
     tags::{Error, TagType, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData},
     Tag,
 };
@@ -92,8 +92,8 @@ impl TagsRepository for SqlRepository {
         Ok(Paginated::<Tag> { cursor, data: tags })
     }
 
-    async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error> {
-        find_by_id(&self.db, params).await
+    async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error> {
@@ -120,18 +120,22 @@ impl TagsRepository for SqlRepository {
         })
     }
 
-    async fn update_tag(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error> {
+    async fn update_tag(
+        &self,
+        id: Uuid,
+        profile_id: Uuid,
+        data: TagsUpdateData,
+    ) -> Result<Tag, Error> {
         self.db
             .transaction::<_, Tag, Error>(|txn| {
-                let params = params.clone();
                 Box::pin(async move {
-                    let Some(model) = tag::Entity::find_by_id(params.id)
-                        .filter(tag::Column::ProfileId.eq(params.profile_id))
+                    let Some(model) = tag::Entity::find_by_id(id)
+                        .filter(tag::Column::ProfileId.eq(profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
                     let mut active_model = model.into_active_model();
 
@@ -146,7 +150,7 @@ impl TagsRepository for SqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    find_by_id(txn, id, profile_id).await
                 })
             })
             .await
@@ -156,23 +160,27 @@ impl TagsRepository for SqlRepository {
             })
     }
 
-    async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = tag::Entity::delete_by_id(params.id)
-            .filter(tag::Column::ProfileId.eq(params.profile_id))
+    async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        let result = tag::Entity::delete_by_id(id)
+            .filter(tag::Column::ProfileId.eq(profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(id));
         }
 
         Ok(())
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Result<Tag, Error> {
-    let Some(tag) = tag::Entity::find_by_id(params.id)
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    id: Uuid,
+    profile_id: Uuid,
+) -> Result<Tag, Error> {
+    let Some(tag) = tag::Entity::find_by_id(id)
         .expr_as(
             Expr::col((
                 Alias::new("pbt"),
@@ -185,7 +193,7 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
             Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
             "feed_count",
         )
-        .filter(tag::Column::ProfileId.eq(params.profile_id))
+        .filter(tag::Column::ProfileId.eq(profile_id))
         .join_as(
             JoinType::LeftJoin,
             tag::Relation::ProfileBookmarkTag.def(),
@@ -202,7 +210,7 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
         .await
         .map_err(|e| Error::Unknown(e.into()))?
     else {
-        return Err(Error::NotFound(params.id));
+        return Err(Error::NotFound(id));
     };
 
     Ok(tag.into())

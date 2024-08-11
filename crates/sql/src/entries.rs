@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
+    common::{Paginated, PAGINATION_LIMIT},
     entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
@@ -84,25 +84,26 @@ impl EntriesRepository for SqlRepository {
         })
     }
 
-    async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error> {
-        find_by_id(&self.db, params).await
+    async fn find_one_entry(&self, id: Uuid, profile_id: Uuid) -> Result<Entry, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update_entry(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: EntriesUpdateData,
     ) -> Result<Entry, Error> {
         self.db
             .transaction::<_, Entry, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) = profile_feed_entry::Entity::find_by_id(params.id)
-                        .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
+                    let Some(model) = profile_feed_entry::Entity::find_by_id(id)
+                        .filter(profile_feed_entry::Column::ProfileId.eq(profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
                     let mut active_model = model.into_active_model();
 
@@ -117,7 +118,7 @@ impl EntriesRepository for SqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    find_by_id(txn, id, profile_id).await
                 })
             })
             .await
@@ -128,15 +129,19 @@ impl EntriesRepository for SqlRepository {
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Result<Entry, Error> {
-    let Some((pfe, Some(entry))) = profile_feed_entry::Entity::find_by_id(params.id)
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    id: Uuid,
+    profile_id: Uuid,
+) -> Result<Entry, Error> {
+    let Some((pfe, Some(entry))) = profile_feed_entry::Entity::find_by_id(id)
         .find_also_linked(ProfileFeedEntryToEntry)
-        .filter(profile_feed_entry::Column::ProfileId.eq(params.profile_id))
+        .filter(profile_feed_entry::Column::ProfileId.eq(profile_id))
         .one(db)
         .await
         .map_err(|e| Error::Unknown(e.into()))?
     else {
-        return Err(Error::NotFound(params.id));
+        return Err(Error::NotFound(id));
     };
 
     let entry = Entry::from(PfeWithEntry { pfe, entry });

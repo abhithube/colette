@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindOneParams, Paginated, Session},
+    common::{Paginated, Session},
     tags::CreateTag,
     utils::{
         backup::{self, BackupManager},
@@ -130,17 +130,18 @@ pub trait FeedsRepository: Send + Sync {
         filters: Option<FeedsFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
-    async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error>;
+    async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
 
     async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error>;
 
     async fn update_feed(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: FeedsUpdateData,
     ) -> Result<Feed, Error>;
 
-    async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 
     async fn stream_feeds(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 
@@ -203,12 +204,7 @@ impl FeedsService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
-        self.repo
-            .find_one_feed(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.find_one_feed(id, session.profile_id).await
     }
 
     pub async fn create(&self, mut data: CreateFeed, session: Session) -> Result<Feed, Error> {
@@ -230,23 +226,12 @@ impl FeedsService {
         session: Session,
     ) -> Result<Feed, Error> {
         self.repo
-            .update_feed(
-                FindOneParams {
-                    id,
-                    profile_id: session.profile_id,
-                },
-                data.into(),
-            )
+            .update_feed(id, session.profile_id, data.into())
             .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo
-            .delete_feed(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.delete_feed(id, session.profile_id).await
     }
 
     pub async fn detect(&self, mut data: DetectFeeds) -> Result<Paginated<DetectedFeed>, Error> {

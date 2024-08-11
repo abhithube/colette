@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use colette_core::{
-    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
+    common::{Paginated, PAGINATION_LIMIT},
     feeds::{
         Error, FeedsCreateData, FeedsFindManyFilters, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
@@ -135,8 +135,8 @@ impl FeedsRepository for SqlRepository {
         })
     }
 
-    async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error> {
-        find_by_id(&self.db, params).await
+    async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error> {
@@ -305,14 +305,7 @@ impl FeedsRepository for SqlRepository {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    find_by_id(
-                        txn,
-                        FindOneParams {
-                            id: pf_id,
-                            profile_id: data.profile_id,
-                        },
-                    )
-                    .await
+                    find_by_id(txn, pf_id, data.profile_id).await
                 })
             })
             .await
@@ -324,19 +317,20 @@ impl FeedsRepository for SqlRepository {
 
     async fn update_feed(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: FeedsUpdateData,
     ) -> Result<Feed, Error> {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(pf_model) = profile_feed::Entity::find_by_id(params.id)
-                        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+                    let Some(pf_model) = profile_feed::Entity::find_by_id(id)
+                        .filter(profile_feed::Column::ProfileId.eq(profile_id))
                         .one(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(params.id));
+                        return Err(Error::NotFound(id));
                     };
 
                     let mut active_model = pf_model.clone().into_active_model();
@@ -358,7 +352,7 @@ impl FeedsRepository for SqlRepository {
                             .map(|title| tag::ActiveModel {
                                 id: Set(Uuid::new_v4()),
                                 title: Set(title.clone()),
-                                profile_id: Set(params.profile_id),
+                                profile_id: Set(profile_id),
                                 ..Default::default()
                             })
                             .collect::<Vec<_>>();
@@ -392,7 +386,7 @@ impl FeedsRepository for SqlRepository {
                             .map(|tag_id| profile_feed_tag::ActiveModel {
                                 profile_feed_id: Set(pf_model.id),
                                 tag_id: Set(tag_id),
-                                profile_id: Set(params.profile_id),
+                                profile_id: Set(profile_id),
                                 ..Default::default()
                             })
                             .collect::<Vec<_>>();
@@ -412,7 +406,7 @@ impl FeedsRepository for SqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    find_by_id(txn, id, profile_id).await
                 })
             })
             .await
@@ -422,15 +416,15 @@ impl FeedsRepository for SqlRepository {
             })
     }
 
-    async fn delete_feed(&self, params: FindOneParams) -> Result<(), Error> {
-        let result = profile_feed::Entity::delete_by_id(params.id)
-            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+    async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        let result = profile_feed::Entity::delete_by_id(id)
+            .filter(profile_feed::Column::ProfileId.eq(profile_id))
             .exec(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(id));
         }
 
         Ok(())
@@ -537,15 +531,19 @@ impl From<StreamSelect> for StreamFeed {
     }
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Result<Feed, Error> {
-    let Some((pf_model, Some(feed_model))) = profile_feed::Entity::find_by_id(params.id)
+async fn find_by_id<Db: ConnectionTrait>(
+    db: &Db,
+    id: Uuid,
+    profile_id: Uuid,
+) -> Result<Feed, Error> {
+    let Some((pf_model, Some(feed_model))) = profile_feed::Entity::find_by_id(id)
         .find_also_related(feed::Entity)
-        .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
+        .filter(profile_feed::Column::ProfileId.eq(profile_id))
         .one(db)
         .await
         .map_err(|e| Error::Unknown(e.into()))?
     else {
-        return Err(Error::NotFound(params.id));
+        return Err(Error::NotFound(id));
     };
 
     let tag_models = pf_model

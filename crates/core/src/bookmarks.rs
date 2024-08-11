@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT},
+    common::{Paginated, Session, PAGINATION_LIMIT},
     tags::CreateTag,
     utils::scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
@@ -82,17 +82,18 @@ pub trait BookmarksRepository: Send + Sync {
         filters: Option<BookmarksFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
 
-    async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error>;
+    async fn find_one_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error>;
 
     async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
 
     async fn update_bookmark(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: BookmarksUpdateData,
     ) -> Result<Bookmark, Error>;
 
-    async fn delete_bookmark(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 pub struct BookmarksService {
@@ -124,12 +125,7 @@ impl BookmarksService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Bookmark, Error> {
-        self.repo
-            .find_one_bookmark(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.find_one_bookmark(id, session.profile_id).await
     }
 
     pub async fn create(
@@ -155,23 +151,12 @@ impl BookmarksService {
         session: Session,
     ) -> Result<Bookmark, Error> {
         self.repo
-            .update_bookmark(
-                FindOneParams {
-                    id,
-                    profile_id: session.profile_id,
-                },
-                data.into(),
-            )
+            .update_bookmark(id, session.profile_id, data.into())
             .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo
-            .delete_bookmark(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.delete_bookmark(id, session.profile_id).await
     }
 }
 

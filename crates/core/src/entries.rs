@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{Paginated, FindOneParams, Session, PAGINATION_LIMIT};
+use crate::common::{Paginated, Session, PAGINATION_LIMIT};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Entry {
@@ -41,11 +41,12 @@ pub trait EntriesRepository: Send + Sync {
         filters: Option<EntriesFindManyFilters>,
     ) -> Result<Paginated<Entry>, Error>;
 
-    async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error>;
+    async fn find_one_entry(&self, id: Uuid, profile_id: Uuid) -> Result<Entry, Error>;
 
     async fn update_entry(
         &self,
-        params: FindOneParams,
+        id: Uuid,
+        profile_id: Uuid,
         data: EntriesUpdateData,
     ) -> Result<Entry, Error>;
 }
@@ -79,12 +80,7 @@ impl EntriesService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Entry, Error> {
-        self.repo
-            .find_one_entry(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.find_one_entry(id, session.profile_id).await
     }
 
     pub async fn update(
@@ -94,13 +90,7 @@ impl EntriesService {
         session: Session,
     ) -> Result<Entry, Error> {
         self.repo
-            .update_entry(
-                FindOneParams {
-                    id,
-                    profile_id: session.profile_id,
-                },
-                data.into(),
-            )
+            .update_entry(id, session.profile_id, data.into())
             .await
     }
 }

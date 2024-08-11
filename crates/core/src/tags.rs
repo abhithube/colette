@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use uuid::Uuid;
 
-use crate::common::{FindOneParams, Paginated, Session};
+use crate::common::{Paginated, Session};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
@@ -44,13 +44,18 @@ pub trait TagsRepository: Send + Sync {
         filters: TagsFindManyFilters,
     ) -> Result<Paginated<Tag>, Error>;
 
-    async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error>;
+    async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error>;
 
     async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error>;
 
-    async fn update_tag(&self, params: FindOneParams, data: TagsUpdateData) -> Result<Tag, Error>;
+    async fn update_tag(
+        &self,
+        id: Uuid,
+        profile_id: Uuid,
+        data: TagsUpdateData,
+    ) -> Result<Tag, Error>;
 
-    async fn delete_tag(&self, params: FindOneParams) -> Result<(), Error>;
+    async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 pub struct TagsService {
@@ -80,12 +85,7 @@ impl TagsService {
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
-        self.repo
-            .find_one_tag(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.find_one_tag(id, session.profile_id).await
     }
 
     pub async fn create(&self, data: CreateTag, session: Session) -> Result<Tag, Error> {
@@ -99,23 +99,12 @@ impl TagsService {
 
     pub async fn update(&self, id: Uuid, data: UpdateTag, session: Session) -> Result<Tag, Error> {
         self.repo
-            .update_tag(
-                FindOneParams {
-                    id,
-                    profile_id: session.profile_id,
-                },
-                data.into(),
-            )
+            .update_tag(id, session.profile_id, data.into())
             .await
     }
 
     pub async fn delete(&self, id: Uuid, session: Session) -> Result<(), Error> {
-        self.repo
-            .delete_tag(FindOneParams {
-                id,
-                profile_id: session.profile_id,
-            })
-            .await
+        self.repo.delete_tag(id, session.profile_id).await
     }
 }
 
