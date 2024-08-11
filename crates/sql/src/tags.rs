@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Paginated, PAGINATION_LIMIT},
+    common::Paginated,
     tags::{Error, TagType, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData},
     Tag,
 };
@@ -164,7 +164,7 @@ async fn find<Db: ConnectionTrait>(
     let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
     query.after(cursor.title);
     if let Some(limit) = limit {
-        query.first(limit);
+        query.first(limit + 1);
     }
 
     let mut tags = query
@@ -175,16 +175,19 @@ async fn find<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
     let mut cursor: Option<String> = None;
 
-    if tags.len() > PAGINATION_LIMIT {
-        tags = tags.into_iter().take(PAGINATION_LIMIT).collect();
+    if let Some(limit) = limit {
+        let limit = limit as usize;
+        if tags.len() > limit {
+            tags = tags.into_iter().take(limit).collect();
 
-        if let Some(last) = tags.last() {
-            let c = Cursor {
-                title: last.title.to_owned(),
-            };
-            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(last) = tags.last() {
+                let c = Cursor {
+                    title: last.title.to_owned(),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
 
-            cursor = Some(encoded);
+                cursor = Some(encoded);
+            }
         }
     }
 

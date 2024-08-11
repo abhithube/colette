@@ -111,7 +111,7 @@ pub async fn list_bookmarks(
     let result = repository
         .find_many_bookmarks(
             session.profile_id,
-            Some((PAGINATION_LIMIT + 1) as u64),
+            Some(PAGINATION_LIMIT),
             query.cursor.clone(),
             Some(query.into()),
         )

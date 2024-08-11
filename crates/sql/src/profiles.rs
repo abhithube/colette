@@ -1,5 +1,6 @@
+use anyhow::anyhow;
 use colette_core::{
-    common::{Paginated, PAGINATION_LIMIT},
+    common::Paginated,
     profiles::{Error, ProfilesCreateData, ProfilesRepository, ProfilesUpdateData, StreamProfile},
     Profile,
 };
@@ -36,9 +37,7 @@ impl ProfilesRepository for SqlRepository {
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 else {
-                    return Err(Error::Unknown(anyhow::anyhow!(
-                        "couldn't find default profile"
-                    )));
+                    return Err(Error::Unknown(anyhow!("couldn't find default profile")));
                 };
 
                 Ok(profile.into())
@@ -196,7 +195,7 @@ async fn find<Db: ConnectionTrait>(
     let mut query = query.filter(conditions).cursor_by(profile::Column::Title);
     query.after(cursor.title);
     if let Some(limit) = limit {
-        query.first(limit);
+        query.first(limit + 1);
     }
 
     let mut profiles = query
@@ -206,16 +205,19 @@ async fn find<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
     let mut cursor: Option<String> = None;
 
-    if profiles.len() > PAGINATION_LIMIT {
-        profiles = profiles.into_iter().take(PAGINATION_LIMIT).collect();
+    if let Some(limit) = limit {
+        let limit = limit as usize;
+        if profiles.len() > limit {
+            profiles = profiles.into_iter().take(limit).collect();
 
-        if let Some(last) = profiles.last() {
-            let c = Cursor {
-                title: last.title.to_owned(),
-            };
-            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(last) = profiles.last() {
+                let c = Cursor {
+                    title: last.title.to_owned(),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
 
-            cursor = Some(encoded);
+                cursor = Some(encoded);
+            }
         }
     }
 

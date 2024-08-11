@@ -1,4 +1,4 @@
-pub const PAGINATION_LIMIT: usize = 24;
+pub const PAGINATION_LIMIT: u64 = 24;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Paginated<T> {

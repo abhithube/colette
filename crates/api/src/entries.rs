@@ -93,7 +93,7 @@ pub async fn list_entries(
     let result = repository
         .find_many_entries(
             session.profile_id,
-            Some((PAGINATION_LIMIT + 1) as u64),
+            Some(PAGINATION_LIMIT),
             query.cursor,
             Some(EntriesFindManyFilters {
                 feed_id: query.feed_id,

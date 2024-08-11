@@ -1,10 +1,11 @@
+use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmarks::{
         BookmarksCreateData, BookmarksFindManyFilters, BookmarksRepository, BookmarksUpdateData,
         Error,
     },
-    common::{Paginated, PAGINATION_LIMIT},
+    common::Paginated,
     Bookmark,
 };
 use colette_entities::{
@@ -95,7 +96,7 @@ impl BookmarksRepository for SqlRepository {
                                 .await
                                 .map_err(|e| Error::Unknown(e.into()))?
                             else {
-                                return Err(Error::Unknown(anyhow::anyhow!(
+                                return Err(Error::Unknown(anyhow!(
                                     "Failed to fetch created profile bookmark"
                                 )));
                             };
@@ -231,7 +232,7 @@ async fn find<Db: ConnectionTrait>(
         .find_also_related(bookmark::Entity)
         .order_by_asc(bookmark::Column::Title)
         .order_by_asc(profile_bookmark::Column::Id)
-        .limit(limit);
+        .limit(limit.map(|e| e + 1));
 
     let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
@@ -295,17 +296,20 @@ async fn find<Db: ConnectionTrait>(
         .collect::<Vec<_>>();
     let mut cursor: Option<String> = None;
 
-    if bookmarks.len() > PAGINATION_LIMIT {
-        bookmarks = bookmarks.into_iter().take(PAGINATION_LIMIT).collect();
+    if let Some(limit) = limit {
+        let limit = limit as usize;
+        if bookmarks.len() > limit {
+            bookmarks = bookmarks.into_iter().take(limit).collect();
 
-        if let Some(last) = bookmarks.last() {
-            let c = Cursor {
-                id: last.id,
-                title: last.title.to_owned(),
-            };
-            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(last) = bookmarks.last() {
+                let c = Cursor {
+                    id: last.id,
+                    title: last.title.to_owned(),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
 
-            cursor = Some(encoded);
+                cursor = Some(encoded);
+            }
         }
     }
 

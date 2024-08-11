@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
+use anyhow::anyhow;
 use colette_core::{
-    common::{Paginated, PAGINATION_LIMIT},
+    common::Paginated,
     feeds::{
         Error, FeedsCreateData, FeedsFindManyFilters, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
@@ -94,7 +95,7 @@ impl FeedsRepository for SqlRepository {
                                 .await
                                 .map_err(|e| Error::Unknown(e.into()))?
                             else {
-                                return Err(Error::Unknown(anyhow::anyhow!(
+                                return Err(Error::Unknown(anyhow!(
                                     "Failed to fetch created profile feed"
                                 )));
                             };
@@ -446,7 +447,7 @@ async fn find<Db: ConnectionTrait>(
             Expr::col((feed::Entity, feed::Column::Title)).into(),
         ])))
         .order_by_asc(profile_feed::Column::Id)
-        .limit(limit);
+        .limit(limit.map(|e| e + 1));
 
     let mut conditions = Condition::all().add(profile_feed::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
@@ -535,20 +536,23 @@ async fn find<Db: ConnectionTrait>(
         .collect::<Vec<_>>();
     let mut cursor: Option<String> = None;
 
-    if feeds.len() > PAGINATION_LIMIT {
-        feeds = feeds.into_iter().take(PAGINATION_LIMIT).collect();
+    if let Some(limit) = limit {
+        let limit = limit as usize;
+        if feeds.len() > limit {
+            feeds = feeds.into_iter().take(limit).collect();
 
-        if let Some(last) = feeds.last() {
-            let c = Cursor {
-                id: last.id,
-                title: last
-                    .title
-                    .to_owned()
-                    .unwrap_or(last.original_title.to_owned()),
-            };
-            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(last) = feeds.last() {
+                let c = Cursor {
+                    id: last.id,
+                    title: last
+                        .title
+                        .to_owned()
+                        .unwrap_or(last.original_title.to_owned()),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
 
-            cursor = Some(encoded);
+                cursor = Some(encoded);
+            }
         }
     }
 

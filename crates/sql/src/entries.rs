@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{Paginated, PAGINATION_LIMIT},
+    common::Paginated,
     entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
@@ -87,7 +87,7 @@ async fn find<Db: ConnectionTrait>(
         .find_also_linked(ProfileFeedEntryToEntry)
         .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
         .order_by_desc(profile_feed_entry::Column::Id)
-        .limit(limit);
+        .limit(limit.map(|e| e + 1));
 
     let mut conditions = Condition::all().add(profile_feed_entry::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
@@ -123,7 +123,7 @@ async fn find<Db: ConnectionTrait>(
                 Expr::col((Alias::new("r1"), entry::Column::PublishedAt)).into(),
                 Expr::col((profile_feed_entry::Entity, profile_feed_entry::Column::Id)).into(),
             ])
-            .lte(Expr::tuple([
+            .lt(Expr::tuple([
                 Expr::value(cursor.published_at),
                 Expr::value(cursor.id),
             ])),
@@ -144,17 +144,20 @@ async fn find<Db: ConnectionTrait>(
         .collect::<Vec<_>>();
     let mut cursor: Option<String> = None;
 
-    if entries.len() > PAGINATION_LIMIT {
-        entries = entries.into_iter().take(PAGINATION_LIMIT).collect();
+    if let Some(limit) = limit {
+        let limit = limit as usize;
+        if entries.len() > limit {
+            entries = entries.into_iter().take(limit).collect();
 
-        if let Some(last) = entries.last() {
-            let c = Cursor {
-                id: last.id,
-                published_at: last.published_at,
-            };
-            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(last) = entries.last() {
+                let c = Cursor {
+                    id: last.id,
+                    published_at: last.published_at,
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
 
-            cursor = Some(encoded);
+                cursor = Some(encoded);
+            }
         }
     }
 
