@@ -20,18 +20,14 @@ export const listEntriesOptions = (
       api.entries.list(
         {
           ...query,
-          publishedAt: pageParam,
+          cursor: pageParam,
         },
         {
           signal,
         },
       ),
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => {
-      return lastPage.hasMore
-        ? lastPage.data[lastPage.data.length - 1].publishedAt
-        : undefined
-    },
+    getNextPageParam: (lastPage) => lastPage.cursor,
   })
 
 export const updateEntryOptions = (

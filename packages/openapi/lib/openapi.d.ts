@@ -355,8 +355,8 @@ export interface components {
             feedId: string;
         };
         EntryList: {
-            hasMore: boolean;
             data: components["schemas"]["Entry"][];
+            cursor?: string;
         };
         EntryUpdate: {
             hasRead?: boolean | null;
@@ -748,10 +748,10 @@ export interface operations {
     listEntries: {
         parameters: {
             query?: {
-                publishedAt?: string;
                 feedId?: string;
                 hasRead?: boolean;
                 "tag[]"?: string[];
+                cursor?: string;
             };
             header?: never;
             path?: never;
