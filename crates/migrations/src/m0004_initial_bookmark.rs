@@ -15,7 +15,7 @@ impl MigrationTrait for Migration {
                 Table::create()
                     .table(Bookmark::Table)
                     .if_not_exists()
-                    .col(integer(Bookmark::Id).primary_key().auto_increment())
+                    .col(pk_auto(Bookmark::Id))
                     .col(text_uniq(Bookmark::Link))
                     .col(text(Bookmark::Title))
                     .col(text_null(Bookmark::ThumbnailUrl))
