@@ -4,11 +4,15 @@ use colette_core::{
     entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
-use colette_entities::{entry, profile_feed_entry, PfeWithEntry, ProfileFeedEntryToEntry};
+use colette_entities::{
+    entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithEntry,
+    ProfileFeedEntryToEntry,
+};
 use sea_orm::{
     sea_query::{Alias, Expr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
+    JoinType, QueryFilter, QueryOrder, QuerySelect, RelationTrait, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -23,11 +27,34 @@ impl EntriesRepository for SqlRepository {
         cursor_raw: Option<String>,
         filters: Option<EntriesFindManyFilters>,
     ) -> Result<Paginated<Entry>, Error> {
+        let mut query = profile_feed_entry::Entity::find()
+            .find_also_linked(ProfileFeedEntryToEntry)
+            .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
+            .order_by_desc(profile_feed_entry::Column::Id)
+            .limit(limit);
+
         let mut conditions =
             Condition::all().add(profile_feed_entry::Column::ProfileId.eq(profile_id));
         if let Some(filters) = filters {
             if let Some(feed_id) = filters.feed_id {
                 conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+            }
+            if let Some(has_read) = filters.has_read {
+                conditions = conditions.add(profile_feed_entry::Column::HasRead.eq(has_read));
+            }
+            if let Some(tags) = filters.tags {
+                query = query
+                    .join(
+                        JoinType::InnerJoin,
+                        profile_feed_entry::Relation::ProfileFeed.def(),
+                    )
+                    .join(
+                        JoinType::InnerJoin,
+                        profile_feed::Relation::ProfileFeedTag.def(),
+                    )
+                    .join(JoinType::InnerJoin, profile_feed_tag::Relation::Tag.def());
+
+                conditions = conditions.add(tag::Column::Title.is_in(tags));
             }
         }
         if let Some(raw) = cursor_raw.as_deref() {
@@ -46,12 +73,8 @@ impl EntriesRepository for SqlRepository {
             );
         }
 
-        let models = profile_feed_entry::Entity::find()
-            .find_also_linked(ProfileFeedEntryToEntry)
+        let models = query
             .filter(conditions)
-            .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
-            .order_by_desc(profile_feed_entry::Column::Id)
-            .limit(limit)
             .all(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

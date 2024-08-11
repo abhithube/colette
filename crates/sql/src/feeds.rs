@@ -16,8 +16,8 @@ use sea_orm::{
     prelude::Expr,
     sea_query::{Func, OnConflict, Query, SimpleExpr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    LoaderTrait, ModelTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
-    TransactionError, TransactionTrait,
+    JoinType, LoaderTrait, ModelTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect,
+    RelationTrait, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -30,9 +30,30 @@ impl FeedsRepository for SqlRepository {
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        _filters: Option<FeedsFindManyFilters>,
+        filters: Option<FeedsFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error> {
+        let mut query = profile_feed::Entity::find()
+            .find_also_related(feed::Entity)
+            .order_by_asc(SimpleExpr::FunctionCall(Func::coalesce([
+                Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
+                Expr::col((feed::Entity, feed::Column::Title)).into(),
+            ])))
+            .order_by_asc(profile_feed::Column::Id)
+            .limit(limit);
+
         let mut conditions = Condition::all().add(profile_feed::Column::ProfileId.eq(profile_id));
+        if let Some(filters) = filters {
+            if let Some(tags) = filters.tags {
+                query = query
+                    .join(
+                        JoinType::InnerJoin,
+                        profile_feed::Relation::ProfileFeedTag.def(),
+                    )
+                    .join(JoinType::InnerJoin, profile_feed_tag::Relation::Tag.def());
+
+                conditions = conditions.add(tag::Column::Title.is_in(tags));
+            }
+        }
         if let Some(raw) = cursor_raw.as_deref() {
             let cursor =
                 utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
@@ -53,15 +74,8 @@ impl FeedsRepository for SqlRepository {
             );
         }
 
-        let models = profile_feed::Entity::find()
-            .find_also_related(feed::Entity)
+        let models = query
             .filter(conditions)
-            .order_by_asc(SimpleExpr::FunctionCall(Func::coalesce([
-                Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
-                Expr::col((feed::Entity, feed::Column::Title)).into(),
-            ])))
-            .order_by_asc(profile_feed::Column::Id)
-            .limit(limit)
             .all(&self.db)
             .await
             .map(|e| {
