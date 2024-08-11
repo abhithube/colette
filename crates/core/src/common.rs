@@ -8,6 +8,18 @@ pub struct Paginated<T> {
     pub data: Vec<T>,
 }
 
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct CursorPaginated<T> {
+    pub data: Vec<T>,
+    pub cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Serialize)]
+pub struct PaginationParams {
+    pub limit: u64,
+    pub cursor: Option<String>,
+}
+
 #[derive(Clone, Debug)]
 pub struct FindManyParams {
     pub profile_id: Uuid,

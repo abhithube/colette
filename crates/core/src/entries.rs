@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{FindOneParams, Paginated, Session, PAGINATION_LIMIT};
+use crate::common::{CursorPaginated, FindOneParams, PaginationParams, Session, PAGINATION_LIMIT};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Entry {
@@ -25,15 +25,20 @@ pub struct UpdateEntry {
 
 #[derive(Clone, Debug)]
 pub struct ListEntriesParams {
-    pub published_at: Option<DateTime<Utc>>,
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
+    pub cursor: Option<String>,
 }
 
 #[async_trait::async_trait]
 pub trait EntriesRepository: Send + Sync {
-    async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error>;
+    async fn find_many_entries(
+        &self,
+        profile_id: Uuid,
+        filters: EntriesFindManyFilters,
+        pagination: PaginationParams,
+    ) -> Result<CursorPaginated<Entry>, Error>;
 
     async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error>;
 
@@ -57,23 +62,21 @@ impl EntriesService {
         &self,
         params: ListEntriesParams,
         session: Session,
-    ) -> Result<Paginated<Entry>, Error> {
-        let entries = self
-            .repo
-            .find_many_entries(EntriesFindManyParams {
-                profile_id: session.profile_id,
-                limit: (PAGINATION_LIMIT + 1) as u64,
-                published_at: params.published_at,
-                feed_id: params.feed_id,
-                has_read: params.has_read,
-                tags: params.tags,
-            })
-            .await?;
-
-        Ok(Paginated::<Entry> {
-            has_more: entries.len() > PAGINATION_LIMIT,
-            data: entries.into_iter().take(PAGINATION_LIMIT).collect(),
-        })
+    ) -> Result<CursorPaginated<Entry>, Error> {
+        self.repo
+            .find_many_entries(
+                session.profile_id,
+                EntriesFindManyFilters {
+                    feed_id: params.feed_id,
+                    has_read: params.has_read,
+                    tags: params.tags,
+                },
+                PaginationParams {
+                    limit: (PAGINATION_LIMIT + 1) as u64,
+                    cursor: params.cursor,
+                },
+            )
+            .await
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Entry, Error> {
@@ -104,10 +107,7 @@ impl EntriesService {
 }
 
 #[derive(Clone, Debug)]
-pub struct EntriesFindManyParams {
-    pub profile_id: Uuid,
-    pub limit: u64,
-    pub published_at: Option<DateTime<Utc>>,
+pub struct EntriesFindManyFilters {
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,

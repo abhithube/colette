@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 use colette_core::entries::{self, EntriesService, ListEntriesParams, UpdateEntry};
 use uuid::Uuid;
 
-use crate::common::{BaseError, EntryList, Error, Id, Paginated, Session};
+use crate::common::{BaseError, CursorPaginated, EntryList, Error, Id, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct EntriesState {
@@ -90,7 +90,7 @@ pub async fn list_entries(
     match service
         .list(query.into(), session.into())
         .await
-        .map(Paginated::<Entry>::from)
+        .map(CursorPaginated::<Entry>::from)
     {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
@@ -102,23 +102,23 @@ pub async fn list_entries(
 #[into_params(parameter_in = Query)]
 pub struct ListEntriesQuery {
     #[param(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false)]
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
     pub tags: Option<Vec<String>>,
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
 }
 
 impl From<ListEntriesQuery> for ListEntriesParams {
     fn from(value: ListEntriesQuery) -> Self {
         Self {
-            published_at: value.published_at,
             feed_id: value.feed_id,
             has_read: value.has_read,
             tags: value.tags,
+            cursor: value.cursor,
         }
     }
 }

@@ -1,47 +1,84 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
-    common::FindOneParams,
-    entries::{EntriesFindManyParams, EntriesRepository, EntriesUpdateData, Error},
+    common::{CursorPaginated, FindOneParams, PaginationParams, PAGINATION_LIMIT},
+    entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
 use colette_entities::{entry, profile_feed_entry, PfeWithEntry, ProfileFeedEntryToEntry};
 use sea_orm::{
     sea_query::{Alias, Expr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
+    IntoSimpleExpr, QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
 };
+use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{utils, SqlRepository};
 
 #[async_trait::async_trait]
 impl EntriesRepository for SqlRepository {
-    async fn find_many_entries(&self, params: EntriesFindManyParams) -> Result<Vec<Entry>, Error> {
+    async fn find_many_entries(
+        &self,
+        profile_id: Uuid,
+        filters: EntriesFindManyFilters,
+        pagination: PaginationParams,
+    ) -> Result<CursorPaginated<Entry>, Error> {
         let mut conditions =
-            Condition::all().add(profile_feed_entry::Column::ProfileId.eq(params.profile_id));
-        if let Some(published_at) = params.published_at {
-            conditions = conditions.add(entry::Column::PublishedAt.lt(published_at));
-        }
-        if let Some(feed_id) = params.feed_id {
+            Condition::all().add(profile_feed_entry::Column::ProfileId.eq(profile_id));
+        if let Some(feed_id) = filters.feed_id {
             conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+        }
+        if let Some(raw) = pagination.cursor.as_deref() {
+            let cursor =
+                utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+
+            conditions = conditions.add(
+                Expr::tuple([
+                    Expr::col((Alias::new("r1"), entry::Column::PublishedAt)).into(),
+                    profile_feed_entry::Column::Id.into_simple_expr(),
+                ])
+                .lte(Expr::tuple([
+                    Expr::value(cursor.published_at),
+                    Expr::value(cursor.id),
+                ])),
+            );
         }
 
         let models = profile_feed_entry::Entity::find()
             .find_also_linked(ProfileFeedEntryToEntry)
             .filter(conditions)
             .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
-            .order_by_asc(profile_feed_entry::Column::Id)
-            .limit(params.limit)
+            .order_by_desc(profile_feed_entry::Column::Id)
+            .limit(pagination.limit)
             .all(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let entries = models
+        let mut entries = models
             .into_iter()
             .filter_map(|(pfe, entry_opt)| {
                 entry_opt.map(|entry| Entry::from(PfeWithEntry { pfe, entry }))
             })
             .collect::<Vec<_>>();
+        let mut cursor: Option<String> = None;
 
-        Ok(entries)
+        if entries.len() > PAGINATION_LIMIT {
+            entries = entries.into_iter().take(PAGINATION_LIMIT).collect();
+
+            if let Some(last) = entries.last() {
+                let c = Cursor {
+                    id: Some(last.id),
+                    published_at: last.published_at,
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(CursorPaginated::<Entry> {
+            cursor,
+            data: entries,
+        })
     }
 
     async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error> {
@@ -102,4 +139,12 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
     let entry = Entry::from(PfeWithEntry { pfe, entry });
 
     Ok(entry)
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+struct Cursor {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<Uuid>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub published_at: Option<DateTime<Utc>>,
 }
