@@ -17,9 +17,7 @@ export function BookmarkGrid({
 }: Props) {
   const { ref } = useInView({
     threshold: 0,
-    onChange: (inView) => {
-      if (inView && loadMore) loadMore()
-    },
+    onChange: (inView) => inView && loadMore && loadMore(),
   })
 
   if (created) {
@@ -27,18 +25,20 @@ export function BookmarkGrid({
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
-        {created && (
-          <div className="rounded-lg border-2 border-secondary">
-            <BookmarkCard bookmark={created} />
-          </div>
-        )}
-        {bookmarks.map((bookmark) => (
-          <BookmarkCard key={bookmark.id} bookmark={bookmark} />
-        ))}
-      </div>
-      {hasMore && <div ref={ref} />}
-    </>
+    <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
+      {created && (
+        <div className="rounded-lg border-2 border-secondary">
+          <BookmarkCard bookmark={created} />
+        </div>
+      )}
+      {bookmarks.map((bookmark, i) => (
+        <div
+          key={bookmark.id}
+          ref={hasMore && i === bookmarks.length - 1 ? ref : undefined}
+        >
+          <BookmarkCard bookmark={bookmark} />
+        </div>
+      ))}
+    </div>
   )
 }

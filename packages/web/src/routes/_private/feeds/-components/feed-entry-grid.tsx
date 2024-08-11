@@ -34,34 +34,32 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
 
   const { ref } = useInView({
     threshold: 0,
-    onChange: (inView) => {
-      if (inView && loadMore) loadMore()
-    },
+    onChange: (inView) => inView && loadMore && loadMore(),
   })
 
   return (
-    <>
-      <div className="space-y-8 px-8 pb-8">
-        {list.map(([title, entries]) => (
-          <div key={title} className="space-y-6">
-            <div className="flex items-center space-x-8">
-              <Separator className="flex-1" />
-              <span className="font-medium text-muted-foreground text-sm">
-                {title}
-              </span>
-              <Separator className="flex-1" />
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {entries.map((entry) => (
-                <div key={entry.id}>
-                  <FeedEntryCard entry={entry} />
-                </div>
-              ))}
-            </div>
+    <div className="space-y-8 px-8 pb-8">
+      {list.map(([title, entries]) => (
+        <div key={title} className="space-y-6">
+          <div className="flex items-center space-x-8">
+            <Separator className="flex-1" />
+            <span className="font-medium text-muted-foreground text-sm">
+              {title}
+            </span>
+            <Separator className="flex-1" />
           </div>
-        ))}
-      </div>
-      {hasMore && <div ref={ref} />}
-    </>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {entries.map((entry, i) => (
+              <div
+                key={entry.id}
+                ref={hasMore && i === entries.length - 1 ? ref : undefined}
+              >
+                <FeedEntryCard entry={entry} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
