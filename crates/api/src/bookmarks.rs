@@ -118,23 +118,23 @@ pub async fn list_bookmarks(
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
     #[param(nullable = false)]
-    pub published_at: Option<DateTime<Utc>>,
-    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
     pub tags: Option<Vec<String>>,
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
 }
 
 impl From<ListBookmarksQuery> for ListBookmarksParams {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
-            published_at: value.published_at,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {
                 None
             },
+            cursor: value.cursor,
         }
     }
 }

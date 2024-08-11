@@ -36,7 +36,13 @@ pub enum TagType {
 
 #[async_trait::async_trait]
 pub trait TagsRepository: Send + Sync {
-    async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error>;
+    async fn find_many_tags(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: TagsFindManyFilters,
+    ) -> Result<Paginated<Tag>, Error>;
 
     async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error>;
 
@@ -61,18 +67,16 @@ impl TagsService {
         params: ListTagsParams,
         session: Session,
     ) -> Result<Paginated<Tag>, Error> {
-        let tags = self
-            .repo
-            .find_many_tags(TagsFindManyParams {
-                profile_id: session.profile_id,
-                tag_type: params.tag_type,
-            })
-            .await?;
-
-        Ok(Paginated::<Tag> {
-            has_more: false,
-            data: tags,
-        })
+        self.repo
+            .find_many_tags(
+                session.profile_id,
+                None,
+                None,
+                TagsFindManyFilters {
+                    tag_type: params.tag_type,
+                },
+            )
+            .await
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Tag, Error> {
@@ -116,8 +120,7 @@ impl TagsService {
 }
 
 #[derive(Clone, Debug)]
-pub struct TagsFindManyParams {
-    pub profile_id: Uuid,
+pub struct TagsFindManyFilters {
     pub tag_type: TagType,
 }
 

@@ -1,6 +1,6 @@
 use colette_core::{
-    common::FindOneParams,
-    tags::{Error, TagType, TagsCreateData, TagsFindManyParams, TagsRepository, TagsUpdateData},
+    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
+    tags::{Error, TagType, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData},
     Tag,
 };
 use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
@@ -11,11 +11,22 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{utils, SqlRepository};
 
 #[async_trait::async_trait]
 impl TagsRepository for SqlRepository {
-    async fn find_many_tags(&self, params: TagsFindManyParams) -> Result<Vec<Tag>, Error> {
+    async fn find_many_tags(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: TagsFindManyFilters,
+    ) -> Result<Paginated<Tag>, Error> {
+        let mut cursor = Cursor::default();
+        if let Some(raw) = cursor_raw.as_deref() {
+            cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+        }
+
         let mut query = tag::Entity::find()
             .expr_as(
                 Expr::col((
@@ -29,7 +40,7 @@ impl TagsRepository for SqlRepository {
                 Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
                 "feed_count",
             )
-            .filter(tag::Column::ProfileId.eq(params.profile_id))
+            .filter(tag::Column::ProfileId.eq(profile_id))
             .join_as(
                 JoinType::LeftJoin,
                 tag::Relation::ProfileBookmarkTag.def(),
@@ -42,7 +53,7 @@ impl TagsRepository for SqlRepository {
             )
             .group_by(tag::Column::Id);
 
-        query = match params.tag_type {
+        query = match filters.tag_type {
             TagType::Bookmarks => {
                 query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
             }
@@ -50,13 +61,35 @@ impl TagsRepository for SqlRepository {
             _ => query,
         };
 
-        let tags = query
+        let mut query = query.cursor_by(tag::Column::Title);
+
+        query.after(cursor.title);
+        if let Some(limit) = limit {
+            query.first(limit);
+        }
+
+        let mut tags = query
             .into_model::<PartialTag>()
             .all(&self.db)
             .await
+            .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
             .map_err(|e| Error::Unknown(e.into()))?;
+        let mut cursor: Option<String> = None;
 
-        Ok(tags.into_iter().map(Tag::from).collect::<Vec<_>>())
+        if tags.len() > PAGINATION_LIMIT {
+            tags = tags.into_iter().take(PAGINATION_LIMIT).collect();
+
+            if let Some(last) = tags.last() {
+                let c = Cursor {
+                    title: last.title.to_owned(),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated::<Tag> { cursor, data: tags })
     }
 
     async fn find_one_tag(&self, params: FindOneParams) -> Result<Tag, Error> {
@@ -173,4 +206,9 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
     };
 
     Ok(tag.into())
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+struct Cursor {
+    pub title: String,
 }

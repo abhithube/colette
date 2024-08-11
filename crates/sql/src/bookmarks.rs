@@ -1,30 +1,34 @@
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmarks::{
-        BookmarksCreateData, BookmarksFindManyParams, BookmarksRepository, BookmarksUpdateData,
+        BookmarksCreateData, BookmarksFindManyFilters, BookmarksRepository, BookmarksUpdateData,
         Error,
     },
-    common::FindOneParams,
+    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
     Bookmark,
 };
 use colette_entities::{
     bookmark, profile_bookmark, profile_bookmark_tag, tag, PbWithBookmarkAndTags,
 };
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait,
-    LoaderTrait, QueryFilter, QueryOrder, Set, TransactionError, TransactionTrait,
+    prelude::Expr, sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr,
+    EntityTrait, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, Set, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{utils, SqlRepository};
 
 #[async_trait::async_trait]
 impl BookmarksRepository for SqlRepository {
     async fn find_many_bookmarks(
         &self,
-        params: BookmarksFindManyParams,
-    ) -> Result<Vec<Bookmark>, Error> {
-        find(&self.db, None, params.profile_id).await
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<BookmarksFindManyFilters>,
+    ) -> Result<Paginated<Bookmark>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 
     async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error> {
@@ -225,10 +229,27 @@ async fn find<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,
-) -> Result<Vec<Bookmark>, Error> {
+    limit: Option<u64>,
+    cursor_raw: Option<String>,
+    _filters: Option<BookmarksFindManyFilters>,
+) -> Result<Paginated<Bookmark>, Error> {
     let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
         conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
+    }
+    if let Some(raw) = cursor_raw.as_deref() {
+        let cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+
+        conditions = conditions.add(
+            Expr::tuple([
+                Expr::col((bookmark::Entity, bookmark::Column::Title)).into(),
+                Expr::col((profile_bookmark::Entity, profile_bookmark::Column::Id)).into(),
+            ])
+            .gt(Expr::tuple([
+                Expr::value(cursor.title),
+                Expr::value(cursor.id),
+            ])),
+        );
     }
 
     let models = profile_bookmark::Entity::find()
@@ -236,6 +257,7 @@ async fn find<Db: ConnectionTrait>(
         .filter(conditions)
         .order_by_asc(bookmark::Column::Title)
         .order_by_asc(profile_bookmark::Column::Id)
+        .limit(limit)
         .all(db)
         .await
         .map(|e| {
@@ -255,20 +277,48 @@ async fn find<Db: ConnectionTrait>(
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
-    let bookmarks = models
+    let mut bookmarks = models
         .into_iter()
         .zip(tag_models.into_iter())
         .map(|((pb, bookmark), tags)| Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags }))
         .collect::<Vec<_>>();
+    let mut cursor: Option<String> = None;
 
-    Ok(bookmarks)
+    if bookmarks.len() > PAGINATION_LIMIT {
+        bookmarks = bookmarks.into_iter().take(PAGINATION_LIMIT).collect();
+
+        if let Some(last) = bookmarks.last() {
+            let c = Cursor {
+                id: last.id,
+                title: last.title.to_owned(),
+            };
+            let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+            cursor = Some(encoded);
+        }
+    }
+
+    Ok(Paginated::<Bookmark> {
+        cursor,
+        data: bookmarks,
+    })
 }
 
 pub async fn find_by_id<Db: ConnectionTrait>(
     db: &Db,
     params: FindOneParams,
 ) -> Result<Bookmark, Error> {
-    let bookmarks = find(db, Some(params.id), params.profile_id).await?;
+    let bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
-    bookmarks.first().cloned().ok_or(Error::NotFound(params.id))
+    bookmarks
+        .data
+        .first()
+        .cloned()
+        .ok_or(Error::NotFound(params.id))
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+struct Cursor {
+    pub id: Uuid,
+    pub title: String,
 }

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{CursorPaginated, FindOneParams, PaginationParams, PAGINATION_LIMIT},
+    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
     entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
     Entry,
 };
@@ -8,7 +8,7 @@ use colette_entities::{entry, profile_feed_entry, PfeWithEntry, ProfileFeedEntry
 use sea_orm::{
     sea_query::{Alias, Expr},
     ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    IntoSimpleExpr, QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
+    QueryFilter, QueryOrder, QuerySelect, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -19,22 +19,25 @@ impl EntriesRepository for SqlRepository {
     async fn find_many_entries(
         &self,
         profile_id: Uuid,
-        filters: EntriesFindManyFilters,
-        pagination: PaginationParams,
-    ) -> Result<CursorPaginated<Entry>, Error> {
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<EntriesFindManyFilters>,
+    ) -> Result<Paginated<Entry>, Error> {
         let mut conditions =
             Condition::all().add(profile_feed_entry::Column::ProfileId.eq(profile_id));
-        if let Some(feed_id) = filters.feed_id {
-            conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+        if let Some(filters) = filters {
+            if let Some(feed_id) = filters.feed_id {
+                conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+            }
         }
-        if let Some(raw) = pagination.cursor.as_deref() {
+        if let Some(raw) = cursor_raw.as_deref() {
             let cursor =
                 utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
 
             conditions = conditions.add(
                 Expr::tuple([
                     Expr::col((Alias::new("r1"), entry::Column::PublishedAt)).into(),
-                    profile_feed_entry::Column::Id.into_simple_expr(),
+                    Expr::col((profile_feed_entry::Entity, profile_feed_entry::Column::Id)).into(),
                 ])
                 .lte(Expr::tuple([
                     Expr::value(cursor.published_at),
@@ -48,7 +51,7 @@ impl EntriesRepository for SqlRepository {
             .filter(conditions)
             .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
             .order_by_desc(profile_feed_entry::Column::Id)
-            .limit(pagination.limit)
+            .limit(limit)
             .all(&self.db)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -66,7 +69,7 @@ impl EntriesRepository for SqlRepository {
 
             if let Some(last) = entries.last() {
                 let c = Cursor {
-                    id: Some(last.id),
+                    id: last.id,
                     published_at: last.published_at,
                 };
                 let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
@@ -75,7 +78,7 @@ impl EntriesRepository for SqlRepository {
             }
         }
 
-        Ok(CursorPaginated::<Entry> {
+        Ok(Paginated::<Entry> {
             cursor,
             data: entries,
         })
@@ -143,8 +146,7 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 struct Cursor {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<Uuid>,
+    pub id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub published_at: Option<DateTime<Utc>>,
 }

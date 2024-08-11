@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{CursorPaginated, FindOneParams, PaginationParams, Session, PAGINATION_LIMIT};
+use crate::common::{Paginated, FindOneParams, Session, PAGINATION_LIMIT};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Entry {
@@ -36,9 +36,10 @@ pub trait EntriesRepository: Send + Sync {
     async fn find_many_entries(
         &self,
         profile_id: Uuid,
-        filters: EntriesFindManyFilters,
-        pagination: PaginationParams,
-    ) -> Result<CursorPaginated<Entry>, Error>;
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<EntriesFindManyFilters>,
+    ) -> Result<Paginated<Entry>, Error>;
 
     async fn find_one_entry(&self, params: FindOneParams) -> Result<Entry, Error>;
 
@@ -62,19 +63,17 @@ impl EntriesService {
         &self,
         params: ListEntriesParams,
         session: Session,
-    ) -> Result<CursorPaginated<Entry>, Error> {
+    ) -> Result<Paginated<Entry>, Error> {
         self.repo
             .find_many_entries(
                 session.profile_id,
-                EntriesFindManyFilters {
+                Some((PAGINATION_LIMIT + 1) as u64),
+                params.cursor,
+                Some(EntriesFindManyFilters {
                     feed_id: params.feed_id,
                     has_read: params.has_read,
                     tags: params.tags,
-                },
-                PaginationParams {
-                    limit: (PAGINATION_LIMIT + 1) as u64,
-                    cursor: params.cursor,
-                },
+                }),
             )
             .await
     }

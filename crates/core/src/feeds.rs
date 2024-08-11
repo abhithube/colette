@@ -122,7 +122,13 @@ pub struct StreamFeed {
 
 #[async_trait::async_trait]
 pub trait FeedsRepository: Send + Sync {
-    async fn find_many_feeds(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error>;
+    async fn find_many_feeds(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<FeedsFindManyFilters>,
+    ) -> Result<Paginated<Feed>, Error>;
 
     async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error>;
 
@@ -186,18 +192,14 @@ impl FeedsService {
         params: ListFeedsParams,
         session: Session,
     ) -> Result<Paginated<Feed>, Error> {
-        let feeds = self
-            .repo
-            .find_many_feeds(FeedsFindManyParams {
-                profile_id: session.profile_id,
-                tags: params.tags,
-            })
-            .await?;
-
-        Ok(Paginated::<Feed> {
-            has_more: false,
-            data: feeds,
-        })
+        self.repo
+            .find_many_feeds(
+                session.profile_id,
+                None,
+                None,
+                Some(FeedsFindManyFilters { tags: params.tags }),
+            )
+            .await
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Feed, Error> {
@@ -261,8 +263,8 @@ impl FeedsService {
         }
 
         Ok(Paginated::<DetectedFeed> {
-            has_more: false,
             data: feeds,
+            cursor: None,
         })
     }
 
@@ -295,8 +297,7 @@ impl FeedsService {
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedsFindManyParams {
-    pub profile_id: Uuid,
+pub struct FeedsFindManyFilters {
     pub tags: Option<Vec<String>>,
 }
 

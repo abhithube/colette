@@ -26,11 +26,13 @@ use crate::{
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(BookmarkList = Paginated<Bookmark>, FeedDetectedList = Paginated<FeedDetected>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
+#[aliases(BookmarkList = Paginated<Bookmark>, EntryList = Paginated<Entry>, FeedDetectedList = Paginated<FeedDetected>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: serde::Serialize> {
-    pub has_more: bool,
     pub data: Vec<T>,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cursor: Option<String>,
 }
 
 impl<T, U> From<common::Paginated<U>> for Paginated<T>
@@ -38,28 +40,6 @@ where
     T: From<U> + serde::Serialize,
 {
     fn from(value: common::Paginated<U>) -> Self {
-        Self {
-            has_more: value.has_more,
-            data: value.data.into_iter().map(T::from).collect(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(EntryList = CursorPaginated<Entry>)]
-#[serde(rename_all = "camelCase")]
-pub struct CursorPaginated<T: serde::Serialize> {
-    pub data: Vec<T>,
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cursor: Option<String>,
-}
-
-impl<T, U> From<common::CursorPaginated<U>> for CursorPaginated<T>
-where
-    T: From<U> + serde::Serialize,
-{
-    fn from(value: common::CursorPaginated<U>) -> Self {
         Self {
             data: value.data.into_iter().map(T::from).collect(),
             cursor: value.cursor,

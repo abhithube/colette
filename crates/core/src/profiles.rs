@@ -35,8 +35,10 @@ pub struct StreamProfile {
 pub trait ProfilesRepository: Send + Sync {
     async fn find_many_profiles(
         &self,
-        params: ProfilesFindManyParams,
-    ) -> Result<Vec<Profile>, Error>;
+        user_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+    ) -> Result<Paginated<Profile>, Error>;
 
     async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error>;
 
@@ -66,17 +68,9 @@ impl ProfilesService {
     }
 
     pub async fn list(&self, session: Session) -> Result<Paginated<Profile>, Error> {
-        let profiles = self
-            .repo
-            .find_many_profiles(ProfilesFindManyParams {
-                user_id: session.user_id,
-            })
-            .await?;
-
-        Ok(Paginated::<Profile> {
-            has_more: false,
-            data: profiles,
-        })
+        self.repo
+            .find_many_profiles(session.user_id, None, None)
+            .await
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Profile, Error> {
@@ -132,11 +126,6 @@ impl ProfilesService {
             })
             .await
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct ProfilesFindManyParams {
-    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

@@ -4,19 +4,7 @@ pub const PAGINATION_LIMIT: usize = 24;
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Paginated<T> {
-    pub has_more: bool,
     pub data: Vec<T>,
-}
-
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct CursorPaginated<T> {
-    pub data: Vec<T>,
-    pub cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, serde::Serialize)]
-pub struct PaginationParams {
-    pub limit: u64,
     pub cursor: Option<String>,
 }
 

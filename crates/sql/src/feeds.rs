@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 
 use colette_core::{
-    common::FindOneParams,
+    common::{FindOneParams, Paginated, PAGINATION_LIMIT},
     feeds::{
-        Error, FeedsCreateData, FeedsFindManyParams, FeedsRepository, FeedsUpdateData, StreamFeed,
+        Error, FeedsCreateData, FeedsFindManyFilters, FeedsRepository, FeedsUpdateData, StreamFeed,
     },
     Feed,
 };
@@ -14,24 +14,54 @@ use colette_entities::{
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Expr,
-    sea_query::{Func, OnConflict, Query},
-    ActiveModelTrait, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    sea_query::{Func, OnConflict, Query, SimpleExpr},
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
     LoaderTrait, ModelTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect, Set,
     TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{utils, SqlRepository};
 
 #[async_trait::async_trait]
 impl FeedsRepository for SqlRepository {
-    async fn find_many_feeds(&self, params: FeedsFindManyParams) -> Result<Vec<Feed>, Error> {
+    async fn find_many_feeds(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        _filters: Option<FeedsFindManyFilters>,
+    ) -> Result<Paginated<Feed>, Error> {
+        let mut conditions = Condition::all().add(profile_feed::Column::ProfileId.eq(profile_id));
+        if let Some(raw) = cursor_raw.as_deref() {
+            let cursor =
+                utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+
+            conditions = conditions.add(
+                Expr::tuple([
+                    Func::coalesce([
+                        Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
+                        Expr::col((feed::Entity, feed::Column::Title)).into(),
+                    ])
+                    .into(),
+                    Expr::col((profile_feed::Entity, profile_feed::Column::Id)).into(),
+                ])
+                .gt(Expr::tuple([
+                    Expr::value(cursor.title),
+                    Expr::value(cursor.id),
+                ])),
+            );
+        }
+
         let models = profile_feed::Entity::find()
             .find_also_related(feed::Entity)
-            .filter(profile_feed::Column::ProfileId.eq(params.profile_id))
-            .order_by_asc(profile_feed::Column::Title)
-            .order_by_asc(feed::Column::Title)
+            .filter(conditions)
+            .order_by_asc(SimpleExpr::FunctionCall(Func::coalesce([
+                Expr::col((profile_feed::Entity, profile_feed::Column::Title)).into(),
+                Expr::col((feed::Entity, feed::Column::Title)).into(),
+            ])))
             .order_by_asc(profile_feed::Column::Id)
+            .limit(limit)
             .all(&self.db)
             .await
             .map(|e| {
@@ -67,7 +97,7 @@ impl FeedsRepository for SqlRepository {
 
         let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
 
-        let feeds = models
+        let mut feeds = models
             .into_iter()
             .zip(tag_models.into_iter())
             .map(|((pf, feed), tags)| {
@@ -80,8 +110,29 @@ impl FeedsRepository for SqlRepository {
                 })
             })
             .collect::<Vec<_>>();
+        let mut cursor: Option<String> = None;
 
-        Ok(feeds)
+        if feeds.len() > PAGINATION_LIMIT {
+            feeds = feeds.into_iter().take(PAGINATION_LIMIT).collect();
+
+            if let Some(last) = feeds.last() {
+                let c = Cursor {
+                    id: last.id,
+                    title: last
+                        .title
+                        .to_owned()
+                        .unwrap_or(last.original_title.to_owned()),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated::<Feed> {
+            cursor,
+            data: feeds,
+        })
     }
 
     async fn find_one_feed(&self, params: FindOneParams) -> Result<Feed, Error> {
@@ -518,4 +569,10 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: FindOneParams) -> Resu
     });
 
     Ok(feed)
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+struct Cursor {
+    pub id: Uuid,
+    pub title: String,
 }

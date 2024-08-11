@@ -12,7 +12,7 @@ use chrono::{DateTime, Utc};
 use colette_core::entries::{self, EntriesService, ListEntriesParams, UpdateEntry};
 use uuid::Uuid;
 
-use crate::common::{BaseError, CursorPaginated, EntryList, Error, Id, Session};
+use crate::common::{BaseError, EntryList, Error, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct EntriesState {
@@ -90,7 +90,7 @@ pub async fn list_entries(
     match service
         .list(query.into(), session.into())
         .await
-        .map(CursorPaginated::<Entry>::from)
+        .map(Paginated::<Entry>::from)
     {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),

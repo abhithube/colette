@@ -36,8 +36,8 @@ pub struct UpdateBookmark {
 
 #[derive(Clone, Debug)]
 pub struct ListBookmarksParams {
-    pub published_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<String>>,
+    pub cursor: Option<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -76,8 +76,11 @@ pub struct BookmarkPluginRegistry<'a> {
 pub trait BookmarksRepository: Send + Sync {
     async fn find_many_bookmarks(
         &self,
-        params: BookmarksFindManyParams,
-    ) -> Result<Vec<Bookmark>, Error>;
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<BookmarksFindManyFilters>,
+    ) -> Result<Paginated<Bookmark>, Error>;
 
     async fn find_one_bookmark(&self, params: FindOneParams) -> Result<Bookmark, Error>;
 
@@ -110,20 +113,14 @@ impl BookmarksService {
         params: ListBookmarksParams,
         session: Session,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let bookmarks = self
-            .repo
-            .find_many_bookmarks(BookmarksFindManyParams {
-                profile_id: session.profile_id,
-                limit: (PAGINATION_LIMIT + 1) as i64,
-                published_at: params.published_at,
-                tags: params.tags,
-            })
-            .await?;
-
-        Ok(Paginated::<Bookmark> {
-            has_more: bookmarks.len() > PAGINATION_LIMIT,
-            data: bookmarks.into_iter().take(PAGINATION_LIMIT).collect(),
-        })
+        self.repo
+            .find_many_bookmarks(
+                session.profile_id,
+                Some((PAGINATION_LIMIT + 1) as u64),
+                params.cursor,
+                Some(BookmarksFindManyFilters { tags: params.tags }),
+            )
+            .await
     }
 
     pub async fn get(&self, id: Uuid, session: Session) -> Result<Bookmark, Error> {
@@ -178,11 +175,8 @@ impl BookmarksService {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct BookmarksFindManyParams {
-    pub profile_id: Uuid,
-    pub limit: i64,
-    pub published_at: Option<DateTime<Utc>>,
+#[derive(Clone, Debug, Default)]
+pub struct BookmarksFindManyFilters {
     pub tags: Option<Vec<String>>,
 }
 

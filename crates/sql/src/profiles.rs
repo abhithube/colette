@@ -1,7 +1,8 @@
 use colette_core::{
+    common::{Paginated, PAGINATION_LIMIT},
     profiles::{
-        Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindManyParams,
-        ProfilesFindOneParams, ProfilesRepository, ProfilesUpdateData, StreamProfile,
+        Error, ProfilesCreateData, ProfilesFindByIdParams, ProfilesFindOneParams,
+        ProfilesRepository, ProfilesUpdateData, StreamProfile,
     },
     Profile,
 };
@@ -14,21 +15,55 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{utils, SqlRepository};
 
 #[async_trait::async_trait]
 impl ProfilesRepository for SqlRepository {
     async fn find_many_profiles(
         &self,
-        params: ProfilesFindManyParams,
-    ) -> Result<Vec<Profile>, Error> {
-        profile::Entity::find()
-            .filter(profile::Column::UserId.eq(params.user_id))
+        user_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+    ) -> Result<Paginated<Profile>, Error> {
+        let mut cursor = Cursor::default();
+        if let Some(raw) = cursor_raw.as_deref() {
+            cursor = utils::decode_cursor::<Cursor>(raw).map_err(|e| Error::Unknown(e.into()))?;
+        }
+
+        let mut query = profile::Entity::find()
+            .filter(profile::Column::UserId.eq(user_id))
             .order_by_asc(profile::Column::Title)
+            .cursor_by(profile::Column::Title);
+
+        query.after(cursor.title);
+        if let Some(limit) = limit {
+            query.first(limit);
+        }
+
+        let mut profiles = query
             .all(&self.db)
             .await
-            .map(|e| e.into_iter().map(Profile::from).collect())
-            .map_err(|e| Error::Unknown(e.into()))
+            .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let mut cursor: Option<String> = None;
+
+        if profiles.len() > PAGINATION_LIMIT {
+            profiles = profiles.into_iter().take(PAGINATION_LIMIT).collect();
+
+            if let Some(last) = profiles.last() {
+                let c = Cursor {
+                    title: last.title.to_owned(),
+                };
+                let encoded = utils::encode_cursor(&c).map_err(|e| Error::Unknown(e.into()))?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated::<Profile> {
+            cursor,
+            data: profiles,
+        })
     }
 
     async fn find_one_profile(&self, params: ProfilesFindOneParams) -> Result<Profile, Error> {
@@ -196,4 +231,9 @@ async fn find_by_id<Db: ConnectionTrait>(
     };
 
     Ok(profile.into())
+}
+
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+struct Cursor {
+    pub title: String,
 }
