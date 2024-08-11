@@ -24,7 +24,7 @@ pub trait TagsRepository: Send + Sync {
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: TagsFindManyFilters,
+        filters: Option<TagsFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error>;
 
     async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error>;

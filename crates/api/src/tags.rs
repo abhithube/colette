@@ -80,7 +80,7 @@ pub async fn list_tags(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_tags(session.profile_id, None, None, query.into())
+        .find_many_tags(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Tag>::from);
 

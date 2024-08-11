@@ -20,7 +20,7 @@ impl TagsRepository for SqlRepository {
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        filters: TagsFindManyFilters,
+        filters: Option<TagsFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error> {
         let mut cursor = Cursor::default();
         if let Some(raw) = cursor_raw.as_deref() {
@@ -53,13 +53,17 @@ impl TagsRepository for SqlRepository {
             )
             .group_by(tag::Column::Id);
 
-        query = match filters.tag_type {
-            TagType::Bookmarks => {
-                query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
-            }
-            TagType::Feeds => query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def()),
-            _ => query,
-        };
+        if let Some(filters) = filters {
+            query = match filters.tag_type {
+                TagType::Bookmarks => {
+                    query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
+                }
+                TagType::Feeds => {
+                    query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def())
+                }
+                _ => query,
+            };
+        }
 
         let mut query = query.cursor_by(tag::Column::Title);
 
