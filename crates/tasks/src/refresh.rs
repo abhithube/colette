@@ -4,10 +4,7 @@ use chrono::{Local, Utc};
 use colette_core::{
     feeds::{FeedsCreateData, FeedsRepository, ProcessedFeed},
     profiles::ProfilesRepository,
-    utils::{
-        scraper::Scraper,
-        task::{self, Task},
-    },
+    utils::scraper::Scraper,
 };
 use cron::Schedule;
 use futures::StreamExt;
@@ -16,64 +13,49 @@ use url::Url;
 
 pub struct RefreshTask {
     scraper: Arc<dyn Scraper<ProcessedFeed>>,
-    feeds_repo: Arc<dyn FeedsRepository>,
-    profiles_repo: Arc<dyn ProfilesRepository>,
+    feeds_repository: Arc<dyn FeedsRepository>,
+    profiles_repository: Arc<dyn ProfilesRepository>,
 }
 
 impl RefreshTask {
     pub fn new(
         scraper: Arc<dyn Scraper<ProcessedFeed>>,
-        feeds_repo: Arc<dyn FeedsRepository>,
-        profiles_repo: Arc<dyn ProfilesRepository>,
+        feeds_repository: Arc<dyn FeedsRepository>,
+        profiles_repository: Arc<dyn ProfilesRepository>,
     ) -> Self {
         Self {
             scraper,
-            feeds_repo,
-            profiles_repo,
+            feeds_repository,
+            profiles_repository,
         }
     }
 
-    async fn refresh(&self, feed_id: i32, url: String) -> Result<(), task::Error> {
+    async fn refresh(&self, feed_id: i32, url: String) -> Result<(), anyhow::Error> {
         let mut parsed = Url::parse(&url).unwrap();
 
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
-        let feed = self
-            .scraper
-            .scrape(&mut parsed)
-            .map_err(|e| task::Error(e.into()))?;
+        let feed = self.scraper.scrape(&mut parsed)?;
 
-        let mut profiles_stream = self
-            .profiles_repo
-            .stream_profiles(feed_id)
-            .await
-            .map_err(|e| task::Error(e.into()))?;
+        let mut profiles_stream = self.profiles_repository.stream_profiles(feed_id).await?;
 
         while let Some(Ok(profile)) = profiles_stream.next().await {
-            self.feeds_repo
+            self.feeds_repository
                 .create_feed(FeedsCreateData {
                     url: url.clone(),
                     feed: feed.clone(),
                     profile_id: profile.id,
                 })
-                .await
-                .map_err(|e| task::Error(e.into()))?;
+                .await?;
         }
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Task for RefreshTask {
-    async fn run(&self) -> Result<(), task::Error> {
+    async fn run(&self) -> Result<(), anyhow::Error> {
         let semaphore = Arc::new(Semaphore::new(5));
 
-        let feeds_stream = self
-            .feeds_repo
-            .stream_feeds()
-            .await
-            .map_err(|e| task::Error(e.into()))?;
+        let feeds_stream = self.feeds_repository.stream_feeds().await?;
 
         let tasks = feeds_stream
             .map(|item| {
