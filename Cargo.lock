@@ -748,7 +748,7 @@ dependencies = [
  "chrono",
  "colette-config",
  "colette-core",
- "password-auth",
+ "colette-utils",
  "serde",
  "serde_with",
  "thiserror",

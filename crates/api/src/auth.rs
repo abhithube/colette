@@ -12,6 +12,7 @@ use colette_core::{
     profiles::ProfilesRepository,
     users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
 };
+use colette_utils::password;
 use uuid::Uuid;
 
 use crate::{
@@ -75,10 +76,14 @@ pub async fn register(
     State(repository): State<Arc<dyn UsersRepository>>,
     Valid(Json(body)): Valid<Json<Register>>,
 ) -> Result<impl IntoResponse, Error> {
+    let hashed = password::hash(&body.password)
+        .await
+        .map_err(|_| Error::Unknown)?;
+
     let result = repository
         .create_user(UsersCreateData {
             email: body.email,
-            password: password_auth::generate_hash(&body.password),
+            password: hashed,
         })
         .await
         .map(User::from)
@@ -177,17 +182,13 @@ pub async fn login(
     };
     let user = result.unwrap();
 
-    if let Err(e) = password_auth::verify_password(&body.password, &user.password) {
-        match e {
-            password_auth::VerifyError::PasswordInvalid => {
-                return Ok(LoginResponse::Unauthorized(BaseError {
-                    message: "bad credentials".to_owned(),
-                }));
-            }
-            _ => {
-                return Err(Error::Unknown);
-            }
-        }
+    let Ok(valid) = password::verify(&body.password, &user.password).await else {
+        return Err(Error::Unknown);
+    };
+    if !valid {
+        return Ok(LoginResponse::Unauthorized(BaseError {
+            message: "bad credentials".to_owned(),
+        }));
     }
 
     let result = profiles_repository
