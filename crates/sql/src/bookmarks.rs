@@ -13,9 +13,9 @@ use colette_entities::{
 };
 use colette_utils::base_64;
 use sea_orm::{
-    prelude::Expr, sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr,
-    EntityTrait, JoinType, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
-    TransactionError, TransactionTrait,
+    sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType,
+    LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -238,9 +238,7 @@ async fn find<Db: ConnectionTrait>(
 ) -> Result<Paginated<Bookmark>, Error> {
     let mut query = profile_bookmark::Entity::find()
         .find_also_related(bookmark::Entity)
-        .order_by_asc(bookmark::Column::Title)
-        .order_by_asc(profile_bookmark::Column::Id)
-        .limit(limit.map(|e| e + 1));
+        .order_by_asc(profile_bookmark::Column::SortIndex);
 
     let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
@@ -261,23 +259,20 @@ async fn find<Db: ConnectionTrait>(
             conditions = conditions.add(tag::Column::Title.is_in(tags));
         }
     }
+
+    let mut query = query
+        .filter(conditions)
+        .cursor_by(profile_bookmark::Column::SortIndex);
+
     if let Some(raw) = cursor_raw.as_deref() {
         let cursor = base_64::decode::<Cursor>(raw)?;
-
-        conditions = conditions.add(
-            Expr::tuple([
-                Expr::col((bookmark::Entity, bookmark::Column::Title)).into(),
-                Expr::col((profile_bookmark::Entity, profile_bookmark::Column::Id)).into(),
-            ])
-            .gt(Expr::tuple([
-                Expr::value(cursor.title),
-                Expr::value(cursor.id),
-            ])),
-        );
+        query.after(cursor.sort_index);
+    };
+    if let Some(limit) = limit {
+        query.first(limit + 1);
     }
 
     let models = query
-        .filter(conditions)
         .all(db)
         .await
         .map(|e| {
@@ -311,8 +306,7 @@ async fn find<Db: ConnectionTrait>(
 
             if let Some(last) = bookmarks.last() {
                 let c = Cursor {
-                    id: last.id,
-                    title: last.title.to_owned(),
+                    sort_index: last.sort_index,
                 };
                 let encoded = base_64::encode(&c)?;
 
@@ -339,6 +333,5 @@ pub async fn find_by_id<Db: ConnectionTrait>(
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 struct Cursor {
-    pub id: Uuid,
-    pub title: String,
+    pub sort_index: u32,
 }
