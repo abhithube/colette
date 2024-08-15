@@ -13,9 +13,11 @@ use colette_entities::{
 };
 use colette_utils::base_64;
 use sea_orm::{
-    prelude::Expr, sea_query::OnConflict, ActiveModelTrait, ColumnTrait, Condition,
-    ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, JoinType, LoaderTrait, QueryFilter,
-    QueryOrder, QuerySelect, RelationTrait, Set, TransactionError, TransactionTrait,
+    prelude::Expr,
+    sea_query::{OnConflict, SimpleExpr},
+    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
+    JoinType, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -143,13 +145,28 @@ impl BookmarksRepository for SqlRepository {
                     };
 
                     if let Some(sort_index) = data.sort_index {
+                        let mut conditions = Condition::all()
+                            .add(profile_bookmark::Column::ProfileId.eq(profile_id));
+                        let expr: SimpleExpr;
+                        if sort_index as i32 > pb_model.sort_index {
+                            conditions = conditions.add(
+                                profile_bookmark::Column::SortIndex.lte(sort_index).and(
+                                    profile_bookmark::Column::SortIndex.gt(pb_model.sort_index),
+                                ),
+                            );
+                            expr = Expr::col(profile_bookmark::Column::SortIndex).sub(1);
+                        } else {
+                            conditions = conditions.add(
+                                profile_bookmark::Column::SortIndex.gte(sort_index).and(
+                                    profile_bookmark::Column::SortIndex.lt(pb_model.sort_index),
+                                ),
+                            );
+                            expr = Expr::col(profile_bookmark::Column::SortIndex).add(1);
+                        }
+
                         profile_bookmark::Entity::update_many()
-                            .col_expr(
-                                profile_bookmark::Column::SortIndex,
-                                Expr::col(profile_bookmark::Column::SortIndex).add(1),
-                            )
-                            .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
-                            .filter(profile_bookmark::Column::SortIndex.gte(sort_index))
+                            .col_expr(profile_bookmark::Column::SortIndex, expr)
+                            .filter(conditions)
                             .exec(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
