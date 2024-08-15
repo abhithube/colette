@@ -44,6 +44,7 @@ impl From<PbWithBookmarkAndTags> for Bookmark {
             thumbnail_url: value.bookmark.thumbnail_url,
             published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
             author: value.bookmark.author,
+            sort_index: value.pb.sort_index as u32,
             tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
         }
     }

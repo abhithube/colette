@@ -69,8 +69,15 @@ impl BookmarksRepository for SqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?;
                     let bookmark_id = result.last_insert_id;
 
+                    let prev = profile_bookmark::Entity::find()
+                        .order_by_desc(profile_bookmark::Column::SortIndex)
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     let active_model = profile_bookmark::ActiveModel {
                         id: Set(Uuid::new_v4()),
+                        sort_index: Set(prev.map(|e| e.sort_index + 1).unwrap_or_default()),
                         profile_id: Set(data.profile_id),
                         bookmark_id: Set(bookmark_id),
                         ..Default::default()

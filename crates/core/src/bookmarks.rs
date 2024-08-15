@@ -18,6 +18,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub sort_index: u32,
     pub tags: Option<Vec<Tag>>,
 }
 
