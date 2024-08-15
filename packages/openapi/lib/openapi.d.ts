@@ -325,6 +325,8 @@ export interface components {
             /** Format: date-time */
             publishedAt: string | null;
             author: string | null;
+            /** Format: int32 */
+            sortIndex: number;
             tags?: components["schemas"]["Tag"][];
         };
         BookmarkCreate: {
@@ -336,6 +338,8 @@ export interface components {
             cursor?: string;
         };
         BookmarkUpdate: {
+            /** Format: int32 */
+            sortIndex?: number;
             tags?: components["schemas"]["TagCreate"][];
         };
         Entry: {
