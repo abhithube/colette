@@ -21,8 +21,6 @@ import { Route as PrivateBookmarksIndexImport } from './routes/_private/bookmark
 import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
 import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
 import { Route as PrivateBookmarksStashImport } from './routes/_private/bookmarks/stash'
-import { Route as PrivateFeedsTagsIdImport } from './routes/_private/feeds/tags.$id'
-import { Route as PrivateBookmarksTagsIdImport } from './routes/_private/bookmarks/tags.$id'
 
 // Create/Update Routes
 
@@ -73,16 +71,6 @@ const PrivateFeedsIdRoute = PrivateFeedsIdImport.update({
 
 const PrivateBookmarksStashRoute = PrivateBookmarksStashImport.update({
   path: '/stash',
-  getParentRoute: () => PrivateBookmarksRoute,
-} as any)
-
-const PrivateFeedsTagsIdRoute = PrivateFeedsTagsIdImport.update({
-  path: '/tags/$id',
-  getParentRoute: () => PrivateFeedsRoute,
-} as any)
-
-const PrivateBookmarksTagsIdRoute = PrivateBookmarksTagsIdImport.update({
-  path: '/tags/$id',
   getParentRoute: () => PrivateBookmarksRoute,
 } as any)
 
@@ -160,20 +148,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivateFeedsIndexImport
       parentRoute: typeof PrivateFeedsImport
     }
-    '/_private/bookmarks/tags/$id': {
-      id: '/_private/bookmarks/tags/$id'
-      path: '/tags/$id'
-      fullPath: '/bookmarks/tags/$id'
-      preLoaderRoute: typeof PrivateBookmarksTagsIdImport
-      parentRoute: typeof PrivateBookmarksImport
-    }
-    '/_private/feeds/tags/$id': {
-      id: '/_private/feeds/tags/$id'
-      path: '/tags/$id'
-      fullPath: '/feeds/tags/$id'
-      preLoaderRoute: typeof PrivateFeedsTagsIdImport
-      parentRoute: typeof PrivateFeedsImport
-    }
   }
 }
 
@@ -184,13 +158,11 @@ export const routeTree = rootRoute.addChildren({
     PrivateBookmarksRoute: PrivateBookmarksRoute.addChildren({
       PrivateBookmarksStashRoute,
       PrivateBookmarksIndexRoute,
-      PrivateBookmarksTagsIdRoute,
     }),
     PrivateFeedsRoute: PrivateFeedsRoute.addChildren({
       PrivateFeedsIdRoute,
       PrivateFeedsArchivedRoute,
       PrivateFeedsIndexRoute,
-      PrivateFeedsTagsIdRoute,
     }),
     PrivateIndexRoute,
   }),
@@ -225,8 +197,7 @@ export const routeTree = rootRoute.addChildren({
       "parent": "/_private",
       "children": [
         "/_private/bookmarks/stash",
-        "/_private/bookmarks/",
-        "/_private/bookmarks/tags/$id"
+        "/_private/bookmarks/"
       ]
     },
     "/_private/feeds": {
@@ -235,8 +206,7 @@ export const routeTree = rootRoute.addChildren({
       "children": [
         "/_private/feeds/$id",
         "/_private/feeds/archived",
-        "/_private/feeds/",
-        "/_private/feeds/tags/$id"
+        "/_private/feeds/"
       ]
     },
     "/_private/": {
@@ -261,14 +231,6 @@ export const routeTree = rootRoute.addChildren({
     },
     "/_private/feeds/": {
       "filePath": "_private/feeds/index.tsx",
-      "parent": "/_private/feeds"
-    },
-    "/_private/bookmarks/tags/$id": {
-      "filePath": "_private/bookmarks/tags.$id.tsx",
-      "parent": "/_private/bookmarks"
-    },
-    "/_private/feeds/tags/$id": {
-      "filePath": "_private/feeds/tags.$id.tsx",
       "parent": "/_private/feeds"
     }
   }

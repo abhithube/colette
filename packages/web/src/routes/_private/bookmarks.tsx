@@ -7,42 +7,18 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable'
 import { Separator } from '@/components/ui/separator'
-import { listTagsOptions } from '@colette/query'
-import { useQuery } from '@tanstack/react-query'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
-import { History, Home, Plus, PlusCircle } from 'lucide-react'
+import { History, Home, PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarLink } from '../../components/sidebar'
-import { AddTagModal } from './-components/add-tag-modal'
-import { TagItem } from './-components/tag-item'
 import { AddBookmarkModal } from './bookmarks/-components/add-bookmark-modal'
 
 export const Route = createFileRoute('/_private/bookmarks')({
-  loader: async ({ context }) => {
-    const options = listTagsOptions(
-      { tagType: 'bookmarks' },
-      context.profile.id,
-      context.api,
-    )
-
-    await context.queryClient.ensureQueryData(options)
-
-    return {
-      options,
-    }
-  },
   component: Component,
 })
 
 function Component() {
-  const { options } = Route.useLoaderData()
-
-  const { data: tags } = useQuery(options)
-
   const [isBookmarkModalOpen, setBookmarkModalOpen] = useState(false)
-  const [isTagModalOpen, setTagModalOpen] = useState(false)
-
-  if (!tags) return
 
   return (
     <div className="flex h-full w-full">
@@ -75,34 +51,6 @@ function Component() {
               </SidebarLink>
             </div>
             <Separator />
-            <div>
-              <div className="flex h-8 items-center justify-between px-4">
-                <span className="grow font-semibold text-muted-foreground text-xs">
-                  Tags
-                </span>
-                <Dialog open={isTagModalOpen} onOpenChange={setTagModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button className="h-8 w-8 justify-center" variant="ghost">
-                      <Icon value={Plus} />
-                    </Button>
-                  </DialogTrigger>
-                  <AddTagModal close={() => setTagModalOpen(false)} />
-                </Dialog>
-              </div>
-              <div className="mt-1 space-y-1 px-4">
-                {tags.data.length > 0 ? (
-                  <>
-                    {tags.data.map((tag) => (
-                      <TagItem key={tag.id} tag={tag} type="bookmark" />
-                    ))}
-                  </>
-                ) : (
-                  <div className="font-light text-sm">
-                    You have not created any tags yet. Click + to add one.
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </ResizablePanel>
         <ResizableHandle />
