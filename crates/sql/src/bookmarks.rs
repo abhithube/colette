@@ -252,17 +252,42 @@ impl BookmarksRepository for SqlRepository {
     }
 
     async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        let result = profile_bookmark::Entity::delete_by_id(id)
-            .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
-            .exec(&self.db)
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(pb_model) = profile_bookmark::Entity::find_by_id(id)
+                        .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
+                        .one(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(id));
+                    };
+
+                    profile_bookmark::Entity::update_many()
+                        .col_expr(
+                            profile_bookmark::Column::SortIndex,
+                            Expr::col(profile_bookmark::Column::SortIndex).sub(1),
+                        )
+                        .filter(profile_bookmark::Column::SortIndex.gt(pb_model.sort_index))
+                        .exec(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    pb_model
+                        .into_active_model()
+                        .delete(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(id));
-        }
-
-        Ok(())
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
