@@ -1,4 +1,5 @@
 import type { Bookmark } from '@colette/openapi'
+import { updateBookmarkOptions } from '@colette/query'
 import {
   DndContext,
   DragOverlay,
@@ -13,8 +14,10 @@ import {
   arrayMove,
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
+import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useInView } from 'react-intersection-observer'
+import { Route } from '../../bookmarks'
 import { BookmarkCard } from './bookmark-card'
 import { SortableBookmarkCard } from './sortable-bookmark-card'
 
@@ -31,6 +34,8 @@ export function BookmarkGrid({
   loadMore,
   created,
 }: Props) {
+  const context = Route.useRouteContext()
+
   const [bookmarks, setBookmarks] = useState(
     created
       ? initialBookmarks.filter((v) => v.id !== created.id)
@@ -50,6 +55,18 @@ export function BookmarkGrid({
     }),
   )
 
+  const { mutateAsync: updateBookmark } = useMutation(
+    updateBookmarkOptions(
+      {
+        onSettled: () =>
+          context.queryClient.invalidateQueries({
+            queryKey: ['profiles', context.profile.id, 'bookmarks'],
+          }),
+      },
+      context.api,
+    ),
+  )
+
   return (
     <DndContext
       sensors={sensors}
@@ -59,7 +76,7 @@ export function BookmarkGrid({
           setActive(active.data.current as Bookmark)
         }
       }}
-      onDragEnd={({ active, over }) => {
+      onDragEnd={async ({ active, over }) => {
         if (!over || active.id === over.id) return
 
         const from = bookmarks.findIndex(
@@ -68,6 +85,13 @@ export function BookmarkGrid({
         const to = bookmarks.findIndex((bookmark) => bookmark.id === over.id)
 
         setBookmarks(arrayMove(bookmarks, from, to))
+
+        await updateBookmark({
+          id: active.id as string,
+          body: {
+            sortIndex: over.data.current?.sortIndex,
+          },
+        })
       }}
     >
       <SortableContext items={bookmarks}>
