@@ -13,9 +13,9 @@ use colette_entities::{
 };
 use colette_utils::base_64;
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType,
-    LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, TransactionError,
-    TransactionTrait,
+    prelude::Expr, sea_query::OnConflict, ActiveModelTrait, ColumnTrait, Condition,
+    ConnectionTrait, DbErr, EntityTrait, IntoActiveModel, JoinType, LoaderTrait, QueryFilter,
+    QueryOrder, QuerySelect, RelationTrait, Set, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -141,6 +141,27 @@ impl BookmarksRepository for SqlRepository {
                     else {
                         return Err(Error::NotFound(id));
                     };
+
+                    if let Some(sort_index) = data.sort_index {
+                        profile_bookmark::Entity::update_many()
+                            .col_expr(
+                                profile_bookmark::Column::SortIndex,
+                                Expr::col(profile_bookmark::Column::SortIndex).add(1),
+                            )
+                            .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
+                            .filter(profile_bookmark::Column::SortIndex.gte(sort_index))
+                            .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        let mut active_model = pb_model.clone().into_active_model();
+                        active_model.sort_index = Set(sort_index as i32);
+
+                        active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
 
                     if let Some(tags) = data.tags {
                         let active_models = tags

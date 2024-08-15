@@ -321,12 +321,15 @@ pub async fn update_bookmark(
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
     #[schema(nullable = false)]
+    pub sort_index: Option<u32>,
+    #[schema(nullable = false)]
     pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<BookmarkUpdate> for BookmarksUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
+            sort_index: value.sort_index,
             tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
         }
     }

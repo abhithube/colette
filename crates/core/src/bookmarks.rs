@@ -92,6 +92,7 @@ pub struct BookmarksCreateData {
 
 #[derive(Clone, Debug)]
 pub struct BookmarksUpdateData {
+    pub sort_index: Option<u32>,
     pub tags: Option<Vec<String>>,
 }
 
