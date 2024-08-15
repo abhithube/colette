@@ -62,25 +62,6 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let profile_bookmark_profile_id_sort_index_idx = format!(
-            "{profile_bookmark}_{profile_id}_{sort_index}_idx",
-            profile_bookmark = ProfileBookmark::Table.to_string(),
-            profile_id = ProfileBookmark::ProfileId.to_string(),
-            sort_index = ProfileBookmark::SortIndex.to_string()
-        );
-        manager
-            .create_index(
-                Index::create()
-                    .name(profile_bookmark_profile_id_sort_index_idx)
-                    .table(ProfileBookmark::Table)
-                    .if_not_exists()
-                    .col(ProfileBookmark::ProfileId)
-                    .col(ProfileBookmark::SortIndex)
-                    .unique()
-                    .to_owned(),
-            )
-            .await?;
-
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
