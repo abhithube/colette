@@ -5,6 +5,7 @@ use strum::IntoEnumIterator;
 use crate::{
     m0001_initial_user::Profile,
     m0002_initial_feed::{Feed, FeedEntry},
+    m0004_initial_folder::Folder,
     postgres, sqlite,
 };
 
@@ -21,6 +22,13 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(ProfileFeed::Id).primary_key())
                     .col(text_null(ProfileFeed::Title))
+                    .col(uuid_null(ProfileFeed::FolderId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(ProfileFeed::Table, ProfileFeed::FolderId)
+                            .to(Folder::Table, Folder::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
                     .col(uuid(ProfileFeed::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -170,6 +178,7 @@ pub enum ProfileFeed {
     #[strum(disabled)]
     Id,
     Title,
+    FolderId,
     ProfileId,
     FeedId,
     #[strum(disabled)]

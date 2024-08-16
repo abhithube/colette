@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_type = "Text", nullable)]
     pub title: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub profile_id: Uuid,
     pub feed_id: i32,
     pub created_at: DateTimeWithTimeZone,
@@ -26,6 +27,14 @@ pub enum Relation {
     )]
     Feed,
     #[sea_orm(
+        belongs_to = "super::folder::Entity",
+        from = "Column::FolderId",
+        to = "super::folder::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    Folder,
+    #[sea_orm(
         belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
         to = "super::profile::Column::Id",
@@ -42,6 +51,12 @@ pub enum Relation {
 impl Related<super::feed::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Feed.def()
+    }
+}
+
+impl Related<super::folder::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Folder.def()
     }
 }
 

@@ -2,7 +2,10 @@ use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 use strum::IntoEnumIterator;
 
-use crate::{m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark, postgres, sqlite};
+use crate::{
+    m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark, m0004_initial_folder::Folder,
+    postgres, sqlite,
+};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -17,6 +20,13 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(Collection::Id).primary_key())
                     .col(text(Collection::Title))
+                    .col(uuid_null(Collection::FolderId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Collection::Table, Collection::FolderId)
+                            .to(Folder::Table, Folder::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
                     .col(uuid(Collection::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -160,6 +170,7 @@ pub enum Collection {
     #[strum(disabled)]
     Id,
     Title,
+    FolderId,
     ProfileId,
     #[strum(disabled)]
     CreatedAt,
