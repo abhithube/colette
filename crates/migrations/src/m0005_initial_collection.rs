@@ -13,6 +13,51 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
+                    .table(Collection::Table)
+                    .if_not_exists()
+                    .col(uuid(Collection::Id).primary_key())
+                    .col(text(Collection::Title))
+                    .col(uuid(Collection::ProfileId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(Collection::Table, Collection::ProfileId)
+                            .to(Profile::Table, Profile::Id)
+                            .on_delete(ForeignKeyAction::Cascade),
+                    )
+                    .col(
+                        timestamp_with_time_zone(Collection::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(Collection::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        let collection_profile_id_title_idx = format!(
+            "{collection}_{profile_id}_{title}_idx",
+            collection = Collection::Table.to_string(),
+            profile_id = Collection::ProfileId.to_string(),
+            title = Collection::Title.to_string()
+        );
+        manager
+            .create_index(
+                Index::create()
+                    .name(collection_profile_id_title_idx)
+                    .table(Collection::Table)
+                    .if_not_exists()
+                    .col(Collection::ProfileId)
+                    .col(Collection::Title)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_table(
+                Table::create()
                     .table(ProfileBookmark::Table)
                     .if_not_exists()
                     .col(uuid(ProfileBookmark::Id).primary_key())
@@ -29,6 +74,13 @@ impl MigrationTrait for Migration {
                         ForeignKey::create()
                             .from(ProfileBookmark::Table, ProfileBookmark::BookmarkId)
                             .to(Bookmark::Table, Bookmark::Id)
+                            .on_delete(ForeignKeyAction::Restrict),
+                    )
+                    .col(uuid_null(ProfileBookmark::CollectionId))
+                    .foreign_key(
+                        ForeignKey::create()
+                            .from(ProfileBookmark::Table, ProfileBookmark::CollectionId)
+                            .to(Collection::Table, Collection::Id)
                             .on_delete(ForeignKeyAction::Restrict),
                     )
                     .col(
@@ -93,6 +145,18 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden, strum_macros::EnumIter)]
+pub enum Collection {
+    #[strum(disabled)]
+    Table,
+    #[strum(disabled)]
+    Id,
+    Title,
+    ProfileId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileBookmark {
     #[strum(disabled)]
     Table,
@@ -101,6 +165,7 @@ pub enum ProfileBookmark {
     SortIndex,
     ProfileId,
     BookmarkId,
+    CollectionId,
     CreatedAt,
     UpdatedAt,
 }

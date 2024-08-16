@@ -10,6 +10,7 @@ pub struct Model {
     pub sort_index: i32,
     pub profile_id: Uuid,
     pub bookmark_id: i32,
+    pub collection_id: Option<Uuid>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
@@ -25,6 +26,14 @@ pub enum Relation {
     )]
     Bookmark,
     #[sea_orm(
+        belongs_to = "super::collection::Entity",
+        from = "Column::CollectionId",
+        to = "super::collection::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Restrict"
+    )]
+    Collection,
+    #[sea_orm(
         belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
         to = "super::profile::Column::Id",
@@ -39,6 +48,12 @@ pub enum Relation {
 impl Related<super::bookmark::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Bookmark.def()
+    }
+}
+
+impl Related<super::collection::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Collection.def()
     }
 }
 

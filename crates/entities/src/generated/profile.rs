@@ -19,6 +19,8 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(has_many = "super::collection::Entity")]
+    Collection,
     #[sea_orm(has_many = "super::profile_bookmark::Entity")]
     ProfileBookmark,
     #[sea_orm(has_many = "super::profile_bookmark_tag::Entity")]
@@ -39,6 +41,12 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     User,
+}
+
+impl Related<super::collection::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Collection.def()
+    }
 }
 
 impl Related<super::profile_bookmark::Entity> for Entity {
