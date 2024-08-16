@@ -53,6 +53,8 @@ impl Api {
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
+    #[schema(required)]
+    pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -63,6 +65,7 @@ impl From<colette_core::Collection> for Collection {
         Self {
             id: value.id,
             title: value.title,
+            folder_id: value.folder_id,
             bookmark_count: value.bookmark_count,
         }
     }

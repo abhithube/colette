@@ -6,6 +6,7 @@ use crate::common::Paginated;
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
+    pub folder_id: Option<Uuid>,
     pub bookmark_count: Option<i64>,
 }
 

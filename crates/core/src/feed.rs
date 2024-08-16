@@ -22,6 +22,7 @@ pub struct Feed {
     pub title: Option<String>,
     pub original_title: String,
     pub url: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }

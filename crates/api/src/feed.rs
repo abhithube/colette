@@ -85,6 +85,8 @@ pub struct Feed {
     pub original_title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
+    #[schema(required)]
+    pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -100,6 +102,7 @@ impl From<colette_core::Feed> for Feed {
             title: value.title,
             original_title: value.original_title,
             url: value.url,
+            folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
             unread_count: value.unread_count,
         }

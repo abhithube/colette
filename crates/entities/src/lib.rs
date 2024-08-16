@@ -10,6 +10,7 @@ mod generated;
 pub struct PartialCollection {
     id: Uuid,
     title: String,
+    folder_id: Option<Uuid>,
     bookmark_count: i64,
 }
 
@@ -18,6 +19,7 @@ impl From<PartialCollection> for Collection {
         Self {
             id: value.id,
             title: value.title,
+            folder_id: value.folder_id,
             bookmark_count: Some(value.bookmark_count),
         }
     }
@@ -84,6 +86,7 @@ impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
             title: value.pf.title,
             original_title: value.feed.title,
             url: value.feed.url,
+            folder_id: value.pf.folder_id,
             tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
             unread_count: Some(value.unread_count),
         }

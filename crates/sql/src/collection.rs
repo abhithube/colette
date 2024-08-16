@@ -49,6 +49,7 @@ impl CollectionRepository for SqlRepository {
         Ok(Collection {
             id: collection.id,
             title: collection.title,
+            folder_id: collection.folder_id,
             bookmark_count: Some(0),
         })
     }
