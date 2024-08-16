@@ -1,4 +1,4 @@
-use colette_core::feed::{ExtractedEntry, ExtractedFeed};
+use colette_core::feed::{ExtractedFeed, ExtractedFeedEntry};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct RSSFeed {
@@ -43,13 +43,13 @@ impl From<RSSFeed> for ExtractedFeed {
                 .channel
                 .items
                 .into_iter()
-                .map(ExtractedEntry::from)
+                .map(ExtractedFeedEntry::from)
                 .collect(),
         }
     }
 }
 
-impl From<RSSItem> for ExtractedEntry {
+impl From<RSSItem> for ExtractedFeedEntry {
     fn from(value: RSSItem) -> Self {
         let thumbnail = match value.enclosure {
             Some(enclosure) => {

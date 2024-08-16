@@ -31,23 +31,23 @@ pub struct FeedExtractorOptions<'a> {
     pub feed_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_title_queries: Vec<ExtractorQuery<'a>>,
     pub feed_entries_selector: &'a str,
-    pub entry_link_queries: Vec<ExtractorQuery<'a>>,
-    pub entry_title_queries: Vec<ExtractorQuery<'a>>,
-    pub entry_published_queries: Vec<ExtractorQuery<'a>>,
-    pub entry_description_queries: Vec<ExtractorQuery<'a>>,
-    pub entry_author_queries: Vec<ExtractorQuery<'a>>,
-    pub entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct ExtractedFeed {
     pub link: Option<String>,
     pub title: Option<String>,
-    pub entries: Vec<ExtractedEntry>,
+    pub entries: Vec<ExtractedFeedEntry>,
 }
 
 #[derive(Clone, Debug)]
-pub struct ExtractedEntry {
+pub struct ExtractedFeedEntry {
     pub link: Option<String>,
     pub title: Option<String>,
     pub published: Option<String>,
@@ -60,11 +60,11 @@ pub struct ExtractedEntry {
 pub struct ProcessedFeed {
     pub link: Url,
     pub title: String,
-    pub entries: Vec<ProcessedEntry>,
+    pub entries: Vec<ProcessedFeedEntry>,
 }
 
 #[derive(Clone, Debug)]
-pub struct ProcessedEntry {
+pub struct ProcessedFeedEntry {
     pub link: Url,
     pub title: String,
     pub published: Option<DateTime<Utc>>,

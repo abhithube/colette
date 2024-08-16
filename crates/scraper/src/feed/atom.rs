@@ -1,4 +1,4 @@
-use colette_core::feed::{ExtractedEntry, ExtractedFeed};
+use colette_core::feed::{ExtractedFeed, ExtractedFeedEntry};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AtomFeed {
@@ -64,13 +64,13 @@ impl From<AtomFeed> for ExtractedFeed {
             entries: value
                 .entries
                 .into_iter()
-                .map(ExtractedEntry::from)
+                .map(ExtractedFeedEntry::from)
                 .collect(),
         }
     }
 }
 
-impl From<AtomEntry> for ExtractedEntry {
+impl From<AtomEntry> for ExtractedFeedEntry {
     fn from(value: AtomEntry) -> Self {
         let (title, description, thumbnail) = match value.group {
             Some(group) => (

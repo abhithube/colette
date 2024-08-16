@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    feed::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
+    feed::{ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions},
     scraper::{ExtractError, Extractor},
 };
 use http::Response;
@@ -58,13 +58,13 @@ impl Extractor for HtmlExtractor<'_> {
 
         let entries = html
             .select(&Selector::parse(self.options.feed_entries_selector).unwrap())
-            .map(|element| ExtractedEntry {
-                link: element.select_text(&self.options.entry_link_queries),
-                title: element.select_text(&self.options.entry_title_queries),
-                published: element.select_text(&self.options.entry_published_queries),
-                description: element.select_text(&self.options.entry_description_queries),
-                author: element.select_text(&self.options.entry_author_queries),
-                thumbnail: element.select_text(&self.options.entry_thumbnail_queries),
+            .map(|element| ExtractedFeedEntry {
+                link: element.select_text(&self.options.feed_entry_link_queries),
+                title: element.select_text(&self.options.feed_entry_title_queries),
+                published: element.select_text(&self.options.feed_entry_published_queries),
+                description: element.select_text(&self.options.feed_entry_description_queries),
+                author: element.select_text(&self.options.feed_entry_author_queries),
+                thumbnail: element.select_text(&self.options.feed_entry_thumbnail_queries),
             })
             .collect();
 

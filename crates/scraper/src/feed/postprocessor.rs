@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use chrono::DateTime;
 use colette_core::{
-    feed::{ExtractedFeed, ProcessedEntry, ProcessedFeed},
+    feed::{ExtractedFeed, ProcessedFeed, ProcessedFeedEntry},
     scraper::{PostprocessError, Postprocessor},
 };
 use url::Url;
@@ -26,7 +26,7 @@ impl Postprocessor for DefaultFeedPostprocessor {
             return Err(PostprocessError(anyhow!("could not process feed title")));
         };
 
-        let mut entries: Vec<ProcessedEntry> = vec![];
+        let mut entries: Vec<ProcessedFeedEntry> = vec![];
 
         for e in extracted.entries.into_iter() {
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
@@ -44,7 +44,7 @@ impl Postprocessor for DefaultFeedPostprocessor {
             });
             let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e).ok());
 
-            let entry = ProcessedEntry {
+            let entry = ProcessedFeedEntry {
                 link,
                 title,
                 published,
