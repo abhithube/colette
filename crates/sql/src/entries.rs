@@ -5,15 +5,13 @@ use colette_core::{
     Entry,
 };
 use colette_entities::{
-    entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithEntry,
-    ProfileFeedEntryToEntry,
+    feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithFeedEntry,
 };
 use colette_utils::base_64;
 use sea_orm::{
-    sea_query::{Alias, Expr},
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    JoinType, QueryFilter, QueryOrder, QuerySelect, RelationTrait, TransactionError,
-    TransactionTrait,
+    sea_query::Expr, ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
+    IntoActiveModel, JoinType, QueryFilter, QueryOrder, QuerySelect, RelationTrait,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
@@ -85,8 +83,8 @@ async fn find<Db: ConnectionTrait>(
     filters: Option<EntriesFindManyFilters>,
 ) -> Result<Paginated<Entry>, Error> {
     let mut query = profile_feed_entry::Entity::find()
-        .find_also_linked(ProfileFeedEntryToEntry)
-        .order_by_desc(Expr::col((Alias::new("r1"), entry::Column::PublishedAt)))
+        .find_also_related(feed_entry::Entity)
+        .order_by_desc(feed_entry::Column::PublishedAt)
         .order_by_desc(profile_feed_entry::Column::Id)
         .limit(limit.map(|e| e + 1));
 
@@ -121,7 +119,7 @@ async fn find<Db: ConnectionTrait>(
 
         conditions = conditions.add(
             Expr::tuple([
-                Expr::col((Alias::new("r1"), entry::Column::PublishedAt)).into(),
+                Expr::col((feed_entry::Entity, feed_entry::Column::PublishedAt)).into(),
                 Expr::col((profile_feed_entry::Entity, profile_feed_entry::Column::Id)).into(),
             ])
             .lt(Expr::tuple([
@@ -139,8 +137,8 @@ async fn find<Db: ConnectionTrait>(
 
     let mut entries = models
         .into_iter()
-        .filter_map(|(pfe, entry_opt)| {
-            entry_opt.map(|entry| Entry::from(PfeWithEntry { pfe, entry }))
+        .filter_map(|(pfe, fe_opt)| {
+            fe_opt.map(|entry| Entry::from(PfeWithFeedEntry { pfe, fe: entry }))
         })
         .collect::<Vec<_>>();
     let mut cursor: Option<String> = None;

@@ -9,7 +9,7 @@ use colette_core::{
     Feed,
 };
 use colette_entities::{
-    entry, feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
+    feed, feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag,
     PfWithFeedAndTagsAndUnreadCount,
 };
 use colette_utils::base_64;
@@ -117,46 +117,14 @@ impl FeedsRepository for SqlRepository {
                         .feed
                         .entries
                         .into_iter()
-                        .map(|e| entry::ActiveModel {
+                        .map(|e| feed_entry::ActiveModel {
                             link: Set(e.link.to_string()),
                             title: Set(e.title),
                             published_at: Set(e.published.map(|e| e.into())),
                             description: Set(e.description),
                             author: Set(e.author),
                             thumbnail_url: Set(e.thumbnail.map(String::from)),
-                            ..Default::default()
-                        })
-                        .collect::<Vec<_>>();
-
-                    entry::Entity::insert_many(active_models)
-                        .on_empty_do_nothing()
-                        .on_conflict(
-                            OnConflict::column(entry::Column::Link)
-                                .update_columns([
-                                    entry::Column::Title,
-                                    entry::Column::PublishedAt,
-                                    entry::Column::Description,
-                                    entry::Column::Author,
-                                    entry::Column::ThumbnailUrl,
-                                ])
-                                .to_owned(),
-                        )
-                        .exec(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let entry_models = entry::Entity::find()
-                        .filter(entry::Column::Link.is_in(links))
-                        .all(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-                    let entry_ids = entry_models.iter().map(|e| e.id).collect::<Vec<_>>();
-
-                    let active_models = entry_models
-                        .into_iter()
-                        .map(|e| feed_entry::ActiveModel {
                             feed_id: Set(feed_id),
-                            entry_id: Set(e.id),
                             ..Default::default()
                         })
                         .collect::<Vec<_>>();
@@ -166,9 +134,15 @@ impl FeedsRepository for SqlRepository {
                         .on_conflict(
                             OnConflict::columns([
                                 feed_entry::Column::FeedId,
-                                feed_entry::Column::EntryId,
+                                feed_entry::Column::Link,
                             ])
-                            .do_nothing()
+                            .update_columns([
+                                feed_entry::Column::Title,
+                                feed_entry::Column::PublishedAt,
+                                feed_entry::Column::Description,
+                                feed_entry::Column::Author,
+                                feed_entry::Column::ThumbnailUrl,
+                            ])
                             .to_owned(),
                         )
                         .exec(txn)
@@ -176,8 +150,7 @@ impl FeedsRepository for SqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?;
 
                     let fe_models = feed_entry::Entity::find()
-                        .filter(feed_entry::Column::FeedId.eq(feed_id))
-                        .filter(feed_entry::Column::EntryId.is_in(entry_ids))
+                        .filter(feed_entry::Column::Link.is_in(links))
                         .all(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -376,22 +349,6 @@ impl FeedsRepository for SqlRepository {
                         .await?;
                     if result.rows_affected > 0 {
                         println!("Deleted {} orphaned feed entries", result.rows_affected);
-                    }
-
-                    let subquery = Query::select()
-                        .from(feed_entry::Entity)
-                        .and_where(
-                            Expr::col((feed_entry::Entity, feed_entry::Column::EntryId))
-                                .equals((entry::Entity, entry::Column::Id)),
-                        )
-                        .to_owned();
-
-                    let result = entry::Entity::delete_many()
-                        .filter(Expr::exists(subquery).not())
-                        .exec(txn)
-                        .await?;
-                    if result.rows_affected > 0 {
-                        println!("Deleted {} orphaned entries", result.rows_affected);
                     }
 
                     let subquery = Query::select()

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{Bookmark, Collection, Entry, Feed, Profile, Tag, User};
 pub use generated::*;
-use sea_orm::{Linked, Related, RelationDef, RelationTrait};
+use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
 
 mod generated;
@@ -24,21 +24,21 @@ impl From<PartialCollection> for Collection {
 }
 
 #[derive(Clone, Debug)]
-pub struct PfeWithEntry {
+pub struct PfeWithFeedEntry {
     pub pfe: profile_feed_entry::Model,
-    pub entry: entry::Model,
+    pub fe: feed_entry::Model,
 }
 
-impl From<PfeWithEntry> for Entry {
-    fn from(value: PfeWithEntry) -> Self {
+impl From<PfeWithFeedEntry> for Entry {
+    fn from(value: PfeWithFeedEntry) -> Self {
         Self {
             id: value.pfe.id,
-            link: value.entry.link,
-            title: value.entry.title,
-            published_at: value.entry.published_at.map(DateTime::<Utc>::from),
-            description: value.entry.description,
-            author: value.entry.author,
-            thumbnail_url: value.entry.thumbnail_url,
+            link: value.fe.link,
+            title: value.fe.title,
+            published_at: value.fe.published_at.map(DateTime::<Utc>::from),
+            description: value.fe.description,
+            author: value.fe.author,
+            thumbnail_url: value.fe.thumbnail_url,
             has_read: value.pfe.has_read,
             feed_id: value.pfe.profile_feed_id,
         }
@@ -159,21 +159,5 @@ impl Related<tag::Entity> for profile_feed::Entity {
 
     fn via() -> Option<RelationDef> {
         Some(profile_feed::Relation::ProfileFeedTag.def())
-    }
-}
-
-#[derive(Debug)]
-pub struct ProfileFeedEntryToEntry;
-
-impl Linked for ProfileFeedEntryToEntry {
-    type FromEntity = profile_feed_entry::Entity;
-
-    type ToEntity = entry::Entity;
-
-    fn link(&self) -> Vec<RelationDef> {
-        vec![
-            profile_feed_entry::Relation::FeedEntry.def(),
-            feed_entry::Relation::Entry.def(),
-        ]
     }
 }

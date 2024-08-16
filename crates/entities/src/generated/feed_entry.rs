@@ -7,22 +7,24 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
+    #[sea_orm(column_type = "Text", unique)]
+    pub link: String,
+    #[sea_orm(column_type = "Text")]
+    pub title: String,
+    pub published_at: Option<DateTimeWithTimeZone>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub description: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub author: Option<String>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub thumbnail_url: Option<String>,
     pub feed_id: i32,
-    pub entry_id: i32,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::entry::Entity",
-        from = "Column::EntryId",
-        to = "super::entry::Column::Id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
-    )]
-    Entry,
     #[sea_orm(
         belongs_to = "super::feed::Entity",
         from = "Column::FeedId",
@@ -33,12 +35,6 @@ pub enum Relation {
     Feed,
     #[sea_orm(has_many = "super::profile_feed_entry::Entity")]
     ProfileFeedEntry,
-}
-
-impl Related<super::entry::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Entry.def()
-    }
 }
 
 impl Related<super::feed::Entity> for Entity {

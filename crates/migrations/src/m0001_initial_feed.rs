@@ -34,45 +34,20 @@ impl MigrationTrait for Migration {
         manager
             .create_table(
                 Table::create()
-                    .table(Entry::Table)
-                    .if_not_exists()
-                    .col(pk_auto(Entry::Id))
-                    .col(text_uniq(Entry::Link))
-                    .col(text(Entry::Title))
-                    .col(timestamp_with_time_zone_null(Entry::PublishedAt))
-                    .col(text_null(Entry::Description))
-                    .col(text_null(Entry::Author))
-                    .col(text_null(Entry::ThumbnailUrl))
-                    .col(
-                        timestamp_with_time_zone(Entry::CreatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .col(
-                        timestamp_with_time_zone(Entry::UpdatedAt)
-                            .default(Expr::current_timestamp()),
-                    )
-                    .to_owned(),
-            )
-            .await?;
-
-        manager
-            .create_table(
-                Table::create()
                     .table(FeedEntry::Table)
                     .if_not_exists()
                     .col(pk_auto(FeedEntry::Id))
+                    .col(text_uniq(FeedEntry::Link))
+                    .col(text(FeedEntry::Title))
+                    .col(timestamp_with_time_zone_null(FeedEntry::PublishedAt))
+                    .col(text_null(FeedEntry::Description))
+                    .col(text_null(FeedEntry::Author))
+                    .col(text_null(FeedEntry::ThumbnailUrl))
                     .col(integer(FeedEntry::FeedId))
                     .foreign_key(
                         ForeignKey::create()
                             .from(FeedEntry::Table, FeedEntry::FeedId)
                             .to(Feed::Table, Feed::Id)
-                            .on_delete(ForeignKeyAction::Cascade),
-                    )
-                    .col(integer(FeedEntry::EntryId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(FeedEntry::Table, FeedEntry::EntryId)
-                            .to(Entry::Table, Entry::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(
@@ -87,20 +62,20 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let feed_entry_feed_id_entry_id_idx = format!(
-            "{feed_entry}_{feed_id}_{entry_id}_idx",
+        let feed_entry_feed_id_link_idx = format!(
+            "{feed_entry}_{feed_id}_{link}_idx",
             feed_entry = FeedEntry::Table.to_string(),
             feed_id = FeedEntry::FeedId.to_string(),
-            entry_id = FeedEntry::EntryId.to_string()
+            link = FeedEntry::Link.to_string()
         );
         manager
             .create_index(
                 Index::create()
-                    .name(feed_entry_feed_id_entry_id_idx)
+                    .name(feed_entry_feed_id_link_idx)
                     .table(FeedEntry::Table)
                     .if_not_exists()
                     .col(FeedEntry::FeedId)
-                    .col(FeedEntry::EntryId)
+                    .col(FeedEntry::Link)
                     .unique()
                     .to_owned(),
             )
@@ -109,7 +84,6 @@ impl MigrationTrait for Migration {
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, Feed::Table.to_string()).await?;
-                postgres::create_updated_at_trigger(manager, Entry::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, FeedEntry::Table.to_string()).await?;
             }
             DatabaseBackend::Sqlite => {
@@ -117,14 +91,6 @@ impl MigrationTrait for Migration {
                     manager,
                     Feed::Table.to_string(),
                     Feed::iter().map(|e| e.to_string()).collect::<Vec<_>>(),
-                )
-                .await?;
-                sqlite::create_updated_at_trigger(
-                    manager,
-                    Entry::Table.to_string(),
-                    Entry::iter()
-                        .map(|e| e.to_string())
-                        .collect::<Vec<String>>(),
                 )
                 .await?;
                 sqlite::create_updated_at_trigger(
@@ -143,10 +109,6 @@ impl MigrationTrait for Migration {
     async fn down(&self, manager: &SchemaManager) -> Result<(), DbErr> {
         manager
             .drop_table(Table::drop().table(FeedEntry::Table).to_owned())
-            .await?;
-
-        manager
-            .drop_table(Table::drop().table(Entry::Table).to_owned())
             .await?;
 
         manager
@@ -171,7 +133,7 @@ pub enum Feed {
 }
 
 #[derive(DeriveIden, strum_macros::EnumIter)]
-pub enum Entry {
+pub enum FeedEntry {
     #[strum(disabled)]
     Table,
     #[strum(disabled)]
@@ -182,18 +144,7 @@ pub enum Entry {
     Description,
     Author,
     ThumbnailUrl,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[derive(DeriveIden, strum_macros::EnumIter)]
-pub enum FeedEntry {
-    #[strum(disabled)]
-    Table,
-    #[strum(disabled)]
-    Id,
     FeedId,
-    EntryId,
     CreatedAt,
     UpdatedAt,
 }
