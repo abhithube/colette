@@ -642,7 +642,8 @@ export interface operations {
     listBookmarks: {
         parameters: {
             query?: {
-                collectionId?: string | null;
+                filterByCollection?: boolean;
+                collectionId?: string;
                 filterByTags?: boolean;
                 "tag[]"?: string[];
                 cursor?: string;

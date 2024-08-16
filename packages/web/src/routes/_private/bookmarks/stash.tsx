@@ -8,7 +8,7 @@ import { BookmarkGrid } from './-components/bookmark-grid'
 export const Route = createFileRoute('/_private/bookmarks/stash')({
   loader: async ({ context }) => {
     const options = listBookmarksOptions(
-      { filterByTags: true, 'tag[]': [] },
+      { filterByCollection: true },
       context.profile.id,
       context.api,
     )
