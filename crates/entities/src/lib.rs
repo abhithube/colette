@@ -62,6 +62,7 @@ impl From<PbWithBookmarkAndTags> for Bookmark {
             published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
             author: value.bookmark.author,
             sort_index: value.pb.sort_index as u32,
+            collection_id: value.pb.collection_id,
             tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
         }
     }

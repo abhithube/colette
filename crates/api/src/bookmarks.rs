@@ -74,6 +74,8 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
+    #[schema(required)]
+    pub collection_id: Option<Uuid>,
     pub sort_index: u32,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,6 +92,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             published_at: value.published_at,
             author: value.author,
             sort_index: value.sort_index,
+            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
@@ -130,6 +133,12 @@ pub async fn list_bookmarks(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub collection_id: Option<Option<Uuid>>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
@@ -142,6 +151,7 @@ pub struct ListBookmarksQuery {
 impl From<ListBookmarksQuery> for BookmarksFindManyFilters {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
+            collection_id: value.collection_id,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {
@@ -243,6 +253,7 @@ pub async fn create_bookmark(
         .create_bookmark(BookmarksCreateData {
             url: body.url.into(),
             bookmark: scraped.unwrap(),
+            collection_id: body.collection_id,
             profile_id: session.profile_id,
         })
         .await
@@ -259,6 +270,8 @@ pub async fn create_bookmark(
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    #[schema(nullable = false)]
+    pub collection_id: Option<Uuid>,
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -322,6 +335,12 @@ pub async fn update_bookmark(
 pub struct BookmarkUpdate {
     #[schema(nullable = false)]
     pub sort_index: Option<u32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub collection_id: Option<Option<Uuid>>,
     #[schema(nullable = false)]
     pub tags: Option<Vec<TagCreate>>,
 }
@@ -330,6 +349,7 @@ impl From<BookmarkUpdate> for BookmarksUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             sort_index: value.sort_index,
+            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
         }
     }

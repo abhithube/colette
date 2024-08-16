@@ -19,6 +19,7 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
     pub sort_index: u32,
+    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
 }
 
@@ -80,6 +81,7 @@ pub trait BookmarksRepository: Send + Sync {
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarksFindManyFilters {
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -87,12 +89,14 @@ pub struct BookmarksFindManyFilters {
 pub struct BookmarksCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
+    pub collection_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
 pub struct BookmarksUpdateData {
     pub sort_index: Option<u32>,
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
