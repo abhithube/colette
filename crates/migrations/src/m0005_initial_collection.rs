@@ -116,10 +116,19 @@ impl MigrationTrait for Migration {
 
         match manager.get_database_backend() {
             DatabaseBackend::Postgres => {
+                postgres::create_updated_at_trigger(manager, Collection::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
                     .await?;
             }
             DatabaseBackend::Sqlite => {
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    Collection::Table.to_string(),
+                    Collection::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>(),
+                )
+                .await?;
                 sqlite::create_updated_at_trigger(
                     manager,
                     ProfileBookmark::Table.to_string(),
