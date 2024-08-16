@@ -1,10 +1,33 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Collection, Feed, FeedEntry, Profile, Tag, User};
+use colette_core::{Bookmark, Collection, Feed, FeedEntry, Folder, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
 
 mod generated;
+
+#[derive(Clone, Debug)]
+pub struct PbWithBookmarkAndTags {
+    pub pb: profile_bookmark::Model,
+    pub bookmark: bookmark::Model,
+    pub tags: Vec<tag::Model>,
+}
+
+impl From<PbWithBookmarkAndTags> for Bookmark {
+    fn from(value: PbWithBookmarkAndTags) -> Self {
+        Self {
+            id: value.pb.id,
+            link: value.bookmark.link,
+            title: value.bookmark.title,
+            thumbnail_url: value.bookmark.thumbnail_url,
+            published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
+            author: value.bookmark.author,
+            sort_index: value.pb.sort_index as u32,
+            collection_id: value.pb.collection_id,
+            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
+        }
+    }
+}
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct PartialCollection {
@@ -21,6 +44,29 @@ impl From<PartialCollection> for Collection {
             title: value.title,
             folder_id: value.folder_id,
             bookmark_count: Some(value.bookmark_count),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct PfWithFeedAndTagsAndUnreadCount {
+    pub pf: profile_feed::Model,
+    pub feed: feed::Model,
+    pub tags: Vec<tag::Model>,
+    pub unread_count: i64,
+}
+
+impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
+    fn from(value: PfWithFeedAndTagsAndUnreadCount) -> Self {
+        Self {
+            id: value.pf.id,
+            link: value.feed.link,
+            title: value.pf.title,
+            original_title: value.feed.title,
+            url: value.feed.url,
+            folder_id: value.pf.folder_id,
+            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
+            unread_count: Some(value.unread_count),
         }
     }
 }
@@ -47,48 +93,23 @@ impl From<PfeWithFe> for FeedEntry {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct PbWithBookmarkAndTags {
-    pub pb: profile_bookmark::Model,
-    pub bookmark: bookmark::Model,
-    pub tags: Vec<tag::Model>,
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialFolder {
+    id: Uuid,
+    title: String,
+    parent_id: Option<Uuid>,
+    collection_count: i64,
+    feed_count: i64,
 }
 
-impl From<PbWithBookmarkAndTags> for Bookmark {
-    fn from(value: PbWithBookmarkAndTags) -> Self {
+impl From<PartialFolder> for Folder {
+    fn from(value: PartialFolder) -> Self {
         Self {
-            id: value.pb.id,
-            link: value.bookmark.link,
-            title: value.bookmark.title,
-            thumbnail_url: value.bookmark.thumbnail_url,
-            published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
-            author: value.bookmark.author,
-            sort_index: value.pb.sort_index as u32,
-            collection_id: value.pb.collection_id,
-            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct PfWithFeedAndTagsAndUnreadCount {
-    pub pf: profile_feed::Model,
-    pub feed: feed::Model,
-    pub tags: Vec<tag::Model>,
-    pub unread_count: i64,
-}
-
-impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
-    fn from(value: PfWithFeedAndTagsAndUnreadCount) -> Self {
-        Self {
-            id: value.pf.id,
-            link: value.feed.link,
-            title: value.pf.title,
-            original_title: value.feed.title,
-            url: value.feed.url,
-            folder_id: value.pf.folder_id,
-            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
-            unread_count: Some(value.unread_count),
+            id: value.id,
+            title: value.title,
+            parent_id: value.parent_id,
+            collection_count: Some(value.collection_count),
+            feed_count: Some(value.feed_count),
         }
     }
 }

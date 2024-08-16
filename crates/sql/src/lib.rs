@@ -4,6 +4,7 @@ mod bookmark;
 mod collection;
 mod feed;
 mod feed_entry;
+mod folder;
 mod profile;
 mod tag;
 mod user;
