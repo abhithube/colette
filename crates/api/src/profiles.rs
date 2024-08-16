@@ -28,7 +28,7 @@ pub struct ProfilesState {
         update_profile,
         delete_profile
     ),
-    components(schemas(Profile, ProfileCreate, ProfileUpdate))
+    components(schemas(Profile, ProfileList, ProfileCreate, ProfileUpdate))
 )]
 pub struct Api;
 

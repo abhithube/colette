@@ -42,7 +42,16 @@ pub struct FeedsState {
         import_feeds,
         export_feeds
     ),
-    components(schemas(Feed, FeedCreate, FeedUpdate, FeedDetect, FeedDetected, File))
+    components(schemas(
+        Feed,
+        FeedList,
+        FeedDetectedList,
+        FeedCreate,
+        FeedUpdate,
+        FeedDetect,
+        FeedDetected,
+        File
+    ))
 )]
 pub struct Api;
 

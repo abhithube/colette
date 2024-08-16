@@ -40,7 +40,7 @@ pub struct BookmarksState {
         update_bookmark,
         delete_bookmark
     ),
-    components(schemas(Bookmark, BookmarkCreate, BookmarkUpdate))
+    components(schemas(Bookmark, BookmarkList, BookmarkCreate, BookmarkUpdate))
 )]
 pub struct Api;
 

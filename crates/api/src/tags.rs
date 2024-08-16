@@ -22,7 +22,7 @@ pub struct TagsState {
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(list_tags, get_tag, create_tag, update_tag, delete_tag),
-    components(schemas(Tag, TagCreate, TagUpdate))
+    components(schemas(Tag, TagList, TagCreate, TagUpdate))
 )]
 pub struct Api;
 

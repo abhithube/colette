@@ -17,13 +17,8 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::Api as Auth,
-    bookmarks::Api as Bookmarks,
-    common::{BaseError, BookmarkList, EntryList, FeedDetectedList, FeedList, ProfileList},
-    entries::Api as Entries,
-    feeds::Api as Feeds,
-    profiles::Api as Profiles,
-    tags::Api as Tags,
+    auth::Api as Auth, bookmarks::Api as Bookmarks, common::BaseError, entries::Api as Entries,
+    feeds::Api as Feeds, profiles::Api as Profiles, tags::Api as Tags,
 };
 
 pub mod auth;
@@ -57,7 +52,7 @@ pub struct ApiState {
       (path = "/profiles", api = Profiles),
       (path = "/tags", api = Tags)
   ),
-  components(schemas(BaseError, BookmarkList, FeedDetectedList, EntryList, FeedList, ProfileList))
+  components(schemas(BaseError))
 )]
 struct ApiDoc;
 

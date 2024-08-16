@@ -25,7 +25,7 @@ pub struct EntriesState {
 #[derive(utoipa::OpenApi)]
 #[openapi(
     paths(list_entries, get_entry, update_entry),
-    components(schemas(Entry, EntryUpdate))
+    components(schemas(Entry, EntryList, EntryUpdate))
 )]
 pub struct Api;
 
