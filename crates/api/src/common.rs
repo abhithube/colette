@@ -18,6 +18,7 @@ use crate::{
     collection::Collection,
     feed::{Feed, FeedDetected},
     feed_entry::FeedEntry,
+    folder::Folder,
     profile::Profile,
     tag::Tag,
 };
@@ -27,7 +28,7 @@ use crate::{
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, FeedDetectedList = Paginated<FeedDetected>, FeedEntryList = Paginated<FeedEntry>, FeedList = Paginated<Feed>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
+#[aliases(BookmarkList = Paginated<Bookmark>, CollectionList = Paginated<Collection>, FeedDetectedList = Paginated<FeedDetected>, FeedEntryList = Paginated<FeedEntry>, FeedList = Paginated<Feed>, FolderList = Paginated<Folder>, ProfileList = Paginated<Profile>, TagList = Paginated<Tag>)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: serde::Serialize> {
     pub data: Vec<T>,

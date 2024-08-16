@@ -3,7 +3,8 @@ use std::{error::Error, sync::Arc};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, bookmark::BookmarkState, collection::CollectionState, feed::FeedState,
-    feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api, ApiState,
+    feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState, tag::TagState, Api,
+    ApiState,
 };
 use colette_backup::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
@@ -87,6 +88,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             opml: Arc::new(OpmlManager),
         },
         feed_entry_state: FeedEntryState {
+            repository: repository.clone(),
+        },
+        folder_state: FolderState {
             repository: repository.clone(),
         },
         profile_state: ProfileState {

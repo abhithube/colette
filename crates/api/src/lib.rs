@@ -10,6 +10,7 @@ use collection::CollectionState;
 pub use common::Session;
 use feed::FeedState;
 use feed_entry::FeedEntryState;
+use folder::FolderState;
 use profile::ProfileState;
 use tag::TagState;
 use tower_http::cors::CorsLayer;
@@ -19,7 +20,7 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
     auth::Api as Auth, bookmark::Api as Bookmarks, collection::Api as Collections,
-    common::BaseError, feed::Api as Feeds, feed_entry::Api as FeedEntries,
+    common::BaseError, feed::Api as Feeds, feed_entry::Api as FeedEntries, folder::Api as Folders,
     profile::Api as Profiles, tag::Api as Tags,
 };
 
@@ -29,6 +30,7 @@ pub mod collection;
 mod common;
 pub mod feed;
 pub mod feed_entry;
+pub mod folder;
 pub mod profile;
 pub mod tag;
 
@@ -39,6 +41,7 @@ pub struct ApiState {
     pub collection_state: CollectionState,
     pub feed_state: FeedState,
     pub feed_entry_state: FeedEntryState,
+    pub folder_state: FolderState,
     pub profile_state: ProfileState,
     pub tag_state: TagState,
 }
@@ -54,6 +57,7 @@ pub struct ApiState {
       (path = "/collections", api = Collections),
       (path = "/feeds", api = Feeds),
       (path = "/feedEntries", api = FeedEntries),
+      (path = "/folders", api = Folders),
       (path = "/profiles", api = Profiles),
       (path = "/tags", api = Tags)
   ),
@@ -96,6 +100,8 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_state(FeedState::from_ref(self.api_state))
                     .merge(FeedEntries::router())
                     .with_state(FeedEntryState::from_ref(self.api_state))
+                    .merge(Folders::router())
+                    .with_state(FolderState::from_ref(self.api_state))
                     .merge(Profiles::router())
                     .with_state(ProfileState::from_ref(self.api_state))
                     .merge(Tags::router())
