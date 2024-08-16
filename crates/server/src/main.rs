@@ -2,8 +2,9 @@ use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, bookmarks::BookmarksState, entries::EntriesState, feeds::FeedsState,
-    profiles::ProfilesState, tags::TagsState, Api, ApiState,
+    auth::AuthState, bookmarks::BookmarksState, collections::CollectionsState,
+    entries::EntriesState, feeds::FeedsState, profiles::ProfilesState, tags::TagsState, Api,
+    ApiState,
 };
 use colette_backup::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
@@ -77,6 +78,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmarks_state: BookmarksState {
             repository: repository.clone(),
             scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+        },
+        collections_state: CollectionsState {
+            repository: repository.clone(),
         },
         entries_state: EntriesState {
             repository: repository.clone(),

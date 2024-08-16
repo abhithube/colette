@@ -6,6 +6,7 @@ use axum::{
 };
 use bookmarks::BookmarksState;
 use colette_config::AppConfig;
+use collections::CollectionsState;
 pub use common::Session;
 use entries::EntriesState;
 use feeds::FeedsState;
@@ -17,12 +18,14 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::Api as Auth, bookmarks::Api as Bookmarks, common::BaseError, entries::Api as Entries,
-    feeds::Api as Feeds, profiles::Api as Profiles, tags::Api as Tags,
+    auth::Api as Auth, bookmarks::Api as Bookmarks, collections::Api as Collections,
+    common::BaseError, entries::Api as Entries, feeds::Api as Feeds, profiles::Api as Profiles,
+    tags::Api as Tags,
 };
 
 pub mod auth;
 pub mod bookmarks;
+pub mod collections;
 mod common;
 pub mod entries;
 pub mod feeds;
@@ -33,6 +36,7 @@ pub mod tags;
 pub struct ApiState {
     pub auth_state: AuthState,
     pub bookmarks_state: BookmarksState,
+    pub collections_state: CollectionsState,
     pub entries_state: EntriesState,
     pub feeds_state: FeedsState,
     pub profiles_state: ProfilesState,
@@ -47,6 +51,7 @@ pub struct ApiState {
   nest(
       (path = "/auth", api = Auth),
       (path = "/bookmarks", api = Bookmarks),
+      (path = "/collections", api = Collections),
       (path = "/entries", api = Entries),
       (path = "/feeds", api = Feeds),
       (path = "/profiles", api = Profiles),
@@ -85,6 +90,8 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_state(AuthState::from_ref(self.api_state))
                     .merge(Bookmarks::router())
                     .with_state(BookmarksState::from_ref(self.api_state))
+                    .merge(Collections::router())
+                    .with_state(CollectionsState::from_ref(self.api_state))
                     .merge(Entries::router())
                     .with_state(EntriesState::from_ref(self.api_state))
                     .merge(Feeds::router())
