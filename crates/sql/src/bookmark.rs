@@ -81,6 +81,7 @@ impl BookmarkRepository for SqlRepository {
                         sort_index: Set(prev.map(|e| e.sort_index + 1).unwrap_or_default()),
                         profile_id: Set(data.profile_id),
                         bookmark_id: Set(bookmark_id),
+                        collection_id: Set(data.collection_id),
                         ..Default::default()
                     };
 
@@ -143,42 +144,6 @@ impl BookmarkRepository for SqlRepository {
                         return Err(Error::NotFound(id));
                     };
 
-                    if let Some(sort_index) = data.sort_index {
-                        let mut conditions = Condition::all()
-                            .add(profile_bookmark::Column::ProfileId.eq(profile_id));
-                        let expr: SimpleExpr;
-                        if sort_index as i32 > pb_model.sort_index {
-                            conditions = conditions.add(
-                                profile_bookmark::Column::SortIndex.lte(sort_index).and(
-                                    profile_bookmark::Column::SortIndex.gt(pb_model.sort_index),
-                                ),
-                            );
-                            expr = Expr::col(profile_bookmark::Column::SortIndex).sub(1);
-                        } else {
-                            conditions = conditions.add(
-                                profile_bookmark::Column::SortIndex.gte(sort_index).and(
-                                    profile_bookmark::Column::SortIndex.lt(pb_model.sort_index),
-                                ),
-                            );
-                            expr = Expr::col(profile_bookmark::Column::SortIndex).add(1);
-                        }
-
-                        profile_bookmark::Entity::update_many()
-                            .col_expr(profile_bookmark::Column::SortIndex, expr)
-                            .filter(conditions)
-                            .exec(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let mut active_model = pb_model.clone().into_active_model();
-                        active_model.sort_index = Set(sort_index as i32);
-
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
                     if let Some(tags) = data.tags {
                         let active_models = tags
                             .clone()
@@ -236,6 +201,50 @@ impl BookmarkRepository for SqlRepository {
                                 .to_owned(),
                             )
                             .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    let old_sort_index = pb_model.sort_index;
+                    let mut active_model = pb_model.into_active_model();
+
+                    if let Some(sort_index) = data.sort_index {
+                        let mut conditions = Condition::all()
+                            .add(profile_bookmark::Column::ProfileId.eq(profile_id));
+                        let expr: SimpleExpr;
+                        if sort_index as i32 > old_sort_index {
+                            conditions = conditions.add(
+                                profile_bookmark::Column::SortIndex
+                                    .lte(sort_index)
+                                    .and(profile_bookmark::Column::SortIndex.gt(old_sort_index)),
+                            );
+                            expr = Expr::col(profile_bookmark::Column::SortIndex).sub(1);
+                        } else {
+                            conditions = conditions.add(
+                                profile_bookmark::Column::SortIndex
+                                    .gte(sort_index)
+                                    .and(profile_bookmark::Column::SortIndex.lt(old_sort_index)),
+                            );
+                            expr = Expr::col(profile_bookmark::Column::SortIndex).add(1);
+                        }
+
+                        profile_bookmark::Entity::update_many()
+                            .col_expr(profile_bookmark::Column::SortIndex, expr)
+                            .filter(conditions)
+                            .exec(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        active_model.sort_index = Set(sort_index as i32);
+                    }
+
+                    if let Some(collection_id) = data.collection_id {
+                        active_model.collection_id = Set(collection_id);
+                    }
+
+                    if active_model.is_changed() {
+                        active_model
+                            .update(txn)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
@@ -307,6 +316,9 @@ async fn find<Db: ConnectionTrait>(
         conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
     }
     if let Some(filters) = filters {
+        if let Some(collection_id) = filters.collection_id {
+            conditions = conditions.add(profile_bookmark::Column::CollectionId.eq(collection_id));
+        }
         if let Some(tags) = filters.tags {
             query = query
                 .join(

@@ -133,12 +133,10 @@ pub async fn list_bookmarks(
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListBookmarksQuery {
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub collection_id: Option<Option<Uuid>>,
+    #[param(nullable = false)]
+    pub filter_by_collection: Option<bool>,
+    #[param(nullable = false)]
+    pub collection_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
@@ -151,7 +149,14 @@ pub struct ListBookmarksQuery {
 impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
-            collection_id: value.collection_id,
+            collection_id: if value
+                .filter_by_collection
+                .unwrap_or(value.collection_id.is_some())
+            {
+                Some(value.collection_id)
+            } else {
+                None
+            },
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {
