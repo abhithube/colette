@@ -23,24 +23,21 @@ import { SortableBookmarkCard } from './sortable-bookmark-card'
 
 type Props = {
   bookmarks: Bookmark[]
+  setBookmarks: React.Dispatch<React.SetStateAction<Bookmark[]>>
   hasMore: boolean
   loadMore?: () => void
   created?: Bookmark
 }
 
 export function BookmarkGrid({
-  bookmarks: initialBookmarks,
+  bookmarks,
+  setBookmarks,
   hasMore = false,
   loadMore,
   created,
 }: Props) {
   const context = Route.useRouteContext()
 
-  const [bookmarks, setBookmarks] = useState(
-    created
-      ? initialBookmarks.filter((v) => v.id !== created.id)
-      : initialBookmarks,
-  )
   const [active, setActive] = useState<Bookmark | null>(null)
 
   const { ref } = useInView({
@@ -54,6 +51,10 @@ export function BookmarkGrid({
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
+
+  const filtered = created
+    ? bookmarks.filter((v) => v.id !== created.id)
+    : bookmarks
 
   const { mutateAsync: updateBookmark } = useMutation(
     updateBookmarkOptions(
@@ -79,12 +80,10 @@ export function BookmarkGrid({
       onDragEnd={async ({ active, over }) => {
         if (!over || active.id === over.id) return
 
-        const from = bookmarks.findIndex(
-          (bookmark) => bookmark.id === active.id,
-        )
-        const to = bookmarks.findIndex((bookmark) => bookmark.id === over.id)
+        const from = filtered.findIndex((bookmark) => bookmark.id === active.id)
+        const to = filtered.findIndex((bookmark) => bookmark.id === over.id)
 
-        setBookmarks(arrayMove(bookmarks, from, to))
+        setBookmarks(arrayMove(filtered, from, to))
 
         await updateBookmark({
           id: active.id as string,
@@ -94,17 +93,17 @@ export function BookmarkGrid({
         })
       }}
     >
-      <SortableContext items={bookmarks}>
+      <SortableContext items={filtered}>
         <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
           {created && (
             <div className="rounded-lg border-2 border-secondary">
               <BookmarkCard bookmark={created} />
             </div>
           )}
-          {bookmarks.map((bookmark, i) => (
+          {filtered.map((bookmark, i) => (
             <div
               key={bookmark.id}
-              ref={hasMore && i === bookmarks.length - 1 ? ref : undefined}
+              ref={hasMore && i === filtered.length - 1 ? ref : undefined}
             >
               <SortableBookmarkCard bookmark={bookmark} />
             </div>
