@@ -1,5 +1,5 @@
 use colette_core::{
-    bookmarks::{BookmarkExtractorOptions, ExtractedBookmark},
+    bookmark::{BookmarkExtractorOptions, ExtractedBookmark},
     scraper::{ExtractError, Extractor, ExtractorQuery},
 };
 use http::Response;

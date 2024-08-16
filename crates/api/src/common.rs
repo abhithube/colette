@@ -14,12 +14,12 @@ use tower_sessions::session;
 use uuid::Uuid;
 
 use crate::{
-    bookmarks::Bookmark,
-    collections::Collection,
-    feed_entries::FeedEntry,
-    feeds::{Feed, FeedDetected},
-    profiles::Profile,
-    tags::Tag,
+    bookmark::Bookmark,
+    collection::Collection,
+    feed::{Feed, FeedDetected},
+    feed_entry::FeedEntry,
+    profile::Profile,
+    tag::Tag,
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

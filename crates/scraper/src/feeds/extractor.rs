@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
+    feed::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions},
     scraper::{ExtractError, Extractor},
 };
 use http::Response;

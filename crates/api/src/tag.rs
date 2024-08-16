@@ -7,16 +7,14 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::tags::{
-    self, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData,
-};
+use colette_core::tag::{self, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct TagsState {
-    pub repository: Arc<dyn TagsRepository>,
+pub struct TagState {
+    pub repository: Arc<dyn TagRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -27,7 +25,7 @@ pub struct TagsState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<TagsState> {
+    pub fn router() -> Router<TagState> {
         Router::new().nest(
             "/tags",
             Router::new()
@@ -75,7 +73,7 @@ impl From<colette_core::Tag> for Tag {
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
-    State(repository): State<Arc<dyn TagsRepository>>,
+    State(repository): State<Arc<dyn TagRepository>>,
     Valid(Query(query)): Valid<Query<ListTagsQuery>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -99,7 +97,7 @@ pub struct ListTagsQuery {
     pub tag_type: TagType,
 }
 
-impl From<ListTagsQuery> for TagsFindManyFilters {
+impl From<ListTagsQuery> for TagFindManyFilters {
     fn from(value: ListTagsQuery) -> Self {
         Self {
             tag_type: value.tag_type.into(),
@@ -116,7 +114,7 @@ pub enum TagType {
     Feeds,
 }
 
-impl From<TagType> for tags::TagType {
+impl From<TagType> for tag::TagType {
     fn from(value: TagType) -> Self {
         match value {
             TagType::All => Self::All,
@@ -151,7 +149,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
-    State(repository): State<Arc<dyn TagsRepository>>,
+    State(repository): State<Arc<dyn TagRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -163,7 +161,7 @@ pub async fn get_tag(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            tags::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            tag::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -200,12 +198,12 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
-    State(repository): State<Arc<dyn TagsRepository>>,
+    State(repository): State<Arc<dyn TagRepository>>,
     session: Session,
     Valid(Json(body)): Valid<Json<TagCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_tag(TagsCreateData {
+        .create_tag(TagCreateData {
             title: body.title,
             profile_id: session.profile_id,
         })
@@ -215,7 +213,7 @@ pub async fn create_tag(
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            tags::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+            tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -266,7 +264,7 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
-    State(repository): State<Arc<dyn TagsRepository>>,
+    State(repository): State<Arc<dyn TagRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<TagUpdate>>,
@@ -279,7 +277,7 @@ pub async fn update_tag(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            tags::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            tag::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -295,7 +293,7 @@ pub struct TagUpdate {
     pub title: Option<String>,
 }
 
-impl From<TagUpdate> for TagsUpdateData {
+impl From<TagUpdate> for TagUpdateData {
     fn from(value: TagUpdate) -> Self {
         Self { title: value.title }
     }
@@ -335,7 +333,7 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(
-    State(repository): State<Arc<dyn TagsRepository>>,
+    State(repository): State<Arc<dyn TagRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -344,7 +342,7 @@ pub async fn delete_tag(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            tags::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            tag::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

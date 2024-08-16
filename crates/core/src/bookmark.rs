@@ -56,37 +56,37 @@ pub struct BookmarkPluginRegistry<'a> {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarksRepository: Send + Sync {
+pub trait BookmarkRepository: Send + Sync {
     async fn find_many_bookmarks(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<BookmarksFindManyFilters>,
+        filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
 
     async fn find_one_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error>;
 
-    async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error>;
+    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
 
     async fn update_bookmark(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: BookmarksUpdateData,
+        data: BookmarkUpdateData,
     ) -> Result<Bookmark, Error>;
 
     async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BookmarksFindManyFilters {
+pub struct BookmarkFindManyFilters {
     pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarksCreateData {
+pub struct BookmarkCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
     pub collection_id: Option<Uuid>,
@@ -94,7 +94,7 @@ pub struct BookmarksCreateData {
 }
 
 #[derive(Clone, Debug)]
-pub struct BookmarksUpdateData {
+pub struct BookmarkUpdateData {
     pub sort_index: Option<u32>,
     pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,

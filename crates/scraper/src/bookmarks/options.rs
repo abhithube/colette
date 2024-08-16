@@ -1,5 +1,5 @@
 use colette_core::{
-    bookmarks::BookmarkExtractorOptions,
+    bookmark::BookmarkExtractorOptions,
     scraper::{ExtractorQuery, Node},
 };
 

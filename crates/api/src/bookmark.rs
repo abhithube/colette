@@ -10,9 +10,9 @@ use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
-    bookmarks::{
-        self, BookmarksCreateData, BookmarksFindManyFilters, BookmarksRepository,
-        BookmarksUpdateData, ProcessedBookmark,
+    bookmark::{
+        self, BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
+        ProcessedBookmark,
     },
     common::PAGINATION_LIMIT,
     scraper::Scraper,
@@ -22,12 +22,12 @@ use uuid::Uuid;
 
 use crate::{
     common::{BaseError, BookmarkList, Error, Id, Paginated, Session},
-    tags::{Tag, TagCreate},
+    tag::{Tag, TagCreate},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct BookmarksState {
-    pub repository: Arc<dyn BookmarksRepository>,
+pub struct BookmarkState {
+    pub repository: Arc<dyn BookmarkRepository>,
     pub scraper: Arc<dyn Scraper<ProcessedBookmark>>,
 }
 
@@ -45,7 +45,7 @@ pub struct BookmarksState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<BookmarksState> {
+    pub fn router() -> Router<BookmarkState> {
         Router::new().nest(
             "/bookmarks",
             Router::new()
@@ -109,7 +109,7 @@ impl From<colette_core::Bookmark> for Bookmark {
 )]
 #[axum::debug_handler]
 pub async fn list_bookmarks(
-    State(repository): State<Arc<dyn BookmarksRepository>>,
+    State(repository): State<Arc<dyn BookmarkRepository>>,
     Query(query): Query<ListBookmarksQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -148,7 +148,7 @@ pub struct ListBookmarksQuery {
     pub cursor: Option<String>,
 }
 
-impl From<ListBookmarksQuery> for BookmarksFindManyFilters {
+impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
     fn from(value: ListBookmarksQuery) -> Self {
         Self {
             collection_id: value.collection_id,
@@ -186,7 +186,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_bookmark(
-    State(repository): State<Arc<dyn BookmarksRepository>>,
+    State(repository): State<Arc<dyn BookmarkRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -198,7 +198,7 @@ pub async fn get_bookmark(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -235,10 +235,10 @@ impl IntoResponse for GetResponse {
   )]
 #[axum::debug_handler]
 pub async fn create_bookmark(
-    State(BookmarksState {
+    State(BookmarkState {
         repository,
         scraper,
-    }): State<BookmarksState>,
+    }): State<BookmarkState>,
     session: Session,
     Valid(Json(mut body)): Valid<Json<BookmarkCreate>>,
 ) -> Result<impl IntoResponse, Error> {
@@ -250,7 +250,7 @@ pub async fn create_bookmark(
     }
 
     let result = repository
-        .create_bookmark(BookmarksCreateData {
+        .create_bookmark(BookmarkCreateData {
             url: body.url.into(),
             bookmark: scraped.unwrap(),
             collection_id: body.collection_id,
@@ -309,7 +309,7 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_bookmark(
-    State(repository): State<Arc<dyn BookmarksRepository>>,
+    State(repository): State<Arc<dyn BookmarkRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
@@ -322,7 +322,7 @@ pub async fn update_bookmark(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(Box::new(data))),
         Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -345,7 +345,7 @@ pub struct BookmarkUpdate {
     pub tags: Option<Vec<TagCreate>>,
 }
 
-impl From<BookmarkUpdate> for BookmarksUpdateData {
+impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             sort_index: value.sort_index,
@@ -389,7 +389,7 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_bookmark(
-    State(repository): State<Arc<dyn BookmarksRepository>>,
+    State(repository): State<Arc<dyn BookmarkRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -398,7 +398,7 @@ pub async fn delete_bookmark(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            bookmarks::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

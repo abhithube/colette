@@ -1,4 +1,4 @@
-use colette_core::feeds::{ExtractedEntry, ExtractedFeed};
+use colette_core::feed::{ExtractedEntry, ExtractedFeed};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct AtomFeed {

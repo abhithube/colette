@@ -2,9 +2,8 @@ use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, bookmarks::BookmarksState, collections::CollectionsState,
-    feed_entries::FeedEntriesState, feeds::FeedsState, profiles::ProfilesState, tags::TagsState,
-    Api, ApiState,
+    auth::AuthState, bookmark::BookmarkState, collection::CollectionState, feed::FeedState,
+    feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api, ApiState,
 };
 use colette_backup::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
@@ -72,28 +71,28 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState {
         auth_state: AuthState {
-            users_repository: repository.clone(),
-            profiles_repository: repository.clone(),
+            user_repository: repository.clone(),
+            profile_repository: repository.clone(),
         },
-        bookmarks_state: BookmarksState {
+        bookmark_state: BookmarkState {
             repository: repository.clone(),
             scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
         },
-        collections_state: CollectionsState {
+        collection_state: CollectionState {
             repository: repository.clone(),
         },
-        feeds_state: FeedsState {
+        feed_state: FeedState {
             repository: repository.clone(),
             scraper: feed_scraper,
             opml: Arc::new(OpmlManager),
         },
-        feed_entries_state: FeedEntriesState {
+        feed_entry_state: FeedEntryState {
             repository: repository.clone(),
         },
-        profiles_state: ProfilesState {
+        profile_state: ProfileState {
             repository: repository.clone(),
         },
-        tags_state: TagsState { repository },
+        tag_state: TagState { repository },
     };
 
     let api = Api::new(&api_state, &app_config, session_backend)

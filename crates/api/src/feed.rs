@@ -10,9 +10,9 @@ use axum_extra::extract::Query;
 use axum_valid::Valid;
 use colette_core::{
     backup::BackupManager,
-    feeds::{
-        self, BackupFeed, FeedScraper, FeedsCreateData, FeedsFindManyFilters, FeedsRepository,
-        FeedsUpdateData,
+    feed::{
+        self, BackupFeed, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper,
+        FeedUpdateData,
     },
 };
 use url::Url;
@@ -20,12 +20,12 @@ use uuid::Uuid;
 
 use crate::{
     common::{BaseError, Error, FeedDetectedList, FeedList, Id, Paginated, Session},
-    tags::{Tag, TagCreate},
+    tag::{Tag, TagCreate},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct FeedsState {
-    pub repository: Arc<dyn FeedsRepository>,
+pub struct FeedState {
+    pub repository: Arc<dyn FeedRepository>,
     pub scraper: Arc<dyn FeedScraper>,
     pub opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
 }
@@ -56,7 +56,7 @@ pub struct FeedsState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<FeedsState> {
+    pub fn router() -> Router<FeedState> {
         Router::new().nest(
             "/feeds",
             Router::new()
@@ -117,7 +117,7 @@ impl From<colette_core::Feed> for Feed {
 )]
 #[axum::debug_handler]
 pub async fn list_feeds(
-    State(repository): State<Arc<dyn FeedsRepository>>,
+    State(repository): State<Arc<dyn FeedRepository>>,
     Query(query): Query<ListFeedsQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -143,7 +143,7 @@ pub struct ListFeedsQuery {
     pub tags: Option<Vec<String>>,
 }
 
-impl From<ListFeedsQuery> for FeedsFindManyFilters {
+impl From<ListFeedsQuery> for FeedFindManyFilters {
     fn from(value: ListFeedsQuery) -> Self {
         Self {
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
@@ -180,7 +180,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_feed(
-    State(repository): State<Arc<dyn FeedsRepository>>,
+    State(repository): State<Arc<dyn FeedRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -192,7 +192,7 @@ pub async fn get_feed(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -229,11 +229,11 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_feed(
-    State(FeedsState {
+    State(FeedState {
         repository,
         scraper,
         ..
-    }): State<FeedsState>,
+    }): State<FeedState>,
     session: Session,
     Valid(Json(mut body)): Valid<Json<FeedCreate>>,
 ) -> Result<impl IntoResponse, Error> {
@@ -245,7 +245,7 @@ pub async fn create_feed(
     }
 
     let result = repository
-        .create_feed(FeedsCreateData {
+        .create_feed(FeedCreateData {
             url: body.url.into(),
             feed: scraped.unwrap(),
             profile_id: session.profile_id,
@@ -301,7 +301,7 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_feed(
-    State(repository): State<Arc<dyn FeedsRepository>>,
+    State(repository): State<Arc<dyn FeedRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<FeedUpdate>>,
@@ -314,7 +314,7 @@ pub async fn update_feed(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            feed::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -336,7 +336,7 @@ pub struct FeedUpdate {
     pub tags: Option<Vec<TagCreate>>,
 }
 
-impl From<FeedUpdate> for FeedsUpdateData {
+impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
@@ -379,7 +379,7 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_feed(
-    State(repository): State<Arc<dyn FeedsRepository>>,
+    State(repository): State<Arc<dyn FeedRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -388,7 +388,7 @@ pub async fn delete_feed(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            feeds::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -506,7 +506,7 @@ impl IntoResponse for DetectResponse {
 )]
 #[axum::debug_handler]
 pub async fn import_feeds(
-    State(state): State<FeedsState>,
+    State(state): State<FeedState>,
     session: Session,
     mut multipart: Multipart,
 ) -> Result<impl IntoResponse, Error> {
@@ -560,7 +560,7 @@ impl IntoResponse for ImportResponse {
 )]
 #[axum::debug_handler]
 pub async fn export_feeds(
-    State(state): State<FeedsState>,
+    State(state): State<FeedState>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let response = list_feeds(

@@ -1,12 +1,12 @@
 use sea_orm::DatabaseConnection;
 
-mod bookmarks;
-mod collections;
-mod feed_entries;
-mod feeds;
-mod profiles;
-mod tags;
-mod users;
+mod bookmark;
+mod collection;
+mod feed;
+mod feed_entry;
+mod profile;
+mod tag;
+mod user;
 
 pub struct SqlRepository {
     pub(crate) db: DatabaseConnection,

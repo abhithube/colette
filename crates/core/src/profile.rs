@@ -18,7 +18,7 @@ pub struct StreamProfile {
 }
 
 #[async_trait::async_trait]
-pub trait ProfilesRepository: Send + Sync {
+pub trait ProfileRepository: Send + Sync {
     async fn find_many_profiles(
         &self,
         user_id: Uuid,
@@ -28,13 +28,13 @@ pub trait ProfilesRepository: Send + Sync {
 
     async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error>;
 
-    async fn create_profile(&self, data: ProfilesCreateData) -> Result<Profile, Error>;
+    async fn create_profile(&self, data: ProfileCreateData) -> Result<Profile, Error>;
 
     async fn update_profile(
         &self,
         id: Uuid,
         user_id: Uuid,
-        data: ProfilesUpdateData,
+        data: ProfileUpdateData,
     ) -> Result<Profile, Error>;
 
     async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error>;
@@ -46,14 +46,14 @@ pub trait ProfilesRepository: Send + Sync {
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfilesCreateData {
+pub struct ProfileCreateData {
     pub title: String,
     pub image_url: Option<String>,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfilesUpdateData {
+pub struct ProfileUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
 }

@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use chrono::DateTime;
 use colette_core::{
-    bookmarks::{ExtractedBookmark, ProcessedBookmark},
+    bookmark::{ExtractedBookmark, ProcessedBookmark},
     scraper::{PostprocessError, Postprocessor},
 };
 use url::Url;

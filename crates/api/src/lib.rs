@@ -4,43 +4,43 @@ use axum::{
     http::{header, HeaderValue, Method},
     routing, Router,
 };
-use bookmarks::BookmarksState;
+use bookmark::BookmarkState;
 use colette_config::AppConfig;
-use collections::CollectionsState;
+use collection::CollectionState;
 pub use common::Session;
-use feed_entries::FeedEntriesState;
-use feeds::FeedsState;
-use profiles::ProfilesState;
-use tags::TagsState;
+use feed::FeedState;
+use feed_entry::FeedEntryState;
+use profile::ProfileState;
+use tag::TagState;
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::Api as Auth, bookmarks::Api as Bookmarks, collections::Api as Collections,
-    common::BaseError, feed_entries::Api as FeedEntries, feeds::Api as Feeds,
-    profiles::Api as Profiles, tags::Api as Tags,
+    auth::Api as Auth, bookmark::Api as Bookmarks, collection::Api as Collections,
+    common::BaseError, feed::Api as Feeds, feed_entry::Api as FeedEntries,
+    profile::Api as Profiles, tag::Api as Tags,
 };
 
 pub mod auth;
-pub mod bookmarks;
-pub mod collections;
+pub mod bookmark;
+pub mod collection;
 mod common;
-pub mod feed_entries;
-pub mod feeds;
-pub mod profiles;
-pub mod tags;
+pub mod feed;
+pub mod feed_entry;
+pub mod profile;
+pub mod tag;
 
 #[derive(Clone, FromRef)]
 pub struct ApiState {
     pub auth_state: AuthState,
-    pub bookmarks_state: BookmarksState,
-    pub collections_state: CollectionsState,
-    pub feeds_state: FeedsState,
-    pub feed_entries_state: FeedEntriesState,
-    pub profiles_state: ProfilesState,
-    pub tags_state: TagsState,
+    pub bookmark_state: BookmarkState,
+    pub collection_state: CollectionState,
+    pub feed_state: FeedState,
+    pub feed_entry_state: FeedEntryState,
+    pub profile_state: ProfileState,
+    pub tag_state: TagState,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -89,17 +89,17 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .merge(Auth::router())
                     .with_state(AuthState::from_ref(self.api_state))
                     .merge(Bookmarks::router())
-                    .with_state(BookmarksState::from_ref(self.api_state))
+                    .with_state(BookmarkState::from_ref(self.api_state))
                     .merge(Collections::router())
-                    .with_state(CollectionsState::from_ref(self.api_state))
+                    .with_state(CollectionState::from_ref(self.api_state))
                     .merge(Feeds::router())
-                    .with_state(FeedsState::from_ref(self.api_state))
+                    .with_state(FeedState::from_ref(self.api_state))
                     .merge(FeedEntries::router())
-                    .with_state(FeedEntriesState::from_ref(self.api_state))
+                    .with_state(FeedEntryState::from_ref(self.api_state))
                     .merge(Profiles::router())
-                    .with_state(ProfilesState::from_ref(self.api_state))
+                    .with_state(ProfileState::from_ref(self.api_state))
                     .merge(Tags::router())
-                    .with_state(TagsState::from_ref(self.api_state)),
+                    .with_state(TagState::from_ref(self.api_state)),
             )
             .layer(
                 SessionManagerLayer::new(self.session_store)

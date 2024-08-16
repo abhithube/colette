@@ -1,9 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::Paginated,
-    feed_entries::{
-        Error, FeedEntriesFindManyFilters, FeedEntriesRepository, FeedEntriesUpdateData,
-    },
+    feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
 use colette_entities::{
@@ -20,13 +18,13 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl FeedEntriesRepository for SqlRepository {
+impl FeedEntryRepository for SqlRepository {
     async fn find_many_feed_entries(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        filters: Option<FeedEntriesFindManyFilters>,
+        filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
@@ -39,7 +37,7 @@ impl FeedEntriesRepository for SqlRepository {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: FeedEntriesUpdateData,
+        data: FeedEntryUpdateData,
     ) -> Result<FeedEntry, Error> {
         self.db
             .transaction::<_, FeedEntry, Error>(|txn| {
@@ -82,7 +80,7 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor_raw: Option<String>,
-    filters: Option<FeedEntriesFindManyFilters>,
+    filters: Option<FeedEntryFindManyFilters>,
 ) -> Result<Paginated<FeedEntry>, Error> {
     let mut query = profile_feed_entry::Entity::find()
         .find_also_related(feed_entry::Entity)

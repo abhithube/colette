@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use colette_core::{
     common::Paginated,
-    feeds::{
-        Error, FeedsCreateData, FeedsFindManyFilters, FeedsRepository, FeedsUpdateData, StreamFeed,
+    feed::{
+        Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
     },
     Feed,
 };
@@ -26,13 +26,13 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl FeedsRepository for SqlRepository {
+impl FeedRepository for SqlRepository {
     async fn find_many_feeds(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        filters: Option<FeedsFindManyFilters>,
+        filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
@@ -41,7 +41,7 @@ impl FeedsRepository for SqlRepository {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error> {
+    async fn create_feed(&self, data: FeedCreateData) -> Result<Feed, Error> {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
@@ -194,7 +194,7 @@ impl FeedsRepository for SqlRepository {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: FeedsUpdateData,
+        data: FeedUpdateData,
     ) -> Result<Feed, Error> {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
@@ -396,7 +396,7 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor_raw: Option<String>,
-    filters: Option<FeedsFindManyFilters>,
+    filters: Option<FeedFindManyFilters>,
 ) -> Result<Paginated<Feed>, Error> {
     let mut query = profile_feed::Entity::find()
         .find_also_related(feed::Entity)

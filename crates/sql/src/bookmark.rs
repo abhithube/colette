@@ -1,9 +1,8 @@
 use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
-    bookmarks::{
-        BookmarksCreateData, BookmarksFindManyFilters, BookmarksRepository, BookmarksUpdateData,
-        Error,
+    bookmark::{
+        BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData, Error,
     },
     common::Paginated,
     Bookmark,
@@ -24,13 +23,13 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl BookmarksRepository for SqlRepository {
+impl BookmarkRepository for SqlRepository {
     async fn find_many_bookmarks(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<BookmarksFindManyFilters>,
+        filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error> {
         find(&self.db, None, profile_id, limit, cursor, filters).await
     }
@@ -39,7 +38,7 @@ impl BookmarksRepository for SqlRepository {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_bookmark(&self, data: BookmarksCreateData) -> Result<Bookmark, Error> {
+    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
@@ -130,7 +129,7 @@ impl BookmarksRepository for SqlRepository {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: BookmarksUpdateData,
+        data: BookmarkUpdateData,
     ) -> Result<Bookmark, Error> {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
@@ -297,7 +296,7 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor_raw: Option<String>,
-    filters: Option<BookmarksFindManyFilters>,
+    filters: Option<BookmarkFindManyFilters>,
 ) -> Result<Paginated<Bookmark>, Error> {
     let mut query = profile_bookmark::Entity::find()
         .find_also_related(bookmark::Entity)

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use colette_core::{
-    feeds::{
+    feed::{
         Detector, DetectorPlugin, ExtractedFeed, FeedPluginRegistry, FeedScraper, ProcessedFeed,
     },
     scraper::{

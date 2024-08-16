@@ -1,6 +1,6 @@
 use colette_core::{
     common::Paginated,
-    tags::{Error, TagType, TagsCreateData, TagsFindManyFilters, TagsRepository, TagsUpdateData},
+    tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagType, TagUpdateData},
     Tag,
 };
 use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
@@ -16,13 +16,13 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl TagsRepository for SqlRepository {
+impl TagRepository for SqlRepository {
     async fn find_many_tags(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        filters: Option<TagsFindManyFilters>,
+        filters: Option<TagFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
@@ -31,7 +31,7 @@ impl TagsRepository for SqlRepository {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error> {
+    async fn create_tag(&self, data: TagCreateData) -> Result<Tag, Error> {
         let model = tag::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
@@ -59,7 +59,7 @@ impl TagsRepository for SqlRepository {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: TagsUpdateData,
+        data: TagUpdateData,
     ) -> Result<Tag, Error> {
         self.db
             .transaction::<_, Tag, Error>(|txn| {
@@ -116,7 +116,7 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor_raw: Option<String>,
-    filters: Option<TagsFindManyFilters>,
+    filters: Option<TagFindManyFilters>,
 ) -> Result<Paginated<Tag>, Error> {
     let mut query = tag::Entity::find()
         .expr_as(

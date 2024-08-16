@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use colette_core::{
-    bookmarks::{BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark},
+    bookmark::{BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark},
     scraper::{
         Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
         PostprocessorPlugin, Scraper,

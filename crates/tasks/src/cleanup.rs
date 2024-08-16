@@ -1,10 +1,10 @@
 use std::{str::FromStr, sync::Arc};
 
 use chrono::Local;
-use colette_core::feeds::FeedsRepository;
+use colette_core::feed::FeedRepository;
 use cron::Schedule;
 
-pub fn handle_cleanup_task(cron: &str, repository: Arc<dyn FeedsRepository>) {
+pub fn handle_cleanup_task(cron: &str, repository: Arc<dyn FeedRepository>) {
     let schedule = Schedule::from_str(cron).unwrap();
 
     tokio::spawn(async move {

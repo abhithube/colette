@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use chrono::DateTime;
 use colette_core::{
-    feeds::{ExtractedFeed, ProcessedEntry, ProcessedFeed},
+    feed::{ExtractedFeed, ProcessedEntry, ProcessedFeed},
     scraper::{PostprocessError, Postprocessor},
 };
 use url::Url;

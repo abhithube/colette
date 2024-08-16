@@ -1,5 +1,5 @@
 use colette_core::{
-    collections::{CollectionsCreateData, CollectionsRepository, CollectionsUpdateData, Error},
+    collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
     common::Paginated,
     Collection,
 };
@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl CollectionsRepository for SqlRepository {
+impl CollectionRepository for SqlRepository {
     async fn find_many_collections(
         &self,
         profile_id: Uuid,
@@ -30,7 +30,7 @@ impl CollectionsRepository for SqlRepository {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_collection(&self, data: CollectionsCreateData) -> Result<Collection, Error> {
+    async fn create_collection(&self, data: CollectionCreateData) -> Result<Collection, Error> {
         let model = collection::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
@@ -57,7 +57,7 @@ impl CollectionsRepository for SqlRepository {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: CollectionsUpdateData,
+        data: CollectionUpdateData,
     ) -> Result<Collection, Error> {
         self.db
             .transaction::<_, Collection, Error>(|txn| {

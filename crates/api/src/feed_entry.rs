@@ -11,17 +11,15 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::PAGINATION_LIMIT,
-    feed_entries::{
-        self, FeedEntriesFindManyFilters, FeedEntriesRepository, FeedEntriesUpdateData,
-    },
+    feed_entry::{self, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
 };
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, FeedEntryList, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct FeedEntriesState {
-    pub repository: Arc<dyn FeedEntriesRepository>,
+pub struct FeedEntryState {
+    pub repository: Arc<dyn FeedEntryRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -32,7 +30,7 @@ pub struct FeedEntriesState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<FeedEntriesState> {
+    pub fn router() -> Router<FeedEntryState> {
         Router::new().nest(
             "/feedEntries",
             Router::new()
@@ -91,7 +89,7 @@ impl From<colette_core::FeedEntry> for FeedEntry {
 )]
 #[axum::debug_handler]
 pub async fn list_feed_entries(
-    State(repository): State<Arc<dyn FeedEntriesRepository>>,
+    State(repository): State<Arc<dyn FeedEntryRepository>>,
     Query(query): Query<ListFeedEntriesQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -100,7 +98,7 @@ pub async fn list_feed_entries(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor,
-            Some(FeedEntriesFindManyFilters {
+            Some(FeedEntryFindManyFilters {
                 feed_id: query.feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
@@ -155,7 +153,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_feed_entry(
-    State(repository): State<Arc<dyn FeedEntriesRepository>>,
+    State(repository): State<Arc<dyn FeedEntryRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -167,7 +165,7 @@ pub async fn get_feed_entry(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            feed_entries::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            feed_entry::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -205,7 +203,7 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_feed_entry(
-    State(repository): State<Arc<dyn FeedEntriesRepository>>,
+    State(repository): State<Arc<dyn FeedEntryRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<FeedEntryUpdate>>,
@@ -218,7 +216,7 @@ pub async fn update_feed_entry(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            feed_entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            feed_entry::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -232,7 +230,7 @@ pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }
 
-impl From<FeedEntryUpdate> for FeedEntriesUpdateData {
+impl From<FeedEntryUpdate> for FeedEntryUpdateData {
     fn from(value: FeedEntryUpdate) -> Self {
         Self {
             has_read: value.has_read,

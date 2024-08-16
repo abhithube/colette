@@ -2,8 +2,8 @@ use std::{str::FromStr, sync::Arc};
 
 use chrono::{Local, Utc};
 use colette_core::{
-    feeds::{FeedsCreateData, FeedsRepository, ProcessedFeed},
-    profiles::ProfilesRepository,
+    feed::{FeedCreateData, FeedRepository, ProcessedFeed},
+    profile::ProfileRepository,
     scraper::Scraper,
 };
 use cron::Schedule;
@@ -13,20 +13,20 @@ use url::Url;
 
 pub struct RefreshTask {
     scraper: Arc<dyn Scraper<ProcessedFeed>>,
-    feeds_repository: Arc<dyn FeedsRepository>,
-    profiles_repository: Arc<dyn ProfilesRepository>,
+    feed_repository: Arc<dyn FeedRepository>,
+    profile_repository: Arc<dyn ProfileRepository>,
 }
 
 impl RefreshTask {
     pub fn new(
         scraper: Arc<dyn Scraper<ProcessedFeed>>,
-        feeds_repository: Arc<dyn FeedsRepository>,
-        profiles_repository: Arc<dyn ProfilesRepository>,
+        feed_repository: Arc<dyn FeedRepository>,
+        profile_repository: Arc<dyn ProfileRepository>,
     ) -> Self {
         Self {
             scraper,
-            feeds_repository,
-            profiles_repository,
+            feed_repository,
+            profile_repository,
         }
     }
 
@@ -37,11 +37,11 @@ impl RefreshTask {
 
         let feed = self.scraper.scrape(&mut parsed)?;
 
-        let mut profiles_stream = self.profiles_repository.stream_profiles(feed_id).await?;
+        let mut profiles_stream = self.profile_repository.stream_profiles(feed_id).await?;
 
         while let Some(Ok(profile)) = profiles_stream.next().await {
-            self.feeds_repository
-                .create_feed(FeedsCreateData {
+            self.feed_repository
+                .create_feed(FeedCreateData {
                     url: url.clone(),
                     feed: feed.clone(),
                     profile_id: profile.id,
@@ -55,7 +55,7 @@ impl RefreshTask {
     async fn run(&self) -> Result<(), anyhow::Error> {
         let semaphore = Arc::new(Semaphore::new(5));
 
-        let feeds_stream = self.feeds_repository.stream_feeds().await?;
+        let feeds_stream = self.feed_repository.stream_feeds().await?;
 
         let tasks = feeds_stream
             .map(|item| {
@@ -82,13 +82,13 @@ impl RefreshTask {
 pub fn handle_refresh_task(
     cron: &str,
     scraper: Arc<dyn Scraper<ProcessedFeed>>,
-    feeds_repo: Arc<dyn FeedsRepository>,
-    profiles_repo: Arc<dyn ProfilesRepository>,
+    feed_repository: Arc<dyn FeedRepository>,
+    profile_repository: Arc<dyn ProfileRepository>,
 ) {
     let schedule = Schedule::from_str(cron).unwrap();
 
     tokio::spawn(async move {
-        let refresh_task = RefreshTask::new(scraper, feeds_repo, profiles_repo);
+        let refresh_task = RefreshTask::new(scraper, feed_repository, profile_repository);
 
         loop {
             let upcoming = schedule.upcoming(Local).take(1).next().unwrap();

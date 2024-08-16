@@ -1,6 +1,6 @@
 use colette_core::{
     backup::{self, BackupManager},
-    feeds::BackupFeed,
+    feed::BackupFeed,
 };
 use quick_xml::se::Serializer;
 use serde::Serialize;

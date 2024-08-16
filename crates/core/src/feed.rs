@@ -87,24 +87,24 @@ pub struct StreamFeed {
 }
 
 #[async_trait::async_trait]
-pub trait FeedsRepository: Send + Sync {
+pub trait FeedRepository: Send + Sync {
     async fn find_many_feeds(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<FeedsFindManyFilters>,
+        filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
     async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
 
-    async fn create_feed(&self, data: FeedsCreateData) -> Result<Feed, Error>;
+    async fn create_feed(&self, data: FeedCreateData) -> Result<Feed, Error>;
 
     async fn update_feed(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: FeedsUpdateData,
+        data: FeedUpdateData,
     ) -> Result<Feed, Error>;
 
     async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
@@ -136,19 +136,19 @@ pub struct FeedPluginRegistry<'a> {
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedsFindManyFilters {
+pub struct FeedFindManyFilters {
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedsCreateData {
+pub struct FeedCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedsUpdateData {
+pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
     pub tags: Option<Vec<String>>,
 }

@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use colette_core::{
     common::Paginated,
-    profiles::{Error, ProfilesCreateData, ProfilesRepository, ProfilesUpdateData, StreamProfile},
+    profile::{Error, ProfileCreateData, ProfileRepository, ProfileUpdateData, StreamProfile},
     Profile,
 };
 use colette_entities::{profile, profile_feed};
@@ -17,7 +17,7 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl ProfilesRepository for SqlRepository {
+impl ProfileRepository for SqlRepository {
     async fn find_many_profiles(
         &self,
         user_id: Uuid,
@@ -46,7 +46,7 @@ impl ProfilesRepository for SqlRepository {
         }
     }
 
-    async fn create_profile(&self, data: ProfilesCreateData) -> Result<Profile, Error> {
+    async fn create_profile(&self, data: ProfileCreateData) -> Result<Profile, Error> {
         let model = profile::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
@@ -70,7 +70,7 @@ impl ProfilesRepository for SqlRepository {
         &self,
         id: Uuid,
         user_id: Uuid,
-        data: ProfilesUpdateData,
+        data: ProfileUpdateData,
     ) -> Result<Profile, Error> {
         self.db
             .transaction::<_, colette_core::Profile, Error>(|txn| {

@@ -18,42 +18,42 @@ pub enum TagType {
 }
 
 #[async_trait::async_trait]
-pub trait TagsRepository: Send + Sync {
+pub trait TagRepository: Send + Sync {
     async fn find_many_tags(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<TagsFindManyFilters>,
+        filters: Option<TagFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error>;
 
     async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error>;
 
-    async fn create_tag(&self, data: TagsCreateData) -> Result<Tag, Error>;
+    async fn create_tag(&self, data: TagCreateData) -> Result<Tag, Error>;
 
     async fn update_tag(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: TagsUpdateData,
+        data: TagUpdateData,
     ) -> Result<Tag, Error>;
 
     async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]
-pub struct TagsFindManyFilters {
+pub struct TagFindManyFilters {
     pub tag_type: TagType,
 }
 
 #[derive(Clone, Debug)]
-pub struct TagsCreateData {
+pub struct TagCreateData {
     pub title: String,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct TagsUpdateData {
+pub struct TagUpdateData {
     pub title: Option<String>,
 }
 

@@ -8,20 +8,20 @@ pub struct User {
 }
 
 #[async_trait::async_trait]
-pub trait UsersRepository: Send + Sync {
-    async fn find_one_user(&self, params: UsersFindOneParams) -> Result<User, Error>;
+pub trait UserRepository: Send + Sync {
+    async fn find_one_user(&self, params: UserFindOneParams) -> Result<User, Error>;
 
-    async fn create_user(&self, data: UsersCreateData) -> Result<User, Error>;
+    async fn create_user(&self, data: UserCreateData) -> Result<User, Error>;
 }
 
 #[derive(Clone, Debug)]
-pub enum UsersFindOneParams {
+pub enum UserFindOneParams {
     Id(Uuid),
     Email(String),
 }
 
 #[derive(Clone, Debug)]
-pub struct UsersCreateData {
+pub struct UserCreateData {
     pub email: String,
     pub password: String,
 }

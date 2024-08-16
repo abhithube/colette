@@ -17,13 +17,13 @@ pub struct FeedEntry {
 }
 
 #[async_trait::async_trait]
-pub trait FeedEntriesRepository: Send + Sync {
+pub trait FeedEntryRepository: Send + Sync {
     async fn find_many_feed_entries(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<FeedEntriesFindManyFilters>,
+        filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error>;
 
     async fn find_one_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error>;
@@ -32,19 +32,19 @@ pub trait FeedEntriesRepository: Send + Sync {
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: FeedEntriesUpdateData,
+        data: FeedEntryUpdateData,
     ) -> Result<FeedEntry, Error>;
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedEntriesFindManyFilters {
+pub struct FeedEntryFindManyFilters {
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedEntriesUpdateData {
+pub struct FeedEntryUpdateData {
     pub has_read: Option<bool>,
 }
 

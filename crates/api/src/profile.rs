@@ -7,15 +7,15 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::profiles::{self, ProfilesCreateData, ProfilesRepository, ProfilesUpdateData};
+use colette_core::profile::{self, ProfileCreateData, ProfileRepository, ProfileUpdateData};
 use url::Url;
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct ProfilesState {
-    pub repository: Arc<dyn ProfilesRepository>,
+pub struct ProfileState {
+    pub repository: Arc<dyn ProfileRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -33,7 +33,7 @@ pub struct ProfilesState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<ProfilesState> {
+    pub fn router() -> Router<ProfileState> {
         Router::new().nest(
             "/profiles",
             Router::new()
@@ -82,7 +82,7 @@ impl From<colette_core::Profile> for Profile {
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
@@ -121,7 +121,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -133,7 +133,7 @@ pub async fn get_profile(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            profile::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -169,7 +169,7 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
@@ -208,12 +208,12 @@ impl IntoResponse for GetActiveResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_profile(ProfilesCreateData {
+        .create_profile(ProfileCreateData {
             title: body.title,
             image_url: body.image_url.map(String::from),
             user_id: session.user_id,
@@ -223,7 +223,7 @@ pub async fn create_profile(
     match result.map(Profile::from) {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            profiles::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+            profile::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -277,7 +277,7 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<ProfileUpdate>>,
@@ -290,7 +290,7 @@ pub async fn update_profile(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            profile::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -309,7 +309,7 @@ pub struct ProfileUpdate {
     pub image_url: Option<Url>,
 }
 
-impl From<ProfileUpdate> for ProfilesUpdateData {
+impl From<ProfileUpdate> for ProfileUpdateData {
     fn from(value: ProfileUpdate) -> Self {
         Self {
             title: value.title,
@@ -342,7 +342,7 @@ pub enum UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
-    State(repository): State<Arc<dyn ProfilesRepository>>,
+    State(repository): State<Arc<dyn ProfileRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -351,10 +351,10 @@ pub async fn delete_profile(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            profiles::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            profile::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            profiles::Error::DeletingDefault => Ok(DeleteResponse::Conflict(BaseError {
+            profile::Error::DeletingDefault => Ok(DeleteResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

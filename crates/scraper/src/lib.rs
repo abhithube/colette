@@ -3,7 +3,7 @@ pub use bookmarks::{
     twitter_extractor_options, DefaultBookmarkExtractor, DefaultBookmarkPostprocessor,
     DefaultBookmarkScraper,
 };
-pub use colette_core::feeds::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions};
+pub use colette_core::feed::{ExtractedEntry, ExtractedFeed, FeedExtractorOptions};
 pub use downloader::DefaultDownloader;
 pub use feeds::{DefaultFeedPostprocessor, DefaultFeedScraper, HtmlExtractor};
 

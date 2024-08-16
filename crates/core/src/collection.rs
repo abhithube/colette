@@ -10,7 +10,7 @@ pub struct Collection {
 }
 
 #[async_trait::async_trait]
-pub trait CollectionsRepository: Send + Sync {
+pub trait CollectionRepository: Send + Sync {
     async fn find_many_collections(
         &self,
         profile_id: Uuid,
@@ -20,26 +20,26 @@ pub trait CollectionsRepository: Send + Sync {
 
     async fn find_one_collection(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error>;
 
-    async fn create_collection(&self, data: CollectionsCreateData) -> Result<Collection, Error>;
+    async fn create_collection(&self, data: CollectionCreateData) -> Result<Collection, Error>;
 
     async fn update_collection(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: CollectionsUpdateData,
+        data: CollectionUpdateData,
     ) -> Result<Collection, Error>;
 
     async fn delete_collection(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]
-pub struct CollectionsCreateData {
+pub struct CollectionCreateData {
     pub title: String,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct CollectionsUpdateData {
+pub struct CollectionUpdateData {
     pub title: Option<String>,
 }
 

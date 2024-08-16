@@ -1,4 +1,4 @@
-use crate::{profiles, users};
+use crate::{profile, user};
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct Register {
@@ -15,10 +15,10 @@ pub struct Login {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Profiles(#[from] profiles::Error),
+    Profiles(#[from] profile::Error),
 
     #[error(transparent)]
-    Users(#[from] users::Error),
+    Users(#[from] user::Error),
 
     #[error("user not authenticated")]
     NotAuthenticated,

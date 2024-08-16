@@ -1,5 +1,5 @@
 use colette_core::{
-    users::{Error, NotFoundError, UsersCreateData, UsersFindOneParams, UsersRepository},
+    user::{Error, NotFoundError, UserCreateData, UserFindOneParams, UserRepository},
     User,
 };
 use colette_entities::{profile, user};
@@ -9,10 +9,10 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl UsersRepository for SqlRepository {
-    async fn find_one_user(&self, params: UsersFindOneParams) -> Result<User, Error> {
+impl UserRepository for SqlRepository {
+    async fn find_one_user(&self, params: UserFindOneParams) -> Result<User, Error> {
         match params {
-            UsersFindOneParams::Id(id) => {
+            UserFindOneParams::Id(id) => {
                 let Some(profile) = user::Entity::find_by_id(id)
                     .one(&self.db)
                     .await
@@ -23,7 +23,7 @@ impl UsersRepository for SqlRepository {
 
                 Ok(profile.into())
             }
-            UsersFindOneParams::Email(email) => {
+            UserFindOneParams::Email(email) => {
                 let Some(profile) = user::Entity::find()
                     .filter(user::Column::Email.eq(email.clone()))
                     .one(&self.db)
@@ -38,7 +38,7 @@ impl UsersRepository for SqlRepository {
         }
     }
 
-    async fn create_user(&self, data: UsersCreateData) -> Result<User, Error> {
+    async fn create_user(&self, data: UserCreateData) -> Result<User, Error> {
         self.db
             .transaction::<_, User, Error>(|txn| {
                 Box::pin(async move {

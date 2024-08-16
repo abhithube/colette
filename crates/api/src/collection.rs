@@ -7,16 +7,16 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::collections::{
-    self, CollectionsCreateData, CollectionsRepository, CollectionsUpdateData,
+use colette_core::collection::{
+    self, CollectionCreateData, CollectionRepository, CollectionUpdateData,
 };
 use uuid::Uuid;
 
 use crate::common::{BaseError, CollectionList, Error, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct CollectionsState {
-    pub repository: Arc<dyn CollectionsRepository>,
+pub struct CollectionState {
+    pub repository: Arc<dyn CollectionRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -33,7 +33,7 @@ pub struct CollectionsState {
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<CollectionsState> {
+    pub fn router() -> Router<CollectionState> {
         Router::new().nest(
             "/collections",
             Router::new()
@@ -78,7 +78,7 @@ impl From<colette_core::Collection> for Collection {
 )]
 #[axum::debug_handler]
 pub async fn list_collections(
-    State(repository): State<Arc<dyn CollectionsRepository>>,
+    State(repository): State<Arc<dyn CollectionRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
@@ -117,7 +117,7 @@ impl IntoResponse for ListResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_collection(
-    State(repository): State<Arc<dyn CollectionsRepository>>,
+    State(repository): State<Arc<dyn CollectionRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -129,7 +129,7 @@ pub async fn get_collection(
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            collections::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            collection::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -166,12 +166,12 @@ impl IntoResponse for GetResponse {
 )]
 #[axum::debug_handler]
 pub async fn create_collection(
-    State(repository): State<Arc<dyn CollectionsRepository>>,
+    State(repository): State<Arc<dyn CollectionRepository>>,
     session: Session,
     Valid(Json(body)): Valid<Json<CollectionCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_collection(CollectionsCreateData {
+        .create_collection(CollectionCreateData {
             title: body.title,
             profile_id: session.profile_id,
         })
@@ -181,7 +181,7 @@ pub async fn create_collection(
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),
         Err(e) => match e {
-            collections::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+            collection::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -232,7 +232,7 @@ impl IntoResponse for CreateResponse {
 )]
 #[axum::debug_handler]
 pub async fn update_collection(
-    State(repository): State<Arc<dyn CollectionsRepository>>,
+    State(repository): State<Arc<dyn CollectionRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Valid(Json(body)): Valid<Json<CollectionUpdate>>,
@@ -245,7 +245,7 @@ pub async fn update_collection(
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            collections::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            collection::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -261,7 +261,7 @@ pub struct CollectionUpdate {
     pub title: Option<String>,
 }
 
-impl From<CollectionUpdate> for CollectionsUpdateData {
+impl From<CollectionUpdate> for CollectionUpdateData {
     fn from(value: CollectionUpdate) -> Self {
         Self { title: value.title }
     }
@@ -301,7 +301,7 @@ impl IntoResponse for UpdateResponse {
 )]
 #[axum::debug_handler]
 pub async fn delete_collection(
-    State(repository): State<Arc<dyn CollectionsRepository>>,
+    State(repository): State<Arc<dyn CollectionRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -310,7 +310,7 @@ pub async fn delete_collection(
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            collections::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            collection::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),

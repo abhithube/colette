@@ -1,5 +1,5 @@
 use colette_core::{
-    feeds::Detector,
+    feed::Detector,
     scraper::{ExtractError, ExtractorQuery, Node},
 };
 use http::Response;

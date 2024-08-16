@@ -9,21 +9,21 @@ use axum::{
 use axum_valid::Valid;
 use colette_core::{
     auth,
-    profiles::ProfilesRepository,
-    users::{self, UsersCreateData, UsersFindOneParams, UsersRepository},
+    profile::ProfileRepository,
+    user::{self, UserCreateData, UserFindOneParams, UserRepository},
 };
 use colette_utils::password;
 use uuid::Uuid;
 
 use crate::{
     common::{BaseError, Error, Session, SESSION_KEY},
-    profiles::Profile,
+    profile::Profile,
 };
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    pub users_repository: Arc<dyn UsersRepository>,
-    pub profiles_repository: Arc<dyn ProfilesRepository>,
+    pub user_repository: Arc<dyn UserRepository>,
+    pub profile_repository: Arc<dyn ProfileRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -73,7 +73,7 @@ impl From<colette_core::User> for User {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(repository): State<Arc<dyn UsersRepository>>,
+    State(repository): State<Arc<dyn UserRepository>>,
     Valid(Json(body)): Valid<Json<Register>>,
 ) -> Result<impl IntoResponse, Error> {
     let hashed = password::hash(&body.password)
@@ -81,7 +81,7 @@ pub async fn register(
         .map_err(|_| Error::Unknown)?;
 
     let result = repository
-        .create_user(UsersCreateData {
+        .create_user(UserCreateData {
             email: body.email,
             password: hashed,
         })
@@ -92,7 +92,7 @@ pub async fn register(
     match result {
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
-            auth::Error::Users(users::Error::Conflict(_)) => {
+            auth::Error::Users(user::Error::Conflict(_)) => {
                 Ok(RegisterResponse::Conflict(BaseError {
                     message: e.to_string(),
                 }))
@@ -158,19 +158,19 @@ impl IntoResponse for RegisterResponse {
 #[axum::debug_handler]
 pub async fn login(
     State(AuthState {
-        users_repository,
-        profiles_repository,
+        user_repository,
+        profile_repository,
     }): State<AuthState>,
     session_store: tower_sessions::Session,
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = users_repository
-        .find_one_user(UsersFindOneParams::Email(body.email))
+    let result = user_repository
+        .find_one_user(UserFindOneParams::Email(body.email))
         .await;
 
     if let Err(e) = result {
         match e {
-            users::Error::NotFound(_) => {
+            user::Error::NotFound(_) => {
                 return Ok(LoginResponse::Unauthorized(BaseError {
                     message: "bad credentials".to_owned(),
                 }));
@@ -191,7 +191,7 @@ pub async fn login(
         }));
     }
 
-    let result = profiles_repository
+    let result = profile_repository
         .find_one_profile(None, user.id)
         .await
         .map(Profile::from)
@@ -270,11 +270,11 @@ impl IntoResponse for LoginResponse {
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(
-    State(repository): State<Arc<dyn UsersRepository>>,
+    State(repository): State<Arc<dyn UserRepository>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let user = repository
-        .find_one_user(UsersFindOneParams::Id(session.user_id))
+        .find_one_user(UserFindOneParams::Id(session.user_id))
         .await
         .map(User::from)
         .map_err(|_| Error::Unknown)?;
