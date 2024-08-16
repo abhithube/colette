@@ -1,10 +1,27 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Entry, Feed, Profile, Tag, User};
+use colette_core::{Bookmark, Collection, Entry, Feed, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Linked, Related, RelationDef, RelationTrait};
 use uuid::Uuid;
 
 mod generated;
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialCollection {
+    id: Uuid,
+    title: String,
+    bookmark_count: i64,
+}
+
+impl From<PartialCollection> for Collection {
+    fn from(value: PartialCollection) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            bookmark_count: Some(value.bookmark_count),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct PfeWithEntry {

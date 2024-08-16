@@ -1,6 +1,7 @@
 use sea_orm::DatabaseConnection;
 
 mod bookmarks;
+mod collections;
 mod entries;
 mod feeds;
 mod profiles;
