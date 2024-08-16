@@ -3,13 +3,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "profile_feed_entry")]
+#[sea_orm(table_name = "folder")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub has_read: bool,
-    pub profile_feed_id: Uuid,
-    pub feed_entry_id: i32,
+    #[sea_orm(column_type = "Text")]
+    pub title: String,
+    pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -18,13 +18,13 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::feed_entry::Entity",
-        from = "Column::FeedEntryId",
-        to = "super::feed_entry::Column::Id",
+        belongs_to = "Entity",
+        from = "Column::ParentId",
+        to = "Column::Id",
         on_update = "NoAction",
-        on_delete = "Restrict"
+        on_delete = "Cascade"
     )]
-    FeedEntry,
+    SelfRef,
     #[sea_orm(
         belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
@@ -33,31 +33,11 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Profile,
-    #[sea_orm(
-        belongs_to = "super::profile_feed::Entity",
-        from = "Column::ProfileFeedId",
-        to = "super::profile_feed::Column::Id",
-        on_update = "NoAction",
-        on_delete = "Cascade"
-    )]
-    ProfileFeed,
-}
-
-impl Related<super::feed_entry::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::FeedEntry.def()
-    }
 }
 
 impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Profile.def()
-    }
-}
-
-impl Related<super::profile_feed::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ProfileFeed.def()
     }
 }
 

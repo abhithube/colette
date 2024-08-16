@@ -3,8 +3,8 @@ use sea_orm_migration::{prelude::*, schema::*};
 use strum::IntoEnumIterator;
 
 use crate::{
-    m0001_initial_feed::{Feed, FeedEntry},
-    m0002_initial_user::Profile,
+    m0001_initial_user::Profile,
+    m0002_initial_feed::{Feed, FeedEntry},
     postgres, sqlite,
 };
 

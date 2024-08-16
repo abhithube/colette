@@ -2,7 +2,7 @@ use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
 use strum::IntoEnumIterator;
 
-use crate::{m0002_initial_user::Profile, m0004_initial_bookmark::Bookmark, postgres, sqlite};
+use crate::{m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark, postgres, sqlite};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
