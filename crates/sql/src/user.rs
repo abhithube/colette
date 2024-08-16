@@ -3,7 +3,9 @@ use colette_core::{
     User,
 };
 use colette_entities::{profile, user};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, Set, SqlErr, TransactionTrait};
+use sea_orm::{
+    ColumnTrait, EntityTrait, QueryFilter, Set, SqlErr, TransactionError, TransactionTrait,
+};
 use uuid::Uuid;
 
 use crate::SqlRepository;
@@ -77,6 +79,9 @@ impl UserRepository for SqlRepository {
                 })
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }

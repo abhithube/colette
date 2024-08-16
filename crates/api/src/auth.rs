@@ -86,17 +86,14 @@ pub async fn register(
             password: hashed,
         })
         .await
-        .map(User::from)
-        .map_err(|e| e.into());
+        .map(User::from);
 
     match result {
         Ok(data) => Ok(RegisterResponse::Created(data)),
         Err(e) => match e {
-            auth::Error::Users(user::Error::Conflict(_)) => {
-                Ok(RegisterResponse::Conflict(BaseError {
-                    message: e.to_string(),
-                }))
-            }
+            user::Error::Conflict(_) => Ok(RegisterResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
             _ => Err(Error::Unknown),
         },
     }
