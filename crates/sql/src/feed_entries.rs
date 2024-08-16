@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::Paginated,
-    entries::{EntriesFindManyFilters, EntriesRepository, EntriesUpdateData, Error},
-    Entry,
+    feed_entries::{
+        Error, FeedEntriesFindManyFilters, FeedEntriesRepository, FeedEntriesUpdateData,
+    },
+    FeedEntry,
 };
 use colette_entities::{
-    feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithFeedEntry,
+    feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithFe,
 };
 use colette_utils::base_64;
 use sea_orm::{
@@ -18,29 +20,29 @@ use uuid::Uuid;
 use crate::SqlRepository;
 
 #[async_trait::async_trait]
-impl EntriesRepository for SqlRepository {
-    async fn find_many_entries(
+impl FeedEntriesRepository for SqlRepository {
+    async fn find_many_feed_entries(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor_raw: Option<String>,
-        filters: Option<EntriesFindManyFilters>,
-    ) -> Result<Paginated<Entry>, Error> {
+        filters: Option<FeedEntriesFindManyFilters>,
+    ) -> Result<Paginated<FeedEntry>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one_entry(&self, id: Uuid, profile_id: Uuid) -> Result<Entry, Error> {
+    async fn find_one_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn update_entry(
+    async fn update_feed_entry(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: EntriesUpdateData,
-    ) -> Result<Entry, Error> {
+        data: FeedEntriesUpdateData,
+    ) -> Result<FeedEntry, Error> {
         self.db
-            .transaction::<_, Entry, Error>(|txn| {
+            .transaction::<_, FeedEntry, Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) = profile_feed_entry::Entity::find_by_id(id)
                         .filter(profile_feed_entry::Column::ProfileId.eq(profile_id))
@@ -80,8 +82,8 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor_raw: Option<String>,
-    filters: Option<EntriesFindManyFilters>,
-) -> Result<Paginated<Entry>, Error> {
+    filters: Option<FeedEntriesFindManyFilters>,
+) -> Result<Paginated<FeedEntry>, Error> {
     let mut query = profile_feed_entry::Entity::find()
         .find_also_related(feed_entry::Entity)
         .order_by_desc(feed_entry::Column::PublishedAt)
@@ -135,20 +137,18 @@ async fn find<Db: ConnectionTrait>(
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
-    let mut entries = models
+    let mut feed_entries = models
         .into_iter()
-        .filter_map(|(pfe, fe_opt)| {
-            fe_opt.map(|entry| Entry::from(PfeWithFeedEntry { pfe, fe: entry }))
-        })
+        .filter_map(|(pfe, fe_opt)| fe_opt.map(|fe| FeedEntry::from(PfeWithFe { pfe, fe })))
         .collect::<Vec<_>>();
     let mut cursor: Option<String> = None;
 
     if let Some(limit) = limit {
         let limit = limit as usize;
-        if entries.len() > limit {
-            entries = entries.into_iter().take(limit).collect();
+        if feed_entries.len() > limit {
+            feed_entries = feed_entries.into_iter().take(limit).collect();
 
-            if let Some(last) = entries.last() {
+            if let Some(last) = feed_entries.last() {
                 let c = Cursor {
                     id: last.id,
                     published_at: last.published_at,
@@ -160,9 +160,9 @@ async fn find<Db: ConnectionTrait>(
         }
     }
 
-    Ok(Paginated::<Entry> {
+    Ok(Paginated::<FeedEntry> {
         cursor,
-        data: entries,
+        data: feed_entries,
     })
 }
 
@@ -170,10 +170,14 @@ async fn find_by_id<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
     profile_id: Uuid,
-) -> Result<Entry, Error> {
-    let entries = find(db, Some(id), profile_id, Some(1), None, None).await?;
+) -> Result<FeedEntry, Error> {
+    let feed_entries = find(db, Some(id), profile_id, Some(1), None, None).await?;
 
-    entries.data.first().cloned().ok_or(Error::NotFound(id))
+    feed_entries
+        .data
+        .first()
+        .cloned()
+        .ok_or(Error::NotFound(id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

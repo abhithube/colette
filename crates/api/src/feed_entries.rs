@@ -11,38 +11,43 @@ use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::PAGINATION_LIMIT,
-    entries::{self, EntriesFindManyFilters, EntriesRepository, EntriesUpdateData},
+    feed_entries::{
+        self, FeedEntriesFindManyFilters, FeedEntriesRepository, FeedEntriesUpdateData,
+    },
 };
 use uuid::Uuid;
 
-use crate::common::{BaseError, EntryList, Error, Id, Paginated, Session};
+use crate::common::{BaseError, Error, FeedEntryList, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
-pub struct EntriesState {
-    pub repository: Arc<dyn EntriesRepository>,
+pub struct FeedEntriesState {
+    pub repository: Arc<dyn FeedEntriesRepository>,
 }
 
 #[derive(utoipa::OpenApi)]
 #[openapi(
-    paths(list_entries, get_entry, update_entry),
-    components(schemas(Entry, EntryList, EntryUpdate))
+    paths(list_feed_entries, get_feed_entry, update_feed_entry),
+    components(schemas(FeedEntry, FeedEntryList, FeedEntryUpdate))
 )]
 pub struct Api;
 
 impl Api {
-    pub fn router() -> Router<EntriesState> {
+    pub fn router() -> Router<FeedEntriesState> {
         Router::new().nest(
-            "/entries",
+            "/feedEntries",
             Router::new()
-                .route("/", routing::get(list_entries))
-                .route("/:id", routing::get(get_entry).patch(update_entry)),
+                .route("/", routing::get(list_feed_entries))
+                .route(
+                    "/:id",
+                    routing::get(get_feed_entry).patch(update_feed_entry),
+                ),
         )
     }
 }
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Entry {
+pub struct FeedEntry {
     pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
@@ -59,8 +64,8 @@ pub struct Entry {
     pub feed_id: Uuid,
 }
 
-impl From<colette_core::Entry> for Entry {
-    fn from(value: colette_core::Entry) -> Self {
+impl From<colette_core::FeedEntry> for FeedEntry {
+    fn from(value: colette_core::FeedEntry) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -78,31 +83,31 @@ impl From<colette_core::Entry> for Entry {
 #[utoipa::path(
     get,
     path = "",
-    params(ListEntriesQuery),
+    params(ListFeedEntriesQuery),
     responses(ListResponse),
-    operation_id = "listEntries",
+    operation_id = "listFeedEntries",
     description = "List feed entries",
-    tag = "Entries"
+    tag = "Feed Entries"
 )]
 #[axum::debug_handler]
-pub async fn list_entries(
-    State(repository): State<Arc<dyn EntriesRepository>>,
-    Query(query): Query<ListEntriesQuery>,
+pub async fn list_feed_entries(
+    State(repository): State<Arc<dyn FeedEntriesRepository>>,
+    Query(query): Query<ListFeedEntriesQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_entries(
+        .find_many_feed_entries(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor,
-            Some(EntriesFindManyFilters {
+            Some(FeedEntriesFindManyFilters {
                 feed_id: query.feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
             }),
         )
         .await
-        .map(Paginated::<Entry>::from);
+        .map(Paginated::<FeedEntry>::from);
 
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
@@ -113,7 +118,7 @@ pub async fn list_entries(
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListEntriesQuery {
+pub struct ListFeedEntriesQuery {
     #[param(nullable = false)]
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
@@ -127,8 +132,8 @@ pub struct ListEntriesQuery {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of entries")]
-    Ok(EntryList),
+    #[response(status = 200, description = "Paginated list of feed entries")]
+    Ok(FeedEntryList),
 }
 
 impl IntoResponse for ListResponse {
@@ -144,25 +149,25 @@ impl IntoResponse for ListResponse {
     path = "/{id}",
     params(Id),
     responses(GetResponse),
-    operation_id = "getEntry",
+    operation_id = "getFeedEntry",
     description = "Get a feed entry by ID",
-    tag = "Entries"
+    tag = "Feed Entries"
 )]
 #[axum::debug_handler]
-pub async fn get_entry(
-    State(repository): State<Arc<dyn EntriesRepository>>,
+pub async fn get_feed_entry(
+    State(repository): State<Arc<dyn FeedEntriesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_entry(id, session.profile_id)
+        .find_one_feed_entry(id, session.profile_id)
         .await
-        .map(Entry::from);
+        .map(FeedEntry::from);
 
     match result {
         Ok(data) => Ok(GetResponse::Ok(data)),
         Err(e) => match e {
-            entries::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            feed_entries::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -172,10 +177,10 @@ pub async fn get_entry(
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
-    #[response(status = 200, description = "Entry by ID")]
-    Ok(Entry),
+    #[response(status = 200, description = "Feed entry by ID")]
+    Ok(FeedEntry),
 
-    #[response(status = 404, description = "Entry not found")]
+    #[response(status = 404, description = "Feed entry not found")]
     NotFound(BaseError),
 }
 
@@ -192,28 +197,28 @@ impl IntoResponse for GetResponse {
     patch,
     path = "/{id}",
     params(Id),
-    request_body = EntryUpdate,
+    request_body = FeedEntryUpdate,
     responses(UpdateResponse),
-    operation_id = "updateEntry",
+    operation_id = "updateFeedEntry",
     description = "Update a feed entry by ID",
-    tag = "Entries"
+    tag = "Feed Entries"
 )]
 #[axum::debug_handler]
-pub async fn update_entry(
-    State(repository): State<Arc<dyn EntriesRepository>>,
+pub async fn update_feed_entry(
+    State(repository): State<Arc<dyn FeedEntriesRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<EntryUpdate>>,
+    Valid(Json(body)): Valid<Json<FeedEntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_entry(id, session.profile_id, body.into())
+        .update_feed_entry(id, session.profile_id, body.into())
         .await
-        .map(Entry::from);
+        .map(FeedEntry::from);
 
     match result {
         Ok(data) => Ok(UpdateResponse::Ok(data)),
         Err(e) => match e {
-            entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            feed_entries::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown),
@@ -223,12 +228,12 @@ pub async fn update_entry(
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
 #[serde(rename_all = "camelCase")]
-pub struct EntryUpdate {
+pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }
 
-impl From<EntryUpdate> for EntriesUpdateData {
-    fn from(value: EntryUpdate) -> Self {
+impl From<FeedEntryUpdate> for FeedEntriesUpdateData {
+    fn from(value: FeedEntryUpdate) -> Self {
         Self {
             has_read: value.has_read,
         }
@@ -237,10 +242,10 @@ impl From<EntryUpdate> for EntriesUpdateData {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated entry")]
-    Ok(Entry),
+    #[response(status = 200, description = "Updated feed entry")]
+    Ok(FeedEntry),
 
-    #[response(status = 404, description = "Entry not found")]
+    #[response(status = 404, description = "Feed entry not found")]
     NotFound(BaseError),
 
     #[allow(dead_code)]

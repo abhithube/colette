@@ -1,6 +1,6 @@
 pub use bookmarks::Bookmark;
 pub use collections::Collection;
-pub use entries::Entry;
+pub use feed_entries::FeedEntry;
 pub use feeds::Feed;
 pub use profiles::Profile;
 pub use tags::Tag;
@@ -11,7 +11,7 @@ pub mod backup;
 pub mod bookmarks;
 pub mod collections;
 pub mod common;
-pub mod entries;
+pub mod feed_entries;
 pub mod feeds;
 pub mod profiles;
 pub mod scraper;

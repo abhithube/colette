@@ -8,7 +8,7 @@ use bookmarks::BookmarksState;
 use colette_config::AppConfig;
 use collections::CollectionsState;
 pub use common::Session;
-use entries::EntriesState;
+use feed_entries::FeedEntriesState;
 use feeds::FeedsState;
 use profiles::ProfilesState;
 use tags::TagsState;
@@ -19,15 +19,15 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
     auth::Api as Auth, bookmarks::Api as Bookmarks, collections::Api as Collections,
-    common::BaseError, entries::Api as Entries, feeds::Api as Feeds, profiles::Api as Profiles,
-    tags::Api as Tags,
+    common::BaseError, feed_entries::Api as FeedEntries, feeds::Api as Feeds,
+    profiles::Api as Profiles, tags::Api as Tags,
 };
 
 pub mod auth;
 pub mod bookmarks;
 pub mod collections;
 mod common;
-pub mod entries;
+pub mod feed_entries;
 pub mod feeds;
 pub mod profiles;
 pub mod tags;
@@ -37,8 +37,8 @@ pub struct ApiState {
     pub auth_state: AuthState,
     pub bookmarks_state: BookmarksState,
     pub collections_state: CollectionsState,
-    pub entries_state: EntriesState,
     pub feeds_state: FeedsState,
+    pub feed_entries_state: FeedEntriesState,
     pub profiles_state: ProfilesState,
     pub tags_state: TagsState,
 }
@@ -52,8 +52,8 @@ pub struct ApiState {
       (path = "/auth", api = Auth),
       (path = "/bookmarks", api = Bookmarks),
       (path = "/collections", api = Collections),
-      (path = "/entries", api = Entries),
       (path = "/feeds", api = Feeds),
+      (path = "/feedEntries", api = FeedEntries),
       (path = "/profiles", api = Profiles),
       (path = "/tags", api = Tags)
   ),
@@ -92,10 +92,10 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_state(BookmarksState::from_ref(self.api_state))
                     .merge(Collections::router())
                     .with_state(CollectionsState::from_ref(self.api_state))
-                    .merge(Entries::router())
-                    .with_state(EntriesState::from_ref(self.api_state))
                     .merge(Feeds::router())
                     .with_state(FeedsState::from_ref(self.api_state))
+                    .merge(FeedEntries::router())
+                    .with_state(FeedEntriesState::from_ref(self.api_state))
                     .merge(Profiles::router())
                     .with_state(ProfilesState::from_ref(self.api_state))
                     .merge(Tags::router())

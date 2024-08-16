@@ -2,7 +2,7 @@ use sea_orm::DatabaseConnection;
 
 mod bookmarks;
 mod collections;
-mod entries;
+mod feed_entries;
 mod feeds;
 mod profiles;
 mod tags;

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Collection, Entry, Feed, Profile, Tag, User};
+use colette_core::{Bookmark, Collection, Feed, FeedEntry, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
@@ -24,13 +24,13 @@ impl From<PartialCollection> for Collection {
 }
 
 #[derive(Clone, Debug)]
-pub struct PfeWithFeedEntry {
+pub struct PfeWithFe {
     pub pfe: profile_feed_entry::Model,
     pub fe: feed_entry::Model,
 }
 
-impl From<PfeWithFeedEntry> for Entry {
-    fn from(value: PfeWithFeedEntry) -> Self {
+impl From<PfeWithFe> for FeedEntry {
+    fn from(value: PfeWithFe) -> Self {
         Self {
             id: value.pfe.id,
             link: value.fe.link,

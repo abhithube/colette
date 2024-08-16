@@ -4,7 +4,7 @@ use uuid::Uuid;
 use crate::common::Paginated;
 
 #[derive(Clone, Debug, serde::Serialize)]
-pub struct Entry {
+pub struct FeedEntry {
     pub id: Uuid,
     pub link: String,
     pub title: String,
@@ -17,40 +17,40 @@ pub struct Entry {
 }
 
 #[async_trait::async_trait]
-pub trait EntriesRepository: Send + Sync {
-    async fn find_many_entries(
+pub trait FeedEntriesRepository: Send + Sync {
+    async fn find_many_feed_entries(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
-        filters: Option<EntriesFindManyFilters>,
-    ) -> Result<Paginated<Entry>, Error>;
+        filters: Option<FeedEntriesFindManyFilters>,
+    ) -> Result<Paginated<FeedEntry>, Error>;
 
-    async fn find_one_entry(&self, id: Uuid, profile_id: Uuid) -> Result<Entry, Error>;
+    async fn find_one_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error>;
 
-    async fn update_entry(
+    async fn update_feed_entry(
         &self,
         id: Uuid,
         profile_id: Uuid,
-        data: EntriesUpdateData,
-    ) -> Result<Entry, Error>;
+        data: FeedEntriesUpdateData,
+    ) -> Result<FeedEntry, Error>;
 }
 
 #[derive(Clone, Debug)]
-pub struct EntriesFindManyFilters {
+pub struct FeedEntriesFindManyFilters {
     pub feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
-pub struct EntriesUpdateData {
+pub struct FeedEntriesUpdateData {
     pub has_read: Option<bool>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("entry not found with id: {0}")]
+    #[error("feed entry not found with id: {0}")]
     NotFound(Uuid),
 
     #[error(transparent)]
