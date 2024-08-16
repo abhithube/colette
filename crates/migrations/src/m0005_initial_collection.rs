@@ -161,7 +161,9 @@ pub enum Collection {
     Id,
     Title,
     ProfileId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
@@ -175,6 +177,8 @@ pub enum ProfileBookmark {
     ProfileId,
     BookmarkId,
     CollectionId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }

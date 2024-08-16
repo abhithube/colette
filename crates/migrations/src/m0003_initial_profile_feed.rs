@@ -88,6 +88,14 @@ impl MigrationTrait for Migration {
                             .to(Profile::Table, Profile::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
+                    .col(
+                        timestamp_with_time_zone(ProfileFeedEntry::CreatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
+                    .col(
+                        timestamp_with_time_zone(ProfileFeedEntry::UpdatedAt)
+                            .default(Expr::current_timestamp()),
+                    )
                     .to_owned(),
             )
             .await?;
@@ -115,12 +123,22 @@ impl MigrationTrait for Migration {
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, ProfileFeed::Table.to_string())
                     .await?;
+                postgres::create_updated_at_trigger(manager, ProfileFeedEntry::Table.to_string())
+                    .await?;
             }
             DatabaseBackend::Sqlite => {
                 sqlite::create_updated_at_trigger(
                     manager,
                     ProfileFeed::Table.to_string(),
                     ProfileFeed::iter()
+                        .map(|e| e.to_string())
+                        .collect::<Vec<_>>(),
+                )
+                .await?;
+                sqlite::create_updated_at_trigger(
+                    manager,
+                    ProfileFeedEntry::Table.to_string(),
+                    ProfileFeedEntry::iter()
                         .map(|e| e.to_string())
                         .collect::<Vec<_>>(),
                 )
@@ -154,11 +172,13 @@ pub enum ProfileFeed {
     Title,
     ProfileId,
     FeedId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
-#[derive(DeriveIden)]
+#[derive(DeriveIden, strum_macros::EnumIter)]
 pub enum ProfileFeedEntry {
     Table,
     Id,
@@ -166,4 +186,8 @@ pub enum ProfileFeedEntry {
     ProfileFeedId,
     FeedEntryId,
     ProfileId,
+    #[strum(disabled)]
+    CreatedAt,
+    #[strum(disabled)]
+    UpdatedAt,
 }

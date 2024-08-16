@@ -208,7 +208,9 @@ pub enum Tag {
     Id,
     Title,
     ProfileId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
@@ -219,7 +221,9 @@ pub enum ProfileFeedTag {
     ProfileFeedId,
     TagId,
     ProfileId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
@@ -230,6 +234,8 @@ pub enum ProfileBookmarkTag {
     ProfileBookmarkId,
     TagId,
     ProfileId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }

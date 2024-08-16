@@ -128,7 +128,9 @@ pub enum Feed {
     Link,
     Title,
     Url,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
@@ -145,6 +147,8 @@ pub enum FeedEntry {
     Author,
     ThumbnailUrl,
     FeedId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }

@@ -120,7 +120,9 @@ pub enum User {
     Id,
     Email,
     Password,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
 
@@ -134,6 +136,8 @@ pub enum Profile {
     ImageUrl,
     IsDefault,
     UserId,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }

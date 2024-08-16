@@ -71,6 +71,8 @@ pub enum Bookmark {
     ThumbnailUrl,
     PublishedAt,
     Author,
+    #[strum(disabled)]
     CreatedAt,
+    #[strum(disabled)]
     UpdatedAt,
 }
