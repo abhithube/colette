@@ -15,7 +15,7 @@ import type {
   ListBookmarksQuery,
 } from './types'
 
-export class BookmarksAPI {
+export class BookmarkAPI {
   constructor(private client: Client) {}
 
   async list(

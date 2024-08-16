@@ -92,39 +92,41 @@ export interface paths {
         patch: operations["updateBookmark"];
         trace?: never;
     };
-    "/entries": {
+    "/collections": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description List feed entries */
-        get: operations["listEntries"];
+        /** @description List the active profile collections */
+        get: operations["listCollections"];
         put?: never;
-        post?: never;
+        /** @description Create a collection */
+        post: operations["createCollection"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/entries/{id}": {
+    "/collections/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get a feed entry by ID */
-        get: operations["getEntry"];
+        /** @description Get a collection by ID */
+        get: operations["getCollection"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** @description Delete a collection by ID */
+        delete: operations["deleteCollection"];
         options?: never;
         head?: never;
-        /** @description Update a feed entry by ID */
-        patch: operations["updateEntry"];
+        /** @description Update a collection by ID */
+        patch: operations["updateCollection"];
         trace?: never;
     };
     "/feeds": {
@@ -213,6 +215,41 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/feedEntries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List feed entries */
+        get: operations["listFeedEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/feedEntries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a feed entry by ID */
+        get: operations["getFeedEntry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update a feed entry by ID */
+        patch: operations["updateFeedEntry"];
         trace?: never;
     };
     "/profiles": {
@@ -325,6 +362,8 @@ export interface components {
             /** Format: date-time */
             publishedAt: string | null;
             author: string | null;
+            /** Format: uuid */
+            collectionId: string | null;
             /** Format: int32 */
             sortIndex: number;
             tags?: components["schemas"]["Tag"][];
@@ -332,6 +371,8 @@ export interface components {
         BookmarkCreate: {
             /** Format: uri */
             url: string;
+            /** Format: uuid */
+            collectionId?: string;
         };
         BookmarkList: {
             data: components["schemas"]["Bookmark"][];
@@ -340,30 +381,26 @@ export interface components {
         BookmarkUpdate: {
             /** Format: int32 */
             sortIndex?: number;
+            /** Format: uuid */
+            collectionId?: string | null;
             tags?: components["schemas"]["TagCreate"][];
         };
-        Entry: {
+        Collection: {
             /** Format: uuid */
             id: string;
-            /** Format: uri */
-            link: string;
             title: string;
-            /** Format: date-time */
-            publishedAt: string | null;
-            description: string | null;
-            author: string | null;
-            /** Format: uri */
-            thumbnailUrl: string | null;
-            hasRead: boolean;
-            /** Format: uuid */
-            feedId: string;
+            /** Format: int64 */
+            bookmarkCount?: number;
         };
-        EntryList: {
-            data: components["schemas"]["Entry"][];
+        CollectionCreate: {
+            title: string;
+        };
+        CollectionList: {
+            data: components["schemas"]["Collection"][];
             cursor?: string;
         };
-        EntryUpdate: {
-            hasRead?: boolean | null;
+        CollectionUpdate: {
+            title?: string;
         };
         Feed: {
             /** Format: uuid */
@@ -394,6 +431,29 @@ export interface components {
         FeedDetectedList: {
             data: components["schemas"]["FeedDetected"][];
             cursor?: string;
+        };
+        FeedEntry: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uri */
+            link: string;
+            title: string;
+            /** Format: date-time */
+            publishedAt: string | null;
+            description: string | null;
+            author: string | null;
+            /** Format: uri */
+            thumbnailUrl: string | null;
+            hasRead: boolean;
+            /** Format: uuid */
+            feedId: string;
+        };
+        FeedEntryList: {
+            data: components["schemas"]["FeedEntry"][];
+            cursor?: string;
+        };
+        FeedEntryUpdate: {
+            hasRead?: boolean | null;
         };
         FeedList: {
             data: components["schemas"]["Feed"][];
@@ -582,6 +642,7 @@ export interface operations {
     listBookmarks: {
         parameters: {
             query?: {
+                collectionId?: string | null;
                 filterByTags?: boolean;
                 "tag[]"?: string[];
                 cursor?: string;
@@ -749,32 +810,69 @@ export interface operations {
             };
         };
     };
-    listEntries: {
+    listCollections: {
         parameters: {
-            query?: {
-                feedId?: string;
-                hasRead?: boolean;
-                "tag[]"?: string[];
-                cursor?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Paginated list of entries */
+            /** @description Paginated list of collections */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EntryList"];
+                    "application/json": components["schemas"]["CollectionList"];
                 };
             };
         };
     };
-    getEntry: {
+    createCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionCreate"];
+            };
+        };
+        responses: {
+            /** @description Created collection */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Collection"];
+                };
+            };
+            /** @description Collection already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    getCollection: {
         parameters: {
             query?: never;
             header?: never;
@@ -785,16 +883,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Entry by ID */
+            /** @description Collection by ID */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Entry"];
+                    "application/json": components["schemas"]["Collection"];
                 };
             };
-            /** @description Entry not found */
+            /** @description Collection not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -805,7 +903,36 @@ export interface operations {
             };
         };
     };
-    updateEntry: {
+    deleteCollection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully deleted collection */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Collection not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    updateCollection: {
         parameters: {
             query?: never;
             header?: never;
@@ -816,20 +943,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EntryUpdate"];
+                "application/json": components["schemas"]["CollectionUpdate"];
             };
         };
         responses: {
-            /** @description Updated entry */
+            /** @description Updated collection */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Entry"];
+                    "application/json": components["schemas"]["Collection"];
                 };
             };
-            /** @description Entry not found */
+            /** @description Collection not found */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -1098,6 +1225,106 @@ export interface operations {
                 };
                 content: {
                     "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    listFeedEntries: {
+        parameters: {
+            query?: {
+                feedId?: string;
+                hasRead?: boolean;
+                "tag[]"?: string[];
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of feed entries */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedEntryList"];
+                };
+            };
+        };
+    };
+    getFeedEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Feed entry by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedEntry"];
+                };
+            };
+            /** @description Feed entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    updateFeedEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedEntryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated feed entry */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedEntry"];
+                };
+            };
+            /** @description Feed entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
                 };
             };
         };

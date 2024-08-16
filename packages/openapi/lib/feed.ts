@@ -16,7 +16,7 @@ import type {
   ListFeedsQuery,
 } from './types'
 
-export class FeedsAPI {
+export class FeedAPI {
   constructor(private client: Client) {}
 
   async list(

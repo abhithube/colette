@@ -9,7 +9,7 @@ import { Dialog } from '@/components/ui/dialog'
 import {
   ensureInfiniteQueryData,
   getFeedOptions,
-  listEntriesOptions,
+  listFeedEntriesOptions,
 } from '@colette/query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -23,7 +23,7 @@ export const Route = createFileRoute('/_private/feeds/$id')({
   loader: async ({ context, params }) => {
     const feedOptions = getFeedOptions(params.id, context.api)
 
-    const entryOptions = listEntriesOptions(
+    const feedEntryOptions = listFeedEntriesOptions(
       {
         feedId: params.id,
         hasRead: false,
@@ -34,12 +34,12 @@ export const Route = createFileRoute('/_private/feeds/$id')({
 
     await Promise.all([
       context.queryClient.ensureQueryData(feedOptions),
-      ensureInfiniteQueryData(context.queryClient, entryOptions as any),
+      ensureInfiniteQueryData(context.queryClient, feedEntryOptions as any),
     ])
 
     return {
       feedOptions,
-      entryOptions,
+      feedEntryOptions,
     }
   },
   component: Component,
@@ -47,14 +47,14 @@ export const Route = createFileRoute('/_private/feeds/$id')({
 
 function Component() {
   const { id } = Route.useParams()
-  const { feedOptions, entryOptions } = Route.useLoaderData()
+  const { feedOptions, feedEntryOptions } = Route.useLoaderData()
 
   const { data: feed } = useQuery(feedOptions)
   const {
-    data: entries,
+    data: feedEntries,
     hasNextPage,
     fetchNextPage,
-  } = useInfiniteQuery(entryOptions)
+  } = useInfiniteQuery(feedEntryOptions)
 
   const [isEditModalOpen, setEditModalOpen] = useState(false)
   const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
@@ -64,7 +64,7 @@ function Component() {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (!feed || !entries) return
+  if (!feed || !feedEntries) return
 
   return (
     <>
@@ -96,7 +96,7 @@ function Component() {
       </Header>
       <main>
         <FeedEntryGrid
-          entries={entries.pages.flatMap((page) => page.data)}
+          feedEntries={feedEntries.pages.flatMap((page) => page.data)}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}
         />

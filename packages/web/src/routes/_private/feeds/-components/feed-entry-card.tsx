@@ -8,8 +8,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
-import type { Entry } from '@colette/openapi'
-import { updateEntryOptions } from '@colette/query'
+import type { FeedEntry } from '@colette/openapi'
+import { updateFeedEntryOptions } from '@colette/query'
 import { useMutation } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'
 import {
@@ -21,18 +21,18 @@ import {
 import { Route } from '../../feeds'
 
 type Props = {
-  entry: Entry
+  feedEntry: FeedEntry
 }
 
-export function FeedEntryCard({ entry }: Props) {
+export function FeedEntryCard({ feedEntry }: Props) {
   const context = Route.useRouteContext()
 
-  const { mutateAsync: updateEntry } = useMutation(
-    updateEntryOptions(
+  const { mutateAsync: updateFeedEntry } = useMutation(
+    updateFeedEntryOptions(
       {
         onSuccess: async () => {
           await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'entries'],
+            queryKey: ['profiles', context.profile.id, 'feedEntries'],
           })
         },
       },
@@ -42,31 +42,31 @@ export function FeedEntryCard({ entry }: Props) {
 
   return (
     <Card className="overflow-hidden shadow-md">
-      <EntryThumbnail src={entry.thumbnailUrl} alt={entry.title} />
+      <EntryThumbnail src={feedEntry.thumbnailUrl} alt={feedEntry.title} />
       <div className="flex flex-col pb-2">
         <CardHeader>
-          <EntryTitle title={entry.title} link={entry.link} />
+          <EntryTitle title={feedEntry.title} link={feedEntry.link} />
           <DropdownMenu>
             <DropdownMenuTrigger>
               <Icon className="text-muted-foreground" value={MoreHorizontal} />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
               <DropdownMenuItem asChild>
-                <a href={entry.link} target="_blank" rel="noreferrer">
+                <a href={feedEntry.link} target="_blank" rel="noreferrer">
                   Open in new tab
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() =>
-                  updateEntry({
-                    id: entry.id,
+                  updateFeedEntry({
+                    id: feedEntry.id,
                     body: {
-                      hasRead: !entry.hasRead,
+                      hasRead: !feedEntry.hasRead,
                     },
                   })
                 }
               >
-                Mark as {entry.hasRead ? 'unread' : 'read'}
+                Mark as {feedEntry.hasRead ? 'unread' : 'read'}
                 <DropdownMenuShortcut>⇧⌘R</DropdownMenuShortcut>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -74,13 +74,13 @@ export function FeedEntryCard({ entry }: Props) {
         </CardHeader>
         <CardContent className="flex justify-between">
           <div className="flex h-4 space-x-2">
-            <EntryAuthor author={entry.author} link={entry.link} />
+            <EntryAuthor author={feedEntry.author} link={feedEntry.link} />
             <Separator
               className="bg-muted-foreground/50"
               orientation="vertical"
             />
-            {entry.publishedAt && (
-              <EntryPublished publishedAt={entry.publishedAt} />
+            {feedEntry.publishedAt && (
+              <EntryPublished publishedAt={feedEntry.publishedAt} />
             )}
           </div>
         </CardContent>

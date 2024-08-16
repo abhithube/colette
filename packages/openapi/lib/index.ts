@@ -1,29 +1,29 @@
 import createClient, { type ClientOptions } from 'openapi-fetch'
 import { AuthAPI } from './auth'
-import { BookmarksAPI } from './bookmarks'
-import { EntriesAPI } from './entries'
-import { FeedsAPI } from './feeds'
+import { BookmarkAPI } from './bookmark'
+import { FeedAPI } from './feed'
+import { FeedEntryAPI } from './feed-entry'
 import type { paths } from './openapi'
-import { ProfilesAPI } from './profiles'
-import { TagsAPI } from './tags'
+import { ProfileAPI } from './profile'
+import { TagAPI } from './tag'
 
 export class API {
   auth: AuthAPI
-  bookmarks: BookmarksAPI
-  entries: EntriesAPI
-  feeds: FeedsAPI
-  profiles: ProfilesAPI
-  tags: TagsAPI
+  bookmarks: BookmarkAPI
+  entries: FeedEntryAPI
+  feeds: FeedAPI
+  profiles: ProfileAPI
+  tags: TagAPI
 
   constructor(options: ClientOptions) {
     const client = createClient<paths>(options)
 
     this.auth = new AuthAPI(client)
-    this.bookmarks = new BookmarksAPI(client)
-    this.entries = new EntriesAPI(client)
-    this.feeds = new FeedsAPI(client)
-    this.profiles = new ProfilesAPI(client)
-    this.tags = new TagsAPI(client)
+    this.bookmarks = new BookmarkAPI(client)
+    this.entries = new FeedEntryAPI(client)
+    this.feeds = new FeedAPI(client)
+    this.profiles = new ProfileAPI(client)
+    this.tags = new TagAPI(client)
   }
 }
 

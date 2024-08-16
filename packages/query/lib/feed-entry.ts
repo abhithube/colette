@@ -1,21 +1,21 @@
 import type {
   API,
-  Entry,
-  EntryUpdate,
-  ListEntriesQuery,
+  FeedEntry,
+  FeedEntryUpdate,
+  ListFeedEntriesQuery,
 } from '@colette/openapi'
 import {
   type UseMutationOptions,
   infiniteQueryOptions,
 } from '@tanstack/react-query'
 
-export const listEntriesOptions = (
-  query: ListEntriesQuery,
+export const listFeedEntriesOptions = (
+  query: ListFeedEntriesQuery,
   profileId: string,
   api: API,
 ) =>
   infiniteQueryOptions({
-    queryKey: ['profiles', profileId, 'entries', query],
+    queryKey: ['profiles', profileId, 'feedEntries', query],
     queryFn: ({ pageParam, signal }) =>
       api.entries.list(
         {
@@ -30,9 +30,9 @@ export const listEntriesOptions = (
     getNextPageParam: (lastPage) => lastPage.cursor,
   })
 
-export const updateEntryOptions = (
+export const updateFeedEntryOptions = (
   options: Omit<
-    UseMutationOptions<Entry, Error, { id: string; body: EntryUpdate }>,
+    UseMutationOptions<FeedEntry, Error, { id: string; body: FeedEntryUpdate }>,
     'mutationFn'
   >,
   api: API,
@@ -40,5 +40,9 @@ export const updateEntryOptions = (
   return {
     ...options,
     mutationFn: (data) => api.entries.update(data.id, data.body),
-  } as UseMutationOptions<Entry, Error, { id: string; body: EntryUpdate }>
+  } as UseMutationOptions<
+    FeedEntry,
+    Error,
+    { id: string; body: FeedEntryUpdate }
+  >
 }

@@ -1,15 +1,15 @@
 import { Separator } from '@/components/ui/separator'
-import type { Entry } from '@colette/openapi'
+import type { FeedEntry } from '@colette/openapi'
 import { useInView } from 'react-intersection-observer'
 import { FeedEntryCard } from './feed-entry-card'
 
 type Props = {
-  entries: Entry[]
+  feedEntries: FeedEntry[]
   hasMore: boolean
   loadMore?: () => void
 }
 
-export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
+export function FeedEntryGrid({ feedEntries, hasMore, loadMore }: Props) {
   const day = 1000 * 60 * 60 * 24
   const date = Date.now()
   const today = date - day
@@ -18,7 +18,7 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
   const lastYear = date - day * 365
 
   const list = Object.entries(
-    Object.groupBy(entries, (item: Entry) => {
+    Object.groupBy(feedEntries, (item: FeedEntry) => {
       const publishedAt = Date.parse(item.publishedAt!)
       return publishedAt > today
         ? 'Today'
@@ -39,7 +39,7 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
 
   return (
     <div className="space-y-8 px-8 pb-8">
-      {list.map(([title, entries]) => (
+      {list.map(([title, feedEntries]) => (
         <div key={title} className="space-y-6">
           <div className="flex items-center space-x-8">
             <Separator className="flex-1" />
@@ -49,12 +49,12 @@ export function FeedEntryGrid({ entries, hasMore, loadMore }: Props) {
             <Separator className="flex-1" />
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {entries.map((entry, i) => (
+            {feedEntries.map((feedEntry, i) => (
               <div
-                key={entry.id}
-                ref={hasMore && i === entries.length - 1 ? ref : undefined}
+                key={feedEntry.id}
+                ref={hasMore && i === feedEntries.length - 1 ? ref : undefined}
               >
-                <FeedEntryCard entry={entry} />
+                <FeedEntryCard feedEntry={feedEntry} />
               </div>
             ))}
           </div>

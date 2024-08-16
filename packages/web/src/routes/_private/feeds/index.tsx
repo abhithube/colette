@@ -1,5 +1,5 @@
 import { Header, HeaderTitle } from '@/components/header'
-import { ensureInfiniteQueryData, listEntriesOptions } from '@colette/query'
+import { ensureInfiniteQueryData, listFeedEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -7,7 +7,7 @@ import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/')({
   loader: async ({ context }) => {
-    const options = listEntriesOptions(
+    const options = listFeedEntriesOptions(
       { hasRead: false },
       context.profile.id,
       context.api,
@@ -26,7 +26,7 @@ function Component() {
   const { options } = Route.useLoaderData()
 
   const {
-    data: entries,
+    data: feedEntries,
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery(options)
@@ -35,7 +35,7 @@ function Component() {
     window.scrollTo(0, 0)
   }, [])
 
-  if (!entries) return
+  if (!feedEntries) return
 
   return (
     <>
@@ -44,7 +44,7 @@ function Component() {
       </Header>
       <main>
         <FeedEntryGrid
-          entries={entries.pages.flatMap((page) => page.data)}
+          feedEntries={feedEntries.pages.flatMap((page) => page.data)}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}
         />

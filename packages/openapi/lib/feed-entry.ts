@@ -2,16 +2,21 @@ import type { FetchOptions } from 'openapi-fetch'
 import type { Client } from '.'
 import { APIError, NotFoundError } from './error'
 import type { operations } from './openapi'
-import type { Entry, EntryList, EntryUpdate, ListEntriesQuery } from './types'
+import type {
+  FeedEntry,
+  FeedEntryList,
+  FeedEntryUpdate,
+  ListFeedEntriesQuery,
+} from './types'
 
-export class EntriesAPI {
+export class FeedEntryAPI {
   constructor(private client: Client) {}
 
   async list(
-    query?: ListEntriesQuery,
-    options?: Omit<FetchOptions<operations['listEntries']>, 'params'>,
-  ): Promise<EntryList> {
-    const res = await this.client.GET('/entries', {
+    query?: ListFeedEntriesQuery,
+    options?: Omit<FetchOptions<operations['listFeedEntries']>, 'params'>,
+  ): Promise<FeedEntryList> {
+    const res = await this.client.GET('/feedEntries', {
       params: {
         query,
       },
@@ -26,10 +31,13 @@ export class EntriesAPI {
 
   async update(
     id: string,
-    body: EntryUpdate,
-    options?: Omit<FetchOptions<operations['updateEntry']>, 'params' | 'body'>,
-  ): Promise<Entry> {
-    const res = await this.client.PATCH('/entries/{id}', {
+    body: FeedEntryUpdate,
+    options?: Omit<
+      FetchOptions<operations['updateFeedEntry']>,
+      'params' | 'body'
+    >,
+  ): Promise<FeedEntry> {
+    const res = await this.client.PATCH('/feedEntries/{id}', {
       params: {
         path: {
           id,

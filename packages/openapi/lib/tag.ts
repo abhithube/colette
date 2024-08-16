@@ -4,7 +4,7 @@ import { APIError, NotFoundError, UnprocessableContentError } from './error'
 import type { operations } from './openapi'
 import type { ListTagsQuery, Tag, TagCreate, TagList, TagUpdate } from './types'
 
-export class TagsAPI {
+export class TagAPI {
   constructor(private client: Client) {}
 
   async list(

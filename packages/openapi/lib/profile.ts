@@ -14,7 +14,7 @@ import type {
   ProfileUpdate,
 } from './types'
 
-export class ProfilesAPI {
+export class ProfileAPI {
   constructor(private client: Client) {}
 
   async list(
