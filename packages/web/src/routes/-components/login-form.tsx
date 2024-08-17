@@ -17,30 +17,27 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { UnauthorizedError, UnprocessableContentError } from '@colette/core'
+import {
+  type Login,
+  UnauthorizedError,
+  UnprocessableContentError,
+  loginSchema,
+} from '@colette/core'
 import { loginOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Route } from '../login'
-
-const formSchema = z.object({
-  email: z.string().email('Email is not valid.'),
-  password: z.string().min(8, 'Password must be 8 or more characters.'),
-})
-
-type Values = z.infer<typeof formSchema>
 
 export const LoginForm = () => {
   const context = Route.useRouteContext()
 
   const navigate = useNavigate()
 
-  const form = useForm<Values>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<Login>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',

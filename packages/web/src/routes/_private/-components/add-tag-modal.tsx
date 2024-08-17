@@ -15,18 +15,14 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { type TagCreate, tagCreateSchema } from '@colette/core'
 import { createTagOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Route } from '../../_private'
-
-const formSchema = z.object({
-  title: z.string().min(1),
-})
 
 type Props = {
   close: () => void
@@ -35,8 +31,8 @@ type Props = {
 export function AddTagModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<TagCreate>({
+    resolver: zodResolver(tagCreateSchema),
     defaultValues: {
       title: '',
     },

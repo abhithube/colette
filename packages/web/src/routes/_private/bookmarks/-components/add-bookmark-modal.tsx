@@ -15,18 +15,14 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { type BookmarkCreate, bookmarkCreateSchema } from '@colette/core'
 import { createBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Route } from '../../bookmarks'
-
-const formSchema = z.object({
-  url: z.string().url(),
-})
 
 type Props = {
   close: () => void
@@ -35,8 +31,8 @@ type Props = {
 export function AddBookmarkModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<BookmarkCreate>({
+    resolver: zodResolver(bookmarkCreateSchema),
     defaultValues: {
       url: '',
     },

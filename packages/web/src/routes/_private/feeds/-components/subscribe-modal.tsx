@@ -15,19 +15,19 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { BadGatewayError, UnprocessableContentError } from '@colette/core'
+import {
+  BadGatewayError,
+  type FeedCreate,
+  UnprocessableContentError,
+  feedCreateSchema,
+} from '@colette/core'
 import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import { Route } from '../../feeds'
-
-const formSchema = z.object({
-  url: z.string().url(),
-})
 
 type Props = {
   close: () => void
@@ -36,8 +36,8 @@ type Props = {
 export function SubscribeModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<FeedCreate>({
+    resolver: zodResolver(feedCreateSchema),
     defaultValues: {
       url: '',
     },
