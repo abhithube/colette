@@ -20,14 +20,14 @@ export type ProfileList = z.infer<typeof profileListSchema>
 
 export const profileCreateSchema = z.object({
   title: z.string().min(1),
-  imageUrl: z.string().url().nullable().optional(),
+  imageUrl: z.string().url().nullish(),
 })
 
 export type ProfileCreate = z.infer<typeof profileCreateSchema>
 
 export const profileUpdateSchema = z.object({
   title: z.string().min(1).optional(),
-  imageUrl: z.string().url().nullable().optional(),
+  imageUrl: z.string().url().nullish(),
 })
 
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>

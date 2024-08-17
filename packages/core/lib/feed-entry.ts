@@ -5,7 +5,7 @@ export const feedEntrySchema = z.object({
   id: uuidSchema,
   link: z.string().url(),
   title: z.string(),
-  publishedAt: z.string().datetime().nullable(),
+  publishedAt: z.coerce.date().nullable(),
   description: z.string().nullable(),
   author: z.string().nullable(),
   thumbnailUrl: z.string().url().nullable(),

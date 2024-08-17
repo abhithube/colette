@@ -7,10 +7,10 @@ export const bookmarkSchema = z.object({
   link: z.string().url(),
   title: z.string(),
   thumbnailUrl: z.string().url().nullable(),
-  publishedAt: z.string().datetime().nullable(),
+  publishedAt: z.coerce.date().nullable(),
   author: z.string().nullable(),
   collectionId: uuidSchema.nullable(),
-  sortIndex: z.number().nonnegative(),
+  sortIndex: z.number().int().nonnegative(),
   tags: tagSchema.array().optional(),
 })
 
@@ -25,14 +25,14 @@ export type BookmarkList = z.infer<typeof bookmarkListSchema>
 
 export const bookmarkCreateSchema = z.object({
   url: z.string().url(),
-  collectionId: uuidSchema.nullable().optional(),
+  collectionId: uuidSchema.nullish(),
 })
 
 export type BookmarkCreate = z.infer<typeof bookmarkCreateSchema>
 
 export const bookmarkUpdateSchema = z.object({
   sortIndex: z.number().optional(),
-  collectionId: uuidSchema.nullable().optional(),
+  collectionId: uuidSchema.nullish(),
   tags: tagCreateSchema.array().optional(),
 })
 

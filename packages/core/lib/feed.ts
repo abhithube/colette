@@ -28,7 +28,7 @@ export const feedCreateSchema = z.object({
 export type FeedCreate = z.infer<typeof feedCreateSchema>
 
 export const feedUpdateSchema = z.object({
-  title: z.string().nullable().optional(),
+  title: z.string().nullish(),
   tags: tagCreateSchema.array().optional(),
 })
 
