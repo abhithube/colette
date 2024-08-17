@@ -17,6 +17,6 @@
 	},
 	"dependencies": {
 		"@colette/core": "*",
-		"openapi-fetch": "^0.10"
+		"openapi-fetch": "^0.11"
 	}
 }
