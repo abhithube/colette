@@ -16,7 +16,7 @@ import {
   profileUpdateSchema,
   uuidSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPProfileAPI implements ProfileAPI {
   constructor(private client: Client) {}

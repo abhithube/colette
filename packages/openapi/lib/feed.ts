@@ -20,7 +20,7 @@ import {
   listFeedsQuerySchema,
   uuidSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPFeedAPI implements FeedAPI {
   constructor(private client: Client) {}

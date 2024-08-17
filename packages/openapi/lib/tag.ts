@@ -17,7 +17,7 @@ import {
   tagUpdateSchema,
   uuidSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPTagAPI implements TagAPI {
   constructor(private client: Client) {}

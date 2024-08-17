@@ -15,7 +15,7 @@ import {
   listFeedEntriesQuerySchema,
   uuidSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPFeedEntryAPI implements FeedEntryAPI {
   constructor(private client: Client) {}

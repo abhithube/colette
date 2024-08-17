@@ -14,7 +14,7 @@ import {
   registerSchema,
   userSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPAuthAPI implements AuthAPI {
   constructor(private client: Client) {}

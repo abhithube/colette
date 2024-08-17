@@ -18,7 +18,7 @@ import {
   listBookmarksQuerySchema,
   uuidSchema,
 } from '@colette/core'
-import type { Client } from '.'
+import type { Client } from './types'
 
 export class HTTPBookmarkAPI implements BookmarkAPI {
   constructor(private client: Client) {}
