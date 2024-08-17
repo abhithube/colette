@@ -8,7 +8,6 @@ pub use tag::Tag;
 pub use user::User;
 
 pub mod auth;
-pub mod backup;
 pub mod bookmark;
 pub mod collection;
 pub mod common;

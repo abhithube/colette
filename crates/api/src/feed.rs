@@ -8,12 +8,12 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use axum_valid::Valid;
-use colette_backup::opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType};
-use colette_core::{
-    backup::BackupManager,
-    feed::{
-        self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
-    },
+use colette_backup::{
+    opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
+    BackupManager,
+};
+use colette_core::feed::{
+    self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
 };
 use url::Url;
 use uuid::Uuid;

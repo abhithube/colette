@@ -1,7 +1,8 @@
-use colette_core::backup::{self, BackupManager};
 use quick_xml::se::Serializer;
 use serde::Serialize;
 use url::Url;
+
+use crate::BackupManager;
 
 #[derive(Default)]
 pub struct OpmlManager;
@@ -9,18 +10,17 @@ pub struct OpmlManager;
 impl BackupManager for OpmlManager {
     type T = Opml;
 
-    fn import(&self, raw: &str) -> Result<Self::T, backup::Error> {
-        quick_xml::de::from_str::<Opml>(raw).map_err(|_| backup::Error::Deserialize)
+    fn import(&self, raw: &str) -> Result<Self::T, crate::Error> {
+        quick_xml::de::from_str::<Opml>(raw).map_err(|_| crate::Error::Deserialize)
     }
 
-    fn export(&self, data: Self::T) -> Result<String, backup::Error> {
+    fn export(&self, data: Self::T) -> Result<String, crate::Error> {
         let mut buffer = String::new();
         let mut ser = Serializer::with_root(&mut buffer, Some("opml"))
-            .map_err(|_| backup::Error::Serialize)?;
+            .map_err(|_| crate::Error::Serialize)?;
         ser.indent(' ', 2);
 
-        data.serialize(ser)
-            .map_err(|_| backup::Error::Deserialize)?;
+        data.serialize(ser).map_err(|_| crate::Error::Deserialize)?;
 
         let raw = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".to_owned() + &buffer;
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-colette-core.workspace = true
 quick-xml.workspace = true
 serde.workspace = true
+thiserror.workspace = true
 url.workspace = true

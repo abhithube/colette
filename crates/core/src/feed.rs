@@ -7,7 +7,6 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    backup,
     common::Paginated,
     scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
@@ -163,9 +162,6 @@ pub enum Error {
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),
-
-    #[error(transparent)]
-    Backup(#[from] backup::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),

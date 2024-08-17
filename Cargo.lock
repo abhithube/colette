@@ -651,9 +651,9 @@ dependencies = [
 name = "colette-backup"
 version = "0.1.0"
 dependencies = [
- "colette-core",
  "quick-xml",
  "serde",
+ "thiserror",
  "url",
 ]
 

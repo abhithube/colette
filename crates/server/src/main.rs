@@ -6,7 +6,7 @@ use colette_api::{
     feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState, tag::TagState, Api,
     ApiState,
 };
-use colette_backup::OpmlManager;
+use colette_backup::opml::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
