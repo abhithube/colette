@@ -238,7 +238,6 @@ pub struct ProfileCreate {
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
 
-    #[schema(nullable = false)]
     pub image_url: Option<Url>,
 }
 
@@ -305,7 +304,6 @@ pub struct ProfileUpdate {
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
 
-    #[schema(nullable = false)]
     pub image_url: Option<Url>,
 }
 

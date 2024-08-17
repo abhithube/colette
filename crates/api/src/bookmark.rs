@@ -275,7 +275,6 @@ pub async fn create_bookmark(
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(nullable = false)]
     pub collection_id: Option<Uuid>,
 }
 
