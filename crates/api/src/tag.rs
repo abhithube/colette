@@ -68,8 +68,7 @@ impl From<colette_core::Tag> for Tag {
     params(ListTagsQuery),
     responses(ListResponse),
     operation_id = "listTags",
-    description = "List the active profile tags",
-    tag = "Tags"
+    description = "List the active profile tags"
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
@@ -144,8 +143,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getTag",
-    description = "Get a tag by ID",
-    tag = "Tags"
+    description = "Get a tag by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
@@ -193,8 +191,7 @@ impl IntoResponse for GetResponse {
   request_body = TagCreate,
   responses(CreateResponse),
   operation_id = "createTag",
-  description = "Create a tag",
-  tag = "Tags"
+  description = "Create a tag"
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
@@ -259,8 +256,7 @@ impl IntoResponse for CreateResponse {
     request_body = TagUpdate,
     responses(UpdateResponse),
     operation_id = "updateTag",
-    description = "Update a tag by ID",
-    tag = "Tags"
+    description = "Update a tag by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
@@ -328,8 +324,7 @@ impl IntoResponse for UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteTag",
-    description = "Delete a tag by ID",
-    tag = "Tags"
+    description = "Delete a tag by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(

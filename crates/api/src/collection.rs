@@ -76,8 +76,7 @@ impl From<colette_core::Collection> for Collection {
     path = "",
     responses(ListResponse),
     operation_id = "listCollections",
-    description = "List the active profile collections",
-    tag = "Collections"
+    description = "List the active profile collections"
 )]
 #[axum::debug_handler]
 pub async fn list_collections(
@@ -115,8 +114,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getCollection",
-    description = "Get a collection by ID",
-    tag = "Collections"
+    description = "Get a collection by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_collection(
@@ -164,8 +162,7 @@ impl IntoResponse for GetResponse {
   request_body = CollectionCreate,
   responses(CreateResponse),
   operation_id = "createCollection",
-  description = "Create a collection",
-  tag = "Collections"
+  description = "Create a collection"
 )]
 #[axum::debug_handler]
 pub async fn create_collection(
@@ -232,8 +229,7 @@ impl IntoResponse for CreateResponse {
     request_body = CollectionUpdate,
     responses(UpdateResponse),
     operation_id = "updateCollection",
-    description = "Update a collection by ID",
-    tag = "Collections"
+    description = "Update a collection by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_collection(
@@ -310,8 +306,7 @@ impl IntoResponse for UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteCollection",
-    description = "Delete a collection by ID",
-    tag = "Collections"
+    description = "Delete a collection by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_collection(

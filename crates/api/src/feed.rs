@@ -115,8 +115,7 @@ impl From<colette_core::Feed> for Feed {
     params(ListFeedsQuery),
     responses(ListResponse),
     operation_id = "listFeeds",
-    description = "List the active profile feeds",
-    tag = "Feeds"
+    description = "List the active profile feeds"
 )]
 #[axum::debug_handler]
 pub async fn list_feeds(
@@ -178,8 +177,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getFeed",
-    description = "Get a feed by ID",
-    tag = "Feeds"
+    description = "Get a feed by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_feed(
@@ -227,8 +225,7 @@ impl IntoResponse for GetResponse {
   request_body = FeedCreate,
   responses(CreateResponse),
   operation_id = "createFeed",
-  description = "Subscribe to a web feed",
-  tag = "Feeds"
+  description = "Subscribe to a web feed"
 )]
 #[axum::debug_handler]
 pub async fn create_feed(
@@ -301,8 +298,7 @@ impl IntoResponse for CreateResponse {
     request_body = FeedUpdate,
     responses(UpdateResponse),
     operation_id = "updateFeed",
-    description = "Update a feed by ID",
-    tag = "Feeds"
+    description = "Update a feed by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_feed(
@@ -386,8 +382,7 @@ impl IntoResponse for UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteFeed",
-    description = "Delete a feed by ID",
-    tag = "Feeds"
+    description = "Delete a feed by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_feed(
@@ -432,8 +427,7 @@ impl IntoResponse for DeleteResponse {
     request_body = FeedDetect,
     responses(DetectResponse),
     operation_id = "detectFeeds",
-    description = "Detects web feeds on a page",
-    tag = "Feeds"
+    description = "Detects web feeds on a page"
   )]
 #[axum::debug_handler]
 pub async fn detect_feeds(
@@ -513,8 +507,7 @@ impl IntoResponse for DetectResponse {
     request_body(content = File, content_type = "multipart/form-data"),
     responses(ImportResponse),
     operation_id = "importFeeds",
-    description = "Import OPML feeds into profile",
-    tag = "Feeds"
+    description = "Import OPML feeds into profile"
 )]
 #[axum::debug_handler]
 pub async fn import_feeds(
@@ -578,8 +571,7 @@ impl IntoResponse for ImportResponse {
     path = "/export",
     responses(ExportResponse),
     operation_id = "exportFeeds",
-    description = "Export OPML feeds from profile",
-    tag = "Feeds"
+    description = "Export OPML feeds from profile"
 )]
 #[axum::debug_handler]
 pub async fn export_feeds(

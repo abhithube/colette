@@ -77,8 +77,7 @@ impl From<colette_core::Profile> for Profile {
     path = "",
     responses(ListResponse),
     operation_id = "listProfiles",
-    description = "List the user profiles",
-    tag = "Profiles"
+    description = "List the user profiles"
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
@@ -116,8 +115,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getProfile",
-    description = "Get a profile by ID",
-    tag = "Profiles"
+    description = "Get a profile by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
@@ -164,8 +162,7 @@ impl IntoResponse for GetResponse {
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveProfile",
-    description = "Get the active profile",
-    tag = "Profiles"
+    description = "Get the active profile"
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
@@ -203,8 +200,7 @@ impl IntoResponse for GetActiveResponse {
   request_body = ProfileCreate,
   responses(CreateResponse),
   operation_id = "createProfile",
-  description = "Create a user profile",
-  tag = "Profiles"
+  description = "Create a user profile"
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
@@ -271,8 +267,7 @@ impl IntoResponse for CreateResponse {
     request_body = ProfileUpdate,
     responses(UpdateResponse),
     operation_id = "updateProfile",
-    description = "Update a profile by ID",
-    tag = "Profiles"
+    description = "Update a profile by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
@@ -335,8 +330,7 @@ pub enum UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteProfile",
-    description = "Delete a profile by ID",
-    tag = "Profiles"
+    description = "Delete a profile by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(

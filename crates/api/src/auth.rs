@@ -68,8 +68,7 @@ impl From<colette_core::User> for User {
     request_body = Register,
     responses(RegisterResponse),
     operation_id = "register",
-    description = "Register a user account",
-    tag = "Auth"
+    description = "Register a user account"
 )]
 #[axum::debug_handler]
 pub async fn register(
@@ -149,8 +148,7 @@ impl IntoResponse for RegisterResponse {
     request_body = Login,
     responses(LoginResponse),
     operation_id = "login",
-    description = "Login to a user account",
-    tag = "Auth"
+    description = "Login to a user account"
 )]
 #[axum::debug_handler]
 pub async fn login(
@@ -262,8 +260,7 @@ impl IntoResponse for LoginResponse {
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveUser",
-    description = "Get the active user",
-    tag = "Auth"
+    description = "Get the active user"
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(

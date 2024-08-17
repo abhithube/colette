@@ -104,8 +104,7 @@ impl From<colette_core::Bookmark> for Bookmark {
     params(ListBookmarksQuery),
     responses(ListResponse),
     operation_id = "listBookmarks",
-    description = "List the active profile bookmarks",
-    tag = "Bookmarks"
+    description = "List the active profile bookmarks"
 )]
 #[axum::debug_handler]
 pub async fn list_bookmarks(
@@ -186,8 +185,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getBookmark",
-    description = "Get a bookmark by ID",
-    tag = "Bookmarks"
+    description = "Get a bookmark by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_bookmark(
@@ -236,7 +234,6 @@ impl IntoResponse for GetResponse {
     responses(CreateResponse),
     operation_id = "createBookmark",
     description = "Add a bookmark to a profile",
-    tag = "Bookmarks"
   )]
 #[axum::debug_handler]
 pub async fn create_bookmark(
@@ -309,7 +306,6 @@ impl IntoResponse for CreateResponse {
     responses(UpdateResponse),
     operation_id = "updateBookmark",
     description = "Update a bookmark by ID",
-    tag = "Bookmarks"
 )]
 #[axum::debug_handler]
 pub async fn update_bookmark(
@@ -388,8 +384,7 @@ impl IntoResponse for UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteBookmark",
-    description = "Delete a bookmark by ID",
-    tag = "Bookmarks"
+    description = "Delete a bookmark by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_bookmark(

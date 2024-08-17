@@ -75,8 +75,7 @@ impl From<colette_core::Folder> for Folder {
     params(ListFoldersQuery),
     responses(ListResponse),
     operation_id = "listFolders",
-    description = "List the active profile folders",
-    tag = "Folders"
+    description = "List the active profile folders"
 )]
 #[axum::debug_handler]
 pub async fn list_folders(
@@ -151,8 +150,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getFolder",
-    description = "Get a folder by ID",
-    tag = "Folders"
+    description = "Get a folder by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_folder(
@@ -200,8 +198,7 @@ impl IntoResponse for GetResponse {
   request_body = FolderCreate,
   responses(CreateResponse),
   operation_id = "createFolder",
-  description = "Create a folder",
-  tag = "Folders"
+  description = "Create a folder"
 )]
 #[axum::debug_handler]
 pub async fn create_folder(
@@ -268,8 +265,7 @@ impl IntoResponse for CreateResponse {
     request_body = FolderUpdate,
     responses(UpdateResponse),
     operation_id = "updateFolder",
-    description = "Update a folder by ID",
-    tag = "Folders"
+    description = "Update a folder by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_folder(
@@ -346,8 +342,7 @@ impl IntoResponse for UpdateResponse {
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteFolder",
-    description = "Delete a folder by ID",
-    tag = "Folders"
+    description = "Delete a folder by ID"
 )]
 #[axum::debug_handler]
 pub async fn delete_folder(

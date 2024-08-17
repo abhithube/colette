@@ -52,14 +52,14 @@ pub struct ApiState {
       (url = "http://localhost:8000/api/v1")
   ),
   nest(
-      (path = "/auth", api = Auth),
-      (path = "/bookmarks", api = Bookmarks),
-      (path = "/collections", api = Collections),
-      (path = "/feeds", api = Feeds),
-      (path = "/feedEntries", api = FeedEntries),
-      (path = "/folders", api = Folders),
-      (path = "/profiles", api = Profiles),
-      (path = "/tags", api = Tags)
+      (path = "/auth", api = Auth, tags = ["Auth"]),
+      (path = "/bookmarks", api = Bookmarks, tags = ["Bookmarks"]),
+      (path = "/collections", api = Collections, tags = ["Collections"]),
+      (path = "/feeds", api = Feeds, tags = ["Feeds"]),
+      (path = "/feedEntries", api = FeedEntries, tags = ["Feed Entries"]),
+      (path = "/folders", api = Folders, tags = ["Folders"]),
+      (path = "/profiles", api = Profiles, tags = ["Profiles"]),
+      (path = "/tags", api = Tags, tags = ["Tags"])
   ),
   components(schemas(BaseError))
 )]

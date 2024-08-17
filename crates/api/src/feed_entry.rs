@@ -84,8 +84,7 @@ impl From<colette_core::FeedEntry> for FeedEntry {
     params(ListFeedEntriesQuery),
     responses(ListResponse),
     operation_id = "listFeedEntries",
-    description = "List feed entries",
-    tag = "Feed Entries"
+    description = "List feed entries"
 )]
 #[axum::debug_handler]
 pub async fn list_feed_entries(
@@ -148,8 +147,7 @@ impl IntoResponse for ListResponse {
     params(Id),
     responses(GetResponse),
     operation_id = "getFeedEntry",
-    description = "Get a feed entry by ID",
-    tag = "Feed Entries"
+    description = "Get a feed entry by ID"
 )]
 #[axum::debug_handler]
 pub async fn get_feed_entry(
@@ -198,8 +196,7 @@ impl IntoResponse for GetResponse {
     request_body = FeedEntryUpdate,
     responses(UpdateResponse),
     operation_id = "updateFeedEntry",
-    description = "Update a feed entry by ID",
-    tag = "Feed Entries"
+    description = "Update a feed entry by ID"
 )]
 #[axum::debug_handler]
 pub async fn update_feed_entry(
