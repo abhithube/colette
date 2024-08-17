@@ -1,12 +1,12 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, type UUID, uuidSchema } from './common'
 
 export const profileSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   title: z.string(),
   imageUrl: z.string().url().nullable(),
   isDefault: z.boolean(),
-  userId: z.string().uuid(),
+  userId: uuidSchema,
 })
 
 export type Profile = z.infer<typeof profileSchema>
@@ -35,17 +35,17 @@ export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
 export interface ProfileAPI {
   list(options?: RequestOptions): Promise<ProfileList>
 
-  get(id: string, options?: RequestOptions): Promise<Profile>
+  get(id: UUID, options?: RequestOptions): Promise<Profile>
 
   getActive(options?: RequestOptions): Promise<Profile>
 
   create(body: ProfileCreate, options?: RequestOptions): Promise<Profile>
 
   update(
-    id: string,
+    id: UUID,
     body: ProfileUpdate,
     options?: RequestOptions,
   ): Promise<Profile>
 
-  delete(id: string, options?: RequestOptions): Promise<void>
+  delete(id: UUID, options?: RequestOptions): Promise<void>
 }

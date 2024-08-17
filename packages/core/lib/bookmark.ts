@@ -1,15 +1,15 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, type UUID, uuidSchema } from './common'
 import { tagCreateSchema, tagSchema } from './tag'
 
 export const bookmarkSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   link: z.string().url(),
   title: z.string(),
   thumbnailUrl: z.string().url().nullable(),
   publishedAt: z.string().datetime().nullable(),
   author: z.string().nullable(),
-  collectionId: z.string().uuid().nullable(),
+  collectionId: uuidSchema.nullable(),
   sortIndex: z.number().nonnegative(),
   tags: tagSchema.array().optional(),
 })
@@ -25,14 +25,14 @@ export type BookmarkList = z.infer<typeof bookmarkListSchema>
 
 export const bookmarkCreateSchema = z.object({
   url: z.string().url(),
-  collectionId: z.string().uuid().nullable().optional(),
+  collectionId: uuidSchema.nullable().optional(),
 })
 
 export type BookmarkCreate = z.infer<typeof bookmarkCreateSchema>
 
 export const bookmarkUpdateSchema = z.object({
   sortIndex: z.number().optional(),
-  collectionId: z.string().uuid().nullable().optional(),
+  collectionId: uuidSchema.nullable().optional(),
   tags: tagCreateSchema.array().optional(),
 })
 
@@ -40,7 +40,7 @@ export type BookmarkUpdate = z.infer<typeof bookmarkUpdateSchema>
 
 export const listBookmarksQuerySchema = z.object({
   filterByCollection: z.boolean().optional(),
-  collectionId: z.string().uuid().optional(),
+  collectionId: uuidSchema.optional(),
   filterByTags: z.boolean().optional(),
   'tag[]': z.string().array().optional(),
   cursor: z.string().optional(),
@@ -54,15 +54,15 @@ export interface BookmarkAPI {
     options?: RequestOptions,
   ): Promise<BookmarkList>
 
-  get(id: string, options?: RequestOptions): Promise<Bookmark>
+  get(id: UUID, options?: RequestOptions): Promise<Bookmark>
 
   create(body: BookmarkCreate, options?: RequestOptions): Promise<Bookmark>
 
   update(
-    id: string,
+    id: UUID,
     body: BookmarkUpdate,
     options?: RequestOptions,
   ): Promise<Bookmark>
 
-  delete(id: string, options?: RequestOptions): Promise<void>
+  delete(id: UUID, options?: RequestOptions): Promise<void>
 }

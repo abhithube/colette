@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, type UUID, uuidSchema } from './common'
 
 export const feedEntrySchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   link: z.string().url(),
   title: z.string(),
   publishedAt: z.string().datetime().nullable(),
@@ -10,7 +10,7 @@ export const feedEntrySchema = z.object({
   author: z.string().nullable(),
   thumbnailUrl: z.string().url().nullable(),
   hasRead: z.boolean(),
-  feedId: z.string().uuid(),
+  feedId: uuidSchema,
 })
 
 export type FeedEntry = z.infer<typeof feedEntrySchema>
@@ -29,7 +29,7 @@ export const feedEntryUpdateSchema = z.object({
 export type FeedEntryUpdate = z.infer<typeof feedEntryUpdateSchema>
 
 export const listFeedEntriesQuerySchema = z.object({
-  feedId: z.string().uuid().optional(),
+  feedId: uuidSchema.optional(),
   hasRead: z.boolean().optional(),
   'tag[]': z.string().array().optional(),
   cursor: z.string().optional(),
@@ -44,7 +44,7 @@ export interface FeedEntryAPI {
   ): Promise<FeedEntryList>
 
   update(
-    id: string,
+    id: UUID,
     body: FeedEntryUpdate,
     options?: RequestOptions,
   ): Promise<FeedEntry>

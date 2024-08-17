@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, type UUID, uuidSchema } from './common'
 import { tagCreateSchema, tagSchema } from './tag'
 
 export const feedSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   link: z.string().url(),
   title: z.string().nullable(),
   originalTitle: z.string(),
@@ -50,13 +50,13 @@ export type ListFeedsQuery = z.infer<typeof listFeedsQuerySchema>
 export interface FeedAPI {
   list(query: ListFeedsQuery, options?: RequestOptions): Promise<FeedList>
 
-  get(id: string, options?: RequestOptions): Promise<Feed>
+  get(id: UUID, options?: RequestOptions): Promise<Feed>
 
   create(body: FeedCreate, options?: RequestOptions): Promise<Feed>
 
-  update(id: string, body: FeedUpdate, options?: RequestOptions): Promise<Feed>
+  update(id: UUID, body: FeedUpdate, options?: RequestOptions): Promise<Feed>
 
-  delete(id: string, options?: RequestOptions): Promise<void>
+  delete(id: UUID, options?: RequestOptions): Promise<void>
 
   import(body: File, options?: RequestOptions): Promise<void>
 }

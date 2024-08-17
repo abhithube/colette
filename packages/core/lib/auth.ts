@@ -1,9 +1,9 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, uuidSchema } from './common'
 import type { Profile } from './profile'
 
 export const userSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   email: z.string().email(),
 })
 

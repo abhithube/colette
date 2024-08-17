@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import type { RequestOptions } from './common'
+import { type RequestOptions, type UUID, uuidSchema } from './common'
 
 export const tagSchema = z.object({
-  id: z.string().uuid(),
+  id: uuidSchema,
   title: z.string(),
   bookmarkCount: z.number().int().nonnegative().optional(),
   feedCount: z.number().int().nonnegative().optional(),
@@ -38,11 +38,11 @@ export type ListTagsQuery = z.infer<typeof listTagsQuerySchema>
 export interface TagAPI {
   list(query: ListTagsQuery, options?: RequestOptions): Promise<TagList>
 
-  get(id: string, options?: RequestOptions): Promise<Tag>
+  get(id: UUID, options?: RequestOptions): Promise<Tag>
 
   create(body: TagCreate, options?: RequestOptions): Promise<Tag>
 
-  update(id: string, body: TagUpdate, options?: RequestOptions): Promise<Tag>
+  update(id: UUID, body: TagUpdate, options?: RequestOptions): Promise<Tag>
 
-  delete(id: string, options?: RequestOptions): Promise<void>
+  delete(id: UUID, options?: RequestOptions): Promise<void>
 }
