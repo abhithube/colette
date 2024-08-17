@@ -1,3 +1,1 @@
-pub use opml::OpmlManager;
-
-mod opml;
+pub mod opml;

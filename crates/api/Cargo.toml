@@ -13,6 +13,7 @@ axum-valid = { version = "0.19", default-features = false, features = [
   "validator",
 ] }
 chrono.workspace = true
+colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
 colette-utils.workspace = true

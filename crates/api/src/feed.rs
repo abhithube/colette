@@ -8,11 +8,11 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use axum_valid::Valid;
+use colette_backup::opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType};
 use colette_core::{
     backup::BackupManager,
     feed::{
-        self, BackupFeed, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper,
-        FeedUpdateData,
+        self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
     },
 };
 use url::Url;
@@ -27,7 +27,7 @@ use crate::{
 pub struct FeedState {
     pub repository: Arc<dyn FeedRepository>,
     pub scraper: Arc<dyn FeedScraper>,
-    pub opml: Arc<dyn BackupManager<T = Vec<BackupFeed>>>,
+    pub opml: Arc<dyn BackupManager<T = Opml>>,
 }
 
 #[derive(utoipa::OpenApi)]
@@ -528,16 +528,24 @@ pub async fn import_feeds(
 
     let raw = field.text().await.map_err(|_| Error::Unknown)?;
 
-    for feed in state.opml.import(&raw).map_err(|_| Error::Unknown)? {
-        create_feed(
-            State(state.clone()),
-            session.clone(),
-            Valid(Json(FeedCreate {
-                url: feed.xml_url,
-                folder_id: None,
-            })),
-        )
-        .await?;
+    for outline in state
+        .opml
+        .import(&raw)
+        .map_err(|_| Error::Unknown)?
+        .body
+        .outlines
+    {
+        if let Some(xml_url) = outline.xml_url {
+            create_feed(
+                State(state.clone()),
+                session.clone(),
+                Valid(Json(FeedCreate {
+                    url: xml_url,
+                    folder_id: None,
+                })),
+            )
+            .await?;
+        }
     }
 
     Ok(ImportResponse::NoContent)
@@ -596,16 +604,22 @@ pub async fn export_feeds(
         .data
         .iter()
         .cloned()
-        .filter_map(|e| {
-            Some(BackupFeed {
-                title: e.title.unwrap_or(e.original_title),
-                xml_url: e.url.and_then(|e| Url::parse(&e).ok())?,
-                html_url: Url::parse(&e.link).ok(),
-            })
+        .map(|e| OpmlOutline {
+            outline_type: Some(OpmlOutlineType::default()),
+            text: e.title.clone().unwrap_or(e.original_title.clone()),
+            title: Some(e.title.unwrap_or(e.original_title)),
+            xml_url: e.url.and_then(|e| Url::parse(&e).ok()),
+            html_url: Url::parse(&e.link).ok(),
+            children: None,
         })
         .collect::<Vec<_>>();
 
-    let data = state.opml.export(data).map_err(|_| Error::Unknown)?;
+    let opml = Opml {
+        body: OpmlBody { outlines: data },
+        ..Default::default()
+    };
+
+    let data = state.opml.export(opml).map_err(|_| Error::Unknown)?;
 
     Ok(ExportResponse::Ok(data.as_bytes().into()))
 }
