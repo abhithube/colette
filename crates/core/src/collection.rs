@@ -36,12 +36,14 @@ pub trait CollectionRepository: Send + Sync {
 #[derive(Clone, Debug)]
 pub struct CollectionCreateData {
     pub title: String,
+    pub folder_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
+    pub folder_id: Option<Option<Uuid>>,
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -34,6 +34,7 @@ impl CollectionRepository for SqlRepository {
         let model = collection::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
+            folder_id: Set(data.folder_id),
             profile_id: Set(data.profile_id),
             ..Default::default()
         };
@@ -75,6 +76,9 @@ impl CollectionRepository for SqlRepository {
 
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title);
+                    }
+                    if let Some(folder_id) = data.folder_id {
+                        active_model.folder_id.set_if_not_equals(folder_id);
                     }
 
                     if active_model.is_changed() {

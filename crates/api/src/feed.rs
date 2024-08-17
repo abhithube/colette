@@ -251,6 +251,7 @@ pub async fn create_feed(
         .create_feed(FeedCreateData {
             url: body.url.into(),
             feed: scraped.unwrap(),
+            folder_id: Some(body.folder_id),
             profile_id: session.profile_id,
         })
         .await
@@ -267,6 +268,7 @@ pub async fn create_feed(
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    pub folder_id: Option<Uuid>,
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -335,6 +337,12 @@ pub struct FeedUpdate {
     )]
     #[validate(length(min = 1))]
     pub title: Option<Option<String>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub folder_id: Option<Option<Uuid>>,
     #[schema(nullable = false)]
     pub tags: Option<Vec<TagCreate>>,
 }
@@ -343,6 +351,7 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
+            folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
         }
     }
@@ -523,7 +532,10 @@ pub async fn import_feeds(
         create_feed(
             State(state.clone()),
             session.clone(),
-            Valid(Json(FeedCreate { url: feed.xml_url })),
+            Valid(Json(FeedCreate {
+                url: feed.xml_url,
+                folder_id: None,
+            })),
         )
         .await?;
     }

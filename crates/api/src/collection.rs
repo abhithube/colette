@@ -176,6 +176,7 @@ pub async fn create_collection(
     let result = repository
         .create_collection(CollectionCreateData {
             title: body.title,
+            folder_id: body.folder_id,
             profile_id: session.profile_id,
         })
         .await
@@ -198,6 +199,7 @@ pub struct CollectionCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
+    pub folder_id: Option<Uuid>,
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
@@ -262,11 +264,20 @@ pub struct CollectionUpdate {
     #[schema(min_length = 1, nullable = false)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub folder_id: Option<Option<Uuid>>,
 }
 
 impl From<CollectionUpdate> for CollectionUpdateData {
     fn from(value: CollectionUpdate) -> Self {
-        Self { title: value.title }
+        Self {
+            title: value.title,
+            folder_id: value.folder_id,
+        }
     }
 }
 

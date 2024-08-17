@@ -44,6 +44,7 @@ impl RefreshTask {
                 .create_feed(FeedCreateData {
                     url: url.clone(),
                     feed: feed.clone(),
+                    folder_id: None,
                     profile_id: profile.id,
                 })
                 .await?;

@@ -68,12 +68,15 @@ impl FeedRepository for SqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?;
                     let feed_id = result.last_insert_id;
 
-                    let active_model = profile_feed::ActiveModel {
+                    let mut active_model = profile_feed::ActiveModel {
                         id: Set(Uuid::new_v4()),
                         profile_id: Set(data.profile_id),
                         feed_id: Set(feed_id),
                         ..Default::default()
                     };
+                    if let Some(folder_id) = data.folder_id {
+                        active_model.folder_id = Set(folder_id);
+                    }
 
                     let pf_id = match profile_feed::Entity::insert(active_model)
                         .on_conflict(
@@ -211,6 +214,9 @@ impl FeedRepository for SqlRepository {
                     let mut active_model = pf_model.clone().into_active_model();
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title)
+                    }
+                    if let Some(folder_id) = data.folder_id {
+                        active_model.folder_id.set_if_not_equals(folder_id)
                     }
 
                     if active_model.is_changed() {

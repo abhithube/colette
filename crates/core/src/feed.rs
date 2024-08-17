@@ -145,12 +145,14 @@ pub struct FeedFindManyFilters {
 pub struct FeedCreateData {
     pub url: String,
     pub feed: ProcessedFeed,
+    pub folder_id: Option<Option<Uuid>>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
