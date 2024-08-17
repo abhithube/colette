@@ -15,7 +15,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { BadGatewayError, UnprocessableContentError } from '@colette/openapi'
+import { BadGatewayError, UnprocessableContentError } from '@colette/core'
 import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'

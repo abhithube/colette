@@ -252,6 +252,43 @@ export interface paths {
         patch: operations["updateFeedEntry"];
         trace?: never;
     };
+    "/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List the active profile folders */
+        get: operations["listFolders"];
+        put?: never;
+        /** @description Create a folder */
+        post: operations["createFolder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/folders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a folder by ID */
+        get: operations["getFolder"];
+        put?: never;
+        post?: never;
+        /** @description Delete a folder by ID */
+        delete: operations["deleteFolder"];
+        options?: never;
+        head?: never;
+        /** @description Update a folder by ID */
+        patch: operations["updateFolder"];
+        trace?: never;
+    };
     "/profiles": {
         parameters: {
             query?: never;
@@ -372,7 +409,7 @@ export interface components {
             /** Format: uri */
             url: string;
             /** Format: uuid */
-            collectionId?: string;
+            collectionId?: string | null;
         };
         BookmarkList: {
             data: components["schemas"]["Bookmark"][];
@@ -389,11 +426,15 @@ export interface components {
             /** Format: uuid */
             id: string;
             title: string;
+            /** Format: uuid */
+            folderId: string | null;
             /** Format: int64 */
             bookmarkCount?: number;
         };
         CollectionCreate: {
             title: string;
+            /** Format: uuid */
+            folderId?: string | null;
         };
         CollectionList: {
             data: components["schemas"]["Collection"][];
@@ -401,6 +442,8 @@ export interface components {
         };
         CollectionUpdate: {
             title?: string;
+            /** Format: uuid */
+            folderId?: string | null;
         };
         Feed: {
             /** Format: uuid */
@@ -411,6 +454,8 @@ export interface components {
             originalTitle: string;
             /** Format: uri */
             url: string | null;
+            /** Format: uuid */
+            folderId: string | null;
             tags?: components["schemas"]["Tag"][];
             /** Format: int64 */
             unreadCount?: number;
@@ -418,6 +463,8 @@ export interface components {
         FeedCreate: {
             /** Format: uri */
             url: string;
+            /** Format: uuid */
+            folderId?: string | null;
         };
         FeedDetect: {
             /** Format: uri */
@@ -461,11 +508,38 @@ export interface components {
         };
         FeedUpdate: {
             title?: string | null;
+            /** Format: uuid */
+            folderId?: string | null;
             tags?: components["schemas"]["TagCreate"][];
         };
         File: {
             /** Format: Binary */
             data: string;
+        };
+        Folder: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            /** Format: uuid */
+            parentId?: string;
+            /** Format: int64 */
+            collectionCount?: number;
+            /** Format: int64 */
+            feedCount?: number;
+        };
+        FolderCreate: {
+            title: string;
+            /** Format: uuid */
+            parentId?: string | null;
+        };
+        FolderList: {
+            data: components["schemas"]["Folder"][];
+            cursor?: string;
+        };
+        FolderUpdate: {
+            title?: string;
+            /** Format: uuid */
+            parentId?: string | null;
         };
         Login: {
             /** Format: email */
@@ -485,7 +559,7 @@ export interface components {
         ProfileCreate: {
             title: string;
             /** Format: uri */
-            imageUrl?: string;
+            imageUrl?: string | null;
         };
         ProfileList: {
             data: components["schemas"]["Profile"][];
@@ -494,7 +568,7 @@ export interface components {
         ProfileUpdate: {
             title?: string;
             /** Format: uri */
-            imageUrl?: string;
+            imageUrl?: string | null;
         };
         Register: {
             /** Format: email */
@@ -1311,6 +1385,174 @@ export interface operations {
                 };
             };
             /** @description Feed entry not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    listFolders: {
+        parameters: {
+            query?: {
+                folderType?: "all" | "collections" | "feeds";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paginated list of folders */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderList"];
+                };
+            };
+        };
+    };
+    createFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderCreate"];
+            };
+        };
+        responses: {
+            /** @description Created folder */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Folder"];
+                };
+            };
+            /** @description Folder already exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+            /** @description Invalid input */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    getFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Folder by ID */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Folder"];
+                };
+            };
+            /** @description Folder not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    deleteFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successfully deleted folder */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Folder not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BaseError"];
+                };
+            };
+        };
+    };
+    updateFolder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FolderUpdate"];
+            };
+        };
+        responses: {
+            /** @description Updated folder */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Folder"];
+                };
+            };
+            /** @description Folder not found */
             404: {
                 headers: {
                     [name: string]: unknown;

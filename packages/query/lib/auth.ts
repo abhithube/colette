@@ -1,4 +1,4 @@
-import type { API, Login, Profile } from '@colette/openapi'
+import type { API, Login, Profile } from '@colette/core'
 import type { UseMutationOptions } from '@tanstack/react-query'
 
 export const loginOptions = (

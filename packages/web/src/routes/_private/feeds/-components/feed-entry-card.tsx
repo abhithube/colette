@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
-import type { FeedEntry } from '@colette/openapi'
+import type { FeedEntry } from '@colette/core'
 import { updateFeedEntryOptions } from '@colette/query'
 import { useMutation } from '@tanstack/react-query'
 import { MoreHorizontal } from 'lucide-react'

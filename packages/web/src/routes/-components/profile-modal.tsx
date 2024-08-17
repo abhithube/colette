@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
-import type { Profile } from '@colette/openapi'
+import type { Profile } from '@colette/core'
 import { listProfilesOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Plus } from 'lucide-react'

@@ -47,13 +47,13 @@ export function EntryThumbnail({ src, alt }: ThumbnailProps) {
 }
 
 type PublishedProps = {
-  publishedAt: string
+  publishedAt: Date
 }
 
 export function EntryPublished({ publishedAt }: PublishedProps) {
   return (
     <span className="font-semibold text-muted-foreground text-xs">
-      {formatRelativeDate(Date.parse(publishedAt))}
+      {formatRelativeDate(publishedAt.getTime())}
     </span>
   )
 }

@@ -7,7 +7,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import type { Feed } from '@colette/openapi'
+import type { Feed } from '@colette/core'
 
 type Props = {
   feed: Feed

@@ -1,31 +1,42 @@
-import type { FetchOptions } from 'openapi-fetch'
-import type { Client } from '.'
 import {
   APIError,
   BadGatewayError,
+  type Feed,
+  type FeedAPI,
+  type FeedCreate,
+  type FeedList,
+  type FeedUpdate,
+  type File,
+  type ListFeedsQuery,
   NotFoundError,
+  type RequestOptions,
+  type UUID,
   UnprocessableContentError,
-} from './error'
-import type { operations } from './openapi'
-import type {
-  Feed,
-  FeedCreate,
-  FeedList,
-  FeedUpdate,
-  File,
-  ListFeedsQuery,
-} from './types'
+  feedCreateSchema,
+  feedListSchema,
+  feedSchema,
+  feedUpdateSchema,
+  fileSchema,
+  listFeedsQuerySchema,
+  uuidSchema,
+} from '@colette/core'
+import type { Client } from '.'
 
-export class FeedAPI {
+export class HTTPFeedAPI implements FeedAPI {
   constructor(private client: Client) {}
 
   async list(
-    query?: ListFeedsQuery,
-    options?: Omit<FetchOptions<operations['listFeeds']>, 'params'>,
+    query: ListFeedsQuery,
+    options?: RequestOptions,
   ): Promise<FeedList> {
+    const queryResult = await listFeedsQuerySchema.safeParseAsync(query)
+    if (queryResult.error) {
+      throw new UnprocessableContentError(queryResult.error.message)
+    }
+
     const res = await this.client.GET('/feeds', {
       params: {
-        query,
+        query: queryResult.data,
       },
       ...options,
     })
@@ -33,17 +44,24 @@ export class FeedAPI {
       throw new APIError('unknown error')
     }
 
-    return res.data
+    const feedListResult = await feedListSchema.safeParseAsync(res.data)
+    if (feedListResult.error) {
+      throw new UnprocessableContentError(feedListResult.error.message)
+    }
+
+    return feedListResult.data
   }
 
-  async get(
-    id: string,
-    options?: Omit<FetchOptions<operations['getFeed']>, 'params'>,
-  ): Promise<Feed> {
+  async get(id: UUID, options?: RequestOptions): Promise<Feed> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.GET('/feeds/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,
@@ -56,15 +74,22 @@ export class FeedAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const feedResult = await feedSchema.safeParseAsync(res.data)
+    if (feedResult.error) {
+      throw new UnprocessableContentError(feedResult.error.message)
+    }
+
+    return feedResult.data
   }
 
-  async create(
-    body: FeedCreate,
-    options?: Omit<FetchOptions<operations['createFeed']>, 'body'>,
-  ): Promise<Feed> {
+  async create(body: FeedCreate, options?: RequestOptions): Promise<Feed> {
+    const bodyResult = await feedCreateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.POST('/feeds', {
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -78,21 +103,35 @@ export class FeedAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const feedResult = await feedSchema.safeParseAsync(res.data)
+    if (feedResult.error) {
+      throw new UnprocessableContentError(feedResult.error.message)
+    }
+
+    return feedResult.data
   }
 
   async update(
-    id: string,
+    id: UUID,
     body: FeedUpdate,
-    options?: Omit<FetchOptions<operations['updateFeed']>, 'params' | 'body'>,
+    options?: RequestOptions,
   ): Promise<Feed> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+    const bodyResult = await feedUpdateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.PATCH('/feeds/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -106,17 +145,24 @@ export class FeedAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const feedResult = await feedSchema.safeParseAsync(res.data)
+    if (feedResult.error) {
+      throw new UnprocessableContentError(feedResult.error.message)
+    }
+
+    return feedResult.data
   }
 
-  async delete(
-    id: string,
-    options?: Omit<FetchOptions<operations['deleteFeed']>, 'params'>,
-  ): Promise<void> {
+  async delete(id: UUID, options?: RequestOptions): Promise<void> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.DELETE('/feeds/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,
@@ -130,15 +176,14 @@ export class FeedAPI {
     }
   }
 
-  async import(
-    body: File,
-    options?: Omit<
-      FetchOptions<operations['importFeeds']>,
-      'body' | 'bodySerializer'
-    >,
-  ): Promise<void> {
+  async import(body: File, options?: RequestOptions): Promise<void> {
+    const bodyResult = await fileSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.POST('/feeds/import', {
-      body,
+      body: bodyResult.data,
       bodySerializer: (body) => {
         const fd = new FormData()
         fd.append('file', body.data)

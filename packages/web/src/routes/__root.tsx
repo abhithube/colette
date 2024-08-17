@@ -1,4 +1,4 @@
-import type { API } from '@colette/openapi'
+import type { API } from '@colette/core'
 import { getDefaultProfileOptions } from '@colette/query'
 import type { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'

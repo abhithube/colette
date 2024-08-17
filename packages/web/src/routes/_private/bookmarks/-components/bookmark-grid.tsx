@@ -1,4 +1,4 @@
-import type { Bookmark } from '@colette/openapi'
+import type { Bookmark } from '@colette/core'
 import { updateBookmarkOptions } from '@colette/query'
 import {
   DndContext,

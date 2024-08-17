@@ -1,4 +1,4 @@
-import type { Bookmark } from '@colette/openapi'
+import type { Bookmark } from '@colette/core'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { BookmarkCard } from './bookmark-card'

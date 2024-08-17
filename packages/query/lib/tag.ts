@@ -1,4 +1,4 @@
-import type { API, ListTagsQuery, Tag, TagCreate } from '@colette/openapi'
+import type { API, ListTagsQuery, Tag, TagCreate } from '@colette/core'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listTagsOptions = (

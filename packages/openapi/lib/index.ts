@@ -1,16 +1,29 @@
+import type {
+  API,
+  AuthAPI,
+  BookmarkAPI,
+  FeedAPI,
+  FeedEntryAPI,
+  ProfileAPI,
+  TagAPI,
+} from '@colette/core'
 import createClient, { type ClientOptions } from 'openapi-fetch'
-import { AuthAPI } from './auth'
-import { BookmarkAPI } from './bookmark'
-import { FeedAPI } from './feed'
-import { FeedEntryAPI } from './feed-entry'
+import { HTTPAuthAPI } from './auth'
+import { HTTPBookmarkAPI } from './bookmark'
+import { HTTPFeedAPI } from './feed'
+import { HTTPFeedEntryAPI } from './feed-entry'
 import type { paths } from './openapi'
-import { ProfileAPI } from './profile'
-import { TagAPI } from './tag'
+import { HTTPProfileAPI } from './profile'
+import { HTTPTagAPI } from './tag'
 
-export class API {
+export type RequestOptions = {
+  signal?: AbortSignal | null
+}
+
+export class HttpAPI implements API {
   auth: AuthAPI
   bookmarks: BookmarkAPI
-  entries: FeedEntryAPI
+  feedEntries: FeedEntryAPI
   feeds: FeedAPI
   profiles: ProfileAPI
   tags: TagAPI
@@ -18,16 +31,13 @@ export class API {
   constructor(options: ClientOptions) {
     const client = createClient<paths>(options)
 
-    this.auth = new AuthAPI(client)
-    this.bookmarks = new BookmarkAPI(client)
-    this.entries = new FeedEntryAPI(client)
-    this.feeds = new FeedAPI(client)
-    this.profiles = new ProfileAPI(client)
-    this.tags = new TagAPI(client)
+    this.auth = new HTTPAuthAPI(client)
+    this.bookmarks = new HTTPBookmarkAPI(client)
+    this.feedEntries = new HTTPFeedEntryAPI(client)
+    this.feeds = new HTTPFeedAPI(client)
+    this.profiles = new HTTPProfileAPI(client)
+    this.tags = new HTTPTagAPI(client)
   }
 }
 
 export type Client = ReturnType<typeof createClient<paths>>
-
-export * from './types'
-export * from './error'

@@ -1,5 +1,5 @@
 import { Separator } from '@/components/ui/separator'
-import type { FeedEntry } from '@colette/openapi'
+import type { FeedEntry } from '@colette/core'
 import { useInView } from 'react-intersection-observer'
 import { FeedEntryCard } from './feed-entry-card'
 
@@ -19,7 +19,7 @@ export function FeedEntryGrid({ feedEntries, hasMore, loadMore }: Props) {
 
   const list = Object.entries(
     Object.groupBy(feedEntries, (item: FeedEntry) => {
-      const publishedAt = Date.parse(item.publishedAt!)
+      const publishedAt = item.publishedAt!.getTime()
       return publishedAt > today
         ? 'Today'
         : publishedAt > lastWeek

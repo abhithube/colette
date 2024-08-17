@@ -6,7 +6,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import type { Profile } from '@colette/openapi'
+import type { Profile } from '@colette/core'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { SidebarButton, SidebarLink } from '../../components/sidebar'

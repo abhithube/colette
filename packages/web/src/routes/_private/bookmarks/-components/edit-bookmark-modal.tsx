@@ -22,7 +22,7 @@ import {
   MultiSelectTrigger,
   MultiSelectValue,
 } from '@/components/ui/multi-select'
-import type { Bookmark } from '@colette/openapi'
+import type { Bookmark } from '@colette/core'
 import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'

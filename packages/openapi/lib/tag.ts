@@ -1,19 +1,36 @@
-import type { FetchOptions } from 'openapi-fetch'
+import {
+  APIError,
+  type ListTagsQuery,
+  NotFoundError,
+  type RequestOptions,
+  type Tag,
+  type TagAPI,
+  type TagCreate,
+  type TagList,
+  type TagUpdate,
+  type UUID,
+  UnprocessableContentError,
+  listTagsQuerySchema,
+  tagCreateSchema,
+  tagListSchema,
+  tagSchema,
+  tagUpdateSchema,
+  uuidSchema,
+} from '@colette/core'
 import type { Client } from '.'
-import { APIError, NotFoundError, UnprocessableContentError } from './error'
-import type { operations } from './openapi'
-import type { ListTagsQuery, Tag, TagCreate, TagList, TagUpdate } from './types'
 
-export class TagAPI {
+export class HTTPTagAPI implements TagAPI {
   constructor(private client: Client) {}
 
-  async list(
-    query: ListTagsQuery,
-    options?: FetchOptions<operations['listTags']>,
-  ): Promise<TagList> {
+  async list(query: ListTagsQuery, options?: RequestOptions): Promise<TagList> {
+    const queryResult = await listTagsQuerySchema.safeParseAsync(query)
+    if (queryResult.error) {
+      throw new UnprocessableContentError(queryResult.error.message)
+    }
+
     const res = await this.client.GET('/tags', {
       params: {
-        query,
+        query: queryResult.data,
       },
       ...options,
     })
@@ -21,17 +38,24 @@ export class TagAPI {
       throw new APIError('unknown error')
     }
 
-    return res.data
+    const tagListResult = await tagListSchema.safeParseAsync(res.data)
+    if (tagListResult.error) {
+      throw new UnprocessableContentError(tagListResult.error.message)
+    }
+
+    return tagListResult.data
   }
 
-  async get(
-    id: string,
-    options?: Omit<FetchOptions<operations['getTag']>, 'params'>,
-  ): Promise<Tag> {
+  async get(id: UUID, options?: RequestOptions): Promise<Tag> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.GET('/tags/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,
@@ -44,15 +68,22 @@ export class TagAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const tagResult = await tagSchema.safeParseAsync(res.data)
+    if (tagResult.error) {
+      throw new UnprocessableContentError(tagResult.error.message)
+    }
+
+    return tagResult.data
   }
 
-  async create(
-    body: TagCreate,
-    options?: Omit<FetchOptions<operations['createTag']>, 'body'>,
-  ): Promise<Tag> {
+  async create(body: TagCreate, options?: RequestOptions): Promise<Tag> {
+    const bodyResult = await tagCreateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.POST('/tags', {
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -63,21 +94,35 @@ export class TagAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const tagResult = await tagSchema.safeParseAsync(res.data)
+    if (tagResult.error) {
+      throw new UnprocessableContentError(tagResult.error.message)
+    }
+
+    return tagResult.data
   }
 
   async update(
-    id: string,
+    id: UUID,
     body: TagUpdate,
-    options?: Omit<FetchOptions<operations['updateTag']>, 'params' | 'body'>,
+    options?: RequestOptions,
   ): Promise<Tag> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+    const bodyResult = await tagUpdateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.PATCH('/tags/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -91,17 +136,24 @@ export class TagAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const tagResult = await tagSchema.safeParseAsync(res.data)
+    if (tagResult.error) {
+      throw new UnprocessableContentError(tagResult.error.message)
+    }
+
+    return tagResult.data
   }
 
-  async delete(
-    id: string,
-    options?: Omit<FetchOptions<operations['deleteTag']>, 'params'>,
-  ): Promise<void> {
+  async delete(id: UUID, options?: RequestOptions): Promise<void> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.DELETE('/tags/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,

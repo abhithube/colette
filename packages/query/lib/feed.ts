@@ -5,7 +5,7 @@ import type {
   FeedUpdate,
   File,
   ListFeedsQuery,
-} from '@colette/openapi'
+} from '@colette/core'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listFeedsOptions = (

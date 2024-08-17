@@ -1,41 +1,50 @@
-import type { FetchOptions } from 'openapi-fetch'
-import type { Client } from '.'
 import {
   APIError,
   ConflictError,
   NotFoundError,
+  type Profile,
+  type ProfileAPI,
+  type ProfileCreate,
+  type ProfileList,
+  type ProfileUpdate,
+  type RequestOptions,
+  type UUID,
   UnprocessableContentError,
-} from './error'
-import type { operations } from './openapi'
-import type {
-  Profile,
-  ProfileCreate,
-  ProfileList,
-  ProfileUpdate,
-} from './types'
+  profileCreateSchema,
+  profileListSchema,
+  profileSchema,
+  profileUpdateSchema,
+  uuidSchema,
+} from '@colette/core'
+import type { Client } from '.'
 
-export class ProfileAPI {
+export class HTTPProfileAPI implements ProfileAPI {
   constructor(private client: Client) {}
 
-  async list(
-    options?: FetchOptions<operations['listProfiles']>,
-  ): Promise<ProfileList> {
+  async list(options?: RequestOptions): Promise<ProfileList> {
     const res = await this.client.GET('/profiles', options)
     if (res.error) {
       throw new APIError('unknown error')
     }
 
-    return res.data
+    const profileListResult = await profileListSchema.safeParseAsync(res.data)
+    if (profileListResult.error) {
+      throw new UnprocessableContentError(profileListResult.error.message)
+    }
+
+    return profileListResult.data
   }
 
-  async get(
-    id: string,
-    options?: Omit<FetchOptions<operations['getProfile']>, 'params'>,
-  ): Promise<Profile> {
+  async get(id: UUID, options?: RequestOptions): Promise<Profile> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.GET('/profiles/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,
@@ -48,26 +57,39 @@ export class ProfileAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const profileResult = await profileSchema.safeParseAsync(res.data)
+    if (profileResult.error) {
+      throw new UnprocessableContentError(profileResult.error.message)
+    }
+
+    return profileResult.data
   }
 
-  async getActive(
-    options?: Omit<FetchOptions<operations['getActiveProfile']>, 'params'>,
-  ): Promise<Profile> {
+  async getActive(options?: RequestOptions): Promise<Profile> {
     const res = await this.client.GET('/profiles/@me', options)
     if (res.error) {
       throw new APIError('unknown error')
     }
 
-    return res.data
+    const profileResult = await profileSchema.safeParseAsync(res.data)
+    if (profileResult.error) {
+      throw new UnprocessableContentError(profileResult.error.message)
+    }
+
+    return profileResult.data
   }
 
   async create(
     body: ProfileCreate,
-    options?: Omit<FetchOptions<operations['createProfile']>, 'body'>,
+    options?: RequestOptions,
   ): Promise<Profile> {
+    const bodyResult = await profileCreateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.POST('/profiles', {
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -78,24 +100,35 @@ export class ProfileAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const profileResult = await profileSchema.safeParseAsync(res.data)
+    if (profileResult.error) {
+      throw new UnprocessableContentError(profileResult.error.message)
+    }
+
+    return profileResult.data
   }
 
   async update(
-    id: string,
+    id: UUID,
     body: ProfileUpdate,
-    options?: Omit<
-      FetchOptions<operations['updateProfile']>,
-      'params' | 'body'
-    >,
+    options?: RequestOptions,
   ): Promise<Profile> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+    const bodyResult = await profileUpdateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.PATCH('/profiles/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -109,17 +142,24 @@ export class ProfileAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const profileResult = await profileSchema.safeParseAsync(res.data)
+    if (profileResult.error) {
+      throw new UnprocessableContentError(profileResult.error.message)
+    }
+
+    return profileResult.data
   }
 
-  async delete(
-    id: string,
-    options?: Omit<FetchOptions<operations['deleteProfile']>, 'params'>,
-  ): Promise<void> {
+  async delete(id: UUID, options?: RequestOptions): Promise<void> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+
     const res = await this.client.DELETE('/profiles/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
       ...options,

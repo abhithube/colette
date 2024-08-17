@@ -1,4 +1,4 @@
-import type { API } from '@colette/openapi'
+import type { API } from '@colette/core'
 import { queryOptions } from '@tanstack/react-query'
 
 export const listProfilesOptions = (api: API) =>

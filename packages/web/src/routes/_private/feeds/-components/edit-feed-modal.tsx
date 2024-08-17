@@ -23,7 +23,7 @@ import {
   MultiSelectTrigger,
   MultiSelectValue,
 } from '@/components/ui/multi-select'
-import type { Feed } from '@colette/openapi'
+import type { Feed } from '@colette/core'
 import { listTagsOptions, updateFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'

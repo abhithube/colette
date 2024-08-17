@@ -3,7 +3,7 @@ import type {
   FeedEntry,
   FeedEntryUpdate,
   ListFeedEntriesQuery,
-} from '@colette/openapi'
+} from '@colette/core'
 import {
   type UseMutationOptions,
   infiniteQueryOptions,
@@ -17,7 +17,7 @@ export const listFeedEntriesOptions = (
   infiniteQueryOptions({
     queryKey: ['profiles', profileId, 'feedEntries', query],
     queryFn: ({ pageParam, signal }) =>
-      api.entries.list(
+      api.feedEntries.list(
         {
           ...query,
           cursor: pageParam,
@@ -39,7 +39,7 @@ export const updateFeedEntryOptions = (
 ) => {
   return {
     ...options,
-    mutationFn: (data) => api.entries.update(data.id, data.body),
+    mutationFn: (data) => api.feedEntries.update(data.id, data.body),
   } as UseMutationOptions<
     FeedEntry,
     Error,

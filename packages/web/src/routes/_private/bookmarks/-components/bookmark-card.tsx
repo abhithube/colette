@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
-import type { Bookmark } from '@colette/openapi'
+import type { Bookmark } from '@colette/core'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 import {

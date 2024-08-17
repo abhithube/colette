@@ -1,24 +1,37 @@
-import type { FetchOptions } from 'openapi-fetch'
+import {
+  APIError,
+  type FeedEntry,
+  type FeedEntryAPI,
+  type FeedEntryList,
+  type FeedEntryUpdate,
+  type ListFeedEntriesQuery,
+  NotFoundError,
+  type RequestOptions,
+  type UUID,
+  UnprocessableContentError,
+  feedEntryListSchema,
+  feedEntrySchema,
+  feedEntryUpdateSchema,
+  listFeedEntriesQuerySchema,
+  uuidSchema,
+} from '@colette/core'
 import type { Client } from '.'
-import { APIError, NotFoundError } from './error'
-import type { operations } from './openapi'
-import type {
-  FeedEntry,
-  FeedEntryList,
-  FeedEntryUpdate,
-  ListFeedEntriesQuery,
-} from './types'
 
-export class FeedEntryAPI {
+export class HTTPFeedEntryAPI implements FeedEntryAPI {
   constructor(private client: Client) {}
 
   async list(
-    query?: ListFeedEntriesQuery,
-    options?: Omit<FetchOptions<operations['listFeedEntries']>, 'params'>,
+    query: ListFeedEntriesQuery,
+    options?: RequestOptions,
   ): Promise<FeedEntryList> {
+    const queryResult = await listFeedEntriesQuerySchema.safeParseAsync(query)
+    if (queryResult.error) {
+      throw new UnprocessableContentError(queryResult.error.message)
+    }
+
     const res = await this.client.GET('/feedEntries', {
       params: {
-        query,
+        query: queryResult.data,
       },
       ...options,
     })
@@ -26,24 +39,37 @@ export class FeedEntryAPI {
       throw new APIError('unknown error')
     }
 
-    return res.data
+    const feedEntryListResult = await feedEntryListSchema.safeParseAsync(
+      res.data,
+    )
+    if (feedEntryListResult.error) {
+      throw new UnprocessableContentError(feedEntryListResult.error.message)
+    }
+
+    return feedEntryListResult.data
   }
 
   async update(
-    id: string,
+    id: UUID,
     body: FeedEntryUpdate,
-    options?: Omit<
-      FetchOptions<operations['updateFeedEntry']>,
-      'params' | 'body'
-    >,
+    options?: RequestOptions,
   ): Promise<FeedEntry> {
+    const idResult = await uuidSchema.safeParseAsync(id)
+    if (idResult.error) {
+      throw new UnprocessableContentError(idResult.error.message)
+    }
+    const bodyResult = await feedEntryUpdateSchema.safeParseAsync(body)
+    if (bodyResult.error) {
+      throw new UnprocessableContentError(bodyResult.error.message)
+    }
+
     const res = await this.client.PATCH('/feedEntries/{id}', {
       params: {
         path: {
-          id,
+          id: idResult.data,
         },
       },
-      body,
+      body: bodyResult.data,
       ...options,
     })
     if (res.error) {
@@ -54,6 +80,11 @@ export class FeedEntryAPI {
       throw new APIError(res.error.message)
     }
 
-    return res.data
+    const feedEntryResult = await feedEntrySchema.safeParseAsync(res.data)
+    if (feedEntryResult.error) {
+      throw new UnprocessableContentError(feedEntryResult.error.message)
+    }
+
+    return feedEntryResult.data
   }
 }

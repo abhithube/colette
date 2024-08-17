@@ -17,7 +17,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { UnauthorizedError, UnprocessableContentError } from '@colette/openapi'
+import { UnauthorizedError, UnprocessableContentError } from '@colette/core'
 import { loginOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
