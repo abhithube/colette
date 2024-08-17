@@ -23,12 +23,14 @@ export const getTagOptions = (id: string, api: API) =>
       }),
   })
 
+export type CreateTagOptions = UseMutationOptions<Tag, Error, TagCreate>
+
 export const createTagOptions = (
-  options: Omit<UseMutationOptions<Tag, Error, TagCreate>, 'mutationFn'>,
+  options: Omit<CreateTagOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
     ...options,
     mutationFn: (body) => api.tags.create(body),
-  } as UseMutationOptions<Tag, Error, TagCreate>
+  } as CreateTagOptions
 }

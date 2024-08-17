@@ -31,28 +31,34 @@ export const listBookmarksOptions = (
     getNextPageParam: (lastPage) => lastPage.cursor,
   })
 
+export type CreateBookmarkOptions = UseMutationOptions<
+  Bookmark,
+  Error,
+  BookmarkCreate
+>
+
 export const createBookmarkOptions = (
-  options: Omit<
-    UseMutationOptions<Bookmark, Error, BookmarkCreate>,
-    'mutationFn'
-  >,
+  options: Omit<CreateBookmarkOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
     ...options,
     mutationFn: (body) => api.bookmarks.create(body),
-  } as UseMutationOptions<Bookmark, Error, BookmarkCreate>
+  } as CreateBookmarkOptions
 }
 
+export type UpdateBookmarkOptions = UseMutationOptions<
+  Bookmark,
+  Error,
+  { id: string; body: BookmarkUpdate }
+>
+
 export const updateBookmarkOptions = (
-  options: Omit<
-    UseMutationOptions<Bookmark, Error, { id: string; body: BookmarkUpdate }>,
-    'mutationFn'
-  >,
+  options: Omit<UpdateBookmarkOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
     ...options,
     mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
-  } as UseMutationOptions<Bookmark, Error, { id: string; body: BookmarkUpdate }>
+  } as UpdateBookmarkOptions
 }

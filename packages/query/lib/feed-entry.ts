@@ -30,19 +30,18 @@ export const listFeedEntriesOptions = (
     getNextPageParam: (lastPage) => lastPage.cursor,
   })
 
+export type UpdateFeedEntryOptions = UseMutationOptions<
+  FeedEntry,
+  Error,
+  { id: string; body: FeedEntryUpdate }
+>
+
 export const updateFeedEntryOptions = (
-  options: Omit<
-    UseMutationOptions<FeedEntry, Error, { id: string; body: FeedEntryUpdate }>,
-    'mutationFn'
-  >,
+  options: Omit<UpdateFeedEntryOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
     ...options,
     mutationFn: (data) => api.feedEntries.update(data.id, data.body),
-  } as UseMutationOptions<
-    FeedEntry,
-    Error,
-    { id: string; body: FeedEntryUpdate }
-  >
+  } as UpdateFeedEntryOptions
 }

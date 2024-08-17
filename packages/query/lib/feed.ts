@@ -30,8 +30,10 @@ export const getFeedOptions = (id: string, api: API) =>
       }),
   })
 
+export type CreateFeedOptions = UseMutationOptions<Feed, Error, FeedCreate>
+
 export const createFeedOptions = (
-  options: Omit<UseMutationOptions<Feed, Error, FeedCreate>, 'mutationFn'>,
+  options: Omit<CreateFeedOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
@@ -40,11 +42,14 @@ export const createFeedOptions = (
   } as UseMutationOptions<Feed, Error, FeedCreate>
 }
 
+export type UpdateFeedOptions = UseMutationOptions<
+  Feed,
+  Error,
+  { id: string; body: FeedUpdate }
+>
+
 export const updateFeedOptions = (
-  options: Omit<
-    UseMutationOptions<Feed, Error, { id: string; body: FeedUpdate }>,
-    'mutationFn'
-  >,
+  options: Omit<UpdateFeedOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
@@ -64,12 +69,14 @@ export const deleteFeedOptions = (
   } as UseMutationOptions
 }
 
+export type ImportFeedsOptions = UseMutationOptions<void, Error, File>
+
 export const importFeedsOptions = (
-  options: Omit<UseMutationOptions<void, Error, File>, 'mutationFn'>,
+  options: Omit<ImportFeedsOptions, 'mutationFn'>,
   api: API,
 ) => {
   return {
     ...options,
     mutationFn: (body) => api.feeds.import(body),
-  } as UseMutationOptions<void, Error, File>
+  } as ImportFeedsOptions
 }
