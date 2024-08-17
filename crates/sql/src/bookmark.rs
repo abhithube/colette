@@ -239,7 +239,7 @@ impl BookmarkRepository for SqlRepository {
                     }
 
                     if let Some(collection_id) = data.collection_id {
-                        active_model.collection_id = Set(collection_id);
+                        active_model.collection_id.set_if_not_equals(collection_id);
                     }
 
                     if active_model.is_changed() {

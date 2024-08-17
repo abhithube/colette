@@ -210,7 +210,7 @@ impl FeedRepository for SqlRepository {
 
                     let mut active_model = pf_model.clone().into_active_model();
                     if let Some(title) = data.title {
-                        active_model.title = Set(title)
+                        active_model.title.set_if_not_equals(title)
                     }
 
                     if active_model.is_changed() {
