@@ -24,13 +24,10 @@ impl BackupManager for OpmlManager {
 
     fn export(&self, data: Self::T) -> Result<String, backup::Error> {
         let opml = Opml {
-            version: String::from("2.0"),
-            head: Head {
-                title: String::from("Feeds"),
+            body: OpmlBody {
+                outlines: data.into_iter().map(OpmlOutline::from).collect(),
             },
-            body: Body {
-                outlines: data.into_iter().map(Outline::from).collect(),
-            },
+            ..Default::default()
         };
 
         let mut buffer = String::new();
@@ -47,31 +44,40 @@ impl BackupManager for OpmlManager {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 struct Opml {
-    #[serde(rename = "@version")]
+    #[serde(default = "default_opml_version", rename = "@version")]
     version: String,
-    head: Head,
-    body: Body,
+    head: OpmlHead,
+    body: OpmlBody,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-struct Head {
+fn default_opml_version() -> String {
+    "2.0".to_owned()
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+struct OpmlHead {
+    #[serde(default = "default_head_title")]
     title: String,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-struct Body {
+fn default_head_title() -> String {
+    "Feeds".to_owned()
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+struct OpmlBody {
     #[serde(rename = "outline")]
-    outlines: Vec<Outline>,
+    outlines: Vec<OpmlOutline>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-struct Outline {
+struct OpmlOutline {
+    #[serde(rename = "@type")]
+    outline_type: Option<OpmlOutlineType>,
     #[serde(rename = "@text")]
     text: String,
-    #[serde(rename = "@type")]
-    outline_type: Option<OutlineType>,
     #[serde(rename = "@xmlUrl")]
     xml_url: Option<Url>,
     #[serde(rename = "@title")]
@@ -79,18 +85,19 @@ struct Outline {
     #[serde(rename = "@htmlUrl")]
     html_url: Option<Url>,
     #[serde(rename = "outline")]
-    children: Option<Vec<Outline>>,
+    children: Option<Vec<OpmlOutline>>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
-enum OutlineType {
+enum OpmlOutlineType {
+    #[default]
     Rss,
     Atom,
 }
 
-impl From<Outline> for BackupFeed {
-    fn from(value: Outline) -> Self {
+impl From<OpmlOutline> for BackupFeed {
+    fn from(value: OpmlOutline) -> Self {
         Self {
             title: value.title.unwrap_or(value.text),
             xml_url: value.xml_url.unwrap(),
@@ -99,12 +106,12 @@ impl From<Outline> for BackupFeed {
     }
 }
 
-impl From<BackupFeed> for Outline {
+impl From<BackupFeed> for OpmlOutline {
     fn from(value: BackupFeed) -> Self {
         Self {
             text: value.title.clone(),
             title: Some(value.title),
-            outline_type: Some(OutlineType::Rss),
+            outline_type: Some(OpmlOutlineType::default()),
             xml_url: Some(value.xml_url),
             html_url: value.html_url,
             children: None,
@@ -112,12 +119,12 @@ impl From<BackupFeed> for Outline {
     }
 }
 
-fn extract_feeds(outlines: Vec<Outline>, feeds: &mut Vec<BackupFeed>) {
+fn extract_feeds(outlines: Vec<OpmlOutline>, feeds: &mut Vec<BackupFeed>) {
     for outline in outlines {
-        if outline.outline_type.is_some() {
-            feeds.push(BackupFeed::from(outline));
-        } else if let Some(children) = outline.children {
+        if let Some(children) = outline.children {
             extract_feeds(children, feeds);
+        } else {
+            feeds.push(BackupFeed::from(outline));
         }
     }
 }
