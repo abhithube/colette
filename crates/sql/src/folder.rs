@@ -38,6 +38,7 @@ impl FolderRepository for SqlRepository {
         let model = folder::ActiveModel {
             id: Set(Uuid::new_v4()),
             title: Set(data.title.clone()),
+            parent_id: Set(data.parent_id),
             profile_id: Set(data.profile_id),
             ..Default::default()
         };
