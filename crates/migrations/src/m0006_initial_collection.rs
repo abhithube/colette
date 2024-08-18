@@ -46,19 +46,21 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let collection_profile_id_title_idx = format!(
-            "{collection}_{profile_id}_{title}_idx",
+        let collection_profile_id_folder_id_title_idx = format!(
+            "{collection}_{profile_id}_{folder_id}_{title}_idx",
             collection = Collection::Table.to_string(),
             profile_id = Collection::ProfileId.to_string(),
+            folder_id = Collection::FolderId.to_string(),
             title = Collection::Title.to_string()
         );
         manager
             .create_index(
                 Index::create()
-                    .name(collection_profile_id_title_idx)
+                    .name(collection_profile_id_folder_id_title_idx)
                     .table(Collection::Table)
                     .if_not_exists()
                     .col(Collection::ProfileId)
+                    .col(Collection::FolderId)
                     .col(Collection::Title)
                     .unique()
                     .to_owned(),

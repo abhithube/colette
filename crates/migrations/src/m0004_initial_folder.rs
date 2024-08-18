@@ -43,19 +43,21 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let folder_profile_id_title_idx = format!(
-            "{folder}_{profile_id}_{title}_idx",
+        let folder_profile_id_parent_id_title_idx = format!(
+            "{folder}_{profile_id}_{parent_id}_{title}_idx",
             folder = Folder::Table.to_string(),
             profile_id = Folder::ProfileId.to_string(),
+            parent_id = Folder::ParentId.to_string(),
             title = Folder::Title.to_string()
         );
         manager
             .create_index(
                 Index::create()
-                    .name(folder_profile_id_title_idx)
+                    .name(folder_profile_id_parent_id_title_idx)
                     .table(Folder::Table)
                     .if_not_exists()
                     .col(Folder::ProfileId)
+                    .col(Folder::ParentId)
                     .col(Folder::Title)
                     .unique()
                     .to_owned(),
