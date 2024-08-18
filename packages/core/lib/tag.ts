@@ -1,48 +1,75 @@
-import { z } from 'zod'
-import { type RequestOptions, type UUID, uuidSchema } from './common'
+import type { z } from 'zod'
+import {
+  type ApiClient,
+  Tag,
+  TagCreate,
+  TagList,
+  TagUpdate,
+  get_ListTags,
+} from './openapi.gen'
 
-export const tagSchema = z.object({
-  id: uuidSchema,
-  title: z.string(),
-  bookmarkCount: z.number().int().nonnegative().optional(),
-  feedCount: z.number().int().nonnegative().optional(),
-})
-
-export type Tag = z.infer<typeof tagSchema>
-
-export const tagListSchema = z.object({
-  data: tagSchema.array(),
-  cursor: z.string().optional(),
-})
-
-export type TagList = z.infer<typeof tagListSchema>
-
-export const tagCreateSchema = z.object({
-  title: z.string().min(1),
-})
-
-export type TagCreate = z.infer<typeof tagCreateSchema>
-
-export const tagUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-})
-
-export type TagUpdate = z.infer<typeof tagUpdateSchema>
-
-export const listTagsQuerySchema = z.object({
-  tagType: z.enum(['all', 'bookmarks', 'feeds']).optional(),
-})
-
-export type ListTagsQuery = z.infer<typeof listTagsQuerySchema>
+const ListTagsQuery = get_ListTags.parameters.shape.query
+export type ListTagsQuery = z.infer<typeof ListTagsQuery>
 
 export interface TagAPI {
-  list(query: ListTagsQuery, options?: RequestOptions): Promise<TagList>
+  list(query: ListTagsQuery): Promise<TagList>
 
-  get(id: UUID, options?: RequestOptions): Promise<Tag>
+  get(id: string): Promise<Tag>
 
-  create(body: TagCreate, options?: RequestOptions): Promise<Tag>
+  create(body: TagCreate): Promise<Tag>
 
-  update(id: UUID, body: TagUpdate, options?: RequestOptions): Promise<Tag>
+  update(id: string, body: TagUpdate): Promise<Tag>
 
-  delete(id: UUID, options?: RequestOptions): Promise<void>
+  delete(id: string): Promise<void>
+}
+
+export class HTTPTagAPI implements TagAPI {
+  constructor(private client: ApiClient) {}
+
+  async list(query: ListTagsQuery): Promise<TagList> {
+    return this.client
+      .get('/tags', {
+        query: await ListTagsQuery.parseAsync(query),
+      })
+      .then(TagList.parseAsync)
+  }
+
+  async get(id: string): Promise<Tag> {
+    return this.client
+      .get('/tags/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then(Tag.parseAsync)
+  }
+
+  async create(body: TagCreate): Promise<Tag> {
+    return this.client
+      .post('/tags', {
+        body: await TagCreate.parseAsync(body),
+      })
+      .then(Tag.parseAsync)
+  }
+
+  async update(id: string, body: TagUpdate): Promise<Tag> {
+    return this.client
+      .patch('/tags/{id}', {
+        path: {
+          id,
+        },
+        body: await TagUpdate.parseAsync(body),
+      })
+      .then(Tag.parseAsync)
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.client
+      .delete('/tags/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then()
+  }
 }

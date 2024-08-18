@@ -1,51 +1,72 @@
-import { z } from 'zod'
-import { type RequestOptions, type UUID, uuidSchema } from './common'
-
-export const profileSchema = z.object({
-  id: uuidSchema,
-  title: z.string(),
-  imageUrl: z.string().url().nullable(),
-  isDefault: z.boolean(),
-  userId: uuidSchema,
-})
-
-export type Profile = z.infer<typeof profileSchema>
-
-export const profileListSchema = z.object({
-  data: profileSchema.array(),
-  cursor: z.string().optional(),
-})
-
-export type ProfileList = z.infer<typeof profileListSchema>
-
-export const profileCreateSchema = z.object({
-  title: z.string().min(1),
-  imageUrl: z.string().url().nullish(),
-})
-
-export type ProfileCreate = z.infer<typeof profileCreateSchema>
-
-export const profileUpdateSchema = z.object({
-  title: z.string().min(1).optional(),
-  imageUrl: z.string().url().nullish(),
-})
-
-export type ProfileUpdate = z.infer<typeof profileUpdateSchema>
+import {
+  type ApiClient,
+  Profile,
+  ProfileCreate,
+  ProfileList,
+  ProfileUpdate,
+} from './openapi.gen'
 
 export interface ProfileAPI {
-  list(options?: RequestOptions): Promise<ProfileList>
+  list(): Promise<ProfileList>
 
-  get(id: UUID, options?: RequestOptions): Promise<Profile>
+  get(id: string): Promise<Profile>
 
-  getActive(options?: RequestOptions): Promise<Profile>
+  getActive(): Promise<Profile>
 
-  create(body: ProfileCreate, options?: RequestOptions): Promise<Profile>
+  create(data: ProfileCreate): Promise<Profile>
 
-  update(
-    id: UUID,
-    body: ProfileUpdate,
-    options?: RequestOptions,
-  ): Promise<Profile>
+  update(id: string, data: ProfileUpdate): Promise<Profile>
 
-  delete(id: UUID, options?: RequestOptions): Promise<void>
+  delete(id: string): Promise<void>
+}
+
+export class HTTPProfileAPI implements ProfileAPI {
+  constructor(private client: ApiClient) {}
+
+  async list(): Promise<ProfileList> {
+    return this.client.get('/profiles').then(ProfileList.parseAsync)
+  }
+
+  async get(id: string): Promise<Profile> {
+    return this.client
+      .get('/profiles/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then(Profile.parseAsync)
+  }
+
+  async getActive(): Promise<Profile> {
+    return this.client.get('/profiles/@me').then(Profile.parseAsync)
+  }
+
+  async create(body: ProfileCreate): Promise<Profile> {
+    return this.client
+      .post('/profiles', {
+        body: await ProfileCreate.parseAsync(body),
+      })
+      .then(Profile.parseAsync)
+  }
+
+  async update(id: string, body: ProfileUpdate): Promise<Profile> {
+    return this.client
+      .patch('/profiles/{id}', {
+        path: {
+          id,
+        },
+        body: await ProfileUpdate.parseAsync(body),
+      })
+      .then(Profile.parseAsync)
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.client
+      .delete('/profiles/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then()
+  }
 }

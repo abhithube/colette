@@ -4,17 +4,11 @@ import { queryOptions } from '@tanstack/react-query'
 export const listProfilesOptions = (api: API) =>
   queryOptions({
     queryKey: ['profiles'],
-    queryFn: ({ signal }) =>
-      api.profiles.list({
-        signal,
-      }),
+    queryFn: () => api.profiles.list(),
   })
 
 export const getDefaultProfileOptions = (api: API) =>
   queryOptions({
     queryKey: ['profiles', '@me'],
-    queryFn: ({ signal }) =>
-      api.profiles.getActive({
-        signal,
-      }),
+    queryFn: () => api.profiles.getActive(),
   })

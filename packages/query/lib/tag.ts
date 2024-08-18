@@ -8,19 +8,13 @@ export const listTagsOptions = (
 ) =>
   queryOptions({
     queryKey: ['profiles', profileId, 'tags', query],
-    queryFn: ({ signal }) =>
-      api.tags.list(query, {
-        signal,
-      }),
+    queryFn: () => api.tags.list(query),
   })
 
 export const getTagOptions = (id: string, api: API) =>
   queryOptions({
     queryKey: ['tags', id],
-    queryFn: ({ signal }) =>
-      api.tags.get(id, {
-        signal,
-      }),
+    queryFn: () => api.tags.get(id),
   })
 
 export type CreateTagOptions = UseMutationOptions<Tag, Error, TagCreate>

@@ -1,9 +1,39 @@
 export * from './api'
-export * from './auth'
-export * from './bookmark'
-export * from './common'
 export * from './error'
-export * from './feed'
-export * from './feed-entry'
-export * from './profile'
-export * from './tag'
+export {
+  BaseError,
+  Bookmark,
+  BookmarkCreate,
+  BookmarkList,
+  BookmarkUpdate,
+  Collection,
+  CollectionCreate,
+  CollectionList,
+  CollectionUpdate,
+  Feed,
+  FeedCreate,
+  FeedDetect,
+  FeedDetected,
+  FeedDetectedList,
+  FeedEntry,
+  FeedEntryList,
+  FeedEntryUpdate,
+  FeedList,
+  FeedUpdate,
+  File,
+  Login,
+  Profile,
+  ProfileCreate,
+  ProfileList,
+  ProfileUpdate,
+  Register,
+  Tag,
+  TagCreate,
+  TagList,
+  TagUpdate,
+  User,
+} from './openapi.gen'
+export type { ListBookmarksQuery } from './bookmark'
+export type { ListFeedEntriesQuery } from './feed-entry'
+export type { ListFeedsQuery } from './feed'
+export type { ListTagsQuery } from './tag'

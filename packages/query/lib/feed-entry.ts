@@ -16,16 +16,11 @@ export const listFeedEntriesOptions = (
 ) =>
   infiniteQueryOptions({
     queryKey: ['profiles', profileId, 'feedEntries', query],
-    queryFn: ({ pageParam, signal }) =>
-      api.feedEntries.list(
-        {
-          ...query,
-          cursor: pageParam,
-        },
-        {
-          signal,
-        },
-      ),
+    queryFn: ({ pageParam }) =>
+      api.feedEntries.list({
+        ...query,
+        cursor: pageParam,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor,
   })

@@ -1,51 +1,40 @@
-import { z } from 'zod'
-import { type RequestOptions, type UUID, uuidSchema } from './common'
+import type { z } from 'zod'
+import {
+  type ApiClient,
+  FeedEntry,
+  FeedEntryList,
+  FeedEntryUpdate,
+  get_ListFeedEntries,
+} from './openapi.gen'
 
-export const feedEntrySchema = z.object({
-  id: uuidSchema,
-  link: z.string().url(),
-  title: z.string(),
-  publishedAt: z.coerce.date().nullable(),
-  description: z.string().nullable(),
-  author: z.string().nullable(),
-  thumbnailUrl: z.string().url().nullable(),
-  hasRead: z.boolean(),
-  feedId: uuidSchema,
-})
-
-export type FeedEntry = z.infer<typeof feedEntrySchema>
-
-export const feedEntryListSchema = z.object({
-  data: feedEntrySchema.array(),
-  cursor: z.string().optional(),
-})
-
-export type FeedEntryList = z.infer<typeof feedEntryListSchema>
-
-export const feedEntryUpdateSchema = z.object({
-  hasRead: z.boolean().optional(),
-})
-
-export type FeedEntryUpdate = z.infer<typeof feedEntryUpdateSchema>
-
-export const listFeedEntriesQuerySchema = z.object({
-  feedId: uuidSchema.optional(),
-  hasRead: z.boolean().optional(),
-  'tag[]': z.string().array().optional(),
-  cursor: z.string().optional(),
-})
-
-export type ListFeedEntriesQuery = z.infer<typeof listFeedEntriesQuerySchema>
+const ListFeedEntriesQuery = get_ListFeedEntries.parameters.shape.query
+export type ListFeedEntriesQuery = z.infer<typeof ListFeedEntriesQuery>
 
 export interface FeedEntryAPI {
-  list(
-    query: ListFeedEntriesQuery,
-    options?: RequestOptions,
-  ): Promise<FeedEntryList>
+  list(query: ListFeedEntriesQuery): Promise<FeedEntryList>
 
-  update(
-    id: UUID,
-    body: FeedEntryUpdate,
-    options?: RequestOptions,
-  ): Promise<FeedEntry>
+  update(id: string, data: FeedEntryUpdate): Promise<FeedEntry>
+}
+
+export class HTTPFeedEntryAPI implements FeedEntryAPI {
+  constructor(private client: ApiClient) {}
+
+  async list(query: ListFeedEntriesQuery): Promise<FeedEntryList> {
+    return this.client
+      .get('/feedEntries', {
+        query: await ListFeedEntriesQuery.parseAsync(query),
+      })
+      .then(FeedEntryList.parseAsync)
+  }
+
+  async update(id: string, data: FeedEntryUpdate): Promise<FeedEntry> {
+    return this.client
+      .patch('/feedEntries/{id}', {
+        path: {
+          id,
+        },
+        body: await FeedEntryUpdate.parseAsync(data),
+      })
+      .then(FeedEntry.parseAsync)
+  }
 }

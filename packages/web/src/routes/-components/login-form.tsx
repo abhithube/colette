@@ -18,10 +18,9 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
-  type Login,
+  Login,
   UnauthorizedError,
   UnprocessableContentError,
-  loginSchema,
 } from '@colette/core'
 import { loginOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -37,7 +36,7 @@ export const LoginForm = () => {
   const navigate = useNavigate()
 
   const form = useForm<Login>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(Login),
     defaultValues: {
       email: '',
       password: '',

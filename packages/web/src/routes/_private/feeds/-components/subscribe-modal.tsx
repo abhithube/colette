@@ -17,9 +17,8 @@ import {
 import { Input } from '@/components/ui/input'
 import {
   BadGatewayError,
-  type FeedCreate,
+  FeedCreate,
   UnprocessableContentError,
-  feedCreateSchema,
 } from '@colette/core'
 import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -37,7 +36,7 @@ export function SubscribeModal({ close }: Props) {
   const context = Route.useRouteContext()
 
   const form = useForm<FeedCreate>({
-    resolver: zodResolver(feedCreateSchema),
+    resolver: zodResolver(FeedCreate),
     defaultValues: {
       url: '',
     },

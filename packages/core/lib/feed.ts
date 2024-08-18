@@ -1,62 +1,86 @@
-import { z } from 'zod'
-import { type RequestOptions, type UUID, uuidSchema } from './common'
-import { tagCreateSchema, tagSchema } from './tag'
+import type { z } from 'zod'
+import {
+  type ApiClient,
+  Feed,
+  FeedCreate,
+  FeedList,
+  FeedUpdate,
+  File,
+  get_ListFeeds,
+} from './openapi.gen'
 
-export const feedSchema = z.object({
-  id: uuidSchema,
-  link: z.string().url(),
-  title: z.string().nullable(),
-  originalTitle: z.string(),
-  url: z.string().url().nullable(),
-  tags: tagSchema.array().optional(),
-  unreadCount: z.number().int().nonnegative().optional(),
-})
-
-export type Feed = z.infer<typeof feedSchema>
-
-export const feedListSchema = z.object({
-  data: feedSchema.array(),
-  cursor: z.string().optional(),
-})
-
-export type FeedList = z.infer<typeof feedListSchema>
-
-export const feedCreateSchema = z.object({
-  url: z.string().url(),
-})
-
-export type FeedCreate = z.infer<typeof feedCreateSchema>
-
-export const feedUpdateSchema = z.object({
-  title: z.string().nullish(),
-  tags: tagCreateSchema.array().optional(),
-})
-
-export type FeedUpdate = z.infer<typeof feedUpdateSchema>
-
-export const fileSchema = z.object({
-  data: z.string(),
-})
-
-export type File = z.infer<typeof fileSchema>
-
-export const listFeedsQuerySchema = z.object({
-  filterByTags: z.boolean().optional(),
-  'tag[]': z.string().array().optional(),
-})
-
-export type ListFeedsQuery = z.infer<typeof listFeedsQuerySchema>
+const ListFeedsQuery = get_ListFeeds.parameters.shape.query
+export type ListFeedsQuery = z.infer<typeof ListFeedsQuery>
 
 export interface FeedAPI {
-  list(query: ListFeedsQuery, options?: RequestOptions): Promise<FeedList>
+  list(query: ListFeedsQuery): Promise<FeedList>
 
-  get(id: UUID, options?: RequestOptions): Promise<Feed>
+  get(id: string): Promise<Feed>
 
-  create(body: FeedCreate, options?: RequestOptions): Promise<Feed>
+  create(data: FeedCreate): Promise<Feed>
 
-  update(id: UUID, body: FeedUpdate, options?: RequestOptions): Promise<Feed>
+  update(id: string, data: FeedUpdate): Promise<Feed>
 
-  delete(id: UUID, options?: RequestOptions): Promise<void>
+  delete(id: string): Promise<void>
 
-  import(body: File, options?: RequestOptions): Promise<void>
+  import(data: File): Promise<void>
+}
+
+export class HTTPFeedAPI implements FeedAPI {
+  constructor(private client: ApiClient) {}
+
+  async list(query: ListFeedsQuery): Promise<FeedList> {
+    return this.client
+      .get('/feeds', {
+        query: await ListFeedsQuery.parseAsync(query),
+      })
+      .then(FeedList.parseAsync)
+  }
+
+  async get(id: string): Promise<Feed> {
+    return this.client
+      .get('/feeds/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then(Feed.parseAsync)
+  }
+
+  async create(data: FeedCreate): Promise<Feed> {
+    return this.client
+      .post('/feeds', {
+        body: await FeedCreate.parseAsync(data),
+      })
+      .then(Feed.parseAsync)
+  }
+
+  async update(id: string, data: FeedUpdate): Promise<Feed> {
+    return this.client
+      .patch('/feeds/{id}', {
+        path: {
+          id,
+        },
+        body: await FeedUpdate.parseAsync(data),
+      })
+      .then(Feed.parseAsync)
+  }
+
+  async delete(id: string): Promise<void> {
+    return this.client
+      .delete('/feeds/{id}', {
+        path: {
+          id,
+        },
+      })
+      .then()
+  }
+
+  async import(data: File): Promise<void> {
+    return this.client
+      .post('/feeds/import', {
+        body: await File.parseAsync(data),
+      })
+      .then()
+  }
 }

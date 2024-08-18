@@ -17,16 +17,11 @@ export const listBookmarksOptions = (
 ) =>
   infiniteQueryOptions({
     queryKey: ['profiles', profileId, 'bookmarks', query],
-    queryFn: ({ pageParam, signal }) =>
-      api.bookmarks.list(
-        {
-          ...query,
-          cursor: pageParam,
-        },
-        {
-          signal,
-        },
-      ),
+    queryFn: ({ pageParam }) =>
+      api.bookmarks.list({
+        ...query,
+        cursor: pageParam,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor,
   })

@@ -15,19 +15,13 @@ export const listFeedsOptions = (
 ) =>
   queryOptions({
     queryKey: ['profiles', profileId, 'feeds', query],
-    queryFn: ({ signal }) =>
-      api.feeds.list(query, {
-        signal,
-      }),
+    queryFn: () => api.feeds.list(query),
   })
 
 export const getFeedOptions = (id: string, api: API) =>
   queryOptions({
     queryKey: ['feeds', id],
-    queryFn: ({ signal }) =>
-      api.feeds.get(id, {
-        signal,
-      }),
+    queryFn: () => api.feeds.get(id),
   })
 
 export type CreateFeedOptions = UseMutationOptions<Feed, Error, FeedCreate>

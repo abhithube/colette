@@ -1,32 +1,33 @@
-import { z } from 'zod'
-import { type RequestOptions, uuidSchema } from './common'
-import type { Profile } from './profile'
-
-export const userSchema = z.object({
-  id: uuidSchema,
-  email: z.string().email(),
-})
-
-export type User = z.infer<typeof userSchema>
-
-export const registerSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-})
-
-export type Register = z.infer<typeof registerSchema>
-
-export const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string(),
-})
-
-export type Login = z.infer<typeof loginSchema>
+import { type ApiClient, Login, Profile, Register, User } from './openapi.gen'
 
 export interface AuthAPI {
-  register(body: Register, options?: RequestOptions): Promise<User>
+  register(body: Register): Promise<User>
 
-  login(body: Login, options?: RequestOptions): Promise<Profile>
+  login(body: Login): Promise<Profile>
 
-  getActive(options?: RequestOptions): Promise<User>
+  getActive(): Promise<User>
+}
+
+export class HTTPAuthAPI implements AuthAPI {
+  constructor(private client: ApiClient) {}
+
+  async register(data: Register): Promise<User> {
+    return this.client
+      .post('/auth/register', {
+        body: await Register.parseAsync(data),
+      })
+      .then(User.parseAsync)
+  }
+
+  async login(data: Login): Promise<Profile> {
+    return this.client
+      .post('/auth/login', {
+        body: await Login.parseAsync(data),
+      })
+      .then(Profile.parseAsync)
+  }
+
+  async getActive(): Promise<User> {
+    return this.client.get('/auth/@me').then(User.parseAsync)
+  }
 }

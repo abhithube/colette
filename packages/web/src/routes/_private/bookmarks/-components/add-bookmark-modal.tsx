@@ -15,7 +15,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { type BookmarkCreate, bookmarkCreateSchema } from '@colette/core'
+import { BookmarkCreate } from '@colette/core'
 import { createBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -32,7 +32,7 @@ export function AddBookmarkModal({ close }: Props) {
   const context = Route.useRouteContext()
 
   const form = useForm<BookmarkCreate>({
-    resolver: zodResolver(bookmarkCreateSchema),
+    resolver: zodResolver(BookmarkCreate),
     defaultValues: {
       url: '',
     },

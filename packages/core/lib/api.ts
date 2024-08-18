@@ -1,9 +1,18 @@
-import type { AuthAPI } from './auth'
-import type { BookmarkAPI } from './bookmark'
-import type { FeedAPI } from './feed'
-import type { FeedEntryAPI } from './feed-entry'
-import type { ProfileAPI } from './profile'
-import type { TagAPI } from './tag'
+import { type AuthAPI, HTTPAuthAPI } from './auth'
+import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
+import {
+  APIError,
+  BadGatewayError,
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+  UnprocessableContentError,
+} from './error'
+import { type FeedAPI, HTTPFeedAPI } from './feed'
+import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
+import { BaseError, createApiClient } from './openapi.gen'
+import { HTTPProfileAPI, type ProfileAPI } from './profile'
+import { HTTPTagAPI, type TagAPI } from './tag'
 
 export interface API {
   auth: AuthAPI
@@ -12,4 +21,87 @@ export interface API {
   feeds: FeedAPI
   profiles: ProfileAPI
   tags: TagAPI
+}
+
+export type HttpAPIOptions = Omit<RequestInit, 'method' | 'body'> & {
+  baseUrl?: string
+}
+
+export class HttpAPI implements API {
+  auth: AuthAPI
+  bookmarks: BookmarkAPI
+  feedEntries: FeedEntryAPI
+  feeds: FeedAPI
+  profiles: ProfileAPI
+  tags: TagAPI
+
+  constructor({ baseUrl, ...rest }: HttpAPIOptions) {
+    const client = createApiClient((method, url, params) => {
+      let finalUrl = url
+
+      if (params?.path) {
+        for (const [key, value] of Object.entries(params.path)) {
+          finalUrl = finalUrl.replace(
+            `{${key}}`,
+            encodeURIComponent(value as any),
+          )
+        }
+      }
+      if (params?.query) {
+        const search = new URLSearchParams()
+        for (const [key, value] of Object.entries(params.query)) {
+          if (value !== undefined) {
+            search.append(key, encodeURIComponent(value as any))
+          }
+        }
+        finalUrl = `${finalUrl}?${search.toString()}`
+      }
+
+      return fetch(finalUrl, {
+        method,
+        body: params?.body ? JSON.stringify(params.body) : undefined,
+        headers: {
+          'Content-Type': 'application/json',
+          ...rest.headers,
+          ...params?.header,
+        },
+        ...rest,
+      }).then(async (res) => {
+        const data = await res.json()
+        if (!res.ok) await handleError(data, res.status)
+
+        return data
+      })
+    }, baseUrl)
+
+    this.auth = new HTTPAuthAPI(client)
+    this.bookmarks = new HTTPBookmarkAPI(client)
+    this.feedEntries = new HTTPFeedEntryAPI(client)
+    this.feeds = new HTTPFeedAPI(client)
+    this.profiles = new HTTPProfileAPI(client)
+    this.tags = new HTTPTagAPI(client)
+  }
+}
+
+async function handleError(data: unknown, status: number) {
+  const parsed = await BaseError.safeParseAsync(data)
+  if (parsed.error) {
+    throw new UnprocessableContentError(parsed.error.message)
+  }
+
+  const message = parsed.data.message
+  switch (status) {
+    case 401:
+      throw new UnauthorizedError(message)
+    case 404:
+      throw new NotFoundError(message)
+    case 409:
+      throw new ConflictError(message)
+    case 422:
+      throw new UnprocessableContentError(message)
+    case 502:
+      throw new BadGatewayError(message)
+    default:
+      throw new APIError(message)
+  }
 }

@@ -15,7 +15,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { type TagCreate, tagCreateSchema } from '@colette/core'
+import { TagCreate } from '@colette/core'
 import { createTagOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -32,7 +32,7 @@ export function AddTagModal({ close }: Props) {
   const context = Route.useRouteContext()
 
   const form = useForm<TagCreate>({
-    resolver: zodResolver(tagCreateSchema),
+    resolver: zodResolver(TagCreate),
     defaultValues: {
       title: '',
     },
