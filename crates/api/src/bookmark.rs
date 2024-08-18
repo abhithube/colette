@@ -98,33 +98,36 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "",
-    params(ListBookmarksQuery),
-    responses(ListResponse),
-    operation_id = "listBookmarks",
-    description = "List the active profile bookmarks"
-)]
-#[axum::debug_handler]
-pub async fn list_bookmarks(
-    State(repository): State<Arc<dyn BookmarkRepository>>,
-    Query(query): Query<ListBookmarksQuery>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find_many_bookmarks(
-            session.profile_id,
-            Some(PAGINATION_LIMIT),
-            query.cursor.clone(),
-            Some(query.into()),
-        )
-        .await
-        .map(Paginated::<Bookmark>::from);
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct BookmarkCreate {
+    #[schema(format = "uri")]
+    pub url: Url,
+    pub collection_id: Option<Uuid>,
+}
 
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
-        _ => Err(Error::Unknown),
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct BookmarkUpdate {
+    #[schema(nullable = false)]
+    pub sort_index: Option<u32>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub collection_id: Option<Option<Uuid>>,
+    #[schema(nullable = false)]
+    pub tags: Option<Vec<TagCreate>>,
+}
+
+impl From<BookmarkUpdate> for BookmarkUpdateData {
+    fn from(value: BookmarkUpdate) -> Self {
+        Self {
+            sort_index: value.sort_index,
+            collection_id: value.collection_id,
+            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
+        }
     }
 }
 
@@ -165,17 +168,33 @@ impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of bookmarks")]
-    Ok(BookmarkList),
-}
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListBookmarksQuery),
+    responses(ListResponse),
+    operation_id = "listBookmarks",
+    description = "List the active profile bookmarks"
+)]
+#[axum::debug_handler]
+pub async fn list_bookmarks(
+    State(repository): State<Arc<dyn BookmarkRepository>>,
+    Query(query): Query<ListBookmarksQuery>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = repository
+        .find_many_bookmarks(
+            session.profile_id,
+            Some(PAGINATION_LIMIT),
+            query.cursor.clone(),
+            Some(query.into()),
+        )
+        .await
+        .map(Paginated::<Bookmark>::from);
 
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
     }
 }
 
@@ -206,24 +225,6 @@ pub async fn get_bookmark(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Bookmark by ID")]
-    Ok(Bookmark),
-
-    #[response(status = 404, description = "Bookmark not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
     }
 }
 
@@ -267,37 +268,6 @@ pub async fn create_bookmark(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct BookmarkCreate {
-    #[schema(format = "uri")]
-    pub url: Url,
-    pub collection_id: Option<Uuid>,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created bookmark")]
-    Created(Box<Bookmark>),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-
-    #[response(status = 502, description = "Failed to fetch or parse bookmark")]
-    BadGateway(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     patch,
     path = "/{id}",
@@ -330,54 +300,6 @@ pub async fn update_bookmark(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct BookmarkUpdate {
-    #[schema(nullable = false)]
-    pub sort_index: Option<u32>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub collection_id: Option<Option<Uuid>>,
-    #[schema(nullable = false)]
-    pub tags: Option<Vec<TagCreate>>,
-}
-
-impl From<BookmarkUpdate> for BookmarkUpdateData {
-    fn from(value: BookmarkUpdate) -> Self {
-        Self {
-            sort_index: value.sort_index,
-            collection_id: value.collection_id,
-            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated bookmark")]
-    Ok(Box<Bookmark>),
-
-    #[response(status = 404, description = "Bookmark not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for UpdateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -402,6 +324,84 @@ pub async fn delete_bookmark(
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of bookmarks")]
+    Ok(BookmarkList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Bookmark by ID")]
+    Ok(Bookmark),
+
+    #[response(status = 404, description = "Bookmark not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created bookmark")]
+    Created(Box<Bookmark>),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+
+    #[response(status = 502, description = "Failed to fetch or parse bookmark")]
+    BadGateway(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated bookmark")]
+    Ok(Box<Bookmark>),
+
+    #[response(status = 404, description = "Bookmark not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
     }
 }
 

@@ -62,6 +62,48 @@ impl From<colette_core::User> for User {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct Register {
+    #[schema(format = "email")]
+    #[validate(email(message = "not a valid email"))]
+    pub email: String,
+
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub password: String,
+}
+
+impl From<Register> for auth::Register {
+    fn from(value: Register) -> Self {
+        Self {
+            email: value.email,
+            password: value.password,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct Login {
+    #[schema(format = "email")]
+    #[validate(email(message = "not a valid email"))]
+    pub email: String,
+
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub password: String,
+}
+
+impl From<Login> for auth::Login {
+    fn from(value: Login) -> Self {
+        Self {
+            email: value.email,
+            password: value.password,
+        }
+    }
+}
+
 #[utoipa::path(
     post,
     path = "/register",
@@ -95,50 +137,6 @@ pub async fn register(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct Register {
-    #[schema(format = "email")]
-    #[validate(email(message = "not a valid email"))]
-    pub email: String,
-
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub password: String,
-}
-
-impl From<Register> for auth::Register {
-    fn from(value: Register) -> Self {
-        Self {
-            email: value.email,
-            password: value.password,
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum RegisterResponse {
-    #[response(status = 201, description = "Registered user")]
-    Created(User),
-
-    #[response(status = 409, description = "Email already registered")]
-    Conflict(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for RegisterResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
     }
 }
 
@@ -211,23 +209,46 @@ pub async fn login(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct Login {
-    #[schema(format = "email")]
-    #[validate(email(message = "not a valid email"))]
-    pub email: String,
+#[utoipa::path(
+    get,
+    path = "/@me",
+    responses(GetActiveResponse),
+    operation_id = "getActiveUser",
+    description = "Get the active user"
+)]
+#[axum::debug_handler]
+pub async fn get_active_user(
+    State(repository): State<Arc<dyn UserRepository>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let user = repository
+        .find_one_user(UserFindOneParams::Id(session.user_id))
+        .await
+        .map(User::from)
+        .map_err(|_| Error::Unknown)?;
 
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub password: String,
+    Ok(GetActiveResponse::Ok(user))
 }
 
-impl From<Login> for auth::Login {
-    fn from(value: Login) -> Self {
-        Self {
-            email: value.email,
-            password: value.password,
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum RegisterResponse {
+    #[response(status = 201, description = "Registered user")]
+    Created(User),
+
+    #[response(status = 409, description = "Email already registered")]
+    Conflict(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for RegisterResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }
@@ -253,27 +274,6 @@ impl IntoResponse for LoginResponse {
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
-}
-
-#[utoipa::path(
-    get,
-    path = "/@me",
-    responses(GetActiveResponse),
-    operation_id = "getActiveUser",
-    description = "Get the active user"
-)]
-#[axum::debug_handler]
-pub async fn get_active_user(
-    State(repository): State<Arc<dyn UserRepository>>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let user = repository
-        .find_one_user(UserFindOneParams::Id(session.user_id))
-        .await
-        .map(User::from)
-        .map_err(|_| Error::Unknown)?;
-
-    Ok(GetActiveResponse::Ok(user))
 }
 
 #[derive(Debug, utoipa::IntoResponses)]

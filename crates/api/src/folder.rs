@@ -69,28 +69,35 @@ impl From<colette_core::Folder> for Folder {
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "",
-    params(ListFoldersQuery),
-    responses(ListResponse),
-    operation_id = "listFolders",
-    description = "List the active profile folders"
-)]
-#[axum::debug_handler]
-pub async fn list_folders(
-    State(repository): State<Arc<dyn FolderRepository>>,
-    Valid(Query(query)): Valid<Query<ListFoldersQuery>>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find_many_folders(session.profile_id, None, None, Some(query.into()))
-        .await
-        .map(Paginated::<Folder>::from);
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderCreate {
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: String,
+    pub parent_id: Option<Uuid>,
+}
 
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
-        _ => Err(Error::Unknown),
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderUpdate {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub parent_id: Option<Option<Uuid>>,
+}
+
+impl From<FolderUpdate> for FolderUpdateData {
+    fn from(value: FolderUpdate) -> Self {
+        Self {
+            title: value.title,
+            parent_id: value.parent_id,
+        }
     }
 }
 
@@ -130,17 +137,28 @@ impl From<FolderType> for folder::FolderType {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of folders")]
-    Ok(FolderList),
-}
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListFoldersQuery),
+    responses(ListResponse),
+    operation_id = "listFolders",
+    description = "List the active profile folders"
+)]
+#[axum::debug_handler]
+pub async fn list_folders(
+    State(repository): State<Arc<dyn FolderRepository>>,
+    Valid(Query(query)): Valid<Query<ListFoldersQuery>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = repository
+        .find_many_folders(session.profile_id, None, None, Some(query.into()))
+        .await
+        .map(Paginated::<Folder>::from);
 
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
     }
 }
 
@@ -171,24 +189,6 @@ pub async fn get_folder(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Folder by ID")]
-    Ok(Folder),
-
-    #[response(status = 404, description = "Folder not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
     }
 }
 
@@ -226,38 +226,6 @@ pub async fn create_folder(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct FolderCreate {
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
-    pub parent_id: Option<Uuid>,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created folder")]
-    Created(Folder),
-
-    #[response(status = 409, description = "Folder already exists")]
-    Conflict(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     patch,
     path = "/{id}",
@@ -290,52 +258,6 @@ pub async fn update_folder(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct FolderUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub parent_id: Option<Option<Uuid>>,
-}
-
-impl From<FolderUpdate> for FolderUpdateData {
-    fn from(value: FolderUpdate) -> Self {
-        Self {
-            title: value.title,
-            parent_id: value.parent_id,
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated folder")]
-    Ok(Folder),
-
-    #[response(status = 404, description = "Folder not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for UpdateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -360,6 +282,84 @@ pub async fn delete_folder(
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of folders")]
+    Ok(FolderList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Folder by ID")]
+    Ok(Folder),
+
+    #[response(status = 404, description = "Folder not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created folder")]
+    Created(Folder),
+
+    #[response(status = 409, description = "Folder already exists")]
+    Conflict(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated folder")]
+    Ok(Folder),
+
+    #[response(status = 404, description = "Folder not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
     }
 }
 

@@ -49,7 +49,7 @@ impl Api {
     }
 }
 
-#[derive(Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
     pub id: Uuid,
@@ -68,6 +68,35 @@ impl From<colette_core::Profile> for Profile {
             image_url: value.image_url,
             is_default: value.is_default,
             user_id: value.user_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileCreate {
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: String,
+
+    pub image_url: Option<Url>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct ProfileUpdate {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+
+    pub image_url: Option<Url>,
+}
+
+impl From<ProfileUpdate> for ProfileUpdateData {
+    fn from(value: ProfileUpdate) -> Self {
+        Self {
+            title: value.title,
+            image_url: value.image_url.map(String::from),
         }
     }
 }
@@ -92,20 +121,6 @@ pub async fn list_profiles(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(ProfileList),
-}
-
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
     }
 }
 
@@ -139,24 +154,6 @@ pub async fn get_profile(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Profile by ID")]
-    Ok(Profile),
-
-    #[response(status = 404, description = "Profile not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     get,
     path = "/@me",
@@ -177,20 +174,6 @@ pub async fn get_active_profile(
     match result {
         Ok(data) => Ok(GetActiveResponse::Ok(data)),
         Err(_) => Err(Error::Unknown),
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetActiveResponse {
-    #[response(status = 200, description = "Active profile")]
-    Ok(Profile),
-}
-
-impl IntoResponse for GetActiveResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
     }
 }
 
@@ -227,39 +210,6 @@ pub async fn create_profile(
     }
 }
 
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct ProfileCreate {
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
-
-    pub image_url: Option<Url>,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created profile")]
-    Created(Profile),
-
-    #[response(status = 409, description = "Profile already exists")]
-    Conflict(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     patch,
     path = "/{id}",
@@ -292,38 +242,6 @@ pub async fn update_profile(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct ProfileUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-
-    pub image_url: Option<Url>,
-}
-
-impl From<ProfileUpdate> for ProfileUpdateData {
-    fn from(value: ProfileUpdate) -> Self {
-        Self {
-            title: value.title,
-            image_url: value.image_url.map(String::from),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated profile")]
-    Ok(Profile),
-
-    #[response(status = 404, description = "Profile not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -352,6 +270,88 @@ pub async fn delete_profile(
             _ => Err(Error::Unknown),
         },
     }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of profiles")]
+    Ok(ProfileList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Profile by ID")]
+    Ok(Profile),
+
+    #[response(status = 404, description = "Profile not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetActiveResponse {
+    #[response(status = 200, description = "Active profile")]
+    Ok(Profile),
+}
+
+impl IntoResponse for GetActiveResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created profile")]
+    Created(Profile),
+
+    #[response(status = 409, description = "Profile already exists")]
+    Conflict(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated profile")]
+    Ok(Profile),
+
+    #[response(status = 404, description = "Profile not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
 }
 
 impl IntoResponse for UpdateResponse {

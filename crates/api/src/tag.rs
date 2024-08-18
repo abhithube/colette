@@ -62,28 +62,25 @@ impl From<colette_core::Tag> for Tag {
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "",
-    params(ListTagsQuery),
-    responses(ListResponse),
-    operation_id = "listTags",
-    description = "List the active profile tags"
-)]
-#[axum::debug_handler]
-pub async fn list_tags(
-    State(repository): State<Arc<dyn TagRepository>>,
-    Valid(Query(query)): Valid<Query<ListTagsQuery>>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find_many_tags(session.profile_id, None, None, Some(query.into()))
-        .await
-        .map(Paginated::<Tag>::from);
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct TagCreate {
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: String,
+}
 
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
-        _ => Err(Error::Unknown),
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct TagUpdate {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+}
+
+impl From<TagUpdate> for TagUpdateData {
+    fn from(value: TagUpdate) -> Self {
+        Self { title: value.title }
     }
 }
 
@@ -123,17 +120,28 @@ impl From<TagType> for tag::TagType {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of tags")]
-    Ok(TagList),
-}
+#[utoipa::path(
+    get,
+    path = "",
+    params(ListTagsQuery),
+    responses(ListResponse),
+    operation_id = "listTags",
+    description = "List the active profile tags"
+)]
+#[axum::debug_handler]
+pub async fn list_tags(
+    State(repository): State<Arc<dyn TagRepository>>,
+    Valid(Query(query)): Valid<Query<ListTagsQuery>>,
+    session: Session,
+) -> Result<impl IntoResponse, Error> {
+    let result = repository
+        .find_many_tags(session.profile_id, None, None, Some(query.into()))
+        .await
+        .map(Paginated::<Tag>::from);
 
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
+    match result {
+        Ok(data) => Ok(ListResponse::Ok(data)),
+        _ => Err(Error::Unknown),
     }
 }
 
@@ -164,24 +172,6 @@ pub async fn get_tag(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Tag by ID")]
-    Ok(Tag),
-
-    #[response(status = 404, description = "Tag not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
     }
 }
 
@@ -218,37 +208,6 @@ pub async fn create_tag(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct TagCreate {
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created tag")]
-    Created(Tag),
-
-    #[response(status = 409, description = "Tag already exists")]
-    Conflict(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     patch,
     path = "/{id}",
@@ -281,43 +240,6 @@ pub async fn update_tag(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct TagUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-}
-
-impl From<TagUpdate> for TagUpdateData {
-    fn from(value: TagUpdate) -> Self {
-        Self { title: value.title }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated tag")]
-    Ok(Tag),
-
-    #[response(status = 404, description = "Tag not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for UpdateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -342,6 +264,84 @@ pub async fn delete_tag(
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of tags")]
+    Ok(TagList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Tag by ID")]
+    Ok(Tag),
+
+    #[response(status = 404, description = "Tag not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created tag")]
+    Created(Tag),
+
+    #[response(status = 409, description = "Tag already exists")]
+    Conflict(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated tag")]
+    Ok(Tag),
+
+    #[response(status = 404, description = "Tag not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
     }
 }
 

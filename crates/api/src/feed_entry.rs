@@ -78,6 +78,35 @@ impl From<colette_core::FeedEntry> for FeedEntry {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedEntryUpdate {
+    pub has_read: Option<bool>,
+}
+
+impl From<FeedEntryUpdate> for FeedEntryUpdateData {
+    fn from(value: FeedEntryUpdate) -> Self {
+        Self {
+            has_read: value.has_read,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct ListFeedEntriesQuery {
+    #[param(nullable = false)]
+    pub feed_id: Option<Uuid>,
+    #[param(nullable = false)]
+    pub has_read: Option<bool>,
+    #[param(min_length = 1, nullable = false)]
+    #[serde(rename = "tag[]")]
+    pub tags: Option<Vec<String>>,
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
+}
+
 #[utoipa::path(
     get,
     path = "",
@@ -112,35 +141,6 @@ pub async fn list_feed_entries(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub struct ListFeedEntriesQuery {
-    #[param(nullable = false)]
-    pub feed_id: Option<Uuid>,
-    #[param(nullable = false)]
-    pub has_read: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
-    #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
-    #[param(nullable = false)]
-    pub cursor: Option<String>,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of feed entries")]
-    Ok(FeedEntryList),
-}
-
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     get,
     path = "/{id}",
@@ -168,24 +168,6 @@ pub async fn get_feed_entry(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Feed entry by ID")]
-    Ok(FeedEntry),
-
-    #[response(status = 404, description = "Feed entry not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
     }
 }
 
@@ -221,16 +203,34 @@ pub async fn update_feed_entry(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedEntryUpdate {
-    pub has_read: Option<bool>,
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of feed entries")]
+    Ok(FeedEntryList),
 }
 
-impl From<FeedEntryUpdate> for FeedEntryUpdateData {
-    fn from(value: FeedEntryUpdate) -> Self {
-        Self {
-            has_read: value.has_read,
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Feed entry by ID")]
+    Ok(FeedEntry),
+
+    #[response(status = 404, description = "Feed entry not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }
 }

@@ -71,6 +71,39 @@ impl From<colette_core::Collection> for Collection {
     }
 }
 
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionCreate {
+    #[schema(min_length = 1)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: String,
+    #[schema(required)]
+    pub folder_id: Option<Uuid>,
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct CollectionUpdate {
+    #[schema(min_length = 1, nullable = false)]
+    #[validate(length(min = 1, message = "cannot be empty"))]
+    pub title: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub folder_id: Option<Option<Uuid>>,
+}
+
+impl From<CollectionUpdate> for CollectionUpdateData {
+    fn from(value: CollectionUpdate) -> Self {
+        Self {
+            title: value.title,
+            folder_id: value.folder_id,
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "",
@@ -91,20 +124,6 @@ pub async fn list_collections(
     match result {
         Ok(data) => Ok(ListResponse::Ok(data)),
         _ => Err(Error::Unknown),
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of collections")]
-    Ok(CollectionList),
-}
-
-impl IntoResponse for ListResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-        }
     }
 }
 
@@ -135,24 +154,6 @@ pub async fn get_collection(
             })),
             _ => Err(Error::Unknown),
         },
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum GetResponse {
-    #[response(status = 200, description = "Collection by ID")]
-    Ok(Collection),
-
-    #[response(status = 404, description = "Collection not found")]
-    NotFound(BaseError),
-}
-
-impl IntoResponse for GetResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-        }
     }
 }
 
@@ -190,39 +191,6 @@ pub async fn create_collection(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionCreate {
-    #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
-    #[schema(required)]
-    pub folder_id: Option<Uuid>,
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created collection")]
-    Created(Collection),
-
-    #[response(status = 409, description = "Collection already exists")]
-    Conflict(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for CreateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     patch,
     path = "/{id}",
@@ -255,52 +223,6 @@ pub async fn update_collection(
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
-#[serde(rename_all = "camelCase")]
-pub struct CollectionUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub folder_id: Option<Option<Uuid>>,
-}
-
-impl From<CollectionUpdate> for CollectionUpdateData {
-    fn from(value: CollectionUpdate) -> Self {
-        Self {
-            title: value.title,
-            folder_id: value.folder_id,
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated collection")]
-    Ok(Collection),
-
-    #[response(status = 404, description = "Collection not found")]
-    NotFound(BaseError),
-
-    #[allow(dead_code)]
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for UpdateResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-        }
-    }
-}
-
 #[utoipa::path(
     delete,
     path = "/{id}",
@@ -325,6 +247,84 @@ pub async fn delete_collection(
             })),
             _ => Err(Error::Unknown),
         },
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum ListResponse {
+    #[response(status = 200, description = "Paginated list of collections")]
+    Ok(CollectionList),
+}
+
+impl IntoResponse for ListResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum GetResponse {
+    #[response(status = 200, description = "Collection by ID")]
+    Ok(Collection),
+
+    #[response(status = 404, description = "Collection not found")]
+    NotFound(BaseError),
+}
+
+impl IntoResponse for GetResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum CreateResponse {
+    #[response(status = 201, description = "Created collection")]
+    Created(Collection),
+
+    #[response(status = 409, description = "Collection already exists")]
+    Conflict(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for CreateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum UpdateResponse {
+    #[response(status = 200, description = "Updated collection")]
+    Ok(Collection),
+
+    #[response(status = 404, description = "Collection not found")]
+    NotFound(BaseError),
+
+    #[allow(dead_code)]
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for UpdateResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
     }
 }
 
