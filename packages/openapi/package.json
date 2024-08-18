@@ -8,15 +8,14 @@
 		"dev": "vite",
 		"build": "tsc && vite build",
 		"preview": "vite preview",
-		"generate": "openapi-typescript 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.d.ts"
+		"generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
 	},
 	"devDependencies": {
-		"openapi-typescript": "^7",
+		"typed-openapi": "^0.9",
 		"typescript": "^5",
 		"vite": "^5"
 	},
 	"dependencies": {
-		"@colette/core": "*",
-		"openapi-fetch": "^0.11"
+		"zod": "^3"
 	}
 }
