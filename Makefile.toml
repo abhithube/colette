@@ -6,41 +6,9 @@ config.default_to_workspace = false
 command = "cargo"
 args = ["run", "-p", "colette-server"]
 
-[tasks.run]
-command = "cargo"
-args = ["run", "--release", "-p", "colette-server"]
-
-[tasks.watch-tw]
-cwd = "./crates/ui"
-command = "npx"
-args = [
-  "tailwindcss",
-  "-i",
-  "./input.css",
-  "-o",
-  "./style/output.css",
-  "--watch",
-]
-
-[tasks.watch-ui]
-install_crate = "cargo-leptos"
-command = "cargo"
-args = ["leptos", "watch"]
-
 [tasks.build]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
-
-[tasks.build-tw]
-cwd = "./crates/ui"
-command = "npx"
-args = ["tailwindcss", "-i", "./input.css", "-o", "./style/output.css"]
-
-[tasks.build-ui]
-dependencies = ["build-tw"]
-install_crate = "cargo-leptos"
-command = "cargo"
-args = ["leptos", "build", "--release"]
 
 [tasks.build-docker]
 command = "docker"

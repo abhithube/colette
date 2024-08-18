@@ -17,14 +17,14 @@ RUN cargo install cargo-chef
 
 FROM base AS prepare
 COPY . .
-RUN cargo chef prepare  --recipe-path recipe.json
+RUN cargo chef prepare --recipe-path recipe.json
 
 FROM base AS rust-build
 COPY --from=prepare /app/recipe.json recipe.json
-RUN cargo chef cook --target $TARGET --release --recipe-path recipe.json
+RUN cargo chef cook --target $TARGET --release --recipe-path recipe.json -p colette-server
 COPY . .
 COPY --from=web-build /app/packages/web/dist /packages/web/dist
-RUN cargo build --target $TARGET --release
+RUN cargo build --target $TARGET --release -p colette-server
 
 FROM gcr.io/distroless/static AS release
 ARG TARGET
