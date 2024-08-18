@@ -196,6 +196,7 @@ pub struct CollectionCreate {
     #[schema(min_length = 1)]
     #[validate(length(min = 1, message = "cannot be empty"))]
     pub title: String,
+    #[schema(required)]
     pub folder_id: Option<Uuid>,
 }
 
