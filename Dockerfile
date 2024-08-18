@@ -1,4 +1,4 @@
-ARG TARGET="aarch64-unknown-linux-musl"
+ARG TARGET="x86_64-unknown-linux-musl"
 
 FROM node:22-alpine AS web-build
 WORKDIR /app
