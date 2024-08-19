@@ -19,7 +19,7 @@ impl UserSqlRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for UserSqlRepository {
-    async fn find_one_user(&self, params: UserFindOneParams) -> Result<User, Error> {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
         match params {
             UserFindOneParams::Id(id) => {
                 let Some(profile) = queries::user::select_by_id(&self.db, id)
@@ -44,7 +44,7 @@ impl UserRepository for UserSqlRepository {
         }
     }
 
-    async fn create_user(&self, data: UserCreateData) -> Result<User, Error> {
+    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
         self.db
             .transaction::<_, User, Error>(|txn| {
                 Box::pin(async move {

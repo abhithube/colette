@@ -26,7 +26,7 @@ impl ProfileSqlRepository {
 
 #[async_trait::async_trait]
 impl ProfileRepository for ProfileSqlRepository {
-    async fn find_many_profiles(
+    async fn find_many(
         &self,
         user_id: Uuid,
         limit: Option<u64>,
@@ -35,7 +35,7 @@ impl ProfileRepository for ProfileSqlRepository {
         find(&self.db, None, user_id, limit, cursor_raw).await
     }
 
-    async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error> {
+    async fn find_one(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error> {
         match id {
             Some(id) => find_by_id(&self.db, id, user_id).await,
             None => {
@@ -51,7 +51,7 @@ impl ProfileRepository for ProfileSqlRepository {
         }
     }
 
-    async fn create_profile(&self, data: ProfileCreateData) -> Result<Profile, Error> {
+    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
         let model = queries::profile::insert(
             &self.db,
             Uuid::new_v4(),
@@ -69,7 +69,7 @@ impl ProfileRepository for ProfileSqlRepository {
         Ok(model.into())
     }
 
-    async fn update_profile(
+    async fn update(
         &self,
         id: Uuid,
         user_id: Uuid,
@@ -110,7 +110,7 @@ impl ProfileRepository for ProfileSqlRepository {
             })
     }
 
-    async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
@@ -140,7 +140,7 @@ impl ProfileRepository for ProfileSqlRepository {
             })
     }
 
-    async fn stream_profiles(
+    async fn stream(
         &self,
         feed_id: i32,
     ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {

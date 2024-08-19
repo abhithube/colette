@@ -24,7 +24,7 @@ impl CollectionSqlRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for CollectionSqlRepository {
-    async fn find_many_collections(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -33,11 +33,11 @@ impl CollectionRepository for CollectionSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw).await
     }
 
-    async fn find_one_collection(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_collection(&self, data: CollectionCreateData) -> Result<Collection, Error> {
+    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error> {
         let model = queries::collection::insert(
             &self.db,
             Uuid::new_v4(),
@@ -59,7 +59,7 @@ impl CollectionRepository for CollectionSqlRepository {
         })
     }
 
-    async fn update_collection(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
@@ -100,7 +100,7 @@ impl CollectionRepository for CollectionSqlRepository {
             })
     }
 
-    async fn delete_collection(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         let result = queries::collection::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

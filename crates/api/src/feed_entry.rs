@@ -122,7 +122,7 @@ pub async fn list_feed_entries(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_feed_entries(
+        .find_many(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor,
@@ -156,7 +156,7 @@ pub async fn get_feed_entry(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_feed_entry(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(FeedEntry::from);
 
@@ -188,7 +188,7 @@ pub async fn update_feed_entry(
     Valid(Json(body)): Valid<Json<FeedEntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_feed_entry(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(FeedEntry::from);
 

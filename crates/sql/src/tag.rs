@@ -24,7 +24,7 @@ impl TagSqlRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for TagSqlRepository {
-    async fn find_many_tags(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -34,11 +34,11 @@ impl TagRepository for TagSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_tag(&self, data: TagCreateData) -> Result<Tag, Error> {
+    async fn create(&self, data: TagCreateData) -> Result<Tag, Error> {
         let model = queries::tag::insert(
             &self.db,
             Uuid::new_v4(),
@@ -59,12 +59,7 @@ impl TagRepository for TagSqlRepository {
         })
     }
 
-    async fn update_tag(
-        &self,
-        id: Uuid,
-        profile_id: Uuid,
-        data: TagUpdateData,
-    ) -> Result<Tag, Error> {
+    async fn update(&self, id: Uuid, profile_id: Uuid, data: TagUpdateData) -> Result<Tag, Error> {
         self.db
             .transaction::<_, Tag, Error>(|txn| {
                 Box::pin(async move {
@@ -97,7 +92,7 @@ impl TagRepository for TagSqlRepository {
             })
     }
 
-    async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         let result = queries::tag::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

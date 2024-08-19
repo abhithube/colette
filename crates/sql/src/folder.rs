@@ -24,7 +24,7 @@ impl FolderSqlRepository {
 
 #[async_trait::async_trait]
 impl FolderRepository for FolderSqlRepository {
-    async fn find_many_folders(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -34,11 +34,11 @@ impl FolderRepository for FolderSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one_folder(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_folder(&self, data: FolderCreateData) -> Result<Folder, Error> {
+    async fn create(&self, data: FolderCreateData) -> Result<Folder, Error> {
         let model = queries::folder::insert(
             &self.db,
             Uuid::new_v4(),
@@ -61,7 +61,7 @@ impl FolderRepository for FolderSqlRepository {
         })
     }
 
-    async fn update_folder(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
@@ -99,7 +99,7 @@ impl FolderRepository for FolderSqlRepository {
             })
     }
 
-    async fn delete_folder(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         let result = queries::folder::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

@@ -18,7 +18,7 @@ pub struct FeedEntry {
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository: Send + Sync {
-    async fn find_many_feed_entries(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -26,9 +26,9 @@ pub trait FeedEntryRepository: Send + Sync {
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error>;
 
-    async fn find_one_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error>;
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error>;
 
-    async fn update_feed_entry(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,

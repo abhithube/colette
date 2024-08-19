@@ -122,7 +122,7 @@ pub async fn register(
         .map_err(|_| Error::Unknown)?;
 
     let result = repository
-        .create_user(UserCreateData {
+        .create(UserCreateData {
             email: body.email,
             password: hashed,
         })
@@ -158,7 +158,7 @@ pub async fn login(
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = user_repository
-        .find_one_user(UserFindOneParams::Email(body.email))
+        .find_one(UserFindOneParams::Email(body.email))
         .await;
 
     if let Err(e) = result {
@@ -185,7 +185,7 @@ pub async fn login(
     }
 
     let result = profile_repository
-        .find_one_profile(None, user.id)
+        .find_one(None, user.id)
         .await
         .map(Profile::from)
         .map_err(|e| e.into());
@@ -222,7 +222,7 @@ pub async fn get_active_user(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let user = repository
-        .find_one_user(UserFindOneParams::Id(session.user_id))
+        .find_one(UserFindOneParams::Id(session.user_id))
         .await
         .map(User::from)
         .map_err(|_| Error::Unknown)?;

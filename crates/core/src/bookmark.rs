@@ -57,7 +57,7 @@ pub struct BookmarkPluginRegistry<'a> {
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync {
-    async fn find_many_bookmarks(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -65,18 +65,18 @@ pub trait BookmarkRepository: Send + Sync {
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
 
-    async fn find_one_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error>;
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error>;
 
-    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
+    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error>;
 
-    async fn update_bookmark(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
         data: BookmarkUpdateData,
     ) -> Result<Bookmark, Error>;
 
-    async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]

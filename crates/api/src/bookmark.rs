@@ -183,7 +183,7 @@ pub async fn list_bookmarks(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_bookmarks(
+        .find_many(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor.clone(),
@@ -213,7 +213,7 @@ pub async fn get_bookmark(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_bookmark(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(Bookmark::from);
 
@@ -253,7 +253,7 @@ pub async fn create_bookmark(
     }
 
     let result = repository
-        .create_bookmark(BookmarkCreateData {
+        .create(BookmarkCreateData {
             url: body.url.into(),
             bookmark: scraped.unwrap(),
             collection_id: body.collection_id,
@@ -285,7 +285,7 @@ pub async fn update_bookmark(
     Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_bookmark(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(Bookmark::from);
 
@@ -314,7 +314,7 @@ pub async fn delete_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_bookmark(id, session.profile_id).await;
+    let result = repository.delete(id, session.profile_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

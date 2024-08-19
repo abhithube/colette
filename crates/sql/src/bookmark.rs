@@ -29,7 +29,7 @@ impl BookmarkSqlRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for BookmarkSqlRepository {
-    async fn find_many_bookmarks(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -39,11 +39,11 @@ impl BookmarkRepository for BookmarkSqlRepository {
         find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 
-    async fn find_one_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
+    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
@@ -103,7 +103,7 @@ impl BookmarkRepository for BookmarkSqlRepository {
             })
     }
 
-    async fn update_bookmark(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
@@ -194,7 +194,7 @@ impl BookmarkRepository for BookmarkSqlRepository {
             })
     }
 
-    async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {

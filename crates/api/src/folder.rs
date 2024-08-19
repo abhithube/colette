@@ -152,7 +152,7 @@ pub async fn list_folders(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_folders(session.profile_id, None, None, Some(query.into()))
+        .find_many(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Folder>::from);
 
@@ -177,7 +177,7 @@ pub async fn get_folder(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_folder(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(Folder::from);
 
@@ -207,7 +207,7 @@ pub async fn create_folder(
     Valid(Json(body)): Valid<Json<FolderCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_folder(FolderCreateData {
+        .create(FolderCreateData {
             title: body.title,
             parent_id: body.parent_id,
             profile_id: session.profile_id,
@@ -243,7 +243,7 @@ pub async fn update_folder(
     Valid(Json(body)): Valid<Json<FolderUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_folder(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(Folder::from);
 
@@ -272,7 +272,7 @@ pub async fn delete_folder(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_folder(id, session.profile_id).await;
+    let result = repository.delete(id, session.profile_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

@@ -12,25 +12,25 @@ pub struct Collection {
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Send + Sync {
-    async fn find_many_collections(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
     ) -> Result<Paginated<Collection>, Error>;
 
-    async fn find_one_collection(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error>;
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error>;
 
-    async fn create_collection(&self, data: CollectionCreateData) -> Result<Collection, Error>;
+    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
 
-    async fn update_collection(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
         data: CollectionUpdateData,
     ) -> Result<Collection, Error>;
 
-    async fn delete_collection(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

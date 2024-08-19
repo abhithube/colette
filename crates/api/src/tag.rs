@@ -135,7 +135,7 @@ pub async fn list_tags(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_tags(session.profile_id, None, None, Some(query.into()))
+        .find_many(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Tag>::from);
 
@@ -160,7 +160,7 @@ pub async fn get_tag(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_tag(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(Tag::from);
 
@@ -190,7 +190,7 @@ pub async fn create_tag(
     Valid(Json(body)): Valid<Json<TagCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_tag(TagCreateData {
+        .create(TagCreateData {
             title: body.title,
             profile_id: session.profile_id,
         })
@@ -225,7 +225,7 @@ pub async fn update_tag(
     Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_tag(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(Tag::from);
 
@@ -254,7 +254,7 @@ pub async fn delete_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_tag(id, session.profile_id).await;
+    let result = repository.delete(id, session.profile_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

@@ -117,7 +117,7 @@ pub async fn list_collections(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_collections(session.profile_id, None, None)
+        .find_many(session.profile_id, None, None)
         .await
         .map(Paginated::<Collection>::from);
 
@@ -142,7 +142,7 @@ pub async fn get_collection(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_collection(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(Collection::from);
 
@@ -172,7 +172,7 @@ pub async fn create_collection(
     Valid(Json(body)): Valid<Json<CollectionCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_collection(CollectionCreateData {
+        .create(CollectionCreateData {
             title: body.title,
             folder_id: body.folder_id,
             profile_id: session.profile_id,
@@ -208,7 +208,7 @@ pub async fn update_collection(
     Valid(Json(body)): Valid<Json<CollectionUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_collection(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(Collection::from);
 
@@ -237,7 +237,7 @@ pub async fn delete_collection(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_collection(id, session.profile_id).await;
+    let result = repository.delete(id, session.profile_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

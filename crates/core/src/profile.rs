@@ -19,30 +19,27 @@ pub struct StreamProfile {
 
 #[async_trait::async_trait]
 pub trait ProfileRepository: Send + Sync {
-    async fn find_many_profiles(
+    async fn find_many(
         &self,
         user_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
     ) -> Result<Paginated<Profile>, Error>;
 
-    async fn find_one_profile(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error>;
+    async fn find_one(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error>;
 
-    async fn create_profile(&self, data: ProfileCreateData) -> Result<Profile, Error>;
+    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error>;
 
-    async fn update_profile(
+    async fn update(
         &self,
         id: Uuid,
         user_id: Uuid,
         data: ProfileUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid, user_id: Uuid) -> Result<(), Error>;
 
-    async fn stream_profiles(
-        &self,
-        feed_id: i32,
-    ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }
 
 #[derive(Clone, Debug)]

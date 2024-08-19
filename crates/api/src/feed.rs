@@ -208,7 +208,7 @@ pub async fn list_feeds(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_feeds(session.profile_id, None, None, Some(query.into()))
+        .find_many(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Feed>::from);
 
@@ -233,7 +233,7 @@ pub async fn get_feed(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_feed(id, session.profile_id)
+        .find_one(id, session.profile_id)
         .await
         .map(Feed::from);
 
@@ -274,7 +274,7 @@ pub async fn create_feed(
     }
 
     let result = repository
-        .create_feed(FeedCreateData {
+        .create(FeedCreateData {
             url: body.url.into(),
             feed: scraped.unwrap(),
             folder_id: Some(body.folder_id),
@@ -306,7 +306,7 @@ pub async fn update_feed(
     Valid(Json(body)): Valid<Json<FeedUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_feed(id, session.profile_id, body.into())
+        .update(id, session.profile_id, body.into())
         .await
         .map(Feed::from);
 
@@ -335,7 +335,7 @@ pub async fn delete_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_feed(id, session.profile_id).await;
+    let result = repository.delete(id, session.profile_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

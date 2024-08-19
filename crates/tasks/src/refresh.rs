@@ -37,11 +37,11 @@ impl RefreshTask {
 
         let feed = self.scraper.scrape(&mut parsed)?;
 
-        let mut profiles_stream = self.profile_repository.stream_profiles(feed_id).await?;
+        let mut profiles_stream = self.profile_repository.stream(feed_id).await?;
 
         while let Some(Ok(profile)) = profiles_stream.next().await {
             self.feed_repository
-                .create_feed(FeedCreateData {
+                .create(FeedCreateData {
                     url: url.clone(),
                     feed: feed.clone(),
                     folder_id: None,
@@ -56,7 +56,7 @@ impl RefreshTask {
     async fn run(&self) -> Result<(), anyhow::Error> {
         let semaphore = Arc::new(Semaphore::new(5));
 
-        let feeds_stream = self.feed_repository.stream_feeds().await?;
+        let feeds_stream = self.feed_repository.stream().await?;
 
         let tasks = feeds_stream
             .map(|item| {

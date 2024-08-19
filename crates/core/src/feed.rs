@@ -88,7 +88,7 @@ pub struct StreamFeed {
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync {
-    async fn find_many_feeds(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -96,22 +96,18 @@ pub trait FeedRepository: Send + Sync {
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
-    async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
 
-    async fn create_feed(&self, data: FeedCreateData) -> Result<Feed, Error>;
+    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error>;
 
-    async fn update_feed(
-        &self,
-        id: Uuid,
-        profile_id: Uuid,
-        data: FeedUpdateData,
-    ) -> Result<Feed, Error>;
+    async fn update(&self, id: Uuid, profile_id: Uuid, data: FeedUpdateData)
+        -> Result<Feed, Error>;
 
-    async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 
-    async fn stream_feeds(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
+    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 
-    async fn cleanup_feeds(&self) -> Result<(), Error>;
+    async fn cleanup(&self) -> Result<(), Error>;
 }
 
 pub trait Detector: Send + Sync {

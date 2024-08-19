@@ -31,7 +31,7 @@ impl FeedSqlRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for FeedSqlRepository {
-    async fn find_many_feeds(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -41,11 +41,11 @@ impl FeedRepository for FeedSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
         find_by_id(&self.db, id, profile_id).await
     }
 
-    async fn create_feed(&self, data: FeedCreateData) -> Result<Feed, Error> {
+    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error> {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
@@ -149,7 +149,7 @@ impl FeedRepository for FeedSqlRepository {
             })
     }
 
-    async fn update_feed(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
@@ -227,7 +227,7 @@ impl FeedRepository for FeedSqlRepository {
             })
     }
 
-    async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         let result = queries::profile_feed::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -239,7 +239,7 @@ impl FeedRepository for FeedSqlRepository {
         Ok(())
     }
 
-    async fn stream_feeds(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
+    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
         queries::feed::stream(&self.db)
             .await
             .map(|e| {
@@ -253,7 +253,7 @@ impl FeedRepository for FeedSqlRepository {
             .map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn cleanup_feeds(&self) -> Result<(), Error> {
+    async fn cleanup(&self) -> Result<(), Error> {
         self.db
             .transaction::<_, (), DbErr>(|txn| {
                 Box::pin(async move {

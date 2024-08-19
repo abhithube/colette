@@ -114,7 +114,7 @@ pub async fn list_profiles(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many_profiles(session.user_id, None, None)
+        .find_many(session.user_id, None, None)
         .await
         .map(Paginated::<Profile>::from);
 
@@ -139,7 +139,7 @@ pub async fn get_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_profile(Some(id), session.user_id)
+        .find_one(Some(id), session.user_id)
         .await
         .map(Profile::from);
 
@@ -167,7 +167,7 @@ pub async fn get_active_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one_profile(None, session.user_id)
+        .find_one(None, session.user_id)
         .await
         .map(Profile::from);
 
@@ -192,7 +192,7 @@ pub async fn create_profile(
     Valid(Json(body)): Valid<Json<ProfileCreate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .create_profile(ProfileCreateData {
+        .create(ProfileCreateData {
             title: body.title,
             image_url: body.image_url.map(String::from),
             user_id: session.user_id,
@@ -227,7 +227,7 @@ pub async fn update_profile(
     Valid(Json(body)): Valid<Json<ProfileUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update_profile(id, session.user_id, body.into())
+        .update(id, session.user_id, body.into())
         .await
         .map(Profile::from);
 
@@ -256,7 +256,7 @@ pub async fn delete_profile(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete_profile(id, session.user_id).await;
+    let result = repository.delete(id, session.user_id).await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

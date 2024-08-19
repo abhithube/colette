@@ -19,7 +19,7 @@ pub fn handle_cleanup_task(cron: &str, repository: Arc<dyn FeedRepository>) {
             let start = Local::now();
             println!("Started cleanup task at: {}", start);
 
-            match repository.cleanup_feeds().await {
+            match repository.cleanup().await {
                 Ok(_) => {
                     let elasped = (Local::now().time() - start.time()).num_milliseconds();
                     println!("Finished cleanup task in {} ms", elasped);

@@ -20,7 +20,7 @@ pub enum FolderType {
 
 #[async_trait::async_trait]
 pub trait FolderRepository: Send + Sync {
-    async fn find_many_folders(
+    async fn find_many(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -28,18 +28,18 @@ pub trait FolderRepository: Send + Sync {
         filters: Option<FolderFindManyFilters>,
     ) -> Result<Paginated<Folder>, Error>;
 
-    async fn find_one_folder(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error>;
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error>;
 
-    async fn create_folder(&self, data: FolderCreateData) -> Result<Folder, Error>;
+    async fn create(&self, data: FolderCreateData) -> Result<Folder, Error>;
 
-    async fn update_folder(
+    async fn update(
         &self,
         id: Uuid,
         profile_id: Uuid,
         data: FolderUpdateData,
     ) -> Result<Folder, Error>;
 
-    async fn delete_folder(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]
