@@ -6,6 +6,7 @@ mod feed;
 mod feed_entry;
 mod folder;
 mod profile;
+mod queries;
 mod tag;
 mod user;
 
