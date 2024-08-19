@@ -1,4 +1,11 @@
-use sea_orm::DatabaseConnection;
+pub use bookmark::BookmarkSqlRepository;
+pub use collection::CollectionSqlRepository;
+pub use feed::FeedSqlRepository;
+pub use feed_entry::FeedEntrySqlRepository;
+pub use folder::FolderSqlRepository;
+pub use profile::ProfileSqlRepository;
+pub use tag::TagSqlRepository;
+pub use user::UserSqlRepository;
 
 mod bookmark;
 mod collection;
@@ -9,13 +16,3 @@ mod profile;
 mod queries;
 mod tag;
 mod user;
-
-pub struct SqlRepository {
-    pub(crate) db: DatabaseConnection,
-}
-
-impl SqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
-    }
-}

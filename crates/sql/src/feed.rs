@@ -12,17 +12,25 @@ use colette_entities::PfWithFeedAndTagsAndUnreadCount;
 use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DbErr, IntoActiveModel, TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::{
-    queries::{self, feed::StreamSelect},
-    SqlRepository,
-};
+use crate::queries;
+
+pub struct FeedSqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl FeedSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl FeedRepository for SqlRepository {
+impl FeedRepository for FeedSqlRepository {
     async fn find_many_feeds(
         &self,
         profile_id: Uuid,
@@ -267,8 +275,8 @@ impl FeedRepository for SqlRepository {
     }
 }
 
-impl From<StreamSelect> for StreamFeed {
-    fn from(value: StreamSelect) -> Self {
+impl From<queries::feed::StreamSelect> for StreamFeed {
+    fn from(value: queries::feed::StreamSelect) -> Self {
         Self {
             id: value.id,
             url: value.url,

@@ -7,14 +7,25 @@ use colette_core::{
 use colette_entities::PfeWithFe;
 use colette_utils::base_64;
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, IntoActiveModel, TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::{queries, SqlRepository};
+use crate::queries;
+
+pub struct FeedEntrySqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl FeedEntrySqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl FeedEntryRepository for SqlRepository {
+impl FeedEntryRepository for FeedEntrySqlRepository {
     async fn find_many_feed_entries(
         &self,
         profile_id: Uuid,

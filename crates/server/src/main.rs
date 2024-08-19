@@ -11,7 +11,10 @@ use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_session::{PostgresStore, SessionBackend, SqliteStore};
-use colette_sql::SqlRepository;
+use colette_sql::{
+    BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
+    FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+};
 use colette_tasks::handle_refresh_task;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
@@ -32,8 +35,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let db = Database::connect(opts).await?;
     Migrator::up(&db, None).await?;
-
-    let repository = Arc::new(SqlRepository::new(db.clone()));
 
     let session_backend = match db.get_database_backend() {
         DatabaseBackend::Postgres => {
@@ -59,44 +60,49 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
 
+    let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
+    let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
+
     if app_config.refresh_enabled {
         handle_refresh_task(
             &app_config.cron_refresh,
             feed_scraper.clone(),
-            repository.clone(),
-            repository.clone(),
+            feed_repository.clone(),
+            profile_repository.clone(),
         )
     }
 
-    colette_tasks::handle_cleanup_task(CRON_CLEANUP, repository.clone());
+    colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
     let api_state = ApiState {
         auth_state: AuthState {
-            user_repository: repository.clone(),
-            profile_repository: repository.clone(),
+            user_repository: Arc::new(UserSqlRepository::new(db.clone())),
+            profile_repository: profile_repository.clone(),
         },
         bookmark_state: BookmarkState {
-            repository: repository.clone(),
+            repository: Arc::new(BookmarkSqlRepository::new(db.clone())),
             scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
         },
         collection_state: CollectionState {
-            repository: repository.clone(),
+            repository: Arc::new(CollectionSqlRepository::new(db.clone())),
         },
         feed_state: FeedState {
-            repository: repository.clone(),
+            repository: feed_repository,
             scraper: feed_scraper,
             opml: Arc::new(OpmlManager),
         },
         feed_entry_state: FeedEntryState {
-            repository: repository.clone(),
+            repository: Arc::new(FeedEntrySqlRepository::new(db.clone())),
         },
         folder_state: FolderState {
-            repository: repository.clone(),
+            repository: Arc::new(FolderSqlRepository::new(db.clone())),
         },
         profile_state: ProfileState {
-            repository: repository.clone(),
+            repository: profile_repository,
         },
-        tag_state: TagState { repository },
+        tag_state: TagState {
+            repository: Arc::new(TagSqlRepository::new(db)),
+        },
     };
 
     let api = Api::new(&api_state, &app_config, session_backend)

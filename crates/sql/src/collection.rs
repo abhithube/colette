@@ -5,14 +5,25 @@ use colette_core::{
 };
 use colette_utils::base_64;
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, IntoActiveModel, SqlErr, TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::{queries, SqlRepository};
+use crate::queries;
+
+pub struct CollectionSqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl CollectionSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl CollectionRepository for SqlRepository {
+impl CollectionRepository for CollectionSqlRepository {
     async fn find_many_collections(
         &self,
         profile_id: Uuid,

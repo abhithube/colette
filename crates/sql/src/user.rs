@@ -2,13 +2,23 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserFindOneParams, UserRepository},
     User,
 };
-use sea_orm::{SqlErr, TransactionError, TransactionTrait};
+use sea_orm::{DatabaseConnection, SqlErr, TransactionError, TransactionTrait};
 use uuid::Uuid;
 
-use crate::{queries, SqlRepository};
+use crate::queries;
+
+pub struct UserSqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl UserSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl UserRepository for SqlRepository {
+impl UserRepository for UserSqlRepository {
     async fn find_one_user(&self, params: UserFindOneParams) -> Result<User, Error> {
         match params {
             UserFindOneParams::Id(id) => {

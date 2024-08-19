@@ -10,14 +10,25 @@ use colette_core::{
 use colette_entities::PbWithBookmarkAndTags;
 use colette_utils::base_64;
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DbErr, IntoActiveModel, TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::{queries, SqlRepository};
+use crate::queries;
+
+pub struct BookmarkSqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl BookmarkSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl BookmarkRepository for SqlRepository {
+impl BookmarkRepository for BookmarkSqlRepository {
     async fn find_many_bookmarks(
         &self,
         profile_id: Uuid,

@@ -7,18 +7,25 @@ use colette_core::{
 use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, IntoActiveModel, ModelTrait, SqlErr, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, ModelTrait, SqlErr,
+    TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::{
-    queries::{self, profile::StreamSelect},
-    SqlRepository,
-};
+use crate::queries;
+
+pub struct ProfileSqlRepository {
+    pub(crate) db: DatabaseConnection,
+}
+
+impl ProfileSqlRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
 
 #[async_trait::async_trait]
-impl ProfileRepository for SqlRepository {
+impl ProfileRepository for ProfileSqlRepository {
     async fn find_many_profiles(
         &self,
         user_id: Uuid,
@@ -151,8 +158,8 @@ impl ProfileRepository for SqlRepository {
     }
 }
 
-impl From<StreamSelect> for StreamProfile {
-    fn from(value: StreamSelect) -> Self {
+impl From<queries::profile::StreamSelect> for StreamProfile {
+    fn from(value: queries::profile::StreamSelect) -> Self {
         Self { id: value.id }
     }
 }
