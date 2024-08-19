@@ -4,18 +4,14 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
-use colette_entities::{
-    feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag, PfeWithFe,
-};
+use colette_entities::PfeWithFe;
 use colette_utils::base_64;
 use sea_orm::{
-    sea_query::Expr, ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait,
-    IntoActiveModel, JoinType, QueryFilter, QueryOrder, QuerySelect, RelationTrait,
-    TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, IntoActiveModel, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{queries, SqlRepository};
 
 #[async_trait::async_trait]
 impl FeedEntryRepository for SqlRepository {
@@ -42,11 +38,10 @@ impl FeedEntryRepository for SqlRepository {
         self.db
             .transaction::<_, FeedEntry, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) = profile_feed_entry::Entity::find_by_id(id)
-                        .filter(profile_feed_entry::Column::ProfileId.eq(profile_id))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(model) =
+                        queries::profile_feed_entry::select_by_id(txn, id, profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
                         return Err(Error::NotFound(id));
                     };
@@ -82,58 +77,16 @@ async fn find<Db: ConnectionTrait>(
     cursor_raw: Option<String>,
     filters: Option<FeedEntryFindManyFilters>,
 ) -> Result<Paginated<FeedEntry>, Error> {
-    let mut query = profile_feed_entry::Entity::find()
-        .find_also_related(feed_entry::Entity)
-        .order_by_desc(feed_entry::Column::PublishedAt)
-        .order_by_desc(profile_feed_entry::Column::Id)
-        .limit(limit.map(|e| e + 1));
-
-    let mut conditions = Condition::all().add(profile_feed_entry::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(profile_feed_entry::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        if let Some(feed_id) = filters.feed_id {
-            conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
-        }
-        if let Some(has_read) = filters.has_read {
-            conditions = conditions.add(profile_feed_entry::Column::HasRead.eq(has_read));
-        }
-        if let Some(tags) = filters.tags {
-            query = query
-                .join(
-                    JoinType::InnerJoin,
-                    profile_feed_entry::Relation::ProfileFeed.def(),
-                )
-                .join(
-                    JoinType::InnerJoin,
-                    profile_feed::Relation::ProfileFeedTag.def(),
-                )
-                .join(JoinType::InnerJoin, profile_feed_tag::Relation::Tag.def());
-
-            conditions = conditions.add(tag::Column::Title.is_in(tags));
-        }
-    }
-    if let Some(raw) = cursor_raw.as_deref() {
-        let cursor = base_64::decode::<Cursor>(raw)?;
-
-        conditions = conditions.add(
-            Expr::tuple([
-                Expr::col((feed_entry::Entity, feed_entry::Column::PublishedAt)).into(),
-                Expr::col((profile_feed_entry::Entity, profile_feed_entry::Column::Id)).into(),
-            ])
-            .lt(Expr::tuple([
-                Expr::value(cursor.published_at),
-                Expr::value(cursor.id),
-            ])),
-        );
-    }
-
-    let models = query
-        .filter(conditions)
-        .all(db)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+    let models = queries::profile_feed_entry::select_with_entry(
+        db,
+        id,
+        profile_id,
+        limit.map(|e| e + 1),
+        cursor_raw.and_then(|e| base_64::decode::<Cursor>(&e).ok()),
+        filters,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))?;
 
     let mut feed_entries = models
         .into_iter()
@@ -179,7 +132,7 @@ async fn find_by_id<Db: ConnectionTrait>(
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-struct Cursor {
+pub struct Cursor {
     pub id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub published_at: Option<DateTime<Utc>>,

@@ -1,22 +1,15 @@
 use colette_core::{
     common::Paginated,
-    folder::{
-        Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderType,
-        FolderUpdateData,
-    },
+    folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
-use colette_entities::{collection, folder, profile_feed, PartialFolder};
 use colette_utils::base_64;
 use sea_orm::{
-    sea_query::{Alias, Expr},
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    JoinType, QueryFilter, QuerySelect, RelationTrait, Set, SqlErr, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, IntoActiveModel, SqlErr, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{queries, SqlRepository};
 
 #[async_trait::async_trait]
 impl FolderRepository for SqlRepository {
@@ -35,26 +28,23 @@ impl FolderRepository for SqlRepository {
     }
 
     async fn create_folder(&self, data: FolderCreateData) -> Result<Folder, Error> {
-        let model = folder::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            title: Set(data.title.clone()),
-            parent_id: Set(data.parent_id),
-            profile_id: Set(data.profile_id),
-            ..Default::default()
-        };
-
-        let folder = folder::Entity::insert(model)
-            .exec_with_returning(&self.db)
-            .await
-            .map_err(|e| match e.sql_err() {
-                Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let model = queries::folder::insert(
+            &self.db,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.parent_id,
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(Folder {
-            id: folder.id,
-            title: folder.title,
-            parent_id: folder.parent_id,
+            id: model.id,
+            title: model.title,
+            parent_id: model.parent_id,
             collection_count: Some(0),
             feed_count: Some(0),
         })
@@ -69,9 +59,7 @@ impl FolderRepository for SqlRepository {
         self.db
             .transaction::<_, Folder, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) = folder::Entity::find_by_id(id)
-                        .filter(folder::Column::ProfileId.eq(profile_id))
-                        .one(txn)
+                    let Some(model) = queries::folder::select_by_id(txn, id, profile_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
@@ -101,9 +89,7 @@ impl FolderRepository for SqlRepository {
     }
 
     async fn delete_folder(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        let result = folder::Entity::delete_by_id(id)
-            .filter(folder::Column::ProfileId.eq(profile_id))
-            .exec(&self.db)
+        let result = queries::folder::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -123,60 +109,16 @@ async fn find<Db: ConnectionTrait>(
     cursor_raw: Option<String>,
     filters: Option<FolderFindManyFilters>,
 ) -> Result<Paginated<Folder>, Error> {
-    let mut query = folder::Entity::find()
-        .expr_as(
-            Expr::col((Alias::new("c"), collection::Column::FolderId)).count(),
-            "collection_count",
-        )
-        .expr_as(
-            Expr::col((Alias::new("pf"), profile_feed::Column::FolderId)).count(),
-            "feed_count",
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            folder::Relation::Collection.def(),
-            Alias::new("c"),
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            folder::Relation::ProfileFeed.def(),
-            Alias::new("pf"),
-        )
-        .group_by(folder::Column::Id);
-
-    let mut conditions = Condition::all().add(folder::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(folder::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        query = match filters.folder_type {
-            FolderType::Collections => {
-                query.join(JoinType::InnerJoin, folder::Relation::Collection.def())
-            }
-            FolderType::Feeds => {
-                query.join(JoinType::InnerJoin, folder::Relation::ProfileFeed.def())
-            }
-            _ => query,
-        };
-    }
-
     let mut cursor = Cursor::default();
     if let Some(raw) = cursor_raw.as_deref() {
         cursor = base_64::decode::<Cursor>(raw)?;
     }
 
-    let mut query = query.filter(conditions).cursor_by(folder::Column::Title);
-    query.after(cursor.title);
-    if let Some(limit) = limit {
-        query.first(limit + 1);
-    }
-
-    let mut folders = query
-        .into_model::<PartialFolder>()
-        .all(db)
-        .await
-        .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+    let mut folders =
+        queries::folder::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
+            .await
+            .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
     let mut cursor: Option<String> = None;
 
     if let Some(limit) = limit {
@@ -212,6 +154,6 @@ async fn find_by_id<Db: ConnectionTrait>(
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-struct Cursor {
+pub struct Cursor {
     pub title: String,
 }

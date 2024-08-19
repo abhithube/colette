@@ -7,20 +7,14 @@ use colette_core::{
     common::Paginated,
     Bookmark,
 };
-use colette_entities::{
-    bookmark, profile_bookmark, profile_bookmark_tag, tag, PbWithBookmarkAndTags,
-};
+use colette_entities::PbWithBookmarkAndTags;
 use colette_utils::base_64;
 use sea_orm::{
-    prelude::Expr,
-    sea_query::{OnConflict, SimpleExpr},
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, IntoActiveModel,
-    JoinType, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
-    TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, DbErr, IntoActiveModel, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{queries, SqlRepository};
 
 #[async_trait::async_trait]
 impl BookmarkRepository for SqlRepository {
@@ -42,69 +36,41 @@ impl BookmarkRepository for SqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let active_model = bookmark::ActiveModel {
-                        link: Set(data.url),
-                        title: Set(data.bookmark.title),
-                        thumbnail_url: Set(data.bookmark.thumbnail.map(String::from)),
-                        published_at: Set(data
-                            .bookmark
-                            .published
-                            .map(DateTime::<FixedOffset>::from)),
-                        author: Set(data.bookmark.author),
-                        ..Default::default()
-                    };
-
-                    let result = bookmark::Entity::insert(active_model)
-                        .on_conflict(
-                            OnConflict::column(bookmark::Column::Link)
-                                .update_columns([
-                                    bookmark::Column::Title,
-                                    bookmark::Column::ThumbnailUrl,
-                                    bookmark::Column::PublishedAt,
-                                    bookmark::Column::Author,
-                                ])
-                                .to_owned(),
-                        )
-                        .exec(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                    let result = queries::bookmark::insert(
+                        txn,
+                        data.url,
+                        data.bookmark.title,
+                        data.bookmark.thumbnail.map(String::from),
+                        data.bookmark.published.map(DateTime::<FixedOffset>::from),
+                        data.bookmark.author,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
                     let bookmark_id = result.last_insert_id;
 
-                    let prev = profile_bookmark::Entity::find()
-                        .order_by_desc(profile_bookmark::Column::SortIndex)
-                        .one(txn)
+                    let prev = queries::profile_bookmark::select_last(txn)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let active_model = profile_bookmark::ActiveModel {
-                        id: Set(Uuid::new_v4()),
-                        sort_index: Set(prev.map(|e| e.sort_index + 1).unwrap_or_default()),
-                        profile_id: Set(data.profile_id),
-                        bookmark_id: Set(bookmark_id),
-                        collection_id: Set(data.collection_id),
-                        ..Default::default()
-                    };
-
-                    let pb_id = match profile_bookmark::Entity::insert(active_model)
-                        .on_conflict(
-                            OnConflict::columns([
-                                profile_bookmark::Column::ProfileId,
-                                profile_bookmark::Column::BookmarkId,
-                            ])
-                            .do_nothing()
-                            .to_owned(),
-                        )
-                        .exec(txn)
-                        .await
+                    let pb_id = match queries::profile_bookmark::insert(
+                        txn,
+                        Uuid::new_v4(),
+                        prev.map(|e| e.sort_index + 1).unwrap_or_default(),
+                        data.profile_id,
+                        bookmark_id,
+                        data.collection_id,
+                    )
+                    .await
                     {
                         Ok(result) => Ok(result.last_insert_id),
                         Err(DbErr::RecordNotFound(_)) => {
-                            let Some(model) = profile_bookmark::Entity::find()
-                                .filter(profile_bookmark::Column::ProfileId.eq(data.profile_id))
-                                .filter(profile_bookmark::Column::BookmarkId.eq(bookmark_id))
-                                .one(txn)
-                                .await
-                                .map_err(|e| Error::Unknown(e.into()))?
+                            let Some(model) = queries::profile_bookmark::select_by_unique_index(
+                                txn,
+                                data.profile_id,
+                                bookmark_id,
+                            )
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                             else {
                                 return Err(Error::Unknown(anyhow!(
                                     "Failed to fetch created profile bookmark"
@@ -135,72 +101,47 @@ impl BookmarkRepository for SqlRepository {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(pb_model) = profile_bookmark::Entity::find_by_id(id)
-                        .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(pb_model) =
+                        queries::profile_bookmark::select_by_id(txn, id, profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
                         return Err(Error::NotFound(id));
                     };
 
                     if let Some(tags) = data.tags {
-                        let active_models = tags
-                            .clone()
-                            .into_iter()
-                            .map(|title| tag::ActiveModel {
-                                id: Set(Uuid::new_v4()),
-                                title: Set(title.clone()),
-                                profile_id: Set(profile_id),
-                                ..Default::default()
-                            })
-                            .collect::<Vec<_>>();
+                        queries::tag::insert_many(
+                            txn,
+                            tags.iter()
+                                .map(|e| queries::tag::InsertMany {
+                                    id: Uuid::new_v4(),
+                                    title: e.to_owned(),
+                                    profile_id,
+                                })
+                                .collect(),
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
 
-                        tag::Entity::insert_many(active_models)
-                            .on_empty_do_nothing()
-                            .on_conflict(
-                                OnConflict::columns([tag::Column::ProfileId, tag::Column::Title])
-                                    .do_nothing()
-                                    .to_owned(),
-                            )
-                            .exec(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let tag_models = tag::Entity::find()
-                            .filter(tag::Column::Title.is_in(&tags))
-                            .all(txn)
+                        let tag_models = queries::tag::select_by_tags(txn, &tags)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                         let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
-                        profile_bookmark_tag::Entity::delete_many()
-                            .filter(profile_bookmark_tag::Column::TagId.is_not_in(tag_ids.clone()))
-                            .exec(txn)
+                        queries::profile_bookmark_tag::delete_many_not_in(txn, tag_ids.clone())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        let active_models = tag_ids
-                            .into_iter()
-                            .map(|tag_id| profile_bookmark_tag::ActiveModel {
-                                profile_bookmark_id: Set(pb_model.id),
-                                tag_id: Set(tag_id),
-                                profile_id: Set(profile_id),
-                                ..Default::default()
+                        let insert_many = tag_ids
+                            .iter()
+                            .map(|e| queries::profile_bookmark_tag::InsertMany {
+                                profile_bookmark_id: pb_model.id,
+                                tag_id: *e,
+                                profile_id,
                             })
                             .collect::<Vec<_>>();
 
-                        profile_bookmark_tag::Entity::insert_many(active_models)
-                            .on_empty_do_nothing()
-                            .on_conflict(
-                                OnConflict::columns([
-                                    profile_bookmark_tag::Column::ProfileBookmarkId,
-                                    profile_bookmark_tag::Column::TagId,
-                                ])
-                                .do_nothing()
-                                .to_owned(),
-                            )
-                            .exec(txn)
+                        queries::profile_bookmark_tag::insert_many(txn, insert_many)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
@@ -209,33 +150,16 @@ impl BookmarkRepository for SqlRepository {
                     let mut active_model = pb_model.into_active_model();
 
                     if let Some(sort_index) = data.sort_index {
-                        let mut conditions = Condition::all()
-                            .add(profile_bookmark::Column::ProfileId.eq(profile_id));
-                        let expr: SimpleExpr;
-                        if sort_index as i32 > old_sort_index {
-                            conditions = conditions.add(
-                                profile_bookmark::Column::SortIndex
-                                    .lte(sort_index)
-                                    .and(profile_bookmark::Column::SortIndex.gt(old_sort_index)),
-                            );
-                            expr = Expr::col(profile_bookmark::Column::SortIndex).sub(1);
-                        } else {
-                            conditions = conditions.add(
-                                profile_bookmark::Column::SortIndex
-                                    .gte(sort_index)
-                                    .and(profile_bookmark::Column::SortIndex.lt(old_sort_index)),
-                            );
-                            expr = Expr::col(profile_bookmark::Column::SortIndex).add(1);
-                        }
+                        queries::profile_bookmark::update_many_sort_indexes(
+                            txn,
+                            sort_index as i32,
+                            old_sort_index,
+                            profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
 
-                        profile_bookmark::Entity::update_many()
-                            .col_expr(profile_bookmark::Column::SortIndex, expr)
-                            .filter(conditions)
-                            .exec(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        active_model.sort_index = Set(sort_index as i32);
+                        active_model.sort_index.set_if_not_equals(sort_index as i32);
                     }
 
                     if let Some(collection_id) = data.collection_id {
@@ -263,24 +187,21 @@ impl BookmarkRepository for SqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(pb_model) = profile_bookmark::Entity::find_by_id(id)
-                        .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
-                        .one(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(pb_model) =
+                        queries::profile_bookmark::select_by_id(txn, id, profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
                         return Err(Error::NotFound(id));
                     };
 
-                    profile_bookmark::Entity::update_many()
-                        .col_expr(
-                            profile_bookmark::Column::SortIndex,
-                            Expr::col(profile_bookmark::Column::SortIndex).sub(1),
-                        )
-                        .filter(profile_bookmark::Column::SortIndex.gt(pb_model.sort_index))
-                        .exec(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                    queries::profile_bookmark::decrement_many_sort_indexes(
+                        txn,
+                        pb_model.sort_index,
+                        profile_id,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
 
                     pb_model
                         .into_active_model()
@@ -307,62 +228,24 @@ async fn find<Db: ConnectionTrait>(
     cursor_raw: Option<String>,
     filters: Option<BookmarkFindManyFilters>,
 ) -> Result<Paginated<Bookmark>, Error> {
-    let mut query = profile_bookmark::Entity::find()
-        .find_also_related(bookmark::Entity)
-        .order_by_asc(profile_bookmark::Column::SortIndex);
+    let models = queries::profile_bookmark::select_with_bookmark(
+        db,
+        id,
+        profile_id,
+        limit.map(|e| e + 1),
+        cursor_raw.and_then(|e| base_64::decode::<Cursor>(&e).ok()),
+        filters,
+    )
+    .await
+    .map(|e| {
+        e.into_iter()
+            .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
+            .collect::<Vec<_>>()
+    })
+    .map_err(|e| Error::Unknown(e.into()))?;
+    let pb_models = models.iter().map(|e| e.0.to_owned()).collect::<Vec<_>>();
 
-    let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        if let Some(collection_id) = filters.collection_id {
-            conditions = conditions.add(profile_bookmark::Column::CollectionId.eq(collection_id));
-        }
-        if let Some(tags) = filters.tags {
-            query = query
-                .join(
-                    JoinType::InnerJoin,
-                    profile_bookmark::Relation::ProfileBookmarkTag.def(),
-                )
-                .join(
-                    JoinType::InnerJoin,
-                    profile_bookmark_tag::Relation::Tag.def(),
-                );
-
-            conditions = conditions.add(tag::Column::Title.is_in(tags));
-        }
-    }
-
-    let mut query = query
-        .filter(conditions)
-        .cursor_by(profile_bookmark::Column::SortIndex);
-
-    if let Some(raw) = cursor_raw.as_deref() {
-        let cursor = base_64::decode::<Cursor>(raw)?;
-        query.after(cursor.sort_index);
-    };
-    if let Some(limit) = limit {
-        query.first(limit + 1);
-    }
-
-    let models = query
-        .all(db)
-        .await
-        .map(|e| {
-            e.into_iter()
-                .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
-                .collect::<Vec<_>>()
-        })
-        .map_err(|e| Error::Unknown(e.into()))?;
-    let pb_models = models.clone().into_iter().map(|e| e.0).collect::<Vec<_>>();
-
-    let tag_models = pb_models
-        .load_many_to_many(
-            tag::Entity::find().order_by_asc(tag::Column::Title),
-            profile_bookmark_tag::Entity,
-            db,
-        )
+    let tag_models = queries::profile_bookmark::load_tags(db, pb_models)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -406,6 +289,6 @@ pub async fn find_by_id<Db: ConnectionTrait>(
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-struct Cursor {
+pub struct Cursor {
     pub sort_index: u32,
 }

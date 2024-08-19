@@ -4,17 +4,18 @@ use colette_core::{
     profile::{Error, ProfileCreateData, ProfileRepository, ProfileUpdateData, StreamProfile},
     Profile,
 };
-use colette_entities::{profile, profile_feed};
 use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    JoinType, ModelTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, SqlErr,
-    TransactionError, TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, IntoActiveModel, ModelTrait, SqlErr, TransactionError,
+    TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{
+    queries::{self, profile::StreamSelect},
+    SqlRepository,
+};
 
 #[async_trait::async_trait]
 impl ProfileRepository for SqlRepository {
@@ -31,10 +32,7 @@ impl ProfileRepository for SqlRepository {
         match id {
             Some(id) => find_by_id(&self.db, id, user_id).await,
             None => {
-                let Some(profile) = profile::Entity::find()
-                    .filter(profile::Column::UserId.eq(user_id))
-                    .filter(profile::Column::IsDefault.eq(true))
-                    .one(&self.db)
+                let Some(profile) = queries::profile::select_default(&self.db, user_id)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 else {
@@ -47,23 +45,21 @@ impl ProfileRepository for SqlRepository {
     }
 
     async fn create_profile(&self, data: ProfileCreateData) -> Result<Profile, Error> {
-        let model = profile::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            title: Set(data.title.clone()),
-            image_url: Set(data.image_url),
-            user_id: Set(data.user_id),
-            ..Default::default()
-        };
+        let model = queries::profile::insert(
+            &self.db,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.image_url,
+            None,
+            data.user_id,
+        )
+        .await
+        .map_err(|e| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
 
-        let profile = profile::Entity::insert(model)
-            .exec_with_returning(&self.db)
-            .await
-            .map_err(|e| match e.sql_err() {
-                Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-                _ => Error::Unknown(e.into()),
-            })?;
-
-        Ok(profile.into())
+        Ok(model.into())
     }
 
     async fn update_profile(
@@ -75,9 +71,7 @@ impl ProfileRepository for SqlRepository {
         self.db
             .transaction::<_, colette_core::Profile, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(mut model) = profile::Entity::find_by_id(id)
-                        .filter(profile::Column::UserId.eq(user_id))
-                        .one(txn)
+                    let Some(mut model) = queries::profile::select_by_id(txn, id, user_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
@@ -113,9 +107,7 @@ impl ProfileRepository for SqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(profile) = profile::Entity::find_by_id(id)
-                        .filter(profile::Column::UserId.eq(user_id))
-                        .one(txn)
+                    let Some(profile) = queries::profile::select_by_id(txn, id, user_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
@@ -145,11 +137,7 @@ impl ProfileRepository for SqlRepository {
         &self,
         feed_id: i32,
     ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
-        profile::Entity::find()
-            .join(JoinType::InnerJoin, profile::Relation::ProfileFeed.def())
-            .filter(profile_feed::Column::FeedId.eq(feed_id))
-            .into_model::<StreamSelect>()
-            .stream(&self.db)
+        queries::profile::stream(&self.db, feed_id)
             .await
             .map(|e| {
                 e.map(|e| {
@@ -161,11 +149,6 @@ impl ProfileRepository for SqlRepository {
             })
             .map_err(|e| Error::Unknown(e.into()))
     }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct StreamSelect {
-    pub id: Uuid,
 }
 
 impl From<StreamSelect> for StreamProfile {
@@ -181,26 +164,12 @@ async fn find<Db: ConnectionTrait>(
     limit: Option<u64>,
     cursor_raw: Option<String>,
 ) -> Result<Paginated<Profile>, Error> {
-    let query = profile::Entity::find().order_by_asc(profile::Column::Title);
-
-    let mut conditions = Condition::all().add(profile::Column::UserId.eq(user_id));
-    if let Some(id) = id {
-        conditions = conditions.add(profile::Column::Id.eq(id));
-    }
-
     let mut cursor = Cursor::default();
     if let Some(raw) = cursor_raw.as_deref() {
         cursor = base_64::decode::<Cursor>(raw)?;
     }
 
-    let mut query = query.filter(conditions).cursor_by(profile::Column::Title);
-    query.after(cursor.title);
-    if let Some(limit) = limit {
-        query.first(limit + 1);
-    }
-
-    let mut profiles = query
-        .all(db)
+    let mut profiles = queries::profile::select(db, id, user_id, limit.map(|e| e + 1), cursor)
         .await
         .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
@@ -239,6 +208,6 @@ async fn find_by_id<Db: ConnectionTrait>(
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-struct Cursor {
+pub struct Cursor {
     pub title: String,
 }

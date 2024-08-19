@@ -1,19 +1,15 @@
 use colette_core::{
     common::Paginated,
-    tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagType, TagUpdateData},
+    tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
-use colette_entities::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use colette_utils::base_64;
 use sea_orm::{
-    sea_query::{Alias, Expr},
-    ActiveModelTrait, ColumnTrait, Condition, ConnectionTrait, EntityTrait, IntoActiveModel,
-    JoinType, QueryFilter, QuerySelect, RelationTrait, Set, SqlErr, TransactionError,
-    TransactionTrait,
+    ActiveModelTrait, ConnectionTrait, IntoActiveModel, SqlErr, TransactionError, TransactionTrait,
 };
 use uuid::Uuid;
 
-use crate::SqlRepository;
+use crate::{queries, SqlRepository};
 
 #[async_trait::async_trait]
 impl TagRepository for SqlRepository {
@@ -32,24 +28,21 @@ impl TagRepository for SqlRepository {
     }
 
     async fn create_tag(&self, data: TagCreateData) -> Result<Tag, Error> {
-        let model = tag::ActiveModel {
-            id: Set(Uuid::new_v4()),
-            title: Set(data.title.clone()),
-            profile_id: Set(data.profile_id),
-            ..Default::default()
-        };
-
-        let tag = tag::Entity::insert(model)
-            .exec_with_returning(&self.db)
-            .await
-            .map_err(|e| match e.sql_err() {
-                Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let model = queries::tag::insert(
+            &self.db,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         Ok(Tag {
-            id: tag.id,
-            title: tag.title,
+            id: model.id,
+            title: model.title,
             bookmark_count: Some(0),
             feed_count: Some(0),
         })
@@ -64,9 +57,7 @@ impl TagRepository for SqlRepository {
         self.db
             .transaction::<_, Tag, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) = tag::Entity::find_by_id(id)
-                        .filter(tag::Column::ProfileId.eq(profile_id))
-                        .one(txn)
+                    let Some(model) = queries::tag::select_by_id(txn, id, profile_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     else {
@@ -96,9 +87,7 @@ impl TagRepository for SqlRepository {
     }
 
     async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        let result = tag::Entity::delete_by_id(id)
-            .filter(tag::Column::ProfileId.eq(profile_id))
-            .exec(&self.db)
+        let result = queries::tag::delete_by_id(&self.db, id, profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -118,59 +107,12 @@ async fn find<Db: ConnectionTrait>(
     cursor_raw: Option<String>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Paginated<Tag>, Error> {
-    let mut query = tag::Entity::find()
-        .expr_as(
-            Expr::col((
-                Alias::new("pbt"),
-                profile_bookmark_tag::Column::ProfileBookmarkId,
-            ))
-            .count(),
-            "bookmark_count",
-        )
-        .expr_as(
-            Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
-            "feed_count",
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            tag::Relation::ProfileBookmarkTag.def(),
-            Alias::new("pbt"),
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            tag::Relation::ProfileFeedTag.def(),
-            Alias::new("pft"),
-        )
-        .group_by(tag::Column::Id);
-
-    let mut conditions = Condition::all().add(tag::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(tag::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        query = match filters.tag_type {
-            TagType::Bookmarks => {
-                query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
-            }
-            TagType::Feeds => query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def()),
-            _ => query,
-        };
-    }
-
     let mut cursor = Cursor::default();
     if let Some(raw) = cursor_raw.as_deref() {
         cursor = base_64::decode::<Cursor>(raw)?;
     }
 
-    let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
-    query.after(cursor.title);
-    if let Some(limit) = limit {
-        query.first(limit + 1);
-    }
-
-    let mut tags = query
-        .into_model::<PartialTag>()
-        .all(db)
+    let mut tags = queries::tag::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
         .await
         .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
@@ -206,6 +148,6 @@ async fn find_by_id<Db: ConnectionTrait>(
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-struct Cursor {
+pub struct Cursor {
     pub title: String,
 }
