@@ -1,5 +1,5 @@
 use colette_core::{
-    common::Paginated,
+    common::{Creatable, Paginated},
     tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
@@ -23,22 +23,11 @@ impl TagSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl TagRepository for TagSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<TagFindManyFilters>,
-    ) -> Result<Paginated<Tag>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
+impl Creatable for TagSqlRepository {
+    type Data = TagCreateData;
+    type Output = Result<Tag, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
-        find_by_id(&self.db, id, profile_id).await
-    }
-
-    async fn create(&self, data: TagCreateData) -> Result<Tag, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         let model = queries::tag::insert(
             &self.db,
             Uuid::new_v4(),
@@ -57,6 +46,23 @@ impl TagRepository for TagSqlRepository {
             bookmark_count: Some(0),
             feed_count: Some(0),
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl TagRepository for TagSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<TagFindManyFilters>,
+    ) -> Result<Paginated<Tag>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update(&self, id: Uuid, profile_id: Uuid, data: TagUpdateData) -> Result<Tag, Error> {

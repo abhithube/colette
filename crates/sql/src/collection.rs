@@ -1,6 +1,6 @@
 use colette_core::{
     collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
-    common::Paginated,
+    common::{Creatable, Paginated},
     Collection,
 };
 use colette_utils::base_64;
@@ -23,21 +23,11 @@ impl CollectionSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl CollectionRepository for CollectionSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-    ) -> Result<Paginated<Collection>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw).await
-    }
+impl Creatable for CollectionSqlRepository {
+    type Data = CollectionCreateData;
+    type Output = Result<Collection, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
-        find_by_id(&self.db, id, profile_id).await
-    }
-
-    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         let model = queries::collection::insert(
             &self.db,
             Uuid::new_v4(),
@@ -57,6 +47,22 @@ impl CollectionRepository for CollectionSqlRepository {
             folder_id: model.folder_id,
             bookmark_count: Some(0),
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl CollectionRepository for CollectionSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+    ) -> Result<Paginated<Collection>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw).await
+    }
+
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update(

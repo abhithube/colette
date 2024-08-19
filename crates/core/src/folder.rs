@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::Paginated;
+use crate::common::{Creatable, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Folder {
@@ -19,7 +19,9 @@ pub enum FolderType {
 }
 
 #[async_trait::async_trait]
-pub trait FolderRepository: Send + Sync {
+pub trait FolderRepository:
+    Creatable<Data = FolderCreateData, Output = Result<Folder, Error>> + Send + Sync
+{
     async fn find_many(
         &self,
         profile_id: Uuid,
@@ -29,8 +31,6 @@ pub trait FolderRepository: Send + Sync {
     ) -> Result<Paginated<Folder>, Error>;
 
     async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error>;
-
-    async fn create(&self, data: FolderCreateData) -> Result<Folder, Error>;
 
     async fn update(
         &self,

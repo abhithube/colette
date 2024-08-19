@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::Paginated,
+    common::{Creatable, Paginated},
     feed::{
         Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
     },
@@ -30,22 +30,11 @@ impl FeedSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl FeedRepository for FeedSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<FeedFindManyFilters>,
-    ) -> Result<Paginated<Feed>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
+impl Creatable for FeedSqlRepository {
+    type Data = FeedCreateData;
+    type Output = Result<Feed, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
-        find_by_id(&self.db, id, profile_id).await
-    }
-
-    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
@@ -147,6 +136,23 @@ impl FeedRepository for FeedSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl FeedRepository for FeedSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<FeedFindManyFilters>,
+    ) -> Result<Paginated<Feed>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update(

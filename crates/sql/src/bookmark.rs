@@ -4,7 +4,7 @@ use colette_core::{
     bookmark::{
         BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData, Error,
     },
-    common::Paginated,
+    common::{Creatable, Paginated},
     Bookmark,
 };
 use colette_entities::PbWithBookmarkAndTags;
@@ -28,22 +28,11 @@ impl BookmarkSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl BookmarkRepository for BookmarkSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<String>,
-        filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Paginated<Bookmark>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
-    }
+impl Creatable for BookmarkSqlRepository {
+    type Data = BookmarkCreateData;
+    type Output = Result<Bookmark, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
-        find_by_id(&self.db, id, profile_id).await
-    }
-
-    async fn create(&self, data: BookmarkCreateData) -> Result<Bookmark, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
@@ -101,6 +90,23 @@ impl BookmarkRepository for BookmarkSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl BookmarkRepository for BookmarkSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<BookmarkFindManyFilters>,
+    ) -> Result<Paginated<Bookmark>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
+    }
+
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update(

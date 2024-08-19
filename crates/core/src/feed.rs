@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::Paginated,
+    common::{Creatable, Paginated},
     scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
@@ -87,7 +87,9 @@ pub struct StreamFeed {
 }
 
 #[async_trait::async_trait]
-pub trait FeedRepository: Send + Sync {
+pub trait FeedRepository:
+    Creatable<Data = FeedCreateData, Output = Result<Feed, Error>> + Send + Sync
+{
     async fn find_many(
         &self,
         profile_id: Uuid,
@@ -97,8 +99,6 @@ pub trait FeedRepository: Send + Sync {
     ) -> Result<Paginated<Feed>, Error>;
 
     async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
-
-    async fn create(&self, data: FeedCreateData) -> Result<Feed, Error>;
 
     async fn update(&self, id: Uuid, profile_id: Uuid, data: FeedUpdateData)
         -> Result<Feed, Error>;

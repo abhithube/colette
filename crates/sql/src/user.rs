@@ -1,4 +1,5 @@
 use colette_core::{
+    common::Creatable,
     user::{Error, NotFoundError, UserCreateData, UserFindOneParams, UserRepository},
     User,
 };
@@ -18,33 +19,11 @@ impl UserSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl UserRepository for UserSqlRepository {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
-        match params {
-            UserFindOneParams::Id(id) => {
-                let Some(profile) = queries::user::select_by_id(&self.db, id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Id(id)));
-                };
+impl Creatable for UserSqlRepository {
+    type Data = UserCreateData;
+    type Output = Result<User, Error>;
 
-                Ok(profile.into())
-            }
-            UserFindOneParams::Email(email) => {
-                let Some(profile) = queries::user::select_by_email(&self.db, email.clone())
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Email(email)));
-                };
-
-                Ok(profile.into())
-            }
-        }
-    }
-
-    async fn create(&self, data: UserCreateData) -> Result<User, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, User, Error>(|txn| {
                 Box::pin(async move {
@@ -78,5 +57,33 @@ impl UserRepository for UserSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl UserRepository for UserSqlRepository {
+    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
+        match params {
+            UserFindOneParams::Id(id) => {
+                let Some(profile) = queries::user::select_by_id(&self.db, id)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                else {
+                    return Err(Error::NotFound(NotFoundError::Id(id)));
+                };
+
+                Ok(profile.into())
+            }
+            UserFindOneParams::Email(email) => {
+                let Some(profile) = queries::user::select_by_email(&self.db, email.clone())
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                else {
+                    return Err(Error::NotFound(NotFoundError::Email(email)));
+                };
+
+                Ok(profile.into())
+            }
+        }
     }
 }

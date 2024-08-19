@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::Paginated,
+    common::{Creatable, Paginated},
     profile::{Error, ProfileCreateData, ProfileRepository, ProfileUpdateData, StreamProfile},
     Profile,
 };
@@ -21,6 +21,30 @@ pub struct ProfileSqlRepository {
 impl ProfileSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Creatable for ProfileSqlRepository {
+    type Data = ProfileCreateData;
+    type Output = Result<Profile, Error>;
+
+    async fn create(&self, data: Self::Data) -> Self::Output {
+        let model = queries::profile::insert(
+            &self.db,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.image_url,
+            None,
+            data.user_id,
+        )
+        .await
+        .map_err(|e| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
+
+        Ok(model.into())
     }
 }
 
@@ -49,24 +73,6 @@ impl ProfileRepository for ProfileSqlRepository {
                 Ok(profile.into())
             }
         }
-    }
-
-    async fn create(&self, data: ProfileCreateData) -> Result<Profile, Error> {
-        let model = queries::profile::insert(
-            &self.db,
-            Uuid::new_v4(),
-            data.title.clone(),
-            data.image_url,
-            None,
-            data.user_id,
-        )
-        .await
-        .map_err(|e| match e.sql_err() {
-            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-            _ => Error::Unknown(e.into()),
-        })?;
-
-        Ok(model.into())
     }
 
     async fn update(
@@ -140,10 +146,7 @@ impl ProfileRepository for ProfileSqlRepository {
             })
     }
 
-    async fn stream(
-        &self,
-        feed_id: i32,
-    ) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
         queries::profile::stream(&self.db, feed_id)
             .await
             .map(|e| {

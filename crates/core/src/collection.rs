@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::Paginated;
+use crate::common::{Creatable, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Collection {
@@ -11,7 +11,9 @@ pub struct Collection {
 }
 
 #[async_trait::async_trait]
-pub trait CollectionRepository: Send + Sync {
+pub trait CollectionRepository:
+    Creatable<Data = CollectionCreateData, Output = Result<Collection, Error>> + Send + Sync
+{
     async fn find_many(
         &self,
         profile_id: Uuid,
@@ -20,8 +22,6 @@ pub trait CollectionRepository: Send + Sync {
     ) -> Result<Paginated<Collection>, Error>;
 
     async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error>;
-
-    async fn create(&self, data: CollectionCreateData) -> Result<Collection, Error>;
 
     async fn update(
         &self,

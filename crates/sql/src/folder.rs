@@ -1,5 +1,5 @@
 use colette_core::{
-    common::Paginated,
+    common::{Creatable, Paginated},
     folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
@@ -23,22 +23,11 @@ impl FolderSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl FolderRepository for FolderSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<FolderFindManyFilters>,
-    ) -> Result<Paginated<Folder>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
+impl Creatable for FolderSqlRepository {
+    type Data = FolderCreateData;
+    type Output = Result<Folder, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
-        find_by_id(&self.db, id, profile_id).await
-    }
-
-    async fn create(&self, data: FolderCreateData) -> Result<Folder, Error> {
+    async fn create(&self, data: Self::Data) -> Self::Output {
         let model = queries::folder::insert(
             &self.db,
             Uuid::new_v4(),
@@ -59,6 +48,23 @@ impl FolderRepository for FolderSqlRepository {
             collection_count: Some(0),
             feed_count: Some(0),
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl FolderRepository for FolderSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<FolderFindManyFilters>,
+    ) -> Result<Paginated<Folder>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
+        find_by_id(&self.db, id, profile_id).await
     }
 
     async fn update(

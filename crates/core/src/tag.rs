@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::Paginated;
+use crate::common::{Creatable, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
@@ -18,7 +18,9 @@ pub enum TagType {
 }
 
 #[async_trait::async_trait]
-pub trait TagRepository: Send + Sync {
+pub trait TagRepository:
+    Creatable<Data = TagCreateData, Output = Result<Tag, Error>> + Send + Sync
+{
     async fn find_many(
         &self,
         profile_id: Uuid,
@@ -28,8 +30,6 @@ pub trait TagRepository: Send + Sync {
     ) -> Result<Paginated<Tag>, Error>;
 
     async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error>;
-
-    async fn create(&self, data: TagCreateData) -> Result<Tag, Error>;
 
     async fn update(&self, id: Uuid, profile_id: Uuid, data: TagUpdateData) -> Result<Tag, Error>;
 
