@@ -94,7 +94,7 @@ pub trait FeedRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -102,7 +102,7 @@ pub trait FeedRepository:
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<Feed, Error>;
+    async fn find(&self, params: IdParams) -> Result<Feed, Error>;
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 

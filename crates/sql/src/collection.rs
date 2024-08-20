@@ -116,7 +116,7 @@ impl Deletable for CollectionSqlRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for CollectionSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -125,7 +125,7 @@ impl CollectionRepository for CollectionSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw).await
     }
 
-    async fn find_one(&self, params: IdParams) -> Result<Collection, Error> {
+    async fn find(&self, params: IdParams) -> Result<Collection, Error> {
         find_by_id(&self.db, params).await
     }
 }

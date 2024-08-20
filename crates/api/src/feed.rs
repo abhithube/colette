@@ -211,7 +211,7 @@ pub async fn list_feeds(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(session.profile_id, None, None, Some(query.into()))
+        .list(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Feed>::from);
 
@@ -236,7 +236,7 @@ pub async fn get_feed(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(Feed::from);
 

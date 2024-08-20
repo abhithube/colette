@@ -62,7 +62,7 @@ impl Creatable for UserSqlRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for UserSqlRepository {
-    async fn find_one(&self, params: UserIdParams) -> Result<User, Error> {
+    async fn find(&self, params: UserIdParams) -> Result<User, Error> {
         match params {
             UserIdParams::Id(id) => {
                 let Some(profile) = queries::user::select_by_id(&self.db, id)

@@ -18,14 +18,14 @@ pub trait CollectionRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
     ) -> Result<Paginated<Collection>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<Collection, Error>;
+    async fn find(&self, params: IdParams) -> Result<Collection, Error>;
 }
 
 #[derive(Clone, Debug)]

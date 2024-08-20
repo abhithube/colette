@@ -114,7 +114,7 @@ impl Deletable for FolderSqlRepository {
 
 #[async_trait::async_trait]
 impl FolderRepository for FolderSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -124,7 +124,7 @@ impl FolderRepository for FolderSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one(&self, params: IdParams) -> Result<Folder, Error> {
+    async fn find(&self, params: IdParams) -> Result<Folder, Error> {
         find_by_id(&self.db, params).await
     }
 }

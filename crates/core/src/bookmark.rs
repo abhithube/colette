@@ -63,7 +63,7 @@ pub trait BookmarkRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -71,7 +71,7 @@ pub trait BookmarkRepository:
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<Bookmark, Error>;
+    async fn find(&self, params: IdParams) -> Result<Bookmark, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

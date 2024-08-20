@@ -22,7 +22,7 @@ pub trait FeedEntryRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -30,7 +30,7 @@ pub trait FeedEntryRepository:
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<FeedEntry, Error>;
+    async fn find(&self, params: IdParams) -> Result<FeedEntry, Error>;
 }
 
 #[derive(Clone, Debug)]

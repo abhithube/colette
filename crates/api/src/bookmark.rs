@@ -183,7 +183,7 @@ pub async fn list_bookmarks(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(
+        .list(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor.clone(),
@@ -213,7 +213,7 @@ pub async fn get_bookmark(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(Bookmark::from);
 

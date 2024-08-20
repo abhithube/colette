@@ -230,7 +230,7 @@ impl Deletable for BookmarkSqlRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for BookmarkSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -240,7 +240,7 @@ impl BookmarkRepository for BookmarkSqlRepository {
         find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 
-    async fn find_one(&self, params: IdParams) -> Result<Bookmark, Error> {
+    async fn find(&self, params: IdParams) -> Result<Bookmark, Error> {
         find_by_id(&self.db, params).await
     }
 }

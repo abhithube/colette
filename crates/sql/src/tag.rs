@@ -111,7 +111,7 @@ impl Deletable for TagSqlRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for TagSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -121,7 +121,7 @@ impl TagRepository for TagSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one(&self, params: IdParams) -> Result<Tag, Error> {
+    async fn find(&self, params: IdParams) -> Result<Tag, Error> {
         find_by_id(&self.db, params).await
     }
 }

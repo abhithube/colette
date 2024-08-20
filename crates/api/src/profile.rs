@@ -117,7 +117,7 @@ pub async fn list_profiles(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(session.user_id, None, None)
+        .list(session.user_id, None, None)
         .await
         .map(Paginated::<Profile>::from);
 
@@ -142,7 +142,7 @@ pub async fn get_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(ProfileIdOrDefaultParams {
+        .find(ProfileIdOrDefaultParams {
             id: Some(id),
             user_id: session.user_id,
         })
@@ -173,7 +173,7 @@ pub async fn get_active_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(ProfileIdOrDefaultParams {
+        .find(ProfileIdOrDefaultParams {
             id: None,
             user_id: session.user_id,
         })

@@ -136,7 +136,7 @@ impl Deletable for ProfileSqlRepository {
 
 #[async_trait::async_trait]
 impl ProfileRepository for ProfileSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         user_id: Uuid,
         limit: Option<u64>,
@@ -145,7 +145,7 @@ impl ProfileRepository for ProfileSqlRepository {
         find(&self.db, None, user_id, limit, cursor_raw).await
     }
 
-    async fn find_one(&self, params: ProfileIdOrDefaultParams) -> Result<Profile, Error> {
+    async fn find(&self, params: ProfileIdOrDefaultParams) -> Result<Profile, Error> {
         match params.id {
             Some(id) => find_by_id(&self.db, id, params.user_id).await,
             None => {

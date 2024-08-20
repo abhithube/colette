@@ -157,9 +157,7 @@ pub async fn login(
     session_store: tower_sessions::Session,
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = user_repository
-        .find_one(UserIdParams::Email(body.email))
-        .await;
+    let result = user_repository.find(UserIdParams::Email(body.email)).await;
 
     if let Err(e) = result {
         match e {
@@ -185,7 +183,7 @@ pub async fn login(
     }
 
     let result = profile_repository
-        .find_one(ProfileIdOrDefaultParams {
+        .find(ProfileIdOrDefaultParams {
             id: None,
             user_id: user.id,
         })
@@ -225,7 +223,7 @@ pub async fn get_active_user(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let user = repository
-        .find_one(UserIdParams::Id(session.user_id))
+        .find(UserIdParams::Id(session.user_id))
         .await
         .map(User::from)
         .map_err(|_| Error::Unknown)?;

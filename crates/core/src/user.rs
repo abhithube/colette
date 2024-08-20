@@ -13,7 +13,7 @@ pub struct User {
 pub trait UserRepository:
     Creatable<Data = UserCreateData, Output = Result<User, Error>> + Send + Sync
 {
-    async fn find_one(&self, params: UserIdParams) -> Result<User, Error>;
+    async fn find(&self, params: UserIdParams) -> Result<User, Error>;
 }
 
 #[derive(Clone, Debug)]

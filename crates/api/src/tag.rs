@@ -138,7 +138,7 @@ pub async fn list_tags(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(session.profile_id, None, None, Some(query.into()))
+        .list(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Tag>::from);
 
@@ -163,7 +163,7 @@ pub async fn get_tag(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(Tag::from);
 

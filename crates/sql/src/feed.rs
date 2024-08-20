@@ -242,7 +242,7 @@ impl Deletable for FeedSqlRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for FeedSqlRepository {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -252,7 +252,7 @@ impl FeedRepository for FeedSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one(&self, params: IdParams) -> Result<Feed, Error> {
+    async fn find(&self, params: IdParams) -> Result<Feed, Error> {
         find_by_id(&self.db, params).await
     }
 

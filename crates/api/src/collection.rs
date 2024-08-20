@@ -118,7 +118,7 @@ pub async fn list_collections(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(session.profile_id, None, None)
+        .list(session.profile_id, None, None)
         .await
         .map(Paginated::<Collection>::from);
 
@@ -143,7 +143,7 @@ pub async fn get_collection(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(Collection::from);
 

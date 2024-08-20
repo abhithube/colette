@@ -122,7 +122,7 @@ pub async fn list_feed_entries(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(
+        .list(
             session.profile_id,
             Some(PAGINATION_LIMIT),
             query.cursor,
@@ -156,7 +156,7 @@ pub async fn get_feed_entry(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(FeedEntry::from);
 

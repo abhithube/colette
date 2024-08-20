@@ -153,7 +153,7 @@ pub async fn list_folders(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_many(session.profile_id, None, None, Some(query.into()))
+        .list(session.profile_id, None, None, Some(query.into()))
         .await
         .map(Paginated::<Folder>::from);
 
@@ -178,7 +178,7 @@ pub async fn get_folder(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(IdParams::new(id, session.profile_id))
+        .find(IdParams::new(id, session.profile_id))
         .await
         .map(Folder::from);
 

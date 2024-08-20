@@ -26,7 +26,7 @@ pub trait FolderRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -34,7 +34,7 @@ pub trait FolderRepository:
         filters: Option<FolderFindManyFilters>,
     ) -> Result<Paginated<Folder>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<Folder, Error>;
+    async fn find(&self, params: IdParams) -> Result<Folder, Error>;
 }
 
 #[derive(Clone, Debug)]

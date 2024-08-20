@@ -25,7 +25,7 @@ pub trait TagRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
@@ -33,7 +33,7 @@ pub trait TagRepository:
         filters: Option<TagFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error>;
 
-    async fn find_one(&self, params: IdParams) -> Result<Tag, Error>;
+    async fn find(&self, params: IdParams) -> Result<Tag, Error>;
 }
 
 #[derive(Clone, Debug)]

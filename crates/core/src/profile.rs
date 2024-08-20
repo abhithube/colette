@@ -25,14 +25,14 @@ pub trait ProfileRepository:
     + Send
     + Sync
 {
-    async fn find_many(
+    async fn list(
         &self,
         user_id: Uuid,
         limit: Option<u64>,
         cursor: Option<String>,
     ) -> Result<Paginated<Profile>, Error>;
 
-    async fn find_one(&self, id: ProfileIdOrDefaultParams) -> Result<Profile, Error>;
+    async fn find(&self, id: ProfileIdOrDefaultParams) -> Result<Profile, Error>;
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }
