@@ -106,7 +106,7 @@ impl Creatable for FeedSqlRepository {
                         .map(|e| queries::feed_entry::InsertMany {
                             link: e.link.to_string(),
                             title: e.title,
-                            published_at: e.published.map(|e| e.into()),
+                            published_at: e.published.into(),
                             description: e.description,
                             author: e.author,
                             thumbnail_url: e.thumbnail.map(String::from),

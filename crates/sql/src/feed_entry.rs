@@ -154,6 +154,5 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Fe
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
     pub id: Uuid,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub published_at: Option<DateTime<Utc>>,
+    pub published_at: DateTime<Utc>,
 }

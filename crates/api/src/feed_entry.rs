@@ -50,8 +50,7 @@ pub struct FeedEntry {
     #[schema(format = "uri")]
     pub link: String,
     pub title: String,
-    #[schema(required)]
-    pub published_at: Option<DateTime<Utc>>,
+    pub published_at: DateTime<Utc>,
     #[schema(required)]
     pub description: Option<String>,
     #[schema(required)]

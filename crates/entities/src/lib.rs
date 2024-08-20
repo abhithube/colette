@@ -83,7 +83,7 @@ impl From<PfeWithFe> for FeedEntry {
             id: value.pfe.id,
             link: value.fe.link,
             title: value.fe.title,
-            published_at: value.fe.published_at.map(DateTime::<Utc>::from),
+            published_at: value.fe.published_at.into(),
             description: value.fe.description,
             author: value.fe.author,
             thumbnail_url: value.fe.thumbnail_url,

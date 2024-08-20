@@ -11,7 +11,7 @@ pub struct Model {
     pub link: String,
     #[sea_orm(column_type = "Text")]
     pub title: String,
-    pub published_at: Option<DateTimeWithTimeZone>,
+    pub published_at: DateTimeWithTimeZone,
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]

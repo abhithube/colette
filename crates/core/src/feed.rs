@@ -67,7 +67,7 @@ pub struct ProcessedFeed {
 pub struct ProcessedFeedEntry {
     pub link: Url,
     pub title: String,
-    pub published: Option<DateTime<Utc>>,
+    pub published: DateTime<Utc>,
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail: Option<Url>,

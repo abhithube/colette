@@ -39,7 +39,7 @@ impl MigrationTrait for Migration {
                     .col(pk_auto(FeedEntry::Id))
                     .col(text_uniq(FeedEntry::Link))
                     .col(text(FeedEntry::Title))
-                    .col(timestamp_with_time_zone_null(FeedEntry::PublishedAt))
+                    .col(timestamp_with_time_zone(FeedEntry::PublishedAt))
                     .col(text_null(FeedEntry::Description))
                     .col(text_null(FeedEntry::Author))
                     .col(text_null(FeedEntry::ThumbnailUrl))

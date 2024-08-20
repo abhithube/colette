@@ -8,7 +8,7 @@ pub struct FeedEntry {
     pub id: Uuid,
     pub link: String,
     pub title: String,
-    pub published_at: Option<DateTime<Utc>>,
+    pub published_at: DateTime<Utc>,
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,

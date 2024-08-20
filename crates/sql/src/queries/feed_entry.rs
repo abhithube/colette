@@ -18,7 +18,7 @@ pub async fn select_many_in<Db: ConnectionTrait>(
 pub struct InsertMany {
     pub link: String,
     pub title: String,
-    pub published_at: Option<DateTime<FixedOffset>>,
+    pub published_at: DateTime<FixedOffset>,
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,

@@ -35,13 +35,17 @@ impl Postprocessor for DefaultFeedPostprocessor {
             let Some(title) = e.title else {
                 return Err(PostprocessError(anyhow!("could not process entry title")));
             };
-            let published = e.published.as_ref().and_then(|e| {
+            let Some(published) = e.published.as_ref().and_then(|e| {
                 DateTime::parse_from_rfc3339(e)
                     .ok()
                     .or(DateTime::parse_from_rfc2822(e).ok())
                     .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
                     .map(|f| f.to_utc())
-            });
+            }) else {
+                return Err(PostprocessError(anyhow!(
+                    "could not process entry publish date"
+                )));
+            };
             let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e).ok());
 
             let entry = ProcessedFeedEntry {
