@@ -227,7 +227,7 @@ async fn find_by_id<Db: ConnectionTrait>(
     id: Uuid,
     user_id: Uuid,
 ) -> Result<colette_core::Profile, Error> {
-    let profiles = find(db, Some(id), user_id, Some(1), None).await?;
+    let profiles = find(db, Some(id), user_id, None, None).await?;
 
     profiles.data.first().cloned().ok_or(Error::NotFound(id))
 }

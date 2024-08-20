@@ -313,7 +313,7 @@ async fn find<Db: ConnectionTrait>(
 }
 
 pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Bookmark, Error> {
-    let bookmarks = find(db, Some(params.id), params.profile_id, Some(1), None, None).await?;
+    let bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
     bookmarks
         .data

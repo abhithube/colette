@@ -142,7 +142,7 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<FeedEntry, Error> {
-    let feed_entries = find(db, Some(params.id), params.profile_id, Some(1), None, None).await?;
+    let feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
     feed_entries
         .data

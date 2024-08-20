@@ -178,7 +178,7 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Collection, Error> {
-    let collections = find(db, Some(params.id), params.profile_id, Some(1), None).await?;
+    let collections = find(db, Some(params.id), params.profile_id, None, None).await?;
 
     collections
         .data
