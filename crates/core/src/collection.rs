@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, IdParams, Paginated, Updatable};
+use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Collection {
@@ -12,7 +12,8 @@ pub struct Collection {
 
 #[async_trait::async_trait]
 pub trait CollectionRepository:
-    Creatable<Data = CollectionCreateData, Output = Result<Collection, Error>>
+    Findable<Params = IdParams, Output = Result<Collection, Error>>
+    + Creatable<Data = CollectionCreateData, Output = Result<Collection, Error>>
     + Updatable<Params = IdParams, Data = CollectionUpdateData, Output = Result<Collection, Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
@@ -24,8 +25,6 @@ pub trait CollectionRepository:
         limit: Option<u64>,
         cursor: Option<String>,
     ) -> Result<Paginated<Collection>, Error>;
-
-    async fn find(&self, params: IdParams) -> Result<Collection, Error>;
 }
 
 #[derive(Clone, Debug)]

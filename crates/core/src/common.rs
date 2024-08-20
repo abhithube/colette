@@ -21,6 +21,14 @@ impl IdParams {
 }
 
 #[async_trait::async_trait]
+pub trait Findable: Send + Sync {
+    type Params;
+    type Output;
+
+    async fn find(&self, params: Self::Params) -> Self::Output;
+}
+
+#[async_trait::async_trait]
 pub trait Creatable: Send + Sync {
     type Data;
     type Output;

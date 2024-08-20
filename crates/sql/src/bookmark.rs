@@ -4,7 +4,7 @@ use colette_core::{
     bookmark::{
         BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData, Error,
     },
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     Bookmark,
 };
 use colette_entities::PbWithBookmarkAndTags;
@@ -24,6 +24,16 @@ pub struct BookmarkSqlRepository {
 impl BookmarkSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for BookmarkSqlRepository {
+    type Params = IdParams;
+    type Output = Result<Bookmark, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -238,10 +248,6 @@ impl BookmarkRepository for BookmarkSqlRepository {
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error> {
         find(&self.db, None, profile_id, limit, cursor, filters).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<Bookmark, Error> {
-        find_by_id(&self.db, params).await
     }
 }
 

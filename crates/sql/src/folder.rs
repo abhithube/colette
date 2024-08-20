@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
@@ -19,6 +19,16 @@ pub struct FolderSqlRepository {
 impl FolderSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for FolderSqlRepository {
+    type Params = IdParams;
+    type Output = Result<Folder, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -122,10 +132,6 @@ impl FolderRepository for FolderSqlRepository {
         filters: Option<FolderFindManyFilters>,
     ) -> Result<Paginated<Folder>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<Folder, Error> {
-        find_by_id(&self.db, params).await
     }
 }
 

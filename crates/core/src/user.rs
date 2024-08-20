@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::Creatable;
+use crate::common::{Creatable, Findable};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct User {
@@ -11,9 +11,11 @@ pub struct User {
 
 #[async_trait::async_trait]
 pub trait UserRepository:
-    Creatable<Data = UserCreateData, Output = Result<User, Error>> + Send + Sync
+    Findable<Params = UserIdParams, Output = Result<User, Error>>
+    + Creatable<Data = UserCreateData, Output = Result<User, Error>>
+    + Send
+    + Sync
 {
-    async fn find(&self, params: UserIdParams) -> Result<User, Error>;
 }
 
 #[derive(Clone, Debug)]

@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, Paginated, Updatable},
     profile::{
         Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
         ProfileUpdateData, StreamProfile,
@@ -24,6 +24,28 @@ pub struct ProfileSqlRepository {
 impl ProfileSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for ProfileSqlRepository {
+    type Params = ProfileIdOrDefaultParams;
+    type Output = Result<Profile, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        match params.id {
+            Some(id) => find_by_id(&self.db, id, params.user_id).await,
+            None => {
+                let Some(profile) = queries::profile::select_default(&self.db, params.user_id)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                else {
+                    return Err(Error::Unknown(anyhow!("couldn't find default profile")));
+                };
+
+                Ok(profile.into())
+            }
+        }
     }
 }
 
@@ -143,22 +165,6 @@ impl ProfileRepository for ProfileSqlRepository {
         cursor_raw: Option<String>,
     ) -> Result<Paginated<Profile>, Error> {
         find(&self.db, None, user_id, limit, cursor_raw).await
-    }
-
-    async fn find(&self, params: ProfileIdOrDefaultParams) -> Result<Profile, Error> {
-        match params.id {
-            Some(id) => find_by_id(&self.db, id, params.user_id).await,
-            None => {
-                let Some(profile) = queries::profile::select_default(&self.db, params.user_id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::Unknown(anyhow!("couldn't find default profile")));
-                };
-
-                Ok(profile.into())
-            }
-        }
     }
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {

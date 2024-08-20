@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
@@ -19,6 +19,16 @@ pub struct TagSqlRepository {
 impl TagSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for TagSqlRepository {
+    type Params = IdParams;
+    type Output = Result<Tag, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -119,10 +129,6 @@ impl TagRepository for TagSqlRepository {
         filters: Option<TagFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<Tag, Error> {
-        find_by_id(&self.db, params).await
     }
 }
 

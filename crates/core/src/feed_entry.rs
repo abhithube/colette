@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use crate::common::{IdParams, Paginated, Updatable};
+use crate::common::{Findable, IdParams, Paginated, Updatable};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct FeedEntry {
@@ -18,7 +18,8 @@ pub struct FeedEntry {
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository:
-    Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<FeedEntry, Error>>
+    Findable<Params = IdParams, Output = Result<FeedEntry, Error>>
+    + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<FeedEntry, Error>>
     + Send
     + Sync
 {
@@ -29,8 +30,6 @@ pub trait FeedEntryRepository:
         cursor: Option<String>,
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error>;
-
-    async fn find(&self, params: IdParams) -> Result<FeedEntry, Error>;
 }
 
 #[derive(Clone, Debug)]

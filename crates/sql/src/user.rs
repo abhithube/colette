@@ -1,5 +1,5 @@
 use colette_core::{
-    common::Creatable,
+    common::{Creatable, Findable},
     user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
     User,
 };
@@ -15,6 +15,37 @@ pub struct UserSqlRepository {
 impl UserSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for UserSqlRepository {
+    type Params = UserIdParams;
+    type Output = Result<User, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        match params {
+            UserIdParams::Id(id) => {
+                let Some(profile) = queries::user::select_by_id(&self.db, id)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                else {
+                    return Err(Error::NotFound(NotFoundError::Id(id)));
+                };
+
+                Ok(profile.into())
+            }
+            UserIdParams::Email(email) => {
+                let Some(profile) = queries::user::select_by_email(&self.db, email.clone())
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                else {
+                    return Err(Error::NotFound(NotFoundError::Email(email)));
+                };
+
+                Ok(profile.into())
+            }
+        }
     }
 }
 
@@ -61,29 +92,4 @@ impl Creatable for UserSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl UserRepository for UserSqlRepository {
-    async fn find(&self, params: UserIdParams) -> Result<User, Error> {
-        match params {
-            UserIdParams::Id(id) => {
-                let Some(profile) = queries::user::select_by_id(&self.db, id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Id(id)));
-                };
-
-                Ok(profile.into())
-            }
-            UserIdParams::Email(email) => {
-                let Some(profile) = queries::user::select_by_email(&self.db, email.clone())
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Email(email)));
-                };
-
-                Ok(profile.into())
-            }
-        }
-    }
-}
+impl UserRepository for UserSqlRepository {}

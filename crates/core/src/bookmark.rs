@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     scraper::{self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin},
     Tag,
 };
@@ -57,7 +57,8 @@ pub struct BookmarkPluginRegistry<'a> {
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository:
-    Creatable<Data = BookmarkCreateData, Output = Result<Bookmark, Error>>
+    Findable<Params = IdParams, Output = Result<Bookmark, Error>>
+    + Creatable<Data = BookmarkCreateData, Output = Result<Bookmark, Error>>
     + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<Bookmark, Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
@@ -70,8 +71,6 @@ pub trait BookmarkRepository:
         cursor: Option<String>,
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
-
-    async fn find(&self, params: IdParams) -> Result<Bookmark, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

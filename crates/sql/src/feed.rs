@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     feed::{
         Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
     },
@@ -26,6 +26,16 @@ pub struct FeedSqlRepository {
 impl FeedSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for FeedSqlRepository {
+    type Params = IdParams;
+    type Output = Result<Feed, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -250,10 +260,6 @@ impl FeedRepository for FeedSqlRepository {
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<Feed, Error> {
-        find_by_id(&self.db, params).await
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {

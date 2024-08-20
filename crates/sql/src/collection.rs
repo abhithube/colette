@@ -1,6 +1,6 @@
 use colette_core::{
     collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
-    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     Collection,
 };
 use colette_utils::base_64;
@@ -19,6 +19,16 @@ pub struct CollectionSqlRepository {
 impl CollectionSqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for CollectionSqlRepository {
+    type Params = IdParams;
+    type Output = Result<Collection, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -123,10 +133,6 @@ impl CollectionRepository for CollectionSqlRepository {
         cursor_raw: Option<String>,
     ) -> Result<Paginated<Collection>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<Collection, Error> {
-        find_by_id(&self.db, params).await
     }
 }
 

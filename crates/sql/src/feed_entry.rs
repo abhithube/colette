@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{IdParams, Paginated, Updatable},
+    common::{Findable, IdParams, Paginated, Updatable},
     feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
@@ -21,6 +21,16 @@ pub struct FeedEntrySqlRepository {
 impl FeedEntrySqlRepository {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for FeedEntrySqlRepository {
+    type Params = IdParams;
+    type Output = Result<FeedEntry, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -80,10 +90,6 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Paginated<FeedEntry>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find(&self, params: IdParams) -> Result<FeedEntry, Error> {
-        find_by_id(&self.db, params).await
     }
 }
 
