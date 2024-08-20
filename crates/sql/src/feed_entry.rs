@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::Paginated,
+    common::{IdParams, Paginated},
     feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
@@ -36,25 +36,27 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error> {
-        find_by_id(&self.db, id, profile_id).await
+    async fn find_one(&self, params: IdParams) -> Result<FeedEntry, Error> {
+        find_by_id(&self.db, params).await
     }
 
     async fn update(
         &self,
-        id: Uuid,
-        profile_id: Uuid,
+        params: IdParams,
         data: FeedEntryUpdateData,
     ) -> Result<FeedEntry, Error> {
         self.db
             .transaction::<_, FeedEntry, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) =
-                        queries::profile_feed_entry::select_by_id(txn, id, profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(model) = queries::profile_feed_entry::select_by_id(
+                        txn,
+                        params.id,
+                        params.profile_id,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(id));
+                        return Err(Error::NotFound(params.id));
                     };
                     let mut active_model = model.into_active_model();
 
@@ -69,7 +71,7 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, id, profile_id).await
+                    find_by_id(txn, params).await
                 })
             })
             .await
@@ -128,18 +130,14 @@ async fn find<Db: ConnectionTrait>(
     })
 }
 
-async fn find_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<FeedEntry, Error> {
-    let feed_entries = find(db, Some(id), profile_id, Some(1), None, None).await?;
+async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<FeedEntry, Error> {
+    let feed_entries = find(db, Some(params.id), params.profile_id, Some(1), None, None).await?;
 
     feed_entries
         .data
         .first()
         .cloned()
-        .ok_or(Error::NotFound(id))
+        .ok_or(Error::NotFound(params.id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

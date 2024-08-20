@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::{Creatable, Paginated};
+use crate::common::{Creatable, IdParams, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Collection {
@@ -21,16 +21,15 @@ pub trait CollectionRepository:
         cursor: Option<String>,
     ) -> Result<Paginated<Collection>, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error>;
+    async fn find_one(&self, params: IdParams) -> Result<Collection, Error>;
 
     async fn update(
         &self,
-        id: Uuid,
-        profile_id: Uuid,
+        params: IdParams,
         data: CollectionUpdateData,
     ) -> Result<Collection, Error>;
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

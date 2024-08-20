@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, Paginated},
+    common::{Creatable, IdParams, Paginated},
     folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
@@ -63,24 +63,20 @@ impl FolderRepository for FolderSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
-        find_by_id(&self.db, id, profile_id).await
+    async fn find_one(&self, params: IdParams) -> Result<Folder, Error> {
+        find_by_id(&self.db, params).await
     }
 
-    async fn update(
-        &self,
-        id: Uuid,
-        profile_id: Uuid,
-        data: FolderUpdateData,
-    ) -> Result<Folder, Error> {
+    async fn update(&self, params: IdParams, data: FolderUpdateData) -> Result<Folder, Error> {
         self.db
             .transaction::<_, Folder, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(model) = queries::folder::select_by_id(txn, id, profile_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(model) =
+                        queries::folder::select_by_id(txn, params.id, params.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(id));
+                        return Err(Error::NotFound(params.id));
                     };
                     let mut active_model = model.into_active_model();
 
@@ -95,7 +91,7 @@ impl FolderRepository for FolderSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, id, profile_id).await
+                    find_by_id(txn, params).await
                 })
             })
             .await
@@ -105,13 +101,13 @@ impl FolderRepository for FolderSqlRepository {
             })
     }
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        let result = queries::folder::delete_by_id(&self.db, id, profile_id)
+    async fn delete(&self, params: IdParams) -> Result<(), Error> {
+        let result = queries::folder::delete_by_id(&self.db, params.id, params.profile_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if result.rows_affected == 0 {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         }
 
         Ok(())
@@ -160,14 +156,14 @@ async fn find<Db: ConnectionTrait>(
     })
 }
 
-async fn find_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<Folder, Error> {
-    let folders = find(db, Some(id), profile_id, Some(1), None, None).await?;
+async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Folder, Error> {
+    let folders = find(db, Some(params.id), params.profile_id, Some(1), None, None).await?;
 
-    folders.data.first().cloned().ok_or(Error::NotFound(id))
+    folders
+        .data
+        .first()
+        .cloned()
+        .ok_or(Error::NotFound(params.id))
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

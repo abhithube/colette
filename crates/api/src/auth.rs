@@ -9,8 +9,8 @@ use axum::{
 use axum_valid::Valid;
 use colette_core::{
     auth,
-    profile::ProfileRepository,
-    user::{self, UserCreateData, UserFindOneParams, UserRepository},
+    profile::{ProfileIdOrDefaultParams, ProfileRepository},
+    user::{self, UserCreateData, UserIdParams, UserRepository},
 };
 use colette_utils::password;
 use uuid::Uuid;
@@ -158,7 +158,7 @@ pub async fn login(
     Valid(Json(body)): Valid<Json<Login>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = user_repository
-        .find_one(UserFindOneParams::Email(body.email))
+        .find_one(UserIdParams::Email(body.email))
         .await;
 
     if let Err(e) = result {
@@ -185,7 +185,10 @@ pub async fn login(
     }
 
     let result = profile_repository
-        .find_one(None, user.id)
+        .find_one(ProfileIdOrDefaultParams {
+            id: None,
+            user_id: user.id,
+        })
         .await
         .map(Profile::from)
         .map_err(|e| e.into());
@@ -222,7 +225,7 @@ pub async fn get_active_user(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let user = repository
-        .find_one(UserFindOneParams::Id(session.user_id))
+        .find_one(UserIdParams::Id(session.user_id))
         .await
         .map(User::from)
         .map_err(|_| Error::Unknown)?;

@@ -1,7 +1,10 @@
 use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Paginated},
-    profile::{Error, ProfileCreateData, ProfileRepository, ProfileUpdateData, StreamProfile},
+    profile::{
+        Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
+        ProfileUpdateData, StreamProfile,
+    },
     Profile,
 };
 use colette_utils::base_64;
@@ -59,11 +62,11 @@ impl ProfileRepository for ProfileSqlRepository {
         find(&self.db, None, user_id, limit, cursor_raw).await
     }
 
-    async fn find_one(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error> {
-        match id {
-            Some(id) => find_by_id(&self.db, id, user_id).await,
+    async fn find_one(&self, params: ProfileIdOrDefaultParams) -> Result<Profile, Error> {
+        match params.id {
+            Some(id) => find_by_id(&self.db, id, params.user_id).await,
             None => {
-                let Some(profile) = queries::profile::select_default(&self.db, user_id)
+                let Some(profile) = queries::profile::select_default(&self.db, params.user_id)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 else {
@@ -77,18 +80,18 @@ impl ProfileRepository for ProfileSqlRepository {
 
     async fn update(
         &self,
-        id: Uuid,
-        user_id: Uuid,
+        params: ProfileIdParams,
         data: ProfileUpdateData,
     ) -> Result<Profile, Error> {
         self.db
             .transaction::<_, colette_core::Profile, Error>(|txn| {
                 Box::pin(async move {
-                    let Some(mut model) = queries::profile::select_by_id(txn, id, user_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(mut model) =
+                        queries::profile::select_by_id(txn, params.id, params.user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(id));
+                        return Err(Error::NotFound(params.id));
                     };
                     let mut active_model = model.clone().into_active_model();
 
@@ -116,15 +119,16 @@ impl ProfileRepository for ProfileSqlRepository {
             })
     }
 
-    async fn delete(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    async fn delete(&self, params: ProfileIdParams) -> Result<(), Error> {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let Some(profile) = queries::profile::select_by_id(txn, id, user_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    let Some(profile) =
+                        queries::profile::select_by_id(txn, params.id, params.user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     else {
-                        return Err(Error::NotFound(id));
+                        return Err(Error::NotFound(params.id));
                     };
 
                     if profile.is_default {

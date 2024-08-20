@@ -7,7 +7,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Paginated},
+    common::{Creatable, IdParams, Paginated},
     scraper::{
         self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
     },
@@ -98,12 +98,11 @@ pub trait FeedRepository:
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error>;
+    async fn find_one(&self, params: IdParams) -> Result<Feed, Error>;
 
-    async fn update(&self, id: Uuid, profile_id: Uuid, data: FeedUpdateData)
-        -> Result<Feed, Error>;
+    async fn update(&self, params: IdParams, data: FeedUpdateData) -> Result<Feed, Error>;
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
 

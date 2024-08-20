@@ -7,7 +7,10 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::tag::{self, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData};
+use colette_core::{
+    common::IdParams,
+    tag::{self, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
+};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
@@ -160,7 +163,7 @@ pub async fn get_tag(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(id, session.profile_id)
+        .find_one(IdParams::new(id, session.profile_id))
         .await
         .map(Tag::from);
 
@@ -225,7 +228,7 @@ pub async fn update_tag(
     Valid(Json(body)): Valid<Json<TagUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.profile_id, body.into())
+        .update(IdParams::new(id, session.profile_id), body.into())
         .await
         .map(Tag::from);
 
@@ -254,7 +257,9 @@ pub async fn delete_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete(id, session.profile_id).await;
+    let result = repository
+        .delete(IdParams::new(id, session.profile_id))
+        .await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

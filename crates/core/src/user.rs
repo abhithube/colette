@@ -13,11 +13,11 @@ pub struct User {
 pub trait UserRepository:
     Creatable<Data = UserCreateData, Output = Result<User, Error>> + Send + Sync
 {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error>;
+    async fn find_one(&self, params: UserIdParams) -> Result<User, Error>;
 }
 
 #[derive(Clone, Debug)]
-pub enum UserFindOneParams {
+pub enum UserIdParams {
     Id(Uuid),
     Email(String),
 }

@@ -28,18 +28,35 @@ pub trait ProfileRepository:
         cursor: Option<String>,
     ) -> Result<Paginated<Profile>, Error>;
 
-    async fn find_one(&self, id: Option<Uuid>, user_id: Uuid) -> Result<Profile, Error>;
+    async fn find_one(&self, id: ProfileIdOrDefaultParams) -> Result<Profile, Error>;
 
     async fn update(
         &self,
-        id: Uuid,
-        user_id: Uuid,
+        params: ProfileIdParams,
         data: ProfileUpdateData,
     ) -> Result<Profile, Error>;
 
-    async fn delete(&self, id: Uuid, user_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: ProfileIdParams) -> Result<(), Error>;
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
+}
+
+#[derive(Clone, Debug)]
+pub struct ProfileIdParams {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+impl ProfileIdParams {
+    pub fn new(id: Uuid, user_id: Uuid) -> Self {
+        Self { id, user_id }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ProfileIdOrDefaultParams {
+    pub id: Option<Uuid>,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

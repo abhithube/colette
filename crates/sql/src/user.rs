@@ -1,6 +1,6 @@
 use colette_core::{
     common::Creatable,
-    user::{Error, NotFoundError, UserCreateData, UserFindOneParams, UserRepository},
+    user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
     User,
 };
 use sea_orm::{DatabaseConnection, SqlErr, TransactionError, TransactionTrait};
@@ -62,9 +62,9 @@ impl Creatable for UserSqlRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for UserSqlRepository {
-    async fn find_one(&self, params: UserFindOneParams) -> Result<User, Error> {
+    async fn find_one(&self, params: UserIdParams) -> Result<User, Error> {
         match params {
-            UserFindOneParams::Id(id) => {
+            UserIdParams::Id(id) => {
                 let Some(profile) = queries::user::select_by_id(&self.db, id)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -74,7 +74,7 @@ impl UserRepository for UserSqlRepository {
 
                 Ok(profile.into())
             }
-            UserFindOneParams::Email(email) => {
+            UserIdParams::Email(email) => {
                 let Some(profile) = queries::user::select_by_email(&self.db, email.clone())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?

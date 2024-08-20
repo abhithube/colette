@@ -12,8 +12,11 @@ use colette_backup::{
     opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
     BackupManager,
 };
-use colette_core::feed::{
-    self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
+use colette_core::{
+    common::IdParams,
+    feed::{
+        self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
+    },
 };
 use url::Url;
 use uuid::Uuid;
@@ -233,7 +236,7 @@ pub async fn get_feed(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(id, session.profile_id)
+        .find_one(IdParams::new(id, session.profile_id))
         .await
         .map(Feed::from);
 
@@ -306,7 +309,7 @@ pub async fn update_feed(
     Valid(Json(body)): Valid<Json<FeedUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.profile_id, body.into())
+        .update(IdParams::new(id, session.profile_id), body.into())
         .await
         .map(Feed::from);
 
@@ -335,7 +338,9 @@ pub async fn delete_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete(id, session.profile_id).await;
+    let result = repository
+        .delete(IdParams::new(id, session.profile_id))
+        .await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

@@ -5,7 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Paginated},
+    common::{Creatable, IdParams, Paginated},
     scraper::{self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin},
     Tag,
 };
@@ -67,16 +67,11 @@ pub trait BookmarkRepository:
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Paginated<Bookmark>, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error>;
+    async fn find_one(&self, params: IdParams) -> Result<Bookmark, Error>;
 
-    async fn update(
-        &self,
-        id: Uuid,
-        profile_id: Uuid,
-        data: BookmarkUpdateData,
-    ) -> Result<Bookmark, Error>;
+    async fn update(&self, params: IdParams, data: BookmarkUpdateData) -> Result<Bookmark, Error>;
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]

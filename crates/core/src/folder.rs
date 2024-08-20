@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::{Creatable, Paginated};
+use crate::common::{Creatable, IdParams, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Folder {
@@ -30,16 +30,11 @@ pub trait FolderRepository:
         filters: Option<FolderFindManyFilters>,
     ) -> Result<Paginated<Folder>, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error>;
+    async fn find_one(&self, params: IdParams) -> Result<Folder, Error>;
 
-    async fn update(
-        &self,
-        id: Uuid,
-        profile_id: Uuid,
-        data: FolderUpdateData,
-    ) -> Result<Folder, Error>;
+    async fn update(&self, params: IdParams, data: FolderUpdateData) -> Result<Folder, Error>;
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

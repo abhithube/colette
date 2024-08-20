@@ -7,7 +7,10 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::profile::{self, ProfileCreateData, ProfileRepository, ProfileUpdateData};
+use colette_core::profile::{
+    self, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
+    ProfileUpdateData,
+};
 use url::Url;
 use uuid::Uuid;
 
@@ -139,7 +142,10 @@ pub async fn get_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(Some(id), session.user_id)
+        .find_one(ProfileIdOrDefaultParams {
+            id: Some(id),
+            user_id: session.user_id,
+        })
         .await
         .map(Profile::from);
 
@@ -167,7 +173,10 @@ pub async fn get_active_profile(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(None, session.user_id)
+        .find_one(ProfileIdOrDefaultParams {
+            id: None,
+            user_id: session.user_id,
+        })
         .await
         .map(Profile::from);
 
@@ -227,7 +236,7 @@ pub async fn update_profile(
     Valid(Json(body)): Valid<Json<ProfileUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.user_id, body.into())
+        .update(ProfileIdParams::new(id, session.user_id), body.into())
         .await
         .map(Profile::from);
 
@@ -256,7 +265,9 @@ pub async fn delete_profile(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete(id, session.user_id).await;
+    let result = repository
+        .delete(ProfileIdParams::new(id, session.user_id))
+        .await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

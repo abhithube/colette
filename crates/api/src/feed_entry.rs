@@ -10,7 +10,7 @@ use axum_extra::extract::Query;
 use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::PAGINATION_LIMIT,
+    common::{IdParams, PAGINATION_LIMIT},
     feed_entry::{self, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
 };
 use uuid::Uuid;
@@ -156,7 +156,7 @@ pub async fn get_feed_entry(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(id, session.profile_id)
+        .find_one(IdParams::new(id, session.profile_id))
         .await
         .map(FeedEntry::from);
 
@@ -188,7 +188,7 @@ pub async fn update_feed_entry(
     Valid(Json(body)): Valid<Json<FeedEntryUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.profile_id, body.into())
+        .update(IdParams::new(id, session.profile_id), body.into())
         .await
         .map(FeedEntry::from);
 

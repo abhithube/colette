@@ -14,7 +14,7 @@ use colette_core::{
         self, BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
         ProcessedBookmark,
     },
-    common::PAGINATION_LIMIT,
+    common::{IdParams, PAGINATION_LIMIT},
     scraper::Scraper,
 };
 use url::Url;
@@ -213,7 +213,7 @@ pub async fn get_bookmark(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(id, session.profile_id)
+        .find_one(IdParams::new(id, session.profile_id))
         .await
         .map(Bookmark::from);
 
@@ -285,7 +285,7 @@ pub async fn update_bookmark(
     Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.profile_id, body.into())
+        .update(IdParams::new(id, session.profile_id), body.into())
         .await
         .map(Bookmark::from);
 
@@ -314,7 +314,9 @@ pub async fn delete_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete(id, session.profile_id).await;
+    let result = repository
+        .delete(IdParams::new(id, session.profile_id))
+        .await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),

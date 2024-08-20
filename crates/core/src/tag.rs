@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::{Creatable, Paginated};
+use crate::common::{Creatable, IdParams, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Tag {
@@ -29,11 +29,11 @@ pub trait TagRepository:
         filters: Option<TagFindManyFilters>,
     ) -> Result<Paginated<Tag>, Error>;
 
-    async fn find_one(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error>;
+    async fn find_one(&self, params: IdParams) -> Result<Tag, Error>;
 
-    async fn update(&self, id: Uuid, profile_id: Uuid, data: TagUpdateData) -> Result<Tag, Error>;
+    async fn update(&self, params: IdParams, data: TagUpdateData) -> Result<Tag, Error>;
 
-    async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error>;
+    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

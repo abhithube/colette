@@ -7,8 +7,9 @@ use axum::{
     routing, Json, Router,
 };
 use axum_valid::Valid;
-use colette_core::collection::{
-    self, CollectionCreateData, CollectionRepository, CollectionUpdateData,
+use colette_core::{
+    collection::{self, CollectionCreateData, CollectionRepository, CollectionUpdateData},
+    common::IdParams,
 };
 use uuid::Uuid;
 
@@ -142,7 +143,7 @@ pub async fn get_collection(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .find_one(id, session.profile_id)
+        .find_one(IdParams::new(id, session.profile_id))
         .await
         .map(Collection::from);
 
@@ -208,7 +209,7 @@ pub async fn update_collection(
     Valid(Json(body)): Valid<Json<CollectionUpdate>>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
-        .update(id, session.profile_id, body.into())
+        .update(IdParams::new(id, session.profile_id), body.into())
         .await
         .map(Collection::from);
 
@@ -237,7 +238,9 @@ pub async fn delete_collection(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository.delete(id, session.profile_id).await;
+    let result = repository
+        .delete(IdParams::new(id, session.profile_id))
+        .await;
 
     match result {
         Ok(()) => Ok(DeleteResponse::NoContent),
