@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
-    feed::{Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData},
+    feed::{
+        Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData,
+    },
     Feed,
 };
 use colette_entities::PfWithFeedAndTagsAndUnreadCount;
@@ -257,6 +259,53 @@ impl FeedRepository for FeedSqlRepository {
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error> {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let link = data.feed.link.to_string();
+                    let result = queries::feed::insert(
+                        txn,
+                        link.clone(),
+                        data.feed.title,
+                        if data.url == link {
+                            None
+                        } else {
+                            Some(data.url)
+                        },
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+                    let feed_id = result.last_insert_id;
+
+                    let insert_many = data
+                        .feed
+                        .entries
+                        .into_iter()
+                        .map(|e| queries::feed_entry::InsertMany {
+                            link: e.link.to_string(),
+                            title: e.title,
+                            published_at: e.published.into(),
+                            description: e.description,
+                            author: e.author,
+                            thumbnail_url: e.thumbnail.map(String::from),
+                        })
+                        .collect::<Vec<_>>();
+
+                    queries::feed_entry::insert_many(txn, insert_many, feed_id)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {

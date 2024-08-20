@@ -15,7 +15,8 @@ use colette_backup::{
 use colette_core::{
     common::IdParams,
     feed::{
-        self, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper, FeedUpdateData,
+        self, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper,
+        FeedUpdateData,
     },
 };
 use url::Url;
@@ -362,7 +363,11 @@ pub async fn delete_feed(
   )]
 #[axum::debug_handler]
 pub async fn detect_feeds(
-    State(scraper): State<Arc<dyn FeedScraper>>,
+    State(FeedState {
+        repository,
+        scraper,
+        ..
+    }): State<FeedState>,
     Valid(Json(mut body)): Valid<Json<FeedDetect>>,
 ) -> Result<impl IntoResponse, Error> {
     let urls = scraper.detect(&mut body.url);
@@ -382,10 +387,18 @@ pub async fn detect_feeds(
             }));
         }
 
+        let url = url.to_string();
+        let feed = feed.unwrap();
+
         feeds.push(FeedDetected {
-            url: url.into(),
-            title: feed.unwrap().title,
-        })
+            url: url.clone(),
+            title: feed.title.clone(),
+        });
+
+        repository
+            .cache(FeedCacheData { url, feed })
+            .await
+            .map_err(|_| Error::Unknown)?;
     }
 
     Ok(DetectResponse::Ok(Paginated::<FeedDetected> {

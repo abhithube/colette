@@ -97,6 +97,8 @@ pub trait FeedRepository:
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
+
     async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error>;
 
     async fn cleanup(&self) -> Result<(), Error>;
@@ -134,6 +136,12 @@ pub struct FeedCreateData {
     pub feed: ProcessedFeed,
     pub folder_id: Option<Option<Uuid>>,
     pub profile_id: Uuid,
+}
+
+#[derive(Clone, Debug)]
+pub struct FeedCacheData {
+    pub url: String,
+    pub feed: ProcessedFeed,
 }
 
 #[derive(Clone, Debug)]
