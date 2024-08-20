@@ -172,19 +172,13 @@ impl ProfileRepository for ProfileSqlRepository {
             .await
             .map(|e| {
                 e.map(|e| {
-                    e.map(StreamProfile::from)
+                    e.map(|id| StreamProfile { id })
                         .map_err(|e| Error::Unknown(e.into()))
                 })
                 .map_err(|e| Error::Unknown(e.into()))
                 .boxed()
             })
             .map_err(|e| Error::Unknown(e.into()))
-    }
-}
-
-impl From<queries::profile::StreamSelect> for StreamProfile {
-    fn from(value: queries::profile::StreamSelect) -> Self {
-        Self { id: value.id }
     }
 }
 

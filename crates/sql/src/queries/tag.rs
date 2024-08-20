@@ -79,16 +79,19 @@ pub async fn select_by_id<Db: ConnectionTrait>(
 pub struct InsertMany {
     pub id: Uuid,
     pub title: String,
-    pub profile_id: Uuid,
 }
 
-pub async fn insert_many<Db: ConnectionTrait>(db: &Db, tags: Vec<InsertMany>) -> Result<(), DbErr> {
+pub async fn insert_many<Db: ConnectionTrait>(
+    db: &Db,
+    tags: Vec<InsertMany>,
+    profile_id: Uuid,
+) -> Result<(), DbErr> {
     let models = tags
         .into_iter()
         .map(|e| tag::ActiveModel {
             id: Set(e.id),
             title: Set(e.title),
-            profile_id: Set(e.profile_id),
+            profile_id: Set(profile_id),
             ..Default::default()
         })
         .collect::<Vec<_>>();

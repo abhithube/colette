@@ -191,9 +191,9 @@ impl Updatable for FeedSqlRepository {
                                 .map(|e| queries::tag::InsertMany {
                                     id: Uuid::new_v4(),
                                     title: e.to_owned(),
-                                    profile_id: params.profile_id,
                                 })
                                 .collect(),
+                            params.profile_id,
                         )
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -212,11 +212,10 @@ impl Updatable for FeedSqlRepository {
                             .map(|e| queries::profile_feed_tag::InsertMany {
                                 profile_feed_id: pf_model.id,
                                 tag_id: *e,
-                                profile_id: params.profile_id,
                             })
                             .collect::<Vec<_>>();
 
-                        queries::profile_feed_tag::insert_many(txn, insert_many)
+                        queries::profile_feed_tag::insert_many(txn, insert_many, params.profile_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
@@ -267,7 +266,7 @@ impl FeedRepository for FeedSqlRepository {
             .await
             .map(|e| {
                 e.map(|e| {
-                    e.map(StreamFeed::from)
+                    e.map(|(id, url)| StreamFeed { id, url })
                         .map_err(|e| Error::Unknown(e.into()))
                 })
                 .map_err(|e| Error::Unknown(e.into()))
@@ -295,15 +294,6 @@ impl FeedRepository for FeedSqlRepository {
             })
             .await
             .map_err(|e| Error::Unknown(e.into()))
-    }
-}
-
-impl From<queries::feed::StreamSelect> for StreamFeed {
-    fn from(value: queries::feed::StreamSelect) -> Self {
-        Self {
-            id: value.id,
-            url: value.url,
-        }
     }
 }
 

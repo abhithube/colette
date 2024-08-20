@@ -75,19 +75,16 @@ pub async fn insert<Db: ConnectionTrait>(
     profile::Entity::insert(model).exec_with_returning(db).await
 }
 
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct StreamSelect {
-    pub id: Uuid,
-}
-
 pub async fn stream<Db: ConnectionTrait + StreamTrait>(
     db: &Db,
     feed_id: i32,
-) -> Result<impl Stream<Item = Result<StreamSelect, DbErr>> + Send + '_, DbErr> {
+) -> Result<impl Stream<Item = Result<Uuid, DbErr>> + Send + '_, DbErr> {
     profile::Entity::find()
+        .select_only()
+        .column(profile::Column::Id)
         .join(JoinType::InnerJoin, profile::Relation::ProfileFeed.def())
         .filter(profile_feed::Column::FeedId.eq(feed_id))
-        .into_model::<StreamSelect>()
+        .into_tuple()
         .stream(db)
         .await
 }

@@ -29,16 +29,12 @@ pub async fn insert<Db: ConnectionTrait>(
         .await
 }
 
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct StreamSelect {
-    pub id: i32,
-    pub url: String,
-}
-
 pub async fn stream<Db: ConnectionTrait + StreamTrait>(
     db: &Db,
-) -> Result<impl Stream<Item = Result<StreamSelect, DbErr>> + Send + '_, DbErr> {
+) -> Result<impl Stream<Item = Result<(i32, String), DbErr>> + Send + '_, DbErr> {
     feed::Entity::find()
+        .select_only()
+        .column(feed::Column::Id)
         .expr_as(
             Func::coalesce([
                 Expr::col(feed::Column::Url).into(),
@@ -46,7 +42,7 @@ pub async fn stream<Db: ConnectionTrait + StreamTrait>(
             ]),
             "url",
         )
-        .into_model::<StreamSelect>()
+        .into_tuple()
         .stream(db)
         .await
 }

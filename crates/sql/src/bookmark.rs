@@ -128,9 +128,9 @@ impl Updatable for BookmarkSqlRepository {
                                 .map(|e| queries::tag::InsertMany {
                                     id: Uuid::new_v4(),
                                     title: e.to_owned(),
-                                    profile_id: params.id,
                                 })
                                 .collect(),
+                            params.profile_id,
                         )
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
@@ -149,13 +149,16 @@ impl Updatable for BookmarkSqlRepository {
                             .map(|e| queries::profile_bookmark_tag::InsertMany {
                                 profile_bookmark_id: pb_model.id,
                                 tag_id: *e,
-                                profile_id: params.profile_id,
                             })
                             .collect::<Vec<_>>();
 
-                        queries::profile_bookmark_tag::insert_many(txn, insert_many)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        queries::profile_bookmark_tag::insert_many(
+                            txn,
+                            insert_many,
+                            params.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     let old_sort_index = pb_model.sort_index;

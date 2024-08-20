@@ -7,16 +7,19 @@ use uuid::Uuid;
 pub struct InsertMany {
     pub profile_feed_id: Uuid,
     pub tag_id: Uuid,
-    pub profile_id: Uuid,
 }
 
-pub async fn insert_many<Db: ConnectionTrait>(db: &Db, pbt: Vec<InsertMany>) -> Result<(), DbErr> {
+pub async fn insert_many<Db: ConnectionTrait>(
+    db: &Db,
+    pbt: Vec<InsertMany>,
+    profile_id: Uuid,
+) -> Result<(), DbErr> {
     let models = pbt
         .into_iter()
         .map(|e| profile_feed_tag::ActiveModel {
             profile_feed_id: Set(e.profile_feed_id),
             tag_id: Set(e.tag_id),
-            profile_id: Set(e.profile_id),
+            profile_id: Set(profile_id),
             ..Default::default()
         })
         .collect::<Vec<_>>();
