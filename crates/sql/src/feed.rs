@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
-    feed::{
-        Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
-    },
+    feed::{Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData},
     Feed,
 };
 use colette_entities::PfWithFeedAndTagsAndUnreadCount;
@@ -261,16 +259,13 @@ impl FeedRepository for FeedSqlRepository {
         find(&self.db, None, profile_id, limit, cursor_raw, filters).await
     }
 
-    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
+    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
         queries::feed::stream(&self.db)
             .await
             .map(|e| {
-                e.map(|e| {
-                    e.map(|(id, url)| StreamFeed { id, url })
-                        .map_err(|e| Error::Unknown(e.into()))
-                })
-                .map_err(|e| Error::Unknown(e.into()))
-                .boxed()
+                e.map(|e| e.map_err(|e| Error::Unknown(e.into())))
+                    .map_err(|e| Error::Unknown(e.into()))
+                    .boxed()
             })
             .map_err(|e| Error::Unknown(e.into()))
     }

@@ -39,13 +39,13 @@ impl RefreshTask {
 
         let mut profiles_stream = self.profile_repository.stream(feed_id).await?;
 
-        while let Some(Ok(profile)) = profiles_stream.next().await {
+        while let Some(Ok(profile_id)) = profiles_stream.next().await {
             self.feed_repository
                 .create(FeedCreateData {
                     url: url.clone(),
                     feed: feed.clone(),
                     folder_id: None,
-                    profile_id: profile.id,
+                    profile_id,
                 })
                 .await?;
         }
@@ -65,8 +65,8 @@ impl RefreshTask {
                 async move {
                     let _ = semaphore.acquire().await.unwrap();
 
-                    if let Ok(feed) = item {
-                        if let Err(e) = self.refresh(feed.id, feed.url).await {
+                    if let Ok((feed_id, url)) = item {
+                        if let Err(e) = self.refresh(feed_id, url).await {
                             println!("{}", e)
                         }
                     }

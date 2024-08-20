@@ -80,12 +80,6 @@ pub struct BackupFeed {
     pub html_url: Option<Url>,
 }
 
-#[derive(Clone, Debug)]
-pub struct StreamFeed {
-    pub id: i32,
-    pub url: String,
-}
-
 #[async_trait::async_trait]
 pub trait FeedRepository:
     Findable<Params = IdParams, Output = Result<Feed, Error>>
@@ -103,7 +97,7 @@ pub trait FeedRepository:
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Paginated<Feed>, Error>;
 
-    async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error>;
+    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error>;
 
     async fn cleanup(&self) -> Result<(), Error>;
 }

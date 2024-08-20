@@ -12,11 +12,6 @@ pub struct Profile {
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
-pub struct StreamProfile {
-    pub id: Uuid,
-}
-
 #[async_trait::async_trait]
 pub trait ProfileRepository:
     Findable<Params = ProfileIdOrDefaultParams, Output = Result<Profile, Error>>
@@ -33,7 +28,7 @@ pub trait ProfileRepository:
         cursor: Option<String>,
     ) -> Result<Paginated<Profile>, Error>;
 
-    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error>;
 }
 
 #[derive(Clone, Debug)]

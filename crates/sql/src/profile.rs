@@ -3,7 +3,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, Paginated, Updatable},
     profile::{
         Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
-        ProfileUpdateData, StreamProfile,
+        ProfileUpdateData,
     },
     Profile,
 };
@@ -167,16 +167,13 @@ impl ProfileRepository for ProfileSqlRepository {
         find(&self.db, None, user_id, limit, cursor_raw).await
     }
 
-    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
         queries::profile::stream(&self.db, feed_id)
             .await
             .map(|e| {
-                e.map(|e| {
-                    e.map(|id| StreamProfile { id })
-                        .map_err(|e| Error::Unknown(e.into()))
-                })
-                .map_err(|e| Error::Unknown(e.into()))
-                .boxed()
+                e.map(|e| e.map_err(|e| Error::Unknown(e.into())))
+                    .map_err(|e| Error::Unknown(e.into()))
+                    .boxed()
             })
             .map_err(|e| Error::Unknown(e.into()))
     }
