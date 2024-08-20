@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated},
     tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
@@ -50,6 +50,24 @@ impl Creatable for TagSqlRepository {
 }
 
 #[async_trait::async_trait]
+impl Deletable for TagSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::tag::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
 impl TagRepository for TagSqlRepository {
     async fn find_many(
         &self,
@@ -96,18 +114,6 @@ impl TagRepository for TagSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
-    }
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error> {
-        let result = queries::tag::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
     }
 }
 

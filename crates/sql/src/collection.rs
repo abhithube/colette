@@ -1,6 +1,6 @@
 use colette_core::{
     collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
-    common::{Creatable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated},
     Collection,
 };
 use colette_utils::base_64;
@@ -47,6 +47,24 @@ impl Creatable for CollectionSqlRepository {
             folder_id: model.folder_id,
             bookmark_count: Some(0),
         })
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for CollectionSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::collection::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
     }
 }
 
@@ -104,18 +122,6 @@ impl CollectionRepository for CollectionSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
-    }
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error> {
-        let result = queries::collection::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
     }
 }
 

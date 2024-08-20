@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated},
     folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
@@ -52,6 +52,24 @@ impl Creatable for FolderSqlRepository {
 }
 
 #[async_trait::async_trait]
+impl Deletable for FolderSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::folder::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
 impl FolderRepository for FolderSqlRepository {
     async fn find_many(
         &self,
@@ -99,18 +117,6 @@ impl FolderRepository for FolderSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
-    }
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error> {
-        let result = queries::folder::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
     }
 }
 

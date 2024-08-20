@@ -94,6 +94,48 @@ impl Creatable for BookmarkSqlRepository {
 }
 
 #[async_trait::async_trait]
+impl Deletable for BookmarkSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(pb_model) =
+                        queries::profile_bookmark::select_by_id(txn, params.id, params.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+
+                    queries::profile_bookmark::decrement_many_sort_indexes(
+                        txn,
+                        pb_model.sort_index,
+                        params.profile_id,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                    pb_model
+                        .into_active_model()
+                        .delete(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
+    }
+}
+
+#[async_trait::async_trait]
 impl BookmarkRepository for BookmarkSqlRepository {
     async fn find_many(
         &self,
@@ -186,42 +228,6 @@ impl BookmarkRepository for BookmarkSqlRepository {
                     }
 
                     find_by_id(txn, params).await
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
-    }
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(pb_model) =
-                        queries::profile_bookmark::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(id));
-                    };
-
-                    queries::profile_bookmark::decrement_many_sort_indexes(
-                        txn,
-                        pb_model.sort_index,
-                        profile_id,
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    pb_model
-                        .into_active_model()
-                        .delete(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
                 })
             })
             .await

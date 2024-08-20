@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::common::{Creatable, IdParams, Paginated};
+use crate::common::{Creatable, Deletable, IdParams, Paginated};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Folder {
@@ -20,7 +20,10 @@ pub enum FolderType {
 
 #[async_trait::async_trait]
 pub trait FolderRepository:
-    Creatable<Data = FolderCreateData, Output = Result<Folder, Error>> + Send + Sync
+    Creatable<Data = FolderCreateData, Output = Result<Folder, Error>>
+    + Deletable<Params = IdParams, Output = Result<(), Error>>
+    + Send
+    + Sync
 {
     async fn find_many(
         &self,
@@ -33,8 +36,6 @@ pub trait FolderRepository:
     async fn find_one(&self, params: IdParams) -> Result<Folder, Error>;
 
     async fn update(&self, params: IdParams, data: FolderUpdateData) -> Result<Folder, Error>;
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]

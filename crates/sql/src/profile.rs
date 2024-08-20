@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Paginated},
+    common::{Creatable, Deletable, Paginated},
     profile::{
         Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
         ProfileUpdateData, StreamProfile,
@@ -48,6 +48,43 @@ impl Creatable for ProfileSqlRepository {
         })?;
 
         Ok(model.into())
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for ProfileSqlRepository {
+    type Params = ProfileIdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(profile) =
+                        queries::profile::select_by_id(txn, params.id, params.user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+
+                    if profile.is_default {
+                        return Err(Error::DeletingDefault);
+                    }
+
+                    profile
+                        .delete(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -110,37 +147,6 @@ impl ProfileRepository for ProfileSqlRepository {
                     }
 
                     Ok(model.into())
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
-    }
-
-    async fn delete(&self, params: ProfileIdParams) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(profile) =
-                        queries::profile::select_by_id(txn, params.id, params.user_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    if profile.is_default {
-                        return Err(Error::DeletingDefault);
-                    }
-
-                    profile
-                        .delete(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
                 })
             })
             .await

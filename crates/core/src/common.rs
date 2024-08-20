@@ -27,3 +27,11 @@ pub trait Creatable: Send + Sync {
 
     async fn create(&self, data: Self::Data) -> Self::Output;
 }
+
+#[async_trait::async_trait]
+pub trait Deletable: Send + Sync {
+    type Params;
+    type Output;
+
+    async fn delete(&self, id: Self::Params) -> Self::Output;
+}

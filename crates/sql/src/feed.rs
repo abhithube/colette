@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated},
     feed::{
         Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
     },
@@ -140,6 +140,24 @@ impl Creatable for FeedSqlRepository {
 }
 
 #[async_trait::async_trait]
+impl Deletable for FeedSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::profile_feed::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
 impl FeedRepository for FeedSqlRepository {
     async fn find_many(
         &self,
@@ -227,18 +245,6 @@ impl FeedRepository for FeedSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
-    }
-
-    async fn delete(&self, params: IdParams) -> Result<(), Error> {
-        let result = queries::profile_feed::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {
