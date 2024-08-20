@@ -239,7 +239,6 @@ pub enum RegisterResponse {
     #[response(status = 409, description = "Email already registered")]
     Conflict(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }
@@ -262,7 +261,6 @@ pub enum LoginResponse {
     #[response(status = 401, description = "Bad credentials")]
     Unauthorized(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }

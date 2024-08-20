@@ -337,7 +337,6 @@ pub enum CreateResponse {
     #[response(status = 409, description = "Profile already exists")]
     Conflict(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }
@@ -360,7 +359,6 @@ pub enum UpdateResponse {
     #[response(status = 404, description = "Profile not found")]
     NotFound(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }

@@ -366,7 +366,6 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
     Created(Box<Bookmark>),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 
@@ -392,7 +391,6 @@ pub enum UpdateResponse {
     #[response(status = 404, description = "Bookmark not found")]
     NotFound(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }

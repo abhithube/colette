@@ -243,7 +243,6 @@ pub enum UpdateResponse {
     #[response(status = 404, description = "Feed entry not found")]
     NotFound(BaseError),
 
-    #[allow(dead_code)]
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }
