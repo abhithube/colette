@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{IdParams, Paginated},
+    common::{IdParams, Paginated, Updatable},
     feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
@@ -25,26 +25,14 @@ impl FeedEntrySqlRepository {
 }
 
 #[async_trait::async_trait]
-impl FeedEntryRepository for FeedEntrySqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<FeedEntryFindManyFilters>,
-    ) -> Result<Paginated<FeedEntry>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
+impl Updatable for FeedEntrySqlRepository {
+    type Params = IdParams;
 
-    async fn find_one(&self, params: IdParams) -> Result<FeedEntry, Error> {
-        find_by_id(&self.db, params).await
-    }
+    type Data = FeedEntryUpdateData;
 
-    async fn update(
-        &self,
-        params: IdParams,
-        data: FeedEntryUpdateData,
-    ) -> Result<FeedEntry, Error> {
+    type Output = Result<FeedEntry, Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, FeedEntry, Error>(|txn| {
                 Box::pin(async move {
@@ -79,6 +67,23 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl FeedEntryRepository for FeedEntrySqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<FeedEntryFindManyFilters>,
+    ) -> Result<Paginated<FeedEntry>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, params: IdParams) -> Result<FeedEntry, Error> {
+        find_by_id(&self.db, params).await
     }
 }
 

@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
     folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
     Folder,
 };
@@ -52,40 +52,14 @@ impl Creatable for FolderSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl Deletable for FolderSqlRepository {
+impl Updatable for FolderSqlRepository {
     type Params = IdParams;
-    type Output = Result<(), Error>;
 
-    async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = queries::folder::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+    type Data = FolderUpdateData;
 
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+    type Output = Result<Folder, Error>;
 
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl FolderRepository for FolderSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<FolderFindManyFilters>,
-    ) -> Result<Paginated<Folder>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find_one(&self, params: IdParams) -> Result<Folder, Error> {
-        find_by_id(&self.db, params).await
-    }
-
-    async fn update(&self, params: IdParams, data: FolderUpdateData) -> Result<Folder, Error> {
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Folder, Error>(|txn| {
                 Box::pin(async move {
@@ -117,6 +91,41 @@ impl FolderRepository for FolderSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for FolderSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::folder::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl FolderRepository for FolderSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<FolderFindManyFilters>,
+    ) -> Result<Paginated<Folder>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, params: IdParams) -> Result<Folder, Error> {
+        find_by_id(&self.db, params).await
     }
 }
 

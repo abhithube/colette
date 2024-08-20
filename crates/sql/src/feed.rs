@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
     feed::{
         Error, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData, StreamFeed,
     },
@@ -140,40 +140,14 @@ impl Creatable for FeedSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl Deletable for FeedSqlRepository {
+impl Updatable for FeedSqlRepository {
     type Params = IdParams;
-    type Output = Result<(), Error>;
 
-    async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = queries::profile_feed::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+    type Data = FeedUpdateData;
 
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+    type Output = Result<Feed, Error>;
 
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl FeedRepository for FeedSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-        filters: Option<FeedFindManyFilters>,
-    ) -> Result<Paginated<Feed>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
-    }
-
-    async fn find_one(&self, params: IdParams) -> Result<Feed, Error> {
-        find_by_id(&self.db, params).await
-    }
-
-    async fn update(&self, params: IdParams, data: FeedUpdateData) -> Result<Feed, Error> {
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
@@ -245,6 +219,41 @@ impl FeedRepository for FeedSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for FeedSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::profile_feed::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl FeedRepository for FeedSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+        filters: Option<FeedFindManyFilters>,
+    ) -> Result<Paginated<Feed>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    }
+
+    async fn find_one(&self, params: IdParams) -> Result<Feed, Error> {
+        find_by_id(&self.db, params).await
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<StreamFeed, Error>>, Error> {

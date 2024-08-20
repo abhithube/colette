@@ -4,7 +4,7 @@ use colette_core::{
     bookmark::{
         BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData, Error,
     },
-    common::{Creatable, Deletable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
     Bookmark,
 };
 use colette_entities::PbWithBookmarkAndTags;
@@ -94,64 +94,12 @@ impl Creatable for BookmarkSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl Deletable for BookmarkSqlRepository {
+impl Updatable for BookmarkSqlRepository {
     type Params = IdParams;
-    type Output = Result<(), Error>;
+    type Data = BookmarkUpdateData;
+    type Output = Result<Bookmark, Error>;
 
-    async fn delete(&self, params: Self::Params) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(pb_model) =
-                        queries::profile_bookmark::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    queries::profile_bookmark::decrement_many_sort_indexes(
-                        txn,
-                        pb_model.sort_index,
-                        params.profile_id,
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    pb_model
-                        .into_active_model()
-                        .delete(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
-    }
-}
-
-#[async_trait::async_trait]
-impl BookmarkRepository for BookmarkSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<String>,
-        filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Paginated<Bookmark>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
-    }
-
-    async fn find_one(&self, params: IdParams) -> Result<Bookmark, Error> {
-        find_by_id(&self.db, params).await
-    }
-
-    async fn update(&self, params: IdParams, data: BookmarkUpdateData) -> Result<Bookmark, Error> {
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Bookmark, Error>(|txn| {
                 Box::pin(async move {
@@ -235,6 +183,65 @@ impl BookmarkRepository for BookmarkSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for BookmarkSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        self.db
+            .transaction::<_, (), Error>(|txn| {
+                Box::pin(async move {
+                    let Some(pb_model) =
+                        queries::profile_bookmark::select_by_id(txn, params.id, params.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+
+                    queries::profile_bookmark::decrement_many_sort_indexes(
+                        txn,
+                        pb_model.sort_index,
+                        params.profile_id,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                    pb_model
+                        .into_active_model()
+                        .delete(txn)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    Ok(())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
+    }
+}
+
+#[async_trait::async_trait]
+impl BookmarkRepository for BookmarkSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<String>,
+        filters: Option<BookmarkFindManyFilters>,
+    ) -> Result<Paginated<Bookmark>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
+    }
+
+    async fn find_one(&self, params: IdParams) -> Result<Bookmark, Error> {
+        find_by_id(&self.db, params).await
     }
 }
 

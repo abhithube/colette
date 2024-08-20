@@ -1,6 +1,6 @@
 use colette_core::{
     collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
-    common::{Creatable, Deletable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
     Collection,
 };
 use colette_utils::base_64;
@@ -51,43 +51,14 @@ impl Creatable for CollectionSqlRepository {
 }
 
 #[async_trait::async_trait]
-impl Deletable for CollectionSqlRepository {
+impl Updatable for CollectionSqlRepository {
     type Params = IdParams;
-    type Output = Result<(), Error>;
 
-    async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = queries::collection::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+    type Data = CollectionUpdateData;
 
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+    type Output = Result<Collection, Error>;
 
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl CollectionRepository for CollectionSqlRepository {
-    async fn find_many(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor_raw: Option<String>,
-    ) -> Result<Paginated<Collection>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw).await
-    }
-
-    async fn find_one(&self, params: IdParams) -> Result<Collection, Error> {
-        find_by_id(&self.db, params).await
-    }
-
-    async fn update(
-        &self,
-        params: IdParams,
-        data: CollectionUpdateData,
-    ) -> Result<Collection, Error> {
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
             .transaction::<_, Collection, Error>(|txn| {
                 Box::pin(async move {
@@ -122,6 +93,40 @@ impl CollectionRepository for CollectionSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for CollectionSqlRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let result = queries::collection::delete_by_id(&self.db, params.id, params.profile_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if result.rows_affected == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl CollectionRepository for CollectionSqlRepository {
+    async fn find_many(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor_raw: Option<String>,
+    ) -> Result<Paginated<Collection>, Error> {
+        find(&self.db, None, profile_id, limit, cursor_raw).await
+    }
+
+    async fn find_one(&self, params: IdParams) -> Result<Collection, Error> {
+        find_by_id(&self.db, params).await
     }
 }
 

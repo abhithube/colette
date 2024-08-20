@@ -1,5 +1,5 @@
 use colette_core::{
-    common::{Creatable, Deletable, IdParams, Paginated},
+    common::{Creatable, Deletable, IdParams, Paginated, Updatable},
     tag::{Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
@@ -50,6 +50,48 @@ impl Creatable for TagSqlRepository {
 }
 
 #[async_trait::async_trait]
+impl Updatable for TagSqlRepository {
+    type Params = IdParams;
+
+    type Data = TagUpdateData;
+
+    type Output = Result<Tag, Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        self.db
+            .transaction::<_, Tag, Error>(|txn| {
+                Box::pin(async move {
+                    let Some(model) = queries::tag::select_by_id(txn, params.id, params.profile_id)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+                    let mut active_model = model.into_active_model();
+
+                    if let Some(title) = data.title {
+                        active_model.title.set_if_not_equals(title);
+                    }
+
+                    if active_model.is_changed() {
+                        active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    find_by_id(txn, params).await
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
+    }
+}
+
+#[async_trait::async_trait]
 impl Deletable for TagSqlRepository {
     type Params = IdParams;
     type Output = Result<(), Error>;
@@ -81,39 +123,6 @@ impl TagRepository for TagSqlRepository {
 
     async fn find_one(&self, params: IdParams) -> Result<Tag, Error> {
         find_by_id(&self.db, params).await
-    }
-
-    async fn update(&self, params: IdParams, data: TagUpdateData) -> Result<Tag, Error> {
-        self.db
-            .transaction::<_, Tag, Error>(|txn| {
-                Box::pin(async move {
-                    let Some(model) = queries::tag::select_by_id(txn, params.id, params.profile_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-                    let mut active_model = model.into_active_model();
-
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-
-                    if active_model.is_changed() {
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    find_by_id(txn, params).await
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
     }
 }
 

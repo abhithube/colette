@@ -1,7 +1,7 @@
 use futures::stream::BoxStream;
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, Paginated};
+use crate::common::{Creatable, Deletable, Paginated, Updatable};
 
 #[derive(Clone, Debug, serde::Serialize)]
 pub struct Profile {
@@ -20,6 +20,7 @@ pub struct StreamProfile {
 #[async_trait::async_trait]
 pub trait ProfileRepository:
     Creatable<Data = ProfileCreateData, Output = Result<Profile, Error>>
+    + Updatable<Params = ProfileIdParams, Data = ProfileUpdateData, Output = Result<Profile, Error>>
     + Deletable<Params = ProfileIdParams, Output = Result<(), Error>>
     + Send
     + Sync
@@ -32,12 +33,6 @@ pub trait ProfileRepository:
     ) -> Result<Paginated<Profile>, Error>;
 
     async fn find_one(&self, id: ProfileIdOrDefaultParams) -> Result<Profile, Error>;
-
-    async fn update(
-        &self,
-        params: ProfileIdParams,
-        data: ProfileUpdateData,
-    ) -> Result<Profile, Error>;
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error>;
 }

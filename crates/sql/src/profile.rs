@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, Paginated},
+    common::{Creatable, Deletable, Paginated, Updatable},
     profile::{
         Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
         ProfileUpdateData, StreamProfile,
@@ -48,6 +48,52 @@ impl Creatable for ProfileSqlRepository {
         })?;
 
         Ok(model.into())
+    }
+}
+
+#[async_trait::async_trait]
+impl Updatable for ProfileSqlRepository {
+    type Params = ProfileIdParams;
+
+    type Data = ProfileUpdateData;
+
+    type Output = Result<Profile, Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        self.db
+            .transaction::<_, colette_core::Profile, Error>(|txn| {
+                Box::pin(async move {
+                    let Some(mut model) =
+                        queries::profile::select_by_id(txn, params.id, params.user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
+                    else {
+                        return Err(Error::NotFound(params.id));
+                    };
+                    let mut active_model = model.clone().into_active_model();
+
+                    if let Some(title) = data.title {
+                        active_model.title.set_if_not_equals(title);
+                    }
+                    if data.image_url.is_some() {
+                        active_model.image_url.set_if_not_equals(data.image_url);
+                    }
+
+                    if active_model.is_changed() {
+                        model = active_model
+                            .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    Ok(model.into())
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -113,47 +159,6 @@ impl ProfileRepository for ProfileSqlRepository {
                 Ok(profile.into())
             }
         }
-    }
-
-    async fn update(
-        &self,
-        params: ProfileIdParams,
-        data: ProfileUpdateData,
-    ) -> Result<Profile, Error> {
-        self.db
-            .transaction::<_, colette_core::Profile, Error>(|txn| {
-                Box::pin(async move {
-                    let Some(mut model) =
-                        queries::profile::select_by_id(txn, params.id, params.user_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-                    let mut active_model = model.clone().into_active_model();
-
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-                    if data.image_url.is_some() {
-                        active_model.image_url.set_if_not_equals(data.image_url);
-                    }
-
-                    if active_model.is_changed() {
-                        model = active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(model.into())
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
     }
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<StreamProfile, Error>>, Error> {
