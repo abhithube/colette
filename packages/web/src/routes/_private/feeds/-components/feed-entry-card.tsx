@@ -79,9 +79,7 @@ export function FeedEntryCard({ feedEntry }: Props) {
               className="bg-muted-foreground/50"
               orientation="vertical"
             />
-            {feedEntry.publishedAt && (
-              <EntryPublished publishedAt={feedEntry.publishedAt} />
-            )}
+            <EntryPublished publishedAt={feedEntry.publishedAt} />
           </div>
         </CardContent>
       </div>

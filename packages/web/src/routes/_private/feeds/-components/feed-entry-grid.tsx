@@ -19,7 +19,7 @@ export function FeedEntryGrid({ feedEntries, hasMore, loadMore }: Props) {
 
   const list = Object.entries(
     Object.groupBy(feedEntries, (item: FeedEntry) => {
-      const publishedAt = Date.parse(item.publishedAt!)
+      const publishedAt = Date.parse(item.publishedAt)
       return publishedAt > today
         ? 'Today'
         : publishedAt > lastWeek

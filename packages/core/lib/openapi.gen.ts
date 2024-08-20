@@ -61,7 +61,7 @@ export const Collection = z.object({
 export type CollectionCreate = z.infer<typeof CollectionCreate>;
 export const CollectionCreate = z.object({
   title: z.string(),
-  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  folderId: z.union([z.string(), z.null()]),
 });
 
 export type CollectionList = z.infer<typeof CollectionList>;
@@ -116,7 +116,7 @@ export const FeedEntry = z.object({
   id: z.string(),
   link: z.string(),
   title: z.string(),
-  publishedAt: z.union([z.string(), z.null()]),
+  publishedAt: z.string(),
   description: z.union([z.string(), z.null()]),
   author: z.union([z.string(), z.null()]),
   thumbnailUrl: z.union([z.string(), z.null()]),
