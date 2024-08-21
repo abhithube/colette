@@ -43,7 +43,7 @@ impl RefreshTask {
             self.feed_repository
                 .create(FeedCreateData {
                     url: url.clone(),
-                    feed: feed.clone(),
+                    feed: Some(feed.clone()),
                     folder_id: None,
                     profile_id,
                 })

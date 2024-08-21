@@ -133,7 +133,7 @@ pub struct FeedFindManyFilters {
 #[derive(Clone, Debug)]
 pub struct FeedCreateData {
     pub url: String,
-    pub feed: ProcessedFeed,
+    pub feed: Option<ProcessedFeed>,
     pub folder_id: Option<Option<Uuid>>,
     pub profile_id: Uuid,
 }
@@ -155,6 +155,9 @@ pub struct FeedUpdateData {
 pub enum Error {
     #[error("feed not found with id: {0}")]
     NotFound(Uuid),
+
+    #[error("feed not cached with URL: {0}")]
+    Conflict(String),
 
     #[error(transparent)]
     Scraper(#[from] scraper::Error),

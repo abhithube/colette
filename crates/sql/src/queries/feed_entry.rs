@@ -5,12 +5,12 @@ use sea_orm::{
     ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
 };
 
-pub async fn select_many_in<Db: ConnectionTrait>(
+pub async fn select_many_by_feed_id<Db: ConnectionTrait>(
     db: &Db,
-    links: Vec<String>,
+    feed_id: i32,
 ) -> Result<Vec<feed_entry::Model>, DbErr> {
     feed_entry::Entity::find()
-        .filter(feed_entry::Column::Link.is_in(links))
+        .filter(feed_entry::Column::FeedId.eq(feed_id))
         .all(db)
         .await
 }

@@ -252,13 +252,13 @@ pub async fn get_feed(
 }
 
 #[utoipa::path(
-  post,
-  path = "",
-  request_body = FeedCreate,
-  responses(CreateResponse),
-  operation_id = "createFeed",
-  description = "Subscribe to a web feed"
-)]
+    post,
+    path = "",
+    request_body = FeedCreate,
+    responses(CreateResponse),
+    operation_id = "createFeed",
+    description = "Subscribe to a web feed"
+  )]
 #[axum::debug_handler]
 pub async fn create_feed(
     State(FeedState {
@@ -269,22 +269,42 @@ pub async fn create_feed(
     session: Session,
     Valid(Json(mut body)): Valid<Json<FeedCreate>>,
 ) -> Result<impl IntoResponse, Error> {
-    let scraped = scraper.scrape(&mut body.url);
-    if let Err(e) = scraped {
-        return Ok(CreateResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        }));
-    }
+    let url = body.url.to_string();
+    let folder_id = Some(body.folder_id);
+    let profile_id = session.profile_id;
 
     let result = repository
         .create(FeedCreateData {
-            url: body.url.into(),
-            feed: scraped.unwrap(),
-            folder_id: Some(body.folder_id),
-            profile_id: session.profile_id,
+            url: url.clone(),
+            feed: None,
+            folder_id,
+            profile_id,
         })
         .await
         .map(Feed::from);
+
+    let result = match result {
+        Ok(data) => Ok(data),
+        Err(feed::Error::Conflict(_)) => {
+            let scraped = scraper.scrape(&mut body.url);
+            if let Err(e) = scraped {
+                return Ok(CreateResponse::BadGateway(BaseError {
+                    message: e.to_string(),
+                }));
+            }
+
+            repository
+                .create(FeedCreateData {
+                    url,
+                    feed: Some(scraped.unwrap()),
+                    folder_id,
+                    profile_id,
+                })
+                .await
+                .map(Feed::from)
+        }
+        e => e,
+    };
 
     match result {
         Ok(data) => Ok(CreateResponse::Created(data)),

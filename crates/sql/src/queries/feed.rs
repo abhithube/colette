@@ -2,9 +2,23 @@ use colette_entities::{feed, profile_feed};
 use futures::Stream;
 use sea_orm::{
     sea_query::{Expr, Func, OnConflict, Query},
-    ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult, QueryFilter, QuerySelect, Set,
-    StreamTrait,
+    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult, QueryFilter,
+    QuerySelect, Set, StreamTrait,
 };
+
+pub async fn select_by_url<Db: ConnectionTrait>(
+    db: &Db,
+    url: String,
+) -> Result<Option<feed::Model>, DbErr> {
+    feed::Entity::find()
+        .filter(
+            feed::Column::Url
+                .eq(url.clone())
+                .or(feed::Column::Link.eq(url)),
+        )
+        .one(db)
+        .await
+}
 
 pub async fn insert<Db: ConnectionTrait>(
     db: &Db,

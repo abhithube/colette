@@ -5,6 +5,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
     feed::{
         Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData,
+        ProcessedFeed,
     },
     Feed,
 };
@@ -48,20 +49,18 @@ impl Creatable for FeedSqlRepository {
         self.db
             .transaction::<_, Feed, Error>(|txn| {
                 Box::pin(async move {
-                    let link = data.feed.link.to_string();
-                    let result = queries::feed::insert(
-                        txn,
-                        link.clone(),
-                        data.feed.title,
-                        if data.url == link {
-                            None
-                        } else {
-                            Some(data.url)
-                        },
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-                    let feed_id = result.last_insert_id;
+                    let feed_id = if let Some(feed) = data.feed {
+                        create_feed_with_entries(txn, data.url, feed).await?
+                    } else {
+                        let Some(feed_model) = queries::feed::select_by_url(txn, data.url.clone())
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
+                        else {
+                            return Err(Error::Conflict(data.url));
+                        };
+
+                        feed_model.id
+                    };
 
                     let pf_id = match queries::profile_feed::insert(
                         txn,
@@ -92,32 +91,7 @@ impl Creatable for FeedSqlRepository {
                         Err(e) => Err(Error::Unknown(e.into())),
                     }?;
 
-                    let links = data
-                        .feed
-                        .entries
-                        .iter()
-                        .map(|e| e.link.to_string())
-                        .collect::<Vec<_>>();
-
-                    let insert_many = data
-                        .feed
-                        .entries
-                        .into_iter()
-                        .map(|e| queries::feed_entry::InsertMany {
-                            link: e.link.to_string(),
-                            title: e.title,
-                            published_at: e.published.into(),
-                            description: e.description,
-                            author: e.author,
-                            thumbnail_url: e.thumbnail.map(String::from),
-                        })
-                        .collect::<Vec<_>>();
-
-                    queries::feed_entry::insert_many(txn, insert_many, feed_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let fe_models = queries::feed_entry::select_many_in(txn, links)
+                    let fe_models = queries::feed_entry::select_many_by_feed_id(txn, feed_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -265,38 +239,7 @@ impl FeedRepository for FeedSqlRepository {
         self.db
             .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
-                    let link = data.feed.link.to_string();
-                    let result = queries::feed::insert(
-                        txn,
-                        link.clone(),
-                        data.feed.title,
-                        if data.url == link {
-                            None
-                        } else {
-                            Some(data.url)
-                        },
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-                    let feed_id = result.last_insert_id;
-
-                    let insert_many = data
-                        .feed
-                        .entries
-                        .into_iter()
-                        .map(|e| queries::feed_entry::InsertMany {
-                            link: e.link.to_string(),
-                            title: e.title,
-                            published_at: e.published.into(),
-                            description: e.description,
-                            author: e.author,
-                            thumbnail_url: e.thumbnail.map(String::from),
-                        })
-                        .collect::<Vec<_>>();
-
-                    queries::feed_entry::insert_many(txn, insert_many, feed_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                    create_feed_with_entries(txn, data.url, data.feed).await?;
 
                     Ok(())
                 })
@@ -425,6 +368,42 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Fe
         .first()
         .cloned()
         .ok_or(Error::NotFound(params.id))
+}
+
+async fn create_feed_with_entries<Db: ConnectionTrait>(
+    db: &Db,
+    url: String,
+    feed: ProcessedFeed,
+) -> Result<i32, Error> {
+    let link = feed.link.to_string();
+    let result = queries::feed::insert(
+        db,
+        link.clone(),
+        feed.title,
+        if url == link { None } else { Some(url) },
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))?;
+    let feed_id = result.last_insert_id;
+
+    let insert_many = feed
+        .entries
+        .into_iter()
+        .map(|e| queries::feed_entry::InsertMany {
+            link: e.link.to_string(),
+            title: e.title,
+            published_at: e.published.into(),
+            description: e.description,
+            author: e.author,
+            thumbnail_url: e.thumbnail.map(String::from),
+        })
+        .collect::<Vec<_>>();
+
+    queries::feed_entry::insert_many(db, insert_many, feed_id)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    Ok(feed_id)
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
