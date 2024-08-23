@@ -36,14 +36,39 @@ pub mod tag;
 
 #[derive(Clone, FromRef)]
 pub struct ApiState {
-    pub auth_state: AuthState,
-    pub bookmark_state: BookmarkState,
-    pub collection_state: CollectionState,
-    pub feed_state: FeedState,
-    pub feed_entry_state: FeedEntryState,
-    pub folder_state: FolderState,
-    pub profile_state: ProfileState,
-    pub tag_state: TagState,
+    auth_state: AuthState,
+    bookmark_state: BookmarkState,
+    collection_state: CollectionState,
+    feed_state: FeedState,
+    feed_entry_state: FeedEntryState,
+    folder_state: FolderState,
+    profile_state: ProfileState,
+    tag_state: TagState,
+}
+
+impl ApiState {
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        auth_state: AuthState,
+        bookmark_state: BookmarkState,
+        collection_state: CollectionState,
+        feed_state: FeedState,
+        feed_entry_state: FeedEntryState,
+        folder_state: FolderState,
+        profile_state: ProfileState,
+        tag_state: TagState,
+    ) -> Self {
+        Self {
+            auth_state,
+            bookmark_state,
+            collection_state,
+            feed_state,
+            feed_entry_state,
+            folder_state,
+            profile_state,
+            tag_state,
+        }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

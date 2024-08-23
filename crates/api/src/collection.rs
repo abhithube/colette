@@ -17,7 +17,13 @@ use crate::common::{BaseError, CollectionList, Error, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct CollectionState {
-    pub repository: Arc<dyn CollectionRepository>,
+    repository: Arc<dyn CollectionRepository>,
+}
+
+impl CollectionState {
+    pub fn new(repository: Arc<dyn CollectionRepository>) -> Self {
+        Self { repository }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

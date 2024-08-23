@@ -67,34 +67,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, repository.clone());
 
-    let api_state = ApiState {
-        auth_state: AuthState {
-            users_repository: repository.clone(),
-            profiles_repository: repository.clone(),
-        },
-        bookmarks_state: BookmarksState {
-            repository: repository.clone(),
-            scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
-        },
-        entries_state: EntriesState {
-            repository: repository.clone(),
-        },
-        feeds_state: FeedsState {
-            repository: repository.clone(),
-            scraper: feed_scraper,
-            opml: Arc::new(OpmlManager),
-        },
-        profiles_state: ProfilesState {
-            repository: repository.clone(),
-        },
-        tags_state: TagsState { repository },
-    };
-
     let conf = get_configuration(None).await?;
     let leptos_options = conf.leptos_options;
 
     let routes = generate_route_list(App);
 
+    let auth_state = AuthState::new(
+        Arc::new(UserSqlRepository::new(db.clone())),
+        profile_repository.clone(),
+    );
+    let bookmark_state = BookmarkState::new(
+        Arc::new(BookmarkSqlRepository::new(db.clone())),
+        Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+    );
+    let collection_state = CollectionState::new(Arc::new(CollectionSqlRepository::new(db.clone())));
+    let feed_state = FeedState::new(feed_repository, feed_scraper, Arc::new(OpmlManager));
+    let feed_entry_state = FeedEntryState::new(Arc::new(FeedEntrySqlRepository::new(db.clone())));
+    let folder_state = FolderState::new(Arc::new(FolderSqlRepository::new(db.clone())));
+    let profile_state = ProfileState::new(profile_repository);
+    let tag_state = TagState::new(Arc::new(TagSqlRepository::new(db)));
+
+    let api_state = ApiState::new(
+        auth_state,
+        bookmark_state,
+        collection_state,
+        feed_state,
+        feed_entry_state,
+        folder_state,
+        profile_state,
+        tag_state,
+    );
     let app = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)

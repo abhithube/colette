@@ -22,8 +22,20 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    pub user_repository: Arc<dyn UserRepository>,
-    pub profile_repository: Arc<dyn ProfileRepository>,
+    user_repository: Arc<dyn UserRepository>,
+    profile_repository: Arc<dyn ProfileRepository>,
+}
+
+impl AuthState {
+    pub fn new(
+        user_repository: Arc<dyn UserRepository>,
+        profile_repository: Arc<dyn ProfileRepository>,
+    ) -> Self {
+        Self {
+            user_repository,
+            profile_repository,
+        }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

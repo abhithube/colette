@@ -29,9 +29,23 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedState {
-    pub repository: Arc<dyn FeedRepository>,
-    pub scraper: Arc<dyn FeedScraper>,
-    pub opml: Arc<dyn BackupManager<T = Opml>>,
+    repository: Arc<dyn FeedRepository>,
+    scraper: Arc<dyn FeedScraper>,
+    opml: Arc<dyn BackupManager<T = Opml>>,
+}
+
+impl FeedState {
+    pub fn new(
+        repository: Arc<dyn FeedRepository>,
+        scraper: Arc<dyn FeedScraper>,
+        opml: Arc<dyn BackupManager<T = Opml>>,
+    ) -> Self {
+        Self {
+            repository,
+            scraper,
+            opml,
+        }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

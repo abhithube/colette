@@ -74,37 +74,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
-    let api_state = ApiState {
-        auth_state: AuthState {
-            user_repository: Arc::new(UserSqlRepository::new(db.clone())),
-            profile_repository: profile_repository.clone(),
-        },
-        bookmark_state: BookmarkState {
-            repository: Arc::new(BookmarkSqlRepository::new(db.clone())),
-            scraper: Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
-        },
-        collection_state: CollectionState {
-            repository: Arc::new(CollectionSqlRepository::new(db.clone())),
-        },
-        feed_state: FeedState {
-            repository: feed_repository,
-            scraper: feed_scraper,
-            opml: Arc::new(OpmlManager),
-        },
-        feed_entry_state: FeedEntryState {
-            repository: Arc::new(FeedEntrySqlRepository::new(db.clone())),
-        },
-        folder_state: FolderState {
-            repository: Arc::new(FolderSqlRepository::new(db.clone())),
-        },
-        profile_state: ProfileState {
-            repository: profile_repository,
-        },
-        tag_state: TagState {
-            repository: Arc::new(TagSqlRepository::new(db)),
-        },
-    };
+    let auth_state = AuthState::new(
+        Arc::new(UserSqlRepository::new(db.clone())),
+        profile_repository.clone(),
+    );
+    let bookmark_state = BookmarkState::new(
+        Arc::new(BookmarkSqlRepository::new(db.clone())),
+        Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+    );
+    let collection_state = CollectionState::new(Arc::new(CollectionSqlRepository::new(db.clone())));
+    let feed_state = FeedState::new(feed_repository, feed_scraper, Arc::new(OpmlManager));
+    let feed_entry_state = FeedEntryState::new(Arc::new(FeedEntrySqlRepository::new(db.clone())));
+    let folder_state = FolderState::new(Arc::new(FolderSqlRepository::new(db.clone())));
+    let profile_state = ProfileState::new(profile_repository);
+    let tag_state = TagState::new(Arc::new(TagSqlRepository::new(db)));
 
+    let api_state = ApiState::new(
+        auth_state,
+        bookmark_state,
+        collection_state,
+        feed_state,
+        feed_entry_state,
+        folder_state,
+        profile_state,
+        tag_state,
+    );
     let api = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)

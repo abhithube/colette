@@ -17,7 +17,13 @@ use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagState {
-    pub repository: Arc<dyn TagRepository>,
+    repository: Arc<dyn TagRepository>,
+}
+
+impl TagState {
+    pub fn new(repository: Arc<dyn TagRepository>) -> Self {
+        Self { repository }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

@@ -18,7 +18,13 @@ use crate::common::{BaseError, Error, Id, Paginated, ProfileList, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfileState {
-    pub repository: Arc<dyn ProfileRepository>,
+    repository: Arc<dyn ProfileRepository>,
+}
+
+impl ProfileState {
+    pub fn new(repository: Arc<dyn ProfileRepository>) -> Self {
+        Self { repository }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

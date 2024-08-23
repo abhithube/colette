@@ -19,7 +19,13 @@ use crate::common::{BaseError, Error, FeedEntryList, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedEntryState {
-    pub repository: Arc<dyn FeedEntryRepository>,
+    repository: Arc<dyn FeedEntryRepository>,
+}
+
+impl FeedEntryState {
+    pub fn new(repository: Arc<dyn FeedEntryRepository>) -> Self {
+        Self { repository }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

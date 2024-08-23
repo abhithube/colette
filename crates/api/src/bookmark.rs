@@ -27,8 +27,20 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BookmarkState {
-    pub repository: Arc<dyn BookmarkRepository>,
-    pub scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    repository: Arc<dyn BookmarkRepository>,
+    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+}
+
+impl BookmarkState {
+    pub fn new(
+        repository: Arc<dyn BookmarkRepository>,
+        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    ) -> Self {
+        Self {
+            repository,
+            scraper,
+        }
+    }
 }
 
 #[derive(utoipa::OpenApi)]

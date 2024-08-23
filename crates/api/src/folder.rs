@@ -17,7 +17,13 @@ use crate::common::{BaseError, Error, FolderList, Id, Paginated, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FolderState {
-    pub repository: Arc<dyn FolderRepository>,
+    repository: Arc<dyn FolderRepository>,
+}
+
+impl FolderState {
+    pub fn new(repository: Arc<dyn FolderRepository>) -> Self {
+        Self { repository }
+    }
 }
 
 #[derive(utoipa::OpenApi)]
