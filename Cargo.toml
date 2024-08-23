@@ -23,6 +23,8 @@ anyhow = { version = "1", default-features = false, features = ["std"] }
 async-trait = { version = "0.1", default-features = false }
 axum = { version = "0.7", default-features = false, features = [
   "http1",
+  "json",
+  "query",
   "macros",
   "multipart",
   "tokio",

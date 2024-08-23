@@ -7,13 +7,12 @@ use axum::{
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
-use axum_valid::Valid;
 use colette_backup::{
     opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
     BackupManager,
 };
 use colette_core::{
-    common::IdParams,
+    common::{IdParams, NonEmptyString},
     feed::{
         self, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedScraper,
         FeedUpdateData,
@@ -127,7 +126,7 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
     #[schema(format = "uri")]
@@ -135,7 +134,7 @@ pub struct FeedCreate {
     pub folder_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
     #[serde(
@@ -143,8 +142,7 @@ pub struct FeedUpdate {
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    #[validate(length(min = 1))]
-    pub title: Option<Option<String>>,
+    pub title: Option<Option<NonEmptyString>>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -158,9 +156,11 @@ pub struct FeedUpdate {
 impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(|e| e.map(String::from)),
             folder_id: value.folder_id,
-            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
         }
     }
 }
@@ -188,7 +188,7 @@ impl From<ListFeedsQuery> for FeedFindManyFilters {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetect {
     #[schema(format = "uri")]
@@ -281,7 +281,7 @@ pub async fn create_feed(
         ..
     }): State<FeedState>,
     session: Session,
-    Valid(Json(mut body)): Valid<Json<FeedCreate>>,
+    Json(mut body): Json<FeedCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let url = body.url.to_string();
     let folder_id = Some(body.folder_id);
@@ -340,7 +340,7 @@ pub async fn update_feed(
     State(repository): State<Arc<dyn FeedRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<FeedUpdate>>,
+    Json(body): Json<FeedUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())
@@ -402,7 +402,7 @@ pub async fn detect_feeds(
         scraper,
         ..
     }): State<FeedState>,
-    Valid(Json(mut body)): Valid<Json<FeedDetect>>,
+    Json(mut body): Json<FeedDetect>,
 ) -> Result<impl IntoResponse, Error> {
     let urls = scraper.detect(&mut body.url);
     if let Err(e) = urls {
@@ -472,10 +472,10 @@ pub async fn import_feeds(
             create_feed(
                 State(state.clone()),
                 session.clone(),
-                Valid(Json(FeedCreate {
+                Json(FeedCreate {
                     url: xml_url,
                     folder_id: None,
-                })),
+                }),
             )
             .await?;
         }

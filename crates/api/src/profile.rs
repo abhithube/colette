@@ -6,10 +6,12 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
-use axum_valid::Valid;
-use colette_core::profile::{
-    self, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
-    ProfileUpdateData,
+use colette_core::{
+    common::NonEmptyString,
+    profile::{
+        self, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
+        ProfileUpdateData,
+    },
 };
 use url::Url;
 use uuid::Uuid;
@@ -81,22 +83,20 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileCreate {
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
+    pub title: NonEmptyString,
 
     pub image_url: Option<Url>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
     #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
 
     pub image_url: Option<Url>,
 }
@@ -104,7 +104,7 @@ pub struct ProfileUpdate {
 impl From<ProfileUpdate> for ProfileUpdateData {
     fn from(value: ProfileUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(String::from),
             image_url: value.image_url.map(String::from),
         }
     }
@@ -204,11 +204,11 @@ pub async fn get_active_profile(
 pub async fn create_profile(
     State(repository): State<Arc<dyn ProfileRepository>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<ProfileCreate>>,
+    Json(body): Json<ProfileCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .create(ProfileCreateData {
-            title: body.title,
+            title: body.title.into(),
             image_url: body.image_url.map(String::from),
             user_id: session.user_id,
         })
@@ -239,7 +239,7 @@ pub async fn update_profile(
     State(repository): State<Arc<dyn ProfileRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<ProfileUpdate>>,
+    Json(body): Json<ProfileUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(ProfileIdParams::new(id, session.user_id), body.into())

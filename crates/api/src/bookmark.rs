@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
-use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark::{
@@ -110,7 +109,7 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
@@ -118,7 +117,7 @@ pub struct BookmarkCreate {
     pub collection_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
     #[schema(nullable = false)]
@@ -138,7 +137,9 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
         Self {
             sort_index: value.sort_index,
             collection_id: value.collection_id,
-            tags: value.tags.map(|e| e.into_iter().map(|e| e.title).collect()),
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
         }
     }
 }
@@ -255,7 +256,7 @@ pub async fn create_bookmark(
         scraper,
     }): State<BookmarkState>,
     session: Session,
-    Valid(Json(mut body)): Valid<Json<BookmarkCreate>>,
+    Json(mut body): Json<BookmarkCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let scraped = scraper.scrape(&mut body.url);
     if let Err(e) = scraped {
@@ -294,7 +295,7 @@ pub async fn update_bookmark(
     State(repository): State<Arc<dyn BookmarkRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<BookmarkUpdate>>,
+    Json(body): Json<BookmarkUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())

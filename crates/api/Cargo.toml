@@ -6,17 +6,15 @@ edition = "2021"
 [dependencies]
 axum.workspace = true
 axum-extra = { version = "0.9", default-features = false, features = ["query"] }
-axum-valid = { version = "0.19", default-features = false, features = [
-  "422",
-  "basic",
-  "into_json",
-  "validator",
-] }
 chrono.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
 colette-utils.workspace = true
+email_address = { version = "0.2", default-features = false, features = [
+  "serde",
+  "serde_support",
+] }
 serde.workspace = true
 serde_with = { version = "3", default-features = false }
 thiserror.workspace = true
@@ -26,14 +24,11 @@ utoipa = { version = "5.0.0-alpha.1", default-features = false, features = [
   "chrono",
   "preserve_order",
   "preserve_path_order",
-  "uuid",
   "url",
+  "uuid",
 ] }
 utoipa-scalar = { version = "0.2.0-alpha.0", default-features = false, features = [
   "axum",
 ] }
 url.workspace = true
 uuid.workspace = true
-validator = { version = "0.18", default-features = false, features = [
-  "derive",
-] }

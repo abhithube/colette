@@ -7,7 +7,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
-use axum_valid::Valid;
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::{IdParams, PAGINATION_LIMIT},
@@ -83,7 +82,7 @@ impl From<colette_core::FeedEntry> for FeedEntry {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
@@ -190,7 +189,7 @@ pub async fn update_feed_entry(
     State(repository): State<Arc<dyn FeedEntryRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<FeedEntryUpdate>>,
+    Json(body): Json<FeedEntryUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())

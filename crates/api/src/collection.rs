@@ -6,10 +6,9 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
-use axum_valid::Valid;
 use colette_core::{
     collection::{self, CollectionCreateData, CollectionRepository, CollectionUpdateData},
-    common::IdParams,
+    common::{IdParams, NonEmptyString},
 };
 use uuid::Uuid;
 
@@ -78,22 +77,20 @@ impl From<colette_core::Collection> for Collection {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionCreate {
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
+    pub title: NonEmptyString,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionUpdate {
     #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -105,7 +102,7 @@ pub struct CollectionUpdate {
 impl From<CollectionUpdate> for CollectionUpdateData {
     fn from(value: CollectionUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(String::from),
             folder_id: value.folder_id,
         }
     }
@@ -176,11 +173,11 @@ pub async fn get_collection(
 pub async fn create_collection(
     State(repository): State<Arc<dyn CollectionRepository>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CollectionCreate>>,
+    Json(body): Json<CollectionCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .create(CollectionCreateData {
-            title: body.title,
+            title: body.title.into(),
             folder_id: body.folder_id,
             profile_id: session.profile_id,
         })
@@ -212,7 +209,7 @@ pub async fn update_collection(
     State(repository): State<Arc<dyn CollectionRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<CollectionUpdate>>,
+    Json(body): Json<CollectionUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())

@@ -6,9 +6,8 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
-use axum_valid::Valid;
 use colette_core::{
-    common::IdParams,
+    common::{IdParams, NonEmptyString},
     folder::{self, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
 };
 use uuid::Uuid;
@@ -76,21 +75,19 @@ impl From<colette_core::Folder> for Folder {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderCreate {
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
+    pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderUpdate {
     #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -102,13 +99,13 @@ pub struct FolderUpdate {
 impl From<FolderUpdate> for FolderUpdateData {
     fn from(value: FolderUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(String::from),
             parent_id: value.parent_id,
         }
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListFoldersQuery {
@@ -155,7 +152,7 @@ impl From<FolderType> for folder::FolderType {
 #[axum::debug_handler]
 pub async fn list_folders(
     State(repository): State<Arc<dyn FolderRepository>>,
-    Valid(Query(query)): Valid<Query<ListFoldersQuery>>,
+    Query(query): Query<ListFoldersQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
@@ -211,11 +208,11 @@ pub async fn get_folder(
 pub async fn create_folder(
     State(repository): State<Arc<dyn FolderRepository>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<FolderCreate>>,
+    Json(body): Json<FolderCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .create(FolderCreateData {
-            title: body.title,
+            title: body.title.into(),
             parent_id: body.parent_id,
             profile_id: session.profile_id,
         })
@@ -247,7 +244,7 @@ pub async fn update_folder(
     State(repository): State<Arc<dyn FolderRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<FolderUpdate>>,
+    Json(body): Json<FolderUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())

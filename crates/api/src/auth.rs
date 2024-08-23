@@ -6,13 +6,14 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
-use axum_valid::Valid;
 use colette_core::{
     auth,
+    common::NonEmptyString,
     profile::{ProfileIdOrDefaultParams, ProfileRepository},
     user::{self, UserCreateData, UserIdParams, UserRepository},
 };
 use colette_utils::password;
+use email_address::EmailAddress;
 use uuid::Uuid;
 
 use crate::{
@@ -74,44 +75,40 @@ impl From<colette_core::User> for User {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(format = "email")]
-    #[validate(email(message = "not a valid email"))]
-    pub email: String,
+    pub email: EmailAddress,
 
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub password: String,
+    pub password: NonEmptyString,
 }
 
 impl From<Register> for auth::Register {
     fn from(value: Register) -> Self {
         Self {
-            email: value.email,
-            password: value.password,
+            email: value.email.into(),
+            password: value.password.into(),
         }
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
     #[schema(format = "email")]
-    #[validate(email(message = "not a valid email"))]
-    pub email: String,
+    pub email: EmailAddress,
 
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub password: String,
+    pub password: NonEmptyString,
 }
 
 impl From<Login> for auth::Login {
     fn from(value: Login) -> Self {
         Self {
-            email: value.email,
-            password: value.password,
+            email: value.email.into(),
+            password: value.password.into(),
         }
     }
 }
@@ -127,15 +124,15 @@ impl From<Login> for auth::Login {
 #[axum::debug_handler]
 pub async fn register(
     State(repository): State<Arc<dyn UserRepository>>,
-    Valid(Json(body)): Valid<Json<Register>>,
+    Json(body): Json<Register>,
 ) -> Result<impl IntoResponse, Error> {
-    let hashed = password::hash(&body.password)
+    let hashed = password::hash(&String::from(body.password))
         .await
         .map_err(|_| Error::Unknown)?;
 
     let result = repository
         .create(UserCreateData {
-            email: body.email,
+            email: body.email.into(),
             password: hashed,
         })
         .await
@@ -167,9 +164,11 @@ pub async fn login(
         profile_repository,
     }): State<AuthState>,
     session_store: tower_sessions::Session,
-    Valid(Json(body)): Valid<Json<Login>>,
+    Json(body): Json<Login>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = user_repository.find(UserIdParams::Email(body.email)).await;
+    let result = user_repository
+        .find(UserIdParams::Email(String::from(body.email)))
+        .await;
 
     if let Err(e) = result {
         match e {
@@ -185,7 +184,7 @@ pub async fn login(
     };
     let user = result.unwrap();
 
-    let Ok(valid) = password::verify(&body.password, &user.password).await else {
+    let Ok(valid) = password::verify(&String::from(body.password), &user.password).await else {
         return Err(Error::Unknown);
     };
     if !valid {

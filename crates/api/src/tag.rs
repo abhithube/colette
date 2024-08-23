@@ -6,9 +6,8 @@ use axum::{
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
-use axum_valid::Valid;
 use colette_core::{
-    common::IdParams,
+    common::{IdParams, NonEmptyString},
     tag::{self, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
 };
 use uuid::Uuid;
@@ -71,29 +70,29 @@ impl From<colette_core::Tag> for Tag {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagCreate {
     #[schema(min_length = 1)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: String,
+    pub title: NonEmptyString,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUpdate {
     #[schema(min_length = 1, nullable = false)]
-    #[validate(length(min = 1, message = "cannot be empty"))]
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
 }
 
 impl From<TagUpdate> for TagUpdateData {
     fn from(value: TagUpdate) -> Self {
-        Self { title: value.title }
+        Self {
+            title: value.title.map(String::from),
+        }
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams, validator::Validate)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct ListTagsQuery {
@@ -140,7 +139,7 @@ impl From<TagType> for tag::TagType {
 #[axum::debug_handler]
 pub async fn list_tags(
     State(repository): State<Arc<dyn TagRepository>>,
-    Valid(Query(query)): Valid<Query<ListTagsQuery>>,
+    Query(query): Query<ListTagsQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
@@ -196,11 +195,11 @@ pub async fn get_tag(
 pub async fn create_tag(
     State(repository): State<Arc<dyn TagRepository>>,
     session: Session,
-    Valid(Json(body)): Valid<Json<TagCreate>>,
+    Json(body): Json<TagCreate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .create(TagCreateData {
-            title: body.title,
+            title: body.title.into(),
             profile_id: session.profile_id,
         })
         .await
@@ -231,7 +230,7 @@ pub async fn update_tag(
     State(repository): State<Arc<dyn TagRepository>>,
     Path(Id(id)): Path<Id>,
     session: Session,
-    Valid(Json(body)): Valid<Json<TagUpdate>>,
+    Json(body): Json<TagUpdate>,
 ) -> Result<impl IntoResponse, Error> {
     let result = repository
         .update(IdParams::new(id, session.profile_id), body.into())
