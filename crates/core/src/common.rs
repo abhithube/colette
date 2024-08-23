@@ -1,16 +1,11 @@
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+// use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")]
 pub struct NonEmptyString(String);
-
-impl From<NonEmptyString> for String {
-    fn from(value: NonEmptyString) -> Self {
-        value.0
-    }
-}
 
 impl TryFrom<String> for NonEmptyString {
     type Error = ValidationError;
@@ -24,20 +19,9 @@ impl TryFrom<String> for NonEmptyString {
     }
 }
 
-impl Serialize for NonEmptyString {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.0)
-    }
-}
-
-impl<'de> Deserialize<'de> for NonEmptyString {
-    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
-        let s = String::deserialize(d)?;
-
-        NonEmptyString::try_from(s).map_err(serde::de::Error::custom)
+impl From<NonEmptyString> for String {
+    fn from(value: NonEmptyString) -> Self {
+        value.0
     }
 }
 
