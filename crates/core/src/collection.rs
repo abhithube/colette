@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
@@ -27,14 +27,14 @@ pub trait CollectionRepository:
     ) -> Result<Paginated<Collection>, Error>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CollectionCreateData {
     pub title: String,
     pub folder_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,

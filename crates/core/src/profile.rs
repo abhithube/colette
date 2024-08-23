@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Deletable, Findable, Paginated, Updatable};
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Profile {
     pub id: Uuid,
     pub title: String,
@@ -31,7 +31,7 @@ pub trait ProfileRepository:
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ProfileIdParams {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -43,20 +43,20 @@ impl ProfileIdParams {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ProfileIdOrDefaultParams {
     pub id: Option<Uuid>,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ProfileCreateData {
     pub title: String,
     pub image_url: Option<String>,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ProfileUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,

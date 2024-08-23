@@ -10,7 +10,7 @@ use crate::{
     Tag,
 };
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
@@ -23,7 +23,7 @@ pub struct Bookmark {
     pub tags: Option<Vec<Tag>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkExtractorOptions<'a> {
     pub title_queries: Vec<ExtractorQuery<'a>>,
     pub published_queries: Vec<ExtractorQuery<'a>>,
@@ -31,7 +31,7 @@ pub struct BookmarkExtractorOptions<'a> {
     pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ExtractedBookmark {
     pub title: Option<String>,
     pub thumbnail: Option<String>,
@@ -39,7 +39,7 @@ pub struct ExtractedBookmark {
     pub author: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ProcessedBookmark {
     pub title: String,
     pub thumbnail: Option<Url>,
@@ -47,6 +47,7 @@ pub struct ProcessedBookmark {
     pub author: Option<String>,
 }
 
+#[derive(Default)]
 pub struct BookmarkPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
     pub extractors:
@@ -79,7 +80,7 @@ pub struct BookmarkFindManyFilters {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
@@ -87,7 +88,7 @@ pub struct BookmarkCreateData {
     pub profile_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
     pub sort_index: Option<u32>,
     pub collection_id: Option<Option<Uuid>>,

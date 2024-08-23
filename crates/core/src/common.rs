@@ -2,13 +2,13 @@ use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Paginated<T> {
     pub data: Vec<T>,
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct IdParams {
     pub id: Uuid,
     pub profile_id: Uuid,

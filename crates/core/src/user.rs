@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Findable};
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -24,7 +24,7 @@ pub enum UserIdParams {
     Email(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct UserCreateData {
     pub email: String,
     pub password: String,

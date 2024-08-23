@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
@@ -11,8 +11,9 @@ pub struct Folder {
     pub feed_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub enum FolderType {
+    #[default]
     All,
     Collections,
     Feeds,
@@ -36,19 +37,19 @@ pub trait FolderRepository:
     ) -> Result<Paginated<Folder>, Error>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FolderFindManyFilters {
     pub folder_type: FolderType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FolderCreateData {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FolderUpdateData {
     pub title: Option<String>,
     pub parent_id: Option<Option<Uuid>>,

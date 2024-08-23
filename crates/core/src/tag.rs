@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
@@ -10,8 +10,9 @@ pub struct Tag {
     pub feed_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub enum TagType {
+    #[default]
     All,
     Bookmarks,
     Feeds,
@@ -35,18 +36,18 @@ pub trait TagRepository:
     ) -> Result<Paginated<Tag>, Error>;
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TagFindManyFilters {
     pub tag_type: TagType,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
     pub title: String,
     pub profile_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TagUpdateData {
     pub title: Option<String>,
 }

@@ -14,7 +14,7 @@ use crate::{
     Tag,
 };
 
-#[derive(Clone, Debug, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Feed {
     pub id: Uuid,
     pub link: String,
@@ -26,7 +26,7 @@ pub struct Feed {
     pub unread_count: Option<i64>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedExtractorOptions<'a> {
     pub feed_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_title_queries: Vec<ExtractorQuery<'a>>,
@@ -39,14 +39,14 @@ pub struct FeedExtractorOptions<'a> {
     pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ExtractedFeed {
     pub link: Option<String>,
     pub title: Option<String>,
     pub entries: Vec<ExtractedFeedEntry>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ExtractedFeedEntry {
     pub link: Option<String>,
     pub title: Option<String>,
@@ -117,6 +117,7 @@ pub trait FeedScraper: Scraper<ProcessedFeed> {
     fn detect(&self, url: &mut Url) -> Result<Vec<Url>, scraper::Error>;
 }
 
+#[derive(Default)]
 pub struct FeedPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
     pub detectors: HashMap<&'static str, DetectorPlugin<'a>>,
@@ -125,12 +126,12 @@ pub struct FeedPluginRegistry<'a> {
         HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedFindManyFilters {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedCreateData {
     pub url: String,
     pub feed: Option<ProcessedFeed>,
@@ -144,7 +145,7 @@ pub struct FeedCacheData {
     pub feed: ProcessedFeed,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
     pub folder_id: Option<Option<Uuid>>,
