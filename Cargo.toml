@@ -8,10 +8,10 @@ members = [
   "crates/entities",
   "crates/migrations",
   "crates/plugins",
+  "crates/repositories",
   "crates/scraper",
   "crates/server",
   "crates/session",
-  "crates/sql",
   "crates/tasks",
   "crates/ui",
   "crates/utils",
@@ -38,7 +38,7 @@ colette-migrations.path = "crates/migrations"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"
-colette-sql.path = "crates/sql"
+colette-repositories.path = "crates/repositories"
 colette-tasks.path = "crates/tasks"
 colette-utils.path = "crates/utils"
 futures = { version = "0.3", default-features = false }

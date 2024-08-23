@@ -13,9 +13,9 @@ colette-config.workspace = true
 colette-core.workspace = true
 colette-migrations.workspace = true
 colette-plugins.workspace = true
+colette-repositories.workspace = true
 colette-scraper.workspace = true
 colette-session.workspace = true
-colette-sql.workspace = true
 colette-tasks.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",

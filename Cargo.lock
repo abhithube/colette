@@ -1054,6 +1054,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-repositories"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "chrono",
+ "colette-core",
+ "colette-entities",
+ "colette-utils",
+ "futures",
+ "sea-orm",
+ "serde",
+ "uuid",
+]
+
+[[package]]
 name = "colette-scraper"
 version = "0.1.0"
 dependencies = [
@@ -1081,9 +1097,9 @@ dependencies = [
  "colette-core",
  "colette-migrations",
  "colette-plugins",
+ "colette-repositories",
  "colette-scraper",
  "colette-session",
- "colette-sql",
  "colette-tasks",
  "rust-embed",
  "sea-orm",
@@ -1098,22 +1114,6 @@ dependencies = [
  "async-trait",
  "tower-sessions",
  "tower-sessions-sqlx-store",
-]
-
-[[package]]
-name = "colette-sql"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-trait",
- "chrono",
- "colette-core",
- "colette-entities",
- "colette-utils",
- "futures",
- "sea-orm",
- "serde",
- "uuid",
 ]
 
 [[package]]
@@ -1141,9 +1141,9 @@ dependencies = [
  "colette-core",
  "colette-migrations",
  "colette-plugins",
+ "colette-repositories",
  "colette-scraper",
  "colette-session",
- "colette-sql",
  "colette-tasks",
  "console_error_panic_hook",
  "http 1.1.0",

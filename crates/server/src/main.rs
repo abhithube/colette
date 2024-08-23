@@ -9,12 +9,12 @@ use colette_api::{
 use colette_backup::opml::OpmlManager;
 use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
-use colette_session::{PostgresStore, SessionBackend, SqliteStore};
-use colette_sql::{
+use colette_repositories::{
     BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
     FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };
+use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
+use colette_session::{PostgresStore, SessionBackend, SqliteStore};
 use colette_tasks::handle_refresh_task;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;

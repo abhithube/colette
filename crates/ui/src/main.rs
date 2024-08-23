@@ -10,9 +10,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use colette_backup::OpmlManager;
     use colette_migrations::{Migrator, MigratorTrait};
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+    use colette_repositories::{
+        BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
+        FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+    };
     use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
     use colette_session::{PostgresStore, SessionBackend, SqliteStore};
-    use colette_sql::SqlRepository;
     use colette_tasks::handle_refresh_task;
     use colette_ui::{app::*, fileserv::file_and_error_handler};
     use leptos::*;

@@ -1,5 +1,5 @@
 [package]
-name = "colette-sql"
+name = "colette-repositories"
 version = "0.1.0"
 edition = "2021"
 

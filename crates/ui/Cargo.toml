@@ -14,9 +14,9 @@ colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true }
 colette-migrations = { workspace = true, optional = true }
 colette-plugins = { workspace = true, optional = true }
+colette-repositories = { workspace = true, optional = true }
 colette-scraper = { workspace = true, optional = true }
 colette-session = { workspace = true, optional = true }
-colette-sql = { workspace = true, optional = true }
 colette-tasks = { workspace = true, optional = true }
 console_error_panic_hook = { version = "0.1", default-features = false }
 http.workspace = true
@@ -51,9 +51,9 @@ ssr = [
   "dep:colette-config",
   "dep:colette-migrations",
   "dep:colette-plugins",
+  "dep:colette-repositories",
   "dep:colette-scraper",
   "dep:colette-session",
-  "dep:colette-sql",
   "dep:colette-tasks",
   "dep:leptos_axum",
   "dep:tokio",
