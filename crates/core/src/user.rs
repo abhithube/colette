@@ -6,6 +6,7 @@ use crate::common::{Creatable, Findable};
 pub struct User {
     pub id: Uuid,
     pub email: String,
+    #[serde(skip_serializing)]
     pub password: String,
 }
 
