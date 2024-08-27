@@ -1,15 +1,17 @@
-use crate::{profile, user};
+use email_address::EmailAddress;
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+use crate::{common::NonEmptyString, profile, user};
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Register {
-    pub email: String,
-    pub password: String,
+    pub email: EmailAddress,
+    pub password: NonEmptyString,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Login {
-    pub email: String,
-    pub password: String,
+    pub email: EmailAddress,
+    pub password: NonEmptyString,
 }
 
 #[derive(Debug, thiserror::Error)]

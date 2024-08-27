@@ -88,8 +88,8 @@ pub struct Register {
 impl From<Register> for auth::Register {
     fn from(value: Register) -> Self {
         Self {
-            email: value.email.into(),
-            password: value.password.into(),
+            email: value.email,
+            password: value.password,
         }
     }
 }
@@ -107,8 +107,8 @@ pub struct Login {
 impl From<Login> for auth::Login {
     fn from(value: Login) -> Self {
         Self {
-            email: value.email.into(),
-            password: value.password.into(),
+            email: value.email,
+            password: value.password,
         }
     }
 }

@@ -991,6 +991,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "email_address",
  "futures",
  "http 1.1.0",
  "serde",
