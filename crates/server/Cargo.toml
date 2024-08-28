@@ -27,5 +27,13 @@ tower-sessions.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = ["colette-session/postgres"]
-sqlite = ["colette-session/sqlite"]
+postgres = [
+  "colette-migration/postgres",
+  "colette-session/postgres",
+  "sea-orm/sqlx-postgres",
+]
+sqlite = [
+  "colette-migration/sqlite",
+  "colette-session/sqlite",
+  "sea-orm/sqlx-sqlite",
+]

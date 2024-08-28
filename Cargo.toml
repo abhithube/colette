@@ -47,8 +47,6 @@ lazy-regex = { version = "3", default-features = false, features = ["lite"] }
 quick-xml = { version = "0.36", features = ["overlapped-lists", "serialize"] }
 sea-orm = { version = "1.1.0-rc.1", default-features = false, features = [
   "macros",
-  "sqlx-postgres",
-  "sqlx-sqlite",
   "with-chrono",
   "with-uuid",
 ] }

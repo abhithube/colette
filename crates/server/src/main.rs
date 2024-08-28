@@ -1,3 +1,6 @@
+#[cfg(not(any(feature = "postgres", feature = "sqlite")))]
+compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enabled");
+
 use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
