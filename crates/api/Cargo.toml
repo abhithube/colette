@@ -19,7 +19,7 @@ serde_with = { version = "3", default-features = false }
 thiserror.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
-utoipa = { version = "5.0.0-alpha.1", default-features = false, features = [
+utoipa = { version = "5.0.0-alpha.2", default-features = false, features = [
   "chrono",
   "preserve_order",
   "preserve_path_order",
