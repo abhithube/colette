@@ -46,7 +46,6 @@ pub struct FeedUpdate {
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedListQuery {
-    pub filter_by_tags: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -321,13 +320,7 @@ pub struct FeedFindManyFilters {
 
 impl From<FeedListQuery> for FeedFindManyFilters {
     fn from(value: FeedListQuery) -> Self {
-        Self {
-            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
-                value.tags
-            } else {
-                None
-            },
-        }
+        Self { tags: value.tags }
     }
 }
 

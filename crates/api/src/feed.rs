@@ -172,8 +172,11 @@ pub struct ListFeedsQuery {
 impl From<ListFeedsQuery> for feed::FeedListQuery {
     fn from(value: ListFeedsQuery) -> Self {
         Self {
-            filter_by_tags: value.filter_by_tags,
-            tags: value.tags,
+            tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
+                value.tags
+            } else {
+                None
+            },
         }
     }
 }
