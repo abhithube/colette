@@ -1,0 +1,10 @@
+[package]
+name = "colette-entity"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chrono.workspace = true
+colette-core.workspace = true
+sea-orm.workspace = true
+uuid.workspace = true

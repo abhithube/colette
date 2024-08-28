@@ -1,0 +1,16 @@
+[package]
+name = "colette-repository"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+colette-core.workspace = true
+colette-entity.workspace = true
+colette-utils.workspace = true
+futures.workspace = true
+sea-orm.workspace = true
+serde.workspace = true
+uuid.workspace = true

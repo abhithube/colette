@@ -4,10 +4,10 @@ members = [
   "crates/backup",
   "crates/config",
   "crates/core",
-  "crates/entities",
-  "crates/migrations",
+  "crates/entity",
+  "crates/migration",
   "crates/plugins",
-  "crates/repositories",
+  "crates/repository",
   "crates/scraper",
   "crates/server",
   "crates/session",
@@ -33,12 +33,12 @@ colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
-colette-entities.path = "crates/entities"
-colette-migrations.path = "crates/migrations"
+colette-entity.path = "crates/entity"
+colette-migration.path = "crates/migration"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"
-colette-repositories.path = "crates/repositories"
+colette-repository.path = "crates/repository"
 colette-tasks.path = "crates/tasks"
 colette-utils.path = "crates/utils"
 futures = { version = "0.3", default-features = false }

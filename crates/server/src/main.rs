@@ -11,9 +11,9 @@ use colette_core::{
     auth::AuthService, bookmark::BookmarkService, collection::CollectionService, feed::FeedService,
     feed_entry::FeedEntryService, folder::FolderService, profile::ProfileService, tag::TagService,
 };
-use colette_migrations::{Migrator, MigratorTrait};
+use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_repositories::{
+use colette_repository::{
     BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
     FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };

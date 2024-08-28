@@ -664,7 +664,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-entities"
+name = "colette-entity"
 version = "0.1.0"
 dependencies = [
  "chrono",
@@ -674,7 +674,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-migrations"
+name = "colette-migration"
 version = "0.1.0"
 dependencies = [
  "async-std",
@@ -696,14 +696,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-repositories"
+name = "colette-repository"
 version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
  "colette-core",
- "colette-entities",
+ "colette-entity",
  "colette-utils",
  "futures",
  "sea-orm",
@@ -737,9 +737,9 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
- "colette-migrations",
+ "colette-migration",
  "colette-plugins",
- "colette-repositories",
+ "colette-repository",
  "colette-scraper",
  "colette-session",
  "colette-tasks",
