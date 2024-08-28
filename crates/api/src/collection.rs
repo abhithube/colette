@@ -80,7 +80,7 @@ impl From<colette_core::Collection> for Collection {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionCreate {
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
@@ -98,7 +98,7 @@ impl From<CollectionCreate> for collection::CollectionCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionUpdate {
-    #[schema(min_length = 1, nullable = false)]
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
     #[serde(
         default,

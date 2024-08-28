@@ -86,7 +86,7 @@ impl From<TagCreate> for tag::TagCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUpdate {
-    #[schema(value_type = String, min_length = 1, nullable = false)]
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
 }
 

@@ -129,7 +129,7 @@ impl From<FeedCreate> for feed::FeedCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
-    #[schema(value_type = String, min_length = 1)]
+    #[schema(value_type = Option<String>, min_length = 1)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",

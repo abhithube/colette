@@ -95,7 +95,7 @@ impl From<FolderCreate> for folder::FolderCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderUpdate {
-    #[schema(value_type = String, min_length = 1, nullable = false)]
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
     #[serde(
         default,
