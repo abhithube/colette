@@ -7,21 +7,21 @@ use axum::{
     routing, Json, Router,
 };
 use colette_core::{
-    common::{IdParams, NonEmptyString},
-    tag::{self, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
+    common::NonEmptyString,
+    tag::{self, TagService},
 };
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Paginated, Session, TagList};
+use crate::common::{BaseError, Error, Id, Session, TagList};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagState {
-    repository: Arc<dyn TagRepository>,
+    service: Arc<TagService>,
 }
 
 impl TagState {
-    pub fn new(repository: Arc<dyn TagRepository>) -> Self {
-        Self { repository }
+    pub fn new(service: Arc<TagService>) -> Self {
+        Self { service }
     }
 }
 
@@ -73,36 +73,40 @@ impl From<colette_core::Tag> for Tag {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagCreate {
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
+}
+
+impl From<TagCreate> for tag::TagCreate {
+    fn from(value: TagCreate) -> Self {
+        Self { title: value.title }
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUpdate {
-    #[schema(min_length = 1, nullable = false)]
+    #[schema(value_type = String, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
 }
 
-impl From<TagUpdate> for TagUpdateData {
+impl From<TagUpdate> for tag::TagUpdate {
     fn from(value: TagUpdate) -> Self {
-        Self {
-            title: value.title.map(String::from),
-        }
+        Self { title: value.title }
     }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListTagsQuery {
+pub struct TagListQuery {
     #[param(inline)]
     #[serde(default = "TagType::default")]
     pub tag_type: TagType,
 }
 
-impl From<ListTagsQuery> for TagFindManyFilters {
-    fn from(value: ListTagsQuery) -> Self {
+impl From<TagListQuery> for tag::TagListQuery {
+    fn from(value: TagListQuery) -> Self {
         Self {
             tag_type: value.tag_type.into(),
         }
@@ -131,24 +135,19 @@ impl From<TagType> for tag::TagType {
 #[utoipa::path(
     get,
     path = "",
-    params(ListTagsQuery),
+    params(TagListQuery),
     responses(ListResponse),
     operation_id = "listTags",
     description = "List the active profile tags"
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
-    State(repository): State<Arc<dyn TagRepository>>,
-    Query(query): Query<ListTagsQuery>,
+    State(service): State<Arc<TagService>>,
+    Query(query): Query<TagListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(session.profile_id, None, None, Some(query.into()))
-        .await
-        .map(Paginated::<Tag>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    match service.list(query.into(), session.profile_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -163,17 +162,12 @@ pub async fn list_tags(
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
-    State(repository): State<Arc<dyn TagRepository>>,
+    State(service): State<Arc<TagService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(IdParams::new(id, session.profile_id))
-        .await
-        .map(Tag::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get(id, session.profile_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -193,20 +187,12 @@ pub async fn get_tag(
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
-    State(repository): State<Arc<dyn TagRepository>>,
+    State(service): State<Arc<TagService>>,
     session: Session,
     Json(body): Json<TagCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .create(TagCreateData {
-            title: body.title.into(),
-            profile_id: session.profile_id,
-        })
-        .await
-        .map(Tag::from);
-
-    match result {
-        Ok(data) => Ok(CreateResponse::Created(data)),
+    match service.create(body.into(), session.profile_id).await {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -227,18 +213,13 @@ pub async fn create_tag(
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
-    State(repository): State<Arc<dyn TagRepository>>,
+    State(service): State<Arc<TagService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<TagUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(IdParams::new(id, session.profile_id), body.into())
-        .await
-        .map(Tag::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+    match service.update(id, body.into(), session.profile_id).await {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -258,15 +239,11 @@ pub async fn update_tag(
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(
-    State(repository): State<Arc<dyn TagRepository>>,
+    State(service): State<Arc<TagService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .delete(IdParams::new(id, session.profile_id))
-        .await;
-
-    match result {
+    match service.delete(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

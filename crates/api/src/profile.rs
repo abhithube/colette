@@ -8,24 +8,21 @@ use axum::{
 };
 use colette_core::{
     common::NonEmptyString,
-    profile::{
-        self, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
-        ProfileUpdateData,
-    },
+    profile::{self, ProfileService},
 };
 use url::Url;
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Paginated, ProfileList, Session};
+use crate::common::{BaseError, Error, Id, ProfileList, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfileState {
-    repository: Arc<dyn ProfileRepository>,
+    service: Arc<ProfileService>,
 }
 
 impl ProfileState {
-    pub fn new(repository: Arc<dyn ProfileRepository>) -> Self {
-        Self { repository }
+    pub fn new(service: Arc<ProfileService>) -> Self {
+        Self { service }
     }
 }
 
@@ -86,26 +83,33 @@ impl From<colette_core::Profile> for Profile {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileCreate {
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-
     pub image_url: Option<Url>,
+}
+
+impl From<ProfileCreate> for profile::ProfileCreate {
+    fn from(value: ProfileCreate) -> Self {
+        Self {
+            title: value.title,
+            image_url: value.image_url,
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
-    #[schema(min_length = 1, nullable = false)]
+    #[schema(value_type = String, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
-
     pub image_url: Option<Url>,
 }
 
-impl From<ProfileUpdate> for ProfileUpdateData {
+impl From<ProfileUpdate> for profile::ProfileUpdate {
     fn from(value: ProfileUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
-            image_url: value.image_url.map(String::from),
+            title: value.title,
+            image_url: value.image_url,
         }
     }
 }
@@ -119,16 +123,11 @@ impl From<ProfileUpdate> for ProfileUpdateData {
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(session.user_id, None, None)
-        .await
-        .map(Paginated::<Profile>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    match service.list_profiles(session.user_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(_) => Err(Error::Unknown),
     }
 }
@@ -143,20 +142,12 @@ pub async fn list_profiles(
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(ProfileIdOrDefaultParams {
-            id: Some(id),
-            user_id: session.user_id,
-        })
-        .await
-        .map(Profile::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get_profile(id, session.user_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             profile::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -175,19 +166,11 @@ pub async fn get_profile(
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(ProfileIdOrDefaultParams {
-            id: None,
-            user_id: session.user_id,
-        })
-        .await
-        .map(Profile::from);
-
-    match result {
-        Ok(data) => Ok(GetActiveResponse::Ok(data)),
+    match service.get_active_profile(session.user_id).await {
+        Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(_) => Err(Error::Unknown),
     }
 }
@@ -202,20 +185,12 @@ pub async fn get_active_profile(
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     session: Session,
     Json(body): Json<ProfileCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .create(ProfileCreateData {
-            title: body.title.into(),
-            image_url: body.image_url.map(String::from),
-            user_id: session.user_id,
-        })
-        .await;
-
-    match result.map(Profile::from) {
-        Ok(data) => Ok(CreateResponse::Created(data)),
+    match service.create_profile(body.into(), session.user_id).await {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             profile::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -236,18 +211,16 @@ pub async fn create_profile(
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<ProfileUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(ProfileIdParams::new(id, session.user_id), body.into())
+    match service
+        .update_profile(id, body.into(), session.user_id)
         .await
-        .map(Profile::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+    {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             profile::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -267,15 +240,11 @@ pub async fn update_profile(
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
-    State(repository): State<Arc<dyn ProfileRepository>>,
+    State(service): State<Arc<ProfileService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .delete(ProfileIdParams::new(id, session.user_id))
-        .await;
-
-    match result {
+    match service.delete_profile(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             profile::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

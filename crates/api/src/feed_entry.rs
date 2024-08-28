@@ -8,22 +8,19 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
-use colette_core::{
-    common::{IdParams, PAGINATION_LIMIT},
-    feed_entry::{self, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
-};
+use colette_core::feed_entry::{self, FeedEntryService};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, FeedEntryList, Id, Paginated, Session};
+use crate::common::{BaseError, Error, FeedEntryList, Id, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedEntryState {
-    repository: Arc<dyn FeedEntryRepository>,
+    service: Arc<FeedEntryService>,
 }
 
 impl FeedEntryState {
-    pub fn new(repository: Arc<dyn FeedEntryRepository>) -> Self {
-        Self { repository }
+    pub fn new(service: Arc<FeedEntryService>) -> Self {
+        Self { service }
     }
 }
 
@@ -88,7 +85,7 @@ pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }
 
-impl From<FeedEntryUpdate> for FeedEntryUpdateData {
+impl From<FeedEntryUpdate> for feed_entry::FeedEntryUpdate {
     fn from(value: FeedEntryUpdate) -> Self {
         Self {
             has_read: value.has_read,
@@ -99,7 +96,7 @@ impl From<FeedEntryUpdate> for FeedEntryUpdateData {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListFeedEntriesQuery {
+pub struct FeedEntryListQuery {
     #[param(nullable = false)]
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
@@ -111,36 +108,36 @@ pub struct ListFeedEntriesQuery {
     pub cursor: Option<String>,
 }
 
+impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
+    fn from(value: FeedEntryListQuery) -> Self {
+        Self {
+            feed_id: value.feed_id,
+            has_read: value.has_read,
+            tags: value.tags,
+            cursor: value.cursor,
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "",
-    params(ListFeedEntriesQuery),
+    params(FeedEntryListQuery),
     responses(ListResponse),
     operation_id = "listFeedEntries",
     description = "List feed entries"
 )]
 #[axum::debug_handler]
 pub async fn list_feed_entries(
-    State(repository): State<Arc<dyn FeedEntryRepository>>,
-    Query(query): Query<ListFeedEntriesQuery>,
+    State(service): State<Arc<FeedEntryService>>,
+    Query(query): Query<FeedEntryListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(
-            session.profile_id,
-            Some(PAGINATION_LIMIT),
-            query.cursor,
-            Some(FeedEntryFindManyFilters {
-                feed_id: query.feed_id,
-                has_read: query.has_read,
-                tags: query.tags,
-            }),
-        )
+    match service
+        .list_feed_entries(query.into(), session.profile_id)
         .await
-        .map(Paginated::<FeedEntry>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -155,17 +152,12 @@ pub async fn list_feed_entries(
 )]
 #[axum::debug_handler]
 pub async fn get_feed_entry(
-    State(repository): State<Arc<dyn FeedEntryRepository>>,
+    State(service): State<Arc<FeedEntryService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(IdParams::new(id, session.profile_id))
-        .await
-        .map(FeedEntry::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get_feed_entry(id, session.profile_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -186,18 +178,16 @@ pub async fn get_feed_entry(
 )]
 #[axum::debug_handler]
 pub async fn update_feed_entry(
-    State(repository): State<Arc<dyn FeedEntryRepository>>,
+    State(service): State<Arc<FeedEntryService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FeedEntryUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(IdParams::new(id, session.profile_id), body.into())
+    match service
+        .update_feed_entry(id, body.into(), session.profile_id)
         .await
-        .map(FeedEntry::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+    {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

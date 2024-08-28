@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
+use crate::common::{
+    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+};
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Tag {
@@ -10,12 +14,70 @@ pub struct Tag {
     pub feed_count: Option<i64>,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct TagCreate {
+    pub title: NonEmptyString,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct TagUpdate {
+    pub title: Option<NonEmptyString>,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct TagListQuery {
+    pub tag_type: TagType,
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub enum TagType {
     #[default]
     All,
     Bookmarks,
     Feeds,
+}
+
+pub struct TagService {
+    repository: Arc<dyn TagRepository>,
+}
+
+impl TagService {
+    pub fn new(repository: Arc<dyn TagRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn list(
+        &self,
+        query: TagListQuery,
+        profile_id: Uuid,
+    ) -> Result<Paginated<Tag>, Error> {
+        self.repository
+            .list(profile_id, None, None, Some(query.into()))
+            .await
+    }
+
+    pub async fn get(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+        self.repository.find(IdParams::new(id, profile_id)).await
+    }
+
+    pub async fn create(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
+        self.repository
+            .create(TagCreateData {
+                title: data.title.into(),
+                profile_id,
+            })
+            .await
+    }
+
+    pub async fn update(&self, id: Uuid, data: TagUpdate, profile_id: Uuid) -> Result<Tag, Error> {
+        self.repository
+            .update(IdParams::new(id, profile_id), data.into())
+            .await
+    }
+
+    pub async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, profile_id)).await
+    }
 }
 
 #[async_trait::async_trait]
@@ -41,6 +103,14 @@ pub struct TagFindManyFilters {
     pub tag_type: TagType,
 }
 
+impl From<TagListQuery> for TagFindManyFilters {
+    fn from(value: TagListQuery) -> Self {
+        Self {
+            tag_type: value.tag_type,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
     pub title: String,
@@ -50,6 +120,14 @@ pub struct TagCreateData {
 #[derive(Clone, Debug, Default)]
 pub struct TagUpdateData {
     pub title: Option<String>,
+}
+
+impl From<TagUpdate> for TagUpdateData {
+    fn from(value: TagUpdate) -> Self {
+        Self {
+            title: value.title.map(String::from),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable};
+use crate::common::{
+    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+};
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Collection {
@@ -8,6 +12,65 @@ pub struct Collection {
     pub title: String,
     pub folder_id: Option<Uuid>,
     pub bookmark_count: Option<i64>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct CollectionCreate {
+    pub title: NonEmptyString,
+    pub folder_id: Option<Uuid>,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct CollectionUpdate {
+    pub title: Option<NonEmptyString>,
+    pub folder_id: Option<Option<Uuid>>,
+}
+
+pub struct CollectionService {
+    repository: Arc<dyn CollectionRepository>,
+}
+
+impl CollectionService {
+    pub fn new(repository: Arc<dyn CollectionRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn list_collections(&self, profile_id: Uuid) -> Result<Paginated<Collection>, Error> {
+        self.repository.list(profile_id, None, None).await
+    }
+
+    pub async fn get_collection(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
+        self.repository.find(IdParams::new(id, profile_id)).await
+    }
+
+    pub async fn create_collection(
+        &self,
+        data: CollectionCreate,
+        profile_id: Uuid,
+    ) -> Result<Collection, Error> {
+        self.repository
+            .create(CollectionCreateData {
+                title: data.title.into(),
+                folder_id: data.folder_id,
+                profile_id,
+            })
+            .await
+    }
+
+    pub async fn update_collection(
+        &self,
+        id: Uuid,
+        data: CollectionUpdate,
+        profile_id: Uuid,
+    ) -> Result<Collection, Error> {
+        self.repository
+            .update(IdParams::new(id, profile_id), data.into())
+            .await
+    }
+
+    pub async fn delete_collection(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, profile_id)).await
+    }
 }
 
 #[async_trait::async_trait]
@@ -38,6 +101,15 @@ pub struct CollectionCreateData {
 pub struct CollectionUpdateData {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
+}
+
+impl From<CollectionUpdate> for CollectionUpdateData {
+    fn from(value: CollectionUpdate) -> Self {
+        Self {
+            title: value.title.map(String::from),
+            folder_id: value.folder_id,
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

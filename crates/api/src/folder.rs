@@ -7,21 +7,21 @@ use axum::{
     routing, Json, Router,
 };
 use colette_core::{
-    common::{IdParams, NonEmptyString},
-    folder::{self, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
+    common::NonEmptyString,
+    folder::{self, FolderService},
 };
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, FolderList, Id, Paginated, Session};
+use crate::common::{BaseError, Error, FolderList, Id, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FolderState {
-    repository: Arc<dyn FolderRepository>,
+    service: Arc<FolderService>,
 }
 
 impl FolderState {
-    pub fn new(repository: Arc<dyn FolderRepository>) -> Self {
-        Self { repository }
+    pub fn new(service: Arc<FolderService>) -> Self {
+        Self { service }
     }
 }
 
@@ -78,15 +78,24 @@ impl From<colette_core::Folder> for Folder {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderCreate {
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
+}
+
+impl From<FolderCreate> for folder::FolderCreate {
+    fn from(value: FolderCreate) -> Self {
+        Self {
+            title: value.title,
+            parent_id: value.parent_id,
+        }
+    }
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderUpdate {
-    #[schema(min_length = 1, nullable = false)]
+    #[schema(value_type = String, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
     #[serde(
         default,
@@ -96,10 +105,10 @@ pub struct FolderUpdate {
     pub parent_id: Option<Option<Uuid>>,
 }
 
-impl From<FolderUpdate> for FolderUpdateData {
+impl From<FolderUpdate> for folder::FolderUpdate {
     fn from(value: FolderUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
+            title: value.title,
             parent_id: value.parent_id,
         }
     }
@@ -108,14 +117,14 @@ impl From<FolderUpdate> for FolderUpdateData {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListFoldersQuery {
+pub struct FolderListQuery {
     #[param(inline)]
-    #[serde(default = "FolderType::default")]
+    #[serde(default)]
     pub folder_type: FolderType,
 }
 
-impl From<ListFoldersQuery> for FolderFindManyFilters {
-    fn from(value: ListFoldersQuery) -> Self {
+impl From<FolderListQuery> for folder::FolderListQuery {
+    fn from(value: FolderListQuery) -> Self {
         Self {
             folder_type: value.folder_type.into(),
         }
@@ -144,24 +153,19 @@ impl From<FolderType> for folder::FolderType {
 #[utoipa::path(
     get,
     path = "",
-    params(ListFoldersQuery),
+    params(FolderListQuery),
     responses(ListResponse),
     operation_id = "listFolders",
     description = "List the active profile folders"
 )]
 #[axum::debug_handler]
 pub async fn list_folders(
-    State(repository): State<Arc<dyn FolderRepository>>,
-    Query(query): Query<ListFoldersQuery>,
+    State(service): State<Arc<FolderService>>,
+    Query(query): Query<FolderListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(session.profile_id, None, None, Some(query.into()))
-        .await
-        .map(Paginated::<Folder>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    match service.list_folders(query.into(), session.profile_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -176,17 +180,12 @@ pub async fn list_folders(
 )]
 #[axum::debug_handler]
 pub async fn get_folder(
-    State(repository): State<Arc<dyn FolderRepository>>,
+    State(service): State<Arc<FolderService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(IdParams::new(id, session.profile_id))
-        .await
-        .map(Folder::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get_folder(id, session.profile_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -206,21 +205,12 @@ pub async fn get_folder(
 )]
 #[axum::debug_handler]
 pub async fn create_folder(
-    State(repository): State<Arc<dyn FolderRepository>>,
+    State(service): State<Arc<FolderService>>,
     session: Session,
     Json(body): Json<FolderCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .create(FolderCreateData {
-            title: body.title.into(),
-            parent_id: body.parent_id,
-            profile_id: session.profile_id,
-        })
-        .await
-        .map(Folder::from);
-
-    match result {
-        Ok(data) => Ok(CreateResponse::Created(data)),
+    match service.create_folder(body.into(), session.profile_id).await {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             folder::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -241,18 +231,16 @@ pub async fn create_folder(
 )]
 #[axum::debug_handler]
 pub async fn update_folder(
-    State(repository): State<Arc<dyn FolderRepository>>,
+    State(service): State<Arc<FolderService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FolderUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(IdParams::new(id, session.profile_id), body.into())
+    match service
+        .update_folder(id, body.into(), session.profile_id)
         .await
-        .map(Folder::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+    {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -272,15 +260,11 @@ pub async fn update_folder(
 )]
 #[axum::debug_handler]
 pub async fn delete_folder(
-    State(repository): State<Arc<dyn FolderRepository>>,
+    State(service): State<Arc<FolderService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .delete(IdParams::new(id, session.profile_id))
-        .await;
-
-    match result {
+    match service.delete_folder(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

@@ -8,37 +8,23 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
-use colette_core::{
-    bookmark::{
-        self, BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
-        ProcessedBookmark,
-    },
-    common::{IdParams, PAGINATION_LIMIT},
-    scraper::Scraper,
-};
+use colette_core::bookmark::{self, BookmarkService};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Error, Id, Paginated, Session},
+    common::{BaseError, BookmarkList, Error, Id, Session},
     tag::{Tag, TagCreate},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BookmarkState {
-    repository: Arc<dyn BookmarkRepository>,
-    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    service: Arc<BookmarkService>,
 }
 
 impl BookmarkState {
-    pub fn new(
-        repository: Arc<dyn BookmarkRepository>,
-        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
-    ) -> Self {
-        Self {
-            repository,
-            scraper,
-        }
+    pub fn new(service: Arc<BookmarkService>) -> Self {
+        Self { service }
     }
 }
 
@@ -117,6 +103,15 @@ pub struct BookmarkCreate {
     pub collection_id: Option<Uuid>,
 }
 
+impl From<BookmarkCreate> for bookmark::BookmarkCreate {
+    fn from(value: BookmarkCreate) -> Self {
+        Self {
+            url: value.url,
+            collection_id: value.collection_id,
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
@@ -132,14 +127,14 @@ pub struct BookmarkUpdate {
     pub tags: Option<Vec<TagCreate>>,
 }
 
-impl From<BookmarkUpdate> for BookmarkUpdateData {
+impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             sort_index: value.sort_index,
             collection_id: value.collection_id,
             tags: value
                 .tags
-                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+                .map(|e| e.into_iter().map(|e| e.into()).collect()),
         }
     }
 }
@@ -147,7 +142,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListBookmarksQuery {
+pub struct BookmarkListQuery {
     #[param(nullable = false)]
     pub filter_by_collection: Option<bool>,
     #[param(nullable = false)]
@@ -161,8 +156,8 @@ pub struct ListBookmarksQuery {
     pub cursor: Option<String>,
 }
 
-impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
-    fn from(value: ListBookmarksQuery) -> Self {
+impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
+    fn from(value: BookmarkListQuery) -> Self {
         Self {
             collection_id: if value
                 .filter_by_collection
@@ -177,6 +172,7 @@ impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
             } else {
                 None
             },
+            cursor: value.cursor,
         }
     }
 }
@@ -184,29 +180,22 @@ impl From<ListBookmarksQuery> for BookmarkFindManyFilters {
 #[utoipa::path(
     get,
     path = "",
-    params(ListBookmarksQuery),
+    params(BookmarkListQuery),
     responses(ListResponse),
     operation_id = "listBookmarks",
     description = "List the active profile bookmarks"
 )]
 #[axum::debug_handler]
 pub async fn list_bookmarks(
-    State(repository): State<Arc<dyn BookmarkRepository>>,
-    Query(query): Query<ListBookmarksQuery>,
+    State(service): State<Arc<BookmarkService>>,
+    Query(query): Query<BookmarkListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(
-            session.profile_id,
-            Some(PAGINATION_LIMIT),
-            query.cursor.clone(),
-            Some(query.into()),
-        )
+    match service
+        .list_bookmarks(query.into(), session.profile_id)
         .await
-        .map(Paginated::<Bookmark>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -221,17 +210,12 @@ pub async fn list_bookmarks(
 )]
 #[axum::debug_handler]
 pub async fn get_bookmark(
-    State(repository): State<Arc<dyn BookmarkRepository>>,
+    State(service): State<Arc<BookmarkService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(IdParams::new(id, session.profile_id))
-        .await
-        .map(Bookmark::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get_bookmark(id, session.profile_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -251,32 +235,15 @@ pub async fn get_bookmark(
   )]
 #[axum::debug_handler]
 pub async fn create_bookmark(
-    State(BookmarkState {
-        repository,
-        scraper,
-    }): State<BookmarkState>,
+    State(service): State<Arc<BookmarkService>>,
     session: Session,
-    Json(mut body): Json<BookmarkCreate>,
+    Json(body): Json<BookmarkCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    let scraped = scraper.scrape(&mut body.url);
-    if let Err(e) = scraped {
-        return Ok(CreateResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        }));
-    }
-
-    let result = repository
-        .create(BookmarkCreateData {
-            url: body.url.into(),
-            bookmark: scraped.unwrap(),
-            collection_id: body.collection_id,
-            profile_id: session.profile_id,
-        })
+    match service
+        .create_bookmark(body.into(), session.profile_id)
         .await
-        .map(Bookmark::from);
-
-    match result {
-        Ok(data) => Ok(CreateResponse::Created(Box::new(data))),
+    {
+        Ok(data) => Ok(CreateResponse::Created(Box::new(data.into()))),
         _ => Err(Error::Unknown),
     }
 }
@@ -292,18 +259,16 @@ pub async fn create_bookmark(
 )]
 #[axum::debug_handler]
 pub async fn update_bookmark(
-    State(repository): State<Arc<dyn BookmarkRepository>>,
+    State(service): State<Arc<BookmarkService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(IdParams::new(id, session.profile_id), body.into())
+    match service
+        .update_bookmark(id, body.into(), session.profile_id)
         .await
-        .map(Bookmark::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(Box::new(data))),
+    {
+        Ok(data) => Ok(UpdateResponse::Ok(Box::new(data.into()))),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -323,15 +288,11 @@ pub async fn update_bookmark(
 )]
 #[axum::debug_handler]
 pub async fn delete_bookmark(
-    State(repository): State<Arc<dyn BookmarkRepository>>,
+    State(service): State<Arc<BookmarkService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .delete(IdParams::new(id, session.profile_id))
-        .await;
-
-    match result {
+    match service.delete_bookmark(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

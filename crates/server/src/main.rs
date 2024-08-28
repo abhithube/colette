@@ -7,7 +7,10 @@ use colette_api::{
     ApiState,
 };
 use colette_backup::opml::OpmlManager;
-use colette_core::{auth::AuthService, feed::FeedService};
+use colette_core::{
+    auth::AuthService, bookmark::BookmarkService, collection::CollectionService, feed::FeedService,
+    feed_entry::FeedEntryService, folder::FolderService, profile::ProfileService, tag::TagService,
+};
 use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repositories::{
@@ -76,35 +79,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
-    let auth_state = AuthState::new(Arc::new(AuthService::new(
+    let auth_service = Arc::new(AuthService::new(
         Arc::new(UserSqlRepository::new(db.clone())),
         profile_repository.clone(),
         Arc::new(ArgonHasher),
-    )));
-    let bookmark_state = BookmarkState::new(
+    ));
+    let bookmark_service = Arc::new(BookmarkService::new(
         Arc::new(BookmarkSqlRepository::new(db.clone())),
         Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
-    );
-    let collection_state = CollectionState::new(Arc::new(CollectionSqlRepository::new(db.clone())));
+    ));
+    let collection_service = Arc::new(CollectionService::new(Arc::new(
+        CollectionSqlRepository::new(db.clone()),
+    )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
         feed_scraper,
         Arc::new(OpmlManager),
     ));
-    let feed_entry_state = FeedEntryState::new(Arc::new(FeedEntrySqlRepository::new(db.clone())));
-    let folder_state = FolderState::new(Arc::new(FolderSqlRepository::new(db.clone())));
-    let profile_state = ProfileState::new(profile_repository);
-    let tag_state = TagState::new(Arc::new(TagSqlRepository::new(db)));
+    let feed_entry_service = Arc::new(FeedEntryService::new(Arc::new(
+        FeedEntrySqlRepository::new(db.clone()),
+    )));
+    let folder_service = Arc::new(FolderService::new(Arc::new(FolderSqlRepository::new(
+        db.clone(),
+    ))));
+    let profile_service = Arc::new(ProfileService::new(profile_repository));
+    let tag_service = Arc::new(TagService::new(Arc::new(TagSqlRepository::new(db))));
 
     let api_state = ApiState::new(
-        auth_state,
-        bookmark_state,
-        collection_state,
+        AuthState::new(auth_service),
+        BookmarkState::new(bookmark_service),
+        CollectionState::new(collection_service),
         FeedState::new(feed_service),
-        feed_entry_state,
-        folder_state,
-        profile_state,
-        tag_state,
+        FeedEntryState::new(feed_entry_service),
+        FolderState::new(folder_service),
+        ProfileState::new(profile_service),
+        TagState::new(tag_service),
     );
     let api = Api::new(&api_state, &app_config, session_backend)
         .build()

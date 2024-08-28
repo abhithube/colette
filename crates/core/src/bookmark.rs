@@ -1,12 +1,15 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use chrono::{DateTime, Utc};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
-    scraper::{self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin},
+    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT},
+    scraper::{
+        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
+    },
+    tag::TagCreate,
     Tag,
 };
 
@@ -21,6 +24,26 @@ pub struct Bookmark {
     pub sort_index: u32,
     pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkCreate {
+    pub url: Url,
+    pub collection_id: Option<Uuid>,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkUpdate {
+    pub sort_index: Option<u32>,
+    pub collection_id: Option<Option<Uuid>>,
+    pub tags: Option<Vec<TagCreate>>,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkListQuery {
+    pub collection_id: Option<Option<Uuid>>,
+    pub tags: Option<Vec<String>>,
+    pub cursor: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -54,6 +77,77 @@ pub struct BookmarkPluginRegistry<'a> {
         HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
     pub postprocessors:
         HashMap<&'static str, PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>>,
+}
+
+pub struct BookmarkService {
+    repository: Arc<dyn BookmarkRepository>,
+    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+}
+
+impl BookmarkService {
+    pub fn new(
+        repository: Arc<dyn BookmarkRepository>,
+        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    ) -> Self {
+        Self {
+            repository,
+            scraper,
+        }
+    }
+
+    pub async fn list_bookmarks(
+        &self,
+        query: BookmarkListQuery,
+        profile_id: Uuid,
+    ) -> Result<Paginated<Bookmark>, Error> {
+        self.repository
+            .list(
+                profile_id,
+                Some(PAGINATION_LIMIT),
+                query.cursor,
+                Some(BookmarkFindManyFilters {
+                    collection_id: query.collection_id,
+                    tags: query.tags,
+                }),
+            )
+            .await
+    }
+
+    pub async fn get_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
+        self.repository.find(IdParams::new(id, profile_id)).await
+    }
+
+    pub async fn create_bookmark(
+        &self,
+        mut data: BookmarkCreate,
+        profile_id: Uuid,
+    ) -> Result<Bookmark, Error> {
+        let scraped = self.scraper.scrape(&mut data.url)?;
+
+        self.repository
+            .create(BookmarkCreateData {
+                url: data.url.into(),
+                bookmark: scraped,
+                collection_id: data.collection_id,
+                profile_id,
+            })
+            .await
+    }
+
+    pub async fn update_bookmark(
+        &self,
+        id: Uuid,
+        data: BookmarkUpdate,
+        profile_id: Uuid,
+    ) -> Result<Bookmark, Error> {
+        self.repository
+            .update(IdParams::new(id, profile_id), data.into())
+            .await
+    }
+
+    pub async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, profile_id)).await
+    }
 }
 
 #[async_trait::async_trait]
@@ -93,6 +187,18 @@ pub struct BookmarkUpdateData {
     pub sort_index: Option<u32>,
     pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
+}
+
+impl From<BookmarkUpdate> for BookmarkUpdateData {
+    fn from(value: BookmarkUpdate) -> Self {
+        Self {
+            sort_index: value.sort_index,
+            collection_id: value.collection_id,
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -1,7 +1,10 @@
+use std::sync::Arc;
+
 use futures::stream::BoxStream;
+use url::Url;
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, Findable, Paginated, Updatable};
+use crate::common::{Creatable, Deletable, Findable, NonEmptyString, Paginated, Updatable};
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Profile {
@@ -10,6 +13,78 @@ pub struct Profile {
     pub image_url: Option<String>,
     pub is_default: bool,
     pub user_id: Uuid,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ProfileCreate {
+    pub title: NonEmptyString,
+    pub image_url: Option<Url>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct ProfileUpdate {
+    pub title: Option<NonEmptyString>,
+    pub image_url: Option<Url>,
+}
+
+pub struct ProfileService {
+    repository: Arc<dyn ProfileRepository>,
+}
+
+impl ProfileService {
+    pub fn new(repository: Arc<dyn ProfileRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn list_profiles(&self, user_id: Uuid) -> Result<Paginated<Profile>, Error> {
+        self.repository.list(user_id, None, None).await
+    }
+
+    pub async fn get_profile(&self, id: Uuid, user_id: Uuid) -> Result<Profile, Error> {
+        self.repository
+            .find(ProfileIdOrDefaultParams {
+                id: Some(id),
+                user_id,
+            })
+            .await
+    }
+
+    pub async fn get_active_profile(&self, user_id: Uuid) -> Result<Profile, Error> {
+        self.repository
+            .find(ProfileIdOrDefaultParams { id: None, user_id })
+            .await
+    }
+
+    pub async fn create_profile(
+        &self,
+        data: ProfileCreate,
+        user_id: Uuid,
+    ) -> Result<Profile, Error> {
+        self.repository
+            .create(ProfileCreateData {
+                title: data.title.into(),
+                image_url: data.image_url.map(String::from),
+                user_id,
+            })
+            .await
+    }
+
+    pub async fn update_profile(
+        &self,
+        id: Uuid,
+        data: ProfileUpdate,
+        user_id: Uuid,
+    ) -> Result<Profile, Error> {
+        self.repository
+            .update(ProfileIdParams::new(id, user_id), data.into())
+            .await
+    }
+
+    pub async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        self.repository
+            .delete(ProfileIdParams::new(id, user_id))
+            .await
+    }
 }
 
 #[async_trait::async_trait]
@@ -60,6 +135,15 @@ pub struct ProfileCreateData {
 pub struct ProfileUpdateData {
     pub title: Option<String>,
     pub image_url: Option<String>,
+}
+
+impl From<ProfileUpdate> for ProfileUpdateData {
+    fn from(value: ProfileUpdate) -> Self {
+        Self {
+            title: value.title.map(String::from),
+            image_url: value.image_url.map(String::from),
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]

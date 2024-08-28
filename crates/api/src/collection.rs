@@ -7,21 +7,21 @@ use axum::{
     routing, Json, Router,
 };
 use colette_core::{
-    collection::{self, CollectionCreateData, CollectionRepository, CollectionUpdateData},
-    common::{IdParams, NonEmptyString},
+    collection::{self, CollectionService},
+    common::NonEmptyString,
 };
 use uuid::Uuid;
 
-use crate::common::{BaseError, CollectionList, Error, Id, Paginated, Session};
+use crate::common::{BaseError, CollectionList, Error, Id, Session};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct CollectionState {
-    repository: Arc<dyn CollectionRepository>,
+    service: Arc<CollectionService>,
 }
 
 impl CollectionState {
-    pub fn new(repository: Arc<dyn CollectionRepository>) -> Self {
-        Self { repository }
+    pub fn new(service: Arc<CollectionService>) -> Self {
+        Self { service }
     }
 }
 
@@ -86,6 +86,15 @@ pub struct CollectionCreate {
     pub folder_id: Option<Uuid>,
 }
 
+impl From<CollectionCreate> for collection::CollectionCreate {
+    fn from(value: CollectionCreate) -> Self {
+        Self {
+            title: value.title,
+            folder_id: value.folder_id,
+        }
+    }
+}
+
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionUpdate {
@@ -99,10 +108,10 @@ pub struct CollectionUpdate {
     pub folder_id: Option<Option<Uuid>>,
 }
 
-impl From<CollectionUpdate> for CollectionUpdateData {
+impl From<CollectionUpdate> for collection::CollectionUpdate {
     fn from(value: CollectionUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
+            title: value.title,
             folder_id: value.folder_id,
         }
     }
@@ -117,16 +126,11 @@ impl From<CollectionUpdate> for CollectionUpdateData {
 )]
 #[axum::debug_handler]
 pub async fn list_collections(
-    State(repository): State<Arc<dyn CollectionRepository>>,
+    State(service): State<Arc<CollectionService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .list(session.profile_id, None, None)
-        .await
-        .map(Paginated::<Collection>::from);
-
-    match result {
-        Ok(data) => Ok(ListResponse::Ok(data)),
+    match service.list_collections(session.profile_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -141,17 +145,12 @@ pub async fn list_collections(
 )]
 #[axum::debug_handler]
 pub async fn get_collection(
-    State(repository): State<Arc<dyn CollectionRepository>>,
+    State(service): State<Arc<CollectionService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .find(IdParams::new(id, session.profile_id))
-        .await
-        .map(Collection::from);
-
-    match result {
-        Ok(data) => Ok(GetResponse::Ok(data)),
+    match service.get_collection(id, session.profile_id).await {
+        Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             collection::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -171,21 +170,15 @@ pub async fn get_collection(
 )]
 #[axum::debug_handler]
 pub async fn create_collection(
-    State(repository): State<Arc<dyn CollectionRepository>>,
+    State(service): State<Arc<CollectionService>>,
     session: Session,
     Json(body): Json<CollectionCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .create(CollectionCreateData {
-            title: body.title.into(),
-            folder_id: body.folder_id,
-            profile_id: session.profile_id,
-        })
+    match service
+        .create_collection(body.into(), session.profile_id)
         .await
-        .map(Collection::from);
-
-    match result {
-        Ok(data) => Ok(CreateResponse::Created(data)),
+    {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             collection::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -206,18 +199,16 @@ pub async fn create_collection(
 )]
 #[axum::debug_handler]
 pub async fn update_collection(
-    State(repository): State<Arc<dyn CollectionRepository>>,
+    State(service): State<Arc<CollectionService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<CollectionUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .update(IdParams::new(id, session.profile_id), body.into())
+    match service
+        .update_collection(id, body.into(), session.profile_id)
         .await
-        .map(Collection::from);
-
-    match result {
-        Ok(data) => Ok(UpdateResponse::Ok(data)),
+    {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             collection::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -237,15 +228,11 @@ pub async fn update_collection(
 )]
 #[axum::debug_handler]
 pub async fn delete_collection(
-    State(repository): State<Arc<dyn CollectionRepository>>,
+    State(service): State<Arc<CollectionService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let result = repository
-        .delete(IdParams::new(id, session.profile_id))
-        .await;
-
-    match result {
+    match service.delete_collection(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             collection::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
