@@ -7,6 +7,7 @@ use colette_api::{
     ApiState,
 };
 use colette_backup::opml::OpmlManager;
+use colette_core::auth::AuthService;
 use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repositories::{
@@ -16,6 +17,7 @@ use colette_repositories::{
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_session::{PostgresStore, SessionBackend, SqliteStore};
 use colette_tasks::handle_refresh_task;
+use colette_utils::password::ArgonHasher;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
@@ -74,10 +76,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
-    let auth_state = AuthState::new(
+    let auth_state = AuthState::new(Arc::new(AuthService::new(
         Arc::new(UserSqlRepository::new(db.clone())),
         profile_repository.clone(),
-    );
+        Arc::new(ArgonHasher),
+    )));
     let bookmark_state = BookmarkState::new(
         Arc::new(BookmarkSqlRepository::new(db.clone())),
         Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),

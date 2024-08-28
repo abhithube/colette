@@ -7,12 +7,10 @@ use axum::{
     routing, Json, Router,
 };
 use colette_core::{
-    auth,
+    auth::{self, AuthService},
     common::NonEmptyString,
-    profile::{ProfileIdOrDefaultParams, ProfileRepository},
-    user::{self, UserCreateData, UserIdParams, UserRepository},
+    user,
 };
-use colette_utils::password;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
@@ -23,19 +21,12 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    user_repository: Arc<dyn UserRepository>,
-    profile_repository: Arc<dyn ProfileRepository>,
+    auth_service: Arc<AuthService>,
 }
 
 impl AuthState {
-    pub fn new(
-        user_repository: Arc<dyn UserRepository>,
-        profile_repository: Arc<dyn ProfileRepository>,
-    ) -> Self {
-        Self {
-            user_repository,
-            profile_repository,
-        }
+    pub fn new(auth_service: Arc<AuthService>) -> Self {
+        Self { auth_service }
     }
 }
 
@@ -78,10 +69,9 @@ impl From<colette_core::User> for User {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
-    #[schema(format = "email")]
+    #[schema(value_type = String, format = "email")]
     pub email: EmailAddress,
-
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub password: NonEmptyString,
 }
 
@@ -97,10 +87,9 @@ impl From<Register> for auth::Register {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
-    #[schema(format = "email")]
+    #[schema(value_type = String, format = "email")]
     pub email: EmailAddress,
-
-    #[schema(min_length = 1)]
+    #[schema(value_type = String, min_length = 1)]
     pub password: NonEmptyString,
 }
 
@@ -123,27 +112,17 @@ impl From<Login> for auth::Login {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(repository): State<Arc<dyn UserRepository>>,
+    State(service): State<Arc<AuthService>>,
     Json(body): Json<Register>,
 ) -> Result<impl IntoResponse, Error> {
-    let hashed = password::hash(&String::from(body.password))
-        .await
-        .map_err(|_| Error::Unknown)?;
-
-    let result = repository
-        .create(UserCreateData {
-            email: body.email.into(),
-            password: hashed,
-        })
-        .await
-        .map(User::from);
-
-    match result {
-        Ok(data) => Ok(RegisterResponse::Created(data)),
+    match service.register(body.into()).await {
+        Ok(data) => Ok(RegisterResponse::Created(data.into())),
         Err(e) => match e {
-            user::Error::Conflict(_) => Ok(RegisterResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
+            auth::Error::Users(user::Error::Conflict(_)) => {
+                Ok(RegisterResponse::Conflict(BaseError {
+                    message: e.to_string(),
+                }))
+            }
             _ => Err(Error::Unknown),
         },
     }
@@ -159,50 +138,11 @@ pub async fn register(
 )]
 #[axum::debug_handler]
 pub async fn login(
-    State(AuthState {
-        user_repository,
-        profile_repository,
-    }): State<AuthState>,
+    State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
 ) -> Result<impl IntoResponse, Error> {
-    let result = user_repository
-        .find(UserIdParams::Email(String::from(body.email)))
-        .await;
-
-    if let Err(e) = result {
-        match e {
-            user::Error::NotFound(_) => {
-                return Ok(LoginResponse::Unauthorized(BaseError {
-                    message: "bad credentials".to_owned(),
-                }));
-            }
-            _ => {
-                return Err(Error::Unknown);
-            }
-        }
-    };
-    let user = result.unwrap();
-
-    let Ok(valid) = password::verify(&String::from(body.password), &user.password).await else {
-        return Err(Error::Unknown);
-    };
-    if !valid {
-        return Ok(LoginResponse::Unauthorized(BaseError {
-            message: "bad credentials".to_owned(),
-        }));
-    }
-
-    let result = profile_repository
-        .find(ProfileIdOrDefaultParams {
-            id: None,
-            user_id: user.id,
-        })
-        .await
-        .map(Profile::from)
-        .map_err(|e| e.into());
-
-    match result {
+    match service.login(body.into()).await {
         Ok(data) => {
             let session = Session {
                 user_id: data.user_id,
@@ -210,7 +150,7 @@ pub async fn login(
             };
             session_store.insert(SESSION_KEY, session).await?;
 
-            Ok(LoginResponse::Ok(data))
+            Ok(LoginResponse::Ok(data.into()))
         }
         Err(e) => match e {
             auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(BaseError {
@@ -230,16 +170,21 @@ pub async fn login(
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(
-    State(repository): State<Arc<dyn UserRepository>>,
+    State(service): State<Arc<AuthService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    let user = repository
-        .find(UserIdParams::Id(session.user_id))
-        .await
-        .map(User::from)
-        .map_err(|_| Error::Unknown)?;
+    // let user = repository
+    //     .find(UserIdParams::Id(session.user_id))
+    //     .await
+    //     .map(User::from)
+    //     .map_err(|_| Error::Unknown)?;
 
-    Ok(GetActiveResponse::Ok(user))
+    // Ok(GetActiveResponse::Ok(user))
+
+    match service.get_active(session.user_id).await {
+        Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
+        _ => Err(Error::Unknown),
+    }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]

@@ -7,6 +7,7 @@ edition = "2021"
 anyhow.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
+colette-utils.workspace = true
 email_address = { version = "0.2", default-features = false, features = [
   "serde",
   "serde_support",

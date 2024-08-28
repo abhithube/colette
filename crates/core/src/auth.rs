@@ -1,6 +1,15 @@
-use email_address::EmailAddress;
+use std::sync::Arc;
 
-use crate::{common::NonEmptyString, profile, user};
+use colette_utils::PasswordHasher;
+use email_address::EmailAddress;
+use uuid::Uuid;
+
+use crate::{
+    common::NonEmptyString,
+    profile::{self, ProfileIdOrDefaultParams, ProfileRepository},
+    user::{self, UserCreateData, UserIdParams, UserRepository},
+    Profile, User,
+};
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Register {
@@ -12,6 +21,71 @@ pub struct Register {
 pub struct Login {
     pub email: EmailAddress,
     pub password: NonEmptyString,
+}
+
+pub struct AuthService {
+    user_repository: Arc<dyn UserRepository>,
+    profile_repository: Arc<dyn ProfileRepository>,
+    password_hasher: Arc<dyn PasswordHasher>,
+}
+
+impl AuthService {
+    pub fn new(
+        user_repository: Arc<dyn UserRepository>,
+        profile_repository: Arc<dyn ProfileRepository>,
+        password_hasher: Arc<dyn PasswordHasher>,
+    ) -> Self {
+        Self {
+            user_repository,
+            profile_repository,
+            password_hasher,
+        }
+    }
+
+    pub async fn register(&self, data: Register) -> Result<User, Error> {
+        let hashed = self.password_hasher.hash(&String::from(data.password))?;
+
+        self.user_repository
+            .create(UserCreateData {
+                email: data.email.into(),
+                password: hashed,
+            })
+            .await
+            .map_err(Error::Users)
+    }
+
+    pub async fn login(&self, data: Login) -> Result<Profile, Error> {
+        let user = self
+            .user_repository
+            .find(UserIdParams::Email(String::from(data.email)))
+            .await
+            .map_err(|e| match e {
+                user::Error::NotFound(_) => Error::NotAuthenticated,
+                _ => e.into(),
+            })?;
+
+        let valid = self
+            .password_hasher
+            .verify(&String::from(data.password), &user.password)?;
+        if !valid {
+            return Err(Error::NotAuthenticated);
+        }
+
+        self.profile_repository
+            .find(ProfileIdOrDefaultParams {
+                id: None,
+                user_id: user.id,
+            })
+            .await
+            .map_err(|e| e.into())
+    }
+
+    pub async fn get_active(&self, user_id: Uuid) -> Result<User, Error> {
+        self.user_repository
+            .find(UserIdParams::Id(user_id))
+            .await
+            .map_err(|e| e.into())
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
