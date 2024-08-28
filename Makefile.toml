@@ -37,4 +37,4 @@ args = ["generate", "entity", "-o", "./crates/entities/src/generated"]
 [tasks.bloat]
 install_crate = "cargo-bloat"
 command = "cargo"
-args = ["bloat", "--release", "--crates"]
+args = ["bloat", "--release", "--crates", "-p", "colette-server"]
