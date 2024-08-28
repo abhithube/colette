@@ -7,7 +7,7 @@ use colette_api::{
     ApiState,
 };
 use colette_backup::opml::OpmlManager;
-use colette_core::auth::AuthService;
+use colette_core::{auth::AuthService, feed::FeedService};
 use colette_migrations::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repositories::{
@@ -86,7 +86,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
     );
     let collection_state = CollectionState::new(Arc::new(CollectionSqlRepository::new(db.clone())));
-    let feed_state = FeedState::new(feed_repository, feed_scraper, Arc::new(OpmlManager));
+    let feed_service = Arc::new(FeedService::new(
+        feed_repository,
+        feed_scraper,
+        Arc::new(OpmlManager),
+    ));
     let feed_entry_state = FeedEntryState::new(Arc::new(FeedEntrySqlRepository::new(db.clone())));
     let folder_state = FolderState::new(Arc::new(FolderSqlRepository::new(db.clone())));
     let profile_state = ProfileState::new(profile_repository);
@@ -96,7 +100,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_state,
         bookmark_state,
         collection_state,
-        feed_state,
+        FeedState::new(feed_service),
         feed_entry_state,
         folder_state,
         profile_state,
