@@ -1,8 +1,11 @@
+#[allow(unused_imports)]
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
-use strum::IntoEnumIterator;
 
-use crate::{postgres, sqlite};
+#[cfg(feature = "postgres")]
+use crate::postgres;
+#[cfg(feature = "sqlite")]
+use crate::sqlite;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -82,11 +85,15 @@ impl MigrationTrait for Migration {
             .await?;
 
         match manager.get_database_backend() {
+            #[cfg(feature = "postgres")]
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, Feed::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, FeedEntry::Table.to_string()).await?;
             }
+            #[cfg(feature = "sqlite")]
             DatabaseBackend::Sqlite => {
+                use strum::IntoEnumIterator;
+
                 sqlite::create_updated_at_trigger(
                     manager,
                     Feed::Table.to_string(),
@@ -119,26 +126,28 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum Feed {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Link,
     Title,
     Url,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum FeedEntry {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Link,
     Title,
@@ -147,8 +156,8 @@ pub enum FeedEntry {
     Author,
     ThumbnailUrl,
     FeedId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }

@@ -1,10 +1,14 @@
+#[allow(unused_imports)]
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
-use strum::IntoEnumIterator;
 
+#[cfg(feature = "postgres")]
+use crate::postgres;
+#[cfg(feature = "sqlite")]
+use crate::sqlite;
 use crate::{
     m0001_initial_user::Profile, m0005_initial_profile_feed::ProfileFeed,
-    m0006_initial_collection::ProfileBookmark, postgres, sqlite,
+    m0006_initial_collection::ProfileBookmark,
 };
 
 #[derive(DeriveMigrationName)]
@@ -146,6 +150,7 @@ impl MigrationTrait for Migration {
             .await?;
 
         match manager.get_database_backend() {
+            #[cfg(feature = "postgres")]
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, Tag::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, ProfileFeedTag::Table.to_string())
@@ -153,7 +158,10 @@ impl MigrationTrait for Migration {
                 postgres::create_updated_at_trigger(manager, ProfileBookmarkTag::Table.to_string())
                     .await?;
             }
+            #[cfg(feature = "sqlite")]
             DatabaseBackend::Sqlite => {
+                use strum::IntoEnumIterator;
+
                 sqlite::create_updated_at_trigger(
                     manager,
                     Tag::Table.to_string(),
@@ -200,42 +208,45 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum Tag {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
     ProfileId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum ProfileFeedTag {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
     ProfileFeedId,
     TagId,
     ProfileId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum ProfileBookmarkTag {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
     ProfileBookmarkId,
     TagId,
     ProfileId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }

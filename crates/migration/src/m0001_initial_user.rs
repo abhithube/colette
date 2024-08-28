@@ -1,8 +1,11 @@
+#[allow(unused_imports)]
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
-use strum::IntoEnumIterator;
 
-use crate::{postgres, sqlite};
+#[cfg(feature = "postgres")]
+use crate::postgres;
+#[cfg(feature = "sqlite")]
+use crate::sqlite;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -73,11 +76,15 @@ CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
             .await?;
 
         match manager.get_database_backend() {
+            #[cfg(feature = "postgres")]
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, User::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, Profile::Table.to_string()).await?;
             }
+            #[cfg(feature = "sqlite")]
             DatabaseBackend::Sqlite => {
+                use strum::IntoEnumIterator;
+
                 sqlite::create_updated_at_trigger(
                     manager,
                     User::Table.to_string(),
@@ -112,32 +119,34 @@ CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
     }
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum User {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Email,
     Password,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum Profile {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
     ImageUrl,
     IsDefault,
     UserId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }

@@ -1,10 +1,13 @@
+#[allow(unused_imports)]
 use sea_orm::DatabaseBackend;
 use sea_orm_migration::{prelude::*, schema::*};
-use strum::IntoEnumIterator;
 
+#[cfg(feature = "postgres")]
+use crate::postgres;
+#[cfg(feature = "sqlite")]
+use crate::sqlite;
 use crate::{
     m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark, m0004_initial_folder::Folder,
-    postgres, sqlite,
 };
 
 #[derive(DeriveMigrationName)]
@@ -127,12 +130,16 @@ impl MigrationTrait for Migration {
             .await?;
 
         match manager.get_database_backend() {
+            #[cfg(feature = "postgres")]
             DatabaseBackend::Postgres => {
                 postgres::create_updated_at_trigger(manager, Collection::Table.to_string()).await?;
                 postgres::create_updated_at_trigger(manager, ProfileBookmark::Table.to_string())
                     .await?;
             }
+            #[cfg(feature = "sqlite")]
             DatabaseBackend::Sqlite => {
+                use strum::IntoEnumIterator;
+
                 sqlite::create_updated_at_trigger(
                     manager,
                     Collection::Table.to_string(),
@@ -165,33 +172,35 @@ impl MigrationTrait for Migration {
     }
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum Collection {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
     FolderId,
     ProfileId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
 
-#[derive(DeriveIden, strum_macros::EnumIter)]
+#[derive(DeriveIden)]
+#[cfg_attr(feature = "sqlite", derive(strum_macros::EnumIter))]
 pub enum ProfileBookmark {
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Table,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     SortIndex,
     ProfileId,
     BookmarkId,
     CollectionId,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,
-    #[strum(disabled)]
+    #[cfg_attr(feature = "sqlite", strum(disabled))]
     UpdatedAt,
 }
