@@ -18,7 +18,11 @@ use colette_repository::{
     FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };
 use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
-use colette_session::{PostgresStore, SessionBackend, SqliteStore};
+#[cfg(feature = "postgres")]
+use colette_session::PostgresStore;
+use colette_session::SessionBackend;
+#[cfg(feature = "sqlite")]
+use colette_session::SqliteStore;
 use colette_tasks::handle_refresh_task;
 use colette_utils::password::ArgonHasher;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
@@ -42,12 +46,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     Migrator::up(&db, None).await?;
 
     let session_backend = match db.get_database_backend() {
+        #[cfg(feature = "postgres")]
         DatabaseBackend::Postgres => {
             let store = PostgresStore::new(db.get_postgres_connection_pool().to_owned());
             store.migrate().await?;
 
             SessionBackend::Postgres(store)
         }
+        #[cfg(feature = "sqlite")]
         DatabaseBackend::Sqlite => {
             let store = SqliteStore::new(db.get_sqlite_connection_pool().to_owned());
             store.migrate().await?;

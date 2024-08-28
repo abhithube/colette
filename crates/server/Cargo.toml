@@ -24,3 +24,8 @@ rust-embed = { version = "8", default-features = false, features = [
 sea-orm.workspace = true
 tokio.workspace = true
 tower-sessions.workspace = true
+
+[features]
+default = ["postgres"]
+postgres = ["colette-session/postgres"]
+sqlite = ["colette-session/sqlite"]

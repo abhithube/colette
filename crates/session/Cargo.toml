@@ -6,7 +6,9 @@ edition = "2021"
 [dependencies]
 async-trait.workspace = true
 tower-sessions.workspace = true
-tower-sessions-sqlx-store = { version = "0.13", default-features = false, features = [
-  "postgres",
-  "sqlite",
-] }
+tower-sessions-sqlx-store = { version = "0.13", default-features = false }
+
+[features]
+default = ["postgres"]
+postgres = ["tower-sessions-sqlx-store/postgres"]
+sqlite = ["tower-sessions-sqlx-store/sqlite"]
