@@ -1,17 +1,16 @@
 use colette_scraper::downloader::{DownloaderPlugin, Error};
 use http::Request;
 use lazy_regex::regex_captures;
-use url::Url;
 
 pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
-    let mut parsed = Url::parse(url).map_err(|e| Error(e.into()))?;
-
-    if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url) {
-        parsed.set_path("feeds/videos.xml");
-        parsed.set_query(Some(&format!("channel_id={}", channel_id)));
+    if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.clone().as_str())
+    {
+        url.set_path("feeds/videos.xml");
+        url.set_query(Some(&format!("channel_id={}", channel_id)));
     }
 
-    Request::get(parsed.as_ref())
+    Request::get(url.as_ref())
         .body(())
+        .map(|e| e.into_parts().0)
         .map_err(|e| Error(e.into()))
 });

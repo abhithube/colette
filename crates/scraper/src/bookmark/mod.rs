@@ -21,7 +21,7 @@ mod postprocessor;
 
 #[derive(Default)]
 pub struct BookmarkPluginRegistry<'a> {
-    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub downloaders: HashMap<&'static str, DownloaderPlugin>,
     pub extractors:
         HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
     pub postprocessors:

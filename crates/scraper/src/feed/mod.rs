@@ -26,7 +26,7 @@ pub trait FeedScraper: Scraper<ProcessedFeed> {
 
 #[derive(Default)]
 pub struct FeedPluginRegistry<'a> {
-    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub downloaders: HashMap<&'static str, DownloaderPlugin>,
     pub detectors: HashMap<&'static str, FeedDetectorPlugin<'a>>,
     pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
     pub postprocessors:
