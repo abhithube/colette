@@ -16,8 +16,8 @@ pub struct ProcessedBookmark {
 pub struct DefaultBookmarkPostprocessor {}
 
 impl Postprocessor for DefaultBookmarkPostprocessor {
-    type T = ExtractedBookmark;
-    type U = ProcessedBookmark;
+    type Extracted = ExtractedBookmark;
+    type Processed = ProcessedBookmark;
 
     fn postprocess(
         &self,

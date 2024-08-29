@@ -27,8 +27,8 @@ pub struct ProcessedFeedEntry {
 pub struct DefaultFeedPostprocessor {}
 
 impl Postprocessor for DefaultFeedPostprocessor {
-    type T = ExtractedFeed;
-    type U = ProcessedFeed;
+    type Extracted = ExtractedFeed;
+    type Processed = ProcessedFeed;
 
     fn postprocess(&self, _url: &Url, extracted: ExtractedFeed) -> Result<ProcessedFeed, Error> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {

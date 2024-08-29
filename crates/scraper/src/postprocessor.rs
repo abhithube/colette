@@ -3,15 +3,15 @@ use std::sync::Arc;
 use url::Url;
 
 pub trait Postprocessor: Send + Sync {
-    type T;
-    type U;
+    type Extracted;
+    type Processed;
 
-    fn postprocess(&self, url: &Url, extracted: Self::T) -> Result<Self::U, Error>;
+    fn postprocess(&self, url: &Url, extracted: Self::Extracted) -> Result<Self::Processed, Error>;
 }
 
 pub enum PostprocessorPlugin<T, U, V> {
     Value(U),
-    Impl(Arc<dyn Postprocessor<T = T, U = V>>),
+    Impl(Arc<dyn Postprocessor<Extracted = T, Processed = V>>),
 }
 
 #[derive(Debug, thiserror::Error)]

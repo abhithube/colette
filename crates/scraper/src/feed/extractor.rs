@@ -45,7 +45,7 @@ pub struct ExtractedFeedEntry {
 pub struct DefaultFeedExtractor {}
 
 impl Extractor for DefaultFeedExtractor {
-    type T = ExtractedFeed;
+    type Extracted = ExtractedFeed;
 
     fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
         let (parts, body) = resp.into_parts();
@@ -80,7 +80,7 @@ pub struct HtmlExtractor<'a> {
 }
 
 impl Extractor for HtmlExtractor<'_> {
-    type T = ExtractedFeed;
+    type Extracted = ExtractedFeed;
 
     fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
         let raw = resp.into_body();

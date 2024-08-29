@@ -37,8 +37,9 @@ pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
     default_detector: Arc<dyn FeedDetector>,
-    default_extractor: Arc<dyn Extractor<T = ExtractedFeed>>,
-    default_postprocessor: Arc<dyn Postprocessor<T = ExtractedFeed, U = ProcessedFeed>>,
+    default_extractor: Arc<dyn Extractor<Extracted = ExtractedFeed>>,
+    default_postprocessor:
+        Arc<dyn Postprocessor<Extracted = ExtractedFeed, Processed = ProcessedFeed>>,
 }
 
 impl<'a> DefaultFeedScraper<'a> {

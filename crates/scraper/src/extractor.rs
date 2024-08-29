@@ -4,14 +4,14 @@ use http::Response;
 use url::Url;
 
 pub trait Extractor: Send + Sync {
-    type T;
+    type Extracted;
 
-    fn extract(&self, url: &Url, resp: Response<String>) -> Result<Self::T, Error>;
+    fn extract(&self, url: &Url, resp: Response<String>) -> Result<Self::Extracted, Error>;
 }
 
 pub enum ExtractorPlugin<T, U> {
     Value(T),
-    Impl(Arc<dyn Extractor<T = U>>),
+    Impl(Arc<dyn Extractor<Extracted = U>>),
 }
 
 #[derive(Debug, thiserror::Error)]

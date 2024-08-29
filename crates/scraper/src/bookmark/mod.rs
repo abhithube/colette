@@ -31,8 +31,9 @@ pub struct BookmarkPluginRegistry<'a> {
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
-    default_extractor: Arc<dyn Extractor<T = ExtractedBookmark>>,
-    default_postprocessor: Arc<dyn Postprocessor<T = ExtractedBookmark, U = ProcessedBookmark>>,
+    default_extractor: Arc<dyn Extractor<Extracted = ExtractedBookmark>>,
+    default_postprocessor:
+        Arc<dyn Postprocessor<Extracted = ExtractedBookmark, Processed = ProcessedBookmark>>,
 }
 
 impl<'a> DefaultBookmarkScraper<'a> {

@@ -43,7 +43,7 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 }
 
 impl Extractor for DefaultBookmarkExtractor<'_> {
-    type T = ExtractedBookmark;
+    type Extracted = ExtractedBookmark;
 
     fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedBookmark, Error> {
         let raw = resp.into_body();
