@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 
 use colette_scraper::{
-    downloader::DownloaderPlugin, BookmarkExtractorOptions, BookmarkPluginRegistry, DetectorPlugin,
-    ExtractedBookmark, ExtractedFeed, ExtractorPlugin, FeedExtractorOptions, FeedPluginRegistry,
-    PostprocessorPlugin, ProcessedBookmark, ProcessedFeed,
+    detector::DetectorPlugin, downloader::DownloaderPlugin, extractor::ExtractorPlugin,
+    postprocessor::PostprocessorPlugin, BookmarkExtractorOptions, BookmarkPluginRegistry,
+    ExtractedBookmark, ExtractedFeed, FeedExtractorOptions, FeedPluginRegistry, ProcessedBookmark,
+    ProcessedFeed,
 };
 #[allow(unused_imports)]
 use custom::*;

@@ -1,9 +1,22 @@
+use std::sync::Arc;
+
 use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
-use super::Detector;
-use crate::{utils::select, ExtractError, ExtractorQuery, Node};
+use crate::{
+    extractor,
+    utils::{select, ExtractorQuery, Node},
+};
+
+pub trait Detector: Send + Sync {
+    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error>;
+}
+
+pub enum DetectorPlugin<'a> {
+    Value(Vec<ExtractorQuery<'a>>),
+    Impl(Arc<dyn Detector>),
+}
 
 pub struct DefaultFeedDetector<'a> {
     options: Vec<ExtractorQuery<'a>>,
@@ -21,7 +34,7 @@ impl<'a> DefaultFeedDetector<'a> {
 }
 
 impl Detector for DefaultFeedDetector<'_> {
-    fn detect(&self, _url: &Url, resp: Response<String>) -> Result<Vec<Url>, ExtractError> {
+    fn detect(&self, _url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 
@@ -35,7 +48,7 @@ impl Detector for DefaultFeedDetector<'_> {
             })
             .map(|e| Url::parse(&e))
             .collect::<Result<_, _>>()
-            .map_err(|e| ExtractError(e.into()))?;
+            .map_err(|e| extractor::Error(e.into()))?;
 
         Ok(urls)
     }

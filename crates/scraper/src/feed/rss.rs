@@ -1,6 +1,6 @@
 use rss::{Channel, Item};
 
-use super::{ExtractedFeed, ExtractedFeedEntry};
+use super::{extractor::ExtractedFeedEntry, ExtractedFeed};
 
 impl From<Channel> for ExtractedFeed {
     fn from(value: Channel) -> Self {

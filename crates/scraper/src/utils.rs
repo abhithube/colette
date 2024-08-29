@@ -1,6 +1,22 @@
 use scraper::{ElementRef, Html, Selector};
 
-use crate::{ExtractorQuery, Node};
+#[derive(Clone, Debug)]
+pub enum Node<'a> {
+    Text,
+    Attr(&'a str),
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtractorQuery<'a> {
+    pub selector: &'a str,
+    pub node: Node<'a>,
+}
+
+impl<'a> ExtractorQuery<'a> {
+    pub fn new(selector: &'a str, node: Node<'a>) -> Self {
+        Self { selector, node }
+    }
+}
 
 pub trait TextSelector {
     fn select_text(&self, items: &[ExtractorQuery]) -> Option<String>;

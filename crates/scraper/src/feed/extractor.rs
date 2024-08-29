@@ -7,15 +7,47 @@ use rss::Channel;
 use scraper::{Html, Selector};
 use url::Url;
 
-use super::{ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions};
-use crate::{utils::TextSelector, ExtractError, Extractor};
+use crate::{
+    extractor::{Error, Extractor},
+    utils::{ExtractorQuery, TextSelector},
+};
+
+#[derive(Clone, Debug, Default)]
+pub struct FeedExtractorOptions<'a> {
+    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entries_selector: &'a str,
+    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedFeed {
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub entries: Vec<ExtractedFeedEntry>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedFeedEntry {
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub published: Option<String>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<String>,
+}
 
 pub struct DefaultFeedExtractor {}
 
 impl Extractor for DefaultFeedExtractor {
     type T = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
         let (parts, body) = resp.into_parts();
 
         let content_type = parts
@@ -28,17 +60,15 @@ impl Extractor for DefaultFeedExtractor {
         {
             Feed::from_str(&body)
                 .map(ExtractedFeed::from)
-                .map_err(|e| ExtractError(e.into()))
+                .map_err(|e| Error(e.into()))
         } else if content_type.map_or(false, |e| e.contains("application/rss+xml"))
             || body.contains("<rss")
         {
             Channel::from_str(&body)
                 .map(ExtractedFeed::from)
-                .map_err(|e| ExtractError(e.into()))
+                .map_err(|e| Error(e.into()))
         } else {
-            Err(ExtractError(anyhow!(
-                "couldn't find extractor for feed URL"
-            )))
+            Err(Error(anyhow!("couldn't find extractor for feed URL")))
         }?;
 
         Ok(feed)
@@ -52,7 +82,7 @@ pub struct HtmlExtractor<'a> {
 impl Extractor for HtmlExtractor<'_> {
     type T = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, ExtractError> {
+    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 

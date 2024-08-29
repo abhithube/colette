@@ -1,80 +1,24 @@
 use std::{collections::HashMap, sync::Arc};
 
-use chrono::{DateTime, Utc};
-use detector::DefaultFeedDetector;
-use extractor::DefaultFeedExtractor;
-pub use extractor::HtmlExtractor;
-use http::Response;
-pub use postprocessor::DefaultFeedPostprocessor;
+use detector::{DefaultFeedDetector, Detector, DetectorPlugin};
+pub use extractor::{
+    DefaultFeedExtractor, ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions, HtmlExtractor,
+};
+pub use postprocessor::{DefaultFeedPostprocessor, ProcessedFeed, ProcessedFeedEntry};
 use url::Url;
 
 use crate::{
     downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
-    ExtractError, Extractor, ExtractorPlugin, ExtractorQuery, Postprocessor, PostprocessorPlugin,
+    extractor::{Extractor, ExtractorPlugin},
+    postprocessor::{Postprocessor, PostprocessorPlugin},
     Scraper,
 };
 
 mod atom;
-mod detector;
+pub mod detector;
 mod extractor;
 mod postprocessor;
 mod rss;
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedExtractorOptions<'a> {
-    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entries_selector: &'a str,
-    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedFeed {
-    pub link: Option<String>,
-    pub title: Option<String>,
-    pub entries: Vec<ExtractedFeedEntry>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedFeedEntry {
-    pub link: Option<String>,
-    pub title: Option<String>,
-    pub published: Option<String>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ProcessedFeed {
-    pub link: Url,
-    pub title: String,
-    pub entries: Vec<ProcessedFeedEntry>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ProcessedFeedEntry {
-    pub link: Url,
-    pub title: String,
-    pub published: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail: Option<Url>,
-}
-
-pub trait Detector: Send + Sync {
-    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, ExtractError>;
-}
-
-pub enum DetectorPlugin<'a> {
-    Value(Vec<ExtractorQuery<'a>>),
-    Impl(Arc<dyn Detector>),
-}
 
 pub trait FeedScraper: Scraper<ProcessedFeed> {
     fn detect(&self, url: &mut Url) -> Result<Vec<Url>, crate::Error>;

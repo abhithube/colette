@@ -2,11 +2,28 @@ use http::Response;
 use scraper::Html;
 use url::Url;
 
-use super::{BookmarkExtractorOptions, ExtractedBookmark};
 use crate::{
-    base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
-    twitter_extractor_options, utils::TextSelector, ExtractError, Extractor, ExtractorQuery,
+    base_extractor_options,
+    extractor::{Error, Extractor},
+    microdata_extractor_options, open_graph_extractor_options, twitter_extractor_options,
+    utils::{ExtractorQuery, TextSelector},
 };
+
+#[derive(Clone, Debug, Default)]
+pub struct BookmarkExtractorOptions<'a> {
+    pub title_queries: Vec<ExtractorQuery<'a>>,
+    pub published_queries: Vec<ExtractorQuery<'a>>,
+    pub author_queries: Vec<ExtractorQuery<'a>>,
+    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedBookmark {
+    pub title: Option<String>,
+    pub thumbnail: Option<String>,
+    pub published: Option<String>,
+    pub author: Option<String>,
+}
 
 pub struct DefaultBookmarkExtractor<'a> {
     options: BookmarkExtractorOptions<'a>,
@@ -28,11 +45,7 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 impl Extractor for DefaultBookmarkExtractor<'_> {
     type T = ExtractedBookmark;
 
-    fn extract(
-        &self,
-        _url: &Url,
-        resp: Response<String>,
-    ) -> Result<ExtractedBookmark, ExtractError> {
+    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedBookmark, Error> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);
 

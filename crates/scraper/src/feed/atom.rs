@@ -1,6 +1,6 @@
 use atom_syndication::{Entry, Feed, Link};
 
-use super::{ExtractedFeed, ExtractedFeedEntry};
+use super::{extractor::ExtractedFeedEntry, ExtractedFeed};
 
 impl From<Feed> for ExtractedFeed {
     fn from(value: Feed) -> Self {

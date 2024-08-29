@@ -1,5 +1,5 @@
 use super::BookmarkExtractorOptions;
-use crate::{ExtractorQuery, Node};
+use crate::utils::{ExtractorQuery, Node};
 
 pub fn base_extractor_options<'a>() -> BookmarkExtractorOptions<'a> {
     BookmarkExtractorOptions {

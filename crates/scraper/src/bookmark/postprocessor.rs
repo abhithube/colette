@@ -1,9 +1,17 @@
 use anyhow::anyhow;
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use url::Url;
 
-use super::{ExtractedBookmark, ProcessedBookmark};
-use crate::{PostprocessError, Postprocessor};
+use super::ExtractedBookmark;
+use crate::postprocessor::{Error, Postprocessor};
+
+#[derive(Clone, Debug, Default)]
+pub struct ProcessedBookmark {
+    pub title: String,
+    pub thumbnail: Option<Url>,
+    pub published: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+}
 
 pub struct DefaultBookmarkPostprocessor {}
 
@@ -15,11 +23,9 @@ impl Postprocessor for DefaultBookmarkPostprocessor {
         &self,
         _url: &Url,
         extracted: ExtractedBookmark,
-    ) -> Result<ProcessedBookmark, PostprocessError> {
+    ) -> Result<ProcessedBookmark, Error> {
         let Some(title) = extracted.title else {
-            return Err(PostprocessError(anyhow!(
-                "could not process bookmark title"
-            )));
+            return Err(Error(anyhow!("could not process bookmark title")));
         };
 
         let bookmark = ProcessedBookmark {

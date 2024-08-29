@@ -1,46 +1,23 @@
 use std::{collections::HashMap, sync::Arc};
 
-use chrono::{DateTime, Utc};
-pub use extractor::DefaultBookmarkExtractor;
+pub use extractor::{BookmarkExtractorOptions, DefaultBookmarkExtractor, ExtractedBookmark};
 pub use options::{
     base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
     twitter_extractor_options,
 };
-pub use postprocessor::DefaultBookmarkPostprocessor;
+pub use postprocessor::{DefaultBookmarkPostprocessor, ProcessedBookmark};
 use url::Url;
 
 use crate::{
     downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
-    Extractor, ExtractorPlugin, ExtractorQuery, Postprocessor, PostprocessorPlugin, Scraper,
+    extractor::{Extractor, ExtractorPlugin},
+    postprocessor::{Postprocessor, PostprocessorPlugin},
+    Scraper,
 };
 
 mod extractor;
 mod options;
 mod postprocessor;
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkExtractorOptions<'a> {
-    pub title_queries: Vec<ExtractorQuery<'a>>,
-    pub published_queries: Vec<ExtractorQuery<'a>>,
-    pub author_queries: Vec<ExtractorQuery<'a>>,
-    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedBookmark {
-    pub title: Option<String>,
-    pub thumbnail: Option<String>,
-    pub published: Option<String>,
-    pub author: Option<String>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ProcessedBookmark {
-    pub title: String,
-    pub thumbnail: Option<Url>,
-    pub published: Option<DateTime<Utc>>,
-    pub author: Option<String>,
-}
 
 #[derive(Default)]
 pub struct BookmarkPluginRegistry<'a> {
