@@ -49,8 +49,6 @@ impl Postprocessor for DefaultBookmarkPostprocessor {
             author: extracted.author,
         };
 
-        println!("{:?}", bookmark);
-
         Ok(bookmark)
     }
 }
