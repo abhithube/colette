@@ -162,8 +162,8 @@ impl FeedService {
         })
     }
 
-    pub async fn import_feeds(&self, raw: String, profile_id: Uuid) -> Result<(), Error> {
-        let opml = self.opml_manager.import(&raw)?;
+    pub async fn import_feeds(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
+        let opml = self.opml_manager.import(raw)?;
 
         for outline in opml.body.outlines {
             if let Some(xml_url) = outline.xml_url.and_then(|e| Url::parse(&e).ok()) {

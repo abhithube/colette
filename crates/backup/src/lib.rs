@@ -5,7 +5,7 @@ pub mod opml;
 pub trait BackupManager: Send + Sync {
     type T;
 
-    fn import(&self, raw: &str) -> Result<Self::T, Error>;
+    fn import(&self, raw: Bytes) -> Result<Self::T, Error>;
 
     fn export(&self, data: Self::T) -> Result<Bytes, Error>;
 }

@@ -370,9 +370,7 @@ pub async fn import_feeds(
     session: Session,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    let raw = String::from_utf8(bytes.into()).map_err(|_| Error::Unknown)?;
-
-    match service.import_feeds(raw, session.profile_id).await {
+    match service.import_feeds(bytes, session.profile_id).await {
         Ok(_) => Ok(ImportResponse::NoContent),
         Err(feed::Error::Scraper(e)) => Ok(ImportResponse::BadGateway(BaseError {
             message: e.to_string(),
