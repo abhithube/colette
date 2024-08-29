@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
-use colette_backup::{
-    opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
-    BackupManager,
-};
+use colette_backup::BackupManager;
 use colette_scraper::FeedScraper;
 pub use colette_scraper::ProcessedFeed;
 use futures::stream::BoxStream;
+use opml::{Body, Outline, OPML};
 use url::Url;
 use uuid::Uuid;
 
@@ -61,14 +59,14 @@ pub struct FeedDetected {
 pub struct FeedService {
     repository: Arc<dyn FeedRepository>,
     scraper: Arc<dyn FeedScraper>,
-    opml_manager: Arc<dyn BackupManager<T = Opml>>,
+    opml_manager: Arc<dyn BackupManager<T = OPML>>,
 }
 
 impl FeedService {
     pub fn new(
         repository: Arc<dyn FeedRepository>,
         scraper: Arc<dyn FeedScraper>,
-        opml_manager: Arc<dyn BackupManager<T = Opml>>,
+        opml_manager: Arc<dyn BackupManager<T = OPML>>,
     ) -> Self {
         Self {
             repository,
@@ -168,7 +166,7 @@ impl FeedService {
         let opml = self.opml_manager.import(&raw)?;
 
         for outline in opml.body.outlines {
-            if let Some(xml_url) = outline.xml_url {
+            if let Some(xml_url) = outline.xml_url.and_then(|e| Url::parse(&e).ok()) {
                 self.create_feed(
                     FeedCreate {
                         url: xml_url,
@@ -192,18 +190,19 @@ impl FeedService {
             .data
             .iter()
             .cloned()
-            .map(|e| OpmlOutline {
-                outline_type: Some(OpmlOutlineType::default()),
-                text: e.title.clone().unwrap_or(e.original_title.clone()),
-                title: Some(e.title.unwrap_or(e.original_title)),
-                xml_url: e.url.and_then(|e| Url::parse(&e).ok()),
-                html_url: Url::parse(&e.link).ok(),
-                children: None,
+            .map(|e| Outline {
+                r#type: Some("rss".to_owned()),
+                text: e.original_title,
+                title: e.title,
+                xml_url: e.url,
+                html_url: Some(e.link),
+                ..Default::default()
             })
             .collect::<Vec<_>>();
 
-        let opml = Opml {
-            body: OpmlBody { outlines: data },
+        let opml = OPML {
+            version: "2.0".to_owned(),
+            body: Body { outlines: data },
             ..Default::default()
         };
 

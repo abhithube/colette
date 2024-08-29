@@ -47,7 +47,7 @@ email_address = { version = "0.2", default-features = false, features = [
 futures = { version = "0.3", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
 lazy-regex = { version = "3", default-features = false, features = ["lite"] }
-quick-xml = { version = "0.36", features = ["overlapped-lists", "serialize"] }
+opml = { version = "1", default-features = false }
 sea-orm = { version = "1.1.0-rc.1", default-features = false, features = [
   "macros",
   "with-chrono",

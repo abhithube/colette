@@ -5,7 +5,5 @@ edition = "2021"
 
 [dependencies]
 bytes.workspace = true
-quick-xml.workspace = true
-serde.workspace = true
+opml.workspace = true
 thiserror.workspace = true
-url.workspace = true

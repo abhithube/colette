@@ -1,7 +1,5 @@
-use bytes::{Bytes, BytesMut};
-use quick_xml::se::Serializer;
-use serde::Serialize;
-use url::Url;
+use bytes::Bytes;
+use opml::OPML;
 
 use crate::BackupManager;
 
@@ -9,79 +7,15 @@ use crate::BackupManager;
 pub struct OpmlManager;
 
 impl BackupManager for OpmlManager {
-    type T = Opml;
+    type T = OPML;
 
     fn import(&self, raw: &str) -> Result<Self::T, crate::Error> {
-        quick_xml::de::from_str::<Opml>(raw).map_err(|_| crate::Error::Deserialize)
+        OPML::from_str(raw).map_err(|_| crate::Error::Deserialize)
     }
 
     fn export(&self, data: Self::T) -> Result<Bytes, crate::Error> {
-        let mut buffer = BytesMut::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-        let mut ser = Serializer::with_root(&mut buffer, Some("opml"))
-            .map_err(|_| crate::Error::Serialize)?;
-        ser.indent(' ', 2);
+        let raw = data.to_string().map_err(|_| crate::Error::Serialize)?;
 
-        data.serialize(ser).map_err(|_| crate::Error::Deserialize)?;
-
-        Ok(buffer.into())
+        Ok(format!(r#"<?xml version="1.0" encoding="UTF-8"?>{}"#, raw).into())
     }
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Opml {
-    #[serde(rename = "@version")]
-    pub version: OpmlVersion,
-    pub head: OpmlHead,
-    pub body: OpmlBody,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub enum OpmlVersion {
-    #[serde(rename = "1.0")]
-    V1,
-    #[serde(rename = "1.1")]
-    V1_1,
-    #[serde(rename = "2.0")]
-    #[default]
-    V2,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct OpmlHead {
-    #[serde(default = "default_head_title")]
-    pub title: String,
-}
-
-fn default_head_title() -> String {
-    "Feeds".to_owned()
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct OpmlBody {
-    #[serde(rename = "outline")]
-    pub outlines: Vec<OpmlOutline>,
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct OpmlOutline {
-    #[serde(rename = "@type")]
-    pub outline_type: Option<OpmlOutlineType>,
-    #[serde(rename = "@text")]
-    pub text: String,
-    #[serde(rename = "@xmlUrl")]
-    pub xml_url: Option<Url>,
-    #[serde(rename = "@title")]
-    pub title: Option<String>,
-    #[serde(rename = "@htmlUrl")]
-    pub html_url: Option<Url>,
-    #[serde(rename = "outline")]
-    pub children: Option<Vec<OpmlOutline>>,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum OpmlOutlineType {
-    #[default]
-    Rss,
-    Atom,
 }

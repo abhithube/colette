@@ -14,6 +14,7 @@ colette-utils.workspace = true
 email_address.workspace = true
 futures.workspace = true
 http.workspace = true
+opml.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 url.workspace = true
