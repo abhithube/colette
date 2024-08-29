@@ -73,7 +73,7 @@ impl Creatable for BookmarkSqlRepository {
                     .await
                     {
                         Ok(result) => Ok(result.last_insert_id),
-                        Err(DbErr::RecordNotFound(_)) => {
+                        Err(DbErr::RecordNotInserted) => {
                             let Some(model) = query::profile_bookmark::select_by_unique_index(
                                 txn,
                                 data.profile_id,
