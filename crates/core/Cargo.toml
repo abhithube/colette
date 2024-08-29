@@ -11,10 +11,7 @@ chrono.workspace = true
 colette-backup.workspace = true
 colette-scraper.workspace = true
 colette-utils.workspace = true
-email_address = { version = "0.2", default-features = false, features = [
-  "serde",
-  "serde_support",
-] }
+email_address.workspace = true
 futures.workspace = true
 http.workspace = true
 serde.workspace = true

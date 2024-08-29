@@ -41,6 +41,9 @@ colette-session.path = "crates/session"
 colette-repository.path = "crates/repository"
 colette-tasks.path = "crates/tasks"
 colette-utils.path = "crates/utils"
+email_address = { version = "0.2", default-features = false, features = [
+  "serde_support",
+] }
 futures = { version = "0.3", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
 lazy-regex = { version = "3", default-features = false, features = ["lite"] }
