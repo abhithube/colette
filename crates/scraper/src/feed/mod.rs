@@ -14,11 +14,9 @@ use crate::{
     Scraper,
 };
 
-mod atom;
 mod extractor;
 pub mod feed_detector;
 mod postprocessor;
-mod rss;
 
 pub trait FeedScraper: Scraper<ProcessedFeed> {
     fn detect(&self, url: &mut Url) -> Result<Vec<Url>, crate::Error>;

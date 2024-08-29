@@ -1,10 +1,11 @@
-use std::str::{self, FromStr};
+use std::str;
 
-use anyhow::anyhow;
-use atom_syndication::Feed;
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
+use feed_rs::{
+    model::{Entry, Feed, Link},
+    parser,
+};
 use http::Response;
-use rss::Channel;
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -49,30 +50,9 @@ impl Extractor for DefaultFeedExtractor {
     type Extracted = ExtractedFeed;
 
     fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedFeed, Error> {
-        let (parts, body) = resp.into_parts();
-        let bytes: Vec<u8> = body.into();
-        let raw = str::from_utf8(&bytes).map_err(|e| anyhow!(e))?;
-
-        let content_type = parts
-            .headers
-            .get(http::header::CONTENT_TYPE)
-            .and_then(|e| e.to_str().ok());
-
-        let feed = if content_type.map_or(false, |e| e.contains("application/atom+xml"))
-            || raw.contains("<feed")
-        {
-            Feed::from_str(raw)
-                .map(ExtractedFeed::from)
-                .map_err(|e| Error(e.into()))
-        } else if content_type.map_or(false, |e| e.contains("application/rss+xml"))
-            || raw.contains("<rss")
-        {
-            Channel::from_str(raw)
-                .map(ExtractedFeed::from)
-                .map_err(|e| Error(e.into()))
-        } else {
-            Err(Error(anyhow!("couldn't find extractor for feed URL")))
-        }?;
+        let feed = parser::parse(resp.into_body().reader())
+            .map(ExtractedFeed::from)
+            .map_err(|e| Error(e.into()))?;
 
         Ok(feed)
     }
@@ -111,4 +91,71 @@ impl Extractor for HtmlExtractor<'_> {
 
         Ok(feed)
     }
+}
+
+impl From<Feed> for ExtractedFeed {
+    fn from(value: Feed) -> Self {
+        Self {
+            link: parse_atom_link(value.links),
+            title: value.title.map(|e| e.content),
+            entries: value
+                .entries
+                .into_iter()
+                .map(ExtractedFeedEntry::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<Entry> for ExtractedFeedEntry {
+    fn from(mut value: Entry) -> Self {
+        let mut title = value.title.map(|e| e.content);
+        let mut description = value.summary.map(|e| e.content);
+        let mut thumbnail = Option::<String>::None;
+
+        if !value.media.is_empty() {
+            let mut media = value.media.swap_remove(0);
+            if let Some(t) = media.title.map(|e| e.content) {
+                title = Some(t);
+            }
+            if let Some(d) = media.description.map(|e| e.content) {
+                description = Some(d);
+            }
+            if !media.thumbnails.is_empty() {
+                thumbnail = Some(media.thumbnails.swap_remove(0).image.uri);
+            } else if !media.content.is_empty() {
+                let content = media.content.swap_remove(0);
+                if let Some(content_type) = content.content_type {
+                    if content_type.ty().as_str() == "image" {
+                        if let Some(url) = content.url {
+                            thumbnail = Some(url.into())
+                        }
+                    }
+                }
+            }
+        }
+
+        Self {
+            link: parse_atom_link(value.links),
+            title,
+            published: value.published.map(|e| e.to_rfc3339()),
+            description,
+            author: Some(
+                value
+                    .authors
+                    .into_iter()
+                    .map(|e| e.name)
+                    .collect::<Vec<_>>()
+                    .join(","),
+            ),
+            thumbnail,
+        }
+    }
+}
+
+fn parse_atom_link(links: Vec<Link>) -> Option<String> {
+    links.into_iter().find_map(|l| match l.rel.as_deref() {
+        Some("alternate") | None => Some(l.href),
+        _ => None,
+    })
 }
