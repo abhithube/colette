@@ -5,7 +5,6 @@ import {
   FeedCreate,
   FeedList,
   FeedUpdate,
-  File,
   get_ListFeeds,
 } from './openapi.gen'
 
@@ -79,8 +78,16 @@ export class HTTPFeedAPI implements FeedAPI {
   async import(data: File): Promise<void> {
     return this.client
       .post('/feeds/import', {
-        body: await File.parseAsync(data),
+        body: await Array.fromAsync(fileToAsyncIterator(data)),
       })
       .then()
+  }
+}
+
+async function* fileToAsyncIterator(file: File) {
+  const buffer = await file.arrayBuffer()
+
+  for (const chunk of new Uint8Array(buffer)) {
+    yield chunk
   }
 }

@@ -60,9 +60,7 @@ export function SettingsModal({ close }: Props) {
       <Form {...form}>
         <form
           className="space-y-4"
-          onSubmit={form.handleSubmit(async (data) =>
-            importFeeds({ data: await data.file.text() }),
-          )}
+          onSubmit={form.handleSubmit(async (data) => importFeeds(data.file))}
         >
           <DialogHeader>
             <DialogTitle>Import Feeds</DialogTitle>

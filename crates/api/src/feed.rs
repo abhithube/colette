@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Multipart, Path, State},
+    body::Bytes,
+    extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
@@ -49,8 +50,7 @@ impl FeedState {
         FeedCreate,
         FeedUpdate,
         FeedDetect,
-        FeedDetected,
-        File
+        FeedDetected
     ))
 )]
 pub struct Api;
@@ -211,13 +211,6 @@ impl From<feed::FeedDetected> for FeedDetected {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct File {
-    #[schema(format = "Binary")]
-    pub data: String,
-}
-
 #[utoipa::path(
     get,
     path = "",
@@ -366,7 +359,7 @@ pub async fn detect_feeds(
 #[utoipa::path(
     post,
     path = "/import",
-    request_body(content = File, content_type = "multipart/form-data"),
+    request_body = Vec<u8>,
     responses(ImportResponse),
     operation_id = "importFeeds",
     description = "Import OPML feeds into profile"
@@ -375,13 +368,9 @@ pub async fn detect_feeds(
 pub async fn import_feeds(
     State(service): State<Arc<FeedService>>,
     session: Session,
-    mut multipart: Multipart,
-) -> Result<impl IntoResponse, Error> {
-    let Ok(Some(field)) = multipart.next_field().await else {
-        return Err(Error::Unknown);
-    };
-
-    let raw = field.text().await.map_err(|_| Error::Unknown)?;
+    bytes: Bytes,
+) -> Result<ImportResponse, Error> {
+    let raw = String::from_utf8(bytes.into()).map_err(|_| Error::Unknown)?;
 
     match service.import_feeds(raw, session.profile_id).await {
         Ok(_) => Ok(ImportResponse::NoContent),

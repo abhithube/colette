@@ -20,7 +20,6 @@ export {
   FeedEntryUpdate,
   FeedList,
   FeedUpdate,
-  File,
   Login,
   Profile,
   ProfileCreate,

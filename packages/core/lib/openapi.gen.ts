@@ -148,11 +148,6 @@ export const FeedUpdate = z.object({
   tags: z.array(TagCreate).optional(),
 });
 
-export type File = z.infer<typeof File>;
-export const File = z.object({
-  data: z.string(),
-});
-
 export type Folder = z.infer<typeof Folder>;
 export const Folder = z.object({
   id: z.string(),
@@ -475,9 +470,9 @@ export type post_ImportFeeds = typeof post_ImportFeeds;
 export const post_ImportFeeds = {
   method: z.literal("POST"),
   path: z.literal("/feeds/import"),
-  requestFormat: z.literal("form-data"),
+  requestFormat: z.literal("binary"),
   parameters: z.object({
-    body: File,
+    body: z.array(z.number()),
   }),
   response: z.unknown(),
 };

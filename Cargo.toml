@@ -24,7 +24,6 @@ axum = { version = "0.7", default-features = false, features = [
   "json",
   "query",
   "macros",
-  "multipart",
   "tokio",
 ] }
 base64 = { version = "0.22", default-features = false }

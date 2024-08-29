@@ -3,7 +3,6 @@ import type {
   Feed,
   FeedCreate,
   FeedUpdate,
-  File,
   ListFeedsQuery,
 } from '@colette/core'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
