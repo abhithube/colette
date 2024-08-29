@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use colette_scraper::{
-    detector::DetectorPlugin, downloader::DownloaderPlugin, extractor::ExtractorPlugin,
+    downloader::DownloaderPlugin, extractor::ExtractorPlugin, feed_detector::FeedDetectorPlugin,
     postprocessor::PostprocessorPlugin, BookmarkExtractorOptions, BookmarkPluginRegistry,
     ExtractedBookmark, ExtractedFeed, FeedExtractorOptions, FeedPluginRegistry, ProcessedBookmark,
     ProcessedFeed,
@@ -18,7 +18,7 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
         ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
         ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
     ]);
-    let detectors: HashMap<&str, DetectorPlugin> = HashMap::new();
+    let detectors: HashMap<&str, FeedDetectorPlugin> = HashMap::new();
     let extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
         HashMap::new();
     let postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =

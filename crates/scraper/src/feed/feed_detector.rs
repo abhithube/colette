@@ -9,13 +9,13 @@ use crate::{
     utils::{select, ExtractorQuery, Node},
 };
 
-pub trait Detector: Send + Sync {
+pub trait FeedDetector: Send + Sync {
     fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error>;
 }
 
-pub enum DetectorPlugin<'a> {
+pub enum FeedDetectorPlugin<'a> {
     Value(Vec<ExtractorQuery<'a>>),
-    Impl(Arc<dyn Detector>),
+    Impl(Arc<dyn FeedDetector>),
 }
 
 pub struct DefaultFeedDetector<'a> {
@@ -33,7 +33,7 @@ impl<'a> DefaultFeedDetector<'a> {
     }
 }
 
-impl Detector for DefaultFeedDetector<'_> {
+impl FeedDetector for DefaultFeedDetector<'_> {
     fn detect(&self, _url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error> {
         let raw = resp.into_body();
         let html = Html::parse_document(&raw);

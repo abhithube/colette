@@ -1,9 +1,9 @@
 use std::{collections::HashMap, sync::Arc};
 
-use detector::{DefaultFeedDetector, Detector, DetectorPlugin};
 pub use extractor::{
     DefaultFeedExtractor, ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions, HtmlExtractor,
 };
+use feed_detector::{DefaultFeedDetector, FeedDetector, FeedDetectorPlugin};
 pub use postprocessor::{DefaultFeedPostprocessor, ProcessedFeed, ProcessedFeedEntry};
 use url::Url;
 
@@ -15,8 +15,8 @@ use crate::{
 };
 
 mod atom;
-pub mod detector;
 mod extractor;
+pub mod feed_detector;
 mod postprocessor;
 mod rss;
 
@@ -27,7 +27,7 @@ pub trait FeedScraper: Scraper<ProcessedFeed> {
 #[derive(Default)]
 pub struct FeedPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
-    pub detectors: HashMap<&'static str, DetectorPlugin<'a>>,
+    pub detectors: HashMap<&'static str, FeedDetectorPlugin<'a>>,
     pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
     pub postprocessors:
         HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
@@ -36,7 +36,7 @@ pub struct FeedPluginRegistry<'a> {
 pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
     default_downloader: Arc<dyn Downloader>,
-    default_detector: Arc<dyn Detector>,
+    default_detector: Arc<dyn FeedDetector>,
     default_extractor: Arc<dyn Extractor<T = ExtractedFeed>>,
     default_postprocessor: Arc<dyn Postprocessor<T = ExtractedFeed, U = ProcessedFeed>>,
 }
@@ -95,7 +95,7 @@ impl FeedScraper for DefaultFeedScraper<'_> {
         }?;
 
         let detected = match detector {
-            Some(DetectorPlugin::Impl(detector)) => detector.detect(url, resp),
+            Some(FeedDetectorPlugin::Impl(detector)) => detector.detect(url, resp),
             _ => self.default_detector.detect(url, resp),
         }?;
 
