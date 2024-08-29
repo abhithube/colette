@@ -1,11 +1,13 @@
+use std::str::FromStr;
+
 use anyhow::anyhow;
+use atom_syndication::Feed;
 use http::Response;
+use rss::Channel;
 use scraper::{Html, Selector};
 use url::Url;
 
-use super::{
-    atom::AtomFeed, rss::RSSFeed, ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions,
-};
+use super::{ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions};
 use crate::{utils::TextSelector, ExtractError, Extractor};
 
 pub struct DefaultFeedExtractor {}
@@ -24,13 +26,13 @@ impl Extractor for DefaultFeedExtractor {
         let feed = if content_type.map_or(false, |e| e.contains("application/atom+xml"))
             || body.contains("<feed")
         {
-            quick_xml::de::from_str::<AtomFeed>(&body)
+            Feed::from_str(&body)
                 .map(ExtractedFeed::from)
                 .map_err(|e| ExtractError(e.into()))
         } else if content_type.map_or(false, |e| e.contains("application/rss+xml"))
             || body.contains("<rss")
         {
-            quick_xml::de::from_str::<RSSFeed>(&body)
+            Channel::from_str(&body)
                 .map(ExtractedFeed::from)
                 .map_err(|e| ExtractError(e.into()))
         } else {

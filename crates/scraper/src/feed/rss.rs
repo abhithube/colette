@@ -1,46 +1,13 @@
+use rss::{Channel, Item};
+
 use super::{ExtractedFeed, ExtractedFeedEntry};
 
-#[derive(Debug, serde::Deserialize)]
-pub struct RSSFeed {
-    channel: RSSChannel,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct RSSChannel {
-    link: String,
-    title: String,
-    #[serde(rename = "item")]
-    items: Vec<RSSItem>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct RSSItem {
-    title: String,
-    link: String,
-    description: String,
-    #[serde(rename = "pubDate")]
-    pub_date: Option<String>,
-    author: Option<String>,
-    enclosure: Option<RSSEnclosure>,
-    #[serde(rename = "dc:creator")]
-    dc_creator: Option<String>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct RSSEnclosure {
-    #[serde(rename = "@url")]
-    url: String,
-    #[serde(rename = "@type")]
-    file_type: String,
-}
-
-impl From<RSSFeed> for ExtractedFeed {
-    fn from(value: RSSFeed) -> Self {
+impl From<Channel> for ExtractedFeed {
+    fn from(value: Channel) -> Self {
         Self {
-            link: Some(value.channel.link),
-            title: Some(value.channel.title),
+            link: Some(value.link),
+            title: Some(value.title),
             entries: value
-                .channel
                 .items
                 .into_iter()
                 .map(ExtractedFeedEntry::from)
@@ -49,25 +16,29 @@ impl From<RSSFeed> for ExtractedFeed {
     }
 }
 
-impl From<RSSItem> for ExtractedFeedEntry {
-    fn from(value: RSSItem) -> Self {
-        let thumbnail = match value.enclosure {
-            Some(enclosure) => {
-                if enclosure.file_type.starts_with("image/") {
-                    Some(enclosure.url)
-                } else {
-                    None
-                }
+impl From<Item> for ExtractedFeedEntry {
+    fn from(value: Item) -> Self {
+        let mut author = value.author;
+        if let Some(mut dc) = value.dublin_core_ext {
+            if !dc.creators.is_empty() {
+                author = Some(dc.creators.swap_remove(0))
             }
-            None => None,
-        };
+        }
+
+        let thumbnail = value.enclosure.and_then(|e| {
+            if e.mime_type.starts_with("image/") {
+                Some(e.url)
+            } else {
+                None
+            }
+        });
 
         Self {
-            link: Some(value.link),
-            title: Some(value.title),
+            link: value.link,
+            title: value.title,
             published: value.pub_date,
-            description: Some(value.description),
-            author: value.dc_creator.or(value.author),
+            description: value.description,
+            author,
             thumbnail,
         }
     }
