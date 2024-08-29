@@ -1,3 +1,5 @@
+use core::str;
+
 use base64::{engine::general_purpose, Engine};
 use serde::{Deserialize, Serialize};
 
@@ -10,9 +12,9 @@ pub fn encode<T: Serialize>(data: &T) -> Result<String, anyhow::Error> {
 
 pub fn decode<T: for<'a> Deserialize<'a>>(raw: &str) -> Result<T, anyhow::Error> {
     let decoded = general_purpose::STANDARD_NO_PAD.decode(raw)?;
-    let data_str = String::from_utf8(decoded)?;
+    let data_str = str::from_utf8(&decoded)?;
 
-    let data = serde_json::from_str::<T>(&data_str)?;
+    let data = serde_json::from_str::<T>(data_str)?;
 
     Ok(data)
 }
