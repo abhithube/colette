@@ -108,13 +108,6 @@ pub struct ProcessedFeedEntry {
     pub thumbnail: Option<Url>,
 }
 
-#[derive(Clone, Debug)]
-pub struct BackupFeed {
-    pub title: String,
-    pub xml_url: Url,
-    pub html_url: Option<Url>,
-}
-
 pub struct FeedService {
     repository: Arc<dyn FeedRepository>,
     scraper: Arc<dyn FeedScraper>,
