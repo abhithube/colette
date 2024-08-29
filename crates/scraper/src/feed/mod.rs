@@ -9,8 +9,9 @@ pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 
 use crate::{
-    DefaultDownloader, Downloader, DownloaderPlugin, ExtractError, Extractor, ExtractorPlugin,
-    ExtractorQuery, Postprocessor, PostprocessorPlugin, Scraper,
+    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
+    ExtractError, Extractor, ExtractorPlugin, ExtractorQuery, Postprocessor, PostprocessorPlugin,
+    Scraper,
 };
 
 mod atom;

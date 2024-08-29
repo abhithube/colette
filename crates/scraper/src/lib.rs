@@ -6,16 +6,15 @@ pub use bookmark::{
     DefaultBookmarkExtractor, DefaultBookmarkPostprocessor, DefaultBookmarkScraper,
     ExtractedBookmark, ProcessedBookmark,
 };
-pub use downloader::DefaultDownloader;
 pub use feed::{
     DefaultFeedPostprocessor, DefaultFeedScraper, DetectorPlugin, ExtractedFeed,
     FeedExtractorOptions, FeedPluginRegistry, FeedScraper, HtmlExtractor, ProcessedFeed,
 };
-use http::{HeaderMap, Request, Response};
+use http::Response;
 use url::Url;
 
 mod bookmark;
-mod downloader;
+pub mod downloader;
 mod feed;
 mod utils;
 
@@ -35,18 +34,6 @@ impl<'a> ExtractorQuery<'a> {
     pub fn new(selector: &'a str, node: Node<'a>) -> Self {
         Self { selector, node }
     }
-}
-
-pub trait Downloader: Send + Sync {
-    fn download(&self, url: &mut Url) -> Result<Response<String>, DownloadError>;
-}
-
-pub type DownloaderFn<T> = fn(&str) -> Result<Request<T>, DownloadError>;
-
-pub enum DownloaderPlugin<T = ()> {
-    Value(HeaderMap),
-    Callback(DownloaderFn<T>),
-    Impl(Arc<dyn Downloader>),
 }
 
 pub trait Extractor: Send + Sync {
@@ -79,7 +66,7 @@ pub trait Scraper<T>: Send + Sync {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Download(#[from] DownloadError),
+    Download(#[from] downloader::Error),
 
     #[error("failed to parse document")]
     Parse,
@@ -90,10 +77,6 @@ pub enum Error {
     #[error(transparent)]
     Postprocess(#[from] PostprocessError),
 }
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct DownloadError(#[from] pub anyhow::Error);
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]

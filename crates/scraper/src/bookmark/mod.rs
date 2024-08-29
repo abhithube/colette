@@ -10,8 +10,8 @@ pub use postprocessor::DefaultBookmarkPostprocessor;
 use url::Url;
 
 use crate::{
-    DefaultDownloader, Downloader, DownloaderPlugin, Extractor, ExtractorPlugin, ExtractorQuery,
-    Postprocessor, PostprocessorPlugin, Scraper,
+    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
+    Extractor, ExtractorPlugin, ExtractorQuery, Postprocessor, PostprocessorPlugin, Scraper,
 };
 
 mod extractor;
