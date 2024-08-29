@@ -8,7 +8,7 @@ pub use postprocessor::{DefaultFeedPostprocessor, ProcessedFeed, ProcessedFeedEn
 use url::Url;
 
 use crate::{
-    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
+    downloader::{download, DownloaderPlugin},
     extractor::{Extractor, ExtractorPlugin},
     postprocessor::{Postprocessor, PostprocessorPlugin},
     Scraper,
@@ -35,7 +35,6 @@ pub struct FeedPluginRegistry<'a> {
 
 pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
-    default_downloader: Arc<dyn Downloader>,
     default_detector: Arc<dyn FeedDetector>,
     default_extractor: Arc<dyn Extractor<Extracted = ExtractedFeed>>,
     default_postprocessor:
@@ -47,7 +46,6 @@ impl<'a> DefaultFeedScraper<'a> {
         Self {
             registry,
             default_detector: Arc::new(DefaultFeedDetector::new(None)),
-            default_downloader: Arc::new(DefaultDownloader {}),
             default_extractor: Arc::new(DefaultFeedExtractor {}),
             default_postprocessor: Arc::new(DefaultFeedPostprocessor {}),
         }
@@ -62,10 +60,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
         let extractor = self.registry.extractors.get(host);
         let postprocessor = self.registry.postprocessors.get(host);
 
-        let resp = match downloader {
-            Some(DownloaderPlugin::Impl(downloader)) => downloader.download(url),
-            _ => self.default_downloader.download(url),
-        }?;
+        let resp = download(url, downloader)?;
 
         let extracted = match extractor {
             Some(ExtractorPlugin::Impl(extractor)) => extractor.extract(url, resp),
@@ -90,10 +85,7 @@ impl FeedScraper for DefaultFeedScraper<'_> {
         let downloader = self.registry.downloaders.get(host);
         let detector = self.registry.detectors.get(host);
 
-        let resp = match downloader {
-            Some(DownloaderPlugin::Impl(downloader)) => downloader.download(url),
-            _ => self.default_downloader.download(url),
-        }?;
+        let resp = download(url, downloader)?;
 
         let detected = match detector {
             Some(FeedDetectorPlugin::Impl(detector)) => detector.detect(url, resp),
