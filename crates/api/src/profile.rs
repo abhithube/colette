@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
@@ -10,6 +9,7 @@ use colette_core::{
     common::NonEmptyString,
     profile::{self, ProfileService},
 };
+use http::StatusCode;
 use url::Url;
 use uuid::Uuid;
 

@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait.workspace = true
 axum.workspace = true
 axum-extra = { version = "0.9", default-features = false, features = ["query"] }
+bytes.workspace = true
 chrono.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
@@ -14,6 +16,7 @@ email_address = { version = "0.2", default-features = false, features = [
   "serde",
   "serde_support",
 ] }
+http.workspace = true
 serde.workspace = true
 serde_with = { version = "3", default-features = false }
 thiserror.workspace = true

@@ -608,13 +608,16 @@ checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
 name = "colette-api"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "axum-extra",
+ "bytes",
  "chrono",
  "colette-backup",
  "colette-config",
  "colette-core",
  "email_address",
+ "http",
  "serde",
  "serde_with",
  "thiserror",

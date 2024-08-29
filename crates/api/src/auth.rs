@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
-    http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
@@ -12,6 +11,7 @@ use colette_core::{
     user,
 };
 use email_address::EmailAddress;
+use http::StatusCode;
 use uuid::Uuid;
 
 use crate::{

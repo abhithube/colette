@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
@@ -10,6 +9,7 @@ use colette_core::{
     common::NonEmptyString,
     tag::{self, TagService},
 };
+use http::StatusCode;
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Session, TagList};

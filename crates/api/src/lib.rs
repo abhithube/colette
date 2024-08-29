@@ -1,9 +1,5 @@
 use auth::AuthState;
-use axum::{
-    extract::FromRef,
-    http::{header, HeaderValue, Method},
-    routing, Router,
-};
+use axum::{extract::FromRef, routing, Router};
 use bookmark::BookmarkState;
 use colette_config::AppConfig;
 use collection::CollectionState;
@@ -11,6 +7,7 @@ pub use common::Session;
 use feed::FeedState;
 use feed_entry::FeedEntryState;
 use folder::FolderState;
+use http::{header, HeaderValue, Method};
 use profile::ProfileState;
 use tag::TagState;
 use tower_http::cors::CorsLayer;

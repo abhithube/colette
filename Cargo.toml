@@ -27,6 +27,7 @@ axum = { version = "0.7", default-features = false, features = [
   "tokio",
 ] }
 base64 = { version = "0.22", default-features = false }
+bytes = { version = "1", default-features = false }
 chrono = { version = "0.4", default-features = false, features = ["serde"] }
 colette-api.path = "crates/api"
 colette-backup.path = "crates/backup"

@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
-    body::Bytes,
     extract::{Path, State},
-    http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
+use bytes::Bytes;
 use colette_core::{
     common::NonEmptyString,
     feed::{self, FeedService},
 };
+use http::StatusCode;
 use url::Url;
 use uuid::Uuid;
 
@@ -394,7 +394,7 @@ pub async fn export_feeds(
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.export_feeds(session.profile_id).await {
-        Ok(data) => Ok(ExportResponse::Ok(data.as_bytes().into())),
+        Ok(data) => Ok(ExportResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }
 }
@@ -535,12 +535,8 @@ impl IntoResponse for ImportResponse {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ExportResponse {
-    #[response(
-        status = 200,
-        description = "OPML file",
-        content_type = "application/octet-stream"
-    )]
-    Ok(Box<[u8]>),
+    #[response(status = 200, description = "OPML file")]
+    Ok(Vec<u8>),
 }
 
 impl IntoResponse for ExportResponse {

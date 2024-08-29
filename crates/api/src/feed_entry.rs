@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
-    http::StatusCode,
     response::{IntoResponse, Response},
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::feed_entry::{self, FeedEntryService};
+use http::StatusCode;
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, FeedEntryList, Id, Session};

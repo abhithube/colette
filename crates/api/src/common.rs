@@ -1,14 +1,13 @@
 use axum::{
-    async_trait,
     extract::{
         rejection::{JsonRejection, QueryRejection},
         FromRequestParts,
     },
-    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
 use colette_core::{auth, common};
+use http::{request::Parts, StatusCode};
 use serde::{Deserialize, Serialize};
 use tower_sessions::session;
 use uuid::Uuid;
@@ -57,7 +56,7 @@ pub struct Session {
     pub profile_id: Uuid,
 }
 
-#[async_trait]
+#[async_trait::async_trait]
 impl<S> FromRequestParts<S> for Session
 where
     S: Send + Sync,
