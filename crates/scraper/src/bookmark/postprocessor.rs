@@ -22,11 +22,17 @@ impl Postprocessor for DefaultBookmarkPostprocessor {
     fn postprocess(
         &self,
         _url: &Url,
-        extracted: ExtractedBookmark,
+        mut extracted: ExtractedBookmark,
     ) -> Result<ProcessedBookmark, Error> {
         let Some(title) = extracted.title else {
             return Err(Error(anyhow!("could not process bookmark title")));
         };
+
+        if let Some(t) = &extracted.thumbnail {
+            if t.starts_with("//") {
+                extracted.thumbnail = Some(format!("https:{t}"));
+            }
+        }
 
         let bookmark = ProcessedBookmark {
             title,
@@ -42,6 +48,8 @@ impl Postprocessor for DefaultBookmarkPostprocessor {
             }),
             author: extracted.author,
         };
+
+        println!("{:?}", bookmark);
 
         Ok(bookmark)
     }
