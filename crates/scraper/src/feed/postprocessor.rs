@@ -1,10 +1,9 @@
 use anyhow::anyhow;
 use chrono::DateTime;
-use colette_core::{
-    feed::{ExtractedFeed, ProcessedFeed, ProcessedFeedEntry},
-    scraper::{PostprocessError, Postprocessor},
-};
 use url::Url;
+
+use super::{ExtractedFeed, ProcessedFeed, ProcessedFeedEntry};
+use crate::{PostprocessError, Postprocessor};
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 

@@ -1,14 +1,12 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use colette_scraper::{ProcessedBookmark, Scraper};
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT},
-    scraper::{
-        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
-    },
     tag::TagCreate,
     Tag,
 };
@@ -44,39 +42,6 @@ pub struct BookmarkListQuery {
     pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkExtractorOptions<'a> {
-    pub title_queries: Vec<ExtractorQuery<'a>>,
-    pub published_queries: Vec<ExtractorQuery<'a>>,
-    pub author_queries: Vec<ExtractorQuery<'a>>,
-    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedBookmark {
-    pub title: Option<String>,
-    pub thumbnail: Option<String>,
-    pub published: Option<String>,
-    pub author: Option<String>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ProcessedBookmark {
-    pub title: String,
-    pub thumbnail: Option<Url>,
-    pub published: Option<DateTime<Utc>>,
-    pub author: Option<String>,
-}
-
-#[derive(Default)]
-pub struct BookmarkPluginRegistry<'a> {
-    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
-    pub extractors:
-        HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
-    pub postprocessors:
-        HashMap<&'static str, PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>>,
 }
 
 pub struct BookmarkService {
@@ -207,7 +172,7 @@ pub enum Error {
     NotFound(Uuid),
 
     #[error(transparent)]
-    Scraper(#[from] scraper::Error),
+    Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),

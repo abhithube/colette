@@ -1,27 +1,92 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use colette_core::{
-    feed::{
-        Detector, DetectorPlugin, ExtractedFeed, FeedPluginRegistry, FeedScraper, ProcessedFeed,
-    },
-    scraper::{
-        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
-        PostprocessorPlugin, Scraper,
-    },
-};
+use chrono::{DateTime, Utc};
 use detector::DefaultFeedDetector;
 use extractor::DefaultFeedExtractor;
 pub use extractor::HtmlExtractor;
+use http::Response;
 pub use postprocessor::DefaultFeedPostprocessor;
 use url::Url;
 
-use crate::DefaultDownloader;
+use crate::{
+    DefaultDownloader, Downloader, DownloaderPlugin, ExtractError, Extractor, ExtractorPlugin,
+    ExtractorQuery, Postprocessor, PostprocessorPlugin, Scraper,
+};
 
 mod atom;
 mod detector;
 mod extractor;
 mod postprocessor;
 mod rss;
+
+#[derive(Clone, Debug, Default)]
+pub struct FeedExtractorOptions<'a> {
+    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entries_selector: &'a str,
+    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedFeed {
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub entries: Vec<ExtractedFeedEntry>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedFeedEntry {
+    pub link: Option<String>,
+    pub title: Option<String>,
+    pub published: Option<String>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessedFeed {
+    pub link: Url,
+    pub title: String,
+    pub entries: Vec<ProcessedFeedEntry>,
+}
+
+#[derive(Clone, Debug)]
+pub struct ProcessedFeedEntry {
+    pub link: Url,
+    pub title: String,
+    pub published: DateTime<Utc>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail: Option<Url>,
+}
+
+pub trait Detector: Send + Sync {
+    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, ExtractError>;
+}
+
+pub enum DetectorPlugin<'a> {
+    Value(Vec<ExtractorQuery<'a>>),
+    Impl(Arc<dyn Detector>),
+}
+
+pub trait FeedScraper: Scraper<ProcessedFeed> {
+    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, crate::Error>;
+}
+
+#[derive(Default)]
+pub struct FeedPluginRegistry<'a> {
+    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub detectors: HashMap<&'static str, DetectorPlugin<'a>>,
+    pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
+    pub postprocessors:
+        HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
+}
 
 pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
@@ -44,8 +109,8 @@ impl<'a> DefaultFeedScraper<'a> {
 }
 
 impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, crate::Error> {
+        let host = url.host_str().ok_or(crate::Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let extractor = self.registry.extractors.get(host);
@@ -73,8 +138,8 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 }
 
 impl FeedScraper for DefaultFeedScraper<'_> {
-    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
+    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, crate::Error> {
+        let host = url.host_str().ok_or(crate::Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let detector = self.registry.detectors.get(host);

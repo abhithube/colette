@@ -1,10 +1,9 @@
 use anyhow::anyhow;
 use chrono::DateTime;
-use colette_core::{
-    bookmark::{ExtractedBookmark, ProcessedBookmark},
-    scraper::{PostprocessError, Postprocessor},
-};
 use url::Url;
+
+use super::{ExtractedBookmark, ProcessedBookmark};
+use crate::{PostprocessError, Postprocessor};
 
 pub struct DefaultBookmarkPostprocessor {}
 

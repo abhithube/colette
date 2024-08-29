@@ -1,14 +1,11 @@
-use colette_core::{
-    bookmark::{BookmarkExtractorOptions, ExtractedBookmark},
-    scraper::{ExtractError, Extractor, ExtractorQuery},
-};
 use http::Response;
 use scraper::Html;
 use url::Url;
 
+use super::{BookmarkExtractorOptions, ExtractedBookmark};
 use crate::{
     base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
-    twitter_extractor_options, utils::TextSelector,
+    twitter_extractor_options, utils::TextSelector, ExtractError, Extractor, ExtractorQuery,
 };
 
 pub struct DefaultBookmarkExtractor<'a> {

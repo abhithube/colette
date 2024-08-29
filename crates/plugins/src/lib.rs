@@ -1,13 +1,10 @@
 use std::collections::HashMap;
 
-use colette_core::{
-    bookmark::{
-        BookmarkExtractorOptions, BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark,
-    },
-    feed::{DetectorPlugin, FeedPluginRegistry, ProcessedFeed},
-    scraper::{DownloaderPlugin, ExtractorPlugin, PostprocessorPlugin},
+use colette_scraper::{
+    BookmarkExtractorOptions, BookmarkPluginRegistry, DetectorPlugin, DownloaderPlugin,
+    ExtractedBookmark, ExtractedFeed, ExtractorPlugin, FeedExtractorOptions, FeedPluginRegistry,
+    PostprocessorPlugin, ProcessedBookmark, ProcessedFeed,
 };
-use colette_scraper::{ExtractedFeed, FeedExtractorOptions};
 #[allow(unused_imports)]
 use custom::*;
 

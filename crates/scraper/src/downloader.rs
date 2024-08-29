@@ -1,6 +1,7 @@
-use colette_core::scraper::{DownloadError, Downloader};
 use http::{Request, Response};
 use url::Url;
+
+use crate::{DownloadError, Downloader};
 
 pub struct DefaultDownloader {}
 

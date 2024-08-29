@@ -1,5 +1,6 @@
-use colette_core::scraper::{ExtractorQuery, Node};
 use scraper::{ElementRef, Html, Selector};
+
+use crate::{ExtractorQuery, Node};
 
 pub trait TextSelector {
     fn select_text(&self, items: &[ExtractorQuery]) -> Option<String>;

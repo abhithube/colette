@@ -1,4 +1,4 @@
-use colette_core::scraper::{DownloadError, DownloaderPlugin};
+use colette_scraper::{DownloadError, DownloaderPlugin};
 use http::Request;
 use url::Url;
 

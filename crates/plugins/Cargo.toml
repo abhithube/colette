@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 chrono.workspace = true
-colette-core.workspace = true
 colette-scraper.workspace = true
 http.workspace = true
 url.workspace = true

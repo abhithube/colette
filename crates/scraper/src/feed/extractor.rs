@@ -1,14 +1,12 @@
 use anyhow::anyhow;
-use colette_core::{
-    feed::{ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions},
-    scraper::{ExtractError, Extractor},
-};
 use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
-use super::{atom::AtomFeed, rss::RSSFeed};
-use crate::utils::TextSelector;
+use super::{
+    atom::AtomFeed, rss::RSSFeed, ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions,
+};
+use crate::{utils::TextSelector, ExtractError, Extractor};
 
 pub struct DefaultFeedExtractor {}
 

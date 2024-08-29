@@ -4,8 +4,8 @@ use chrono::{Local, Utc};
 use colette_core::{
     feed::{FeedCreateData, FeedRepository, ProcessedFeed},
     profile::ProfileRepository,
-    scraper::Scraper,
 };
+use colette_scraper::Scraper;
 use cron::Schedule;
 use futures::StreamExt;
 use tokio::sync::Semaphore;

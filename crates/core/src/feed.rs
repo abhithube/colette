@@ -1,21 +1,18 @@
-use std::{collections::HashMap, sync::Arc};
+use std::sync::Arc;
 
 use bytes::Bytes;
-use chrono::{DateTime, Utc};
 use colette_backup::{
     opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
     BackupManager,
 };
+use colette_scraper::FeedScraper;
+pub use colette_scraper::ProcessedFeed;
 use futures::stream::BoxStream;
-use http::Response;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{
     common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
-    scraper::{
-        self, DownloaderPlugin, ExtractorPlugin, ExtractorQuery, PostprocessorPlugin, Scraper,
-    },
     tag::TagCreate,
     Tag,
 };
@@ -59,53 +56,6 @@ pub struct FeedDetect {
 pub struct FeedDetected {
     pub url: String,
     pub title: String,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedExtractorOptions<'a> {
-    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entries_selector: &'a str,
-    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedFeed {
-    pub link: Option<String>,
-    pub title: Option<String>,
-    pub entries: Vec<ExtractedFeedEntry>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct ExtractedFeedEntry {
-    pub link: Option<String>,
-    pub title: Option<String>,
-    pub published: Option<String>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ProcessedFeed {
-    pub link: Url,
-    pub title: String,
-    pub entries: Vec<ProcessedFeedEntry>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ProcessedFeedEntry {
-    pub link: Url,
-    pub title: String,
-    pub published: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail: Option<Url>,
 }
 
 pub struct FeedService {
@@ -285,28 +235,6 @@ pub trait FeedRepository:
     async fn cleanup(&self) -> Result<(), Error>;
 }
 
-pub trait Detector: Send + Sync {
-    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, scraper::ExtractError>;
-}
-
-pub enum DetectorPlugin<'a> {
-    Value(Vec<ExtractorQuery<'a>>),
-    Impl(Arc<dyn Detector>),
-}
-
-pub trait FeedScraper: Scraper<ProcessedFeed> {
-    fn detect(&self, url: &mut Url) -> Result<Vec<Url>, scraper::Error>;
-}
-
-#[derive(Default)]
-pub struct FeedPluginRegistry<'a> {
-    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
-    pub detectors: HashMap<&'static str, DetectorPlugin<'a>>,
-    pub extractors: HashMap<&'static str, ExtractorPlugin<FeedExtractorOptions<'a>, ExtractedFeed>>,
-    pub postprocessors:
-        HashMap<&'static str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>>,
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct FeedFindManyFilters {
     pub tags: Option<Vec<String>>,
@@ -360,7 +288,7 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Scraper(#[from] scraper::Error),
+    Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
     Backup(#[from] colette_backup::Error),

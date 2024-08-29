@@ -1,12 +1,9 @@
-use colette_core::{
-    feed::Detector,
-    scraper::{ExtractError, ExtractorQuery, Node},
-};
 use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
-use crate::utils::select;
+use super::Detector;
+use crate::{utils::select, ExtractError, ExtractorQuery, Node};
 
 pub struct DefaultFeedDetector<'a> {
     options: Vec<ExtractorQuery<'a>>,

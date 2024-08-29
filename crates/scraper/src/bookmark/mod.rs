@@ -1,12 +1,6 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
-use colette_core::{
-    bookmark::{BookmarkPluginRegistry, ExtractedBookmark, ProcessedBookmark},
-    scraper::{
-        Downloader, DownloaderPlugin, Error, Extractor, ExtractorPlugin, Postprocessor,
-        PostprocessorPlugin, Scraper,
-    },
-};
+use chrono::{DateTime, Utc};
 pub use extractor::DefaultBookmarkExtractor;
 pub use options::{
     base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
@@ -15,11 +9,47 @@ pub use options::{
 pub use postprocessor::DefaultBookmarkPostprocessor;
 use url::Url;
 
-use crate::DefaultDownloader;
+use crate::{
+    DefaultDownloader, Downloader, DownloaderPlugin, Extractor, ExtractorPlugin, ExtractorQuery,
+    Postprocessor, PostprocessorPlugin, Scraper,
+};
 
 mod extractor;
 mod options;
 mod postprocessor;
+
+#[derive(Clone, Debug, Default)]
+pub struct BookmarkExtractorOptions<'a> {
+    pub title_queries: Vec<ExtractorQuery<'a>>,
+    pub published_queries: Vec<ExtractorQuery<'a>>,
+    pub author_queries: Vec<ExtractorQuery<'a>>,
+    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ExtractedBookmark {
+    pub title: Option<String>,
+    pub thumbnail: Option<String>,
+    pub published: Option<String>,
+    pub author: Option<String>,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct ProcessedBookmark {
+    pub title: String,
+    pub thumbnail: Option<Url>,
+    pub published: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+}
+
+#[derive(Default)]
+pub struct BookmarkPluginRegistry<'a> {
+    pub downloaders: HashMap<&'static str, DownloaderPlugin<()>>,
+    pub extractors:
+        HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
+    pub postprocessors:
+        HashMap<&'static str, PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>>,
+}
 
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
@@ -40,8 +70,8 @@ impl<'a> DefaultBookmarkScraper<'a> {
 }
 
 impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
+        let host = url.host_str().ok_or(crate::Error::Parse)?;
 
         let downloader = self.registry.downloaders.get(host);
         let extractor = self.registry.extractors.get(host);

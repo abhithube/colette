@@ -6,11 +6,11 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 chrono.workspace = true
-colette-core.workspace = true
 http.workspace = true
 quick-xml.workspace = true
 scraper = { version = "0.20", default-features = false }
 serde.workspace = true
+thiserror.workspace = true
 ureq = { version = "2", default-features = false, features = [
   "http-crate",
   "tls",

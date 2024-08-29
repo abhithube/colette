@@ -657,6 +657,7 @@ dependencies = [
  "bytes",
  "chrono",
  "colette-backup",
+ "colette-scraper",
  "colette-utils",
  "email_address",
  "futures",
@@ -692,7 +693,6 @@ name = "colette-plugins"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "colette-core",
  "colette-scraper",
  "http",
  "lazy-regex",
@@ -721,11 +721,11 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
- "colette-core",
  "http",
  "quick-xml",
  "scraper",
  "serde",
+ "thiserror",
  "ureq",
  "url",
 ]
@@ -771,6 +771,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "colette-core",
+ "colette-scraper",
  "cron",
  "futures",
  "tokio",

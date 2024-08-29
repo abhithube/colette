@@ -1,4 +1,4 @@
-use colette_core::feed::{ExtractedFeed, ExtractedFeedEntry};
+use super::{ExtractedFeed, ExtractedFeedEntry};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct RSSFeed {
