@@ -1,5 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
+use bytes::Bytes;
 use chrono::{DateTime, Utc};
 use colette_backup::{
     opml::{Opml, OpmlBody, OpmlOutline, OpmlOutlineType},
@@ -239,7 +240,7 @@ impl FeedService {
         Ok(())
     }
 
-    pub async fn export_feeds(&self, profile_id: Uuid) -> Result<String, Error> {
+    pub async fn export_feeds(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let feeds = self
             .list_feeds(FeedListQuery::default(), profile_id)
             .await?;

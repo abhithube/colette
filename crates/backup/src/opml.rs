@@ -1,3 +1,4 @@
+use bytes::{Bytes, BytesMut};
 use quick_xml::se::Serializer;
 use serde::Serialize;
 use url::Url;
@@ -14,17 +15,15 @@ impl BackupManager for OpmlManager {
         quick_xml::de::from_str::<Opml>(raw).map_err(|_| crate::Error::Deserialize)
     }
 
-    fn export(&self, data: Self::T) -> Result<String, crate::Error> {
-        let mut buffer = String::new();
+    fn export(&self, data: Self::T) -> Result<Bytes, crate::Error> {
+        let mut buffer = BytesMut::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         let mut ser = Serializer::with_root(&mut buffer, Some("opml"))
             .map_err(|_| crate::Error::Serialize)?;
         ser.indent(' ', 2);
 
         data.serialize(ser).map_err(|_| crate::Error::Deserialize)?;
 
-        let raw = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".to_owned() + &buffer;
-
-        Ok(raw)
+        Ok(buffer.into())
     }
 }
 

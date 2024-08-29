@@ -1,3 +1,5 @@
+use bytes::Bytes;
+
 pub mod opml;
 
 pub trait BackupManager: Send + Sync {
@@ -5,7 +7,7 @@ pub trait BackupManager: Send + Sync {
 
     fn import(&self, raw: &str) -> Result<Self::T, Error>;
 
-    fn export(&self, data: Self::T) -> Result<String, Error>;
+    fn export(&self, data: Self::T) -> Result<Bytes, Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

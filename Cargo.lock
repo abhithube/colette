@@ -633,6 +633,7 @@ dependencies = [
 name = "colette-backup"
 version = "0.1.0"
 dependencies = [
+ "bytes",
  "quick-xml",
  "serde",
  "thiserror",
@@ -653,6 +654,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
+ "bytes",
  "chrono",
  "colette-backup",
  "colette-utils",
