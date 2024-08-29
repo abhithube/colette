@@ -29,14 +29,21 @@ impl BackupManager for OpmlManager {
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Opml {
-    #[serde(default = "default_opml_version", rename = "@version")]
-    pub version: String,
+    #[serde(rename = "@version")]
+    pub version: OpmlVersion,
     pub head: OpmlHead,
     pub body: OpmlBody,
 }
 
-fn default_opml_version() -> String {
-    "2.0".to_owned()
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum OpmlVersion {
+    #[serde(rename = "1.0")]
+    V1,
+    #[serde(rename = "1.1")]
+    V1_1,
+    #[serde(rename = "2.0")]
+    #[default]
+    V2,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
