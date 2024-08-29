@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use http::Response;
 use scraper::Html;
 use url::Url;
@@ -45,8 +46,10 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 impl Extractor for DefaultBookmarkExtractor<'_> {
     type Extracted = ExtractedBookmark;
 
-    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedBookmark, Error> {
-        let raw = resp.into_body();
+    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedBookmark, Error> {
+        let body = resp.into_body();
+        let bytes: Vec<u8> = body.into();
+        let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 
         let bookmark = ExtractedBookmark {

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use bytes::Bytes;
 use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
@@ -10,7 +11,7 @@ use crate::{
 };
 
 pub trait FeedDetector: Send + Sync {
-    fn detect(&self, url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error>;
+    fn detect(&self, url: &Url, resp: Response<Bytes>) -> Result<Vec<Url>, extractor::Error>;
 }
 
 pub enum FeedDetectorPlugin<'a> {
@@ -34,8 +35,10 @@ impl<'a> DefaultFeedDetector<'a> {
 }
 
 impl FeedDetector for DefaultFeedDetector<'_> {
-    fn detect(&self, _url: &Url, resp: Response<String>) -> Result<Vec<Url>, extractor::Error> {
-        let raw = resp.into_body();
+    fn detect(&self, _url: &Url, resp: Response<Bytes>) -> Result<Vec<Url>, extractor::Error> {
+        let body = resp.into_body();
+        let bytes: Vec<u8> = body.into();
+        let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 
         let urls = self

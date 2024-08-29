@@ -1,7 +1,8 @@
-use std::str::FromStr;
+use std::str::{self, FromStr};
 
 use anyhow::anyhow;
 use atom_syndication::Feed;
+use bytes::Bytes;
 use http::Response;
 use rss::Channel;
 use scraper::{Html, Selector};
@@ -47,8 +48,10 @@ pub struct DefaultFeedExtractor {}
 impl Extractor for DefaultFeedExtractor {
     type Extracted = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
+    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedFeed, Error> {
         let (parts, body) = resp.into_parts();
+        let bytes: Vec<u8> = body.into();
+        let raw = str::from_utf8(&bytes).map_err(|e| anyhow!(e))?;
 
         let content_type = parts
             .headers
@@ -56,15 +59,15 @@ impl Extractor for DefaultFeedExtractor {
             .and_then(|e| e.to_str().ok());
 
         let feed = if content_type.map_or(false, |e| e.contains("application/atom+xml"))
-            || body.contains("<feed")
+            || raw.contains("<feed")
         {
-            Feed::from_str(&body)
+            Feed::from_str(raw)
                 .map(ExtractedFeed::from)
                 .map_err(|e| Error(e.into()))
         } else if content_type.map_or(false, |e| e.contains("application/rss+xml"))
-            || body.contains("<rss")
+            || raw.contains("<rss")
         {
-            Channel::from_str(&body)
+            Channel::from_str(raw)
                 .map(ExtractedFeed::from)
                 .map_err(|e| Error(e.into()))
         } else {
@@ -82,8 +85,10 @@ pub struct HtmlExtractor<'a> {
 impl Extractor for HtmlExtractor<'_> {
     type Extracted = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<String>) -> Result<ExtractedFeed, Error> {
-        let raw = resp.into_body();
+    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedFeed, Error> {
+        let body = resp.into_body();
+        let bytes: Vec<u8> = body.into();
+        let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 
         let entries = html

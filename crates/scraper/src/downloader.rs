@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use bytes::Bytes;
 use http::{request::Parts, HeaderMap, Request, Response};
 use url::Url;
 
 pub trait Downloader: Send + Sync {
-    fn download(&self, url: &mut Url) -> Result<Response<String>, Error>;
+    fn download(&self, url: &mut Url) -> Result<Response<Bytes>, Error>;
 }
 
 pub type DownloaderFn = fn(&mut Url) -> Result<Parts, Error>;
@@ -18,7 +19,7 @@ pub enum DownloaderPlugin {
 pub(crate) fn download(
     url: &mut Url,
     downloader: Option<&DownloaderPlugin>,
-) -> Result<Response<String>, Error> {
+) -> Result<Response<Bytes>, Error> {
     match downloader {
         Some(DownloaderPlugin::Impl(downloader)) => downloader.download(url),
         _ => {
@@ -45,8 +46,9 @@ pub(crate) fn download(
             let req: ureq::Request = parts.into();
 
             let resp = req.call().map_err(|e| Error(e.into()))?;
+            let resp: Response<String> = resp.into();
 
-            Ok(resp.into())
+            Ok(resp.map(|e| e.into()))
         }
     }
 }
