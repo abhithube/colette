@@ -8,12 +8,12 @@ pub enum Node<'a> {
 
 #[derive(Clone, Debug)]
 pub struct ExtractorQuery<'a> {
-    pub selector: &'a str,
+    pub selector: Selector,
     pub node: Node<'a>,
 }
 
 impl<'a> ExtractorQuery<'a> {
-    pub fn new(selector: &'a str, node: Node<'a>) -> Self {
+    pub fn new(selector: Selector, node: Node<'a>) -> Self {
         Self { selector, node }
     }
 }
@@ -25,7 +25,7 @@ pub trait TextSelector {
 impl TextSelector for Html {
     fn select_text(&self, items: &[ExtractorQuery]) -> Option<String> {
         items.iter().find_map(|item| {
-            self.select(&Selector::parse(item.selector).unwrap())
+            self.select(&item.selector)
                 .next()
                 .and_then(|e| select(e, &item.node))
         })
@@ -35,7 +35,7 @@ impl TextSelector for Html {
 impl TextSelector for ElementRef<'_> {
     fn select_text(&self, items: &[ExtractorQuery]) -> Option<String> {
         items.iter().find_map(|item| {
-            self.select(&Selector::parse(item.selector).unwrap())
+            self.select(&item.selector)
                 .next()
                 .and_then(|e| select(e, &item.node))
         })

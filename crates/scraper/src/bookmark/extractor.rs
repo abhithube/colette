@@ -1,7 +1,7 @@
 use std::io::BufRead;
 
 use http::Response;
-use scraper::Html;
+use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
@@ -22,36 +22,67 @@ impl<'a> Default for BookmarkExtractorOptions<'a> {
         Self {
             title_queries: vec![
                 ExtractorQuery::new(
-                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='name']",
+                    Selector::parse(
+                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='name']",
+                    )
+                    .unwrap(),
                     Node::Attr("content"),
                 ),
-                ExtractorQuery::new("meta[property='og:title']", Node::Attr("content")),
-                ExtractorQuery::new("meta[name='twitter:title']", Node::Attr("content")),
-                ExtractorQuery::new("meta[name='title']", Node::Attr("content")),
-                ExtractorQuery::new("title", Node::Text),
+                ExtractorQuery::new(
+                    Selector::parse("meta[property='og:title']").unwrap(),
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new(
+                    Selector::parse("meta[name='twitter:title']").unwrap(),
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new(
+                    Selector::parse("meta[name='title']").unwrap(),
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new(Selector::parse("title").unwrap(), Node::Text),
             ],
             published_queries: vec![
                 ExtractorQuery::new(
-                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='datePublished']",
+                    Selector::parse(
+                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='datePublished']",
+                    )
+                    .unwrap(),
                     Node::Attr("content"),
                 ),
                 ExtractorQuery::new(
-                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='uploadDate']",
+                    Selector::parse(
+                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='uploadDate']",
+                    )
+                    .unwrap(),
                     Node::Attr("content"),
                 ),
             ],
             author_queries: vec![ExtractorQuery::new(
-                "[itemtype='http://schema.org/Person'] > [itemprop='name']",
+                Selector::parse("[itemtype='http://schema.org/Person'] > [itemprop='name']")
+                    .unwrap(),
                 Node::Attr("content"),
             )],
             thumbnail_queries: vec![
                 ExtractorQuery::new(
-                    "[itemtype='http://schema.org/ImageObject'] > [itemprop='url']",
+                    Selector::parse(
+                        "[itemtype='http://schema.org/ImageObject'] > [itemprop='url']",
+                    )
+                    .unwrap(),
                     Node::Attr("href"),
                 ),
-                ExtractorQuery::new("[itemprop='thumbnailUrl']", Node::Attr("href")),
-                ExtractorQuery::new("meta[property='og:image']", Node::Attr("content")),
-                ExtractorQuery::new("meta[name='twitter:image']", Node::Attr("content")),
+                ExtractorQuery::new(
+                    Selector::parse("[itemprop='thumbnailUrl']").unwrap(),
+                    Node::Attr("href"),
+                ),
+                ExtractorQuery::new(
+                    Selector::parse("meta[property='og:image']").unwrap(),
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new(
+                    Selector::parse("meta[name='twitter:image']").unwrap(),
+                    Node::Attr("content"),
+                ),
             ],
         }
     }

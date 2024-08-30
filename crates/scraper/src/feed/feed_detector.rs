@@ -30,7 +30,7 @@ impl<'a> DefaultFeedDetector<'a> {
     pub fn new(options: Option<Vec<ExtractorQuery<'a>>>) -> Self {
         Self {
             options: options.unwrap_or(vec![ExtractorQuery {
-                selector: "link[type='application/rss+xml']",
+                selector: Selector::parse("link[type='application/rss+xml']").unwrap(),
                 node: Node::Attr("href"),
             }]),
         }
@@ -56,7 +56,7 @@ impl FeedDetector for DefaultFeedDetector<'_> {
             .options
             .iter()
             .filter_map(|opt| {
-                html.select(&Selector::parse(opt.selector).unwrap())
+                html.select(&opt.selector)
                     .next()
                     .and_then(|e| select(e, &opt.node))
             })

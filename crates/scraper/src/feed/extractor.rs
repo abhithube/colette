@@ -1,4 +1,4 @@
-use std::{io::BufRead, str};
+use std::io::BufRead;
 
 use feed_rs::{
     model::{Entry, Feed, Link},
@@ -13,11 +13,11 @@ use crate::{
     utils::{ExtractorQuery, TextSelector},
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct FeedExtractorOptions<'a> {
     pub feed_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entries_selector: &'a str,
+    pub feed_entries_selector: Selector,
     pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
     pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
@@ -82,7 +82,7 @@ impl Extractor for HtmlExtractor<'_> {
         let html = Html::parse_document(&raw);
 
         let entries = html
-            .select(&Selector::parse(self.options.feed_entries_selector).unwrap())
+            .select(&self.options.feed_entries_selector)
             .map(|element| ExtractedFeedEntry {
                 link: element.select_text(&self.options.feed_entry_link_queries),
                 title: element.select_text(&self.options.feed_entry_title_queries),
