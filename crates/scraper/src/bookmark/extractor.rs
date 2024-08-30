@@ -5,18 +5,56 @@ use scraper::Html;
 use url::Url;
 
 use crate::{
-    base_extractor_options,
     extractor::{Error, Extractor},
-    microdata_extractor_options, open_graph_extractor_options, twitter_extractor_options,
-    utils::{ExtractorQuery, TextSelector},
+    utils::{ExtractorQuery, Node, TextSelector},
 };
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct BookmarkExtractorOptions<'a> {
     pub title_queries: Vec<ExtractorQuery<'a>>,
     pub published_queries: Vec<ExtractorQuery<'a>>,
     pub author_queries: Vec<ExtractorQuery<'a>>,
     pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
+}
+
+impl<'a> Default for BookmarkExtractorOptions<'a> {
+    fn default() -> Self {
+        Self {
+            title_queries: vec![
+                ExtractorQuery::new(
+                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='name']",
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new("meta[property='og:title']", Node::Attr("content")),
+                ExtractorQuery::new("meta[name='twitter:title']", Node::Attr("content")),
+                ExtractorQuery::new("meta[name='title']", Node::Attr("content")),
+                ExtractorQuery::new("title", Node::Text),
+            ],
+            published_queries: vec![
+                ExtractorQuery::new(
+                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='datePublished']",
+                    Node::Attr("content"),
+                ),
+                ExtractorQuery::new(
+                    "[itemtype='http://schema.org/VideoObject'] > [itemprop='uploadDate']",
+                    Node::Attr("content"),
+                ),
+            ],
+            author_queries: vec![ExtractorQuery::new(
+                "[itemtype='http://schema.org/Person'] > [itemprop='name']",
+                Node::Attr("content"),
+            )],
+            thumbnail_queries: vec![
+                ExtractorQuery::new(
+                    "[itemtype='http://schema.org/ImageObject'] > [itemprop='url']",
+                    Node::Attr("href"),
+                ),
+                ExtractorQuery::new("[itemprop='thumbnailUrl']", Node::Attr("href")),
+                ExtractorQuery::new("meta[property='og:image']", Node::Attr("content")),
+                ExtractorQuery::new("meta[name='twitter:image']", Node::Attr("content")),
+            ],
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -34,12 +72,7 @@ pub struct DefaultBookmarkExtractor<'a> {
 impl<'a> DefaultBookmarkExtractor<'a> {
     pub fn new(options: Option<BookmarkExtractorOptions<'a>>) -> Self {
         Self {
-            options: options.unwrap_or(merge(vec![
-                open_graph_extractor_options(),
-                twitter_extractor_options(),
-                microdata_extractor_options(),
-                base_extractor_options(),
-            ])),
+            options: options.unwrap_or_default(),
         }
     }
 }
@@ -68,42 +101,5 @@ impl Extractor for DefaultBookmarkExtractor<'_> {
         };
 
         Ok(bookmark)
-    }
-}
-
-fn merge(options_vec: Vec<BookmarkExtractorOptions>) -> BookmarkExtractorOptions {
-    fn merge_field<'a>(fields: &[Vec<ExtractorQuery<'a>>]) -> Vec<ExtractorQuery<'a>> {
-        fields.iter().flat_map(|v| v.iter().cloned()).collect()
-    }
-
-    BookmarkExtractorOptions {
-        title_queries: merge_field(
-            &options_vec
-                .iter()
-                .map(|e| e.title_queries.clone())
-                .filter(|e| !e.is_empty())
-                .collect::<Vec<_>>(),
-        ),
-        thumbnail_queries: merge_field(
-            &options_vec
-                .iter()
-                .map(|e| e.thumbnail_queries.clone())
-                .filter(|e| !e.is_empty())
-                .collect::<Vec<_>>(),
-        ),
-        published_queries: merge_field(
-            &options_vec
-                .iter()
-                .map(|e| e.published_queries.clone())
-                .filter(|e| !e.is_empty())
-                .collect::<Vec<_>>(),
-        ),
-        author_queries: merge_field(
-            &options_vec
-                .iter()
-                .map(|e| e.author_queries.clone())
-                .filter(|e| !e.is_empty())
-                .collect::<Vec<_>>(),
-        ),
     }
 }

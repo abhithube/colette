@@ -1,10 +1,6 @@
 use std::{collections::HashMap, sync::Arc};
 
 pub use extractor::{BookmarkExtractorOptions, DefaultBookmarkExtractor, ExtractedBookmark};
-pub use options::{
-    base_extractor_options, microdata_extractor_options, open_graph_extractor_options,
-    twitter_extractor_options,
-};
 pub use postprocessor::{DefaultBookmarkPostprocessor, ProcessedBookmark};
 use url::Url;
 
@@ -16,7 +12,6 @@ use crate::{
 };
 
 mod extractor;
-mod options;
 mod postprocessor;
 
 #[derive(Default)]
