@@ -1,4 +1,5 @@
-use bytes::Bytes;
+use std::io::BufRead;
+
 use http::Response;
 use scraper::Html;
 use url::Url;
@@ -46,9 +47,16 @@ impl<'a> DefaultBookmarkExtractor<'a> {
 impl Extractor for DefaultBookmarkExtractor<'_> {
     type Extracted = ExtractedBookmark;
 
-    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedBookmark, Error> {
-        let body = resp.into_body();
-        let bytes: Vec<u8> = body.into();
+    fn extract(
+        &self,
+        _url: &Url,
+        resp: Response<Box<dyn BufRead>>,
+    ) -> Result<ExtractedBookmark, Error> {
+        let mut body = resp.into_body();
+
+        let mut bytes: Vec<u8> = vec![];
+        body.read(&mut bytes).map_err(|e| Error(e.into()))?;
+
         let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 

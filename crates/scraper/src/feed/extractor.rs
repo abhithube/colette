@@ -1,6 +1,5 @@
-use std::str;
+use std::{io::BufRead, str};
 
-use bytes::{Buf, Bytes};
 use feed_rs::{
     model::{Entry, Feed, Link},
     parser,
@@ -49,8 +48,12 @@ pub struct DefaultFeedExtractor {}
 impl Extractor for DefaultFeedExtractor {
     type Extracted = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedFeed, Error> {
-        let feed = parser::parse(resp.into_body().reader())
+    fn extract(
+        &self,
+        _url: &Url,
+        resp: Response<Box<dyn BufRead>>,
+    ) -> Result<ExtractedFeed, Error> {
+        let feed = parser::parse(resp.into_body())
             .map(ExtractedFeed::from)
             .map_err(|e| Error(e.into()))?;
 
@@ -65,9 +68,16 @@ pub struct HtmlExtractor<'a> {
 impl Extractor for HtmlExtractor<'_> {
     type Extracted = ExtractedFeed;
 
-    fn extract(&self, _url: &Url, resp: Response<Bytes>) -> Result<ExtractedFeed, Error> {
-        let body = resp.into_body();
-        let bytes: Vec<u8> = body.into();
+    fn extract(
+        &self,
+        _url: &Url,
+        resp: Response<Box<dyn BufRead>>,
+    ) -> Result<ExtractedFeed, Error> {
+        let mut body = resp.into_body();
+
+        let mut bytes: Vec<u8> = vec![];
+        body.read(&mut bytes).map_err(|e| Error(e.into()))?;
+
         let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 

@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-bytes.workspace = true
 chrono.workspace = true
 feed-rs = { version = "2", default-features = false }
 http.workspace = true

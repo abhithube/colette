@@ -1,11 +1,10 @@
-use std::sync::Arc;
+use std::io::{BufRead, BufReader, Read};
 
-use bytes::Bytes;
 use http::{request::Parts, HeaderMap, Request, Response};
 use url::Url;
 
 pub trait Downloader: Send + Sync {
-    fn download(&self, url: &mut Url) -> Result<Response<Bytes>, Error>;
+    fn download(&self, url: &mut Url) -> Result<Response<Box<dyn BufRead>>, Error>;
 }
 
 pub type DownloaderFn = fn(&mut Url) -> Result<Parts, Error>;
@@ -13,13 +12,13 @@ pub type DownloaderFn = fn(&mut Url) -> Result<Parts, Error>;
 pub enum DownloaderPlugin {
     Value(HeaderMap),
     Callback(DownloaderFn),
-    Impl(Arc<dyn Downloader>),
+    Impl(Box<dyn Downloader>),
 }
 
 pub(crate) fn download(
     url: &mut Url,
     downloader: Option<&DownloaderPlugin>,
-) -> Result<Response<Bytes>, Error> {
+) -> Result<Response<Box<dyn BufRead>>, Error> {
     match downloader {
         Some(DownloaderPlugin::Impl(downloader)) => downloader.download(url),
         _ => {
@@ -44,11 +43,12 @@ pub(crate) fn download(
             };
 
             let req: ureq::Request = parts.into();
-
             let resp = req.call().map_err(|e| Error(e.into()))?;
-            let resp: Response<String> = resp.into();
 
-            Ok(resp.map(|e| e.into()))
+            let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
+            let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
+
+            Ok(resp)
         }
     }
 }
