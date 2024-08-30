@@ -46,14 +46,10 @@ pub fn select(e: ElementRef, node: &Node<'_>) -> Option<String> {
     match node {
         Node::Text => {
             let text = e.inner_html();
-            match text.is_empty() {
-                true => None,
-                false => Some(text),
-            }
+            (!text.is_empty()).then_some(text)
         }
-        Node::Attr(attr) => e.attr(attr).and_then(|e| match e.is_empty() {
-            true => None,
-            false => Some(e.to_owned()),
-        }),
+        Node::Attr(attr) => e
+            .attr(attr)
+            .and_then(|e| (!e.is_empty()).then_some(e.to_owned())),
     }
 }
