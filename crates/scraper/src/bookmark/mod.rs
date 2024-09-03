@@ -4,10 +4,7 @@ use extractor::BookmarkExtractor;
 pub use extractor::{
     BookmarkExtractorOptions, BookmarkExtractorPlugin, DefaultBookmarkExtractor, ExtractedBookmark,
 };
-use postprocessor::BookmarkPostprocessor;
-pub use postprocessor::{
-    BookmarkPostprocessorPlugin, DefaultBookmarkPostprocessor, ProcessedBookmark,
-};
+pub use postprocessor::{BookmarkPostprocessorPlugin, ProcessedBookmark};
 use url::Url;
 
 use crate::{
@@ -22,14 +19,13 @@ mod postprocessor;
 pub struct BookmarkPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin>,
     pub extractors: HashMap<&'static str, BookmarkExtractorPlugin<'a>>,
-    pub postprocessors: HashMap<&'static str, BookmarkPostprocessorPlugin<'a>>,
+    pub postprocessors: HashMap<&'static str, BookmarkPostprocessorPlugin>,
 }
 
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
     default_downloader: Box<dyn Downloader>,
     default_extractor: Box<dyn BookmarkExtractor>,
-    default_postprocessor: Box<dyn BookmarkPostprocessor>,
 }
 
 impl<'a> DefaultBookmarkScraper<'a> {
@@ -38,7 +34,6 @@ impl<'a> DefaultBookmarkScraper<'a> {
             registry,
             default_downloader: Box::new(DefaultDownloader),
             default_extractor: Box::new(DefaultBookmarkExtractor::new(None)),
-            default_postprocessor: Box::new(DefaultBookmarkPostprocessor),
         }
     }
 }
@@ -53,7 +48,7 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
 
         let resp = self.default_downloader.download(url)?;
         let extracted = self.default_extractor.extract(url, resp)?;
-        let processed = self.default_postprocessor.postprocess(url, extracted)?;
+        let processed = extracted.try_into()?;
 
         Ok(processed)
     }

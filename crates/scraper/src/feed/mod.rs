@@ -38,7 +38,6 @@ pub struct DefaultFeedScraper<'a> {
     default_downloader: Box<dyn Downloader>,
     default_extractor: Box<dyn FeedExtractor>,
     default_detector: Box<dyn FeedDetector>,
-    default_postprocessor: Box<dyn FeedPostprocessor>,
 }
 
 impl<'a> DefaultFeedScraper<'a> {
@@ -48,7 +47,6 @@ impl<'a> DefaultFeedScraper<'a> {
             default_downloader: Box::new(DefaultDownloader),
             default_extractor: Box::new(DefaultXmlFeedExtractor),
             default_detector: Box::new(DefaultFeedDetector::new(None)),
-            default_postprocessor: Box::new(DefaultFeedPostprocessor),
         }
     }
 }
@@ -104,7 +102,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
             self.default_extractor.extract(url, resp)
         }?;
 
-        let processed = self.default_postprocessor.postprocess(url, extracted)?;
+        let processed = extracted.try_into()?;
 
         Ok(processed)
     }

@@ -24,14 +24,6 @@ pub struct ProcessedFeedEntry {
     pub thumbnail: Option<Url>,
 }
 
-pub trait FeedPostprocessor: Send + Sync {
-    fn postprocess(
-        &self,
-        url: &Url,
-        extracted: ExtractedFeed,
-    ) -> Result<ProcessedFeed, PostprocessorError>;
-}
-
 pub type FeedPostprocessorFn =
     fn(url: &Url, extracted: ExtractedFeed) -> Result<ProcessedFeed, PostprocessorError>;
 
@@ -40,24 +32,20 @@ pub enum FeedPostprocessorPlugin {
     Callback(FeedPostprocessorFn),
 }
 
-pub struct DefaultFeedPostprocessor;
+impl TryFrom<ExtractedFeed> for ProcessedFeed {
+    type Error = PostprocessorError;
 
-impl FeedPostprocessor for DefaultFeedPostprocessor {
-    fn postprocess(
-        &self,
-        _url: &Url,
-        extracted: ExtractedFeed,
-    ) -> Result<ProcessedFeed, PostprocessorError> {
-        let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
+    fn try_from(value: ExtractedFeed) -> Result<Self, Self::Error> {
+        let Some(Ok(link)) = value.link.as_ref().map(|e| Url::parse(e)) else {
             return Err(PostprocessorError(anyhow!("could not process feed link")));
         };
-        let Some(title) = extracted.title else {
+        let Some(title) = value.title else {
             return Err(PostprocessorError(anyhow!("could not process feed title")));
         };
 
         let mut entries: Vec<ProcessedFeedEntry> = vec![];
 
-        for e in extracted.entries.into_iter() {
+        for e in value.entries.into_iter() {
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
                 return Err(PostprocessorError(anyhow!("could not process entry link")));
             };
