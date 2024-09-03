@@ -1,8 +1,8 @@
-use colette_scraper::{downloader::DownloaderPlugin, DownloaderError};
+use colette_scraper::{downloader::DownloaderPlugin, DownloaderError, FeedPlugin};
 use http::Request;
 use lazy_regex::regex_captures;
 
-pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
+const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
     if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.clone().as_str())
     {
         url.set_path("feeds/videos.xml");
@@ -14,3 +14,10 @@ pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url|
         .map(|e| e.into_parts().0)
         .map_err(|e| DownloaderError(e.into()))
 });
+
+pub fn new_youtube_feed_plugin() -> FeedPlugin<'static> {
+    FeedPlugin {
+        downloader: Some(DOWNLOADER_PLUGIN),
+        ..Default::default()
+    }
+}

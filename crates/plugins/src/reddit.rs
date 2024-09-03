@@ -1,7 +1,7 @@
-use colette_scraper::{downloader::DownloaderPlugin, DownloaderError};
+use colette_scraper::{downloader::DownloaderPlugin, DownloaderError, FeedPlugin};
 use http::Request;
 
-pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
+const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
     if !url.path().contains(".rss") {
         url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
     }
@@ -11,3 +11,10 @@ pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url|
         .map(|e| e.into_parts().0)
         .map_err(|e| DownloaderError(e.into()))
 });
+
+pub fn new_reddit_feed_plugin() -> FeedPlugin<'static> {
+    FeedPlugin {
+        downloader: Some(DOWNLOADER_PLUGIN),
+        ..Default::default()
+    }
+}

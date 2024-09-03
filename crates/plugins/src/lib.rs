@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use colette_scraper::{
     downloader::DownloaderPlugin, BookmarkExtractorPlugin, BookmarkPluginRegistry,
-    BookmarkPostprocessorPlugin, FeedDetectorPlugin, FeedExtractorPlugin, FeedPluginRegistry,
-    FeedPostprocessorPlugin,
+    BookmarkPostprocessorPlugin, FeedPluginRegistry,
 };
 #[allow(unused_imports)]
 use custom::*;
@@ -13,20 +12,12 @@ mod reddit;
 mod youtube;
 
 pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
-    let downloaders = HashMap::from([
-        ("www.youtube.com", youtube::DOWNLOADER_PLUGIN),
-        ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
+    let scrapers = HashMap::from([
+        ("www.youtube.com", youtube::new_youtube_feed_plugin()),
+        ("www.reddit.com", reddit::new_reddit_feed_plugin()),
     ]);
-    let detectors: HashMap<&str, FeedDetectorPlugin> = HashMap::new();
-    let extractors: HashMap<&str, FeedExtractorPlugin> = HashMap::new();
-    let postprocessors: HashMap<&str, FeedPostprocessorPlugin> = HashMap::new();
 
-    FeedPluginRegistry {
-        downloaders,
-        detectors,
-        extractors,
-        postprocessors,
-    }
+    FeedPluginRegistry { scrapers }
 }
 
 pub fn register_bookmark_plugins<'a>() -> BookmarkPluginRegistry<'a> {
