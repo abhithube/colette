@@ -1,7 +1,6 @@
-pub use bookmark::*;
 use url::Url;
 
-mod bookmark;
+pub mod bookmark;
 pub mod downloader;
 pub mod feed;
 pub mod utils;

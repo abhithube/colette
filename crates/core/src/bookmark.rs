@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use colette_scraper::{ProcessedBookmark, Scraper};
+use colette_scraper::{bookmark::ProcessedBookmark, Scraper};
 use url::Url;
 use uuid::Uuid;
 

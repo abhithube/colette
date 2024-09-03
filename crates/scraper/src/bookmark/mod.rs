@@ -1,10 +1,7 @@
 use std::collections::HashMap;
 
-use extractor::BookmarkExtractor;
-pub use extractor::{
-    BookmarkExtractorOptions, BookmarkExtractorPlugin, DefaultBookmarkExtractor, ExtractedBookmark,
-};
-pub use postprocessor::{BookmarkPostprocessorPlugin, ProcessedBookmark};
+pub use extractor::*;
+pub use postprocessor::*;
 use url::Url;
 
 use crate::{
