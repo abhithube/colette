@@ -1,13 +1,8 @@
 use std::collections::HashMap;
 
-use detector::FeedDetector;
-pub use detector::{DefaultFeedDetector, FeedDetectorPlugin};
-use extractor::{DefaultXmlFeedExtractor, FeedExtractor};
-pub use extractor::{ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions, FeedExtractorPlugin};
-use postprocessor::FeedPostprocessor;
-pub use postprocessor::{
-    DefaultFeedPostprocessor, FeedPostprocessorPlugin, ProcessedFeed, ProcessedFeedEntry,
-};
+pub use detector::*;
+pub use extractor::*;
+pub use postprocessor::*;
 use scraper::Html;
 use url::Url;
 
@@ -17,7 +12,7 @@ use crate::{
     ExtractorError, Scraper,
 };
 
-pub mod detector;
+mod detector;
 mod extractor;
 mod postprocessor;
 

@@ -1,4 +1,4 @@
-use colette_scraper::{downloader::DownloaderPlugin, DownloaderError, FeedPlugin};
+use colette_scraper::{downloader::DownloaderPlugin, feed::FeedPlugin, DownloaderError};
 use http::Request;
 
 const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {

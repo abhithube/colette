@@ -1,10 +1,9 @@
 pub use bookmark::*;
-pub use feed::*;
 use url::Url;
 
 mod bookmark;
 pub mod downloader;
-mod feed;
+pub mod feed;
 pub mod utils;
 
 pub trait Scraper<T>: Send + Sync {

@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
-use colette_scraper::FeedScraper;
-pub use colette_scraper::ProcessedFeed;
+use colette_scraper::feed::FeedScraper;
+pub use colette_scraper::feed::ProcessedFeed;
 use futures::stream::BoxStream;
 use opml::{Body, Outline, OPML};
 use url::Url;

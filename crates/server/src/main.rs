@@ -20,7 +20,7 @@ use colette_repository::{
     BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
     FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };
-use colette_scraper::{DefaultBookmarkScraper, DefaultFeedScraper};
+use colette_scraper::{feed::DefaultFeedScraper, DefaultBookmarkScraper};
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
 use colette_session::SessionBackend;
