@@ -1,13 +1,14 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Read},
+};
 
 pub use extractor::*;
+use http::Response;
 pub use postprocessor::*;
 use url::Url;
 
-use crate::{
-    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
-    Scraper,
-};
+use crate::{DownloaderError, DownloaderPlugin, Scraper, DEFAULT_DOWNLOADER};
 
 mod extractor;
 mod postprocessor;
@@ -21,7 +22,7 @@ pub struct BookmarkPluginRegistry<'a> {
 
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
-    default_downloader: Box<dyn Downloader>,
+    default_downloader: DownloaderPlugin,
     default_extractor: Box<dyn BookmarkExtractor>,
 }
 
@@ -29,7 +30,7 @@ impl<'a> DefaultBookmarkScraper<'a> {
     pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
         Self {
             registry,
-            default_downloader: Box::new(DefaultDownloader),
+            default_downloader: DEFAULT_DOWNLOADER,
             default_extractor: Box::new(DefaultBookmarkExtractor::new(None)),
         }
     }
@@ -43,7 +44,13 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
         let _extractor = self.registry.extractors.get(host);
         let _postprocessor = self.registry.postprocessors.get(host);
 
-        let resp = self.default_downloader.download(url)?;
+        let parts = (self.default_downloader)(url)?;
+        let req: ureq::Request = parts.into();
+        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
+
+        let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
+        let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
+
         let extracted = self.default_extractor.extract(url, resp)?;
         let processed = extracted.try_into()?;
 

@@ -1,15 +1,18 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    io::{BufRead, BufReader, Read},
+};
 
 pub use detector::*;
 pub use extractor::*;
+use http::Response;
 pub use postprocessor::*;
 use scraper::Html;
 use url::Url;
 
 use crate::{
-    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
-    utils::TextSelector,
-    ExtractorError, Scraper,
+    utils::TextSelector, DownloaderError, DownloaderPlugin, ExtractorError, Scraper,
+    DEFAULT_DOWNLOADER,
 };
 
 mod detector;
@@ -35,7 +38,7 @@ pub struct FeedPluginRegistry<'a> {
 
 pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
-    default_downloader: Box<dyn Downloader>,
+    default_downloader: DownloaderPlugin,
     default_extractor: Box<dyn FeedExtractor>,
     default_detector: Box<dyn FeedDetector>,
 }
@@ -44,7 +47,7 @@ impl<'a> DefaultFeedScraper<'a> {
     pub fn new(registry: FeedPluginRegistry<'a>) -> Self {
         Self {
             registry,
-            default_downloader: Box::new(DefaultDownloader),
+            default_downloader: DEFAULT_DOWNLOADER,
             default_extractor: Box::new(DefaultXmlFeedExtractor),
             default_detector: Box::new(DefaultFeedDetector::new(None)),
         }
@@ -56,7 +59,12 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
         let plugin = self.registry.scrapers.get(host);
 
-        let resp = self.default_downloader.download(url)?;
+        let parts = (self.default_downloader)(url)?;
+        let req: ureq::Request = parts.into();
+        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
+
+        let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
+        let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
 
         let extracted = if let Some(plugin) = plugin {
             match &plugin.extractor {
@@ -113,7 +121,13 @@ impl FeedScraper for DefaultFeedScraper<'_> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
         let _plugin = self.registry.scrapers.get(host);
 
-        let resp = self.default_downloader.download(url)?;
+        let parts = (self.default_downloader)(url)?;
+        let req: ureq::Request = parts.into();
+        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
+
+        let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
+        let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
+
         let detected = self.default_detector.detect(url, resp)?;
 
         Ok(detected)
