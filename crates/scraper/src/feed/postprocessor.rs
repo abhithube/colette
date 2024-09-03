@@ -25,7 +25,7 @@ pub struct ProcessedFeedEntry {
 }
 
 pub type FeedPostprocessorFn =
-    fn(url: &Url, extracted: ExtractedFeed) -> Result<ProcessedFeed, PostprocessorError>;
+    fn(url: &Url, extracted: &mut ExtractedFeed) -> Result<(), PostprocessorError>;
 
 pub enum FeedPostprocessorPlugin {
     Value(()),

@@ -14,7 +14,7 @@ pub struct ProcessedBookmark {
 }
 
 pub type BookmarkPostprocessorFn =
-    fn(url: &Url, extracted: ExtractedBookmark) -> Result<ProcessedBookmark, PostprocessorError>;
+    fn(url: &Url, extracted: &mut ExtractedBookmark) -> Result<(), PostprocessorError>;
 
 pub enum BookmarkPostprocessorPlugin {
     Value(()),
