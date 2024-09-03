@@ -5,8 +5,8 @@ use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
-    extractor::{Error, Extractor},
     utils::{ExtractorQuery, Node, TextSelector},
+    ExtractorError,
 };
 
 #[derive(Clone, Debug)]
@@ -96,6 +96,22 @@ pub struct ExtractedBookmark {
     pub author: Option<String>,
 }
 
+pub trait BookmarkExtractor: Send + Sync {
+    fn extract(
+        &self,
+        url: &Url,
+        resp: Response<Box<dyn BufRead>>,
+    ) -> Result<ExtractedBookmark, ExtractorError>;
+}
+
+pub type BookmarkExtractorFn =
+    fn(url: &Url, resp: Response<Box<dyn BufRead>>) -> Result<ExtractedBookmark, ExtractorError>;
+
+pub enum BookmarkExtractorPlugin<'a> {
+    Value(BookmarkExtractorOptions<'a>),
+    Callback(BookmarkExtractorFn),
+}
+
 pub struct DefaultBookmarkExtractor<'a> {
     options: BookmarkExtractorOptions<'a>,
 }
@@ -108,18 +124,17 @@ impl<'a> DefaultBookmarkExtractor<'a> {
     }
 }
 
-impl Extractor for DefaultBookmarkExtractor<'_> {
-    type Extracted = ExtractedBookmark;
-
+impl BookmarkExtractor for DefaultBookmarkExtractor<'_> {
     fn extract(
         &self,
         _url: &Url,
         resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedBookmark, Error> {
+    ) -> Result<ExtractedBookmark, ExtractorError> {
         let mut body = resp.into_body();
 
         let mut bytes: Vec<u8> = vec![];
-        body.read(&mut bytes).map_err(|e| Error(e.into()))?;
+        body.read(&mut bytes)
+            .map_err(|e| ExtractorError(e.into()))?;
 
         let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);

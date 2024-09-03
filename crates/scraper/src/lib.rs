@@ -4,9 +4,7 @@ use url::Url;
 
 mod bookmark;
 pub mod downloader;
-pub mod extractor;
 mod feed;
-pub mod postprocessor;
 pub mod utils;
 
 pub trait Scraper<T>: Send + Sync {
@@ -16,14 +14,26 @@ pub trait Scraper<T>: Send + Sync {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Download(#[from] downloader::Error),
+    Download(#[from] DownloaderError),
 
     #[error("failed to parse document")]
     Parse,
 
     #[error(transparent)]
-    Extract(#[from] extractor::Error),
+    Extract(#[from] ExtractorError),
 
     #[error(transparent)]
-    Postprocess(#[from] postprocessor::Error),
+    Postprocess(#[from] PostprocessorError),
 }
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct DownloaderError(#[from] pub anyhow::Error);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct ExtractorError(#[from] pub anyhow::Error);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct PostprocessorError(#[from] pub anyhow::Error);

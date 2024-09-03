@@ -5,13 +5,10 @@ use feed_rs::{
     parser,
 };
 use http::Response;
-use scraper::{Html, Selector};
+use scraper::Selector;
 use url::Url;
 
-use crate::{
-    extractor::{Error, Extractor},
-    utils::{ExtractorQuery, TextSelector},
-};
+use crate::{utils::ExtractorQuery, ExtractorError};
 
 #[derive(Clone, Debug)]
 pub struct FeedExtractorOptions<'a> {
@@ -43,63 +40,33 @@ pub struct ExtractedFeedEntry {
     pub thumbnail: Option<String>,
 }
 
-pub struct DefaultFeedExtractor {}
+pub trait FeedExtractor: Send + Sync {
+    fn extract(
+        &self,
+        url: &Url,
+        resp: Response<Box<dyn BufRead>>,
+    ) -> Result<ExtractedFeed, ExtractorError>;
+}
 
-impl Extractor for DefaultFeedExtractor {
-    type Extracted = ExtractedFeed;
+pub type FeedExtractorFn =
+    fn(url: &Url, resp: Response<Box<dyn BufRead>>) -> Result<ExtractedFeed, ExtractorError>;
 
+pub enum FeedExtractorPlugin<'a> {
+    Value(FeedExtractorOptions<'a>),
+    Callback(FeedExtractorFn),
+}
+
+pub struct DefaultXmlFeedExtractor;
+
+impl FeedExtractor for DefaultXmlFeedExtractor {
     fn extract(
         &self,
         _url: &Url,
         resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedFeed, Error> {
-        let feed = parser::parse(resp.into_body())
+    ) -> Result<ExtractedFeed, ExtractorError> {
+        parser::parse(resp.into_body())
             .map(ExtractedFeed::from)
-            .map_err(|e| Error(e.into()))?;
-
-        Ok(feed)
-    }
-}
-
-pub struct HtmlExtractor<'a> {
-    options: FeedExtractorOptions<'a>,
-}
-
-impl Extractor for HtmlExtractor<'_> {
-    type Extracted = ExtractedFeed;
-
-    fn extract(
-        &self,
-        _url: &Url,
-        resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedFeed, Error> {
-        let mut body = resp.into_body();
-
-        let mut bytes: Vec<u8> = vec![];
-        body.read(&mut bytes).map_err(|e| Error(e.into()))?;
-
-        let raw = String::from_utf8_lossy(&bytes);
-        let html = Html::parse_document(&raw);
-
-        let entries = html
-            .select(&self.options.feed_entries_selector)
-            .map(|element| ExtractedFeedEntry {
-                link: element.select_text(&self.options.feed_entry_link_queries),
-                title: element.select_text(&self.options.feed_entry_title_queries),
-                published: element.select_text(&self.options.feed_entry_published_queries),
-                description: element.select_text(&self.options.feed_entry_description_queries),
-                author: element.select_text(&self.options.feed_entry_author_queries),
-                thumbnail: element.select_text(&self.options.feed_entry_thumbnail_queries),
-            })
-            .collect();
-
-        let feed = ExtractedFeed {
-            link: html.select_text(&self.options.feed_link_queries),
-            title: html.select_text(&self.options.feed_title_queries),
-            entries,
-        };
-
-        Ok(feed)
+            .map_err(|e| ExtractorError(e.into()))
     }
 }
 

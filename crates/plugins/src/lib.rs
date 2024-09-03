@@ -1,10 +1,9 @@
 use std::collections::HashMap;
 
 use colette_scraper::{
-    downloader::DownloaderPlugin, extractor::ExtractorPlugin, feed_detector::FeedDetectorPlugin,
-    postprocessor::PostprocessorPlugin, BookmarkExtractorOptions, BookmarkPluginRegistry,
-    ExtractedBookmark, ExtractedFeed, FeedExtractorOptions, FeedPluginRegistry, ProcessedBookmark,
-    ProcessedFeed,
+    downloader::DownloaderPlugin, BookmarkExtractorPlugin, BookmarkPluginRegistry,
+    BookmarkPostprocessorPlugin, FeedDetectorPlugin, FeedExtractorPlugin, FeedPluginRegistry,
+    FeedPostprocessorPlugin,
 };
 #[allow(unused_imports)]
 use custom::*;
@@ -19,10 +18,8 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
         ("www.reddit.com", reddit::DOWNLOADER_PLUGIN),
     ]);
     let detectors: HashMap<&str, FeedDetectorPlugin> = HashMap::new();
-    let extractors: HashMap<&str, ExtractorPlugin<FeedExtractorOptions, ExtractedFeed>> =
-        HashMap::new();
-    let postprocessors: HashMap<&str, PostprocessorPlugin<ExtractedFeed, (), ProcessedFeed>> =
-        HashMap::new();
+    let extractors: HashMap<&str, FeedExtractorPlugin> = HashMap::new();
+    let postprocessors: HashMap<&str, FeedPostprocessorPlugin> = HashMap::new();
 
     FeedPluginRegistry {
         downloaders,
@@ -34,12 +31,8 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
 
 pub fn register_bookmark_plugins<'a>() -> BookmarkPluginRegistry<'a> {
     let downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
-    let extractors: HashMap<&str, ExtractorPlugin<BookmarkExtractorOptions, ExtractedBookmark>> =
-        HashMap::new();
-    let postprocessors: HashMap<
-        &str,
-        PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>,
-    > = HashMap::new();
+    let extractors: HashMap<&str, BookmarkExtractorPlugin> = HashMap::new();
+    let postprocessors: HashMap<&str, BookmarkPostprocessorPlugin> = HashMap::new();
 
     BookmarkPluginRegistry {
         downloaders,

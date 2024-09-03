@@ -1,13 +1,17 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-pub use extractor::{BookmarkExtractorOptions, DefaultBookmarkExtractor, ExtractedBookmark};
-pub use postprocessor::{DefaultBookmarkPostprocessor, ProcessedBookmark};
+use extractor::BookmarkExtractor;
+pub use extractor::{
+    BookmarkExtractorOptions, BookmarkExtractorPlugin, DefaultBookmarkExtractor, ExtractedBookmark,
+};
+use postprocessor::BookmarkPostprocessor;
+pub use postprocessor::{
+    BookmarkPostprocessorPlugin, DefaultBookmarkPostprocessor, ProcessedBookmark,
+};
 use url::Url;
 
 use crate::{
-    downloader::{download, DownloaderPlugin},
-    extractor::{Extractor, ExtractorPlugin},
-    postprocessor::{Postprocessor, PostprocessorPlugin},
+    downloader::{DefaultDownloader, Downloader, DownloaderPlugin},
     Scraper,
 };
 
@@ -17,25 +21,24 @@ mod postprocessor;
 #[derive(Default)]
 pub struct BookmarkPluginRegistry<'a> {
     pub downloaders: HashMap<&'static str, DownloaderPlugin>,
-    pub extractors:
-        HashMap<&'static str, ExtractorPlugin<BookmarkExtractorOptions<'a>, ExtractedBookmark>>,
-    pub postprocessors:
-        HashMap<&'static str, PostprocessorPlugin<ExtractedBookmark, (), ProcessedBookmark>>,
+    pub extractors: HashMap<&'static str, BookmarkExtractorPlugin<'a>>,
+    pub postprocessors: HashMap<&'static str, BookmarkPostprocessorPlugin<'a>>,
 }
 
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
-    default_extractor: Arc<dyn Extractor<Extracted = ExtractedBookmark>>,
-    default_postprocessor:
-        Arc<dyn Postprocessor<Extracted = ExtractedBookmark, Processed = ProcessedBookmark>>,
+    default_downloader: Box<dyn Downloader>,
+    default_extractor: Box<dyn BookmarkExtractor>,
+    default_postprocessor: Box<dyn BookmarkPostprocessor>,
 }
 
 impl<'a> DefaultBookmarkScraper<'a> {
     pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
         Self {
             registry,
-            default_extractor: Arc::new(DefaultBookmarkExtractor::new(None)),
-            default_postprocessor: Arc::new(DefaultBookmarkPostprocessor {}),
+            default_downloader: Box::new(DefaultDownloader),
+            default_extractor: Box::new(DefaultBookmarkExtractor::new(None)),
+            default_postprocessor: Box::new(DefaultBookmarkPostprocessor),
         }
     }
 }
@@ -44,23 +47,13 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
 
-        let downloader = self.registry.downloaders.get(host);
-        let extractor = self.registry.extractors.get(host);
-        let postprocessor = self.registry.postprocessors.get(host);
+        let _downloader = self.registry.downloaders.get(host);
+        let _extractor = self.registry.extractors.get(host);
+        let _postprocessor = self.registry.postprocessors.get(host);
 
-        let resp = download(url, downloader)?;
-
-        let extracted = match extractor {
-            Some(ExtractorPlugin::Impl(extractor)) => extractor.extract(url, resp),
-            _ => self.default_extractor.extract(url, resp),
-        }?;
-
-        let processed = match postprocessor {
-            Some(PostprocessorPlugin::Impl(postprocessor)) => {
-                postprocessor.postprocess(url, extracted)
-            }
-            _ => self.default_postprocessor.postprocess(url, extracted),
-        }?;
+        let resp = self.default_downloader.download(url)?;
+        let extracted = self.default_extractor.extract(url, resp)?;
+        let processed = self.default_postprocessor.postprocess(url, extracted)?;
 
         Ok(processed)
     }

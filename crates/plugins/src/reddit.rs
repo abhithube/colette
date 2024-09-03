@@ -1,4 +1,4 @@
-use colette_scraper::downloader::{DownloaderPlugin, Error};
+use colette_scraper::{downloader::DownloaderPlugin, DownloaderError};
 use http::Request;
 
 pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url| {
@@ -9,5 +9,5 @@ pub const DOWNLOADER_PLUGIN: DownloaderPlugin = DownloaderPlugin::Callback(|url|
     Request::get(url.as_ref())
         .body(())
         .map(|e| e.into_parts().0)
-        .map_err(|e| Error(e.into()))
+        .map_err(|e| DownloaderError(e.into()))
 });

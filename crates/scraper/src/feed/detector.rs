@@ -1,12 +1,12 @@
-use std::{io::BufRead, sync::Arc};
+use std::io::BufRead;
 
 use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
-    extractor,
     utils::{select, ExtractorQuery, Node},
+    ExtractorError,
 };
 
 pub trait FeedDetector: Send + Sync {
@@ -14,12 +14,15 @@ pub trait FeedDetector: Send + Sync {
         &self,
         url: &Url,
         resp: Response<Box<dyn BufRead>>,
-    ) -> Result<Vec<Url>, extractor::Error>;
+    ) -> Result<Vec<Url>, ExtractorError>;
 }
+
+pub type FeedDetectorFn =
+    fn(url: &Url, resp: Response<Box<dyn BufRead>>) -> Result<Vec<Url>, ExtractorError>;
 
 pub enum FeedDetectorPlugin<'a> {
     Value(Vec<ExtractorQuery<'a>>),
-    Impl(Arc<dyn FeedDetector>),
+    Callback(FeedDetectorFn),
 }
 
 pub struct DefaultFeedDetector<'a> {
@@ -42,12 +45,12 @@ impl FeedDetector for DefaultFeedDetector<'_> {
         &self,
         _url: &Url,
         resp: Response<Box<dyn BufRead>>,
-    ) -> Result<Vec<Url>, extractor::Error> {
+    ) -> Result<Vec<Url>, ExtractorError> {
         let mut body = resp.into_body();
 
         let mut bytes: Vec<u8> = vec![];
         body.read(&mut bytes)
-            .map_err(|e| extractor::Error(e.into()))?;
+            .map_err(|e| ExtractorError(e.into()))?;
 
         let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
@@ -62,7 +65,7 @@ impl FeedDetector for DefaultFeedDetector<'_> {
             })
             .map(|e| Url::parse(&e))
             .collect::<Result<_, _>>()
-            .map_err(|e| extractor::Error(e.into()))?;
+            .map_err(|e| ExtractorError(e.into()))?;
 
         Ok(urls)
     }

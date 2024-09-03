@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use url::Url;
 
 use super::ExtractedFeed;
-use crate::postprocessor::{Error, Postprocessor};
+use crate::PostprocessorError;
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 
@@ -24,28 +24,45 @@ pub struct ProcessedFeedEntry {
     pub thumbnail: Option<Url>,
 }
 
-pub struct DefaultFeedPostprocessor {}
+pub trait FeedPostprocessor: Send + Sync {
+    fn postprocess(
+        &self,
+        url: &Url,
+        extracted: ExtractedFeed,
+    ) -> Result<ProcessedFeed, PostprocessorError>;
+}
 
-impl Postprocessor for DefaultFeedPostprocessor {
-    type Extracted = ExtractedFeed;
-    type Processed = ProcessedFeed;
+pub type FeedPostprocessorFn =
+    fn(url: &Url, extracted: ExtractedFeed) -> Result<ProcessedFeed, PostprocessorError>;
 
-    fn postprocess(&self, _url: &Url, extracted: ExtractedFeed) -> Result<ProcessedFeed, Error> {
+pub enum FeedPostprocessorPlugin {
+    Value(()),
+    Callback(FeedPostprocessorFn),
+}
+
+pub struct DefaultFeedPostprocessor;
+
+impl FeedPostprocessor for DefaultFeedPostprocessor {
+    fn postprocess(
+        &self,
+        _url: &Url,
+        extracted: ExtractedFeed,
+    ) -> Result<ProcessedFeed, PostprocessorError> {
         let Some(Ok(link)) = extracted.link.as_ref().map(|e| Url::parse(e)) else {
-            return Err(Error(anyhow!("could not process feed link")));
+            return Err(PostprocessorError(anyhow!("could not process feed link")));
         };
         let Some(title) = extracted.title else {
-            return Err(Error(anyhow!("could not process feed title")));
+            return Err(PostprocessorError(anyhow!("could not process feed title")));
         };
 
         let mut entries: Vec<ProcessedFeedEntry> = vec![];
 
         for e in extracted.entries.into_iter() {
             let Some(Ok(link)) = e.link.as_ref().map(|e| Url::parse(e)) else {
-                return Err(Error(anyhow!("could not process entry link")));
+                return Err(PostprocessorError(anyhow!("could not process entry link")));
             };
             let Some(title) = e.title else {
-                return Err(Error(anyhow!("could not process entry title")));
+                return Err(PostprocessorError(anyhow!("could not process entry title")));
             };
             let Some(published) = e.published.as_ref().and_then(|e| {
                 DateTime::parse_from_rfc3339(e)
@@ -54,7 +71,9 @@ impl Postprocessor for DefaultFeedPostprocessor {
                     .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
                     .map(|f| f.to_utc())
             }) else {
-                return Err(Error(anyhow!("could not process entry publish date")));
+                return Err(PostprocessorError(anyhow!(
+                    "could not process entry publish date"
+                )));
             };
             let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e).ok());
 
