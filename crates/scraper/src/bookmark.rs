@@ -165,18 +165,13 @@ impl Default for BookmarkPlugin<'_> {
     }
 }
 
-#[derive(Default)]
-pub struct BookmarkPluginRegistry<'a> {
-    pub scrapers: HashMap<&'static str, BookmarkPlugin<'a>>,
-}
-
 pub struct DefaultBookmarkScraper<'a> {
-    registry: BookmarkPluginRegistry<'a>,
+    registry: HashMap<&'static str, BookmarkPlugin<'a>>,
     default_plugin: BookmarkPlugin<'a>,
 }
 
 impl<'a> DefaultBookmarkScraper<'a> {
-    pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
+    pub fn new(registry: HashMap<&'static str, BookmarkPlugin<'a>>) -> Self {
         Self {
             registry,
             default_plugin: BookmarkPlugin::default(),
@@ -188,11 +183,7 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
 
-        let plugin = self
-            .registry
-            .scrapers
-            .get(host)
-            .unwrap_or(&self.default_plugin);
+        let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
 
         let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();

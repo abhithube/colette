@@ -154,19 +154,14 @@ impl Default for FeedPlugin<'_> {
     }
 }
 
-#[derive(Default)]
-pub struct FeedPluginRegistry<'a> {
-    pub scrapers: HashMap<&'static str, FeedPlugin<'a>>,
-}
-
 pub struct DefaultFeedScraper<'a> {
-    registry: FeedPluginRegistry<'a>,
+    registry: HashMap<&'static str, FeedPlugin<'a>>,
     default_plugin: FeedPlugin<'a>,
     default_detector: Box<dyn FeedDetector>,
 }
 
 impl<'a> DefaultFeedScraper<'a> {
-    pub fn new(registry: FeedPluginRegistry<'a>) -> Self {
+    pub fn new(registry: HashMap<&'static str, FeedPlugin<'a>>) -> Self {
         Self {
             registry,
             default_plugin: FeedPlugin::default(),
@@ -178,11 +173,7 @@ impl<'a> DefaultFeedScraper<'a> {
 impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
-        let plugin = self
-            .registry
-            .scrapers
-            .get(host)
-            .unwrap_or(&self.default_plugin);
+        let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
 
         let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();
@@ -235,11 +226,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 impl FeedScraper for DefaultFeedScraper<'_> {
     fn detect(&self, url: &mut Url) -> Result<Vec<Url>, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
-        let plugin = self
-            .registry
-            .scrapers
-            .get(host)
-            .unwrap_or(&self.default_plugin);
+        let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
 
         let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();
