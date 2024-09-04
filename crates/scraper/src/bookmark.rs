@@ -195,11 +195,10 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
 
         let mut body = resp.into_body();
 
-        let mut bytes: Vec<u8> = vec![];
-        body.read(&mut bytes)
+        let mut raw = String::new();
+        body.read_to_string(&mut raw)
             .map_err(|e| ExtractorError(e.into()))?;
 
-        let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 
         let mut extracted = ExtractedBookmark {
