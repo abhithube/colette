@@ -106,7 +106,7 @@ impl FeedService {
         match result {
             Ok(data) => Ok(data),
             Err(Error::Conflict(_)) => {
-                let scraped = self.scraper.scrape(&mut data.url)?;
+                let scraped = self.scraper.scrape(&mut data.url).await?;
 
                 self.repository
                     .create(FeedCreateData {
@@ -145,7 +145,7 @@ impl FeedService {
         let mut feeds: Vec<FeedDetected> = vec![];
 
         for mut url in urls.into_iter() {
-            let feed = self.scraper.scrape(&mut url)?;
+            let feed = self.scraper.scrape(&mut url).await?;
             let url = url.to_string();
 
             feeds.push(FeedDetected {

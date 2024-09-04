@@ -87,7 +87,7 @@ impl BookmarkService {
         mut data: BookmarkCreate,
         profile_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&mut data.url)?;
+        let scraped = self.scraper.scrape(&mut data.url).await?;
 
         self.repository
             .create(BookmarkCreateData {

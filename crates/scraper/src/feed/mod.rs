@@ -170,8 +170,9 @@ impl<'a> DefaultFeedScraper<'a> {
     }
 }
 
+#[async_trait::async_trait]
 impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, crate::Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
         let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
 

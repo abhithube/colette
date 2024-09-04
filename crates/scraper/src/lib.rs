@@ -5,8 +5,9 @@ pub mod bookmark;
 pub mod feed;
 pub mod utils;
 
+#[async_trait::async_trait]
 pub trait Scraper<T>: Send + Sync {
-    fn scrape(&self, url: &mut Url) -> Result<T, Error>;
+    async fn scrape(&self, url: &mut Url) -> Result<T, Error>;
 }
 
 pub type DownloaderPlugin = fn(&mut Url) -> Result<Parts, DownloaderError>;

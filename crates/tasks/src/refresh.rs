@@ -35,7 +35,7 @@ impl RefreshTask {
 
         println!("{}: refreshing {}", Utc::now().to_rfc3339(), url);
 
-        let feed = self.scraper.scrape(&mut parsed)?;
+        let feed = self.scraper.scrape(&mut parsed).await?;
 
         let mut profiles_stream = self.profile_repository.stream(feed_id).await?;
 

@@ -179,8 +179,9 @@ impl<'a> DefaultBookmarkScraper<'a> {
     }
 }
 
+#[async_trait::async_trait]
 impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
 
         let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
