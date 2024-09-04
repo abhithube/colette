@@ -6,7 +6,6 @@ use axum::{
     routing, Json, Router,
 };
 use axum_extra::extract::Query;
-use bytes::Bytes;
 use colette_core::{
     common::NonEmptyString,
     feed::{self, FeedService},
@@ -40,8 +39,6 @@ impl FeedState {
         update_feed,
         delete_feed,
         detect_feeds,
-        import_feeds,
-        export_feeds
     ),
     components(schemas(
         Feed,
@@ -67,9 +64,7 @@ impl Api {
                         .patch(update_feed)
                         .delete(delete_feed),
                 )
-                .route("/detect", routing::post(detect_feeds))
-                .route("/import", routing::post(import_feeds))
-                .route("/export", routing::post(export_feeds)),
+                .route("/detect", routing::post(detect_feeds)),
         )
     }
 }
@@ -356,47 +351,6 @@ pub async fn detect_feeds(
     }
 }
 
-#[utoipa::path(
-    post,
-    path = "/import",
-    request_body = Vec<u8>,
-    responses(ImportResponse),
-    operation_id = "importFeeds",
-    description = "Import OPML feeds into profile"
-)]
-#[axum::debug_handler]
-pub async fn import_feeds(
-    State(service): State<Arc<FeedService>>,
-    session: Session,
-    bytes: Bytes,
-) -> Result<ImportResponse, Error> {
-    match service.import_feeds(bytes, session.profile_id).await {
-        Ok(_) => Ok(ImportResponse::NoContent),
-        Err(feed::Error::Scraper(e)) => Ok(ImportResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
-        _ => Err(Error::Unknown),
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/export",
-    responses(ExportResponse),
-    operation_id = "exportFeeds",
-    description = "Export OPML feeds from profile"
-)]
-#[axum::debug_handler]
-pub async fn export_feeds(
-    State(service): State<Arc<FeedService>>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    match service.export_feeds(session.profile_id).await {
-        Ok(data) => Ok(ExportResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
-    }
-}
-
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
@@ -509,38 +463,6 @@ impl IntoResponse for DetectResponse {
             Self::Ok(data) => Json(data).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ImportResponse {
-    #[response(status = 204, description = "Successfully started import")]
-    NoContent,
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(BaseError),
-}
-
-impl IntoResponse for ImportResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
-            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ExportResponse {
-    #[response(status = 200, description = "OPML file")]
-    Ok(Vec<u8>),
-}
-
-impl IntoResponse for ExportResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => data.into_response(),
         }
     }
 }

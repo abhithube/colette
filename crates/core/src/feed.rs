@@ -1,11 +1,8 @@
 use std::sync::Arc;
 
-use bytes::Bytes;
-use colette_backup::BackupManager;
 use colette_scraper::feed::FeedScraper;
 pub use colette_scraper::feed::ProcessedFeed;
 use futures::stream::BoxStream;
-use opml::{Body, Outline, OPML};
 use url::Url;
 use uuid::Uuid;
 
@@ -59,19 +56,13 @@ pub struct FeedDetected {
 pub struct FeedService {
     repository: Arc<dyn FeedRepository>,
     scraper: Arc<dyn FeedScraper>,
-    opml_manager: Arc<dyn BackupManager<T = OPML>>,
 }
 
 impl FeedService {
-    pub fn new(
-        repository: Arc<dyn FeedRepository>,
-        scraper: Arc<dyn FeedScraper>,
-        opml_manager: Arc<dyn BackupManager<T = OPML>>,
-    ) -> Self {
+    pub fn new(repository: Arc<dyn FeedRepository>, scraper: Arc<dyn FeedScraper>) -> Self {
         Self {
             repository,
             scraper,
-            opml_manager,
         }
     }
 
@@ -160,53 +151,6 @@ impl FeedService {
             data: feeds,
             cursor: None,
         })
-    }
-
-    pub async fn import_feeds(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
-        let opml = self.opml_manager.import(raw)?;
-
-        for outline in opml.body.outlines {
-            if let Some(xml_url) = outline.xml_url.and_then(|e| Url::parse(&e).ok()) {
-                self.create_feed(
-                    FeedCreate {
-                        url: xml_url,
-                        folder_id: None,
-                    },
-                    profile_id,
-                )
-                .await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub async fn export_feeds(&self, profile_id: Uuid) -> Result<Bytes, Error> {
-        let feeds = self
-            .list_feeds(FeedListQuery::default(), profile_id)
-            .await?;
-
-        let data = feeds
-            .data
-            .iter()
-            .cloned()
-            .map(|e| Outline {
-                r#type: Some("rss".to_owned()),
-                text: e.original_title,
-                title: e.title,
-                xml_url: e.url,
-                html_url: Some(e.link),
-                ..Default::default()
-            })
-            .collect::<Vec<_>>();
-
-        let opml = OPML {
-            version: "2.0".to_owned(),
-            body: Body { outlines: data },
-            ..Default::default()
-        };
-
-        self.opml_manager.export(opml).map_err(|e| e.into())
     }
 }
 

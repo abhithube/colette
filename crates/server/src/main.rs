@@ -5,20 +5,22 @@ use std::{error::Error, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, bookmark::BookmarkState, collection::CollectionState, feed::FeedState,
-    feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState, tag::TagState, Api,
-    ApiState,
+    auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
+    feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState,
+    tag::TagState, Api, ApiState,
 };
 use colette_backup::opml::OpmlManager;
 use colette_core::{
-    auth::AuthService, bookmark::BookmarkService, collection::CollectionService, feed::FeedService,
-    feed_entry::FeedEntryService, folder::FolderService, profile::ProfileService, tag::TagService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
+    folder::FolderService, profile::ProfileService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
-    BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
-    FolderSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+    BackupSqlRepository, BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository,
+    FeedSqlRepository, FolderSqlRepository, ProfileSqlRepository, TagSqlRepository,
+    UserSqlRepository,
 };
 use colette_scraper::{bookmark::DefaultBookmarkScraper, feed::DefaultFeedScraper};
 #[cfg(feature = "postgres")]
@@ -93,6 +95,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         profile_repository.clone(),
         Arc::new(ArgonHasher),
     ));
+    let backup_service = Arc::new(BackupService::new(
+        Arc::new(BackupSqlRepository::new(db.clone())),
+        feed_repository.clone(),
+        Arc::new(OpmlManager),
+    ));
     let bookmark_service = Arc::new(BookmarkService::new(
         Arc::new(BookmarkSqlRepository::new(db.clone())),
         Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
@@ -100,11 +107,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let collection_service = Arc::new(CollectionService::new(Arc::new(
         CollectionSqlRepository::new(db.clone()),
     )));
-    let feed_service = Arc::new(FeedService::new(
-        feed_repository,
-        feed_scraper,
-        Arc::new(OpmlManager),
-    ));
+    let feed_service = Arc::new(FeedService::new(feed_repository, feed_scraper));
     let feed_entry_service = Arc::new(FeedEntryService::new(Arc::new(
         FeedEntrySqlRepository::new(db.clone()),
     )));
@@ -116,6 +119,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
+        BackupState::new(backup_service),
         BookmarkState::new(bookmark_service),
         CollectionState::new(collection_service),
         FeedState::new(feed_service),

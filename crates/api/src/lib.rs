@@ -1,5 +1,6 @@
 use auth::AuthState;
 use axum::{extract::FromRef, routing, Router};
+use backup::BackupState;
 use bookmark::BookmarkState;
 use colette_config::AppConfig;
 use collection::CollectionState;
@@ -16,12 +17,14 @@ use utoipa::OpenApi;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::Api as Auth, bookmark::Api as Bookmarks, collection::Api as Collections,
-    common::BaseError, feed::Api as Feeds, feed_entry::Api as FeedEntries, folder::Api as Folders,
-    profile::Api as Profiles, tag::Api as Tags,
+    auth::Api as Auth, backup::Api as Backups, bookmark::Api as Bookmarks,
+    collection::Api as Collections, common::BaseError, feed::Api as Feeds,
+    feed_entry::Api as FeedEntries, folder::Api as Folders, profile::Api as Profiles,
+    tag::Api as Tags,
 };
 
 pub mod auth;
+pub mod backup;
 pub mod bookmark;
 pub mod collection;
 mod common;
@@ -34,6 +37,7 @@ pub mod tag;
 #[derive(Clone, FromRef)]
 pub struct ApiState {
     auth_state: AuthState,
+    backup_state: BackupState,
     bookmark_state: BookmarkState,
     collection_state: CollectionState,
     feed_state: FeedState,
@@ -47,6 +51,7 @@ impl ApiState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         auth_state: AuthState,
+        backup_state: BackupState,
         bookmark_state: BookmarkState,
         collection_state: CollectionState,
         feed_state: FeedState,
@@ -57,6 +62,7 @@ impl ApiState {
     ) -> Self {
         Self {
             auth_state,
+            backup_state,
             bookmark_state,
             collection_state,
             feed_state,
@@ -75,6 +81,7 @@ impl ApiState {
   ),
   nest(
       (path = "/auth", api = Auth, tags = ["Auth"]),
+      (path = "/backups", api = Backups, tags = ["Backups"]),
       (path = "/bookmarks", api = Bookmarks, tags = ["Bookmarks"]),
       (path = "/collections", api = Collections, tags = ["Collections"]),
       (path = "/feeds", api = Feeds, tags = ["Feeds"]),
@@ -114,6 +121,8 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     )
                     .merge(Auth::router())
                     .with_state(AuthState::from_ref(self.api_state))
+                    .merge(Backups::router())
+                    .with_state(BackupState::from_ref(self.api_state))
                     .merge(Bookmarks::router())
                     .with_state(BookmarkState::from_ref(self.api_state))
                     .merge(Collections::router())
