@@ -5,14 +5,13 @@ use std::{
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use http::Response;
+use http::{Request, Response};
 use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
     utils::{ExtractorQuery, Node, TextSelector},
     DownloaderError, DownloaderPlugin, ExtractorError, PostprocessorError, Scraper,
-    DEFAULT_DOWNLOADER,
 };
 
 #[derive(Clone, Debug)]
@@ -145,11 +144,25 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 pub type BookmarkPostprocessorPlugin =
     fn(url: &Url, extracted: &mut ExtractedBookmark) -> Result<(), PostprocessorError>;
 
-#[derive(Default)]
 pub struct BookmarkPlugin<'a> {
-    pub downloader: Option<DownloaderPlugin>,
-    pub extractor: Option<BookmarkExtractorOptions<'a>>,
-    pub postprocessor: Option<BookmarkPostprocessorPlugin>,
+    pub downloader: DownloaderPlugin,
+    pub extractor: BookmarkExtractorOptions<'a>,
+    pub postprocessor: BookmarkPostprocessorPlugin,
+}
+
+impl Default for BookmarkPlugin<'_> {
+    fn default() -> Self {
+        Self {
+            downloader: |url| {
+                Request::get(url.as_str())
+                    .body(())
+                    .map(|e| e.into_parts().0)
+                    .map_err(|e| DownloaderError(e.into()))
+            },
+            extractor: BookmarkExtractorOptions::default(),
+            postprocessor: |_url, _extracted| Ok(()),
+        }
+    }
 }
 
 #[derive(Default)]
@@ -159,14 +172,14 @@ pub struct BookmarkPluginRegistry<'a> {
 
 pub struct DefaultBookmarkScraper<'a> {
     registry: BookmarkPluginRegistry<'a>,
-    default_downloader: DownloaderPlugin,
+    default_plugin: BookmarkPlugin<'a>,
 }
 
 impl<'a> DefaultBookmarkScraper<'a> {
     pub fn new(registry: BookmarkPluginRegistry<'a>) -> Self {
         Self {
             registry,
-            default_downloader: DEFAULT_DOWNLOADER,
+            default_plugin: BookmarkPlugin::default(),
         }
     }
 }
@@ -175,16 +188,18 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
 
-        let plugin = self.registry.scrapers.get(host);
+        let plugin = self
+            .registry
+            .scrapers
+            .get(host)
+            .unwrap_or(&self.default_plugin);
 
-        let parts = (self.default_downloader)(url)?;
+        let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();
         let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
 
         let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
         let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
-
-        let options = plugin.and_then(|e| e.extractor.clone()).unwrap_or_default();
 
         let mut body = resp.into_body();
 
@@ -196,10 +211,10 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
         let html = Html::parse_document(&raw);
 
         let extracted = ExtractedBookmark {
-            title: html.select_text(&options.title_queries),
-            thumbnail: html.select_text(&options.thumbnail_queries),
-            published: html.select_text(&options.published_queries),
-            author: html.select_text(&options.author_queries),
+            title: html.select_text(&plugin.extractor.title_queries),
+            thumbnail: html.select_text(&plugin.extractor.thumbnail_queries),
+            published: html.select_text(&plugin.extractor.published_queries),
+            author: html.select_text(&plugin.extractor.author_queries),
         };
 
         let processed = extracted.try_into()?;

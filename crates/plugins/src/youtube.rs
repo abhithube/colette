@@ -4,7 +4,7 @@ use lazy_regex::regex_captures;
 
 pub fn new_youtube_feed_plugin() -> FeedPlugin<'static> {
     FeedPlugin {
-        downloader: Some(|url| {
+        downloader: |url| {
             if let Some((_, channel_id)) =
                 regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.clone().as_str())
             {
@@ -16,7 +16,7 @@ pub fn new_youtube_feed_plugin() -> FeedPlugin<'static> {
                 .body(())
                 .map(|e| e.into_parts().0)
                 .map_err(|e| DownloaderError(e.into()))
-        }),
+        },
         ..Default::default()
     }
 }

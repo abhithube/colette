@@ -3,7 +3,7 @@ use http::Request;
 
 pub fn new_reddit_feed_plugin() -> FeedPlugin<'static> {
     FeedPlugin {
-        downloader: Some(|url| {
+        downloader: |url| {
             if !url.path().contains(".rss") {
                 url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
             }
@@ -12,7 +12,7 @@ pub fn new_reddit_feed_plugin() -> FeedPlugin<'static> {
                 .body(())
                 .map(|e| e.into_parts().0)
                 .map_err(|e| DownloaderError(e.into()))
-        }),
+        },
         ..Default::default()
     }
 }

@@ -1,4 +1,4 @@
-use http::{request::Parts, Request};
+use http::request::Parts;
 use url::Url;
 
 pub mod bookmark;
@@ -10,13 +10,6 @@ pub trait Scraper<T>: Send + Sync {
 }
 
 pub type DownloaderPlugin = fn(&mut Url) -> Result<Parts, DownloaderError>;
-
-pub const DEFAULT_DOWNLOADER: DownloaderPlugin = |url| {
-    Request::get(url.as_str())
-        .body(())
-        .map(|e| e.into_parts().0)
-        .map_err(|e| DownloaderError(e.into()))
-};
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
