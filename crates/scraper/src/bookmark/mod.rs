@@ -18,10 +18,15 @@ mod extractor;
 mod postprocessor;
 
 #[derive(Default)]
+pub struct BookmarkPlugin<'a> {
+    pub downloader: Option<DownloaderPlugin>,
+    pub extractor: Option<BookmarkExtractorOptions<'a>>,
+    pub postprocessor: Option<BookmarkPostprocessorPlugin>,
+}
+
+#[derive(Default)]
 pub struct BookmarkPluginRegistry<'a> {
-    pub downloaders: HashMap<&'static str, DownloaderPlugin>,
-    pub extractors: HashMap<&'static str, BookmarkExtractorOptions<'a>>,
-    pub postprocessors: HashMap<&'static str, BookmarkPostprocessorPlugin>,
+    pub scrapers: HashMap<&'static str, BookmarkPlugin<'a>>,
 }
 
 pub struct DefaultBookmarkScraper<'a> {
@@ -42,9 +47,7 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
         let host = url.host_str().ok_or(crate::Error::Parse)?;
 
-        let _downloader = self.registry.downloaders.get(host);
-        let extractor = self.registry.extractors.get(host);
-        let _postprocessor = self.registry.postprocessors.get(host);
+        let plugin = self.registry.scrapers.get(host);
 
         let parts = (self.default_downloader)(url)?;
         let req: ureq::Request = parts.into();
@@ -53,7 +56,7 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
         let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
         let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
 
-        let options = extractor.cloned().unwrap_or_default();
+        let options = plugin.and_then(|e| e.extractor.clone()).unwrap_or_default();
 
         let mut body = resp.into_body();
 

@@ -1,10 +1,6 @@
 use std::collections::HashMap;
 
-use colette_scraper::{
-    bookmark::{BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkPostprocessorPlugin},
-    feed::FeedPluginRegistry,
-    DownloaderPlugin,
-};
+use colette_scraper::{bookmark::BookmarkPluginRegistry, feed::FeedPluginRegistry};
 #[allow(unused_imports)]
 use custom::*;
 
@@ -22,13 +18,7 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
 }
 
 pub fn register_bookmark_plugins<'a>() -> BookmarkPluginRegistry<'a> {
-    let downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
-    let extractors: HashMap<&str, BookmarkExtractorOptions<'a>> = HashMap::new();
-    let postprocessors: HashMap<&str, BookmarkPostprocessorPlugin> = HashMap::new();
+    let scrapers = HashMap::new();
 
-    BookmarkPluginRegistry {
-        downloaders,
-        extractors,
-        postprocessors,
-    }
+    BookmarkPluginRegistry { scrapers }
 }
