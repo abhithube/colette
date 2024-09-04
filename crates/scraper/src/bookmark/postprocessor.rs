@@ -13,13 +13,8 @@ pub struct ProcessedBookmark {
     pub author: Option<String>,
 }
 
-pub type BookmarkPostprocessorFn =
+pub type BookmarkPostprocessorPlugin =
     fn(url: &Url, extracted: &mut ExtractedBookmark) -> Result<(), PostprocessorError>;
-
-pub enum BookmarkPostprocessorPlugin {
-    Value(()),
-    Callback(BookmarkPostprocessorFn),
-}
 
 impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
     type Error = PostprocessorError;

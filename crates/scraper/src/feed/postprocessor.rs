@@ -24,13 +24,8 @@ pub struct ProcessedFeedEntry {
     pub thumbnail: Option<Url>,
 }
 
-pub type FeedPostprocessorFn =
+pub type FeedPostprocessorPlugin =
     fn(url: &Url, extracted: &mut ExtractedFeed) -> Result<(), PostprocessorError>;
-
-pub enum FeedPostprocessorPlugin {
-    Value(()),
-    Callback(FeedPostprocessorFn),
-}
 
 impl TryFrom<ExtractedFeed> for ProcessedFeed {
     type Error = PostprocessorError;
