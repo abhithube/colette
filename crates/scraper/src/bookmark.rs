@@ -201,13 +201,14 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
         let raw = String::from_utf8_lossy(&bytes);
         let html = Html::parse_document(&raw);
 
-        let extracted = ExtractedBookmark {
+        let mut extracted = ExtractedBookmark {
             title: html.select_text(&plugin.extractor.title_queries),
             thumbnail: html.select_text(&plugin.extractor.thumbnail_queries),
             published: html.select_text(&plugin.extractor.published_queries),
             author: html.select_text(&plugin.extractor.author_queries),
         };
 
+        (plugin.postprocessor)(url, &mut extracted)?;
         let processed = extracted.try_into()?;
 
         Ok(processed)

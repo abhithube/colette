@@ -182,7 +182,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
         let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
         let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
 
-        let extracted = if let Some(options) = &plugin.extractor {
+        let mut extracted = if let Some(options) = &plugin.extractor {
             let mut body = resp.into_body();
 
             let mut bytes: Vec<u8> = vec![];
@@ -217,6 +217,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
                 .map_err(|e| ExtractorError(e.into()))
         }?;
 
+        (plugin.postprocessor)(url, &mut extracted)?;
         let processed = extracted.try_into()?;
 
         Ok(processed)
