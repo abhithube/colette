@@ -3,8 +3,10 @@ use std::{
     io::{BufRead, BufReader, Read},
 };
 
+use anyhow::anyhow;
 pub use detector::*;
 pub use extractor::*;
+use feed_rs::parser;
 use http::Response;
 pub use postprocessor::*;
 use scraper::Html;
@@ -27,7 +29,7 @@ pub trait FeedScraper: Scraper<ProcessedFeed> {
 pub struct FeedPlugin<'a> {
     pub downloader: Option<DownloaderPlugin>,
     pub detector: Option<FeedDetectorPlugin<'a>>,
-    pub extractor: Option<FeedExtractorPlugin<'a>>,
+    pub extractor: Option<FeedExtractorOptions<'a>>,
     pub postprocessor: Option<FeedPostprocessorPlugin>,
 }
 
@@ -39,7 +41,6 @@ pub struct FeedPluginRegistry<'a> {
 pub struct DefaultFeedScraper<'a> {
     registry: FeedPluginRegistry<'a>,
     default_downloader: DownloaderPlugin,
-    default_extractor: Box<dyn FeedExtractor>,
     default_detector: Box<dyn FeedDetector>,
 }
 
@@ -48,7 +49,6 @@ impl<'a> DefaultFeedScraper<'a> {
         Self {
             registry,
             default_downloader: DEFAULT_DOWNLOADER,
-            default_extractor: Box::new(DefaultXmlFeedExtractor),
             default_detector: Box::new(DefaultFeedDetector::new(None)),
         }
     }
@@ -67,47 +67,42 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
         let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
 
         let extracted = if let Some(plugin) = plugin {
-            match &plugin.extractor {
-                Some(plugin) => match plugin {
-                    FeedExtractorPlugin::Value(options) => {
-                        let mut body = resp.into_body();
+            if let Some(options) = &plugin.extractor {
+                let mut body = resp.into_body();
 
-                        let mut bytes: Vec<u8> = vec![];
-                        body.read(&mut bytes)
-                            .map_err(|e| ExtractorError(e.into()))?;
+                let mut bytes: Vec<u8> = vec![];
+                body.read(&mut bytes)
+                    .map_err(|e| ExtractorError(e.into()))?;
 
-                        let raw = String::from_utf8_lossy(&bytes);
-                        let html = Html::parse_document(&raw);
+                let raw = String::from_utf8_lossy(&bytes);
+                let html = Html::parse_document(&raw);
 
-                        let entries = html
-                            .select(&options.feed_entries_selector)
-                            .map(|element| ExtractedFeedEntry {
-                                link: element.select_text(&options.feed_entry_link_queries),
-                                title: element.select_text(&options.feed_entry_title_queries),
-                                published: element
-                                    .select_text(&options.feed_entry_published_queries),
-                                description: element
-                                    .select_text(&options.feed_entry_description_queries),
-                                author: element.select_text(&options.feed_entry_author_queries),
-                                thumbnail: element
-                                    .select_text(&options.feed_entry_thumbnail_queries),
-                            })
-                            .collect();
+                let entries = html
+                    .select(&options.feed_entries_selector)
+                    .map(|element| ExtractedFeedEntry {
+                        link: element.select_text(&options.feed_entry_link_queries),
+                        title: element.select_text(&options.feed_entry_title_queries),
+                        published: element.select_text(&options.feed_entry_published_queries),
+                        description: element.select_text(&options.feed_entry_description_queries),
+                        author: element.select_text(&options.feed_entry_author_queries),
+                        thumbnail: element.select_text(&options.feed_entry_thumbnail_queries),
+                    })
+                    .collect();
 
-                        let feed = ExtractedFeed {
-                            link: html.select_text(&options.feed_link_queries),
-                            title: html.select_text(&options.feed_title_queries),
-                            entries,
-                        };
+                let feed = ExtractedFeed {
+                    link: html.select_text(&options.feed_link_queries),
+                    title: html.select_text(&options.feed_title_queries),
+                    entries,
+                };
 
-                        Ok(feed)
-                    }
-                    FeedExtractorPlugin::Callback(func) => func(url, resp),
-                },
-                None => self.default_extractor.extract(url, resp),
+                Ok(feed)
+            } else {
+                return Err(crate::Error::Extract(ExtractorError(anyhow!(""))));
             }
         } else {
-            self.default_extractor.extract(url, resp)
+            parser::parse(resp.into_body())
+                .map(ExtractedFeed::from)
+                .map_err(|e| ExtractorError(e.into()))
         }?;
 
         let processed = extracted.try_into()?;

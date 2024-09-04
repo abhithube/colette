@@ -1,14 +1,7 @@
-use std::io::BufRead;
-
-use feed_rs::{
-    model::{Entry, Feed, Link},
-    parser,
-};
-use http::Response;
+use feed_rs::model::{Entry, Feed, Link};
 use scraper::Selector;
-use url::Url;
 
-use crate::{utils::ExtractorQuery, ExtractorError};
+use crate::utils::ExtractorQuery;
 
 #[derive(Clone, Debug)]
 pub struct FeedExtractorOptions<'a> {
@@ -38,36 +31,6 @@ pub struct ExtractedFeedEntry {
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail: Option<String>,
-}
-
-pub trait FeedExtractor: Send + Sync {
-    fn extract(
-        &self,
-        url: &Url,
-        resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedFeed, ExtractorError>;
-}
-
-pub type FeedExtractorFn =
-    fn(url: &Url, resp: Response<Box<dyn BufRead>>) -> Result<ExtractedFeed, ExtractorError>;
-
-pub enum FeedExtractorPlugin<'a> {
-    Value(FeedExtractorOptions<'a>),
-    Callback(FeedExtractorFn),
-}
-
-pub struct DefaultXmlFeedExtractor;
-
-impl FeedExtractor for DefaultXmlFeedExtractor {
-    fn extract(
-        &self,
-        _url: &Url,
-        resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedFeed, ExtractorError> {
-        parser::parse(resp.into_body())
-            .map(ExtractedFeed::from)
-            .map_err(|e| ExtractorError(e.into()))
-    }
 }
 
 impl From<Feed> for ExtractedFeed {
