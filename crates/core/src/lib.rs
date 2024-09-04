@@ -16,5 +16,6 @@ pub mod feed;
 pub mod feed_entry;
 pub mod folder;
 pub mod profile;
+pub mod refresh;
 pub mod tag;
 pub mod user;
