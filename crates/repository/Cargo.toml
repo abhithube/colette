@@ -11,6 +11,7 @@ colette-core.workspace = true
 colette-entity.workspace = true
 colette-utils.workspace = true
 futures.workspace = true
+opml.workspace = true
 sea-orm.workspace = true
 serde.workspace = true
 uuid.workspace = true

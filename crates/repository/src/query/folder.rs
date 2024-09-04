@@ -74,6 +74,20 @@ pub async fn select_by_id<Db: ConnectionTrait>(
         .await
 }
 
+pub async fn select_by_title_and_parent<Db: ConnectionTrait>(
+    db: &Db,
+    title: String,
+    parent_id: Option<Uuid>,
+    profile_id: Uuid,
+) -> Result<Option<folder::Model>, DbErr> {
+    folder::Entity::find()
+        .filter(folder::Column::ProfileId.eq(profile_id))
+        .filter(folder::Column::Title.eq(title))
+        .filter(folder::Column::ParentId.eq(parent_id))
+        .one(db)
+        .await
+}
+
 pub async fn insert<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
