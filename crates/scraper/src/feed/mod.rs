@@ -23,11 +23,11 @@ mod detector;
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedExtractorOptions<'a> {
     pub feed_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entries_selector: Selector,
+    pub feed_entries_selectors: Vec<Selector>,
     pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
     pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
     pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
@@ -192,17 +192,30 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
             let raw = String::from_utf8_lossy(&bytes);
             let html = Html::parse_document(&raw);
 
-            let entries = html
-                .select(&options.feed_entries_selector)
-                .map(|element| ExtractedFeedEntry {
-                    link: element.select_text(&options.feed_entry_link_queries),
-                    title: element.select_text(&options.feed_entry_title_queries),
-                    published: element.select_text(&options.feed_entry_published_queries),
-                    description: element.select_text(&options.feed_entry_description_queries),
-                    author: element.select_text(&options.feed_entry_author_queries),
-                    thumbnail: element.select_text(&options.feed_entry_thumbnail_queries),
+            let entries = options
+                .feed_entries_selectors
+                .iter()
+                .find_map(|e| {
+                    let entries = html
+                        .select(e)
+                        .map(|element| ExtractedFeedEntry {
+                            link: element.select_text(&options.feed_entry_link_queries),
+                            title: element.select_text(&options.feed_entry_title_queries),
+                            published: element.select_text(&options.feed_entry_published_queries),
+                            description: element
+                                .select_text(&options.feed_entry_description_queries),
+                            author: element.select_text(&options.feed_entry_author_queries),
+                            thumbnail: element.select_text(&options.feed_entry_thumbnail_queries),
+                        })
+                        .collect::<Vec<_>>();
+
+                    if entries.is_empty() {
+                        None
+                    } else {
+                        Some(entries)
+                    }
                 })
-                .collect();
+                .unwrap_or_default();
 
             let feed = ExtractedFeed {
                 link: html.select_text(&options.feed_link_queries),
