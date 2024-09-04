@@ -1,13 +1,6 @@
-use std::io::BufRead;
+use scraper::Selector;
 
-use http::Response;
-use scraper::{Html, Selector};
-use url::Url;
-
-use crate::{
-    utils::{ExtractorQuery, Node, TextSelector},
-    ExtractorError,
-};
+use crate::utils::{ExtractorQuery, Node};
 
 #[derive(Clone, Debug)]
 pub struct BookmarkExtractorOptions<'a> {
@@ -94,58 +87,4 @@ pub struct ExtractedBookmark {
     pub thumbnail: Option<String>,
     pub published: Option<String>,
     pub author: Option<String>,
-}
-
-pub trait BookmarkExtractor: Send + Sync {
-    fn extract(
-        &self,
-        url: &Url,
-        resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedBookmark, ExtractorError>;
-}
-
-pub type BookmarkExtractorFn =
-    fn(url: &Url, resp: Response<Box<dyn BufRead>>) -> Result<ExtractedBookmark, ExtractorError>;
-
-pub enum BookmarkExtractorPlugin<'a> {
-    Value(BookmarkExtractorOptions<'a>),
-    Callback(BookmarkExtractorFn),
-}
-
-pub struct DefaultBookmarkExtractor<'a> {
-    options: BookmarkExtractorOptions<'a>,
-}
-
-impl<'a> DefaultBookmarkExtractor<'a> {
-    pub fn new(options: Option<BookmarkExtractorOptions<'a>>) -> Self {
-        Self {
-            options: options.unwrap_or_default(),
-        }
-    }
-}
-
-impl BookmarkExtractor for DefaultBookmarkExtractor<'_> {
-    fn extract(
-        &self,
-        _url: &Url,
-        resp: Response<Box<dyn BufRead>>,
-    ) -> Result<ExtractedBookmark, ExtractorError> {
-        let mut body = resp.into_body();
-
-        let mut bytes: Vec<u8> = vec![];
-        body.read(&mut bytes)
-            .map_err(|e| ExtractorError(e.into()))?;
-
-        let raw = String::from_utf8_lossy(&bytes);
-        let html = Html::parse_document(&raw);
-
-        let bookmark = ExtractedBookmark {
-            title: html.select_text(&self.options.title_queries),
-            thumbnail: html.select_text(&self.options.thumbnail_queries),
-            published: html.select_text(&self.options.published_queries),
-            author: html.select_text(&self.options.author_queries),
-        };
-
-        Ok(bookmark)
-    }
 }

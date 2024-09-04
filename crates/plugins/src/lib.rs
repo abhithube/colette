@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use colette_scraper::{
-    bookmark::{BookmarkExtractorPlugin, BookmarkPluginRegistry, BookmarkPostprocessorPlugin},
+    bookmark::{BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkPostprocessorPlugin},
     feed::FeedPluginRegistry,
     DownloaderPlugin,
 };
@@ -23,7 +23,7 @@ pub fn register_feed_plugins<'a>() -> FeedPluginRegistry<'a> {
 
 pub fn register_bookmark_plugins<'a>() -> BookmarkPluginRegistry<'a> {
     let downloaders: HashMap<&str, DownloaderPlugin> = HashMap::new();
-    let extractors: HashMap<&str, BookmarkExtractorPlugin> = HashMap::new();
+    let extractors: HashMap<&str, BookmarkExtractorOptions<'a>> = HashMap::new();
     let postprocessors: HashMap<&str, BookmarkPostprocessorPlugin> = HashMap::new();
 
     BookmarkPluginRegistry {
