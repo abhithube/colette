@@ -1,4 +1,3 @@
-// use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;

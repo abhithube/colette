@@ -173,14 +173,6 @@ pub async fn get_active_user(
     State(service): State<Arc<AuthService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    // let user = repository
-    //     .find(UserIdParams::Id(session.user_id))
-    //     .await
-    //     .map(User::from)
-    //     .map_err(|_| Error::Unknown)?;
-
-    // Ok(GetActiveResponse::Ok(user))
-
     match service.get_active(session.user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
