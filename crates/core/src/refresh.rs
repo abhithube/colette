@@ -43,10 +43,6 @@ impl RefreshService {
             .map(|item| {
                 let semaphore = semaphore.clone();
 
-                let feed_scraper = self.feed_scraper.clone();
-                let feed_repository = self.feed_repository.clone();
-                let profile_repository = self.profile_repository.clone();
-
                 async move {
                     let _ = semaphore
                         .acquire()
@@ -54,28 +50,11 @@ impl RefreshService {
                         .map_err(|e| Error::Unknown(e.into()))?;
 
                     if let Ok((feed_id, url)) = item {
-                        let mut parsed = Url::parse(&url).map_err(|e| Error::Unknown(e.into()))?;
+                        let parsed = Url::parse(&url).map_err(|e| Error::Unknown(e.into()))?;
 
                         println!("{}: refreshing {}", Local::now().to_rfc3339(), url);
 
-                        let feed = feed_scraper.scrape(&mut parsed).await?;
-
-                        let mut profiles_stream = profile_repository
-                            .stream(feed_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        while let Some(Ok(profile_id)) = profiles_stream.next().await {
-                            feed_repository
-                                .create(FeedCreateData {
-                                    url: url.clone(),
-                                    feed: Some(feed.clone()),
-                                    folder_id: None,
-                                    profile_id,
-                                })
-                                .await
-                                .map_err(|e| Error::Unknown(e.into()))?;
-                        }
+                        self.refresh_feed(feed_id, parsed).await?;
                     }
 
                     Ok(()) as Result<(), Error>
@@ -84,6 +63,30 @@ impl RefreshService {
             .buffer_unordered(5);
 
         tasks.for_each(|_| async {}).await;
+
+        Ok(())
+    }
+
+    async fn refresh_feed(&self, feed_id: i32, mut url: Url) -> Result<(), Error> {
+        let feed = self.feed_scraper.scrape(&mut url).await?;
+
+        let mut profiles_stream = self
+            .profile_repository
+            .stream(feed_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        while let Some(Ok(profile_id)) = profiles_stream.next().await {
+            self.feed_repository
+                .create(FeedCreateData {
+                    url: url.to_string(),
+                    feed: Some(feed.clone()),
+                    folder_id: None,
+                    profile_id,
+                })
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
         Ok(())
     }
