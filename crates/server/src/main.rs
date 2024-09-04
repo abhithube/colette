@@ -1,8 +1,13 @@
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enabled");
 
-use std::{error::Error, sync::Arc};
+use std::{error::Error, str::FromStr, sync::Arc};
 
+use apalis::{
+    prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
+    utils::TokioExecutor,
+};
+use apalis_cron::{CronStream, Schedule};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
@@ -13,7 +18,7 @@ use colette_backup::opml::OpmlManager;
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    folder::FolderService, profile::ProfileService, tag::TagService,
+    folder::FolderService, profile::ProfileService, refresh::RefreshService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -28,7 +33,6 @@ use colette_session::PostgresStore;
 use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
-use colette_tasks::handle_refresh_task;
 use colette_utils::password::ArgonHasher;
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
@@ -80,12 +84,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
     if app_config.refresh_enabled {
-        handle_refresh_task(
-            &app_config.cron_refresh,
-            feed_scraper.clone(),
-            feed_repository.clone(),
-            profile_repository.clone(),
-        )
+        let schedule = Schedule::from_str(&app_config.cron_refresh)?;
+
+        let worker = WorkerBuilder::new("refresh-feeds")
+            .data(Arc::new(RefreshService::new(
+                feed_scraper.clone(),
+                feed_repository.clone(),
+                profile_repository.clone(),
+            )))
+            .backend(CronStream::new(schedule))
+            .build_fn(colette_tasks::refresh_feeds);
+
+        Monitor::<TokioExecutor>::new()
+            .register(worker)
+            .run()
+            .await?;
     }
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());

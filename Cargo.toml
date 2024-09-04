@@ -18,6 +18,9 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false, features = ["std"] }
+apalis = { version = "0.6.0-rc.5", default-features = false, features = [
+  "tokio-comp",
+] }
 async-trait = { version = "0.1", default-features = false }
 axum = { version = "0.7", default-features = false, features = [
   "http1",

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
+apalis.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
