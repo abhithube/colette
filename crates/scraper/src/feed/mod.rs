@@ -91,7 +91,7 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
                 return Err(PostprocessorError(anyhow!("could not process entry title")));
             };
             let Some(published) = e.published.as_ref().and_then(|e| {
-                DateTime::parse_from_rfc3339(e)
+                DateTime::parse_from_rfc3339(e.trim())
                     .ok()
                     .or(DateTime::parse_from_rfc2822(e).ok())
                     .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
@@ -101,22 +101,21 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
                     "could not process entry publish date"
                 )));
             };
-            let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e).ok());
+            let thumbnail = e.thumbnail.as_ref().and_then(|e| Url::parse(e.trim()).ok());
 
-            let entry = ProcessedFeedEntry {
+            entries.push(ProcessedFeedEntry {
                 link,
-                title,
+                title: title.trim().to_owned(),
                 published,
-                description: e.description,
-                author: e.author,
+                description: e.description.map(|e| e.trim().to_owned()),
+                author: e.author.map(|e| e.trim().to_owned()),
                 thumbnail,
-            };
-            entries.push(entry);
+            });
         }
 
         let feed = ProcessedFeed {
             link,
-            title,
+            title: title.trim().to_owned(),
             entries,
         };
 
@@ -217,11 +216,14 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
                 })
                 .unwrap_or_default();
 
-            let feed = ExtractedFeed {
+            let mut feed = ExtractedFeed {
                 link: html.select_text(&options.feed_link_queries),
                 title: html.select_text(&options.feed_title_queries),
                 entries,
             };
+            if feed.link.is_none() {
+                feed.link = Some(url.to_string());
+            }
 
             Ok(feed)
         } else {
