@@ -1,3 +1,5 @@
+use std::ops::RangeFull;
+
 use auth::AuthState;
 use axum::{extract::FromRef, routing, Router};
 use backup::BackupState;
@@ -77,7 +79,7 @@ impl ApiState {
 #[derive(utoipa::OpenApi)]
 #[openapi(
   servers(
-      (url = "http://localhost:8000"),
+      (url = "http://localhost:8000/api/v1"),
   ),
   components(schemas(BaseError))
 )]
@@ -99,7 +101,7 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
     }
 
     pub fn build(self) -> Router<ApiState> {
-        let (mut api, openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        let (mut api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
             .nest(
                 "/api/v1",
                 OpenApiRouter::new()
@@ -128,6 +130,13 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_expiry(Expiry::OnInactivity(Duration::days(1))),
             )
             .split_for_parts();
+
+        openapi.paths.paths = openapi
+            .paths
+            .paths
+            .drain(RangeFull)
+            .map(|(k, v)| (k.replace("/api/v1", ""), v))
+            .collect();
 
         api = api
             .merge(Scalar::with_url("/api/v1/doc", openapi.clone()))
