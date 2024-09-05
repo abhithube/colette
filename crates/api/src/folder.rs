@@ -3,13 +3,15 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, Query, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use colette_core::{
     common::NonEmptyString,
     folder::{self, FolderService},
 };
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, FolderList, Id, Session};
@@ -25,26 +27,15 @@ impl FolderState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(list_folders, get_folder, create_folder, update_folder, delete_folder),
-    components(schemas(Folder, FolderList, FolderCreate, FolderUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Folder, FolderList, FolderCreate, FolderUpdate)))]
+pub struct FolderApi;
 
-impl Api {
-    pub fn router() -> Router<FolderState> {
-        Router::new().nest(
-            "/folders",
-            Router::new()
-                .route("/", routing::get(list_folders).post(create_folder))
-                .route(
-                    "/:id",
-                    routing::get(get_folder)
-                        .patch(update_folder)
-                        .delete(delete_folder),
-                ),
-        )
+impl FolderApi {
+    pub fn router() -> OpenApiRouter<FolderState> {
+        OpenApiRouter::with_openapi(FolderApi::openapi())
+            .routes(routes!(list_folders, create_folder))
+            .routes(routes!(get_folder, update_folder, delete_folder))
     }
 }
 

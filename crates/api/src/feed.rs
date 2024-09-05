@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use axum_extra::extract::Query;
 use colette_core::{
@@ -12,6 +12,8 @@ use colette_core::{
 };
 use http::StatusCode;
 use url::Url;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
@@ -30,42 +32,24 @@ impl FeedState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(
-        list_feeds,
-        get_feed,
-        create_feed,
-        update_feed,
-        delete_feed,
-        detect_feeds,
-    ),
-    components(schemas(
-        Feed,
-        FeedList,
-        FeedDetectedList,
-        FeedCreate,
-        FeedUpdate,
-        FeedDetect,
-        FeedDetected
-    ))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(
+    Feed,
+    FeedList,
+    FeedDetectedList,
+    FeedCreate,
+    FeedUpdate,
+    FeedDetect,
+    FeedDetected
+)))]
+pub struct FeedApi;
 
-impl Api {
-    pub fn router() -> Router<FeedState> {
-        Router::new().nest(
-            "/feeds",
-            Router::new()
-                .route("/", routing::get(list_feeds).post(create_feed))
-                .route(
-                    "/:id",
-                    routing::get(get_feed)
-                        .patch(update_feed)
-                        .delete(delete_feed),
-                )
-                .route("/detect", routing::post(detect_feeds)),
-        )
+impl FeedApi {
+    pub fn router() -> OpenApiRouter<FeedState> {
+        OpenApiRouter::with_openapi(FeedApi::openapi())
+            .routes(routes!(list_feeds, create_feed))
+            .routes(routes!(get_feed, update_feed, delete_feed))
+            .routes(routes!(detect_feeds))
     }
 }
 

@@ -3,13 +3,15 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::{self, BookmarkService};
 use http::StatusCode;
 use url::Url;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
@@ -28,32 +30,15 @@ impl BookmarkState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(
-        list_bookmarks,
-        get_bookmark,
-        create_bookmark,
-        update_bookmark,
-        delete_bookmark
-    ),
-    components(schemas(Bookmark, BookmarkList, BookmarkCreate, BookmarkUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Bookmark, BookmarkList, BookmarkCreate, BookmarkUpdate)))]
+pub struct BookmarkApi;
 
-impl Api {
-    pub fn router() -> Router<BookmarkState> {
-        Router::new().nest(
-            "/bookmarks",
-            Router::new()
-                .route("/", routing::get(list_bookmarks).post(create_bookmark))
-                .route(
-                    "/:id",
-                    routing::get(get_bookmark)
-                        .patch(update_bookmark)
-                        .delete(delete_bookmark),
-                ),
-        )
+impl BookmarkApi {
+    pub fn router() -> OpenApiRouter<BookmarkState> {
+        OpenApiRouter::with_openapi(BookmarkApi::openapi())
+            .routes(routes!(list_bookmarks, create_bookmark))
+            .routes(routes!(get_bookmark, update_bookmark, delete_bookmark))
     }
 }
 

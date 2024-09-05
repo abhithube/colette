@@ -3,13 +3,15 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use colette_core::{
     collection::{self, CollectionService},
     common::NonEmptyString,
 };
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::common::{BaseError, CollectionList, Error, Id, Session};
@@ -25,32 +27,19 @@ impl CollectionState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(
-        list_collections,
-        get_collection,
-        create_collection,
-        update_collection,
-        delete_collection
-    ),
-    components(schemas(Collection, CollectionList, CollectionCreate, CollectionUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Collection, CollectionList, CollectionCreate, CollectionUpdate)))]
+pub struct CollectionApi;
 
-impl Api {
-    pub fn router() -> Router<CollectionState> {
-        Router::new().nest(
-            "/collections",
-            Router::new()
-                .route("/", routing::get(list_collections).post(create_collection))
-                .route(
-                    "/:id",
-                    routing::get(get_collection)
-                        .patch(update_collection)
-                        .delete(delete_collection),
-                ),
-        )
+impl CollectionApi {
+    pub fn router() -> OpenApiRouter<CollectionState> {
+        OpenApiRouter::with_openapi(CollectionApi::openapi())
+            .routes(routes!(list_collections, create_collection))
+            .routes(routes!(
+                get_collection,
+                update_collection,
+                delete_collection
+            ))
     }
 }
 

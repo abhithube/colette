@@ -3,13 +3,15 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, Query, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use colette_core::{
     common::NonEmptyString,
     tag::{self, TagService},
 };
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, Session, TagList};
@@ -25,24 +27,15 @@ impl TagState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(list_tags, get_tag, create_tag, update_tag, delete_tag),
-    components(schemas(Tag, TagList, TagCreate, TagUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Tag, TagList, TagCreate, TagUpdate)))]
+pub struct TagApi;
 
-impl Api {
-    pub fn router() -> Router<TagState> {
-        Router::new().nest(
-            "/tags",
-            Router::new()
-                .route("/", routing::get(list_tags).post(create_tag))
-                .route(
-                    "/:id",
-                    routing::get(get_tag).patch(update_tag).delete(delete_tag),
-                ),
-        )
+impl TagApi {
+    pub fn router() -> OpenApiRouter<TagState> {
+        OpenApiRouter::with_openapi(TagApi::openapi())
+            .routes(routes!(list_tags, create_tag))
+            .routes(routes!(get_tag, update_tag, delete_tag))
     }
 }
 

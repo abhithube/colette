@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use colette_core::{
     common::NonEmptyString,
@@ -11,6 +11,8 @@ use colette_core::{
 };
 use http::StatusCode;
 use url::Url;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, Id, ProfileList, Session};
@@ -26,34 +28,16 @@ impl ProfileState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(
-        list_profiles,
-        get_active_profile,
-        get_profile,
-        create_profile,
-        update_profile,
-        delete_profile
-    ),
-    components(schemas(Profile, ProfileList, ProfileCreate, ProfileUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Profile, ProfileList, ProfileCreate, ProfileUpdate)))]
+pub struct ProfileApi;
 
-impl Api {
-    pub fn router() -> Router<ProfileState> {
-        Router::new().nest(
-            "/profiles",
-            Router::new()
-                .route("/", routing::get(list_profiles).post(create_profile))
-                .route("/@me", routing::get(get_active_profile))
-                .route(
-                    "/:id",
-                    routing::get(get_profile)
-                        .patch(update_profile)
-                        .delete(delete_profile),
-                ),
-        )
+impl ProfileApi {
+    pub fn router() -> OpenApiRouter<ProfileState> {
+        OpenApiRouter::with_openapi(ProfileApi::openapi())
+            .routes(routes!(list_profiles, create_profile))
+            .routes(routes!(get_profile, update_profile, delete_profile))
+            .routes(routes!(get_active_profile))
     }
 }
 

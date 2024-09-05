@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use colette_core::{
     auth::{self, AuthService},
@@ -12,6 +12,8 @@ use colette_core::{
 };
 use email_address::EmailAddress;
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
@@ -30,22 +32,16 @@ impl AuthState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(register, login, get_active_user),
-    components(schemas(Register, Login, User))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(Register, Login, User)))]
+pub struct AuthApi;
 
-impl Api {
-    pub fn router() -> Router<AuthState> {
-        Router::new().nest(
-            "/auth",
-            Router::new()
-                .route("/register", routing::post(register))
-                .route("/login", routing::post(login))
-                .route("/@me", routing::get(get_active_user)),
-        )
+impl AuthApi {
+    pub fn router() -> OpenApiRouter<AuthState> {
+        OpenApiRouter::with_openapi(AuthApi::openapi())
+            .routes(routes!(register))
+            .routes(routes!(login))
+            .routes(routes!(get_active_user))
     }
 }
 

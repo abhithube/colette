@@ -14,13 +14,13 @@ use tag::TagState;
 use tower_http::cors::CorsLayer;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
+use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::Api as Auth, backup::Api as Backups, bookmark::Api as Bookmarks,
-    collection::Api as Collections, common::BaseError, feed::Api as Feeds,
-    feed_entry::Api as FeedEntries, folder::Api as Folders, profile::Api as Profiles,
-    tag::Api as Tags,
+    auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi, collection::CollectionApi,
+    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, folder::FolderApi,
+    profile::ProfileApi, tag::TagApi,
 };
 
 pub mod auth;
@@ -77,18 +77,7 @@ impl ApiState {
 #[derive(utoipa::OpenApi)]
 #[openapi(
   servers(
-      (url = "http://localhost:8000/api/v1")
-  ),
-  nest(
-      (path = "/auth", api = Auth, tags = ["Auth"]),
-      (path = "/backups", api = Backups, tags = ["Backups"]),
-      (path = "/bookmarks", api = Bookmarks, tags = ["Bookmarks"]),
-      (path = "/collections", api = Collections, tags = ["Collections"]),
-      (path = "/feeds", api = Feeds, tags = ["Feeds"]),
-      (path = "/feedEntries", api = FeedEntries, tags = ["Feed Entries"]),
-      (path = "/folders", api = Folders, tags = ["Folders"]),
-      (path = "/profiles", api = Profiles, tags = ["Profiles"]),
-      (path = "/tags", api = Tags, tags = ["Tags"])
+      (url = "http://localhost:8000"),
   ),
   components(schemas(BaseError))
 )]
@@ -110,38 +99,41 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
     }
 
     pub fn build(self) -> Router<ApiState> {
-        let mut api = Router::new()
+        let (mut api, openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
             .nest(
                 "/api/v1",
-                Router::new()
-                    .merge(Scalar::with_url("/doc", ApiDoc::openapi()))
-                    .route(
-                        "/openapi.json",
-                        routing::get(|| async { ApiDoc::openapi().to_pretty_json().unwrap() }),
-                    )
-                    .merge(Auth::router())
+                OpenApiRouter::new()
+                    .nest("/auth", AuthApi::router())
                     .with_state(AuthState::from_ref(self.api_state))
-                    .merge(Backups::router())
+                    .nest("/backups", BackupApi::router())
                     .with_state(BackupState::from_ref(self.api_state))
-                    .merge(Bookmarks::router())
+                    .nest("/bookmarks", BookmarkApi::router())
                     .with_state(BookmarkState::from_ref(self.api_state))
-                    .merge(Collections::router())
+                    .nest("/collections", CollectionApi::router())
                     .with_state(CollectionState::from_ref(self.api_state))
-                    .merge(Feeds::router())
-                    .with_state(FeedState::from_ref(self.api_state))
-                    .merge(FeedEntries::router())
+                    .nest("/feedEntries", FeedEntryApi::router())
                     .with_state(FeedEntryState::from_ref(self.api_state))
-                    .merge(Folders::router())
+                    .nest("/feeds", FeedApi::router())
+                    .with_state(FeedState::from_ref(self.api_state))
+                    .nest("/folders", FolderApi::router())
                     .with_state(FolderState::from_ref(self.api_state))
-                    .merge(Profiles::router())
+                    .nest("/profiles", ProfileApi::router())
                     .with_state(ProfileState::from_ref(self.api_state))
-                    .merge(Tags::router())
+                    .nest("/tags", TagApi::router())
                     .with_state(TagState::from_ref(self.api_state)),
             )
             .layer(
                 SessionManagerLayer::new(self.session_store)
                     .with_secure(false)
                     .with_expiry(Expiry::OnInactivity(Duration::days(1))),
+            )
+            .split_for_parts();
+
+        api = api
+            .merge(Scalar::with_url("/api/v1/doc", openapi.clone()))
+            .route(
+                "/api/v1/openapi.json",
+                routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
             );
 
         if !self.app_config.origin_urls.is_empty() {

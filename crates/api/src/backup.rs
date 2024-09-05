@@ -3,11 +3,12 @@ use std::sync::Arc;
 use axum::{
     extract::State,
     response::{IntoResponse, Response},
-    routing, Router,
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use crate::common::{Error, Session};
 
@@ -22,18 +23,14 @@ impl BackupState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(paths(import_opml, export_opml))]
-pub struct Api;
+#[derive(OpenApi)]
+pub struct BackupApi;
 
-impl Api {
-    pub fn router() -> Router<BackupState> {
-        Router::new().nest(
-            "/backups",
-            Router::new()
-                .route("/opml/import", routing::post(import_opml))
-                .route("/opml/export", routing::post(export_opml)),
-        )
+impl BackupApi {
+    pub fn router() -> OpenApiRouter<BackupState> {
+        OpenApiRouter::with_openapi(BackupApi::openapi())
+            .routes(routes!(import_opml))
+            .routes(routes!(export_opml))
     }
 }
 

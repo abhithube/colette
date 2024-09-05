@@ -3,12 +3,14 @@ use std::sync::Arc;
 use axum::{
     extract::{Path, State},
     response::{IntoResponse, Response},
-    routing, Json, Router,
+    Json,
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::feed_entry::{self, FeedEntryService};
 use http::StatusCode;
+use utoipa::OpenApi;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::common::{BaseError, Error, FeedEntryList, Id, Session};
@@ -24,24 +26,15 @@ impl FeedEntryState {
     }
 }
 
-#[derive(utoipa::OpenApi)]
-#[openapi(
-    paths(list_feed_entries, get_feed_entry, update_feed_entry),
-    components(schemas(FeedEntry, FeedEntryList, FeedEntryUpdate))
-)]
-pub struct Api;
+#[derive(OpenApi)]
+#[openapi(components(schemas(FeedEntry, FeedEntryList, FeedEntryUpdate)))]
+pub struct FeedEntryApi;
 
-impl Api {
-    pub fn router() -> Router<FeedEntryState> {
-        Router::new().nest(
-            "/feedEntries",
-            Router::new()
-                .route("/", routing::get(list_feed_entries))
-                .route(
-                    "/:id",
-                    routing::get(get_feed_entry).patch(update_feed_entry),
-                ),
-        )
+impl FeedEntryApi {
+    pub fn router() -> OpenApiRouter<FeedEntryState> {
+        OpenApiRouter::with_openapi(FeedEntryApi::openapi())
+            .routes(routes!(list_feed_entries))
+            .routes(routes!(get_feed_entry, update_feed_entry))
     }
 }
 
