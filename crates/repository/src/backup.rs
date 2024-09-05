@@ -30,8 +30,6 @@ impl BackupRepository for BackupSqlRepository {
                     if let (Some(url), Some(link)) = (outline.xml_url, outline.html_url) {
                         let title = outline.title.unwrap_or(outline.text);
 
-                        println!("upserting feed {}", title);
-
                         let inserted = query::feed::insert(db, link, title, Some(url)).await?;
 
                         match query::profile_feed::insert(
@@ -47,8 +45,6 @@ impl BackupRepository for BackupSqlRepository {
                             Err(e) => Err(e),
                         }?
                     } else if !outline.outlines.is_empty() {
-                        println!("upserting folder {}", outline.text);
-
                         let model = match query::folder::select_by_title_and_parent(
                             db,
                             outline.text.clone(),
