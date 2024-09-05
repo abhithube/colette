@@ -34,14 +34,18 @@ impl BackupRepository for BackupSqlRepository {
 
                         let inserted = query::feed::insert(db, link, title, Some(url)).await?;
 
-                        query::profile_feed::insert(
+                        match query::profile_feed::insert(
                             db,
                             Uuid::new_v4(),
                             profile_id,
                             inserted.last_insert_id,
                             parent,
                         )
-                        .await?;
+                        .await
+                        {
+                            Ok(_) | Err(DbErr::RecordNotInserted) => Ok(()),
+                            Err(e) => Err(e),
+                        }?
                     } else if !outline.outlines.is_empty() {
                         println!("upserting folder {}", outline.text);
 
