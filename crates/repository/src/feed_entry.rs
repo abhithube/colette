@@ -98,16 +98,10 @@ async fn find<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<FeedEntryFindManyFilters>,
 ) -> Result<Vec<FeedEntry>, Error> {
-    let models = query::profile_feed_entry::select_with_entry(
-        db,
-        id,
-        profile_id,
-        limit.map(|e| e + 1),
-        cursor,
-        filters,
-    )
-    .await
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let models =
+        query::profile_feed_entry::select_with_entry(db, id, profile_id, limit, cursor, filters)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
     let feed_entries = models
         .into_iter()

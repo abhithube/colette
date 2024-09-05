@@ -82,7 +82,7 @@ impl BookmarkService {
             .repository
             .list(
                 profile_id,
-                Some(PAGINATION_LIMIT),
+                Some(PAGINATION_LIMIT + 1),
                 cursor,
                 Some(BookmarkFindManyFilters {
                     collection_id: query.collection_id,

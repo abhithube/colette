@@ -144,7 +144,7 @@ async fn find<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<FolderFindManyFilters>,
 ) -> Result<Vec<Folder>, Error> {
-    let folders = query::folder::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
+    let folders = query::folder::select(db, id, profile_id, limit, cursor, filters)
         .await
         .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;

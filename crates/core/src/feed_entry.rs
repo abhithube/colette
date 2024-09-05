@@ -67,7 +67,7 @@ impl FeedEntryService {
             .repository
             .list(
                 profile_id,
-                Some(PAGINATION_LIMIT),
+                Some(PAGINATION_LIMIT + 1),
                 cursor,
                 Some(FeedEntryFindManyFilters {
                     feed_id: query.feed_id,

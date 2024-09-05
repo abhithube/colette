@@ -142,7 +142,7 @@ async fn find<Db: ConnectionTrait>(
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<Collection>, Error> {
-    let collections = query::collection::select(db, id, profile_id, limit.map(|e| e + 1), cursor)
+    let collections = query::collection::select(db, id, profile_id, limit, cursor)
         .await
         .map(|e| e.into_iter().map(Collection::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;

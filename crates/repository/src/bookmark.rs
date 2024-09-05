@@ -262,21 +262,15 @@ async fn find<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<BookmarkFindManyFilters>,
 ) -> Result<Vec<Bookmark>, Error> {
-    let models = query::profile_bookmark::select_with_bookmark(
-        db,
-        id,
-        profile_id,
-        limit.map(|e| e + 1),
-        cursor,
-        filters,
-    )
-    .await
-    .map(|e| {
-        e.into_iter()
-            .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
-            .collect::<Vec<_>>()
-    })
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let models =
+        query::profile_bookmark::select_with_bookmark(db, id, profile_id, limit, cursor, filters)
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
+                    .collect::<Vec<_>>()
+            })
+            .map_err(|e| Error::Unknown(e.into()))?;
     let pb_models = models.iter().map(|e| e.0.to_owned()).collect::<Vec<_>>();
 
     let tag_models = query::profile_bookmark::load_tags(db, pb_models)

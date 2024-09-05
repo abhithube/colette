@@ -139,7 +139,7 @@ async fn find<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<Tag>, Error> {
-    let tags = query::tag::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
+    let tags = query::tag::select(db, id, profile_id, limit, cursor, filters)
         .await
         .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;

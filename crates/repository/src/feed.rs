@@ -291,21 +291,14 @@ async fn find<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<FeedFindManyFilters>,
 ) -> Result<Vec<Feed>, Error> {
-    let models = query::profile_feed::select_with_feed(
-        db,
-        id,
-        profile_id,
-        limit.map(|e| e + 1),
-        cursor,
-        filters,
-    )
-    .await
-    .map(|e| {
-        e.into_iter()
-            .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
-            .collect::<Vec<_>>()
-    })
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let models = query::profile_feed::select_with_feed(db, id, profile_id, limit, cursor, filters)
+        .await
+        .map(|e| {
+            e.into_iter()
+                .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
+                .collect::<Vec<_>>()
+        })
+        .map_err(|e| Error::Unknown(e.into()))?;
     let pf_models = models.iter().map(|e| e.0.to_owned()).collect::<Vec<_>>();
     let pf_ids = pf_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
