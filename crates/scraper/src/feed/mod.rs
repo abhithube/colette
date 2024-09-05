@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 pub use detector::*;
 use feed_rs::{
     model::{Entry, Feed, Link},
-    parser,
+    parser::Builder,
 };
 use http::{Request, Response};
 use scraper::{Html, Selector};
@@ -222,7 +222,18 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 
             Ok(feed)
         } else {
-            parser::parse(resp.into_reader())
+            let parser = Builder::new()
+                .timestamp_parser(|e| {
+                    DateTime::parse_from_rfc3339(e.trim())
+                        .ok()
+                        .or(DateTime::parse_from_rfc2822(e).ok())
+                        .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
+                        .map(|f| f.to_utc())
+                })
+                .build();
+
+            parser
+                .parse(resp.into_reader())
                 .map(ExtractedFeed::from)
                 .map_err(|e| ExtractorError(e.into()))
         }?;
