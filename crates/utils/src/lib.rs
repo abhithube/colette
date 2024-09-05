@@ -1,4 +1,4 @@
-pub mod base_64;
+pub mod base64;
 pub mod password;
 
 pub trait PasswordHasher: Send + Sync {

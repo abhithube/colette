@@ -33,7 +33,7 @@ use colette_session::PostgresStore;
 use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
-use colette_utils::{base_64::Base64Encoder, password::ArgonHasher};
+use colette_utils::{base64::Base64Encoder, password::ArgonHasher};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
