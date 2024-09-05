@@ -53,6 +53,12 @@ pub struct FeedDetected {
     pub title: String,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub id: Uuid,
+    pub title: String,
+}
+
 pub struct FeedService {
     repository: Arc<dyn FeedRepository>,
     scraper: Arc<dyn FeedScraper>,
@@ -71,9 +77,15 @@ impl FeedService {
         query: FeedListQuery,
         profile_id: Uuid,
     ) -> Result<Paginated<Feed>, Error> {
-        self.repository
+        let feeds = self
+            .repository
             .list(profile_id, None, None, Some(query.into()))
-            .await
+            .await?;
+
+        Ok(Paginated {
+            data: feeds,
+            ..Default::default()
+        })
     }
 
     pub async fn get_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
@@ -167,9 +179,9 @@ pub trait FeedRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FeedFindManyFilters>,
-    ) -> Result<Paginated<Feed>, Error>;
+    ) -> Result<Vec<Feed>, Error>;
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
 

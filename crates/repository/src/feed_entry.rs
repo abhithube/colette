@@ -1,11 +1,11 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
-    common::{Findable, IdParams, Paginated, Updatable},
-    feed_entry::{Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData},
+    common::{Findable, IdParams, Updatable},
+    feed_entry::{
+        Cursor, Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData,
+    },
     FeedEntry,
 };
 use colette_entity::PfeWithFe;
-use colette_utils::base_64;
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, TransactionError,
     TransactionTrait,
@@ -83,10 +83,10 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor_raw: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
-    ) -> Result<Paginated<FeedEntry>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    ) -> Result<Vec<FeedEntry>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 }
 
@@ -95,61 +95,33 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
+    cursor: Option<Cursor>,
     filters: Option<FeedEntryFindManyFilters>,
-) -> Result<Paginated<FeedEntry>, Error> {
+) -> Result<Vec<FeedEntry>, Error> {
     let models = query::profile_feed_entry::select_with_entry(
         db,
         id,
         profile_id,
         limit.map(|e| e + 1),
-        cursor_raw.and_then(|e| base_64::decode::<Cursor>(&e).ok()),
+        cursor,
         filters,
     )
     .await
     .map_err(|e| Error::Unknown(e.into()))?;
 
-    let mut feed_entries = models
+    let feed_entries = models
         .into_iter()
         .filter_map(|(pfe, fe_opt)| fe_opt.map(|fe| FeedEntry::from(PfeWithFe { pfe, fe })))
         .collect::<Vec<_>>();
-    let mut cursor: Option<String> = None;
 
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if feed_entries.len() > limit {
-            feed_entries = feed_entries.into_iter().take(limit).collect();
-
-            if let Some(last) = feed_entries.last() {
-                let c = Cursor {
-                    id: last.id,
-                    published_at: last.published_at,
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<FeedEntry> {
-        cursor,
-        data: feed_entries,
-    })
+    Ok(feed_entries)
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<FeedEntry, Error> {
     let feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
     feed_entries
-        .data
         .first()
         .cloned()
         .ok_or(Error::NotFound(params.id))
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub id: Uuid,
-    pub published_at: DateTime<Utc>,
 }

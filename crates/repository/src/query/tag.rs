@@ -1,4 +1,4 @@
-use colette_core::tag::{TagFindManyFilters, TagType};
+use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
     sea_query::{Alias, Expr, OnConflict},
@@ -7,14 +7,12 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::tag::Cursor;
-
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor: Cursor,
+    cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<PartialTag>, DbErr> {
     let mut query = tag::Entity::find()
@@ -57,7 +55,9 @@ pub async fn select<Db: ConnectionTrait>(
     }
 
     let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
-    query.after(cursor.title);
+    if let Some(cursor) = cursor {
+        query.after(cursor.title);
+    }
     if let Some(limit) = limit {
         query.first(limit);
     }

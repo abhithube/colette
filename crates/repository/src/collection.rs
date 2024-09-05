@@ -1,9 +1,8 @@
 use colette_core::{
-    collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Error},
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
+    collection::{CollectionCreateData, CollectionRepository, CollectionUpdateData, Cursor, Error},
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Collection,
 };
-use colette_utils::base_64;
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
     TransactionError, TransactionTrait,
@@ -130,9 +129,9 @@ impl CollectionRepository for CollectionSqlRepository {
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor_raw: Option<String>,
-    ) -> Result<Paginated<Collection>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw).await
+        cursor: Option<Cursor>,
+    ) -> Result<Vec<Collection>, Error> {
+        find(&self.db, None, profile_id, limit, cursor).await
     }
 }
 
@@ -141,53 +140,21 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
-) -> Result<Paginated<Collection>, Error> {
-    let mut cursor = Cursor::default();
-    if let Some(raw) = cursor_raw.as_deref() {
-        cursor = base_64::decode::<Cursor>(raw)?;
-    }
+    cursor: Option<Cursor>,
+) -> Result<Vec<Collection>, Error> {
+    let collections = query::collection::select(db, id, profile_id, limit.map(|e| e + 1), cursor)
+        .await
+        .map(|e| e.into_iter().map(Collection::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
 
-    let mut collections =
-        query::collection::select(db, id, profile_id, limit.map(|e| e + 1), cursor)
-            .await
-            .map(|e| e.into_iter().map(Collection::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))?;
-    let mut cursor: Option<String> = None;
-
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if collections.len() > limit {
-            collections = collections.into_iter().take(limit).collect();
-
-            if let Some(last) = collections.last() {
-                let c = Cursor {
-                    title: last.title.to_owned(),
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<Collection> {
-        cursor,
-        data: collections,
-    })
+    Ok(collections)
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Collection, Error> {
     let collections = find(db, Some(params.id), params.profile_id, None, None).await?;
 
     collections
-        .data
         .first()
         .cloned()
         .ok_or(Error::NotFound(params.id))
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub title: String,
 }

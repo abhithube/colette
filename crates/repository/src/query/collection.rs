@@ -1,3 +1,4 @@
+use colette_core::collection::Cursor;
 use colette_entity::{collection, profile_bookmark, PartialCollection};
 use sea_orm::{
     sea_query::{Alias, Expr},
@@ -6,14 +7,12 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::collection::Cursor;
-
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor: Cursor,
+    cursor: Option<Cursor>,
 ) -> Result<Vec<PartialCollection>, DbErr> {
     let mut conditions = Condition::all().add(collection::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
@@ -34,7 +33,9 @@ pub async fn select<Db: ConnectionTrait>(
         .filter(conditions)
         .cursor_by(collection::Column::Title);
 
-    query.after(cursor.title);
+    if let Some(cursor) = cursor {
+        query.after(cursor.title);
+    }
     if let Some(limit) = limit {
         query.first(limit);
     }

@@ -37,6 +37,11 @@ pub enum TagType {
     Feeds,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub title: String,
+}
+
 pub struct TagService {
     repository: Arc<dyn TagRepository>,
 }
@@ -51,9 +56,15 @@ impl TagService {
         query: TagListQuery,
         profile_id: Uuid,
     ) -> Result<Paginated<Tag>, Error> {
-        self.repository
+        let tags = self
+            .repository
             .list(profile_id, None, None, Some(query.into()))
-            .await
+            .await?;
+
+        Ok(Paginated {
+            data: tags,
+            ..Default::default()
+        })
     }
 
     pub async fn get(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
@@ -93,9 +104,9 @@ pub trait TagRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<TagFindManyFilters>,
-    ) -> Result<Paginated<Tag>, Error>;
+    ) -> Result<Vec<Tag>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

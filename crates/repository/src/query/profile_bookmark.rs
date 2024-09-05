@@ -1,4 +1,4 @@
-use colette_core::bookmark::BookmarkFindManyFilters;
+use colette_core::bookmark::{BookmarkFindManyFilters, Cursor};
 use colette_entity::{bookmark, profile_bookmark, profile_bookmark_tag, tag};
 use sea_orm::{
     sea_query::{Expr, OnConflict, SimpleExpr},
@@ -6,8 +6,6 @@ use sea_orm::{
     LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
 use uuid::Uuid;
-
-use crate::bookmark::Cursor;
 
 pub async fn select_with_bookmark<Db: ConnectionTrait>(
     db: &Db,
@@ -47,7 +45,6 @@ pub async fn select_with_bookmark<Db: ConnectionTrait>(
     let mut query = query
         .filter(conditions)
         .cursor_by(profile_bookmark::Column::SortIndex);
-
     if let Some(cursor) = cursor {
         query.after(cursor.sort_index);
     };

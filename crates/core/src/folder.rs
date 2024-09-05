@@ -40,6 +40,11 @@ pub enum FolderType {
     Feeds,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub title: String,
+}
+
 pub struct FolderService {
     repository: Arc<dyn FolderRepository>,
 }
@@ -54,9 +59,15 @@ impl FolderService {
         query: FolderListQuery,
         profile_id: Uuid,
     ) -> Result<Paginated<Folder>, Error> {
-        self.repository
+        let folders = self
+            .repository
             .list(profile_id, None, None, Some(query.into()))
-            .await
+            .await?;
+
+        Ok(Paginated {
+            data: folders,
+            ..Default::default()
+        })
     }
 
     pub async fn get_folder(&self, id: Uuid, profile_id: Uuid) -> Result<Folder, Error> {
@@ -106,9 +117,9 @@ pub trait FolderRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FolderFindManyFilters>,
-    ) -> Result<Paginated<Folder>, Error>;
+    ) -> Result<Vec<Folder>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

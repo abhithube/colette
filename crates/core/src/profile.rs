@@ -27,6 +27,11 @@ pub struct ProfileUpdate {
     pub image_url: Option<Url>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub title: String,
+}
+
 pub struct ProfileService {
     repository: Arc<dyn ProfileRepository>,
 }
@@ -37,7 +42,12 @@ impl ProfileService {
     }
 
     pub async fn list_profiles(&self, user_id: Uuid) -> Result<Paginated<Profile>, Error> {
-        self.repository.list(user_id, None, None).await
+        let profiles = self.repository.list(user_id, None, None).await?;
+
+        Ok(Paginated {
+            data: profiles,
+            ..Default::default()
+        })
     }
 
     pub async fn get_profile(&self, id: Uuid, user_id: Uuid) -> Result<Profile, Error> {
@@ -100,8 +110,8 @@ pub trait ProfileRepository:
         &self,
         user_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
-    ) -> Result<Paginated<Profile>, Error>;
+        cursor: Option<Cursor>,
+    ) -> Result<Vec<Profile>, Error>;
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error>;
 }

@@ -2,15 +2,14 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
-        Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository, FeedUpdateData,
-        ProcessedFeed,
+        Cursor, Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository,
+        FeedUpdateData, ProcessedFeed,
     },
     Feed,
 };
 use colette_entity::PfWithFeedAndTagsAndUnreadCount;
-use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
@@ -229,10 +228,10 @@ impl FeedRepository for FeedSqlRepository {
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor_raw: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FeedFindManyFilters>,
-    ) -> Result<Paginated<Feed>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    ) -> Result<Vec<Feed>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
@@ -289,15 +288,15 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
+    cursor: Option<Cursor>,
     filters: Option<FeedFindManyFilters>,
-) -> Result<Paginated<Feed>, Error> {
+) -> Result<Vec<Feed>, Error> {
     let models = query::profile_feed::select_with_feed(
         db,
         id,
         profile_id,
         limit.map(|e| e + 1),
-        cursor_raw.and_then(|e| base_64::decode::<Cursor>(&e).ok()),
+        cursor,
         filters,
     )
     .await
@@ -319,7 +318,7 @@ async fn find<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
     let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
 
-    let mut feeds = models
+    let feeds = models
         .into_iter()
         .zip(tag_models.into_iter())
         .map(|((pf, feed), tags)| {
@@ -332,42 +331,14 @@ async fn find<Db: ConnectionTrait>(
             })
         })
         .collect::<Vec<_>>();
-    let mut cursor: Option<String> = None;
 
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if feeds.len() > limit {
-            feeds = feeds.into_iter().take(limit).collect();
-
-            if let Some(last) = feeds.last() {
-                let c = Cursor {
-                    id: last.id,
-                    title: last
-                        .title
-                        .to_owned()
-                        .unwrap_or(last.original_title.to_owned()),
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<Feed> {
-        cursor,
-        data: feeds,
-    })
+    Ok(feeds)
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Feed, Error> {
     let feeds = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
-    feeds
-        .data
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
+    feeds.first().cloned().ok_or(Error::NotFound(params.id))
 }
 
 async fn create_feed_with_entries<Db: ConnectionTrait>(
@@ -404,10 +375,4 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(feed_id)
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub id: Uuid,
-    pub title: String,
 }

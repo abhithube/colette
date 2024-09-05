@@ -1,4 +1,4 @@
-use colette_core::feed_entry::FeedEntryFindManyFilters;
+use colette_core::feed_entry::{Cursor, FeedEntryFindManyFilters};
 use colette_entity::{feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag};
 use sea_orm::{
     sea_query::{Expr, OnConflict},
@@ -6,8 +6,6 @@ use sea_orm::{
     QuerySelect, RelationTrait, Set,
 };
 use uuid::Uuid;
-
-use crate::feed_entry::Cursor;
 
 pub async fn select_with_entry<Db: ConnectionTrait>(
     db: &Db,

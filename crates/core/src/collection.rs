@@ -26,6 +26,11 @@ pub struct CollectionUpdate {
     pub folder_id: Option<Option<Uuid>>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub title: String,
+}
+
 pub struct CollectionService {
     repository: Arc<dyn CollectionRepository>,
 }
@@ -36,7 +41,12 @@ impl CollectionService {
     }
 
     pub async fn list_collections(&self, profile_id: Uuid) -> Result<Paginated<Collection>, Error> {
-        self.repository.list(profile_id, None, None).await
+        let collections = self.repository.list(profile_id, None, None).await?;
+
+        Ok(Paginated {
+            data: collections,
+            ..Default::default()
+        })
     }
 
     pub async fn get_collection(&self, id: Uuid, profile_id: Uuid) -> Result<Collection, Error> {
@@ -86,8 +96,8 @@ pub trait CollectionRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
-    ) -> Result<Paginated<Collection>, Error>;
+        cursor: Option<Cursor>,
+    ) -> Result<Vec<Collection>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

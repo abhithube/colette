@@ -1,3 +1,4 @@
+use colette_core::profile::Cursor;
 use colette_entity::{profile, profile_feed};
 use futures::Stream;
 use sea_orm::{
@@ -6,14 +7,12 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::profile::Cursor;
-
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     user_id: Uuid,
     limit: Option<u64>,
-    cursor: Cursor,
+    cursor: Option<Cursor>,
 ) -> Result<Vec<profile::Model>, DbErr> {
     let query = profile::Entity::find().order_by_asc(profile::Column::Title);
 
@@ -23,7 +22,9 @@ pub async fn select<Db: ConnectionTrait>(
     }
 
     let mut query = query.filter(conditions).cursor_by(profile::Column::Title);
-    query.after(cursor.title);
+    if let Some(cursor) = cursor {
+        query.after(cursor.title);
+    }
     if let Some(limit) = limit {
         query.first(limit);
     }

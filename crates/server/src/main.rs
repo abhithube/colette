@@ -33,7 +33,7 @@ use colette_session::PostgresStore;
 use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
-use colette_utils::password::ArgonHasher;
+use colette_utils::{base_64::Base64Encoder, password::ArgonHasher};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
@@ -81,9 +81,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
 
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
+    let folder_repository = Arc::new(FolderSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
+
+    let base64_decoder = Arc::new(Base64Encoder);
 
     let auth_service = Arc::new(AuthService::new(
         Arc::new(UserSqlRepository::new(db.clone())),
@@ -93,11 +96,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let backup_service = Arc::new(BackupService::new(
         Arc::new(BackupSqlRepository::new(db.clone())),
         feed_repository.clone(),
+        folder_repository.clone(),
         Arc::new(OpmlManager),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         Arc::new(BookmarkSqlRepository::new(db.clone())),
         Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+        base64_decoder.clone(),
     ));
     let collection_service = Arc::new(CollectionService::new(Arc::new(
         CollectionSqlRepository::new(db.clone()),
@@ -106,12 +111,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         feed_scraper.clone(),
     ));
-    let feed_entry_service = Arc::new(FeedEntryService::new(Arc::new(
-        FeedEntrySqlRepository::new(db.clone()),
-    )));
-    let folder_service = Arc::new(FolderService::new(Arc::new(FolderSqlRepository::new(
-        db.clone(),
-    ))));
+    let feed_entry_service = Arc::new(FeedEntryService::new(
+        Arc::new(FeedEntrySqlRepository::new(db.clone())),
+        base64_decoder,
+    ));
+    let folder_service = Arc::new(FolderService::new(folder_repository));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
     let refresh_service = Arc::new(RefreshService::new(
         feed_scraper.clone(),

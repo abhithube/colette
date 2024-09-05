@@ -2,13 +2,13 @@ use anyhow::anyhow;
 use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmark::{
-        BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData, Error,
+        BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
+        Cursor, Error,
     },
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
 use colette_entity::PbWithBookmarkAndTags;
-use colette_utils::base_64;
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
     TransactionError, TransactionTrait,
@@ -247,9 +247,9 @@ impl BookmarkRepository for BookmarkSqlRepository {
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Paginated<Bookmark>, Error> {
+    ) -> Result<Vec<Bookmark>, Error> {
         find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 }
@@ -259,15 +259,15 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
+    cursor: Option<Cursor>,
     filters: Option<BookmarkFindManyFilters>,
-) -> Result<Paginated<Bookmark>, Error> {
+) -> Result<Vec<Bookmark>, Error> {
     let models = query::profile_bookmark::select_with_bookmark(
         db,
         id,
         profile_id,
         limit.map(|e| e + 1),
-        cursor_raw.and_then(|e| base_64::decode::<Cursor>(&e).ok()),
+        cursor,
         filters,
     )
     .await
@@ -283,46 +283,17 @@ async fn find<Db: ConnectionTrait>(
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
-    let mut bookmarks = models
+    let bookmarks = models
         .into_iter()
         .zip(tag_models.into_iter())
         .map(|((pb, bookmark), tags)| Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags }))
         .collect::<Vec<_>>();
-    let mut cursor: Option<String> = None;
 
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if bookmarks.len() > limit {
-            bookmarks = bookmarks.into_iter().take(limit).collect();
-
-            if let Some(last) = bookmarks.last() {
-                let c = Cursor {
-                    sort_index: last.sort_index,
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<Bookmark> {
-        cursor,
-        data: bookmarks,
-    })
+    Ok(bookmarks)
 }
 
 pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Bookmark, Error> {
     let bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
-    bookmarks
-        .data
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub sort_index: u32,
+    bookmarks.first().cloned().ok_or(Error::NotFound(params.id))
 }

@@ -1,9 +1,10 @@
 use colette_core::{
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable},
-    folder::{Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData},
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    folder::{
+        Cursor, Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData,
+    },
     Folder,
 };
-use colette_utils::base_64;
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
     TransactionError, TransactionTrait,
@@ -128,10 +129,10 @@ impl FolderRepository for FolderSqlRepository {
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor_raw: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FolderFindManyFilters>,
-    ) -> Result<Paginated<Folder>, Error> {
-        find(&self.db, None, profile_id, limit, cursor_raw, filters).await
+    ) -> Result<Vec<Folder>, Error> {
+        find(&self.db, None, profile_id, limit, cursor, filters).await
     }
 }
 
@@ -140,54 +141,19 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
+    cursor: Option<Cursor>,
     filters: Option<FolderFindManyFilters>,
-) -> Result<Paginated<Folder>, Error> {
-    let mut cursor = Cursor::default();
-    if let Some(raw) = cursor_raw.as_deref() {
-        cursor = base_64::decode::<Cursor>(raw)?;
-    }
+) -> Result<Vec<Folder>, Error> {
+    let folders = query::folder::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
+        .await
+        .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
 
-    let mut folders =
-        query::folder::select(db, id, profile_id, limit.map(|e| e + 1), cursor, filters)
-            .await
-            .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))?;
-    let mut cursor: Option<String> = None;
-
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if folders.len() > limit {
-            folders = folders.into_iter().take(limit).collect();
-
-            if let Some(last) = folders.last() {
-                let c = Cursor {
-                    title: last.title.to_owned(),
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<Folder> {
-        cursor,
-        data: folders,
-    })
+    Ok(folders)
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Folder, Error> {
     let folders = find(db, Some(params.id), params.profile_id, None, None, None).await?;
 
-    folders
-        .data
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub title: String,
+    folders.first().cloned().ok_or(Error::NotFound(params.id))
 }

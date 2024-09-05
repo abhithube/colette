@@ -1,13 +1,12 @@
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, Findable, Paginated, Updatable},
+    common::{Creatable, Deletable, Findable, Updatable},
     profile::{
-        Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams, ProfileRepository,
-        ProfileUpdateData,
+        Cursor, Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams,
+        ProfileRepository, ProfileUpdateData,
     },
     Profile,
 };
-use colette_utils::base_64;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, ModelTrait, SqlErr,
@@ -162,9 +161,9 @@ impl ProfileRepository for ProfileSqlRepository {
         &self,
         user_id: Uuid,
         limit: Option<u64>,
-        cursor_raw: Option<String>,
-    ) -> Result<Paginated<Profile>, Error> {
-        find(&self.db, None, user_id, limit, cursor_raw).await
+        cursor: Option<Cursor>,
+    ) -> Result<Vec<Profile>, Error> {
+        find(&self.db, None, user_id, limit, cursor).await
     }
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
@@ -184,39 +183,14 @@ async fn find<Db: ConnectionTrait>(
     id: Option<Uuid>,
     user_id: Uuid,
     limit: Option<u64>,
-    cursor_raw: Option<String>,
-) -> Result<Paginated<Profile>, Error> {
-    let mut cursor = Cursor::default();
-    if let Some(raw) = cursor_raw.as_deref() {
-        cursor = base_64::decode::<Cursor>(raw)?;
-    }
-
-    let mut profiles = query::profile::select(db, id, user_id, limit.map(|e| e + 1), cursor)
+    cursor: Option<Cursor>,
+) -> Result<Vec<Profile>, Error> {
+    let profiles = query::profile::select(db, id, user_id, limit.map(|e| e + 1), cursor)
         .await
         .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
-    let mut cursor: Option<String> = None;
 
-    if let Some(limit) = limit {
-        let limit = limit as usize;
-        if profiles.len() > limit {
-            profiles = profiles.into_iter().take(limit).collect();
-
-            if let Some(last) = profiles.last() {
-                let c = Cursor {
-                    title: last.title.to_owned(),
-                };
-                let encoded = base_64::encode(&c)?;
-
-                cursor = Some(encoded);
-            }
-        }
-    }
-
-    Ok(Paginated::<Profile> {
-        cursor,
-        data: profiles,
-    })
+    Ok(profiles)
 }
 
 async fn find_by_id<Db: ConnectionTrait>(
@@ -226,10 +200,5 @@ async fn find_by_id<Db: ConnectionTrait>(
 ) -> Result<colette_core::Profile, Error> {
     let profiles = find(db, Some(id), user_id, None, None).await?;
 
-    profiles.data.first().cloned().ok_or(Error::NotFound(id))
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
-pub struct Cursor {
-    pub title: String,
+    profiles.first().cloned().ok_or(Error::NotFound(id))
 }

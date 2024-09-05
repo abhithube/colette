@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use colette_scraper::{bookmark::ProcessedBookmark, Scraper};
+use colette_utils::DataEncoder;
 use url::Url;
 use uuid::Uuid;
 
@@ -44,19 +45,27 @@ pub struct BookmarkListQuery {
     pub cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub sort_index: u32,
+}
+
 pub struct BookmarkService {
     repository: Arc<dyn BookmarkRepository>,
     scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    base64_encoder: Arc<dyn DataEncoder<Cursor>>,
 }
 
 impl BookmarkService {
     pub fn new(
         repository: Arc<dyn BookmarkRepository>,
         scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+        base64_encoder: Arc<dyn DataEncoder<Cursor>>,
     ) -> Self {
         Self {
             repository,
             scraper,
+            base64_encoder,
         }
     }
 
@@ -65,17 +74,42 @@ impl BookmarkService {
         query: BookmarkListQuery,
         profile_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
-        self.repository
+        let cursor = query
+            .cursor
+            .and_then(|e| self.base64_encoder.decode(&e).ok());
+
+        let mut bookmarks = self
+            .repository
             .list(
                 profile_id,
                 Some(PAGINATION_LIMIT),
-                query.cursor,
+                cursor,
                 Some(BookmarkFindManyFilters {
                     collection_id: query.collection_id,
                     tags: query.tags,
                 }),
             )
-            .await
+            .await?;
+        let mut cursor: Option<String> = None;
+
+        let limit = PAGINATION_LIMIT as usize;
+        if bookmarks.len() > limit {
+            bookmarks = bookmarks.into_iter().take(limit).collect();
+
+            if let Some(last) = bookmarks.last() {
+                let c = Cursor {
+                    sort_index: last.sort_index,
+                };
+                let encoded = self.base64_encoder.encode(&c)?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated {
+            data: bookmarks,
+            cursor,
+        })
     }
 
     pub async fn get_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
@@ -128,9 +162,9 @@ pub trait BookmarkRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Paginated<Bookmark>, Error>;
+    ) -> Result<Vec<Bookmark>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

@@ -1,4 +1,4 @@
-use colette_core::folder::{FolderFindManyFilters, FolderType};
+use colette_core::folder::{Cursor, FolderFindManyFilters, FolderType};
 use colette_entity::{collection, folder, profile_feed, PartialFolder};
 use sea_orm::{
     sea_query::{Alias, Expr},
@@ -7,14 +7,12 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use crate::folder::Cursor;
-
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
-    cursor: Cursor,
+    cursor: Option<Cursor>,
     filters: Option<FolderFindManyFilters>,
 ) -> Result<Vec<PartialFolder>, DbErr> {
     let mut query = folder::Entity::find()
@@ -55,7 +53,9 @@ pub async fn select<Db: ConnectionTrait>(
     }
 
     let mut query = query.filter(conditions).cursor_by(folder::Column::Title);
-    query.after(cursor.title);
+    if let Some(cursor) = cursor {
+        query.after(cursor.title);
+    }
     if let Some(limit) = limit {
         query.first(limit);
     }

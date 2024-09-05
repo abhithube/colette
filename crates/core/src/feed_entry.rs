@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use colette_utils::DataEncoder;
 use uuid::Uuid;
 
 use crate::common::{Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT};
@@ -31,13 +32,26 @@ pub struct FeedEntryListQuery {
     pub cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+pub struct Cursor {
+    pub id: Uuid,
+    pub published_at: DateTime<Utc>,
+}
+
 pub struct FeedEntryService {
     repository: Arc<dyn FeedEntryRepository>,
+    base64_encoder: Arc<dyn DataEncoder<Cursor>>,
 }
 
 impl FeedEntryService {
-    pub fn new(repository: Arc<dyn FeedEntryRepository>) -> Self {
-        Self { repository }
+    pub fn new(
+        repository: Arc<dyn FeedEntryRepository>,
+        base64_encoder: Arc<dyn DataEncoder<Cursor>>,
+    ) -> Self {
+        Self {
+            repository,
+            base64_encoder,
+        }
     }
 
     pub async fn list_feed_entries(
@@ -45,18 +59,44 @@ impl FeedEntryService {
         query: FeedEntryListQuery,
         profile_id: Uuid,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        self.repository
+        let cursor = query
+            .cursor
+            .and_then(|e| self.base64_encoder.decode(&e).ok());
+
+        let mut feed_entries = self
+            .repository
             .list(
                 profile_id,
                 Some(PAGINATION_LIMIT),
-                query.cursor,
+                cursor,
                 Some(FeedEntryFindManyFilters {
                     feed_id: query.feed_id,
                     has_read: query.has_read,
                     tags: query.tags,
                 }),
             )
-            .await
+            .await?;
+        let mut cursor: Option<String> = None;
+
+        let limit = PAGINATION_LIMIT as usize;
+        if feed_entries.len() > limit {
+            feed_entries = feed_entries.into_iter().take(limit).collect();
+
+            if let Some(last) = feed_entries.last() {
+                let c = Cursor {
+                    id: last.id,
+                    published_at: last.published_at,
+                };
+                let encoded = self.base64_encoder.encode(&c)?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated {
+            data: feed_entries,
+            cursor,
+        })
     }
 
     pub async fn get_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error> {
@@ -86,9 +126,9 @@ pub trait FeedEntryRepository:
         &self,
         profile_id: Uuid,
         limit: Option<u64>,
-        cursor: Option<String>,
+        cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
-    ) -> Result<Paginated<FeedEntry>, Error>;
+    ) -> Result<Vec<FeedEntry>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]
