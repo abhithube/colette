@@ -9,8 +9,8 @@ sea-orm-migration = { version = "=1.1.0-rc.1", default-features = false, feature
   "cli",
   "runtime-tokio",
 ] }
-strum.workspace = true
-strum_macros.workspace = true
+strum = { version = "0.26", default-features = false }
+strum_macros = { version = "0.26", default-features = false }
 
 [features]
 default = ["postgres"]

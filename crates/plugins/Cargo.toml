@@ -9,4 +9,4 @@ colette-scraper.workspace = true
 http.workspace = true
 scraper.workspace = true
 url.workspace = true
-lazy-regex.workspace = true
+lazy-regex = { version = "3", default-features = false, features = ["lite"] }

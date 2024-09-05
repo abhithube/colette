@@ -17,7 +17,10 @@ http.workspace = true
 serde.workspace = true
 serde_with = { version = "3", default-features = false }
 thiserror.workspace = true
-tower-http.workspace = true
+tower-http = { version = "0.5", default-features = false, features = [
+  "cors",
+  "fs",
+] }
 tower-sessions.workspace = true
 utoipa = { version = "=5.0.0-beta.0", default-features = false, features = [
   "chrono",
