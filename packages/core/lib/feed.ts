@@ -21,8 +21,6 @@ export interface FeedAPI {
   update(id: string, data: FeedUpdate): Promise<Feed>
 
   delete(id: string): Promise<void>
-
-  import(data: File): Promise<void>
 }
 
 export class HTTPFeedAPI implements FeedAPI {
@@ -73,21 +71,5 @@ export class HTTPFeedAPI implements FeedAPI {
         },
       })
       .then()
-  }
-
-  async import(data: File): Promise<void> {
-    return this.client
-      .post('/feeds/import', {
-        body: await Array.fromAsync(fileToAsyncIterator(data)),
-      })
-      .then()
-  }
-}
-
-async function* fileToAsyncIterator(file: File) {
-  const buffer = await file.arrayBuffer()
-
-  for (const chunk of new Uint8Array(buffer)) {
-    yield chunk
   }
 }

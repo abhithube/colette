@@ -1,4 +1,5 @@
 import { type AuthAPI, HTTPAuthAPI } from './auth'
+import { type BackupAPI, HTTPBackupAPI } from './backup'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
 import {
   APIError,
@@ -16,6 +17,7 @@ import { HTTPTagAPI, type TagAPI } from './tag'
 
 export interface API {
   auth: AuthAPI
+  backups: BackupAPI
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
@@ -29,6 +31,7 @@ export type HttpAPIOptions = Omit<RequestInit, 'method' | 'body'> & {
 
 export class HttpAPI implements API {
   auth: AuthAPI
+  backups: BackupAPI
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
@@ -75,6 +78,7 @@ export class HttpAPI implements API {
     }, baseUrl)
 
     this.auth = new HTTPAuthAPI(client)
+    this.backups = new HTTPBackupAPI(client)
     this.bookmarks = new HTTPBookmarkAPI(client)
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)

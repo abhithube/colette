@@ -15,7 +15,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { importFeedsOptions } from '@colette/query'
+import { importOpmlOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
@@ -40,7 +40,7 @@ export function SettingsModal({ close }: Props) {
   })
 
   const { mutateAsync: importFeeds, isPending } = useMutation(
-    importFeedsOptions(
+    importOpmlOptions(
       {
         onSuccess: async () => {
           form.reset()

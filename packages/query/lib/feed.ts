@@ -61,15 +61,3 @@ export const deleteFeedOptions = (
     mutationFn: () => api.feeds.delete(id),
   } as UseMutationOptions
 }
-
-export type ImportFeedsOptions = UseMutationOptions<void, Error, File>
-
-export const importFeedsOptions = (
-  options: Omit<ImportFeedsOptions, 'mutationFn'>,
-  api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: (body) => api.feeds.import(body),
-  } as ImportFeedsOptions
-}

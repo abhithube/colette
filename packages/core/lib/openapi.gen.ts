@@ -262,6 +262,26 @@ export const get_GetActiveUser = {
   response: User,
 };
 
+export type post_ImportOpml = typeof post_ImportOpml;
+export const post_ImportOpml = {
+  method: z.literal("POST"),
+  path: z.literal("/backups/opml/import"),
+  requestFormat: z.literal("binary"),
+  parameters: z.object({
+    body: z.array(z.number()),
+  }),
+  response: z.unknown(),
+};
+
+export type post_ExportOpml = typeof post_ExportOpml;
+export const post_ExportOpml = {
+  method: z.literal("POST"),
+  path: z.literal("/backups/opml/export"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: z.unknown(),
+};
+
 export type get_ListBookmarks = typeof get_ListBookmarks;
 export const get_ListBookmarks = {
   method: z.literal("GET"),
@@ -390,6 +410,49 @@ export const delete_DeleteCollection = {
   response: z.unknown(),
 };
 
+export type get_ListFeedEntries = typeof get_ListFeedEntries;
+export const get_ListFeedEntries = {
+  method: z.literal("GET"),
+  path: z.literal("/feedEntries"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    query: z.object({
+      feedId: z.string().optional(),
+      hasRead: z.boolean().optional(),
+      "tag[]": z.array(z.string()).optional(),
+      cursor: z.string().optional(),
+    }),
+  }),
+  response: FeedEntryList,
+};
+
+export type get_GetFeedEntry = typeof get_GetFeedEntry;
+export const get_GetFeedEntry = {
+  method: z.literal("GET"),
+  path: z.literal("/feedEntries/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: FeedEntry,
+};
+
+export type patch_UpdateFeedEntry = typeof patch_UpdateFeedEntry;
+export const patch_UpdateFeedEntry = {
+  method: z.literal("PATCH"),
+  path: z.literal("/feedEntries/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: FeedEntryUpdate,
+  }),
+  response: FeedEntry,
+};
+
 export type get_ListFeeds = typeof get_ListFeeds;
 export const get_ListFeeds = {
   method: z.literal("GET"),
@@ -464,69 +527,6 @@ export const post_DetectFeeds = {
     body: FeedDetect,
   }),
   response: FeedDetectedList,
-};
-
-export type post_ImportFeeds = typeof post_ImportFeeds;
-export const post_ImportFeeds = {
-  method: z.literal("POST"),
-  path: z.literal("/feeds/import"),
-  requestFormat: z.literal("binary"),
-  parameters: z.object({
-    body: z.array(z.number()),
-  }),
-  response: z.unknown(),
-};
-
-export type post_ExportFeeds = typeof post_ExportFeeds;
-export const post_ExportFeeds = {
-  method: z.literal("POST"),
-  path: z.literal("/feeds/export"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: z.unknown(),
-};
-
-export type get_ListFeedEntries = typeof get_ListFeedEntries;
-export const get_ListFeedEntries = {
-  method: z.literal("GET"),
-  path: z.literal("/feedEntries"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    query: z.object({
-      feedId: z.string().optional(),
-      hasRead: z.boolean().optional(),
-      "tag[]": z.array(z.string()).optional(),
-      cursor: z.string().optional(),
-    }),
-  }),
-  response: FeedEntryList,
-};
-
-export type get_GetFeedEntry = typeof get_GetFeedEntry;
-export const get_GetFeedEntry = {
-  method: z.literal("GET"),
-  path: z.literal("/feedEntries/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: FeedEntry,
-};
-
-export type patch_UpdateFeedEntry = typeof patch_UpdateFeedEntry;
-export const patch_UpdateFeedEntry = {
-  method: z.literal("PATCH"),
-  path: z.literal("/feedEntries/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: FeedEntryUpdate,
-  }),
-  response: FeedEntry,
 };
 
 export type get_ListFolders = typeof get_ListFolders;
@@ -613,15 +613,6 @@ export const post_CreateProfile = {
   response: Profile,
 };
 
-export type get_GetActiveProfile = typeof get_GetActiveProfile;
-export const get_GetActiveProfile = {
-  method: z.literal("GET"),
-  path: z.literal("/profiles/@me"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Profile,
-};
-
 export type get_GetProfile = typeof get_GetProfile;
 export const get_GetProfile = {
   method: z.literal("GET"),
@@ -660,6 +651,15 @@ export const delete_DeleteProfile = {
     }),
   }),
   response: z.unknown(),
+};
+
+export type get_GetActiveProfile = typeof get_GetActiveProfile;
+export const get_GetActiveProfile = {
+  method: z.literal("GET"),
+  path: z.literal("/profiles/@me"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: Profile,
 };
 
 export type get_ListTags = typeof get_ListTags;
@@ -731,12 +731,12 @@ export const EndpointByMethod = {
   post: {
     "/auth/register": post_Register,
     "/auth/login": post_Login,
+    "/backups/opml/import": post_ImportOpml,
+    "/backups/opml/export": post_ExportOpml,
     "/bookmarks": post_CreateBookmark,
     "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
-    "/feeds/import": post_ImportFeeds,
-    "/feeds/export": post_ExportFeeds,
     "/folders": post_CreateFolder,
     "/profiles": post_CreateProfile,
     "/tags": post_CreateTag,
@@ -747,23 +747,23 @@ export const EndpointByMethod = {
     "/bookmarks/{id}": get_GetBookmark,
     "/collections": get_ListCollections,
     "/collections/{id}": get_GetCollection,
-    "/feeds": get_ListFeeds,
-    "/feeds/{id}": get_GetFeed,
     "/feedEntries": get_ListFeedEntries,
     "/feedEntries/{id}": get_GetFeedEntry,
+    "/feeds": get_ListFeeds,
+    "/feeds/{id}": get_GetFeed,
     "/folders": get_ListFolders,
     "/folders/{id}": get_GetFolder,
     "/profiles": get_ListProfiles,
-    "/profiles/@me": get_GetActiveProfile,
     "/profiles/{id}": get_GetProfile,
+    "/profiles/@me": get_GetActiveProfile,
     "/tags": get_ListTags,
     "/tags/{id}": get_GetTag,
   },
   patch: {
     "/bookmarks/{id}": patch_UpdateBookmark,
     "/collections/{id}": patch_UpdateCollection,
-    "/feeds/{id}": patch_UpdateFeed,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
+    "/feeds/{id}": patch_UpdateFeed,
     "/folders/{id}": patch_UpdateFolder,
     "/profiles/{id}": patch_UpdateProfile,
     "/tags/{id}": patch_UpdateTag,

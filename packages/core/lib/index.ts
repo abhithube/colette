@@ -1,5 +1,8 @@
 export * from './api'
+export type { ListBookmarksQuery } from './bookmark'
 export * from './error'
+export type { ListFeedsQuery } from './feed'
+export type { ListFeedEntriesQuery } from './feed-entry'
 export {
   BaseError,
   Bookmark,
@@ -32,7 +35,4 @@ export {
   TagUpdate,
   User,
 } from './openapi.gen'
-export type { ListBookmarksQuery } from './bookmark'
-export type { ListFeedEntriesQuery } from './feed-entry'
-export type { ListFeedsQuery } from './feed'
 export type { ListTagsQuery } from './tag'
