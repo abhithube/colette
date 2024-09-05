@@ -14,7 +14,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, FolderList, Id, Session};
+use crate::common::{BaseError, Error, FolderList, Id, Session, FOLDERS_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FolderState {
@@ -147,7 +147,8 @@ impl From<FolderType> for folder::FolderType {
     params(FolderListQuery),
     responses(ListResponse),
     operation_id = "listFolders",
-    description = "List the active profile folders"
+    description = "List the active profile folders",
+    tag = FOLDERS_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_folders(
@@ -167,7 +168,8 @@ pub async fn list_folders(
     params(Id),
     responses(GetResponse),
     operation_id = "getFolder",
-    description = "Get a folder by ID"
+    description = "Get a folder by ID",
+    tag = FOLDERS_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_folder(
@@ -192,7 +194,8 @@ pub async fn get_folder(
   request_body = FolderCreate,
   responses(CreateResponse),
   operation_id = "createFolder",
-  description = "Create a folder"
+  description = "Create a folder",
+  tag = FOLDERS_TAG
 )]
 #[axum::debug_handler]
 pub async fn create_folder(
@@ -218,7 +221,8 @@ pub async fn create_folder(
     request_body = FolderUpdate,
     responses(UpdateResponse),
     operation_id = "updateFolder",
-    description = "Update a folder by ID"
+    description = "Update a folder by ID",
+    tag = FOLDERS_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_folder(
@@ -247,7 +251,8 @@ pub async fn update_folder(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteFolder",
-    description = "Delete a folder by ID"
+    description = "Delete a folder by ID",
+    tag = FOLDERS_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_folder(

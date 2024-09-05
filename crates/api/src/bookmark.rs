@@ -15,7 +15,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Error, Id, Session},
+    common::{BaseError, BookmarkList, Error, Id, Session, BOOKMARKS_TAG},
     tag::{Tag, TagCreate},
 };
 
@@ -168,7 +168,8 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     params(BookmarkListQuery),
     responses(ListResponse),
     operation_id = "listBookmarks",
-    description = "List the active profile bookmarks"
+    description = "List the active profile bookmarks",
+    tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_bookmarks(
@@ -191,7 +192,8 @@ pub async fn list_bookmarks(
     params(Id),
     responses(GetResponse),
     operation_id = "getBookmark",
-    description = "Get a bookmark by ID"
+    description = "Get a bookmark by ID",
+    tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_bookmark(
@@ -217,6 +219,7 @@ pub async fn get_bookmark(
     responses(CreateResponse),
     operation_id = "createBookmark",
     description = "Add a bookmark to a profile",
+    tag = BOOKMARKS_TAG
   )]
 #[axum::debug_handler]
 pub async fn create_bookmark(
@@ -241,6 +244,7 @@ pub async fn create_bookmark(
     responses(UpdateResponse),
     operation_id = "updateBookmark",
     description = "Update a bookmark by ID",
+    tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_bookmark(
@@ -269,7 +273,8 @@ pub async fn update_bookmark(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteBookmark",
-    description = "Delete a bookmark by ID"
+    description = "Delete a bookmark by ID",
+    tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_bookmark(

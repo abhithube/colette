@@ -15,7 +15,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, ProfileList, Session};
+use crate::common::{BaseError, Error, Id, ProfileList, Session, PROFILES_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfileState {
@@ -103,7 +103,8 @@ impl From<ProfileUpdate> for profile::ProfileUpdate {
     path = "",
     responses(ListResponse),
     operation_id = "listProfiles",
-    description = "List the user profiles"
+    description = "List the user profiles",
+    tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
@@ -122,7 +123,8 @@ pub async fn list_profiles(
     params(Id),
     responses(GetResponse),
     operation_id = "getProfile",
-    description = "Get a profile by ID"
+    description = "Get a profile by ID",
+    tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
@@ -146,7 +148,8 @@ pub async fn get_profile(
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveProfile",
-    description = "Get the active profile"
+    description = "Get the active profile",
+    tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
@@ -165,7 +168,8 @@ pub async fn get_active_profile(
   request_body = ProfileCreate,
   responses(CreateResponse),
   operation_id = "createProfile",
-  description = "Create a user profile"
+  description = "Create a user profile",
+  tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
@@ -191,7 +195,8 @@ pub async fn create_profile(
     request_body = ProfileUpdate,
     responses(UpdateResponse),
     operation_id = "updateProfile",
-    description = "Update a profile by ID"
+    description = "Update a profile by ID",
+    tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
@@ -220,7 +225,8 @@ pub async fn update_profile(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteProfile",
-    description = "Delete a profile by ID"
+    description = "Delete a profile by ID",
+    tag = PROFILES_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(

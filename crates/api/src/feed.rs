@@ -17,7 +17,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Session},
+    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Session, FEEDS_TAG},
     tag::{Tag, TagCreate},
 };
 
@@ -196,7 +196,8 @@ impl From<feed::FeedDetected> for FeedDetected {
     params(ListFeedsQuery),
     responses(ListResponse),
     operation_id = "listFeeds",
-    description = "List the active profile feeds"
+    description = "List the active profile feeds",
+    tag = FEEDS_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_feeds(
@@ -216,7 +217,8 @@ pub async fn list_feeds(
     params(Id),
     responses(GetResponse),
     operation_id = "getFeed",
-    description = "Get a feed by ID"
+    description = "Get a feed by ID",
+    tag = FEEDS_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_feed(
@@ -241,7 +243,8 @@ pub async fn get_feed(
     request_body = FeedCreate,
     responses(CreateResponse),
     operation_id = "createFeed",
-    description = "Subscribe to a web feed"
+    description = "Subscribe to a web feed",
+    tag = FEEDS_TAG
   )]
 #[axum::debug_handler]
 pub async fn create_feed(
@@ -265,7 +268,8 @@ pub async fn create_feed(
     request_body = FeedUpdate,
     responses(UpdateResponse),
     operation_id = "updateFeed",
-    description = "Update a feed by ID"
+    description = "Update a feed by ID",
+    tag = FEEDS_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_feed(
@@ -294,7 +298,8 @@ pub async fn update_feed(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteFeed",
-    description = "Delete a feed by ID"
+    description = "Delete a feed by ID",
+    tag = FEEDS_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_feed(
@@ -319,7 +324,8 @@ pub async fn delete_feed(
     request_body = FeedDetect,
     responses(DetectResponse),
     operation_id = "detectFeeds",
-    description = "Detects web feeds on a page"
+    description = "Detects web feeds on a page",
+    tag = FEEDS_TAG
   )]
 #[axum::debug_handler]
 pub async fn detect_feeds(

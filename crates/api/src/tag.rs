@@ -14,7 +14,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Session, TagList};
+use crate::common::{BaseError, Error, Id, Session, TagList, TAGS_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagState {
@@ -131,7 +131,8 @@ impl From<TagType> for tag::TagType {
     params(TagListQuery),
     responses(ListResponse),
     operation_id = "listTags",
-    description = "List the active profile tags"
+    description = "List the active profile tags",
+    tag = TAGS_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
@@ -151,7 +152,8 @@ pub async fn list_tags(
     params(Id),
     responses(GetResponse),
     operation_id = "getTag",
-    description = "Get a tag by ID"
+    description = "Get a tag by ID",
+    tag = TAGS_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
@@ -176,7 +178,8 @@ pub async fn get_tag(
   request_body = TagCreate,
   responses(CreateResponse),
   operation_id = "createTag",
-  description = "Create a tag"
+  description = "Create a tag",
+  tag = TAGS_TAG
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
@@ -202,7 +205,8 @@ pub async fn create_tag(
     request_body = TagUpdate,
     responses(UpdateResponse),
     operation_id = "updateTag",
-    description = "Update a tag by ID"
+    description = "Update a tag by ID",
+    tag = TAGS_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
@@ -228,7 +232,8 @@ pub async fn update_tag(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteTag",
-    description = "Delete a tag by ID"
+    description = "Delete a tag by ID",
+    tag = TAGS_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(

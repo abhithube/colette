@@ -13,7 +13,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, FeedEntryList, Id, Session};
+use crate::common::{BaseError, Error, FeedEntryList, Id, Session, FEED_ENTRIES_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedEntryState {
@@ -118,7 +118,8 @@ impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
     params(FeedEntryListQuery),
     responses(ListResponse),
     operation_id = "listFeedEntries",
-    description = "List feed entries"
+    description = "List feed entries",
+    tag = FEED_ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_feed_entries(
@@ -141,7 +142,8 @@ pub async fn list_feed_entries(
     params(Id),
     responses(GetResponse),
     operation_id = "getFeedEntry",
-    description = "Get a feed entry by ID"
+    description = "Get a feed entry by ID",
+    tag = FEED_ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_feed_entry(
@@ -167,7 +169,8 @@ pub async fn get_feed_entry(
     request_body = FeedEntryUpdate,
     responses(UpdateResponse),
     operation_id = "updateFeedEntry",
-    description = "Update a feed entry by ID"
+    description = "Update a feed entry by ID",
+    tag = FEED_ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_feed_entry(

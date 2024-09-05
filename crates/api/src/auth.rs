@@ -17,7 +17,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, Session, SESSION_KEY},
+    common::{BaseError, Error, Session, AUTH_TAG, SESSION_KEY},
     profile::Profile,
 };
 
@@ -104,7 +104,8 @@ impl From<Login> for auth::Login {
     request_body = Register,
     responses(RegisterResponse),
     operation_id = "register",
-    description = "Register a user account"
+    description = "Register a user account",
+    tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub async fn register(
@@ -130,7 +131,8 @@ pub async fn register(
     request_body = Login,
     responses(LoginResponse),
     operation_id = "login",
-    description = "Login to a user account"
+    description = "Login to a user account",
+    tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub async fn login(
@@ -162,7 +164,8 @@ pub async fn login(
     path = "/@me",
     responses(GetActiveResponse),
     operation_id = "getActiveUser",
-    description = "Get the active user"
+    description = "Get the active user",
+    tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(

@@ -14,7 +14,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, CollectionList, Error, Id, Session};
+use crate::common::{BaseError, CollectionList, Error, Id, Session, COLLECTIONS_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct CollectionState {
@@ -111,7 +111,8 @@ impl From<CollectionUpdate> for collection::CollectionUpdate {
     path = "",
     responses(ListResponse),
     operation_id = "listCollections",
-    description = "List the active profile collections"
+    description = "List the active profile collections",
+    tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn list_collections(
@@ -130,7 +131,8 @@ pub async fn list_collections(
     params(Id),
     responses(GetResponse),
     operation_id = "getCollection",
-    description = "Get a collection by ID"
+    description = "Get a collection by ID",
+    tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn get_collection(
@@ -155,7 +157,8 @@ pub async fn get_collection(
   request_body = CollectionCreate,
   responses(CreateResponse),
   operation_id = "createCollection",
-  description = "Create a collection"
+  description = "Create a collection",
+  tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn create_collection(
@@ -184,7 +187,8 @@ pub async fn create_collection(
     request_body = CollectionUpdate,
     responses(UpdateResponse),
     operation_id = "updateCollection",
-    description = "Update a collection by ID"
+    description = "Update a collection by ID",
+    tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn update_collection(
@@ -213,7 +217,8 @@ pub async fn update_collection(
     params(Id),
     responses(DeleteResponse),
     operation_id = "deleteCollection",
-    description = "Delete a collection by ID"
+    description = "Delete a collection by ID",
+    tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn delete_collection(

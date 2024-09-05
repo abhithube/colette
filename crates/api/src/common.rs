@@ -22,6 +22,16 @@ use crate::{
     tag::Tag,
 };
 
+pub const AUTH_TAG: &str = "Auth";
+pub const BACKUPS_TAG: &str = "Backups";
+pub const BOOKMARKS_TAG: &str = "Bookmarks";
+pub const COLLECTIONS_TAG: &str = "Collections";
+pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
+pub const FEEDS_TAG: &str = "Feeds";
+pub const FOLDERS_TAG: &str = "Folders";
+pub const PROFILES_TAG: &str = "Profiles";
+pub const TAGS_TAG: &str = "Tags";
+
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
 pub struct Id(pub Uuid);

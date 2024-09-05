@@ -10,7 +10,7 @@ use http::StatusCode;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::common::{Error, Session};
+use crate::common::{Error, Session, BACKUPS_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BackupState {
@@ -40,7 +40,8 @@ impl BackupApi {
     request_body = Vec<u8>,
     responses(ImportResponse),
     operation_id = "importOpml",
-    description = "Import OPML feeds into profile"
+    description = "Import OPML feeds into profile",
+    tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
 pub async fn import_opml(
@@ -59,7 +60,8 @@ pub async fn import_opml(
     path = "/opml/export",
     responses(ExportResponse),
     operation_id = "exportOpml",
-    description = "Export OPML feeds from profile"
+    description = "Export OPML feeds from profile",
+    tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
 pub async fn export_opml(
