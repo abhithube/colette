@@ -12,6 +12,7 @@ http.workspace = true
 scraper.workspace = true
 serde.workspace = true
 thiserror.workspace = true
+tokio.workspace = true
 ureq = { version = "2", default-features = false, features = [
   "http-crate",
   "tls",

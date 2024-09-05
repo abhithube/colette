@@ -177,18 +177,13 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 
         let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();
-        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
-
-        let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
-        let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
+        let resp = tokio::task::spawn(async move { req.call() })
+            .await
+            .map_err(|e| DownloaderError(e.into()))?
+            .map_err(|e| DownloaderError(e.into()))?;
 
         let mut extracted = if let Some(options) = &plugin.extractor {
-            let mut body = resp.into_body();
-
-            let mut raw = String::new();
-            body.read_to_string(&mut raw)
-                .map_err(|e| ExtractorError(e.into()))?;
-
+            let raw = resp.into_string().map_err(|e| DownloaderError(e.into()))?;
             let html = Html::parse_document(&raw);
 
             let entries = options
@@ -227,7 +222,7 @@ impl Scraper<ProcessedFeed> for DefaultFeedScraper<'_> {
 
             Ok(feed)
         } else {
-            parser::parse(resp.into_body())
+            parser::parse(resp.into_reader())
                 .map(ExtractedFeed::from)
                 .map_err(|e| ExtractorError(e.into()))
         }?;

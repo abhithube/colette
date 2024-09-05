@@ -1,17 +1,14 @@
-use std::{
-    collections::HashMap,
-    io::{BufRead, BufReader, Read},
-};
+use std::collections::HashMap;
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use http::{Request, Response};
+use http::Request;
 use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
     utils::{ExtractorQuery, Node, TextSelector},
-    DownloaderError, DownloaderPlugin, ExtractorError, PostprocessorError, Scraper,
+    DownloaderError, DownloaderPlugin, PostprocessorError, Scraper,
 };
 
 #[derive(Clone, Debug)]
@@ -188,17 +185,12 @@ impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
 
         let parts = (plugin.downloader)(url)?;
         let req: ureq::Request = parts.into();
-        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
+        let resp = tokio::task::spawn(async move { req.call() })
+            .await
+            .map_err(|e| DownloaderError(e.into()))?
+            .map_err(|e| DownloaderError(e.into()))?;
 
-        let resp: Response<Box<dyn Read + Send + Sync>> = resp.into();
-        let resp = resp.map(|e| Box::new(BufReader::new(e)) as Box<dyn BufRead>);
-
-        let mut body = resp.into_body();
-
-        let mut raw = String::new();
-        body.read_to_string(&mut raw)
-            .map_err(|e| ExtractorError(e.into()))?;
-
+        let raw = resp.into_string().map_err(|e| DownloaderError(e.into()))?;
         let html = Html::parse_document(&raw);
 
         let mut extracted = ExtractedBookmark {
