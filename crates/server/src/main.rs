@@ -83,24 +83,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
-    if app_config.refresh_enabled {
-        let schedule = Schedule::from_str(&app_config.cron_refresh)?;
-
-        let worker = WorkerBuilder::new("refresh-feeds")
-            .data(Arc::new(RefreshService::new(
-                feed_scraper.clone(),
-                feed_repository.clone(),
-                profile_repository.clone(),
-            )))
-            .backend(CronStream::new(schedule))
-            .build_fn(colette_tasks::refresh_feeds);
-
-        Monitor::<TokioExecutor>::new()
-            .register(worker)
-            .run()
-            .await?;
-    }
-
     colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
     let auth_service = Arc::new(AuthService::new(
@@ -120,14 +102,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let collection_service = Arc::new(CollectionService::new(Arc::new(
         CollectionSqlRepository::new(db.clone()),
     )));
-    let feed_service = Arc::new(FeedService::new(feed_repository, feed_scraper));
+    let feed_service = Arc::new(FeedService::new(
+        feed_repository.clone(),
+        feed_scraper.clone(),
+    ));
     let feed_entry_service = Arc::new(FeedEntryService::new(Arc::new(
         FeedEntrySqlRepository::new(db.clone()),
     )));
     let folder_service = Arc::new(FolderService::new(Arc::new(FolderSqlRepository::new(
         db.clone(),
     ))));
-    let profile_service = Arc::new(ProfileService::new(profile_repository));
+    let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
+    let refresh_service = Arc::new(RefreshService::new(
+        feed_scraper.clone(),
+        feed_repository.clone(),
+        profile_repository.clone(),
+    ));
     let tag_service = Arc::new(TagService::new(Arc::new(TagSqlRepository::new(db))));
 
     let api_state = ApiState::new(
@@ -151,7 +141,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ));
 
     let listener = TcpListener::bind(format!("{}:{}", app_config.host, app_config.port)).await?;
-    axum::serve(listener, api).await?;
+
+    let server = async { axum::serve(listener, api).await };
+
+    let refresh_worker = async {
+        if app_config.refresh_enabled {
+            let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
+
+            let worker = WorkerBuilder::new("refresh-feeds")
+                .data(refresh_service)
+                .backend(CronStream::new(schedule))
+                .build_fn(colette_tasks::refresh_feeds);
+
+            Monitor::<TokioExecutor>::new().register(worker).run().await
+        } else {
+            Ok(())
+        }
+    };
+
+    let _ = tokio::join!(server, refresh_worker);
 
     deletion_task.await??;
 
