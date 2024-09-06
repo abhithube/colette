@@ -1,26 +1,16 @@
-import { Icon } from '@/components/icon'
-import { Button } from '@/components/ui/button'
 import {
-  Form,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Dialog } from '@colette/components'
+  Button,
+  Dialog,
+  Field,
+  FileUpload,
+  Flex,
+  IconButton,
+} from '@colette/components'
 import { importOpmlOptions } from '@colette/query'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zfd } from 'zod-form-data'
+import { Trash2, XIcon } from 'lucide-react'
 import { Route } from '../_private'
-
-const formSchema = z.object({
-  file: zfd.file(),
-})
 
 type Props = {
   close: () => void
@@ -29,15 +19,22 @@ type Props = {
 export function SettingsModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const {
+    Field: TField,
+    handleSubmit,
+    reset,
+  } = useForm({
+    defaultValues: {
+      file: undefined as unknown as File,
+    },
+    onSubmit: ({ value }) => importOpml(value.file),
   })
 
-  const { mutateAsync: importFeeds, isPending } = useMutation(
+  const { mutateAsync: importOpml, isPending } = useMutation(
     importOpmlOptions(
       {
         onSuccess: async () => {
-          form.reset()
+          reset()
           close()
 
           await context.queryClient.invalidateQueries({
@@ -50,40 +47,76 @@ export function SettingsModal({ close }: Props) {
   )
 
   return (
-    <Dialog.Content>
-      <Form {...form}>
-        <form
-          className="space-y-4"
-          onSubmit={form.handleSubmit(async (data) => importFeeds(data.file))}
+    <Dialog.Content p={6}>
+      <form
+        className="space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+      >
+        <Dialog.Title>Import Feeds</Dialog.Title>
+        <Dialog.Description>
+          Upload an OPML file to import feeds.
+        </Dialog.Description>
+        <TField
+          name="file"
+          validators={{
+            onSubmit: ({ value }) => {
+              if (!value) {
+                return 'Please select a valid OPML file'
+              }
+            },
+          }}
         >
-          <Dialog.Title>Import Feeds</Dialog.Title>
-          <Dialog.Description>
-            Upload an OPML file to import feeds.
-          </Dialog.Description>
-          <FormField
-            control={form.control}
-            name="file"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>File</FormLabel>
-                <Input
-                  type="file"
-                  onChange={(ev) =>
-                    field.onChange(ev.target.files ? ev.target.files[0] : null)
-                  }
-                />
-                <FormDescription>OPML file to upload</FormDescription>
-              </FormItem>
-            )}
-          />
-          <Button disabled={isPending}>
-            {isPending && (
-              <Icon className="mr-2 animate-spin" value={Loader2} />
-            )}
-            Submit
-          </Button>
-        </form>
-      </Form>
+          {({ state, handleChange }) => (
+            <Field.Root mt={4} invalid={state.meta.errors.length > 0}>
+              <FileUpload.Root
+                accept={['application/xml', 'text/xml', '.opml']}
+                onFileChange={(e) => handleChange(e.acceptedFiles[0])}
+              >
+                <FileUpload.Label>OPML file</FileUpload.Label>
+                <FileUpload.Trigger asChild>
+                  <Button variant="outline">Choose a file...</Button>
+                </FileUpload.Trigger>
+                <FileUpload.ItemGroup>
+                  <FileUpload.Context>
+                    {({ acceptedFiles }) =>
+                      acceptedFiles.map((file) => (
+                        <FileUpload.Item key={file.name} file={file}>
+                          <FileUpload.ItemName />
+                          <FileUpload.ItemSizeText />
+                          <FileUpload.ItemDeleteTrigger asChild>
+                            <IconButton
+                              variant="ghost"
+                              colorPalette="red"
+                              size="sm"
+                            >
+                              <Trash2 />
+                            </IconButton>
+                          </FileUpload.ItemDeleteTrigger>
+                        </FileUpload.Item>
+                      ))
+                    }
+                  </FileUpload.Context>
+                </FileUpload.ItemGroup>
+                <FileUpload.HiddenInput />
+              </FileUpload.Root>
+              <Field.ErrorText>
+                {state.meta.errors[0]?.toString()}
+              </Field.ErrorText>
+            </Field.Root>
+          )}
+        </TField>
+        <Flex justify="end" mt={4}>
+          <Button loading={isPending}>Submit</Button>
+        </Flex>
+      </form>
+      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
+        <IconButton variant="ghost" size="sm">
+          <XIcon />
+        </IconButton>
+      </Dialog.CloseTrigger>
     </Dialog.Content>
   )
 }
