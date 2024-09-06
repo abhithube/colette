@@ -1,6 +1,8 @@
 export * from '@colette/styled-system/jsx'
 export * from './button'
 export * from './card'
+export * from './dialog'
 export * from './field'
+export * from './icon-button'
 export * from './spinner'
-
+export * from './tooltip'

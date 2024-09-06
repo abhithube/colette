@@ -2,19 +2,13 @@ import { Icon } from '@/components/icon'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardTitle } from '@/components/ui/card'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { cn } from '@/lib/utils'
+import { Dialog, IconButton } from '@colette/components'
 import type { Profile } from '@colette/core'
 import { listProfilesOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Plus } from 'lucide-react'
+import { CheckCircle, Plus, XIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Route } from '../_private'
 
@@ -33,11 +27,9 @@ export function ProfileModal({ profile }: Props) {
   if (!profiles) return
 
   return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Profile</DialogTitle>
-        <DialogDescription>Select a profile</DialogDescription>
-      </DialogHeader>
+    <Dialog.Content>
+      <Dialog.Title>Profile</Dialog.Title>
+      <Dialog.Description>Select a profile</Dialog.Description>
       <RadioGroup className="grid grid-cols-3" value={selected}>
         {profiles.data.map((p) => (
           <div key={p.id}>
@@ -77,9 +69,12 @@ export function ProfileModal({ profile }: Props) {
           <span className="text-muted-foreground text-sm">Create new</span>
         </div>
       </RadioGroup>
-      <DialogFooter>
-        <Button disabled={selected === profile.id}>Select</Button>
-      </DialogFooter>
-    </DialogContent>
+      <Button disabled={selected === profile.id}>Select</Button>
+      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
+        <IconButton aria-label="Close Dialog" variant="ghost" size="sm">
+          <XIcon />
+        </IconButton>
+      </Dialog.CloseTrigger>
+    </Dialog.Content>
   )
 }

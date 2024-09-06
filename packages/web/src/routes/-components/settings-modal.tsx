@@ -1,13 +1,6 @@
 import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Form,
   FormDescription,
   FormField,
@@ -15,6 +8,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Dialog } from '@colette/components'
 import { importOpmlOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
@@ -56,18 +50,16 @@ export function SettingsModal({ close }: Props) {
   )
 
   return (
-    <DialogContent>
+    <Dialog.Content>
       <Form {...form}>
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit(async (data) => importFeeds(data.file))}
         >
-          <DialogHeader>
-            <DialogTitle>Import Feeds</DialogTitle>
-            <DialogDescription>
-              Upload an OPML file to import feeds.
-            </DialogDescription>
-          </DialogHeader>
+          <Dialog.Title>Import Feeds</Dialog.Title>
+          <Dialog.Description>
+            Upload an OPML file to import feeds.
+          </Dialog.Description>
           <FormField
             control={form.control}
             name="file"
@@ -84,16 +76,14 @@ export function SettingsModal({ close }: Props) {
               </FormItem>
             )}
           />
-          <DialogFooter>
-            <Button disabled={isPending}>
-              {isPending && (
-                <Icon className="mr-2 animate-spin" value={Loader2} />
-              )}
-              Submit
-            </Button>
-          </DialogFooter>
+          <Button disabled={isPending}>
+            {isPending && (
+              <Icon className="mr-2 animate-spin" value={Loader2} />
+            )}
+            Submit
+          </Button>
         </form>
       </Form>
-    </DialogContent>
+    </Dialog.Content>
   )
 }

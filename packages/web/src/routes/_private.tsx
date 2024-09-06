@@ -1,4 +1,4 @@
-import { Box, Flex } from '@colette/components'
+import { Box, Divider, Flex } from '@colette/components'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { OuterSidebar } from './-components/outer-sidebar'
 
@@ -25,6 +25,7 @@ function Component() {
   return (
     <Flex h="screen">
       <OuterSidebar profile={profile} />
+      <Divider orientation="vertical" />
       <Box w="full" overflowY="auto">
         <Outlet />
       </Box>
