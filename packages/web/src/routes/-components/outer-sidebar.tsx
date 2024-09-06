@@ -1,8 +1,15 @@
-import { Dialog, Flex, IconButton, Tooltip, VStack } from '@colette/components'
+import {
+  Dialog,
+  Flex,
+  IconButton,
+  Tooltip,
+  VStack,
+  css,
+} from '@colette/components'
 import type { Profile } from '@colette/core'
+import { Link } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
-import { SidebarLink } from '../../components/sidebar'
 import { ProfileModal } from './profile-modal'
 import { SettingsModal } from './settings-modal'
 
@@ -23,9 +30,16 @@ export const OuterSidebar = ({ profile }: Props) => {
       >
         <Tooltip.Trigger asChild>
           <IconButton asChild variant="ghost" size="lg">
-            <SidebarLink to="/">
+            <Link
+              to="/"
+              activeProps={{
+                className: css({
+                  bg: 'bg.muted',
+                }),
+              }}
+            >
               <Home />
-            </SidebarLink>
+            </Link>
           </IconButton>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
@@ -42,9 +56,19 @@ export const OuterSidebar = ({ profile }: Props) => {
       >
         <Tooltip.Trigger asChild>
           <IconButton asChild variant="ghost" size="lg">
-            <SidebarLink to="/feeds" activeOptions={{ exact: false }}>
+            <Link
+              to="/feeds"
+              activeProps={{
+                className: css({
+                  bg: 'bg.muted',
+                }),
+              }}
+              activeOptions={{
+                exact: false,
+              }}
+            >
               <Rss />
-            </SidebarLink>
+            </Link>
           </IconButton>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
@@ -61,9 +85,19 @@ export const OuterSidebar = ({ profile }: Props) => {
       >
         <Tooltip.Trigger asChild>
           <IconButton asChild variant="ghost" size="lg">
-            <SidebarLink to="/bookmarks" activeOptions={{ exact: false }}>
+            <Link
+              to="/bookmarks"
+              activeProps={{
+                className: css({
+                  bg: 'bg.muted',
+                }),
+              }}
+              activeOptions={{
+                exact: false,
+              }}
+            >
               <Bookmark />
-            </SidebarLink>
+            </Link>
           </IconButton>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
