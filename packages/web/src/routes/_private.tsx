@@ -1,3 +1,4 @@
+import { Box, Flex } from '@colette/components'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { OuterSidebar } from './-components/outer-sidebar'
 
@@ -22,11 +23,11 @@ function Component() {
   if (!profile) return
 
   return (
-    <div className="flex h-screen">
+    <Flex h="screen">
       <OuterSidebar profile={profile} />
-      <div className="w-full overflow-y-auto">
+      <Box w="full" overflowY="auto">
         <Outlet />
-      </div>
-    </div>
+      </Box>
+    </Flex>
   )
 }

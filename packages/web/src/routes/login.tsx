@@ -1,3 +1,4 @@
+import { Box, Center } from '@colette/components'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { LoginForm } from './-components/login-form'
 
@@ -14,10 +15,10 @@ export const Route = createFileRoute('/login')({
 
 function Component() {
   return (
-    <div className="flex h-screen items-center justify-center">
-      <div className="w-[400px]">
+    <Center h="screen">
+      <Box w="400">
         <LoginForm />
-      </div>
-    </div>
+      </Box>
+    </Center>
   )
 }
