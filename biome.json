@@ -5,7 +5,8 @@
 			"./crates/**/*",
 			"./packages/core/lib/openapi.gen.ts",
 			"./packages/web/src/routeTree.gen.ts",
-			"./packages/web/src/components/ui/**/*"
+			"./packages/web/src/components/ui/**/*",
+			"./packages/components/lib/**/*"
 		]
 	},
 	"javascript": {
