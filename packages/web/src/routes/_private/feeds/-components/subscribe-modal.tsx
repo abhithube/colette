@@ -1,13 +1,6 @@
 import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Form,
   FormDescription,
   FormField,
@@ -15,6 +8,7 @@ import {
   FormLabel,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Dialog, IconButton } from '@colette/components'
 import {
   BadGatewayError,
   FeedCreate,
@@ -24,7 +18,7 @@ import { createFeedOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2 } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { Route } from '../../feeds'
 
@@ -79,18 +73,16 @@ export function SubscribeModal({ close }: Props) {
   )
 
   return (
-    <DialogContent>
+    <Dialog.Content>
       <Form {...form}>
         <form
           className="space-y-4"
           onSubmit={form.handleSubmit((data) => createFeed(data))}
         >
-          <DialogHeader>
-            <DialogTitle>Add Feed</DialogTitle>
-            <DialogDescription>
-              Subscribe to a RSS or Atom feed and receive the latest updates.
-            </DialogDescription>
-          </DialogHeader>
+          <Dialog.Title>Add Feed</Dialog.Title>
+          <Dialog.Description>
+            Subscribe to a RSS or Atom feed and receive the latest updates.
+          </Dialog.Description>
           <FormField
             control={form.control}
             name="url"
@@ -102,16 +94,19 @@ export function SubscribeModal({ close }: Props) {
               </FormItem>
             )}
           />
-          <DialogFooter>
-            <Button disabled={isPending}>
-              {isPending && (
-                <Icon className="mr-2 animate-spin" value={Loader2} />
-              )}
-              Submit
-            </Button>
-          </DialogFooter>
+          <Button disabled={isPending}>
+            {isPending && (
+              <Icon className="mr-2 animate-spin" value={Loader2} />
+            )}
+            Submit
+          </Button>
         </form>
       </Form>
-    </DialogContent>
+      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
+        <IconButton aria-label="Close Dialog" variant="ghost" size="sm">
+          <X />
+        </IconButton>
+      </Dialog.CloseTrigger>
+    </Dialog.Content>
   )
 }
