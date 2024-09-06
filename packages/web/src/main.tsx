@@ -9,7 +9,7 @@ import { routeTree } from './routeTree.gen'
 
 const queryClient = new QueryClient()
 const api = new HttpAPI({
-  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '',
+  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api/v1',
   credentials: 'include',
 })
 
