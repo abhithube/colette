@@ -16,7 +16,7 @@ export const Route = createFileRoute('/login')({
 function Component() {
   return (
     <Center h="screen">
-      <Box w="400">
+      <Box w={400}>
         <LoginForm />
       </Box>
     </Center>

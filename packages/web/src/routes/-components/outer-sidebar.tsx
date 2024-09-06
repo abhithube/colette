@@ -1,13 +1,16 @@
 import {
+  Button,
   Dialog,
   Flex,
+  Icon,
   IconButton,
+  Link,
   Tooltip,
   VStack,
   css,
 } from '@colette/components'
 import type { Profile } from '@colette/core'
-import { Link } from '@tanstack/react-router'
+import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { ProfileModal } from './profile-modal'
@@ -29,18 +32,22 @@ export const OuterSidebar = ({ profile }: Props) => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <IconButton asChild variant="ghost" size="lg">
-            <Link
-              to="/"
-              activeProps={{
-                className: css({
-                  bg: 'bg.muted',
-                }),
-              }}
-            >
-              <Home />
+          <Button asChild variant="ghost" size="lg">
+            <Link asChild>
+              <TLink
+                to="/"
+                activeProps={{
+                  className: css({
+                    bg: 'bg.muted',
+                  }),
+                }}
+              >
+                <Icon>
+                  <Home />
+                </Icon>
+              </TLink>
             </Link>
-          </IconButton>
+          </Button>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
           <Tooltip.Arrow>
@@ -55,21 +62,25 @@ export const OuterSidebar = ({ profile }: Props) => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <IconButton asChild variant="ghost" size="lg">
-            <Link
-              to="/feeds"
-              activeProps={{
-                className: css({
-                  bg: 'bg.muted',
-                }),
-              }}
-              activeOptions={{
-                exact: false,
-              }}
-            >
-              <Rss />
+          <Button asChild variant="ghost" size="lg">
+            <Link asChild>
+              <TLink
+                to="/feeds"
+                activeProps={{
+                  className: css({
+                    bg: 'bg.muted',
+                  }),
+                }}
+                activeOptions={{
+                  exact: false,
+                }}
+              >
+                <Icon>
+                  <Rss />
+                </Icon>
+              </TLink>
             </Link>
-          </IconButton>
+          </Button>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
           <Tooltip.Arrow>
@@ -84,21 +95,25 @@ export const OuterSidebar = ({ profile }: Props) => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <IconButton asChild variant="ghost" size="lg">
-            <Link
-              to="/bookmarks"
-              activeProps={{
-                className: css({
-                  bg: 'bg.muted',
-                }),
-              }}
-              activeOptions={{
-                exact: false,
-              }}
-            >
-              <Bookmark />
+          <Button asChild variant="ghost" size="lg">
+            <Link asChild>
+              <TLink
+                to="/bookmarks"
+                activeProps={{
+                  className: css({
+                    bg: 'bg.muted',
+                  }),
+                }}
+                activeOptions={{
+                  exact: false,
+                }}
+              >
+                <Icon>
+                  <Bookmark />
+                </Icon>
+              </TLink>
             </Link>
-          </IconButton>
+          </Button>
         </Tooltip.Trigger>
         <Tooltip.Positioner>
           <Tooltip.Arrow>

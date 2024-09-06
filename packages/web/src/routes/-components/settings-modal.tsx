@@ -9,7 +9,7 @@ import {
 import { importOpmlOptions } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
-import { Trash2, XIcon } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { Route } from '../_private'
 
 type Props = {
@@ -49,7 +49,6 @@ export function SettingsModal({ close }: Props) {
   return (
     <Dialog.Content p={6}>
       <form
-        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           handleSubmit()
@@ -114,7 +113,7 @@ export function SettingsModal({ close }: Props) {
       </form>
       <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
         <IconButton variant="ghost" size="sm">
-          <XIcon />
+          <X />
         </IconButton>
       </Dialog.CloseTrigger>
     </Dialog.Content>
