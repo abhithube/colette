@@ -1,33 +1,10 @@
-import { Icon } from '@/components/icon'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-  Login,
-  UnauthorizedError,
-  UnprocessableContentError,
-} from '@colette/core'
+import { Button, Card, Field } from '@colette/components'
 import { loginOptions } from '@colette/query'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2 } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { zodValidator } from '@tanstack/zod-form-adapter'
+import { z } from 'zod'
 import { Route } from '../login'
 
 export const LoginForm = () => {
@@ -35,19 +12,23 @@ export const LoginForm = () => {
 
   const navigate = useNavigate()
 
-  const form = useForm<Login>({
-    resolver: zodResolver(Login),
+  const {
+    Field: TField,
+    handleSubmit,
+    reset,
+  } = useForm({
     defaultValues: {
       email: '',
       password: '',
     },
+    onSubmit: ({ value }) => login(value),
   })
 
   const { mutateAsync: login, isPending } = useMutation(
     loginOptions(
       {
         onSuccess: async (profile) => {
-          form.reset()
+          reset()
           context.profile = profile
 
           await navigate({
@@ -55,68 +36,82 @@ export const LoginForm = () => {
             replace: true,
           })
         },
-        onError: (error) => {
-          if (error instanceof UnauthorizedError) {
-            form.setError('root', {
-              message: error.message,
-            })
-          } else if (error instanceof UnprocessableContentError) {
-            form.setError('root', {
-              message: error.message,
-            })
-          }
-        },
       },
       context.api,
     ),
   )
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => login(data))}>
-        <Card>
-          <CardHeader className="space-y-2">
-            <CardTitle>Login</CardTitle>
-            <CardDescription>Login to your account</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="user@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input {...field} type="password" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter>
-            <Button className="grow" disabled={isPending}>
-              {isPending && (
-                <Icon className="mr-2 animate-spin" value={Loader2} />
-              )}
-              Login
-            </Button>
-          </CardFooter>
-        </Card>
-      </form>
-    </Form>
+    <form
+      onSubmit={(e) => {
+        e.preventDefault()
+        handleSubmit()
+      }}
+    >
+      <Card.Root>
+        <Card.Header spaceY="2">
+          <Card.Title>Login</Card.Title>
+          <Card.Description>Login to your account</Card.Description>
+        </Card.Header>
+        <Card.Body spaceY="4">
+          <TField
+            name="email"
+            validatorAdapter={zodValidator()}
+            validators={{
+              onBlur: z.string().email('Please enter a valid email'),
+            }}
+          >
+            {({ state, handleChange, handleBlur }) => (
+              <Field.Root
+                defaultValue={state.value}
+                invalid={state.meta.errors.length > 0}
+              >
+                <Field.Label>Email</Field.Label>
+                <Field.Input
+                  placeholder="user@email.com"
+                  onChange={(e) => handleChange(e.target.value)}
+                  onBlur={handleBlur}
+                />
+                <Field.ErrorText>
+                  {state.meta.errors[0]?.toString()}
+                </Field.ErrorText>
+              </Field.Root>
+            )}
+          </TField>
+          <TField
+            name="password"
+            validatorAdapter={zodValidator()}
+            validators={{
+              onBlur: z
+                .string()
+                .min(8, 'Password must be at least 8 characters'),
+            }}
+          >
+            {({ state, handleChange, handleBlur }) => (
+              <Field.Root
+                defaultValue={state.value}
+                invalid={state.meta.errors.length > 0}
+              >
+                <Field.Label>Password</Field.Label>
+                <Field.Input
+                  type="password"
+                  placeholder="********"
+                  onChange={(e) => handleChange(e.target.value)}
+                  onBlur={handleBlur}
+                />
+                <Field.ErrorText>
+                  {state.meta.errors[0]?.toString()}
+                </Field.ErrorText>
+              </Field.Root>
+            )}
+          </TField>
+        </Card.Body>
+        <Card.Footer>
+          <Button flexGrow={1} loading={isPending}>
+            Login
+          </Button>
+        </Card.Footer>
+      </Card.Root>
+    </form>
   )
 }
