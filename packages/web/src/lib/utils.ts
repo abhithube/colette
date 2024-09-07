@@ -1,27 +1,37 @@
 import { type ClassValue, clsx } from 'clsx'
+import { type FormatDistanceToken, formatDistanceToNowStrict } from 'date-fns'
+import locale from 'date-fns/locale/en-US'
 import { twMerge } from 'tailwind-merge'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-const units: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
-  { unit: 'year', ms: 1000 * 60 * 60 * 24 * 30 * 12 },
-  { unit: 'month', ms: 1000 * 60 * 60 * 24 * 30 },
-  { unit: 'day', ms: 1000 * 60 * 60 * 24 },
-  { unit: 'hour', ms: 1000 * 60 * 60 },
-  { unit: 'minute', ms: 1000 * 60 },
-  { unit: 'second', ms: 1000 },
-]
-const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' })
+const formatDistanceLocale: Record<FormatDistanceToken, string> = {
+  lessThanXSeconds: 's',
+  xSeconds: 's',
+  halfAMinute: 's',
+  lessThanXMinutes: 'm',
+  xMinutes: 'm',
+  aboutXHours: 'h',
+  xHours: 'h',
+  xDays: 'd',
+  aboutXWeeks: 'w',
+  xWeeks: 'w',
+  aboutXMonths: 'mo',
+  xMonths: 'mo',
+  aboutXYears: 'y',
+  xYears: 'y',
+  overXYears: 'y',
+  almostXYears: 'y',
+}
 
-export const formatRelativeDate = (ms: number): string => {
-  const elapsed = ms - new Date().getTime()
-
-  for (const { unit, ms } of units) {
-    if (Math.abs(elapsed) >= ms || unit === 'second') {
-      return rtf.format(Math.round(elapsed / ms), unit)
-    }
-  }
-  return ''
+export const formatRelativeDate = (date: Date | number | string): string => {
+  return formatDistanceToNowStrict(date, {
+    locale: {
+      ...locale,
+      formatDistance: (token, count) =>
+        (token === 'halfAMinute' ? 30 : count) + formatDistanceLocale[token],
+    },
+  })
 }
