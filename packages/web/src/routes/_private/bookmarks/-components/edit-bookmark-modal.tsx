@@ -1,32 +1,18 @@
 import { Icon } from '@/components/icon'
 import { Button } from '@/components/ui/button'
 import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Form,
   FormDescription,
   FormField,
   FormItem,
   FormLabel,
 } from '@/components/ui/form'
-import {
-  MultiSelect,
-  MultiSelectContent,
-  MultiSelectItem,
-  MultiSelectList,
-  MultiSelectTrigger,
-  MultiSelectValue,
-} from '@/components/ui/multi-select'
+import { Dialog, IconButton } from '@colette/components'
 import type { Bookmark } from '@colette/core'
 import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -70,7 +56,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
   if (!tags) return
 
   return (
-    <DialogContent>
+    <Dialog.Content>
       <Form {...form}>
         <form
           className="space-y-4"
@@ -101,17 +87,15 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
             })
           })}
         >
-          <DialogHeader>
-            <DialogTitle>Edit {bookmark.title}</DialogTitle>
-            <DialogDescription>Edit a bookmark's data.</DialogDescription>
-          </DialogHeader>
+          <Dialog.Title>Edit {bookmark.title}</Dialog.Title>
+          <Dialog.Description>Edit a bookmark's data.</Dialog.Description>
           <FormField
             control={form.control}
             name="tags"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Tags</FormLabel>
-                <MultiSelect
+                {/* <MultiSelect
                   onValueChange={(value) => {
                     form.setValue('tags', value)
                   }}
@@ -129,21 +113,24 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
                       ))}
                     </MultiSelectList>
                   </MultiSelectContent>
-                </MultiSelect>
+                </MultiSelect> */}
                 <FormDescription>Tags to add to the bookmark</FormDescription>
               </FormItem>
             )}
           />
-          <DialogFooter>
-            <Button disabled={isPending}>
-              {isPending && (
-                <Icon className="mr-2 animate-spin" value={Loader2} />
-              )}
-              Submit
-            </Button>
-          </DialogFooter>
+          <Button disabled={isPending}>
+            {isPending && (
+              <Icon className="mr-2 animate-spin" value={Loader2} />
+            )}
+            Submit
+          </Button>
         </form>
       </Form>
-    </DialogContent>
+      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
+        <IconButton aria-label="Close Dialog" variant="ghost" size="sm">
+          <X />
+        </IconButton>
+      </Dialog.CloseTrigger>
+    </Dialog.Content>
   )
 }

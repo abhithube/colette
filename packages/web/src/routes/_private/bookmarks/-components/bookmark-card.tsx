@@ -1,22 +1,20 @@
-import { Icon } from '@/components/icon'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Dialog } from '@/components/ui/dialog'
+import { Favicon } from '@/components/favicon'
+import { formatRelativeDate } from '@/lib/utils'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Separator } from '@/components/ui/separator'
+  Button,
+  Card,
+  Dialog,
+  Divider,
+  HStack,
+  Icon,
+  IconButton,
+  Link,
+  Text,
+  css,
+} from '@colette/components'
 import type { Bookmark } from '@colette/core'
-import { MoreHorizontal } from 'lucide-react'
+import { ExternalLink, Pencil } from 'lucide-react'
 import { useState } from 'react'
-import {
-  EntryAuthor,
-  EntryPublished,
-  EntryThumbnail,
-  EntryTitle,
-} from '../../-components/entry-parts'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 
 type Props = {
@@ -27,46 +25,74 @@ export function BookmarkCard({ bookmark }: Props) {
   const [isEditModalOpen, setEditModalOpen] = useState(false)
 
   return (
-    <Card className="overflow-hidden shadow-md">
-      <EntryThumbnail src={bookmark.thumbnailUrl} alt={bookmark.title} />
+    <Card.Root>
+      <img
+        className={css({
+          aspectRatio: 16 / 9,
+          bg: 'bg.default',
+          objectFit: 'cover',
+        })}
+        src={
+          bookmark.thumbnailUrl ?? 'https://placehold.co/320x180/black/black'
+        }
+        alt={bookmark.title}
+        loading="lazy"
+      />
       <div className="flex flex-col pb-2">
-        <CardHeader>
-          <EntryTitle title={bookmark.title} link={bookmark.link} />
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Icon className="text-muted-foreground" value={MoreHorizontal} />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56">
-              <DropdownMenuItem asChild>
-                <a href={bookmark.link} target="_blank" rel="noreferrer">
-                  Open in new tab
-                </a>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEditModalOpen(true)}>
-                Edit
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </CardHeader>
-        <CardContent className="flex justify-between">
+        <Card.Header py={4}>
+          <Card.Title lineClamp={1}>{bookmark.title}</Card.Title>
+        </Card.Header>
+        <Card.Body className="flex justify-between">
           <div className="flex h-4 space-x-2">
-            <EntryAuthor author={bookmark.author} link={bookmark.link} />
-            <Separator
-              className="bg-muted-foreground/50"
-              orientation="vertical"
-            />
-            {bookmark.publishedAt && (
-              <EntryPublished publishedAt={bookmark.publishedAt} />
-            )}
+            <HStack gap={2} h={4} fontSize="sm" fontWeight="semibold">
+              <HStack gap={2}>
+                {bookmark.author && (
+                  <>
+                    <Favicon domain={new URL(bookmark.link).hostname} />
+                    <Text as="span" truncate>
+                      {bookmark.author ?? 'Anonymous'}
+                    </Text>
+                  </>
+                )}
+              </HStack>
+              {bookmark.author && bookmark.publishedAt && (
+                <Divider orientation="vertical" />
+              )}
+              {bookmark.publishedAt && (
+                <Text as="span">
+                  {formatRelativeDate(bookmark.publishedAt)}
+                </Text>
+              )}
+            </HStack>
           </div>
-        </CardContent>
+        </Card.Body>
       </div>
-      <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
-        <EditBookmarkModal
-          bookmark={bookmark}
-          close={() => setEditModalOpen(false)}
-        />
-      </Dialog>
-    </Card>
+      <Card.Footer py={0} pb={4}>
+        <Button asChild variant="ghost">
+          <Link href={bookmark.link} target="_blank">
+            <Icon color="fg.muted">
+              <ExternalLink />
+            </Icon>
+          </Link>
+        </Button>
+        <Dialog.Root
+          open={isEditModalOpen}
+          onOpenChange={(e) => setEditModalOpen(e.open)}
+        >
+          <Dialog.Trigger asChild>
+            <IconButton variant="ghost" color="fg.muted">
+              <Pencil />
+            </IconButton>
+          </Dialog.Trigger>
+          <Dialog.Backdrop />
+          <Dialog.Positioner>
+            <EditBookmarkModal
+              bookmark={bookmark}
+              close={() => setEditModalOpen(false)}
+            />
+          </Dialog.Positioner>
+        </Dialog.Root>
+      </Card.Footer>
+    </Card.Root>
   )
 }
