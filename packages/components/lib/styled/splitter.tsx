@@ -1,4 +1,3 @@
-'use client'
 import type { Assign } from '@ark-ui/react'
 import { Splitter } from '@ark-ui/react/splitter'
 import { type SplitterVariantProps, splitter } from '@colette/styled-system/recipes'
