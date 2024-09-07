@@ -52,7 +52,7 @@ export function FeedEntryCard({ feedEntry }: Props) {
         alt={feedEntry.title}
         loading="lazy"
       />
-      <VStack alignItems="unset" gap={0}>
+      <VStack alignItems="unset" gap={0} flex={1}>
         <Card.Header py={0} pt={4}>
           <Card.Title lineClamp={1}>{feedEntry.title}</Card.Title>
         </Card.Header>
