@@ -81,61 +81,71 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
         let mut entries: Vec<ProcessedFeedEntry> = vec![];
 
         for entry in value.entries.into_iter() {
-            let Some(Ok(link)) = entry.link.as_ref().map(|e| Url::parse(e)) else {
-                return Err(PostprocessorError(anyhow!("could not process entry link")));
-            };
-            let Some(title) = entry.title else {
-                return Err(PostprocessorError(anyhow!("could not process entry title")));
-            };
-            if title.is_empty() {
-                return Err(PostprocessorError(anyhow!("could not process entry title")));
-            }
-
-            let Some(published) = entry.published.as_ref().and_then(|e| {
-                DateTime::parse_from_rfc3339(e.trim())
-                    .ok()
-                    .or(DateTime::parse_from_rfc2822(e).ok())
-                    .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
-                    .map(|f| f.to_utc())
-            }) else {
-                return Err(PostprocessorError(anyhow!(
-                    "could not process entry publish date"
-                )));
-            };
-            let thumbnail = entry
-                .thumbnail
-                .as_ref()
-                .and_then(|e| Url::parse(e.trim()).ok());
-
-            entries.push(ProcessedFeedEntry {
-                link,
-                title: title.trim().to_owned(),
-                published,
-                description: entry.description.and_then(|e| {
-                    if e.is_empty() {
-                        None
-                    } else {
-                        Some(e.trim().to_owned())
-                    }
-                }),
-                author: entry.author.and_then(|e| {
-                    if e.is_empty() {
-                        None
-                    } else {
-                        Some(e.trim().to_owned())
-                    }
-                }),
-                thumbnail,
-            });
+            entries.push(entry.try_into()?);
         }
 
-        let feed = ProcessedFeed {
+        let feed = Self {
             link,
             title: title.trim().to_owned(),
             entries,
         };
 
         Ok(feed)
+    }
+}
+
+impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
+    type Error = PostprocessorError;
+
+    fn try_from(value: ExtractedFeedEntry) -> Result<Self, Self::Error> {
+        let Some(Ok(link)) = value.link.as_ref().map(|e| Url::parse(e)) else {
+            return Err(PostprocessorError(anyhow!("could not process value link")));
+        };
+        let Some(title) = value.title else {
+            return Err(PostprocessorError(anyhow!("could not process value title")));
+        };
+        if title.is_empty() {
+            return Err(PostprocessorError(anyhow!("could not process value title")));
+        }
+
+        let Some(published) = value.published.as_ref().and_then(|e| {
+            DateTime::parse_from_rfc3339(e.trim())
+                .ok()
+                .or(DateTime::parse_from_rfc2822(e).ok())
+                .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
+                .map(|f| f.to_utc())
+        }) else {
+            return Err(PostprocessorError(anyhow!(
+                "could not process entry publish date"
+            )));
+        };
+        let thumbnail = value
+            .thumbnail
+            .as_ref()
+            .and_then(|e| Url::parse(e.trim()).ok());
+
+        let entry = Self {
+            link,
+            title: title.trim().to_owned(),
+            published,
+            description: value.description.and_then(|e| {
+                if e.is_empty() {
+                    None
+                } else {
+                    Some(e.trim().to_owned())
+                }
+            }),
+            author: value.author.and_then(|e| {
+                if e.is_empty() {
+                    None
+                } else {
+                    Some(e.trim().to_owned())
+                }
+            }),
+            thumbnail,
+        };
+
+        Ok(entry)
     }
 }
 
