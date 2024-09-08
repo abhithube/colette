@@ -8,7 +8,7 @@ use url::Url;
 
 use crate::{
     utils::{ExtractorQuery, Node, TextSelector},
-    DownloaderError, DownloaderPlugin, Error, ExtractorError, PostprocessorError, Scraper,
+    DownloaderError, Error, ExtractorError, PostprocessorError,
 };
 
 #[derive(Clone, Debug)]
@@ -230,74 +230,5 @@ impl BookmarkScraper for BookmarkPluginRegistry {
                 Ok(feed.try_into()?)
             }
         }
-    }
-}
-
-pub type BookmarkPostprocessorPlugin =
-    fn(url: &Url, extracted: &mut ExtractedBookmark) -> Result<(), PostprocessorError>;
-
-pub struct BookmarkPlugin<'a> {
-    pub downloader: DownloaderPlugin,
-    pub extractor: BookmarkExtractorOptions<'a>,
-    pub postprocessor: BookmarkPostprocessorPlugin,
-}
-
-impl Default for BookmarkPlugin<'_> {
-    fn default() -> Self {
-        Self {
-            downloader: |url| {
-                Request::get(url.as_str())
-                    .body(())
-                    .map(|e| e.into_parts().0)
-                    .map_err(|e| DownloaderError(e.into()))
-            },
-            extractor: BookmarkExtractorOptions::default(),
-            postprocessor: |_url, _extracted| Ok(()),
-        }
-    }
-}
-
-pub struct DefaultBookmarkScraper<'a> {
-    registry: HashMap<&'static str, BookmarkPlugin<'a>>,
-    default_plugin: BookmarkPlugin<'a>,
-}
-
-impl<'a> DefaultBookmarkScraper<'a> {
-    pub fn new(registry: HashMap<&'static str, BookmarkPlugin<'a>>) -> Self {
-        Self {
-            registry,
-            default_plugin: BookmarkPlugin::default(),
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl Scraper<ProcessedBookmark> for DefaultBookmarkScraper<'_> {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, crate::Error> {
-        let host = url.host_str().ok_or(crate::Error::Parse)?;
-
-        let plugin = self.registry.get(host).unwrap_or(&self.default_plugin);
-
-        let parts = (plugin.downloader)(url)?;
-        let req: ureq::Request = parts.into();
-        let resp = tokio::task::spawn(async move { req.call() })
-            .await
-            .map_err(|e| DownloaderError(e.into()))?
-            .map_err(|e| DownloaderError(e.into()))?;
-
-        let raw = resp.into_string().map_err(|e| DownloaderError(e.into()))?;
-        let html = Html::parse_document(&raw);
-
-        let mut extracted = ExtractedBookmark {
-            title: html.select_text(&plugin.extractor.title_queries),
-            thumbnail: html.select_text(&plugin.extractor.thumbnail_queries),
-            published: html.select_text(&plugin.extractor.published_queries),
-            author: html.select_text(&plugin.extractor.author_queries),
-        };
-
-        (plugin.postprocessor)(url, &mut extracted)?;
-        let processed = extracted.try_into()?;
-
-        Ok(processed)
     }
 }

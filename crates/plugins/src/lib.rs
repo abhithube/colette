@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use colette_scraper::{bookmark::BookmarkPluginRegistry, FeedPluginRegistry, FeedScraper};
+use colette_scraper::{BookmarkPluginRegistry, FeedPluginRegistry, FeedScraper};
 #[allow(unused_imports)]
 use custom::*;
 

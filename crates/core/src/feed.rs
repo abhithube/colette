@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-pub use colette_scraper::feed::ProcessedFeed;
 use colette_scraper::FeedScraper;
+pub use colette_scraper::ProcessedFeed;
 use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
