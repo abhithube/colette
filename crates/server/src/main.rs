@@ -27,7 +27,7 @@ use colette_repository::{
     FeedSqlRepository, FolderSqlRepository, ProfileSqlRepository, TagSqlRepository,
     UserSqlRepository,
 };
-use colette_scraper::{bookmark::DefaultBookmarkScraper, feed::DefaultFeedScraper};
+use colette_scraper::bookmark::DefaultBookmarkScraper;
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
 use colette_session::SessionBackend;
@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
     );
 
-    let feed_scraper = Arc::new(DefaultFeedScraper::new(register_feed_plugins()));
+    let feed_plugin_registry = Arc::new(register_feed_plugins());
 
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
     let folder_repository = Arc::new(FolderSqlRepository::new(db.clone()));
@@ -109,7 +109,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
-        feed_scraper.clone(),
+        feed_plugin_registry.clone(),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(
         Arc::new(FeedEntrySqlRepository::new(db.clone())),
@@ -118,7 +118,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let folder_service = Arc::new(FolderService::new(folder_repository));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
     let refresh_service = Arc::new(RefreshService::new(
-        feed_scraper.clone(),
+        feed_plugin_registry,
         feed_repository.clone(),
         profile_repository.clone(),
     ));

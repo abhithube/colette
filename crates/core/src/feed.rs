@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use colette_scraper::feed::FeedScraper;
 pub use colette_scraper::feed::ProcessedFeed;
+use colette_scraper::FeedScraper;
 use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
@@ -109,7 +109,7 @@ impl FeedService {
         match result {
             Ok(data) => Ok(data),
             Err(Error::Conflict(_)) => {
-                let scraped = self.scraper.scrape(&mut data.url).await?;
+                let scraped = self.scraper.scrape(&mut data.url)?;
 
                 self.repository
                     .create(FeedCreateData {
@@ -139,16 +139,14 @@ impl FeedService {
         self.repository.delete(IdParams::new(id, profile_id)).await
     }
 
-    pub async fn detect_feeds(
-        &self,
-        mut data: FeedDetect,
-    ) -> Result<Paginated<FeedDetected>, Error> {
-        let urls = self.scraper.detect(&mut data.url)?;
+    pub async fn detect_feeds(&self, _data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
+        // let urls = self.scraper.detect(&mut data.url)?;
+        let urls: Vec<Url> = vec![];
 
         let mut feeds: Vec<FeedDetected> = vec![];
 
         for mut url in urls.into_iter() {
-            let feed = self.scraper.scrape(&mut url).await?;
+            let feed = self.scraper.scrape(&mut url)?;
             let url = url.to_string();
 
             feeds.push(FeedDetected {

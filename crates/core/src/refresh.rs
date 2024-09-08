@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Local;
-use colette_scraper::{feed::ProcessedFeed, Scraper};
+use colette_scraper::FeedScraper;
 use futures::StreamExt;
 use tokio::sync::Semaphore;
 use url::Url;
@@ -12,14 +12,14 @@ use crate::{
 };
 
 pub struct RefreshService {
-    feed_scraper: Arc<dyn Scraper<ProcessedFeed>>,
+    feed_scraper: Arc<dyn FeedScraper>,
     feed_repository: Arc<dyn FeedRepository>,
     profile_repository: Arc<dyn ProfileRepository>,
 }
 
 impl RefreshService {
     pub fn new(
-        feed_scraper: Arc<dyn Scraper<ProcessedFeed>>,
+        feed_scraper: Arc<dyn FeedScraper>,
         feed_repository: Arc<dyn FeedRepository>,
         profile_repository: Arc<dyn ProfileRepository>,
     ) -> Self {
@@ -68,7 +68,12 @@ impl RefreshService {
     }
 
     async fn refresh_feed(&self, feed_id: i32, mut url: Url) -> Result<(), Error> {
-        let feed = self.feed_scraper.scrape(&mut url).await?;
+        let url_raw = url.to_string();
+
+        let feed_scraper = self.feed_scraper.clone();
+        let feed = tokio::task::spawn(async move { feed_scraper.scrape(&mut url) })
+            .await
+            .map_err(|e| Error::Unknown(e.into()))??;
 
         let mut profiles_stream = self
             .profile_repository
@@ -79,7 +84,7 @@ impl RefreshService {
         while let Some(Ok(profile_id)) = profiles_stream.next().await {
             self.feed_repository
                 .create(FeedCreateData {
-                    url: url.to_string(),
+                    url: url_raw.clone(),
                     feed: Some(feed.clone()),
                     folder_id: None,
                     profile_id,
