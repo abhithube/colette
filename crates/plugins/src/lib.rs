@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use colette_scraper::{bookmark::BookmarkPlugin, FeedPluginRegistry, FeedScraper};
+use colette_scraper::{bookmark::BookmarkPluginRegistry, FeedPluginRegistry, FeedScraper};
 #[allow(unused_imports)]
 use custom::*;
 
@@ -17,6 +17,6 @@ pub fn register_feed_plugins() -> FeedPluginRegistry {
     FeedPluginRegistry::new(plugins)
 }
 
-pub fn register_bookmark_plugins<'a>() -> HashMap<&'static str, BookmarkPlugin<'a>> {
-    HashMap::new()
+pub fn register_bookmark_plugins() -> BookmarkPluginRegistry {
+    BookmarkPluginRegistry::default()
 }

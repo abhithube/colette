@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io::Read};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use http::Request;
+use http::{request::Builder, Request, Response};
 use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
     utils::{ExtractorQuery, Node, TextSelector},
-    DownloaderError, DownloaderPlugin, PostprocessorError, Scraper,
+    DownloaderError, DownloaderPlugin, Error, ExtractorError, PostprocessorError, Scraper,
 };
 
 #[derive(Clone, Debug)]
@@ -135,6 +135,101 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
         };
 
         Ok(bookmark)
+    }
+}
+
+pub trait BookmarkScraper: Send + Sync {
+    fn before_download(&self, url: &mut Url) -> Builder {
+        Request::get(url.as_str())
+    }
+
+    fn download(
+        &self,
+        builder: Builder,
+    ) -> Result<Response<Box<dyn Read + Send + Sync>>, DownloaderError> {
+        let req: ureq::Request = builder
+            .try_into()
+            .map_err(|e: http::Error| DownloaderError(e.into()))?;
+
+        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
+
+        Ok(resp.into())
+    }
+
+    fn before_extract(&self) -> BookmarkExtractorOptions {
+        BookmarkExtractorOptions::default()
+    }
+
+    #[allow(unused_variables)]
+    fn extract(
+        &self,
+        url: &Url,
+        resp: Response<Box<dyn Read + Send + Sync>>,
+    ) -> Result<ExtractedBookmark, ExtractorError> {
+        let options = self.before_extract();
+
+        let mut body = resp.into_body();
+        let mut raw = String::new();
+        body.read_to_string(&mut raw)
+            .map_err(|e| ExtractorError(e.into()))?;
+
+        let html = Html::parse_document(&raw);
+
+        let bookmark = ExtractedBookmark {
+            title: html.select_text(&options.title_queries),
+            thumbnail: html.select_text(&options.thumbnail_queries),
+            published: html.select_text(&options.published_queries),
+            author: html.select_text(&options.author_queries),
+        };
+
+        Ok(bookmark)
+    }
+
+    #[allow(unused_variables)]
+    fn before_postprocess(
+        &self,
+        url: &Url,
+        bookmark: &mut ExtractedBookmark,
+    ) -> Result<(), PostprocessorError> {
+        Ok(())
+    }
+
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+        let builder = self.before_download(url);
+        let resp = self.download(builder)?;
+        let mut feed = self.extract(url, resp)?;
+        self.before_postprocess(url, &mut feed)?;
+
+        Ok(feed.try_into()?)
+    }
+}
+
+#[derive(Default)]
+pub struct BookmarkPluginRegistry {
+    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
+}
+
+impl BookmarkPluginRegistry {
+    pub fn new(plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>) -> Self {
+        Self { plugins }
+    }
+}
+
+impl BookmarkScraper for BookmarkPluginRegistry {
+    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+        let host = url.host_str().ok_or(Error::Parse)?;
+
+        match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(url),
+            None => {
+                let builder = self.before_download(url);
+                let resp = self.download(builder)?;
+                let mut feed = self.extract(url, resp)?;
+                self.before_postprocess(url, &mut feed)?;
+
+                Ok(feed.try_into()?)
+            }
+        }
     }
 }
 

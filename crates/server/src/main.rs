@@ -27,7 +27,6 @@ use colette_repository::{
     FeedSqlRepository, FolderSqlRepository, ProfileSqlRepository, TagSqlRepository,
     UserSqlRepository,
 };
-use colette_scraper::bookmark::DefaultBookmarkScraper;
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
 use colette_session::SessionBackend;
@@ -101,7 +100,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         Arc::new(BookmarkSqlRepository::new(db.clone())),
-        Arc::new(DefaultBookmarkScraper::new(register_bookmark_plugins())),
+        Arc::new(register_bookmark_plugins()),
         base64_decoder.clone(),
     ));
     let collection_service = Arc::new(CollectionService::new(Arc::new(

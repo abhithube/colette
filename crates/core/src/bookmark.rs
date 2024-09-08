@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use colette_scraper::{bookmark::ProcessedBookmark, Scraper};
+use colette_scraper::bookmark::{BookmarkScraper, ProcessedBookmark};
 use colette_utils::DataEncoder;
 use url::Url;
 use uuid::Uuid;
@@ -52,14 +52,14 @@ pub struct Cursor {
 
 pub struct BookmarkService {
     repository: Arc<dyn BookmarkRepository>,
-    scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+    scraper: Arc<dyn BookmarkScraper>,
     base64_encoder: Arc<dyn DataEncoder<Cursor>>,
 }
 
 impl BookmarkService {
     pub fn new(
         repository: Arc<dyn BookmarkRepository>,
-        scraper: Arc<dyn Scraper<ProcessedBookmark>>,
+        scraper: Arc<dyn BookmarkScraper>,
         base64_encoder: Arc<dyn DataEncoder<Cursor>>,
     ) -> Self {
         Self {
@@ -121,7 +121,7 @@ impl BookmarkService {
         mut data: BookmarkCreate,
         profile_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&mut data.url).await?;
+        let scraped = self.scraper.scrape(&mut data.url)?;
 
         self.repository
             .create(BookmarkCreateData {
