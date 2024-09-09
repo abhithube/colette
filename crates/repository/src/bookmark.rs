@@ -145,10 +145,10 @@ impl Updatable for BookmarkSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
 
                         let insert_many = tag_ids
-                            .iter()
+                            .into_iter()
                             .map(|e| query::profile_bookmark_tag::InsertMany {
                                 profile_bookmark_id: pb_model.id,
-                                tag_id: *e,
+                                tag_id: e,
                             })
                             .collect::<Vec<_>>();
 

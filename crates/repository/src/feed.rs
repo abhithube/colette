@@ -142,7 +142,9 @@ impl Updatable for FeedSqlRepository {
                         return Err(Error::NotFound(params.id));
                     };
 
-                    let mut active_model = pf_model.clone().into_active_model();
+                    let profile_feed_id = pf_model.id;
+
+                    let mut active_model = pf_model.into_active_model();
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title)
                     }
@@ -181,10 +183,10 @@ impl Updatable for FeedSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
 
                         let insert_many = tag_ids
-                            .iter()
+                            .into_iter()
                             .map(|e| query::profile_feed_tag::InsertMany {
-                                profile_feed_id: pf_model.id,
-                                tag_id: *e,
+                                profile_feed_id,
+                                tag_id: e,
                             })
                             .collect::<Vec<_>>();
 
@@ -343,14 +345,11 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
     feed: ProcessedFeed,
 ) -> Result<i32, Error> {
     let link = feed.link.to_string();
-    let result = query::feed::insert(
-        db,
-        link.clone(),
-        feed.title,
-        if url == link { None } else { Some(url) },
-    )
-    .await
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let url = if url == link { None } else { Some(url) };
+
+    let result = query::feed::insert(db, link, feed.title, url)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
     let feed_id = result.last_insert_id;
 
     let insert_many = feed
