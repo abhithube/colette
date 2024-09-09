@@ -37,9 +37,7 @@ impl Findable for FeedEntrySqlRepository {
 #[async_trait::async_trait]
 impl Updatable for FeedEntrySqlRepository {
     type Params = IdParams;
-
     type Data = FeedEntryUpdateData;
-
     type Output = Result<FeedEntry, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {

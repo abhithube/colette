@@ -125,9 +125,7 @@ impl Creatable for FeedSqlRepository {
 #[async_trait::async_trait]
 impl Updatable for FeedSqlRepository {
     type Params = IdParams;
-
     type Data = FeedUpdateData;
-
     type Output = Result<Feed, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {

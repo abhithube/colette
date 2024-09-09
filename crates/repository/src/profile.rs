@@ -75,14 +75,12 @@ impl Creatable for ProfileSqlRepository {
 #[async_trait::async_trait]
 impl Updatable for ProfileSqlRepository {
     type Params = ProfileIdParams;
-
     type Data = ProfileUpdateData;
-
     type Output = Result<Profile, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
-            .transaction::<_, colette_core::Profile, Error>(|txn| {
+            .transaction::<_, Profile, Error>(|txn| {
                 Box::pin(async move {
                     let Some(mut model) =
                         query::profile::select_by_id(txn, params.id, params.user_id)

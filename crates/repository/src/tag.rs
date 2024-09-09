@@ -61,9 +61,7 @@ impl Creatable for TagSqlRepository {
 #[async_trait::async_trait]
 impl Updatable for TagSqlRepository {
     type Params = IdParams;
-
     type Data = TagUpdateData;
-
     type Output = Result<Tag, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {

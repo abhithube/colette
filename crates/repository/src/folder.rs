@@ -65,9 +65,7 @@ impl Creatable for FolderSqlRepository {
 #[async_trait::async_trait]
 impl Updatable for FolderSqlRepository {
     type Params = IdParams;
-
     type Data = FolderUpdateData;
-
     type Output = Result<Folder, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {

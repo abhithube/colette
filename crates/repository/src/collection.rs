@@ -62,9 +62,7 @@ impl Creatable for CollectionSqlRepository {
 #[async_trait::async_trait]
 impl Updatable for CollectionSqlRepository {
     type Params = IdParams;
-
     type Data = CollectionUpdateData;
-
     type Output = Result<Collection, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
