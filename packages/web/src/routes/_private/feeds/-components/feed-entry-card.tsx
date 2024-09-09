@@ -54,24 +54,36 @@ export function FeedEntryCard({ feedEntry }: Props) {
       />
       <VStack alignItems="unset" gap={0} flex={1}>
         <Card.Header py={0} pt={4}>
-          <Card.Title lineClamp={1}>{feedEntry.title}</Card.Title>
+          <Card.Title lineClamp={1} title={feedEntry.title}>
+            {feedEntry.title}
+          </Card.Title>
         </Card.Header>
         <Card.Body pt={2} pb={4}>
-          <Text lineClamp={2}>{feedEntry.description}</Text>
+          {feedEntry.description ? (
+            <Text lineClamp={2} title={feedEntry.description}>
+              {feedEntry.description}
+            </Text>
+          ) : (
+            <Text>No description.</Text>
+          )}
         </Card.Body>
         <Card.Footer justifyContent="space-between" py={0} pb={4}>
           <HStack gap={2} h={4} fontSize="sm" fontWeight="semibold">
             <HStack gap={2}>
               <Favicon domain={new URL(feedEntry.link).hostname} />
-              <Text as="span" truncate>
-                {feedEntry.author ?? 'Anonymous'}
-              </Text>
+              {feedEntry.author && (
+                <Text as="span" truncate title={feedEntry.author}>
+                  {feedEntry.author}
+                </Text>
+              )}
             </HStack>
             <Divider orientation="vertical" />
-            <Text as="span">{formatRelativeDate(feedEntry.publishedAt)}</Text>
+            <Text as="span" title={new Date(feedEntry.publishedAt).toString()}>
+              {formatRelativeDate(feedEntry.publishedAt)}
+            </Text>
           </HStack>
           <HStack>
-            <Button asChild variant="ghost">
+            <Button asChild variant="ghost" title="Open in new tab">
               <Link href={feedEntry.link} target="_blank">
                 <Icon color="fg.muted">
                   <ExternalLink />
@@ -80,6 +92,7 @@ export function FeedEntryCard({ feedEntry }: Props) {
             </Button>
             <Checkbox
               defaultChecked={feedEntry.hasRead}
+              title={feedEntry.hasRead ? 'Mark as unread' : 'Mark as read'}
               onCheckedChange={(e) => {
                 if (typeof e.checked === 'boolean') {
                   updateFeedEntry({

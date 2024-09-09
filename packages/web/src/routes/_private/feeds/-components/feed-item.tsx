@@ -11,7 +11,7 @@ export function FeedItem({ feed }: Props) {
   const title = feed.title ?? feed.originalTitle
 
   return (
-    <Button asChild variant="ghost">
+    <Button asChild variant="ghost" title={title}>
       <Link asChild display="flex" textDecoration="none">
         <TLink
           to="/feeds/$id"

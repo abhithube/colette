@@ -40,35 +40,38 @@ export function BookmarkCard({ bookmark }: Props) {
       />
       <div className="flex flex-col pb-2">
         <Card.Header py={4}>
-          <Card.Title lineClamp={1}>{bookmark.title}</Card.Title>
+          <Card.Title lineClamp={1} title={bookmark.title}>
+            {bookmark.title}
+          </Card.Title>
         </Card.Header>
         <Card.Body className="flex justify-between">
           <div className="flex h-4 space-x-2">
             <HStack gap={2} h={4} fontSize="sm" fontWeight="semibold">
               <HStack gap={2}>
+                <Favicon domain={new URL(bookmark.link).hostname} />
                 {bookmark.author && (
-                  <>
-                    <Favicon domain={new URL(bookmark.link).hostname} />
-                    <Text as="span" truncate>
-                      {bookmark.author ?? 'Anonymous'}
-                    </Text>
-                  </>
+                  <Text as="span" truncate title={bookmark.author}>
+                    {bookmark.author}
+                  </Text>
                 )}
               </HStack>
-              {bookmark.author && bookmark.publishedAt && (
-                <Divider orientation="vertical" />
-              )}
               {bookmark.publishedAt && (
-                <Text as="span">
-                  {formatRelativeDate(bookmark.publishedAt)}
-                </Text>
+                <>
+                  <Divider orientation="vertical" />
+                  <Text
+                    as="span"
+                    title={new Date(bookmark.publishedAt).toString()}
+                  >
+                    {formatRelativeDate(bookmark.publishedAt)}
+                  </Text>
+                </>
               )}
             </HStack>
           </div>
         </Card.Body>
       </div>
       <Card.Footer py={0} pb={4}>
-        <Button asChild variant="ghost">
+        <Button asChild variant="ghost" title="Open in new tab">
           <Link href={bookmark.link} target="_blank">
             <Icon color="fg.muted">
               <ExternalLink />
@@ -80,7 +83,7 @@ export function BookmarkCard({ bookmark }: Props) {
           onOpenChange={(e) => setEditModalOpen(e.open)}
         >
           <Dialog.Trigger asChild>
-            <IconButton variant="ghost" color="fg.muted">
+            <IconButton variant="ghost" color="fg.muted" title="Edit bookmark">
               <Pencil />
             </IconButton>
           </Dialog.Trigger>
