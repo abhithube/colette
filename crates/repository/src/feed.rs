@@ -309,13 +309,13 @@ async fn find<Db: ConnectionTrait>(
     let counts = query::profile_feed_entry::count_many_in(db, pf_ids)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
-    let count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
+    let mut count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
 
     let feeds = models
         .into_iter()
         .zip(tag_models.into_iter())
         .map(|((pf, feed), tags)| {
-            let unread_count = count_map.get(&pf.id).cloned().unwrap_or_default();
+            let unread_count = count_map.remove(&pf.id).unwrap_or_default();
             Feed::from(PfWithFeedAndTagsAndUnreadCount {
                 pf,
                 feed,
@@ -329,9 +329,12 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Feed, Error> {
-    let feeds = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let mut feeds = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    if feeds.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    feeds.first().cloned().ok_or(Error::NotFound(params.id))
+    Ok(feeds.swap_remove(0))
 }
 
 async fn create_feed_with_entries<Db: ConnectionTrait>(

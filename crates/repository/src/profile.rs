@@ -198,7 +198,10 @@ async fn find_by_id<Db: ConnectionTrait>(
     id: Uuid,
     user_id: Uuid,
 ) -> Result<colette_core::Profile, Error> {
-    let profiles = find(db, Some(id), user_id, None, None).await?;
+    let mut profiles = find(db, Some(id), user_id, None, None).await?;
+    if profiles.is_empty() {
+        return Err(Error::NotFound(id));
+    }
 
-    profiles.first().cloned().ok_or(Error::NotFound(id))
+    Ok(profiles.swap_remove(0))
 }

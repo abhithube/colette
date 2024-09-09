@@ -112,10 +112,10 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<FeedEntry, Error> {
-    let feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let mut feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    if feed_entries.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    feed_entries
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
+    Ok(feed_entries.swap_remove(0))
 }

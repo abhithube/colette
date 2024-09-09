@@ -148,7 +148,10 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Tag, Error> {
-    let tags = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let mut tags = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    if tags.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    tags.first().cloned().ok_or(Error::NotFound(params.id))
+    Ok(tags.swap_remove(0))
 }

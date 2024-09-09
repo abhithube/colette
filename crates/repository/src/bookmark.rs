@@ -287,7 +287,10 @@ async fn find<Db: ConnectionTrait>(
 }
 
 pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Bookmark, Error> {
-    let bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let mut bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    if bookmarks.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    bookmarks.first().cloned().ok_or(Error::NotFound(params.id))
+    Ok(bookmarks.swap_remove(0))
 }

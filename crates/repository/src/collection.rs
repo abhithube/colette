@@ -151,10 +151,10 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Collection, Error> {
-    let collections = find(db, Some(params.id), params.profile_id, None, None).await?;
+    let mut collections = find(db, Some(params.id), params.profile_id, None, None).await?;
+    if collections.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    collections
-        .first()
-        .cloned()
-        .ok_or(Error::NotFound(params.id))
+    Ok(collections.swap_remove(0))
 }
