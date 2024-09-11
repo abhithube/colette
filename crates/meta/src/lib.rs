@@ -1,11 +1,15 @@
-use std::cell::{Cell, RefCell};
+use std::{
+    cell::{Cell, RefCell},
+    io::{BufRead, BufReader, Read},
+};
 
 use basic::handle_basic;
 pub use basic::Basic;
 use html5ever::{
     tendril::StrTendril,
     tokenizer::{
-        CharacterTokens, EndTag, StartTag, Tag, TagToken, Token, TokenSink, TokenSinkResult,
+        BufferQueue, CharacterTokens, EndTag, StartTag, Tag, TagToken, Token, TokenSink,
+        TokenSinkResult, Tokenizer, TokenizerOpts,
     },
 };
 use open_graph::handle_open_graph;
@@ -24,11 +28,11 @@ mod rss;
 mod schema_org;
 
 #[derive(Debug, Clone, Default)]
-pub struct MetadataSink {
-    pub(crate) basic: RefCell<Basic>,
-    pub(crate) feeds: RefCell<Vec<Feed>>,
-    pub(crate) open_graph: RefCell<Option<OpenGraph>>,
-    pub(crate) schema_org: RefCell<Vec<SchemaObjectOrValue>>,
+struct MetadataSink {
+    basic: RefCell<Basic>,
+    feeds: RefCell<Vec<Feed>>,
+    open_graph: RefCell<Option<OpenGraph>>,
+    schema_org: RefCell<Vec<SchemaObjectOrValue>>,
     in_ld_json: Cell<bool>,
     inner_text: RefCell<StrTendril>,
     current_itemprop: RefCell<Option<StrTendril>>,
@@ -243,5 +247,35 @@ impl MetadataSink {
                 self.schema_org.borrow_mut().push(completed_schema);
             }
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Metadata {
+    pub basic: Basic,
+    pub feeds: Vec<Feed>,
+    pub open_graph: Option<OpenGraph>,
+    pub schema_org: Vec<SchemaObjectOrValue>,
+}
+
+pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
+    let reader = BufReader::new(reader);
+
+    let tokenizer = Tokenizer::new(MetadataSink::default(), TokenizerOpts::default());
+    let input = BufferQueue::default();
+
+    let mut lines = reader.lines();
+    while let Some(Ok(line)) = lines.next() {
+        input.push_back(line.into());
+        let _ = tokenizer.feed(&input);
+    }
+
+    tokenizer.end();
+
+    Metadata {
+        basic: tokenizer.sink.basic.into_inner(),
+        feeds: tokenizer.sink.feeds.into_inner(),
+        open_graph: tokenizer.sink.open_graph.into_inner(),
+        schema_org: tokenizer.sink.schema_org.into_inner(),
     }
 }
