@@ -12,7 +12,11 @@ use open_graph::handle_open_graph;
 pub use open_graph::OpenGraph;
 use rss::handle_rss;
 pub use rss::Feed;
-use schema_org::{handle_json_ld, SchemaObjectOrValue};
+use schema_org::{
+    handle_json_ld, handle_microdata, Article, ImageObject, Person, SchemaObject,
+    SchemaObjectOrValue, VideoObject, WebPage, WebSite,
+};
+use serde_json::Value;
 
 mod basic;
 mod open_graph;
@@ -27,6 +31,8 @@ pub struct MetadataSink {
     pub(crate) schema_org: RefCell<Vec<SchemaObjectOrValue>>,
     in_ld_json: Cell<bool>,
     inner_text: RefCell<StrTendril>,
+    current_itemprop: RefCell<Option<StrTendril>>,
+    schema_stack: RefCell<Vec<SchemaObjectOrValue>>,
 }
 
 impl TokenSink for MetadataSink {
@@ -49,6 +55,8 @@ impl TokenSink for MetadataSink {
 impl MetadataSink {
     fn handle_start_tag(&self, tag: Tag) {
         let mut content: Option<StrTendril> = None;
+        let mut itemprop: Option<StrTendril> = None;
+        let mut itemtype: Option<StrTendril> = None;
         let mut href: Option<StrTendril> = None;
         let mut name: Option<StrTendril> = None;
         let mut property: Option<StrTendril> = None;
@@ -58,6 +66,8 @@ impl MetadataSink {
         for attr in tag.attrs {
             match attr.name.local.as_ref() {
                 "content" => content = Some(attr.value),
+                "itemprop" => itemprop = Some(attr.value),
+                "itemtype" => itemtype = Some(attr.value),
                 "href" => href = Some(attr.value),
                 "name" => name = Some(attr.value),
                 "property" => property = Some(attr.value),
@@ -67,18 +77,18 @@ impl MetadataSink {
             }
         }
 
-        match (content, href, name, property, title) {
-            (Some(content), _, Some(name), _, _) if tag.name.as_ref() == "meta" => {
+        match (content, itemprop, itemtype, href, name, property, title) {
+            (Some(content), _, _, _, Some(name), _, _) if tag.name.as_ref() == "meta" => {
                 let mut basic = self.basic.borrow_mut();
                 handle_basic(&mut basic, name.into(), content.into());
             }
-            (_, Some(href), _, _, Some(title))
+            (_, _, _, Some(href), _, _, Some(title))
                 if tag.name.as_ref() == "link"
                     && r#type.as_deref() == Some("application/rss+xml") =>
             {
                 handle_rss(&mut self.feeds.borrow_mut(), title.into(), href.into());
             }
-            (Some(content), _, _, Some(mut property), _) if property.contains(":") => {
+            (Some(content), _, _, _, _, Some(mut property), _) if property.contains(":") => {
                 let mut open_graph = self.open_graph.borrow_mut();
                 let open_graph = open_graph.get_or_insert_with(OpenGraph::default);
 
@@ -92,6 +102,53 @@ impl MetadataSink {
                 && r#type.as_deref() == Some("application/ld+json") =>
             {
                 self.in_ld_json.set(true);
+            }
+            (_, _, Some(itemtype), _, _, _, _) => match itemtype.split("/").last() {
+                Some("Article") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::Article(
+                        Article::default(),
+                    )));
+                }
+                Some("ImageObject") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(
+                        SchemaObject::ImageObject(ImageObject::default()),
+                    ));
+                }
+                Some("Person") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::Person(
+                        Person::default(),
+                    )));
+                }
+                Some("VideoObject") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(
+                        SchemaObject::VideoObject(VideoObject::default()),
+                    ));
+                }
+                Some("WebPage") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::WebPage(
+                        WebPage::default(),
+                    )));
+                }
+                Some("WebSite") => {
+                    let mut stack = self.schema_stack.borrow_mut();
+                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::WebSite(
+                        WebSite::default(),
+                    )));
+                }
+                _ => {}
+            },
+            (content, Some(itemprop), _, href, _, _, _) => {
+                if let Some(current) = self.schema_stack.borrow_mut().last_mut() {
+                    self.current_itemprop.replace(Some(itemprop.clone()));
+
+                    let content = content.unwrap_or(href.unwrap_or_default());
+                    handle_microdata(current, itemprop.into(), content.into());
+                }
             }
             _ => {}
         }
@@ -112,6 +169,79 @@ impl MetadataSink {
             handle_json_ld(&mut schema_org, text.into());
 
             self.in_ld_json.set(false);
+        }
+
+        let mut stack = self.schema_stack.borrow_mut();
+        if let (Some(itemprop), Some(completed_schema)) =
+            (self.current_itemprop.take(), stack.pop())
+        {
+            if let Some(parent_schema) = stack.last_mut() {
+                let mut author: Option<Person> = None;
+                let mut image: Option<ImageObject> = None;
+                let mut thumbnail: Option<ImageObject> = None;
+                let mut value: Option<Value> = None;
+
+                match completed_schema {
+                    SchemaObjectOrValue::SchemaObject(schema) => match schema {
+                        SchemaObject::ImageObject(image_object) => match itemprop.as_ref() {
+                            "image" => image = Some(image_object),
+                            "thumbnail" => thumbnail = Some(image_object),
+                            _ => {}
+                        },
+                        SchemaObject::Person(person) => {
+                            author = Some(person);
+                        }
+                        _ => {}
+                    },
+                    SchemaObjectOrValue::Other(other) => {
+                        value = Some(other);
+                    }
+                }
+
+                match parent_schema {
+                    SchemaObjectOrValue::SchemaObject(schema) => match schema {
+                        SchemaObject::Article(article) => {
+                            article.author = author;
+                            article.image = image;
+                            article.thumbnail = thumbnail;
+                        }
+                        SchemaObject::ImageObject(image_object) => {
+                            image_object.author = author.map(Box::new);
+                            image_object.image = image.map(Box::new);
+                            image_object.thumbnail = thumbnail.map(Box::new);
+                        }
+                        SchemaObject::Person(person) => {
+                            person.image = image;
+                        }
+                        SchemaObject::VideoObject(video_object) => {
+                            video_object.author = author;
+                            video_object.image = image;
+                            video_object.thumbnail = thumbnail;
+                        }
+                        SchemaObject::WebPage(webpage) => {
+                            webpage.author = author;
+                            webpage.image = image;
+                            webpage.thumbnail = thumbnail;
+                        }
+                        SchemaObject::WebSite(website) => {
+                            website.author = author;
+                            website.image = image;
+                            website.thumbnail = thumbnail;
+                        }
+                    },
+                    SchemaObjectOrValue::Other(other) => {
+                        if let Value::Object(object) = other {
+                            if let (Some(value), Some(itemprop)) =
+                                (value, self.current_itemprop.take())
+                            {
+                                object.insert(itemprop.into(), value);
+                            }
+                        }
+                    }
+                }
+            } else {
+                self.schema_org.borrow_mut().push(completed_schema);
+            }
         }
     }
 }

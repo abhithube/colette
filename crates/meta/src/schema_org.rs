@@ -166,3 +166,145 @@ pub fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
         }
     }
 }
+
+pub fn handle_microdata(
+    schema_object: &mut SchemaObjectOrValue,
+    itemprop: String,
+    content: String,
+) {
+    match schema_object {
+        SchemaObjectOrValue::SchemaObject(schema_obj) => match schema_obj {
+            SchemaObject::Article(article) => update_article(article, itemprop, content),
+            SchemaObject::ImageObject(image_object) => {
+                update_image_object(image_object, itemprop, content)
+            }
+            SchemaObject::Person(person) => update_person(person, itemprop, content),
+            SchemaObject::VideoObject(video_object) => {
+                update_video_object(video_object, itemprop, content)
+            }
+            SchemaObject::WebPage(webpage) => update_webpage(webpage, itemprop, content),
+            SchemaObject::WebSite(website) => update_website(website, itemprop, content),
+        },
+        SchemaObjectOrValue::Other(value) => {
+            if let Value::Object(object) = value {
+                object.insert(itemprop, Value::String(content));
+            }
+        }
+    }
+}
+
+fn update_article(article: &mut Article, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        // Creative Work
+        "dateCreated" => article.date_created = Some(content),
+        "dateModified" => article.date_modified = Some(content),
+        "datePublished" => article.date_published = Some(content),
+        "thumbnailUrl" => article.thumbnail_url = Some(content),
+
+        // Thing
+        "description" => article.description = Some(content),
+        "name" => article.name = Some(content),
+        "url" => article.url = Some(content),
+
+        _ => update_additional_properties(&mut article.additional_properties, itemprop, content),
+    }
+}
+
+fn update_image_object(image_object: &mut ImageObject, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        "contentUrl" => image_object.content_url = Some(content),
+        "uploadDate" => image_object.upload_date = Some(content),
+
+        // Creative Work
+        "dateCreated" => image_object.date_created = Some(content),
+        "dateModified" => image_object.date_modified = Some(content),
+        "datePublished" => image_object.date_published = Some(content),
+        "thumbnailUrl" => image_object.thumbnail_url = Some(content),
+
+        // Thing
+        "description" => image_object.description = Some(content),
+        "name" => image_object.name = Some(content),
+        "url" => image_object.url = Some(content),
+
+        _ => {
+            update_additional_properties(&mut image_object.additional_properties, itemprop, content)
+        }
+    }
+}
+
+fn update_person(person: &mut Person, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        // Thing
+        "description" => person.description = Some(content),
+        "name" => person.name = Some(content),
+        "url" => person.url = Some(content),
+
+        _ => update_additional_properties(&mut person.additional_properties, itemprop, content),
+    }
+}
+
+fn update_video_object(video_object: &mut VideoObject, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        "contentUrl" => video_object.content_url = Some(content),
+        "uploadDate" => video_object.upload_date = Some(content),
+
+        // Creative Work
+        "dateCreated" => video_object.date_created = Some(content),
+        "dateModified" => video_object.date_modified = Some(content),
+        "datePublished" => video_object.date_published = Some(content),
+        "thumbnailUrl" => video_object.thumbnail_url = Some(content),
+
+        // Thing
+        "description" => video_object.description = Some(content),
+        "name" => video_object.name = Some(content),
+        "url" => video_object.url = Some(content),
+
+        _ => {
+            update_additional_properties(&mut video_object.additional_properties, itemprop, content)
+        }
+    }
+}
+
+fn update_webpage(webpage: &mut WebPage, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        // CreativeWork
+        "dateCreated" => webpage.date_created = Some(content),
+        "dateModified" => webpage.date_modified = Some(content),
+        "datePublished" => webpage.date_published = Some(content),
+        "thumbnailUrl" => webpage.thumbnail_url = Some(content),
+
+        // Thing
+        "description" => webpage.description = Some(content),
+        "name" => webpage.name = Some(content),
+        "url" => webpage.url = Some(content),
+
+        _ => update_additional_properties(&mut webpage.additional_properties, itemprop, content),
+    }
+}
+
+fn update_website(website: &mut WebSite, itemprop: String, content: String) {
+    match itemprop.as_str() {
+        // Creative Work
+        "dateCreated" => website.date_created = Some(content),
+        "dateModified" => website.date_modified = Some(content),
+        "datePublished" => website.date_published = Some(content),
+        "thumbnailUrl" => website.thumbnail_url = Some(content),
+
+        // Thing
+        "description" => website.description = Some(content),
+        "name" => website.name = Some(content),
+        "url" => website.url = Some(content),
+
+        _ => update_additional_properties(&mut website.additional_properties, itemprop, content),
+    }
+}
+
+fn update_additional_properties(properties: &mut Value, itemprop: String, content: String) {
+    if !properties.is_object() {
+        *properties = Value::Object(Map::new());
+    }
+
+    if let Some(map) = properties.as_object_mut() {
+        map.insert(itemprop, Value::String(content));
+    }
+}
