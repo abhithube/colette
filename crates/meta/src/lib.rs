@@ -3,8 +3,7 @@ use std::{
     io::{BufRead, BufReader, Read},
 };
 
-use basic::handle_basic;
-pub use basic::Basic;
+use basic::{handle_basic, Basic};
 use html5ever::{
     tendril::StrTendril,
     tokenizer::{
@@ -12,20 +11,18 @@ use html5ever::{
         TokenSinkResult, Tokenizer, TokenizerOpts,
     },
 };
-use open_graph::handle_open_graph;
-pub use open_graph::OpenGraph;
-use rss::handle_rss;
-pub use rss::Feed;
+use open_graph::{handle_open_graph, OpenGraph};
+use rss::{handle_rss, Feed};
 use schema_org::{
     handle_json_ld, handle_microdata, Article, ImageObject, Person, SchemaObject,
     SchemaObjectOrValue, VideoObject, WebPage, WebSite,
 };
 use serde_json::Value;
 
-mod basic;
-mod open_graph;
-mod rss;
-mod schema_org;
+pub mod basic;
+pub mod open_graph;
+pub mod rss;
+pub mod schema_org;
 
 #[derive(Debug, Clone, Default)]
 struct MetadataSink {

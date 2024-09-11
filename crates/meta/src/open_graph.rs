@@ -63,7 +63,7 @@ pub struct Video {
     pub height: Option<i32>,
 }
 
-pub fn handle_open_graph(open_graph: &mut OpenGraph, property: String, content: String) {
+pub(crate) fn handle_open_graph(open_graph: &mut OpenGraph, property: String, content: String) {
     match property.as_str() {
         "title" => {
             open_graph.title = content;

@@ -5,7 +5,7 @@ pub struct Basic {
     pub title: Option<String>,
 }
 
-pub fn handle_basic(basic: &mut Basic, name: String, content: String) {
+pub(crate) fn handle_basic(basic: &mut Basic, name: String, content: String) {
     match name.as_str() {
         "auth" => {
             basic.author = Some(content);

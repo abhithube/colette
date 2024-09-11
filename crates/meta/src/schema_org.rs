@@ -2,7 +2,7 @@ use serde_json::{Map, Value};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(untagged)]
-pub enum SchemaOrg {
+pub(crate) enum SchemaOrg {
     Graph {
         #[serde(rename = "@graph")]
         graph: Vec<SchemaObjectOrValue>,
@@ -158,7 +158,7 @@ pub struct WebSite {
     pub additional_properties: Value,
 }
 
-pub fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
+pub(crate) fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
     if let Ok(schema) = serde_json::from_str::<SchemaOrg>(text.as_ref()) {
         match schema {
             SchemaOrg::Graph { mut graph } => {
@@ -171,7 +171,7 @@ pub fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
     }
 }
 
-pub fn handle_microdata(
+pub(crate) fn handle_microdata(
     schema_object: &mut SchemaObjectOrValue,
     itemprop: String,
     content: String,
