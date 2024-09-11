@@ -5,6 +5,7 @@ members = [
   "crates/config",
   "crates/core",
   "crates/entity",
+  "crates/meta",
   "crates/migration",
   "crates/plugins",
   "crates/repository",
