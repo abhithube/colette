@@ -1,18 +1,23 @@
 use std::cell::RefCell;
 
-use basic::{handle_basic, Basic};
+use basic::handle_basic;
+pub use basic::Basic;
 use html5ever::{
     tendril::StrTendril,
     tokenizer::{
         CharacterTokens, EndTag, StartTag, Tag, TagToken, Token, TokenSink, TokenSinkResult,
     },
 };
+use rss::handle_rss;
+pub use rss::Feed;
 
 mod basic;
+mod rss;
 
 #[derive(Debug, Clone, Default)]
 pub struct MetadataSink {
     pub(crate) basic: RefCell<Basic>,
+    pub(crate) feeds: RefCell<Vec<Feed>>,
 }
 
 impl TokenSink for MetadataSink {
@@ -35,20 +40,32 @@ impl TokenSink for MetadataSink {
 impl MetadataSink {
     fn handle_start_tag(&self, tag: Tag) {
         let mut content: Option<StrTendril> = None;
+        let mut href: Option<StrTendril> = None;
         let mut name: Option<StrTendril> = None;
+        let mut title: Option<StrTendril> = None;
+        let mut r#type: Option<StrTendril> = None;
 
         for attr in tag.attrs {
             match attr.name.local.as_ref() {
                 "content" => content = Some(attr.value),
+                "href" => href = Some(attr.value),
                 "name" => name = Some(attr.value),
+                "title" => title = Some(attr.value),
+                "type" => r#type = Some(attr.value),
                 _ => {}
             }
         }
 
-        match (content, name) {
-            (Some(content), Some(name)) if tag.name.as_ref() == "meta" => {
+        match (content, href, name, title) {
+            (Some(content), _, Some(name), _) if tag.name.as_ref() == "meta" => {
                 let mut basic = self.basic.borrow_mut();
                 handle_basic(&mut basic, name.into(), content.into());
+            }
+            (_, Some(href), _, Some(title))
+                if tag.name.as_ref() == "link"
+                    && r#type.as_deref() == Some("application/rss+xml") =>
+            {
+                handle_rss(&mut self.feeds.borrow_mut(), title.into(), href.into());
             }
             _ => {}
         }
