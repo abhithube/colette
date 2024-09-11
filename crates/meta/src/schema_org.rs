@@ -55,6 +55,8 @@ pub struct ImageObject {
     // Media Object
     pub content_url: Option<String>,
     pub upload_date: Option<String>,
+    pub height: Option<i32>,
+    pub width: Option<i32>,
 
     // CreativeWork
     pub author: Option<Box<Person>>,
@@ -93,6 +95,8 @@ pub struct VideoObject {
     // MediaObject
     pub content_url: Option<String>,
     pub upload_date: Option<String>,
+    pub height: Option<i32>,
+    pub width: Option<i32>,
 
     // CreativeWork
     pub author: Option<Person>,
@@ -212,8 +216,11 @@ fn update_article(article: &mut Article, itemprop: String, content: String) {
 
 fn update_image_object(image_object: &mut ImageObject, itemprop: String, content: String) {
     match itemprop.as_str() {
+        // Media Object
         "contentUrl" => image_object.content_url = Some(content),
         "uploadDate" => image_object.upload_date = Some(content),
+        "height" => image_object.height = content.parse().ok(),
+        "width" => image_object.width = content.parse().ok(),
 
         // Creative Work
         "dateCreated" => image_object.date_created = Some(content),
@@ -245,8 +252,11 @@ fn update_person(person: &mut Person, itemprop: String, content: String) {
 
 fn update_video_object(video_object: &mut VideoObject, itemprop: String, content: String) {
     match itemprop.as_str() {
+        // Media Object
         "contentUrl" => video_object.content_url = Some(content),
         "uploadDate" => video_object.upload_date = Some(content),
+        "height" => video_object.height = content.parse().ok(),
+        "width" => video_object.width = content.parse().ok(),
 
         // Creative Work
         "dateCreated" => video_object.date_created = Some(content),
