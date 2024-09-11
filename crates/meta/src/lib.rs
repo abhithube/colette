@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use basic::handle_basic;
 pub use basic::Basic;
@@ -12,16 +12,21 @@ use open_graph::handle_open_graph;
 pub use open_graph::OpenGraph;
 use rss::handle_rss;
 pub use rss::Feed;
+use schema_org::{handle_json_ld, SchemaObjectOrValue};
 
 mod basic;
 mod open_graph;
 mod rss;
+mod schema_org;
 
 #[derive(Debug, Clone, Default)]
 pub struct MetadataSink {
     pub(crate) basic: RefCell<Basic>,
     pub(crate) feeds: RefCell<Vec<Feed>>,
     pub(crate) open_graph: RefCell<Option<OpenGraph>>,
+    pub(crate) schema_org: RefCell<Vec<SchemaObjectOrValue>>,
+    in_ld_json: Cell<bool>,
+    inner_text: RefCell<StrTendril>,
 }
 
 impl TokenSink for MetadataSink {
@@ -29,10 +34,10 @@ impl TokenSink for MetadataSink {
 
     fn process_token(&self, token: Token, _line_number: u64) -> TokenSinkResult<Self::Handle> {
         match token {
-            CharacterTokens(_) => {}
+            CharacterTokens(inner_text) => self.handle_inner_text(inner_text),
             TagToken(tag) => match tag.kind {
                 StartTag => self.handle_start_tag(tag),
-                EndTag => {}
+                EndTag => self.handle_end_tag(tag),
             },
             _ => {}
         }
@@ -83,7 +88,30 @@ impl MetadataSink {
 
                 handle_open_graph(open_graph, property.into(), content.into());
             }
+            _ if tag.name.as_ref() == "script"
+                && r#type.as_deref() == Some("application/ld+json") =>
+            {
+                self.in_ld_json.set(true);
+            }
             _ => {}
+        }
+    }
+
+    fn handle_inner_text(&self, inner_text: StrTendril) {
+        if self.in_ld_json.get() {
+            let mut ld_json = self.inner_text.borrow_mut();
+            ld_json.push_tendril(&inner_text);
+        }
+    }
+
+    fn handle_end_tag(&self, tag: Tag) {
+        if tag.name.as_ref() == "script" && self.in_ld_json.get() {
+            let text = self.inner_text.take();
+            let mut schema_org = self.schema_org.borrow_mut();
+
+            handle_json_ld(&mut schema_org, text.into());
+
+            self.in_ld_json.set(false);
         }
     }
 }

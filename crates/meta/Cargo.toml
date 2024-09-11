@@ -5,3 +5,5 @@ edition = "2021"
 
 [dependencies]
 html5ever = { version = "0.28", default-features = false }
+serde.workspace = true
+serde_json = { version = "1", default-features = false }

@@ -738,6 +738,8 @@ name = "colette-meta"
 version = "0.1.0"
 dependencies = [
  "html5ever 0.28.0",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
