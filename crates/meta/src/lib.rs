@@ -205,32 +205,64 @@ impl MetadataSink {
                 match parent_schema {
                     SchemaObjectOrValue::SchemaObject(schema) => match schema {
                         SchemaObject::Article(article) => {
-                            article.author = author;
-                            article.image = image;
-                            article.thumbnail = thumbnail;
+                            if author.is_some() {
+                                article.author = author;
+                            }
+                            if image.is_some() {
+                                article.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                article.thumbnail = thumbnail;
+                            }
                         }
                         SchemaObject::ImageObject(image_object) => {
-                            image_object.author = author.map(Box::new);
-                            image_object.image = image.map(Box::new);
-                            image_object.thumbnail = thumbnail.map(Box::new);
+                            if author.is_some() {
+                                image_object.author = author.map(Box::new);
+                            }
+                            if image.is_some() {
+                                image_object.image = image.map(Box::new);
+                            }
+                            if thumbnail.is_some() {
+                                image_object.thumbnail = thumbnail.map(Box::new);
+                            }
                         }
                         SchemaObject::Person(person) => {
-                            person.image = image;
+                            if image.is_some() {
+                                person.image = image;
+                            }
                         }
                         SchemaObject::VideoObject(video_object) => {
-                            video_object.author = author;
-                            video_object.image = image;
-                            video_object.thumbnail = thumbnail;
+                            if author.is_some() {
+                                video_object.author = author;
+                            }
+                            if image.is_some() {
+                                video_object.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                video_object.thumbnail = thumbnail;
+                            }
                         }
                         SchemaObject::WebPage(webpage) => {
-                            webpage.author = author;
-                            webpage.image = image;
-                            webpage.thumbnail = thumbnail;
+                            if author.is_some() {
+                                webpage.author = author;
+                            }
+                            if image.is_some() {
+                                webpage.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                webpage.thumbnail = thumbnail;
+                            }
                         }
                         SchemaObject::WebSite(website) => {
-                            website.author = author;
-                            website.image = image;
-                            website.thumbnail = thumbnail;
+                            if author.is_some() {
+                                website.author = author;
+                            }
+                            if image.is_some() {
+                                website.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                website.thumbnail = thumbnail;
+                            }
                         }
                     },
                     SchemaObjectOrValue::Other(other) => {
