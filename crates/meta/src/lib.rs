@@ -7,8 +7,7 @@ use basic::{handle_basic, Basic};
 use html5ever::{
     tendril::StrTendril,
     tokenizer::{
-        BufferQueue, CharacterTokens, EndTag, StartTag, Tag, TagToken, Token, TokenSink,
-        TokenSinkResult, Tokenizer, TokenizerOpts,
+        BufferQueue, Tag, TagKind, Token, TokenSink, TokenSinkResult, Tokenizer, TokenizerOpts,
     },
 };
 use open_graph::{handle_open_graph, OpenGraph};
@@ -42,10 +41,10 @@ impl TokenSink for MetadataSink {
 
     fn process_token(&self, token: Token, _line_number: u64) -> TokenSinkResult<Self::Handle> {
         match token {
-            CharacterTokens(inner_text) => self.handle_inner_text(inner_text),
-            TagToken(tag) => match tag.kind {
-                StartTag => self.handle_start_tag(tag),
-                EndTag => self.handle_end_tag(tag),
+            Token::CharacterTokens(inner_text) => self.handle_inner_text(inner_text),
+            Token::TagToken(tag) => match tag.kind {
+                TagKind::StartTag => self.handle_start_tag(tag),
+                TagKind::EndTag => self.handle_end_tag(tag),
             },
             _ => {}
         }
