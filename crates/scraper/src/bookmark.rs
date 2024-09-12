@@ -155,6 +155,8 @@ pub trait BookmarkScraper: Send + Sync {
                                         .or(article.thumbnail.and_then(|e| e.url));
                                     bookmark.published =
                                         bookmark.published.or(article.date_published);
+                                    bookmark.author =
+                                        bookmark.author.or(article.author.and_then(|e| e.name));
                                 }
                                 SchemaObject::WebPage(webpage) => {
                                     bookmark.title = bookmark.title.or(webpage.name);
@@ -164,9 +166,8 @@ pub trait BookmarkScraper: Send + Sync {
                                         .or(webpage.thumbnail.and_then(|e| e.url));
                                     bookmark.published =
                                         bookmark.published.or(webpage.date_published);
-                                }
-                                SchemaObject::ImageObject(image) => {
-                                    bookmark.thumbnail = bookmark.thumbnail.or(image.url);
+                                    bookmark.author =
+                                        bookmark.author.or(webpage.author.and_then(|e| e.name));
                                 }
                                 SchemaObject::VideoObject(video) => {
                                     bookmark.title = bookmark.title.or(video.name);
@@ -176,11 +177,26 @@ pub trait BookmarkScraper: Send + Sync {
                                         .or(video.thumbnail.and_then(|e| e.url));
                                     bookmark.published =
                                         bookmark.published.or(video.date_published);
+                                    bookmark.author =
+                                        bookmark.author.or(video.author.and_then(|e| e.name));
+                                }
+                                SchemaObject::WebSite(website) => {
+                                    bookmark.title = bookmark.title.or(website.name);
+                                    bookmark.thumbnail = bookmark
+                                        .thumbnail
+                                        .or(website.thumbnail_url)
+                                        .or(website.thumbnail.and_then(|e| e.url));
+                                    bookmark.published =
+                                        bookmark.published.or(website.date_published);
+                                    bookmark.author =
+                                        bookmark.author.or(website.author.and_then(|e| e.name));
+                                }
+                                SchemaObject::ImageObject(image) => {
+                                    bookmark.thumbnail = bookmark.thumbnail.or(image.url);
                                 }
                                 SchemaObject::Person(person) => {
                                     bookmark.author = bookmark.author.or(person.name);
                                 }
-                                _ => {}
                             }
                         }
                     }
