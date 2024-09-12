@@ -164,9 +164,8 @@ impl MetadataSink {
         }
 
         let mut stack = self.schema_stack.borrow_mut();
-        if let (Some(itemprop), Some(completed_schema)) =
-            (self.current_itemprop.take(), stack.pop())
-        {
+        let itemprop = self.current_itemprop.take();
+        if let Some(completed_schema) = stack.pop() {
             if let Some(parent_schema) = stack.last_mut() {
                 let mut author: Option<Person> = None;
                 let mut image: Option<ImageObject> = None;
@@ -175,9 +174,9 @@ impl MetadataSink {
 
                 match completed_schema {
                     SchemaObjectOrValue::SchemaObject(schema) => match schema {
-                        SchemaObject::ImageObject(image_object) => match itemprop.as_ref() {
-                            "image" => image = Some(image_object),
-                            "thumbnail" => thumbnail = Some(image_object),
+                        SchemaObject::ImageObject(image_object) => match itemprop.as_deref() {
+                            Some("image") => image = Some(image_object),
+                            Some("thumbnail") => thumbnail = Some(image_object),
                             _ => {}
                         },
                         SchemaObject::Person(person) => {
@@ -254,7 +253,7 @@ impl MetadataSink {
                         }
                     },
                     SchemaObjectOrValue::Other(other) => {
-                        if let Value::Object(object) = other {
+                        if let (Value::Object(object), Some(itemprop)) = (other, itemprop) {
                             let other = object
                                 .entry(itemprop.into())
                                 .or_insert(Value::Array(Vec::new()));
