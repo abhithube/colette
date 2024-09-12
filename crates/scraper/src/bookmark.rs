@@ -2,92 +2,25 @@ use std::{collections::HashMap, io::Read};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
+use colette_meta::{
+    open_graph,
+    schema_org::{SchemaObject, SchemaObjectOrValue},
+};
 use http::{request::Builder, Request, Response};
-use scraper::{Html, Selector};
+use scraper::Html;
 use url::Url;
 
 use crate::{
-    utils::{ExtractorQuery, Node, TextSelector},
+    utils::{ExtractorQuery, TextSelector},
     DownloaderError, Error, ExtractorError, PostprocessorError,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkExtractorOptions<'a> {
     pub title_queries: Vec<ExtractorQuery<'a>>,
     pub published_queries: Vec<ExtractorQuery<'a>>,
     pub author_queries: Vec<ExtractorQuery<'a>>,
     pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
-
-impl<'a> Default for BookmarkExtractorOptions<'a> {
-    fn default() -> Self {
-        Self {
-            title_queries: vec![
-                ExtractorQuery::new(
-                    Selector::parse(
-                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='name']",
-                    )
-                    .unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("meta[property='og:title']").unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("meta[name='twitter:title']").unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("meta[name='title']").unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(Selector::parse("title").unwrap(), Node::Text),
-            ],
-            published_queries: vec![
-                ExtractorQuery::new(
-                    Selector::parse(
-                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='datePublished']",
-                    )
-                    .unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse(
-                        "[itemtype='http://schema.org/VideoObject'] > [itemprop='uploadDate']",
-                    )
-                    .unwrap(),
-                    Node::Attr("content"),
-                ),
-            ],
-            author_queries: vec![ExtractorQuery::new(
-                Selector::parse("[itemtype='http://schema.org/Person'] > [itemprop='name']")
-                    .unwrap(),
-                Node::Attr("content"),
-            )],
-            thumbnail_queries: vec![
-                ExtractorQuery::new(
-                    Selector::parse(
-                        "[itemtype='http://schema.org/ImageObject'] > [itemprop='url']",
-                    )
-                    .unwrap(),
-                    Node::Attr("href"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("[itemprop='thumbnailUrl']").unwrap(),
-                    Node::Attr("href"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("meta[property='og:image']").unwrap(),
-                    Node::Attr("content"),
-                ),
-                ExtractorQuery::new(
-                    Selector::parse("meta[name='twitter:image']").unwrap(),
-                    Node::Attr("content"),
-                ),
-            ],
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -156,8 +89,8 @@ pub trait BookmarkScraper: Send + Sync {
         Ok(resp.into())
     }
 
-    fn before_extract(&self) -> BookmarkExtractorOptions {
-        BookmarkExtractorOptions::default()
+    fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
+        None
     }
 
     #[allow(unused_variables)]
@@ -166,23 +99,96 @@ pub trait BookmarkScraper: Send + Sync {
         url: &Url,
         resp: Response<Box<dyn Read + Send + Sync>>,
     ) -> Result<ExtractedBookmark, ExtractorError> {
-        let options = self.before_extract();
-
         let mut body = resp.into_body();
-        let mut raw = String::new();
-        body.read_to_string(&mut raw)
-            .map_err(|e| ExtractorError(e.into()))?;
 
-        let html = Html::parse_document(&raw);
+        match self.before_extract() {
+            Some(options) => {
+                let mut raw = String::new();
+                body.read_to_string(&mut raw)
+                    .map_err(|e| ExtractorError(e.into()))?;
 
-        let bookmark = ExtractedBookmark {
-            title: html.select_text(&options.title_queries),
-            thumbnail: html.select_text(&options.thumbnail_queries),
-            published: html.select_text(&options.published_queries),
-            author: html.select_text(&options.author_queries),
-        };
+                let html = Html::parse_document(&raw);
 
-        Ok(bookmark)
+                let bookmark = ExtractedBookmark {
+                    title: html.select_text(&options.title_queries),
+                    thumbnail: html.select_text(&options.thumbnail_queries),
+                    published: html.select_text(&options.published_queries),
+                    author: html.select_text(&options.author_queries),
+                };
+
+                Ok(bookmark)
+            }
+            None => {
+                let metadata = colette_meta::parse_metadata(body);
+
+                let mut bookmark = ExtractedBookmark {
+                    title: metadata.basic.title,
+                    thumbnail: None,
+                    published: None,
+                    author: metadata.basic.author,
+                };
+
+                if let Some(mut og) = metadata.open_graph {
+                    if !og.title.is_empty() {
+                        bookmark.title = Some(og.title);
+                    }
+                    bookmark.thumbnail = Some(og.images.swap_remove(0).url);
+
+                    if let open_graph::Type::Article(article) = og.r#type {
+                        bookmark.published = article.published_time;
+                    }
+                }
+
+                if bookmark.title.is_none()
+                    || bookmark.thumbnail.is_none()
+                    || bookmark.published.is_none()
+                    || bookmark.author.is_none()
+                {
+                    for schema in metadata.schema_org {
+                        if let SchemaObjectOrValue::SchemaObject(schema) = schema {
+                            match schema {
+                                SchemaObject::Article(article) => {
+                                    bookmark.title = bookmark.title.or(article.name);
+                                    bookmark.thumbnail = bookmark
+                                        .thumbnail
+                                        .or(article.thumbnail_url)
+                                        .or(article.thumbnail.and_then(|e| e.url));
+                                    bookmark.published =
+                                        bookmark.published.or(article.date_published);
+                                }
+                                SchemaObject::WebPage(webpage) => {
+                                    bookmark.title = bookmark.title.or(webpage.name);
+                                    bookmark.thumbnail = bookmark
+                                        .thumbnail
+                                        .or(webpage.thumbnail_url)
+                                        .or(webpage.thumbnail.and_then(|e| e.url));
+                                    bookmark.published =
+                                        bookmark.published.or(webpage.date_published);
+                                }
+                                SchemaObject::ImageObject(image) => {
+                                    bookmark.thumbnail = bookmark.thumbnail.or(image.url);
+                                }
+                                SchemaObject::VideoObject(video) => {
+                                    bookmark.title = bookmark.title.or(video.name);
+                                    bookmark.thumbnail = bookmark
+                                        .thumbnail
+                                        .or(video.thumbnail_url)
+                                        .or(video.thumbnail.and_then(|e| e.url));
+                                    bookmark.published =
+                                        bookmark.published.or(video.date_published);
+                                }
+                                SchemaObject::Person(person) => {
+                                    bookmark.author = bookmark.author.or(person.name);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
+                }
+
+                Ok(bookmark)
+            }
+        }
     }
 
     #[allow(unused_variables)]

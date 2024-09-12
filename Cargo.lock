@@ -758,6 +758,7 @@ name = "colette-plugins"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "colette-meta",
  "colette-scraper",
  "http",
  "lazy-regex",
@@ -789,6 +790,7 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
+ "colette-meta",
  "feed-rs",
  "http",
  "scraper",

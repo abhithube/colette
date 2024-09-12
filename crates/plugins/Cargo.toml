@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono.workspace = true
+colette-meta.workspace = true
 colette-scraper.workspace = true
 http.workspace = true
 scraper.workspace = true
