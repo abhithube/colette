@@ -1,4 +1,4 @@
-use serde_json::{Map, Value};
+use crate::util::Value;
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(untagged)]
@@ -191,7 +191,10 @@ pub(crate) fn handle_microdata(
         },
         SchemaObjectOrValue::Other(value) => {
             if let Value::Object(object) = value {
-                object.insert(itemprop, Value::String(content));
+                let value = object.entry(itemprop).or_insert(Value::Array(Vec::new()));
+                if let Value::Array(array) = value {
+                    array.push(Value::String(content));
+                }
             }
         }
     }
@@ -310,11 +313,10 @@ fn update_website(website: &mut WebSite, itemprop: String, content: String) {
 }
 
 fn update_additional_properties(properties: &mut Value, itemprop: String, content: String) {
-    if !properties.is_object() {
-        *properties = Value::Object(Map::new());
-    }
-
-    if let Some(map) = properties.as_object_mut() {
-        map.insert(itemprop, Value::String(content));
+    if let Value::Object(object) = properties {
+        let value = object.entry(itemprop).or_insert(Value::Array(Vec::new()));
+        if let Value::Array(array) = value {
+            array.push(Value::String(content));
+        }
     }
 }

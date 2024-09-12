@@ -17,12 +17,13 @@ use schema_org::{
     handle_json_ld, handle_microdata, Article, ImageObject, Person, SchemaObject,
     SchemaObjectOrValue, VideoObject, WebPage, WebSite,
 };
-use serde_json::Value;
+use util::Value;
 
 pub mod basic;
 pub mod open_graph;
 pub mod rss;
 pub mod schema_org;
+pub mod util;
 
 #[derive(Debug, Clone, Default)]
 struct MetadataSink {
@@ -232,10 +233,11 @@ impl MetadataSink {
                     },
                     SchemaObjectOrValue::Other(other) => {
                         if let Value::Object(object) = other {
-                            if let (Some(value), Some(itemprop)) =
-                                (value, self.current_itemprop.take())
-                            {
-                                object.insert(itemprop.into(), value);
+                            let other = object
+                                .entry(itemprop.into())
+                                .or_insert(Value::Array(Vec::new()));
+                            if let (Some(value), Value::Array(array)) = (value, other) {
+                                array.push(value)
                             }
                         }
                     }
