@@ -171,6 +171,8 @@ impl MetadataSink {
             handle_json_ld(&mut schema_org, text.into());
 
             self.in_ld_json.set(false);
+
+            return;
         }
 
         let mut stack = self.schema_stack.borrow_mut();
