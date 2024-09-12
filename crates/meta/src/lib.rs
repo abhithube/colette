@@ -271,10 +271,13 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
 
     tokenizer.end();
 
+    let mut schema_org = tokenizer.sink.schema_org.into_inner();
+    schema_org.sort();
+
     Metadata {
         basic: tokenizer.sink.basic.into_inner(),
         feeds: tokenizer.sink.feeds.into_inner(),
         open_graph: tokenizer.sink.open_graph.into_inner(),
-        schema_org: tokenizer.sink.schema_org.into_inner(),
+        schema_org,
     }
 }
