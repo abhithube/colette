@@ -737,7 +737,7 @@ dependencies = [
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [
- "html5ever 0.28.0",
+ "html5gum",
  "ordered-float 4.2.2",
  "serde",
  "serde_json",
@@ -1574,25 +1574,17 @@ checksum = "c13771afe0e6e846f1e67d038d4cb29998a6779f93c809212e4e9c32efd244d4"
 dependencies = [
  "log",
  "mac",
- "markup5ever 0.12.1",
+ "markup5ever",
  "proc-macro2",
  "quote",
  "syn 2.0.77",
 ]
 
 [[package]]
-name = "html5ever"
-version = "0.28.0"
+name = "html5gum"
+version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ff6858c1f7e2a470c5403091866fa95b36fe0dbac5d771f932c15e5ff1ee501"
-dependencies = [
- "log",
- "mac",
- "markup5ever 0.13.0",
- "proc-macro2",
- "quote",
- "syn 2.0.77",
-]
+checksum = "4c4e556171a058ba117bbe88b059fb37b6289023e007d2903ea6dca3a3cbff14"
 
 [[package]]
 name = "http"
@@ -1899,20 +1891,6 @@ name = "markup5ever"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16ce3abbeba692c8b8441d036ef91aea6df8da2c6b6e21c7e14d3c18e526be45"
-dependencies = [
- "log",
- "phf 0.11.2",
- "phf_codegen 0.11.2",
- "string_cache",
- "string_cache_codegen",
- "tendril",
-]
-
-[[package]]
-name = "markup5ever"
-version = "0.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d581ff8be69d08a2efa23a959d81aa22b739073f749f067348bd4f4ba4b69195"
 dependencies = [
  "log",
  "phf 0.11.2",
@@ -2775,7 +2753,7 @@ dependencies = [
  "ahash",
  "cssparser",
  "ego-tree",
- "html5ever 0.27.0",
+ "html5ever",
  "once_cell",
  "selectors",
  "tendril",

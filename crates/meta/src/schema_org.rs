@@ -1,4 +1,4 @@
-use crate::util::Value;
+use crate::{util::Value, Metadata};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 #[serde(untagged)]
@@ -158,44 +158,47 @@ pub struct Person {
     pub additional_properties: Value,
 }
 
-pub(crate) fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
-    if let Ok(schema) = serde_json::from_str::<SchemaOrg>(text.as_ref()) {
-        match schema {
-            SchemaOrg::Graph { mut graph } => {
-                schema_org.append(&mut graph);
-            }
-            SchemaOrg::Single(schema) => {
-                schema_org.push(schema);
+impl Metadata {
+    pub(crate) fn handle_json_ld(&mut self, text: String) {
+        if let Ok(schema) = serde_json::from_str::<SchemaOrg>(text.as_ref()) {
+            match schema {
+                SchemaOrg::Graph { mut graph } => {
+                    self.schema_org.append(&mut graph);
+                }
+                SchemaOrg::Single(schema) => {
+                    self.schema_org.push(schema);
+                }
             }
         }
     }
-}
 
-pub(crate) fn handle_microdata(
-    schema_object: &mut SchemaObjectOrValue,
-    itemprop: String,
-    content: String,
-) {
-    match schema_object {
-        SchemaObjectOrValue::SchemaObject(schema_obj) => match schema_obj {
-            SchemaObject::Article(article) => update_article(article, itemprop, content),
-            SchemaObject::ImageObject(image_object) => {
-                update_image_object(image_object, itemprop, content)
-            }
-            SchemaObject::Person(person) => update_person(person, itemprop, content),
-            SchemaObject::VideoObject(video_object) => {
-                update_video_object(video_object, itemprop, content)
-            }
-            SchemaObject::WebPage(webpage) => update_webpage(webpage, itemprop, content),
-            SchemaObject::WebSite(website) => update_website(website, itemprop, content),
-        },
-        SchemaObjectOrValue::Other(value) => {
-            if let Value::Object(object) = value {
+    pub(crate) fn handle_microdata(&mut self, itemprop: String, content: String) {
+        match self.schema_stack.last_mut() {
+            Some(SchemaObjectOrValue::SchemaObject(schema_obj)) => match schema_obj {
+                SchemaObject::Article(ref mut article) => {
+                    update_article(article, itemprop, content)
+                }
+                SchemaObject::ImageObject(ref mut image_object) => {
+                    update_image_object(image_object, itemprop, content)
+                }
+                SchemaObject::Person(ref mut person) => update_person(person, itemprop, content),
+                SchemaObject::VideoObject(ref mut video_object) => {
+                    update_video_object(video_object, itemprop, content)
+                }
+                SchemaObject::WebPage(ref mut webpage) => {
+                    update_webpage(webpage, itemprop, content)
+                }
+                SchemaObject::WebSite(ref mut website) => {
+                    update_website(website, itemprop, content)
+                }
+            },
+            Some(SchemaObjectOrValue::Other(Value::Object(object))) => {
                 let value = object.entry(itemprop).or_insert(Value::Array(Vec::new()));
                 if let Value::Array(array) = value {
                     array.push(Value::String(content));
                 }
             }
+            _ => {}
         }
     }
 }

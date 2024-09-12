@@ -1,3 +1,5 @@
+use crate::Metadata;
+
 #[derive(Debug, Clone, Default)]
 pub struct Basic {
     pub author: Option<String>,
@@ -5,17 +7,19 @@ pub struct Basic {
     pub title: Option<String>,
 }
 
-pub(crate) fn handle_basic(basic: &mut Basic, name: String, content: String) {
-    match name.as_str() {
-        "auth" => {
-            basic.author = Some(content);
+impl Metadata {
+    pub(crate) fn handle_basic(&mut self, name: &str, content: String) {
+        match name {
+            "auth" => {
+                self.basic.author = Some(content);
+            }
+            "description" => {
+                self.basic.description = Some(content);
+            }
+            "title" => {
+                self.basic.title = Some(content);
+            }
+            _ => {}
         }
-        "description" => {
-            basic.description = Some(content);
-        }
-        "title" => {
-            basic.title = Some(content);
-        }
-        _ => {}
     }
 }
