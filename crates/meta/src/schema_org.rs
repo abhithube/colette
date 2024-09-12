@@ -118,19 +118,6 @@ pub struct WebSite {
     pub additional_properties: Value,
 }
 
-pub(crate) fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
-    if let Ok(schema) = serde_json::from_str::<SchemaOrg>(text.as_ref()) {
-        match schema {
-            SchemaOrg::Graph { mut graph } => {
-                schema_org.append(&mut graph);
-            }
-            SchemaOrg::Single(schema) => {
-                schema_org.push(schema);
-            }
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ImageObject {
@@ -169,6 +156,19 @@ pub struct Person {
 
     #[serde(flatten)]
     pub additional_properties: Value,
+}
+
+pub(crate) fn handle_json_ld(schema_org: &mut Vec<SchemaObjectOrValue>, text: String) {
+    if let Ok(schema) = serde_json::from_str::<SchemaOrg>(text.as_ref()) {
+        match schema {
+            SchemaOrg::Graph { mut graph } => {
+                schema_org.append(&mut graph);
+            }
+            SchemaOrg::Single(schema) => {
+                schema_org.push(schema);
+            }
+        }
+    }
 }
 
 pub(crate) fn handle_microdata(

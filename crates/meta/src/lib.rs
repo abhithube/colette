@@ -105,51 +105,39 @@ impl MetadataSink {
             {
                 self.in_ld_json.set(true);
             }
-            (_, _, Some(itemtype), _, _, _, _) => match itemtype.split("/").last() {
-                Some("Article") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::Article(
-                        Article::default(),
-                    )));
-                }
-                Some("ImageObject") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(
-                        SchemaObject::ImageObject(ImageObject::default()),
-                    ));
-                }
-                Some("Person") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::Person(
-                        Person::default(),
-                    )));
-                }
-                Some("VideoObject") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(
+            (_, _, Some(itemtype), _, _, _, _) => {
+                let schema = match itemtype.split("/").last() {
+                    Some("Article") => {
+                        SchemaObjectOrValue::SchemaObject(SchemaObject::Article(Article::default()))
+                    }
+                    Some("WebPage") => {
+                        SchemaObjectOrValue::SchemaObject(SchemaObject::WebPage(WebPage::default()))
+                    }
+                    Some("VideoObject") => SchemaObjectOrValue::SchemaObject(
                         SchemaObject::VideoObject(VideoObject::default()),
-                    ));
-                }
-                Some("WebPage") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::WebPage(
-                        WebPage::default(),
-                    )));
-                }
-                Some("WebSite") => {
-                    let mut stack = self.schema_stack.borrow_mut();
-                    stack.push(SchemaObjectOrValue::SchemaObject(SchemaObject::WebSite(
-                        WebSite::default(),
-                    )));
-                }
-                _ => {}
-            },
+                    ),
+                    Some("WebSite") => {
+                        SchemaObjectOrValue::SchemaObject(SchemaObject::WebSite(WebSite::default()))
+                    }
+                    Some("ImageObject") => SchemaObjectOrValue::SchemaObject(
+                        SchemaObject::ImageObject(ImageObject::default()),
+                    ),
+                    Some("Person") => {
+                        SchemaObjectOrValue::SchemaObject(SchemaObject::Person(Person::default()))
+                    }
+                    _ => SchemaObjectOrValue::Other(Value::default()),
+                };
+
+                let mut stack = self.schema_stack.borrow_mut();
+                stack.push(schema);
+            }
             (content, Some(itemprop), _, href, _, _, _) => {
                 if let Some(current) = self.schema_stack.borrow_mut().last_mut() {
                     self.current_itemprop.replace(Some(itemprop.clone()));
 
-                    let content = content.unwrap_or(href.unwrap_or_default());
-                    handle_microdata(current, itemprop.into(), content.into());
+                    if let Some(content) = content.or(href) {
+                        handle_microdata(current, itemprop.into(), content.into());
+                    }
                 }
             }
             _ => {}
@@ -215,6 +203,39 @@ impl MetadataSink {
                                 article.thumbnail = thumbnail;
                             }
                         }
+                        SchemaObject::WebPage(webpage) => {
+                            if author.is_some() {
+                                webpage.author = author;
+                            }
+                            if image.is_some() {
+                                webpage.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                webpage.thumbnail = thumbnail;
+                            }
+                        }
+                        SchemaObject::VideoObject(video_object) => {
+                            if author.is_some() {
+                                video_object.author = author;
+                            }
+                            if image.is_some() {
+                                video_object.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                video_object.thumbnail = thumbnail;
+                            }
+                        }
+                        SchemaObject::WebSite(website) => {
+                            if author.is_some() {
+                                website.author = author;
+                            }
+                            if image.is_some() {
+                                website.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                website.thumbnail = thumbnail;
+                            }
+                        }
                         SchemaObject::ImageObject(image_object) => {
                             if author.is_some() {
                                 image_object.author = author.map(Box::new);
@@ -229,39 +250,6 @@ impl MetadataSink {
                         SchemaObject::Person(person) => {
                             if image.is_some() {
                                 person.image = image;
-                            }
-                        }
-                        SchemaObject::VideoObject(video_object) => {
-                            if author.is_some() {
-                                video_object.author = author;
-                            }
-                            if image.is_some() {
-                                video_object.image = image;
-                            }
-                            if thumbnail.is_some() {
-                                video_object.thumbnail = thumbnail;
-                            }
-                        }
-                        SchemaObject::WebPage(webpage) => {
-                            if author.is_some() {
-                                webpage.author = author;
-                            }
-                            if image.is_some() {
-                                webpage.image = image;
-                            }
-                            if thumbnail.is_some() {
-                                webpage.thumbnail = thumbnail;
-                            }
-                        }
-                        SchemaObject::WebSite(website) => {
-                            if author.is_some() {
-                                website.author = author;
-                            }
-                            if image.is_some() {
-                                website.image = image;
-                            }
-                            if thumbnail.is_some() {
-                                website.thumbnail = thumbnail;
                             }
                         }
                     },
