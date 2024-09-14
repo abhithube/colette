@@ -73,7 +73,7 @@ impl BackupService {
         };
 
         self.opml_manager
-            .export(opml, &mut writer)
+            .export(&mut writer, opml)
             .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 }

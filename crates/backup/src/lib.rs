@@ -7,7 +7,7 @@ pub trait BackupManager: Send + Sync {
 
     fn import(&self, reader: Box<dyn Read>) -> Result<Self::T, Error>;
 
-    fn export(&self, data: Self::T, writer: &mut dyn Write) -> Result<(), Error>;
+    fn export(&self, writer: &mut dyn Write, data: Self::T) -> Result<(), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

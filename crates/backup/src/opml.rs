@@ -17,7 +17,7 @@ impl BackupManager for OpmlManager {
         quick_xml::de::from_reader(BufReader::new(reader)).map_err(|_| crate::Error::Deserialize)
     }
 
-    fn export(&self, data: Self::T, writer: &mut dyn Write) -> Result<(), crate::Error> {
+    fn export(&self, writer: &mut dyn Write, data: Self::T) -> Result<(), crate::Error> {
         write!(writer, r#"<?xml version="1.0" encoding="UTF-8"?>"#)
             .map_err(|_| crate::Error::Serialize)?;
 
