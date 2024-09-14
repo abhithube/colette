@@ -4,7 +4,7 @@ use axum::{
     extract::State,
     response::{IntoResponse, Response},
 };
-use bytes::Bytes;
+use bytes::{Buf, Bytes, BytesMut};
 use colette_core::backup::BackupService;
 use http::{HeaderMap, HeaderValue, StatusCode};
 use utoipa::OpenApi;
@@ -49,7 +49,10 @@ pub async fn import_opml(
     session: Session,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    match service.import_opml(bytes, session.profile_id).await {
+    match service
+        .import_opml(bytes.reader(), session.profile_id)
+        .await
+    {
         Ok(_) => Ok(ImportResponse::NoContent),
         _ => Err(Error::Unknown),
     }
@@ -68,8 +71,9 @@ pub async fn export_opml(
     State(service): State<Arc<BackupService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.export_opml(session.profile_id).await {
-        Ok(data) => Ok(ExportResponse::Ok(data.into())),
+    let mut buffer = BytesMut::new();
+    match service.export_opml(&mut buffer, session.profile_id).await {
+        Ok(_) => Ok(ExportResponse::Ok(buffer.into())),
         _ => Err(Error::Unknown),
     }
 }

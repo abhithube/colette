@@ -1,6 +1,5 @@
-use std::sync::Arc;
+use std::{fmt::Write, io::Read, sync::Arc};
 
-use bytes::{Buf, Bytes};
 use colette_backup::BackupManager;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
@@ -29,10 +28,14 @@ impl BackupService {
         }
     }
 
-    pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
+    pub async fn import_opml<R: Read + 'static>(
+        &self,
+        reader: R,
+        profile_id: Uuid,
+    ) -> Result<(), Error> {
         let opml = self
             .opml_manager
-            .import(Box::new(raw.reader()))
+            .import(Box::new(reader))
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         self.backup_repository
@@ -40,7 +43,11 @@ impl BackupService {
             .await
     }
 
-    pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
+    pub async fn export_opml<W: Write + Send>(
+        &self,
+        mut writer: W,
+        profile_id: Uuid,
+    ) -> Result<(), Error> {
         let feeds = self
             .feed_repository
             .list(profile_id, None, None, None)
@@ -65,12 +72,9 @@ impl BackupService {
             ..Default::default()
         };
 
-        let mut buffer = String::new();
         self.opml_manager
-            .export(opml, &mut buffer)
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
-
-        Ok(buffer.into())
+            .export(opml, &mut writer)
+            .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 }
 
