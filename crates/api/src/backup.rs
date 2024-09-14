@@ -6,7 +6,7 @@ use axum::{
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
-use http::StatusCode;
+use http::{HeaderMap, HeaderValue, StatusCode};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -90,14 +90,23 @@ impl IntoResponse for ImportResponse {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ExportResponse {
-    #[response(status = 200, description = "OPML file")]
+    #[response(
+        status = 200,
+        description = "OPML file",
+        content_type = "application/xml"
+    )]
     Ok(Vec<u8>),
 }
 
 impl IntoResponse for ExportResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => data.into_response(),
+            Self::Ok(data) => {
+                let mut headers = HeaderMap::new();
+                headers.insert("Content-Type", HeaderValue::from_static("application/xml"));
+
+                (headers, data).into_response()
+            }
         }
     }
 }
