@@ -1,6 +1,6 @@
 use colette_core::backup::{BackupRepository, Error};
+use colette_opml::Outline;
 use futures::{future::BoxFuture, FutureExt};
-use opml::Outline;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use uuid::Uuid;
 
@@ -44,7 +44,7 @@ impl BackupRepository for BackupSqlRepository {
                             Ok(_) | Err(DbErr::RecordNotInserted) => Ok(()),
                             Err(e) => Err(e),
                         }?
-                    } else if !outline.outlines.is_empty() {
+                    } else if let Some(children) = outline.outline {
                         let model = match query::folder::select_by_title_and_parent(
                             db,
                             outline.text.clone(),
@@ -66,7 +66,7 @@ impl BackupRepository for BackupSqlRepository {
                             }
                         };
 
-                        recurse(db, outline.outlines, Some(model.id), profile_id).await?;
+                        recurse(db, children, Some(model.id), profile_id).await?;
                     }
                 }
 

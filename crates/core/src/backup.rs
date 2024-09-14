@@ -2,26 +2,29 @@ use std::sync::Arc;
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
-use opml::{Body, Outline, OPML};
+use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::feed::FeedRepository;
+use crate::{feed::FeedRepository, folder::FolderRepository};
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
     feed_repository: Arc<dyn FeedRepository>,
-    opml_manager: Arc<dyn BackupManager<T = OPML>>,
+    folder_repository: Arc<dyn FolderRepository>,
+    opml_manager: Arc<dyn BackupManager<T = Opml>>,
 }
 
 impl BackupService {
     pub fn new(
         backup_repository: Arc<dyn BackupRepository>,
         feed_repository: Arc<dyn FeedRepository>,
-        opml_manager: Arc<dyn BackupManager<T = OPML>>,
+        folder_repository: Arc<dyn FolderRepository>,
+        opml_manager: Arc<dyn BackupManager<T = Opml>>,
     ) -> Self {
         Self {
             backup_repository,
             feed_repository,
+            folder_repository,
             opml_manager,
         }
     }
@@ -45,21 +48,19 @@ impl BackupService {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let data = feeds
-            .data
             .iter()
             .cloned()
             .map(|e| Outline {
-                r#type: Some("rss".to_owned()),
+                r#type: Some(OutlineType::default()),
+                title: e.title.or_else(|| Some(e.original_title.clone())),
                 text: e.original_title,
-                title: e.title,
                 xml_url: e.url,
                 html_url: Some(e.link),
                 ..Default::default()
             })
             .collect::<Vec<_>>();
 
-        let opml = OPML {
-            version: "2.0".to_owned(),
+        let opml = Opml {
             body: Body { outlines: data },
             ..Default::default()
         };
