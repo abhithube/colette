@@ -1,13 +1,13 @@
-use bytes::Bytes;
+use std::{fmt::Write, io::Read};
 
 pub mod opml;
 
 pub trait BackupManager: Send + Sync {
     type T;
 
-    fn import(&self, raw: Bytes) -> Result<Self::T, Error>;
+    fn import(&self, reader: Box<dyn Read>) -> Result<Self::T, Error>;
 
-    fn export(&self, data: Self::T) -> Result<Bytes, Error>;
+    fn export(&self, data: Self::T, writer: &mut dyn Write) -> Result<(), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

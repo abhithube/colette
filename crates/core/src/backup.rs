@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use colette_backup::BackupManager;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
@@ -32,7 +32,7 @@ impl BackupService {
     pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
         let opml = self
             .opml_manager
-            .import(raw)
+            .import(Box::new(raw.reader()))
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         self.backup_repository
@@ -65,9 +65,12 @@ impl BackupService {
             ..Default::default()
         };
 
+        let mut buffer = String::new();
         self.opml_manager
-            .export(opml)
-            .map_err(|e| Error::Opml(OpmlError(e.into())))
+            .export(opml, &mut buffer)
+            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+
+        Ok(buffer.into())
     }
 }
 
