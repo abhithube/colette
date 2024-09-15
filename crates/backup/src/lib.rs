@@ -1,4 +1,4 @@
-use std::{fmt::Write, io::Read};
+use std::io::{Read, Write};
 
 pub mod opml;
 

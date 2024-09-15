@@ -4,9 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bytes.workspace = true
 colette-opml.workspace = true
-quick-xml = { version = "0.36", default-features = false, features = [
-  "serialize",
-] }
 thiserror.workspace = true
