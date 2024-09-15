@@ -754,6 +754,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-netscape"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "html5gum",
+]
+
+[[package]]
 name = "colette-opml"
 version = "0.1.0"
 dependencies = [

@@ -7,6 +7,7 @@ members = [
   "crates/entity",
   "crates/meta",
   "crates/migration",
+  "crates/netscape",
   "crates/opml",
   "crates/plugins",
   "crates/repository",
@@ -40,6 +41,7 @@ colette-core.path = "crates/core"
 colette-entity.path = "crates/entity"
 colette-meta.path = "crates/meta"
 colette-migration.path = "crates/migration"
+colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-repository.path = "crates/repository"
 colette-plugins.path = "crates/plugins"
