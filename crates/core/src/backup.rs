@@ -1,9 +1,6 @@
-use std::{
-    collections::HashMap,
-    io::{Read, Write},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
+use bytes::Bytes;
 use colette_backup::BackupManager;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
@@ -41,14 +38,10 @@ impl BackupService {
         }
     }
 
-    pub async fn import_opml<R: Read + 'static>(
-        &self,
-        reader: R,
-        profile_id: Uuid,
-    ) -> Result<(), Error> {
+    pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
         let opml = self
             .opml_manager
-            .import(Box::new(reader))
+            .import(raw)
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         self.backup_repository
@@ -56,11 +49,7 @@ impl BackupService {
             .await
     }
 
-    pub async fn export_opml<W: Write>(
-        &self,
-        mut writer: W,
-        profile_id: Uuid,
-    ) -> Result<(), Error> {
+    pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
             .folder_repository
             .list(
@@ -165,7 +154,7 @@ impl BackupService {
         };
 
         self.opml_manager
-            .export(&mut writer, opml)
+            .export(opml)
             .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 }
