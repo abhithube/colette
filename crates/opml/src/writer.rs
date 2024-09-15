@@ -4,8 +4,10 @@ use quick_xml::{events::BytesText, Writer};
 
 use crate::{Opml, Outline, OutlineType, Version};
 
+const HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
+
 pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), anyhow::Error> {
-    writer.write_all(br#"<?xml version="1.0" encoding="UTF-8"?>"#)?;
+    writer.write_all(HEADER.as_bytes())?;
 
     let mut writer = Writer::new(writer);
 
