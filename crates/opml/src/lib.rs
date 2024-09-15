@@ -1,3 +1,9 @@
+pub use reader::from_reader;
+pub use writer::to_writer;
+
+mod reader;
+mod writer;
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Opml {

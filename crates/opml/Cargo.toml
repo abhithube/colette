@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow.workspace = true
+quick-xml = { version = "0.36", default-features = false }
 serde.workspace = true
