@@ -5,18 +5,14 @@ use quick_xml::{events::Event, Reader};
 
 use crate::{Opml, Outline, OutlineType, Version};
 
-enum OpmlTextField {
-    Head(Option<HeadTextField>),
-}
-
-enum HeadTextField {
+enum OpmlField {
     Title,
 }
 
 pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
     let mut opml = Opml::default();
 
-    let mut fields: Option<OpmlTextField> = None;
+    let mut current: Option<OpmlField> = None;
     let mut stack: Vec<Outline> = Vec::new();
 
     let mut buf: Vec<u8> = Vec::new();
@@ -41,12 +37,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                         }
                     }
                 }
-                b"head" => fields = Some(OpmlTextField::Head(None)),
-                b"title" => {
-                    if let Some(OpmlTextField::Head(head)) = fields.as_mut() {
-                        *head = Some(HeadTextField::Title);
-                    }
-                }
+                b"title" => current = Some(OpmlField::Title),
                 b"outline" => {
                     let mut outline = Outline::default();
 
@@ -74,16 +65,14 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                 _ => {}
             },
             Ok(Event::Text(e)) => {
-                if let Some(OpmlTextField::Head(head)) = fields.as_mut() {
-                    if let Some(HeadTextField::Title) = head {
-                        opml.head.title = e.unescape()?.into_owned();
-                        *head = None;
-                    }
+                if let Some(OpmlField::Title) = current {
+                    opml.head.title = e.unescape()?.into_owned();
+
+                    current = None;
                 }
             }
-            Ok(Event::End(e)) => match e.name().as_ref() {
-                b"head" => fields = None,
-                b"outline" => {
+            Ok(Event::End(e)) => {
+                if e.name().as_ref() == b"outline" {
                     if let Some(outline) = stack.pop() {
                         if let Some(parent) = stack.last_mut() {
                             parent.outline.get_or_insert_with(Vec::new).push(outline);
@@ -92,8 +81,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                         }
                     }
                 }
-                _ => {}
-            },
+            }
             Ok(Event::Eof) => break,
             _ => {}
         }
