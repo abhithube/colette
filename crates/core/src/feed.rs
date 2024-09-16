@@ -26,6 +26,7 @@ pub struct Feed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FeedCreate {
     pub url: Url,
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -97,6 +98,10 @@ impl FeedService {
             .create(FeedCreateData {
                 url: url.clone(),
                 feed: None,
+                tags: data
+                    .tags
+                    .clone()
+                    .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
                 profile_id,
             })
             .await;
@@ -110,6 +115,9 @@ impl FeedService {
                     .create(FeedCreateData {
                         url,
                         feed: Some(scraped),
+                        tags: data
+                            .tags
+                            .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
                         profile_id,
                     })
                     .await
@@ -197,6 +205,7 @@ impl From<FeedListQuery> for FeedFindManyFilters {
 pub struct FeedCreateData {
     pub url: String,
     pub feed: Option<ProcessedFeed>,
+    pub tags: Option<Vec<String>>,
     pub profile_id: Uuid,
 }
 

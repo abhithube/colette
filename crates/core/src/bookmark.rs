@@ -29,6 +29,7 @@ pub struct Bookmark {
 pub struct BookmarkCreate {
     pub url: Url,
     pub collection_id: Option<Uuid>,
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -128,6 +129,9 @@ impl BookmarkService {
                 url: data.url.into(),
                 bookmark: scraped,
                 collection_id: data.collection_id,
+                tags: data
+                    .tags
+                    .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
                 profile_id,
             })
             .await
@@ -178,6 +182,7 @@ pub struct BookmarkCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
     pub collection_id: Option<Uuid>,
+    pub tags: Option<Vec<String>>,
     pub profile_id: Uuid,
 }
 

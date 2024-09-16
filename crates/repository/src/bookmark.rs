@@ -92,6 +92,12 @@ impl Creatable for BookmarkSqlRepository {
                         Err(e) => Err(Error::Unknown(e.into())),
                     }?;
 
+                    if let Some(tags) = data.tags {
+                        link_tags(txn, pb_id, tags, data.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
                     find_by_id(txn, IdParams::new(pb_id, data.profile_id)).await
                 })
             })
@@ -122,47 +128,9 @@ impl Updatable for BookmarkSqlRepository {
                     };
 
                     if let Some(tags) = data.tags {
-                        query::tag::insert_many(
-                            txn,
-                            tags.iter()
-                                .map(|e| query::tag::InsertMany {
-                                    id: Uuid::new_v4(),
-                                    title: e.to_owned(),
-                                })
-                                .collect(),
-                            params.profile_id,
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let tag_models = query::tag::select_by_tags(txn, &tags)
+                        link_tags(txn, pb_model.id, tags, params.profile_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
-                        let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
-
-                        query::profile_bookmark_tag::delete_many_not_in(
-                            txn,
-                            pb_model.id,
-                            tag_ids.clone(),
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let insert_many = tag_ids
-                            .into_iter()
-                            .map(|e| query::profile_bookmark_tag::InsertMany {
-                                profile_bookmark_id: pb_model.id,
-                                tag_id: e,
-                            })
-                            .collect::<Vec<_>>();
-
-                        query::profile_bookmark_tag::insert_many(
-                            txn,
-                            insert_many,
-                            params.profile_id,
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     let old_sort_index = pb_model.sort_index;
@@ -297,4 +265,39 @@ pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Resul
     }
 
     Ok(bookmarks.swap_remove(0))
+}
+
+async fn link_tags<Db: ConnectionTrait>(
+    db: &Db,
+    profile_bookmark_id: Uuid,
+    tags: Vec<String>,
+    profile_id: Uuid,
+) -> Result<(), DbErr> {
+    query::tag::insert_many(
+        db,
+        tags.iter()
+            .map(|e| query::tag::InsertMany {
+                id: Uuid::new_v4(),
+                title: e.to_owned(),
+            })
+            .collect(),
+        profile_id,
+    )
+    .await?;
+
+    let tag_models = query::tag::select_by_tags(db, &tags).await?;
+    let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+    query::profile_bookmark_tag::delete_many_not_in(db, profile_bookmark_id, tag_ids.clone())
+        .await?;
+
+    let insert_many = tag_ids
+        .into_iter()
+        .map(|e| query::profile_bookmark_tag::InsertMany {
+            profile_bookmark_id,
+            tag_id: e,
+        })
+        .collect::<Vec<_>>();
+
+    query::profile_bookmark_tag::insert_many(db, insert_many, profile_id).await
 }

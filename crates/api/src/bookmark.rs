@@ -86,6 +86,8 @@ pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
     pub collection_id: Option<Uuid>,
+    #[schema(nullable = false)]
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {
@@ -93,6 +95,9 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
         Self {
             url: value.url,
             collection_id: value.collection_id,
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(|e| e.into()).collect()),
         }
     }
 }

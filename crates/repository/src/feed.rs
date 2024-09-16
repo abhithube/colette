@@ -110,6 +110,12 @@ impl Creatable for FeedSqlRepository {
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
 
+                    if let Some(tags) = data.tags {
+                        link_tags(txn, pf_id, tags, data.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
                     find_by_id(txn, IdParams::new(pf_id, data.profile_id)).await
                 })
             })
@@ -154,41 +160,7 @@ impl Updatable for FeedSqlRepository {
                     }
 
                     if let Some(tags) = data.tags {
-                        query::tag::insert_many(
-                            txn,
-                            tags.iter()
-                                .map(|e| query::tag::InsertMany {
-                                    id: Uuid::new_v4(),
-                                    title: e.to_owned(),
-                                })
-                                .collect(),
-                            params.profile_id,
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let tag_models = query::tag::select_by_tags(txn, &tags)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                        let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
-
-                        query::profile_feed_tag::delete_many_not_in(
-                            txn,
-                            profile_feed_id,
-                            tag_ids.clone(),
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                        let insert_many = tag_ids
-                            .into_iter()
-                            .map(|e| query::profile_feed_tag::InsertMany {
-                                profile_feed_id,
-                                tag_id: e,
-                            })
-                            .collect::<Vec<_>>();
-
-                        query::profile_feed_tag::insert_many(txn, insert_many, params.profile_id)
+                        link_tags(txn, profile_feed_id, tags, params.profile_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
@@ -368,4 +340,38 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(feed_id)
+}
+
+async fn link_tags<Db: ConnectionTrait>(
+    db: &Db,
+    profile_feed_id: Uuid,
+    tags: Vec<String>,
+    profile_id: Uuid,
+) -> Result<(), DbErr> {
+    query::tag::insert_many(
+        db,
+        tags.iter()
+            .map(|e| query::tag::InsertMany {
+                id: Uuid::new_v4(),
+                title: e.to_owned(),
+            })
+            .collect(),
+        profile_id,
+    )
+    .await?;
+
+    let tag_models = query::tag::select_by_tags(db, &tags).await?;
+    let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
+
+    query::profile_feed_tag::delete_many_not_in(db, profile_feed_id, tag_ids.clone()).await?;
+
+    let insert_many = tag_ids
+        .into_iter()
+        .map(|e| query::profile_feed_tag::InsertMany {
+            profile_feed_id,
+            tag_id: e,
+        })
+        .collect::<Vec<_>>();
+
+    query::profile_feed_tag::insert_many(db, insert_many, profile_id).await
 }

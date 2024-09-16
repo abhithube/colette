@@ -90,11 +90,18 @@ impl From<colette_core::Feed> for Feed {
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    #[schema(nullable = false)]
+    pub tags: Option<Vec<TagCreate>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
     fn from(value: FeedCreate) -> Self {
-        Self { url: value.url }
+        Self {
+            url: value.url,
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(|e| e.into()).collect()),
+        }
     }
 }
 
