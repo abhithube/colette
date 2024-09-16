@@ -92,7 +92,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
           <FormField
             control={form.control}
             name="tags"
-            render={({ field }) => (
+            render={() => (
               <FormItem>
                 <FormLabel>Tags</FormLabel>
                 {/* <MultiSelect

@@ -153,21 +153,137 @@ declare module '@tanstack/react-router' {
 
 // Create and export the route tree
 
-export const routeTree = rootRoute.addChildren({
-  PrivateRoute: PrivateRoute.addChildren({
-    PrivateBookmarksRoute: PrivateBookmarksRoute.addChildren({
-      PrivateBookmarksStashRoute,
-      PrivateBookmarksIndexRoute,
-    }),
-    PrivateFeedsRoute: PrivateFeedsRoute.addChildren({
-      PrivateFeedsIdRoute,
-      PrivateFeedsArchivedRoute,
-      PrivateFeedsIndexRoute,
-    }),
-    PrivateIndexRoute,
-  }),
-  LoginRoute,
-})
+interface PrivateBookmarksRouteChildren {
+  PrivateBookmarksStashRoute: typeof PrivateBookmarksStashRoute
+  PrivateBookmarksIndexRoute: typeof PrivateBookmarksIndexRoute
+}
+
+const PrivateBookmarksRouteChildren: PrivateBookmarksRouteChildren = {
+  PrivateBookmarksStashRoute: PrivateBookmarksStashRoute,
+  PrivateBookmarksIndexRoute: PrivateBookmarksIndexRoute,
+}
+
+const PrivateBookmarksRouteWithChildren =
+  PrivateBookmarksRoute._addFileChildren(PrivateBookmarksRouteChildren)
+
+interface PrivateFeedsRouteChildren {
+  PrivateFeedsIdRoute: typeof PrivateFeedsIdRoute
+  PrivateFeedsArchivedRoute: typeof PrivateFeedsArchivedRoute
+  PrivateFeedsIndexRoute: typeof PrivateFeedsIndexRoute
+}
+
+const PrivateFeedsRouteChildren: PrivateFeedsRouteChildren = {
+  PrivateFeedsIdRoute: PrivateFeedsIdRoute,
+  PrivateFeedsArchivedRoute: PrivateFeedsArchivedRoute,
+  PrivateFeedsIndexRoute: PrivateFeedsIndexRoute,
+}
+
+const PrivateFeedsRouteWithChildren = PrivateFeedsRoute._addFileChildren(
+  PrivateFeedsRouteChildren,
+)
+
+interface PrivateRouteChildren {
+  PrivateBookmarksRoute: typeof PrivateBookmarksRouteWithChildren
+  PrivateFeedsRoute: typeof PrivateFeedsRouteWithChildren
+  PrivateIndexRoute: typeof PrivateIndexRoute
+}
+
+const PrivateRouteChildren: PrivateRouteChildren = {
+  PrivateBookmarksRoute: PrivateBookmarksRouteWithChildren,
+  PrivateFeedsRoute: PrivateFeedsRouteWithChildren,
+  PrivateIndexRoute: PrivateIndexRoute,
+}
+
+const PrivateRouteWithChildren =
+  PrivateRoute._addFileChildren(PrivateRouteChildren)
+
+export interface FileRoutesByFullPath {
+  '': typeof PrivateRouteWithChildren
+  '/login': typeof LoginRoute
+  '/bookmarks': typeof PrivateBookmarksRouteWithChildren
+  '/feeds': typeof PrivateFeedsRouteWithChildren
+  '/': typeof PrivateIndexRoute
+  '/bookmarks/stash': typeof PrivateBookmarksStashRoute
+  '/feeds/$id': typeof PrivateFeedsIdRoute
+  '/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/bookmarks/': typeof PrivateBookmarksIndexRoute
+  '/feeds/': typeof PrivateFeedsIndexRoute
+}
+
+export interface FileRoutesByTo {
+  '/login': typeof LoginRoute
+  '/': typeof PrivateIndexRoute
+  '/bookmarks/stash': typeof PrivateBookmarksStashRoute
+  '/feeds/$id': typeof PrivateFeedsIdRoute
+  '/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/bookmarks': typeof PrivateBookmarksIndexRoute
+  '/feeds': typeof PrivateFeedsIndexRoute
+}
+
+export interface FileRoutesById {
+  __root__: typeof rootRoute
+  '/_private': typeof PrivateRouteWithChildren
+  '/login': typeof LoginRoute
+  '/_private/bookmarks': typeof PrivateBookmarksRouteWithChildren
+  '/_private/feeds': typeof PrivateFeedsRouteWithChildren
+  '/_private/': typeof PrivateIndexRoute
+  '/_private/bookmarks/stash': typeof PrivateBookmarksStashRoute
+  '/_private/feeds/$id': typeof PrivateFeedsIdRoute
+  '/_private/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/_private/bookmarks/': typeof PrivateBookmarksIndexRoute
+  '/_private/feeds/': typeof PrivateFeedsIndexRoute
+}
+
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | ''
+    | '/login'
+    | '/bookmarks'
+    | '/feeds'
+    | '/'
+    | '/bookmarks/stash'
+    | '/feeds/$id'
+    | '/feeds/archived'
+    | '/bookmarks/'
+    | '/feeds/'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/login'
+    | '/'
+    | '/bookmarks/stash'
+    | '/feeds/$id'
+    | '/feeds/archived'
+    | '/bookmarks'
+    | '/feeds'
+  id:
+    | '__root__'
+    | '/_private'
+    | '/login'
+    | '/_private/bookmarks'
+    | '/_private/feeds'
+    | '/_private/'
+    | '/_private/bookmarks/stash'
+    | '/_private/feeds/$id'
+    | '/_private/feeds/archived'
+    | '/_private/bookmarks/'
+    | '/_private/feeds/'
+  fileRoutesById: FileRoutesById
+}
+
+export interface RootRouteChildren {
+  PrivateRoute: typeof PrivateRouteWithChildren
+  LoginRoute: typeof LoginRoute
+}
+
+const rootRouteChildren: RootRouteChildren = {
+  PrivateRoute: PrivateRouteWithChildren,
+  LoginRoute: LoginRoute,
+}
+
+export const routeTree = rootRoute
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
 
 /* prettier-ignore-end */
 

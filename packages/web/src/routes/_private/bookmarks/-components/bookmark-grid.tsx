@@ -1,10 +1,6 @@
 import { Box, Grid, GridItem } from '@colette/components'
 import type { Bookmark } from '@colette/core'
-import { updateBookmarkOptions } from '@colette/query'
-import { useMutation } from '@tanstack/react-query'
-import { useState } from 'react'
 import { useInView } from 'react-intersection-observer'
-import { Route } from '../../bookmarks'
 import { BookmarkCard } from './bookmark-card'
 
 type Props = {
@@ -17,14 +13,14 @@ type Props = {
 
 export function BookmarkGrid({
   bookmarks,
-  setBookmarks,
+  // setBookmarks,
   hasMore = false,
   loadMore,
   created,
 }: Props) {
-  const context = Route.useRouteContext()
+  // const context = Route.useRouteContext()
 
-  const [active, setActive] = useState<Bookmark | null>(null)
+  // const [active, setActive] = useState<Bookmark | null>(null)
 
   const { ref } = useInView({
     threshold: 0,
@@ -42,17 +38,17 @@ export function BookmarkGrid({
     ? bookmarks.filter((v) => v.id !== created.id)
     : bookmarks
 
-  const { mutateAsync: updateBookmark } = useMutation(
-    updateBookmarkOptions(
-      {
-        onSettled: () =>
-          context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'bookmarks'],
-          }),
-      },
-      context.api,
-    ),
-  )
+  // const { mutateAsync: updateBookmark } = useMutation(
+  //   updateBookmarkOptions(
+  //     {
+  //       onSettled: () =>
+  //         context.queryClient.invalidateQueries({
+  //           queryKey: ['profiles', context.profile.id, 'bookmarks'],
+  //         }),
+  //     },
+  //     context.api,
+  //   ),
+  // )
 
   return (
     // <DndContext
