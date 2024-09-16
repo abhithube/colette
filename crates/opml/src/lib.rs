@@ -1,5 +1,6 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
+use anyhow::anyhow;
 pub use reader::from_reader;
 pub use writer::to_writer;
 
@@ -19,6 +20,19 @@ pub enum Version {
     V1_1,
     #[default]
     V2,
+}
+
+impl FromStr for Version {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "1.0" => Ok(Self::V1),
+            "1.1" => Ok(Self::V1_1),
+            "2.0" => Ok(Self::V2),
+            _ => Err(anyhow!("OPML version not supported")),
+        }
+    }
 }
 
 impl fmt::Display for Version {
@@ -65,6 +79,17 @@ pub struct Outline {
 pub enum OutlineType {
     #[default]
     Rss,
+}
+
+impl FromStr for OutlineType {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "rss" => Ok(Self::Rss),
+            _ => Err(anyhow!("outline type not supported")),
+        }
+    }
 }
 
 impl fmt::Display for OutlineType {

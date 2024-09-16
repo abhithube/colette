@@ -1,9 +1,8 @@
 use std::io::BufRead;
 
-use anyhow::anyhow;
 use quick_xml::{events::Event, Reader};
 
-use crate::{Opml, Outline, OutlineType, Version};
+use crate::{Opml, Outline};
 
 enum OpmlField {
     Title,
@@ -28,12 +27,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                         let value = attribute.decode_and_unescape_value(reader.decoder())?;
 
                         if attribute.key.local_name().into_inner() == b"version" {
-                            opml.version = match value.as_ref() {
-                                "1.0" => Ok(Version::V1),
-                                "1.1" => Ok(Version::V1_1),
-                                "2.0" => Ok(Version::V2),
-                                _ => Err(anyhow!("OPML version not supported")),
-                            }?;
+                            opml.version = value.parse()?;
                         }
                     }
                 }
@@ -47,11 +41,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                         let value = attribute.decode_and_unescape_value(reader.decoder())?;
 
                         match attribute.key.local_name().into_inner() {
-                            b"type" => {
-                                if value.as_ref() == "rss" {
-                                    outline.r#type = Some(OutlineType::Rss)
-                                }
-                            }
+                            b"type" => outline.r#type = Some(value.parse()?),
                             b"text" => outline.text = value.into_owned(),
                             b"xmlUrl" => outline.xml_url = Some(value.into_owned()),
                             b"title" => outline.title = Some(value.into_owned()),
