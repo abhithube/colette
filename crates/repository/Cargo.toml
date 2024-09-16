@@ -14,5 +14,4 @@ colette-opml.workspace = true
 colette-utils.workspace = true
 futures.workspace = true
 sea-orm.workspace = true
-serde.workspace = true
 uuid.workspace = true

@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-html5gum = { version = "0.5", default-features = false }
+html5gum.workspace = true
