@@ -2,7 +2,7 @@
 	"name": "@colette/panda-preset",
 	"exports": ["./lib/index.ts"],
 	"devDependencies": {
-		"@pandacss/dev": "^0.45",
+		"@pandacss/dev": "^0.46",
 		"@park-ui/panda-preset": "^0.42"
 	}
 }
