@@ -5,5 +5,6 @@ edition = "2021"
 
 [dependencies]
 bytes.workspace = true
+colette-netscape.workspace = true
 colette-opml.workspace = true
 thiserror.workspace = true

@@ -1,5 +1,6 @@
 use bytes::Bytes;
 
+pub mod netscape;
 pub mod opml;
 
 pub trait BackupManager: Send + Sync {
