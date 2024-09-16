@@ -2,6 +2,7 @@ use std::{collections::HashMap, sync::Arc};
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
+use colette_netscape::Item;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
@@ -162,6 +163,8 @@ impl BackupService {
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
+
+    async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

@@ -9,6 +9,7 @@ async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 colette-entity.workspace = true
+colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-utils.workspace = true
 futures.workspace = true
