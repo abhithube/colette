@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use colette_utils::DataEncoder;
+use colette_util::DataEncoder;
 use uuid::Uuid;
 
 use crate::common::{Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT};

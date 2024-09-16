@@ -1,5 +1,5 @@
 [package]
-name = "colette-utils"
+name = "colette-util"
 version = "0.1.0"
 edition = "2021"
 

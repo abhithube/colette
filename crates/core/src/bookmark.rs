@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use colette_scraper::{BookmarkScraper, ProcessedBookmark};
-use colette_utils::DataEncoder;
+use colette_util::DataEncoder;
 use url::Url;
 use uuid::Uuid;
 

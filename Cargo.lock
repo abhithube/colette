@@ -679,7 +679,7 @@ dependencies = [
  "colette-netscape",
  "colette-opml",
  "colette-scraper",
- "colette-utils",
+ "colette-util",
  "email_address",
  "futures",
  "http",
@@ -760,7 +760,7 @@ dependencies = [
  "colette-entity",
  "colette-netscape",
  "colette-opml",
- "colette-utils",
+ "colette-util",
  "futures",
  "sea-orm",
  "uuid",
@@ -800,8 +800,8 @@ dependencies = [
  "colette-repository",
  "colette-scraper",
  "colette-session",
- "colette-tasks",
- "colette-utils",
+ "colette-task",
+ "colette-util",
  "rust-embed",
  "sea-orm",
  "tokio",
@@ -818,7 +818,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-tasks"
+name = "colette-task"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -834,7 +834,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-utils"
+name = "colette-util"
 version = "0.1.0"
 dependencies = [
  "anyhow",

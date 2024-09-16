@@ -14,8 +14,8 @@ members = [
   "crates/scraper",
   "crates/server",
   "crates/session",
-  "crates/tasks",
-  "crates/utils",
+  "crates/task",
+  "crates/util",
 ]
 resolver = "2"
 
@@ -47,8 +47,8 @@ colette-repository.path = "crates/repository"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"
-colette-tasks.path = "crates/tasks"
-colette-utils.path = "crates/utils"
+colette-task.path = "crates/task"
+colette-util.path = "crates/util"
 email_address = { version = "0.2", default-features = false, features = [
   "serde_support",
 ] }

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use colette_utils::PasswordHasher;
+use colette_util::PasswordHasher;
 use email_address::EmailAddress;
 use uuid::Uuid;
 

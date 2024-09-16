@@ -32,7 +32,7 @@ use colette_session::PostgresStore;
 use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
-use colette_utils::{base64::Base64Encoder, password::ArgonHasher};
+use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
@@ -85,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let folder_repository = Arc::new(FolderSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
-    colette_tasks::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
+    colette_task::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
     let base64_decoder = Arc::new(Base64Encoder);
 
@@ -157,7 +157,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let worker = WorkerBuilder::new("refresh-feeds")
                 .data(refresh_service)
                 .backend(CronStream::new(schedule))
-                .build_fn(colette_tasks::refresh_feeds);
+                .build_fn(colette_task::refresh_feeds);
 
             Monitor::<TokioExecutor>::new().register(worker).run().await
         } else {

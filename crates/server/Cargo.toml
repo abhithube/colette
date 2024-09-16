@@ -18,8 +18,8 @@ colette-plugins.workspace = true
 colette-repository.workspace = true
 colette-scraper.workspace = true
 colette-session.workspace = true
-colette-tasks.workspace = true
-colette-utils.workspace = true
+colette-task.workspace = true
+colette-util.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
