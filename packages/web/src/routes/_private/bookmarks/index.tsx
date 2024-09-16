@@ -1,4 +1,4 @@
-import { Header, HeaderTitle } from '@/components/header'
+import { HStack, Heading } from '@colette/components'
 import { ensureInfiniteQueryData, listBookmarksOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -37,9 +37,11 @@ function Component() {
 
   return (
     <>
-      <Header>
-        <HeaderTitle>All Bookmarks</HeaderTitle>
-      </Header>
+      <HStack pos="sticky" zIndex="sticky" top={0} bg="bg.default" p={8}>
+        <Heading as="h1" fontSize="3xl" fontWeight="medium">
+          All Bookmarks
+        </Heading>
+      </HStack>
       <main>
         <BookmarkGrid
           bookmarks={bookmarks}

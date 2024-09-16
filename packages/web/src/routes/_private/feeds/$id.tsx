@@ -1,11 +1,5 @@
-import {
-  Header,
-  HeaderActionGroup,
-  HeaderActionItem,
-  HeaderTitle,
-} from '@/components/header'
-import { Icon } from '@/components/icon'
 import { Dialog } from '@/components/ui/dialog'
+import { Button, HStack, Heading, Icon, Link } from '@colette/components'
 import {
   ensureInfiniteQueryData,
   getFeedOptions,
@@ -68,32 +62,50 @@ function Component() {
 
   return (
     <>
-      <Header>
-        <HeaderTitle>{feed.title ?? feed.originalTitle}</HeaderTitle>
-        <HeaderActionGroup>
-          <HeaderActionItem asChild>
-            <a href={feed.link} target="_blank" rel="noreferrer">
-              <Icon value={ExternalLink} />
-              <span>Open Link</span>
-            </a>
-          </HeaderActionItem>
-          <HeaderActionItem onClick={() => setEditModalOpen(true)}>
-            <Icon value={Pencil} />
-            <span>Edit</span>
-          </HeaderActionItem>
-          <HeaderActionItem>
-            <Icon value={ListChecks} />
-            <span>Mark as Read</span>
-          </HeaderActionItem>
-          <HeaderActionItem
-            variant="destructive"
+      <HStack
+        pos="sticky"
+        zIndex="sticky"
+        top={0}
+        justify="space-between"
+        bg="bg.default"
+        p={8}
+      >
+        <Heading as="h1" fontSize="3xl" fontWeight="medium">
+          {feed.title ?? feed.originalTitle}
+        </Heading>
+        <HStack>
+          <Button asChild variant="subtle">
+            <Link href={feed.link} target="_blank" textDecoration="none">
+              <Icon>
+                <ExternalLink />
+              </Icon>
+              Open Link
+            </Link>
+          </Button>
+          <Button variant="subtle" onClick={() => setEditModalOpen(true)}>
+            <Icon>
+              <Pencil />
+            </Icon>
+            Edit
+          </Button>
+          <Button variant="subtle">
+            <Icon>
+              <ListChecks />
+            </Icon>
+            Mark as Read
+          </Button>
+          <Button
+            variant="subtle"
+            colorPalette="red"
             onClick={() => setUnsubscribeAlertOpen(true)}
           >
-            <Icon value={CircleX} />
-            <span>Unsubscribe</span>
-          </HeaderActionItem>
-        </HeaderActionGroup>
-      </Header>
+            <Icon>
+              <CircleX />
+            </Icon>
+            Unsubscribe
+          </Button>
+        </HStack>
+      </HStack>
       <main>
         <FeedEntryGrid
           feedEntries={feedEntries.pages.flatMap((page) => page.data)}
