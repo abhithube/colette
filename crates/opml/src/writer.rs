@@ -1,98 +1,72 @@
 use std::io::Write;
 
-use quick_xml::{events::BytesText, Writer};
-
-use crate::{Opml, Outline, OutlineType, Version};
+use crate::{Opml, Outline};
 
 const HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
 
 pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), anyhow::Error> {
-    writer.write_all(HEADER.as_bytes())?;
+    writeln!(writer, "{}", HEADER)?;
 
-    let mut writer = Writer::new(writer);
+    writeln!(writer, r#"<opml version="{}">"#, opml.version)?;
 
-    writer
-        .create_element("opml")
-        .with_attribute((
-            "version",
-            match opml.version {
-                Version::V1 => "1.0",
-                Version::V1_1 => "1.1",
-                Version::V2 => "2.0",
-            },
-        ))
-        .write_inner_content(|writer| {
-            let _ = writer
-                .create_element("head")
-                .write_inner_content(|writer| {
-                    let _ = writer
-                        .create_element("title")
-                        .write_text_content(BytesText::new(&opml.head.title))?;
+    writeln!(writer, "{}<head>", " ".repeat(4))?;
+    writeln!(
+        writer,
+        "{}<title>{}</title>",
+        " ".repeat(4).repeat(2),
+        opml.head.title
+    )?;
+    writeln!(writer, "{}</head>", " ".repeat(4))?;
 
-                    Ok::<(), quick_xml::Error>(())
-                })?;
+    writeln!(writer, "{}<body>", " ".repeat(4))?;
 
-            let _ = writer
-                .create_element("body")
-                .write_inner_content(|writer| {
-                    fn write_outlines<W: Write>(
-                        writer: &mut Writer<W>,
-                        outlines: Vec<Outline>,
-                    ) -> Result<(), quick_xml::Error> {
-                        for outline in outlines {
-                            if let Some(children) = outline.outline {
-                                let mut element_writer = writer
-                                    .create_element("outline")
-                                    .with_attribute(("text", outline.text.as_str()));
+    write_outlines(&mut writer, &opml.body.outlines, 2)?;
 
-                                if let Some(title) = outline.title.as_deref() {
-                                    element_writer =
-                                        element_writer.with_attribute(("title", title));
-                                }
+    writeln!(writer, "{}</body>", " ".repeat(4))?;
 
-                                element_writer.write_inner_content(|writer| {
-                                    write_outlines(writer, children)
-                                })?;
-                            } else {
-                                let mut element_writer = writer
-                                    .create_element("outline")
-                                    .with_attribute(("text", outline.text.as_str()));
+    writeln!(writer, "</opml>")?;
 
-                                if let Some(r#type) = &outline.r#type {
-                                    match r#type {
-                                        OutlineType::Rss => {
-                                            element_writer =
-                                                element_writer.with_attribute(("type", "rss"));
-                                        }
-                                    }
-                                }
-                                if let Some(xml_url) = outline.xml_url.as_deref() {
-                                    element_writer =
-                                        element_writer.with_attribute(("xmlUrl", xml_url));
-                                }
-                                if let Some(title) = outline.title.as_deref() {
-                                    element_writer =
-                                        element_writer.with_attribute(("title", title));
-                                }
-                                if let Some(html_url) = outline.html_url.as_deref() {
-                                    element_writer =
-                                        element_writer.with_attribute(("htmlUrl", html_url));
-                                }
+    Ok(())
+}
 
-                                element_writer.write_empty()?;
-                            }
-                        }
+fn write_outlines<W: Write>(
+    writer: &mut W,
+    outlines: &[Outline],
+    level: usize,
+) -> Result<(), anyhow::Error> {
+    for outline in outlines {
+        let mut attributes: Vec<String> = Vec::new();
+        if let Some(r#type) = &outline.r#type {
+            attributes.push(format!(r#"type="{}""#, r#type));
+        }
+        attributes.push(format!(r#"text="{}""#, outline.text));
+        if let Some(xml_url) = &outline.xml_url {
+            attributes.push(format!(r#"xmlUrl="{}""#, xml_url));
+        }
+        if let Some(title) = &outline.title {
+            attributes.push(format!(r#"title="{}""#, title));
+        }
+        if let Some(html_url) = &outline.html_url {
+            attributes.push(format!(r#"htmlUrl="{}""#, html_url));
+        }
 
-                        Ok(())
-                    }
+        let attributes_str = attributes.join(" ");
+        let indent_str = " ".repeat(4).repeat(level);
 
-                    write_outlines(writer, opml.body.outlines)?;
+        if let Some(children) = &outline.outline {
+            writeln!(writer, "{}<outline {}>", indent_str, attributes_str)?;
 
-                    Ok::<(), quick_xml::Error>(())
-                })?;
+            write_outlines(writer, children, level + 1)?;
 
-            Ok::<(), quick_xml::Error>(())
-        })?;
+            writeln!(writer, "{}</outline>", indent_str)?;
+        } else {
+            writeln!(
+                writer,
+                r#"{}<outline {}></outline>"#,
+                indent_str, attributes_str
+            )?;
+        }
+    }
 
     Ok(())
 }

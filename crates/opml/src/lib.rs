@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub use reader::from_reader;
 pub use writer::to_writer;
 
@@ -17,6 +19,18 @@ pub enum Version {
     V1_1,
     #[default]
     V2,
+}
+
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let raw = match self {
+            Self::V1 => "1.0",
+            Self::V1_1 => "1.1",
+            Self::V2 => "2.0",
+        };
+
+        write!(f, "{}", raw)
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -51,4 +65,14 @@ pub struct Outline {
 pub enum OutlineType {
     #[default]
     Rss,
+}
+
+impl fmt::Display for OutlineType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let raw = match self {
+            Self::Rss => "rss",
+        };
+
+        write!(f, "{}", raw)
+    }
 }
