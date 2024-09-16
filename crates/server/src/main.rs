@@ -14,7 +14,7 @@ use colette_api::{
     feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState,
     tag::TagState, Api, ApiState,
 };
-use colette_backup::opml::OpmlManager;
+use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
@@ -79,6 +79,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let feed_plugin_registry = Arc::new(register_feed_plugins());
 
+    let bookmark_repository = Arc::new(BookmarkSqlRepository::new(db.clone()));
+    let collection_repository = Arc::new(CollectionSqlRepository::new(db.clone()));
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
     let folder_repository = Arc::new(FolderSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
@@ -94,18 +96,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let backup_service = Arc::new(BackupService::new(
         Arc::new(BackupSqlRepository::new(db.clone())),
+        bookmark_repository.clone(),
+        collection_repository.clone(),
         feed_repository.clone(),
         folder_repository.clone(),
         Arc::new(OpmlManager),
+        Arc::new(NetscapeManager),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
-        Arc::new(BookmarkSqlRepository::new(db.clone())),
+        bookmark_repository,
         Arc::new(register_bookmark_plugins()),
         base64_decoder.clone(),
     ));
-    let collection_service = Arc::new(CollectionService::new(Arc::new(
-        CollectionSqlRepository::new(db.clone()),
-    )));
+    let collection_service = Arc::new(CollectionService::new(collection_repository));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
         feed_plugin_registry.clone(),

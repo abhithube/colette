@@ -2,20 +2,25 @@ use std::{collections::HashMap, sync::Arc};
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
-use colette_netscape::Item;
+use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
 use crate::{
+    bookmark::BookmarkRepository,
+    collection::CollectionRepository,
     feed::FeedRepository,
     folder::{FolderFindManyFilters, FolderRepository, FolderType},
 };
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
+    bookmark_repository: Arc<dyn BookmarkRepository>,
+    collection_repository: Arc<dyn CollectionRepository>,
     feed_repository: Arc<dyn FeedRepository>,
     folder_repository: Arc<dyn FolderRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
+    netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
 
 #[derive(Clone, Debug)]
@@ -24,18 +29,30 @@ pub struct OutlineWrapper {
     pub outline: Outline,
 }
 
+#[derive(Clone, Debug)]
+pub struct ItemWrapper {
+    pub parent_id: Option<Uuid>,
+    pub item: Item,
+}
+
 impl BackupService {
     pub fn new(
         backup_repository: Arc<dyn BackupRepository>,
+        bookmark_repository: Arc<dyn BookmarkRepository>,
+        collection_repository: Arc<dyn CollectionRepository>,
         feed_repository: Arc<dyn FeedRepository>,
         folder_repository: Arc<dyn FolderRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
+        netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {
         Self {
             backup_repository,
+            bookmark_repository,
+            collection_repository,
             feed_repository,
             folder_repository,
             opml_manager,
+            netscape_manager,
         }
     }
 
@@ -158,6 +175,146 @@ impl BackupService {
             .export(opml)
             .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
+
+    pub async fn import_netscape(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
+        let netscape = self
+            .netscape_manager
+            .import(raw)
+            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
+
+        self.backup_repository
+            .import_netscape(netscape.items, profile_id)
+            .await
+    }
+
+    pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
+        let folders = self
+            .folder_repository
+            .list(
+                profile_id,
+                None,
+                None,
+                Some(FolderFindManyFilters {
+                    folder_type: FolderType::Collections,
+                }),
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let collections = self
+            .collection_repository
+            .list(profile_id, None, None)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let bookmarks = self
+            .bookmark_repository
+            .list(profile_id, None, None, None)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let mut folder_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
+        let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
+        let mut root_folders: Vec<Uuid> = vec![];
+
+        for folder in folders {
+            folder_map.insert(
+                folder.id,
+                ItemWrapper {
+                    parent_id: folder.parent_id,
+                    item: Item {
+                        title: folder.title,
+                        ..Default::default()
+                    },
+                },
+            );
+
+            match folder.parent_id {
+                Some(parent_id) => {
+                    children_map.entry(parent_id).or_default().push(folder.id);
+                }
+                None => root_folders.push(folder.id),
+            }
+        }
+        for collection in collections {
+            folder_map.insert(
+                collection.id,
+                ItemWrapper {
+                    parent_id: collection.folder_id,
+                    item: Item {
+                        title: collection.title,
+                        ..Default::default()
+                    },
+                },
+            );
+
+            match collection.folder_id {
+                Some(folder_id) => {
+                    children_map
+                        .entry(folder_id)
+                        .or_default()
+                        .push(collection.id);
+                }
+                None => root_folders.push(collection.id),
+            }
+        }
+
+        let mut root_bookmarks: Vec<Item> = vec![];
+        for bookmark in bookmarks {
+            let item = Item {
+                title: bookmark.title,
+                href: Some(bookmark.link),
+                ..Default::default()
+            };
+
+            match bookmark.collection_id {
+                Some(collection_id) => {
+                    if let Some(parent) = folder_map.get_mut(&collection_id) {
+                        if let Some(children) = parent.item.item.as_mut() {
+                            children.push(item);
+                        }
+                    }
+                }
+                None => root_bookmarks.push(item),
+            }
+        }
+
+        fn build_hierarchy(
+            folder_map: &mut HashMap<Uuid, ItemWrapper>,
+            children_map: &HashMap<Uuid, Vec<Uuid>>,
+            folder_id: Uuid,
+        ) {
+            if let Some(children) = children_map.get(&folder_id) {
+                for &child_id in children {
+                    build_hierarchy(folder_map, children_map, child_id);
+                    if let Some(child) = folder_map.remove(&child_id) {
+                        if let Some(children) =
+                            folder_map.get_mut(&folder_id).unwrap().item.item.as_mut()
+                        {
+                            children.push(child.item);
+                        }
+                    }
+                }
+            }
+        }
+
+        for &root_id in &root_folders {
+            build_hierarchy(&mut folder_map, &children_map, root_id);
+        }
+
+        let mut items = root_folders
+            .into_iter()
+            .filter_map(|id| folder_map.remove(&id).map(|e| e.item))
+            .collect::<Vec<_>>();
+        items.append(&mut root_bookmarks);
+
+        let netscape = Netscape {
+            items,
+            ..Default::default()
+        };
+
+        self.netscape_manager
+            .export(netscape)
+            .map_err(|e| Error::Netscape(NetscapeError(e.into())))
+    }
 }
 
 #[async_trait::async_trait]
@@ -173,9 +330,16 @@ pub enum Error {
     Opml(#[from] OpmlError),
 
     #[error(transparent)]
+    Netscape(#[from] NetscapeError),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
 
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
 pub struct OpmlError(#[from] anyhow::Error);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+pub struct NetscapeError(#[from] anyhow::Error);
