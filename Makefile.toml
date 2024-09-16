@@ -27,12 +27,12 @@ args = [
 [tasks.db-reset]
 install_crate = "sea-orm-cli"
 command = "sea-orm-cli"
-args = ["migrate", "fresh", "-d", "./crates/migrations"]
+args = ["migrate", "fresh", "-d", "./crates/migration"]
 
 [tasks.db-generate]
 install_crate = "sea-orm-cli"
 command = "sea-orm-cli"
-args = ["generate", "entity", "-o", "./crates/entities/src/generated"]
+args = ["generate", "entity", "-o", "./crates/entity/src/generated"]
 
 [tasks.bloat]
 install_crate = "cargo-bloat"
