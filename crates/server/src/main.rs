@@ -11,21 +11,20 @@ use apalis_cron::{CronStream, Schedule};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
-    feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, profile::ProfileState,
-    tag::TagState, Api, ApiState,
+    feed::FeedState, feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api,
+    ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    folder::FolderService, profile::ProfileService, refresh::RefreshService, tag::TagService,
+    profile::ProfileService, refresh::RefreshService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
     BackupSqlRepository, BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository,
-    FeedSqlRepository, FolderSqlRepository, ProfileSqlRepository, TagSqlRepository,
-    UserSqlRepository,
+    FeedSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
@@ -82,7 +81,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_repository = Arc::new(BookmarkSqlRepository::new(db.clone()));
     let collection_repository = Arc::new(CollectionSqlRepository::new(db.clone()));
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
-    let folder_repository = Arc::new(FolderSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
     colette_task::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
@@ -99,7 +97,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_repository.clone(),
         collection_repository.clone(),
         feed_repository.clone(),
-        folder_repository.clone(),
         Arc::new(OpmlManager),
         Arc::new(NetscapeManager),
     ));
@@ -117,7 +114,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(FeedEntrySqlRepository::new(db.clone())),
         base64_decoder,
     ));
-    let folder_service = Arc::new(FolderService::new(folder_repository));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
     let refresh_service = Arc::new(RefreshService::new(
         feed_plugin_registry,
@@ -133,7 +129,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
-        FolderState::new(folder_service),
         ProfileState::new(profile_service),
         TagState::new(tag_service),
     );

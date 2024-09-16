@@ -6,7 +6,6 @@ pub mod bookmark;
 pub mod collection;
 pub mod feed;
 pub mod feed_entry;
-pub mod folder;
 pub mod profile;
 pub mod profile_bookmark;
 pub mod profile_bookmark_tag;

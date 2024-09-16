@@ -114,7 +114,7 @@ impl BackupRepository for BackupSqlRepository {
             profile_id: Uuid,
         ) -> BoxFuture<Result<(), DbErr>> {
             async move {
-                let create_folder = children.iter().any(|e| e.item.is_some());
+                let _create_folder = children.iter().any(|e| e.item.is_some());
 
                 for item in children {
                     if let Some(link) = item.href {
@@ -137,55 +137,55 @@ impl BackupRepository for BackupSqlRepository {
                             Err(e) => Err(e),
                         }?
                     } else if let Some(children) = item.item {
-                        let id = if create_folder {
-                            let model = match query::folder::select_by_title_and_parent(
-                                db,
-                                item.title.clone(),
-                                parent,
-                                profile_id,
-                            )
-                            .await?
-                            {
-                                Some(model) => model,
-                                None => {
-                                    query::folder::insert(
-                                        db,
-                                        Uuid::new_v4(),
-                                        item.title,
-                                        parent,
-                                        profile_id,
-                                    )
-                                    .await?
-                                }
-                            };
+                        // let id = if create_folder {
+                        //     let model = match query::folder::select_by_title_and_parent(
+                        //         db,
+                        //         item.title.clone(),
+                        //         parent,
+                        //         profile_id,
+                        //     )
+                        //     .await?
+                        //     {
+                        //         Some(model) => model,
+                        //         None => {
+                        //             query::folder::insert(
+                        //                 db,
+                        //                 Uuid::new_v4(),
+                        //                 item.title,
+                        //                 parent,
+                        //                 profile_id,
+                        //             )
+                        //             .await?
+                        //         }
+                        //     };
 
-                            model.id
-                        } else {
-                            let model = match query::collection::select_by_title_and_parent(
-                                db,
-                                item.title.clone(),
-                                parent,
-                                profile_id,
-                            )
-                            .await?
-                            {
-                                Some(model) => model,
-                                None => {
-                                    query::collection::insert(
-                                        db,
-                                        Uuid::new_v4(),
-                                        item.title,
-                                        parent,
-                                        profile_id,
-                                    )
-                                    .await?
-                                }
-                            };
+                        //     model.id
+                        // } else {
+                        //     let model = match query::collection::select_by_title_and_parent(
+                        //         db,
+                        //         item.title.clone(),
+                        //         parent,
+                        //         profile_id,
+                        //     )
+                        //     .await?
+                        //     {
+                        //         Some(model) => model,
+                        //         None => {
+                        //             query::collection::insert(
+                        //                 db,
+                        //                 Uuid::new_v4(),
+                        //                 item.title,
+                        //                 parent,
+                        //                 profile_id,
+                        //             )
+                        //             .await?
+                        //         }
+                        //     };
 
-                            model.id
-                        };
+                        //     model.id
+                        // };
 
-                        recurse(db, children, Some(id), profile_id).await?;
+                        recurse(db, children, None, profile_id).await?;
                     }
                 }
 

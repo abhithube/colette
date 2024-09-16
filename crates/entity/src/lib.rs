@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Collection, Feed, FeedEntry, Folder, Profile, Tag, User};
+use colette_core::{Bookmark, Collection, Feed, FeedEntry, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
@@ -88,25 +88,6 @@ impl From<PfeWithFe> for FeedEntry {
             thumbnail_url: value.fe.thumbnail_url,
             has_read: value.pfe.has_read,
             feed_id: value.pfe.profile_feed_id,
-        }
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct PartialFolder {
-    id: Uuid,
-    title: String,
-    parent_id: Option<Uuid>,
-    collection_count: i64,
-}
-
-impl From<PartialFolder> for Folder {
-    fn from(value: PartialFolder) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            parent_id: value.parent_id,
-            collection_count: Some(value.collection_count),
         }
     }
 }

@@ -9,7 +9,6 @@ use collection::CollectionState;
 pub use common::Session;
 use feed::FeedState;
 use feed_entry::FeedEntryState;
-use folder::FolderState;
 use http::{header, HeaderValue, Method};
 use profile::ProfileState;
 use tag::TagState;
@@ -21,8 +20,7 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
     auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi, collection::CollectionApi,
-    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, folder::FolderApi,
-    profile::ProfileApi, tag::TagApi,
+    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, profile::ProfileApi, tag::TagApi,
 };
 
 pub mod auth;
@@ -32,7 +30,6 @@ pub mod collection;
 mod common;
 pub mod feed;
 pub mod feed_entry;
-pub mod folder;
 pub mod profile;
 pub mod tag;
 
@@ -44,7 +41,6 @@ pub struct ApiState {
     collection_state: CollectionState,
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
-    folder_state: FolderState,
     profile_state: ProfileState,
     tag_state: TagState,
 }
@@ -58,7 +54,6 @@ impl ApiState {
         collection_state: CollectionState,
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
-        folder_state: FolderState,
         profile_state: ProfileState,
         tag_state: TagState,
     ) -> Self {
@@ -69,7 +64,6 @@ impl ApiState {
             collection_state,
             feed_state,
             feed_entry_state,
-            folder_state,
             profile_state,
             tag_state,
         }
@@ -117,8 +111,6 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_state(FeedEntryState::from_ref(self.api_state))
                     .nest("/feeds", FeedApi::router())
                     .with_state(FeedState::from_ref(self.api_state))
-                    .nest("/folders", FolderApi::router())
-                    .with_state(FolderState::from_ref(self.api_state))
                     .nest("/profiles", ProfileApi::router())
                     .with_state(ProfileState::from_ref(self.api_state))
                     .nest("/tags", TagApi::router())
