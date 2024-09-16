@@ -54,18 +54,18 @@ pub async fn select_by_id<Db: ConnectionTrait>(
         .await
 }
 
-pub async fn select_by_title_and_folder<Db: ConnectionTrait>(
+pub async fn select_by_title_and_parent<Db: ConnectionTrait>(
     db: &Db,
     title: String,
-    folder_id: Option<Uuid>,
+    parent_id: Option<Uuid>,
     profile_id: Uuid,
 ) -> Result<Option<collection::Model>, DbErr> {
     collection::Entity::find()
         .filter(collection::Column::ProfileId.eq(profile_id))
         .filter(collection::Column::Title.eq(title))
-        .filter(match folder_id {
-            Some(folder_id) => collection::Column::FolderId.eq(folder_id),
-            None => collection::Column::FolderId.is_null(),
+        .filter(match parent_id {
+            Some(parent_id) => collection::Column::ParentId.eq(parent_id),
+            None => collection::Column::ParentId.is_null(),
         })
         .one(db)
         .await
@@ -75,13 +75,13 @@ pub async fn insert<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
     title: String,
-    folder_id: Option<Uuid>,
+    parent_id: Option<Uuid>,
     profile_id: Uuid,
 ) -> Result<collection::Model, DbErr> {
     let model = collection::ActiveModel {
         id: Set(id),
         title: Set(title),
-        folder_id: Set(folder_id),
+        parent_id: Set(parent_id),
         profile_id: Set(profile_id),
         ..Default::default()
     };

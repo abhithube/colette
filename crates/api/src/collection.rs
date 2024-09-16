@@ -49,7 +49,7 @@ pub struct Collection {
     pub id: Uuid,
     pub title: String,
     #[schema(required)]
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -60,7 +60,7 @@ impl From<colette_core::Collection> for Collection {
         Self {
             id: value.id,
             title: value.title,
-            folder_id: value.folder_id,
+            parent_id: value.parent_id,
             bookmark_count: value.bookmark_count,
         }
     }
@@ -72,14 +72,14 @@ pub struct CollectionCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
     #[schema(required)]
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
 }
 
 impl From<CollectionCreate> for collection::CollectionCreate {
     fn from(value: CollectionCreate) -> Self {
         Self {
             title: value.title,
-            folder_id: value.folder_id,
+            parent_id: value.parent_id,
         }
     }
 }
@@ -94,14 +94,14 @@ pub struct CollectionUpdate {
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub folder_id: Option<Option<Uuid>>,
+    pub parent_id: Option<Option<Uuid>>,
 }
 
 impl From<CollectionUpdate> for collection::CollectionUpdate {
     fn from(value: CollectionUpdate) -> Self {
         Self {
             title: value.title,
-            folder_id: value.folder_id,
+            parent_id: value.parent_id,
         }
     }
 }

@@ -198,12 +198,12 @@ impl BackupService {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut folder_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
+        let mut collection_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
         let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
         let mut root_folders: Vec<Uuid> = vec![];
 
         for folder in folders {
-            folder_map.insert(
+            collection_map.insert(
                 folder.id,
                 ItemWrapper {
                     parent_id: folder.parent_id,
@@ -222,10 +222,10 @@ impl BackupService {
             }
         }
         for collection in collections {
-            folder_map.insert(
+            collection_map.insert(
                 collection.id,
                 ItemWrapper {
-                    parent_id: collection.folder_id,
+                    parent_id: collection.parent_id,
                     item: Item {
                         title: collection.title,
                         ..Default::default()
@@ -233,7 +233,7 @@ impl BackupService {
                 },
             );
 
-            match collection.folder_id {
+            match collection.parent_id {
                 Some(folder_id) => {
                     children_map
                         .entry(folder_id)
@@ -254,7 +254,7 @@ impl BackupService {
 
             match bookmark.collection_id {
                 Some(collection_id) => {
-                    if let Some(parent) = folder_map.get_mut(&collection_id) {
+                    if let Some(parent) = collection_map.get_mut(&collection_id) {
                         parent.item.item.get_or_insert_with(Vec::new).push(item);
                     }
                 }
@@ -282,12 +282,12 @@ impl BackupService {
         }
 
         for &root_id in &root_folders {
-            build_hierarchy(&mut folder_map, &children_map, root_id);
+            build_hierarchy(&mut collection_map, &children_map, root_id);
         }
 
         let mut items = root_folders
             .into_iter()
-            .filter_map(|id| folder_map.remove(&id).map(|e| e.item))
+            .filter_map(|id| collection_map.remove(&id).map(|e| e.item))
             .collect::<Vec<_>>();
         items.append(&mut root_bookmarks);
 

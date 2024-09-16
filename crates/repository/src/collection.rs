@@ -41,7 +41,7 @@ impl Creatable for CollectionSqlRepository {
             &self.db,
             Uuid::new_v4(),
             data.title.clone(),
-            data.folder_id,
+            data.parent_id,
             data.profile_id,
         )
         .await
@@ -53,7 +53,7 @@ impl Creatable for CollectionSqlRepository {
         Ok(Collection {
             id: model.id,
             title: model.title,
-            folder_id: model.folder_id,
+            parent_id: model.parent_id,
             bookmark_count: Some(0),
         })
     }
@@ -81,8 +81,8 @@ impl Updatable for CollectionSqlRepository {
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title);
                     }
-                    if let Some(folder_id) = data.folder_id {
-                        active_model.folder_id.set_if_not_equals(folder_id);
+                    if let Some(parent_id) = data.parent_id {
+                        active_model.parent_id.set_if_not_equals(parent_id);
                     }
 
                     if active_model.is_changed() {

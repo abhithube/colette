@@ -10,20 +10,20 @@ use crate::common::{
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
     pub bookmark_count: Option<i64>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CollectionCreate {
     pub title: NonEmptyString,
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct CollectionUpdate {
     pub title: Option<NonEmptyString>,
-    pub folder_id: Option<Option<Uuid>>,
+    pub parent_id: Option<Option<Uuid>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
@@ -61,7 +61,7 @@ impl CollectionService {
         self.repository
             .create(CollectionCreateData {
                 title: data.title.into(),
-                folder_id: data.folder_id,
+                parent_id: data.parent_id,
                 profile_id,
             })
             .await
@@ -103,21 +103,21 @@ pub trait CollectionRepository:
 #[derive(Clone, Debug, Default)]
 pub struct CollectionCreateData {
     pub title: String,
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
-    pub folder_id: Option<Option<Uuid>>,
+    pub parent_id: Option<Option<Uuid>>,
 }
 
 impl From<CollectionUpdate> for CollectionUpdateData {
     fn from(value: CollectionUpdate) -> Self {
         Self {
             title: value.title.map(String::from),
-            folder_id: value.folder_id,
+            parent_id: value.parent_id,
         }
     }
 }

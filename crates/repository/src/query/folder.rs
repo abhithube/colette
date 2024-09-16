@@ -1,9 +1,8 @@
 use colette_core::folder::Cursor;
-use colette_entity::{collection, folder, PartialFolder};
+use colette_entity::{folder, PartialFolder};
 use sea_orm::{
-    sea_query::{Alias, Expr},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, JoinType,
-    QueryFilter, QuerySelect, RelationTrait, Set,
+    ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter,
+    QuerySelect, Set,
 };
 use uuid::Uuid;
 
@@ -14,17 +13,7 @@ pub async fn select<Db: ConnectionTrait>(
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<PartialFolder>, DbErr> {
-    let query = folder::Entity::find()
-        .expr_as(
-            Expr::col((Alias::new("c"), collection::Column::FolderId)).count(),
-            "collection_count",
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            folder::Relation::Collection.def(),
-            Alias::new("c"),
-        )
-        .group_by(folder::Column::Id);
+    let query = folder::Entity::find().group_by(folder::Column::Id);
 
     let mut conditions = Condition::all().add(folder::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {

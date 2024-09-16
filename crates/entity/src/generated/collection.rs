@@ -9,7 +9,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_type = "Text")]
     pub title: String,
-    pub folder_id: Option<Uuid>,
+    pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -18,13 +18,13 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::folder::Entity",
-        from = "Column::FolderId",
-        to = "super::folder::Column::Id",
+        belongs_to = "Entity",
+        from = "Column::ParentId",
+        to = "Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    Folder,
+    SelfRef,
     #[sea_orm(
         belongs_to = "super::profile::Entity",
         from = "Column::ProfileId",
@@ -35,12 +35,6 @@ pub enum Relation {
     Profile,
     #[sea_orm(has_many = "super::profile_bookmark::Entity")]
     ProfileBookmark,
-}
-
-impl Related<super::folder::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Folder.def()
-    }
 }
 
 impl Related<super::profile::Entity> for Entity {

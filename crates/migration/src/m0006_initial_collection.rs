@@ -6,9 +6,7 @@ use sea_orm_migration::{prelude::*, schema::*};
 use crate::postgres;
 #[cfg(feature = "sqlite")]
 use crate::sqlite;
-use crate::{
-    m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark, m0004_initial_folder::Folder,
-};
+use crate::{m0001_initial_user::Profile, m0003_initial_bookmark::Bookmark};
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -23,11 +21,11 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(Collection::Id).primary_key())
                     .col(text(Collection::Title))
-                    .col(uuid_null(Collection::FolderId))
+                    .col(uuid_null(Collection::ParentId))
                     .foreign_key(
                         ForeignKey::create()
-                            .from(Collection::Table, Collection::FolderId)
-                            .to(Folder::Table, Folder::Id)
+                            .from(Collection::Table, Collection::ParentId)
+                            .to(Collection::Table, Collection::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
                     .col(uuid(Collection::ProfileId))
@@ -49,21 +47,21 @@ impl MigrationTrait for Migration {
             )
             .await?;
 
-        let collection_profile_id_folder_id_title_idx = format!(
-            "{collection}_{profile_id}_{folder_id}_{title}_idx",
+        let collection_profile_id_parent_id_title_idx = format!(
+            "{collection}_{profile_id}_{parent_id}_{title}_idx",
             collection = Collection::Table.to_string(),
             profile_id = Collection::ProfileId.to_string(),
-            folder_id = Collection::FolderId.to_string(),
+            parent_id = Collection::ParentId.to_string(),
             title = Collection::Title.to_string()
         );
         manager
             .create_index(
                 Index::create()
-                    .name(collection_profile_id_folder_id_title_idx)
+                    .name(collection_profile_id_parent_id_title_idx)
                     .table(Collection::Table)
                     .if_not_exists()
                     .col(Collection::ProfileId)
-                    .col(Collection::FolderId)
+                    .col(Collection::ParentId)
                     .col(Collection::Title)
                     .unique()
                     .to_owned(),
@@ -180,7 +178,7 @@ pub enum Collection {
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
-    FolderId,
+    ParentId,
     ProfileId,
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,

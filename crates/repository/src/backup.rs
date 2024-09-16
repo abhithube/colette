@@ -161,7 +161,7 @@ impl BackupRepository for BackupSqlRepository {
 
                             model.id
                         } else {
-                            let model = match query::collection::select_by_title_and_folder(
+                            let model = match query::collection::select_by_title_and_parent(
                                 db,
                                 item.title.clone(),
                                 parent,

@@ -33,7 +33,7 @@ impl From<PbWithBookmarkAndTags> for Bookmark {
 pub struct PartialCollection {
     id: Uuid,
     title: String,
-    folder_id: Option<Uuid>,
+    parent_id: Option<Uuid>,
     bookmark_count: i64,
 }
 
@@ -42,7 +42,7 @@ impl From<PartialCollection> for Collection {
         Self {
             id: value.id,
             title: value.title,
-            folder_id: value.folder_id,
+            parent_id: value.parent_id,
             bookmark_count: Some(value.bookmark_count),
         }
     }
