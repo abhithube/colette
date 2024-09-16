@@ -1,6 +1,8 @@
 pub use reader::from_reader;
+pub use writer::to_writer;
 
 mod reader;
+mod writer;
 
 #[derive(Clone, Debug)]
 pub struct Netscape {
