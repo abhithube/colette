@@ -124,9 +124,11 @@ impl BackupService {
             match feed.folder_id {
                 Some(folder_id) => {
                     if let Some(parent) = folder_map.get_mut(&folder_id) {
-                        if let Some(children) = parent.outline.outline.as_mut() {
-                            children.push(outline);
-                        }
+                        parent
+                            .outline
+                            .outline
+                            .get_or_insert_with(Vec::new)
+                            .push(outline);
                     }
                 }
                 None => root_feeds.push(outline),
@@ -268,9 +270,7 @@ impl BackupService {
             match bookmark.collection_id {
                 Some(collection_id) => {
                     if let Some(parent) = folder_map.get_mut(&collection_id) {
-                        if let Some(children) = parent.item.item.as_mut() {
-                            children.push(item);
-                        }
+                        parent.item.item.get_or_insert_with(Vec::new).push(item);
                     }
                 }
                 None => root_bookmarks.push(item),
