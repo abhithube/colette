@@ -35,8 +35,6 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Profile,
-    #[sea_orm(has_many = "super::profile_feed::Entity")]
-    ProfileFeed,
 }
 
 impl Related<super::collection::Entity> for Entity {
@@ -48,12 +46,6 @@ impl Related<super::collection::Entity> for Entity {
 impl Related<super::profile::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Profile.def()
-    }
-}
-
-impl Related<super::profile_feed::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::ProfileFeed.def()
     }
 }
 

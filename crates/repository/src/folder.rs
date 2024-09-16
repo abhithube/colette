@@ -1,8 +1,6 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
-    folder::{
-        Cursor, Error, FolderCreateData, FolderFindManyFilters, FolderRepository, FolderUpdateData,
-    },
+    folder::{Cursor, Error, FolderCreateData, FolderRepository, FolderUpdateData},
     Folder,
 };
 use sea_orm::{
@@ -57,7 +55,6 @@ impl Creatable for FolderSqlRepository {
             title: model.title,
             parent_id: model.parent_id,
             collection_count: Some(0),
-            feed_count: Some(0),
         })
     }
 }
@@ -128,9 +125,8 @@ impl FolderRepository for FolderSqlRepository {
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<Cursor>,
-        filters: Option<FolderFindManyFilters>,
     ) -> Result<Vec<Folder>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
+        find(&self.db, None, profile_id, limit, cursor).await
     }
 }
 
@@ -140,9 +136,8 @@ async fn find<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
-    filters: Option<FolderFindManyFilters>,
 ) -> Result<Vec<Folder>, Error> {
-    let folders = query::folder::select(db, id, profile_id, limit, cursor, filters)
+    let folders = query::folder::select(db, id, profile_id, limit, cursor)
         .await
         .map(|e| e.into_iter().map(Folder::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
@@ -151,7 +146,7 @@ async fn find<Db: ConnectionTrait>(
 }
 
 async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Folder, Error> {
-    let mut folders = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+    let mut folders = find(db, Some(params.id), params.profile_id, None, None).await?;
     if folders.is_empty() {
         return Err(Error::NotFound(params.id));
     }

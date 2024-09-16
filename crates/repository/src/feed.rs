@@ -66,7 +66,6 @@ impl Creatable for FeedSqlRepository {
                         Uuid::new_v4(),
                         data.profile_id,
                         feed_id,
-                        data.folder_id.flatten(),
                     )
                     .await
                     {
@@ -145,9 +144,6 @@ impl Updatable for FeedSqlRepository {
                     let mut active_model = pf_model.into_active_model();
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title)
-                    }
-                    if let Some(folder_id) = data.folder_id {
-                        active_model.folder_id.set_if_not_equals(folder_id)
                     }
 
                     if active_model.is_changed() {

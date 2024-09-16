@@ -86,7 +86,6 @@ impl RefreshService {
                 .create(FeedCreateData {
                     url: url_raw.clone(),
                     feed: Some(feed.clone()),
-                    folder_id: None,
                     profile_id,
                 })
                 .await

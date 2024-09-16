@@ -1,5 +1,5 @@
-use colette_core::folder::{Cursor, FolderFindManyFilters, FolderType};
-use colette_entity::{collection, folder, profile_feed, PartialFolder};
+use colette_core::folder::Cursor;
+use colette_entity::{collection, folder, PartialFolder};
 use sea_orm::{
     sea_query::{Alias, Expr},
     ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, JoinType,
@@ -13,43 +13,22 @@ pub async fn select<Db: ConnectionTrait>(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
-    filters: Option<FolderFindManyFilters>,
 ) -> Result<Vec<PartialFolder>, DbErr> {
-    let mut query = folder::Entity::find()
+    let query = folder::Entity::find()
         .expr_as(
             Expr::col((Alias::new("c"), collection::Column::FolderId)).count(),
             "collection_count",
-        )
-        .expr_as(
-            Expr::col((Alias::new("pf"), profile_feed::Column::FolderId)).count(),
-            "feed_count",
         )
         .join_as(
             JoinType::LeftJoin,
             folder::Relation::Collection.def(),
             Alias::new("c"),
         )
-        .join_as(
-            JoinType::LeftJoin,
-            folder::Relation::ProfileFeed.def(),
-            Alias::new("pf"),
-        )
         .group_by(folder::Column::Id);
 
     let mut conditions = Condition::all().add(folder::Column::ProfileId.eq(profile_id));
     if let Some(id) = id {
         conditions = conditions.add(folder::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        query = match filters.folder_type {
-            FolderType::Collections => {
-                query.join(JoinType::InnerJoin, folder::Relation::Collection.def())
-            }
-            FolderType::Feeds => {
-                query.join(JoinType::InnerJoin, folder::Relation::ProfileFeed.def())
-            }
-            _ => query,
-        };
     }
 
     let mut query = query.filter(conditions).cursor_by(folder::Column::Title);

@@ -7,10 +7,8 @@ use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
 use crate::{
-    bookmark::BookmarkRepository,
-    collection::CollectionRepository,
-    feed::FeedRepository,
-    folder::{FolderFindManyFilters, FolderRepository, FolderType},
+    bookmark::BookmarkRepository, collection::CollectionRepository, feed::FeedRepository,
+    folder::FolderRepository,
 };
 
 pub struct BackupService {
@@ -70,14 +68,7 @@ impl BackupService {
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
             .folder_repository
-            .list(
-                profile_id,
-                None,
-                None,
-                Some(FolderFindManyFilters {
-                    folder_type: FolderType::Feeds,
-                }),
-            )
+            .list(profile_id, None, None)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         let feeds = self
@@ -121,18 +112,19 @@ impl BackupService {
                 ..Default::default()
             };
 
-            match feed.folder_id {
-                Some(folder_id) => {
-                    if let Some(parent) = folder_map.get_mut(&folder_id) {
-                        parent
-                            .outline
-                            .outline
-                            .get_or_insert_with(Vec::new)
-                            .push(outline);
-                    }
-                }
-                None => root_feeds.push(outline),
-            }
+            root_feeds.push(outline);
+            // match feed.folder_id {
+            //     Some(folder_id) => {
+            //         if let Some(parent) = folder_map.get_mut(&folder_id) {
+            //             parent
+            //                 .outline
+            //                 .outline
+            //                 .get_or_insert_with(Vec::new)
+            //                 .push(outline);
+            //         }
+            //     }
+            //     None => root_feeds.push(outline),
+            // }
         }
 
         fn build_hierarchy(
@@ -192,14 +184,7 @@ impl BackupService {
     pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
             .folder_repository
-            .list(
-                profile_id,
-                None,
-                None,
-                Some(FolderFindManyFilters {
-                    folder_type: FolderType::Collections,
-                }),
-            )
+            .list(profile_id, None, None)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         let collections = self

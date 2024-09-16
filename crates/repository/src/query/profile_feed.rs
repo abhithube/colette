@@ -101,13 +101,11 @@ pub async fn insert<Db: ConnectionTrait>(
     id: Uuid,
     profile_id: Uuid,
     feed_id: i32,
-    folder_id: Option<Uuid>,
 ) -> Result<InsertResult<profile_feed::ActiveModel>, DbErr> {
     let model = profile_feed::ActiveModel {
         id: Set(id),
         profile_id: Set(profile_id),
         feed_id: Set(feed_id),
-        folder_id: Set(folder_id),
         ..Default::default()
     };
 

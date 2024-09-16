@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     response::{IntoResponse, Response},
     Json,
 };
@@ -49,9 +49,6 @@ pub struct Folder {
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     collection_count: Option<i64>,
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    feed_count: Option<i64>,
 }
 
 impl From<colette_core::Folder> for Folder {
@@ -61,7 +58,6 @@ impl From<colette_core::Folder> for Folder {
             title: value.title,
             parent_id: value.parent_id,
             collection_count: value.collection_count,
-            feed_count: value.feed_count,
         }
     }
 }
@@ -105,46 +101,9 @@ impl From<FolderUpdate> for folder::FolderUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub struct FolderListQuery {
-    #[param(inline)]
-    #[serde(default)]
-    pub folder_type: FolderType,
-}
-
-impl From<FolderListQuery> for folder::FolderListQuery {
-    fn from(value: FolderListQuery) -> Self {
-        Self {
-            folder_type: value.folder_type.into(),
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum FolderType {
-    #[default]
-    All,
-    Collections,
-    Feeds,
-}
-
-impl From<FolderType> for folder::FolderType {
-    fn from(value: FolderType) -> Self {
-        match value {
-            FolderType::All => Self::All,
-            FolderType::Collections => Self::Collections,
-            FolderType::Feeds => Self::Feeds,
-        }
-    }
-}
-
 #[utoipa::path(
     get,
     path = "",
-    params(FolderListQuery),
     responses(ListResponse),
     operation_id = "listFolders",
     description = "List the active profile folders",
@@ -153,10 +112,9 @@ impl From<FolderType> for folder::FolderType {
 #[axum::debug_handler]
 pub async fn list_folders(
     State(service): State<Arc<FolderService>>,
-    Query(query): Query<FolderListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.list_folders(query.into(), session.profile_id).await {
+    match service.list_folders(session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         _ => Err(Error::Unknown),
     }

@@ -64,7 +64,6 @@ impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
             title: value.pf.title,
             original_title: value.feed.title,
             url: value.feed.url,
-            folder_id: value.pf.folder_id,
             tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
             unread_count: Some(value.unread_count),
         }
@@ -99,7 +98,6 @@ pub struct PartialFolder {
     title: String,
     parent_id: Option<Uuid>,
     collection_count: i64,
-    feed_count: i64,
 }
 
 impl From<PartialFolder> for Folder {
@@ -109,7 +107,6 @@ impl From<PartialFolder> for Folder {
             title: value.title,
             parent_id: value.parent_id,
             collection_count: Some(value.collection_count),
-            feed_count: Some(value.feed_count),
         }
     }
 }

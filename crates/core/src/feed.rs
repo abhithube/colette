@@ -19,7 +19,6 @@ pub struct Feed {
     pub title: Option<String>,
     pub original_title: String,
     pub url: Option<String>,
-    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }
@@ -27,13 +26,11 @@ pub struct Feed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FeedCreate {
     pub url: Url,
-    pub folder_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<TagCreate>>,
 }
 
@@ -94,14 +91,12 @@ impl FeedService {
 
     pub async fn create_feed(&self, mut data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
         let url = data.url.to_string();
-        let folder_id = Some(data.folder_id);
 
         let result = self
             .repository
             .create(FeedCreateData {
                 url: url.clone(),
                 feed: None,
-                folder_id,
                 profile_id,
             })
             .await;
@@ -115,7 +110,6 @@ impl FeedService {
                     .create(FeedCreateData {
                         url,
                         feed: Some(scraped),
-                        folder_id,
                         profile_id,
                     })
                     .await
@@ -203,7 +197,6 @@ impl From<FeedListQuery> for FeedFindManyFilters {
 pub struct FeedCreateData {
     pub url: String,
     pub feed: Option<ProcessedFeed>,
-    pub folder_id: Option<Option<Uuid>>,
     pub profile_id: Uuid,
 }
 
@@ -216,7 +209,6 @@ pub struct FeedCacheData {
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -224,7 +216,6 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(|e| e.map(String::from)),
-            folder_id: value.folder_id,
             tags: value
                 .tags
                 .map(|e| e.into_iter().map(|e| e.title.into()).collect()),

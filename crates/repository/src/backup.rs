@@ -23,7 +23,7 @@ impl BackupRepository for BackupSqlRepository {
         fn recurse<Db: ConnectionTrait>(
             db: &Db,
             children: Vec<Outline>,
-            parent: Option<Uuid>,
+            _parent: Option<Uuid>,
             profile_id: Uuid,
         ) -> BoxFuture<Result<(), DbErr>> {
             async move {
@@ -38,7 +38,6 @@ impl BackupRepository for BackupSqlRepository {
                             Uuid::new_v4(),
                             profile_id,
                             inserted.last_insert_id,
-                            parent,
                         )
                         .await
                         {
@@ -46,28 +45,7 @@ impl BackupRepository for BackupSqlRepository {
                             Err(e) => Err(e),
                         }?
                     } else if let Some(children) = outline.outline {
-                        let model = match query::folder::select_by_title_and_parent(
-                            db,
-                            outline.text.clone(),
-                            parent,
-                            profile_id,
-                        )
-                        .await?
-                        {
-                            Some(model) => model,
-                            None => {
-                                query::folder::insert(
-                                    db,
-                                    Uuid::new_v4(),
-                                    outline.text,
-                                    parent,
-                                    profile_id,
-                                )
-                                .await?
-                            }
-                        };
-
-                        recurse(db, children, Some(model.id), profile_id).await?;
+                        recurse(db, children, None, profile_id).await?;
                     }
                 }
 

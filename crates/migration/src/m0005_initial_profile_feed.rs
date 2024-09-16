@@ -9,7 +9,6 @@ use crate::sqlite;
 use crate::{
     m0001_initial_user::Profile,
     m0002_initial_feed::{Feed, FeedEntry},
-    m0004_initial_folder::Folder,
 };
 
 #[derive(DeriveMigrationName)]
@@ -25,13 +24,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(ProfileFeed::Id).primary_key())
                     .col(text_null(ProfileFeed::Title))
-                    .col(uuid_null(ProfileFeed::FolderId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(ProfileFeed::Table, ProfileFeed::FolderId)
-                            .to(Folder::Table, Folder::Id)
-                            .on_delete(ForeignKeyAction::Cascade),
-                    )
                     .col(uuid(ProfileFeed::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -186,7 +178,6 @@ pub enum ProfileFeed {
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
-    FolderId,
     ProfileId,
     FeedId,
     #[cfg_attr(feature = "sqlite", strum(disabled))]

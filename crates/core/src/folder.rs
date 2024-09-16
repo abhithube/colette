@@ -12,7 +12,6 @@ pub struct Folder {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub collection_count: Option<i64>,
-    pub feed_count: Option<i64>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -25,19 +24,6 @@ pub struct FolderCreate {
 pub struct FolderUpdate {
     pub title: Option<NonEmptyString>,
     pub parent_id: Option<Option<Uuid>>,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct FolderListQuery {
-    pub folder_type: FolderType,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub enum FolderType {
-    #[default]
-    All,
-    Collections,
-    Feeds,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
@@ -54,15 +40,8 @@ impl FolderService {
         Self { repository }
     }
 
-    pub async fn list_folders(
-        &self,
-        query: FolderListQuery,
-        profile_id: Uuid,
-    ) -> Result<Paginated<Folder>, Error> {
-        let folders = self
-            .repository
-            .list(profile_id, None, None, Some(query.into()))
-            .await?;
+    pub async fn list_folders(&self, profile_id: Uuid) -> Result<Paginated<Folder>, Error> {
+        let folders = self.repository.list(profile_id, None, None).await?;
 
         Ok(Paginated {
             data: folders,
@@ -118,21 +97,7 @@ pub trait FolderRepository:
         profile_id: Uuid,
         limit: Option<u64>,
         cursor: Option<Cursor>,
-        filters: Option<FolderFindManyFilters>,
     ) -> Result<Vec<Folder>, Error>;
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FolderFindManyFilters {
-    pub folder_type: FolderType,
-}
-
-impl From<FolderListQuery> for FolderFindManyFilters {
-    fn from(value: FolderListQuery) -> Self {
-        Self {
-            folder_type: value.folder_type,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default)]
