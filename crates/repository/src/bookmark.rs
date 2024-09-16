@@ -140,9 +140,13 @@ impl Updatable for BookmarkSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                         let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
-                        query::profile_bookmark_tag::delete_many_not_in(txn, tag_ids.clone())
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        query::profile_bookmark_tag::delete_many_not_in(
+                            txn,
+                            pb_model.id,
+                            tag_ids.clone(),
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
 
                         let insert_many = tag_ids
                             .into_iter()

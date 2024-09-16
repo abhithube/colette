@@ -11,10 +11,10 @@ pub struct InsertMany {
 
 pub async fn insert_many<Db: ConnectionTrait>(
     db: &Db,
-    pbt: Vec<InsertMany>,
+    pft: Vec<InsertMany>,
     profile_id: Uuid,
 ) -> Result<(), DbErr> {
-    let models = pbt
+    let models = pft
         .into_iter()
         .map(|e| profile_feed_tag::ActiveModel {
             profile_feed_id: Set(e.profile_feed_id),
@@ -40,8 +40,13 @@ pub async fn insert_many<Db: ConnectionTrait>(
     Ok(())
 }
 
-pub async fn delete_many_not_in<Db: ConnectionTrait>(db: &Db, ids: Vec<Uuid>) -> Result<(), DbErr> {
+pub async fn delete_many_not_in<Db: ConnectionTrait>(
+    db: &Db,
+    profile_feed_id: Uuid,
+    ids: Vec<Uuid>,
+) -> Result<(), DbErr> {
     profile_feed_tag::Entity::delete_many()
+        .filter(profile_feed_tag::Column::ProfileFeedId.eq(profile_feed_id))
         .filter(profile_feed_tag::Column::TagId.is_not_in(ids))
         .exec(db)
         .await?;
