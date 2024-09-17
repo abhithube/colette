@@ -40,6 +40,20 @@ pub async fn insert_many<Db: ConnectionTrait>(
     Ok(())
 }
 
+pub async fn delete_many_in<Db: ConnectionTrait>(
+    db: &Db,
+    profile_bookmark_id: Uuid,
+    ids: Vec<Uuid>,
+) -> Result<(), DbErr> {
+    profile_bookmark_tag::Entity::delete_many()
+        .filter(profile_bookmark_tag::Column::ProfileBookmarkId.eq(profile_bookmark_id))
+        .filter(profile_bookmark_tag::Column::TagId.is_in(ids))
+        .exec(db)
+        .await?;
+
+    Ok(())
+}
+
 pub async fn delete_many_not_in<Db: ConnectionTrait>(
     db: &Db,
     profile_bookmark_id: Uuid,

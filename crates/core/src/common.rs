@@ -48,6 +48,19 @@ impl IdParams {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum TagsLinkAction {
+    Add,
+    Set,
+    Remove,
+}
+
+#[derive(Clone, Debug)]
+pub struct TagsLink {
+    pub tags: Vec<String>,
+    pub action: TagsLinkAction,
+}
+
 #[async_trait::async_trait]
 pub trait Findable: Send + Sync {
     type Params;

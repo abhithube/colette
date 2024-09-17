@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::anyhow;
 use colette_core::{
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, TagsLink, TagsLinkAction, Updatable},
     feed::{
         Cursor, Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository,
         FeedUpdateData, ProcessedFeed,
@@ -111,9 +111,17 @@ impl Creatable for FeedSqlRepository {
                     .map_err(|e| Error::Unknown(e.into()))?;
 
                     if let Some(tags) = data.tags {
-                        link_tags(txn, pf_id, tags, data.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        link_tags(
+                            txn,
+                            pf_id,
+                            TagsLink {
+                                tags,
+                                action: TagsLinkAction::Set,
+                            },
+                            data.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     find_by_id(txn, IdParams::new(pf_id, data.profile_id)).await
@@ -160,9 +168,17 @@ impl Updatable for FeedSqlRepository {
                     }
 
                     if let Some(tags) = data.tags {
-                        link_tags(txn, profile_feed_id, tags, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        link_tags(
+                            txn,
+                            profile_feed_id,
+                            TagsLink {
+                                tags,
+                                action: TagsLinkAction::Set,
+                            },
+                            params.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     find_by_id(txn, params).await
@@ -345,12 +361,13 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
 async fn link_tags<Db: ConnectionTrait>(
     db: &Db,
     profile_feed_id: Uuid,
-    tags: Vec<String>,
+    data: TagsLink,
     profile_id: Uuid,
 ) -> Result<(), DbErr> {
     query::tag::insert_many(
         db,
-        tags.iter()
+        data.tags
+            .iter()
             .map(|e| query::tag::InsertMany {
                 id: Uuid::new_v4(),
                 title: e.to_owned(),
@@ -360,10 +377,16 @@ async fn link_tags<Db: ConnectionTrait>(
     )
     .await?;
 
-    let tag_models = query::tag::select_by_tags(db, &tags).await?;
+    let tag_models = query::tag::select_by_tags(db, &data.tags).await?;
     let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
-    query::profile_feed_tag::delete_many_not_in(db, profile_feed_id, tag_ids.clone()).await?;
+    if let TagsLinkAction::Remove = data.action {
+        return query::profile_feed_tag::delete_many_in(db, profile_feed_id, tag_ids.clone()).await;
+    }
+
+    if let TagsLinkAction::Set = data.action {
+        query::profile_feed_tag::delete_many_not_in(db, profile_feed_id, tag_ids.clone()).await?;
+    }
 
     let insert_many = tag_ids
         .into_iter()

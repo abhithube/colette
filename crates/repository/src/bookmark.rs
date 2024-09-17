@@ -5,7 +5,7 @@ use colette_core::{
         BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
         Cursor, Error,
     },
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, TagsLink, TagsLinkAction, Updatable},
     Bookmark,
 };
 use colette_entity::PbWithBookmarkAndTags;
@@ -93,9 +93,17 @@ impl Creatable for BookmarkSqlRepository {
                     }?;
 
                     if let Some(tags) = data.tags {
-                        link_tags(txn, pb_id, tags, data.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        link_tags(
+                            txn,
+                            pb_id,
+                            TagsLink {
+                                tags,
+                                action: TagsLinkAction::Set,
+                            },
+                            data.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     find_by_id(txn, IdParams::new(pb_id, data.profile_id)).await
@@ -128,9 +136,17 @@ impl Updatable for BookmarkSqlRepository {
                     };
 
                     if let Some(tags) = data.tags {
-                        link_tags(txn, pb_model.id, tags, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
+                        link_tags(
+                            txn,
+                            pb_model.id,
+                            TagsLink {
+                                tags,
+                                action: TagsLinkAction::Set,
+                            },
+                            params.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
                     let old_sort_index = pb_model.sort_index;
@@ -270,12 +286,13 @@ pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Resul
 async fn link_tags<Db: ConnectionTrait>(
     db: &Db,
     profile_bookmark_id: Uuid,
-    tags: Vec<String>,
+    data: TagsLink,
     profile_id: Uuid,
 ) -> Result<(), DbErr> {
     query::tag::insert_many(
         db,
-        tags.iter()
+        data.tags
+            .iter()
             .map(|e| query::tag::InsertMany {
                 id: Uuid::new_v4(),
                 title: e.to_owned(),
@@ -285,11 +302,22 @@ async fn link_tags<Db: ConnectionTrait>(
     )
     .await?;
 
-    let tag_models = query::tag::select_by_tags(db, &tags).await?;
+    let tag_models = query::tag::select_by_tags(db, &data.tags).await?;
     let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
-    query::profile_bookmark_tag::delete_many_not_in(db, profile_bookmark_id, tag_ids.clone())
-        .await?;
+    if let TagsLinkAction::Remove = data.action {
+        return query::profile_bookmark_tag::delete_many_in(
+            db,
+            profile_bookmark_id,
+            tag_ids.clone(),
+        )
+        .await;
+    }
+
+    if let TagsLinkAction::Set = data.action {
+        query::profile_bookmark_tag::delete_many_not_in(db, profile_bookmark_id, tag_ids.clone())
+            .await?;
+    }
 
     let insert_many = tag_ids
         .into_iter()
