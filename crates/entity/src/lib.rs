@@ -24,7 +24,11 @@ impl From<PbWithBookmarkAndTags> for Bookmark {
             author: value.bookmark.author,
             sort_index: value.pb.sort_index as u32,
             collection_id: value.pb.collection_id,
-            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
+            tags: if value.tags.is_empty() {
+                None
+            } else {
+                Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>())
+            },
         }
     }
 }
@@ -64,7 +68,11 @@ impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
             title: value.pf.title,
             original_title: value.feed.title,
             url: value.feed.url,
-            tags: Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>()),
+            tags: if value.tags.is_empty() {
+                None
+            } else {
+                Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>())
+            },
             unread_count: Some(value.unread_count),
         }
     }
