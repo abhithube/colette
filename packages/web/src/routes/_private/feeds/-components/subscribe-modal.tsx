@@ -99,14 +99,8 @@ export function SubscribeModal({ close }: Props) {
               </Field.Root>
             )}
           </TField>
-          <TField
-            name="pinned"
-            validatorAdapter={zodValidator()}
-            validators={{
-              onBlur: z.boolean(),
-            }}
-          >
-            {({ handleChange, handleBlur }) => (
+          <TField name="pinned">
+            {({ handleChange }) => (
               <Fieldset.Root paddingBlock={0} borderTop="none">
                 <Fieldset.Legend>Pinned</Fieldset.Legend>
                 <Fieldset.HelperText>
@@ -115,7 +109,6 @@ export function SubscribeModal({ close }: Props) {
                 <Field.Root>
                   <Switch
                     onCheckedChange={(details) => handleChange(details.checked)}
-                    onBlur={handleBlur}
                   />
                 </Field.Root>
               </Fieldset.Root>
