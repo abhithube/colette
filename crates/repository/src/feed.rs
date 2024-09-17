@@ -150,7 +150,10 @@ impl Updatable for FeedSqlRepository {
 
                     let mut active_model = pf_model.into_active_model();
                     if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title)
+                        active_model.title.set_if_not_equals(title);
+                    }
+                    if let Some(pinned) = data.pinned {
+                        active_model.pinned.set_if_not_equals(pinned);
                     }
 
                     if active_model.is_changed() {
