@@ -1,4 +1,4 @@
-import z from "zod";
+import { z } from "zod";
 
 export type BaseError = z.infer<typeof BaseError>;
 export const BaseError = z.object({
@@ -26,10 +26,17 @@ export const Bookmark = z.object({
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
+export type TagsLink = z.infer<typeof TagsLink>;
+export const TagsLink = z.object({
+  data: z.array(z.string()),
+  action: z.union([z.literal("add"), z.literal("set"), z.literal("remove")]),
+});
+
 export type BookmarkCreate = z.infer<typeof BookmarkCreate>;
 export const BookmarkCreate = z.object({
   url: z.string(),
   collectionId: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  tags: z.union([TagsLink, z.undefined()]).optional(),
 });
 
 export type BookmarkList = z.infer<typeof BookmarkList>;
@@ -38,30 +45,25 @@ export const BookmarkList = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type TagCreate = z.infer<typeof TagCreate>;
-export const TagCreate = z.object({
-  title: z.string(),
-});
-
 export type BookmarkUpdate = z.infer<typeof BookmarkUpdate>;
 export const BookmarkUpdate = z.object({
   sortIndex: z.number().optional(),
   collectionId: z.union([z.string(), z.null()]).optional(),
-  tags: z.array(TagCreate).optional(),
+  tags: TagsLink.optional(),
 });
 
 export type Collection = z.infer<typeof Collection>;
 export const Collection = z.object({
   id: z.string(),
   title: z.string(),
-  folderId: z.union([z.string(), z.null()]),
+  parentId: z.union([z.string(), z.null()]),
   bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
 });
 
 export type CollectionCreate = z.infer<typeof CollectionCreate>;
 export const CollectionCreate = z.object({
   title: z.string(),
-  folderId: z.union([z.string(), z.null()]),
+  parentId: z.union([z.string(), z.null()]),
 });
 
 export type CollectionList = z.infer<typeof CollectionList>;
@@ -73,7 +75,7 @@ export const CollectionList = z.object({
 export type CollectionUpdate = z.infer<typeof CollectionUpdate>;
 export const CollectionUpdate = z.object({
   title: z.string().optional(),
-  folderId: z.union([z.string(), z.null()]).optional(),
+  parentId: z.union([z.string(), z.null()]).optional(),
 });
 
 export type Feed = z.infer<typeof Feed>;
@@ -83,7 +85,6 @@ export const Feed = z.object({
   title: z.union([z.string(), z.null()]),
   originalTitle: z.string(),
   url: z.union([z.string(), z.null()]),
-  folderId: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
   unreadCount: z.union([z.number(), z.undefined()]).optional(),
 });
@@ -91,7 +92,7 @@ export const Feed = z.object({
 export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
-  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  tags: z.union([TagsLink, z.undefined()]).optional(),
 });
 
 export type FeedDetect = z.infer<typeof FeedDetect>;
@@ -144,35 +145,7 @@ export const FeedList = z.object({
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
-  folderId: z.union([z.string(), z.null()]).optional(),
-  tags: z.array(TagCreate).optional(),
-});
-
-export type Folder = z.infer<typeof Folder>;
-export const Folder = z.object({
-  id: z.string(),
-  title: z.string(),
-  parentId: z.union([z.string(), z.undefined()]).optional(),
-  collectionCount: z.union([z.number(), z.undefined()]).optional(),
-  feedCount: z.union([z.number(), z.undefined()]).optional(),
-});
-
-export type FolderCreate = z.infer<typeof FolderCreate>;
-export const FolderCreate = z.object({
-  title: z.string(),
-  parentId: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type FolderList = z.infer<typeof FolderList>;
-export const FolderList = z.object({
-  data: z.array(Folder),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type FolderUpdate = z.infer<typeof FolderUpdate>;
-export const FolderUpdate = z.object({
-  title: z.string().optional(),
-  parentId: z.union([z.string(), z.null()]).optional(),
+  tags: TagsLink.optional(),
 });
 
 export type Login = z.infer<typeof Login>;
@@ -212,6 +185,11 @@ export type Register = z.infer<typeof Register>;
 export const Register = z.object({
   email: z.string(),
   password: z.string(),
+});
+
+export type TagCreate = z.infer<typeof TagCreate>;
+export const TagCreate = z.object({
+  title: z.string(),
 });
 
 export type TagList = z.infer<typeof TagList>;
@@ -277,6 +255,26 @@ export type post_ExportOpml = typeof post_ExportOpml;
 export const post_ExportOpml = {
   method: z.literal("POST"),
   path: z.literal("/backups/opml/export"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: z.unknown(),
+};
+
+export type post_ImportNetscape = typeof post_ImportNetscape;
+export const post_ImportNetscape = {
+  method: z.literal("POST"),
+  path: z.literal("/backups/netscape/import"),
+  requestFormat: z.literal("binary"),
+  parameters: z.object({
+    body: z.array(z.number()),
+  }),
+  response: z.unknown(),
+};
+
+export type post_ExportNetscape = typeof post_ExportNetscape;
+export const post_ExportNetscape = {
+  method: z.literal("POST"),
+  path: z.literal("/backups/netscape/export"),
   requestFormat: z.literal("json"),
   parameters: z.never(),
   response: z.unknown(),
@@ -529,70 +527,6 @@ export const post_DetectFeeds = {
   response: FeedDetectedList,
 };
 
-export type get_ListFolders = typeof get_ListFolders;
-export const get_ListFolders = {
-  method: z.literal("GET"),
-  path: z.literal("/folders"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    query: z.object({
-      folderType: z.union([z.literal("all"), z.literal("collections"), z.literal("feeds")]).optional(),
-    }),
-  }),
-  response: FolderList,
-};
-
-export type post_CreateFolder = typeof post_CreateFolder;
-export const post_CreateFolder = {
-  method: z.literal("POST"),
-  path: z.literal("/folders"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: FolderCreate,
-  }),
-  response: Folder,
-};
-
-export type get_GetFolder = typeof get_GetFolder;
-export const get_GetFolder = {
-  method: z.literal("GET"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: Folder,
-};
-
-export type patch_UpdateFolder = typeof patch_UpdateFolder;
-export const patch_UpdateFolder = {
-  method: z.literal("PATCH"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: FolderUpdate,
-  }),
-  response: Folder,
-};
-
-export type delete_DeleteFolder = typeof delete_DeleteFolder;
-export const delete_DeleteFolder = {
-  method: z.literal("DELETE"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
 export type get_ListProfiles = typeof get_ListProfiles;
 export const get_ListProfiles = {
   method: z.literal("GET"),
@@ -733,11 +667,12 @@ export const EndpointByMethod = {
     "/auth/login": post_Login,
     "/backups/opml/import": post_ImportOpml,
     "/backups/opml/export": post_ExportOpml,
+    "/backups/netscape/import": post_ImportNetscape,
+    "/backups/netscape/export": post_ExportNetscape,
     "/bookmarks": post_CreateBookmark,
     "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
-    "/folders": post_CreateFolder,
     "/profiles": post_CreateProfile,
     "/tags": post_CreateTag,
   },
@@ -751,8 +686,6 @@ export const EndpointByMethod = {
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
     "/feeds/{id}": get_GetFeed,
-    "/folders": get_ListFolders,
-    "/folders/{id}": get_GetFolder,
     "/profiles": get_ListProfiles,
     "/profiles/{id}": get_GetProfile,
     "/profiles/@me": get_GetActiveProfile,
@@ -764,7 +697,6 @@ export const EndpointByMethod = {
     "/collections/{id}": patch_UpdateCollection,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
-    "/folders/{id}": patch_UpdateFolder,
     "/profiles/{id}": patch_UpdateProfile,
     "/tags/{id}": patch_UpdateTag,
   },
@@ -772,7 +704,6 @@ export const EndpointByMethod = {
     "/bookmarks/{id}": delete_DeleteBookmark,
     "/collections/{id}": delete_DeleteCollection,
     "/feeds/{id}": delete_DeleteFeed,
-    "/folders/{id}": delete_DeleteFolder,
     "/profiles/{id}": delete_DeleteProfile,
     "/tags/{id}": delete_DeleteTag,
   },
