@@ -61,7 +61,7 @@ export class HttpAPI implements API {
       }
 
       return fetch(finalUrl, {
-        method,
+        method: method.toUpperCase(),
         body: params?.body ? JSON.stringify(params.body) : undefined,
         headers: {
           'Content-Type': 'application/json',
