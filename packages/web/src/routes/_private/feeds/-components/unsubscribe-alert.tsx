@@ -1,13 +1,4 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
+import { Button, Dialog, Flex } from '@colette/components'
 import type { Feed } from '@colette/core'
 import { deleteFeedOptions } from '@colette/query'
 import { useMutation } from '@tanstack/react-query'
@@ -30,7 +21,7 @@ export function UnsubscribeAlert({
   const matchRoute = useMatchRoute()
   const params = matchRoute({ to: '/feeds/$id' })
 
-  const { mutateAsync: unsubscribe } = useMutation(
+  const { mutateAsync: unsubscribe, isPending } = useMutation(
     deleteFeedOptions(
       feed.id,
       {
@@ -51,21 +42,26 @@ export function UnsubscribeAlert({
   )
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={setOpen}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Unsubscribe from {feed.title}?</AlertDialogTitle>
-          <AlertDialogDescription>
+    <Dialog.Root open={isOpen} onOpenChange={(e) => setOpen(e.open)}>
+      <Dialog.Backdrop />
+      <Dialog.Positioner>
+        <Dialog.Content maxW="md" p={6}>
+          <Dialog.Title lineClamp={1}>
+            Unsubscribe from {feed.title ?? feed.originalTitle}?
+          </Dialog.Title>
+          <Dialog.Description>
             Are you sure you want to unsubscribe? This action cannot be undone.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={() => unsubscribe()}>
-            Continue
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Dialog.Description>
+          <Flex justify="end" spaceX={4} mt={8}>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              Cancel
+            </Button>
+            <Button loading={isPending} onClick={() => unsubscribe()}>
+              Submit
+            </Button>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Positioner>
+    </Dialog.Root>
   )
 }
