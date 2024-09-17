@@ -1,5 +1,11 @@
-import { Dialog } from '@/components/ui/dialog'
-import { Button, HStack, Heading, Icon, Link } from '@colette/components'
+import {
+  Button,
+  Dialog,
+  HStack,
+  Heading,
+  Icon,
+  Link,
+} from '@colette/components'
 import {
   ensureInfiniteQueryData,
   getFeedOptions,
@@ -82,12 +88,26 @@ function Component() {
               Open Link
             </Link>
           </Button>
-          <Button variant="subtle" onClick={() => setEditModalOpen(true)}>
-            <Icon>
-              <Pencil />
-            </Icon>
-            Edit
-          </Button>
+          <Dialog.Root
+            open={isEditModalOpen}
+            onOpenChange={(e) => setEditModalOpen(e.open)}
+          >
+            <Dialog.Trigger asChild>
+              <Button variant="subtle" onClick={() => setEditModalOpen(true)}>
+                <Icon>
+                  <Pencil />
+                </Icon>
+                Edit
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <EditFeedModal
+                feed={feed}
+                close={() => setEditModalOpen(false)}
+              />
+            </Dialog.Positioner>
+          </Dialog.Root>
           <Button variant="subtle">
             <Icon>
               <ListChecks />
@@ -118,9 +138,6 @@ function Component() {
         isOpen={isUnsubscribeAlertOpen}
         setOpen={setUnsubscribeAlertOpen}
       />
-      <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
-        <EditFeedModal feed={feed} close={() => setEditModalOpen(false)} />
-      </Dialog>
     </>
   )
 }
