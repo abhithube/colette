@@ -25,7 +25,7 @@ import { SubscribeModal } from './feeds/-components/subscribe-modal'
 export const Route = createFileRoute('/_private/feeds')({
   loader: async ({ context }) => {
     const options = listFeedsOptions(
-      { filterByTags: true, 'tag[]': [] },
+      { pinned: true, filterByTags: true, 'tag[]': [] },
       context.profile.id,
       context.api,
     )
@@ -129,9 +129,9 @@ function Component() {
                 </Link>
               </Button>
             </VStack>
-            <Divider w="full" />
             {feeds.data.length > 0 && (
               <>
+                <Divider w="full" />
                 <Box>
                   <Flex
                     justify="space-between"
@@ -146,7 +146,7 @@ function Component() {
                       color="fg.muted"
                       flexGrow={1}
                     >
-                      Stash
+                      Pinned
                     </Text>
                   </Flex>
                   <Box mt={1} h="full" spaceY={1} px={4} overflowY="auto">
@@ -155,7 +155,6 @@ function Component() {
                     ))}
                   </Box>
                 </Box>
-                <Divider />
               </>
             )}
           </Box>

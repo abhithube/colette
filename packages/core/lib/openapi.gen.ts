@@ -83,6 +83,7 @@ export const Feed = z.object({
   id: z.string(),
   link: z.string(),
   title: z.union([z.string(), z.null()]),
+  pinned: z.boolean(),
   originalTitle: z.string(),
   url: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -92,6 +93,7 @@ export const Feed = z.object({
 export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
+  pinned: z.union([z.boolean(), z.undefined()]).optional(),
   tags: z.union([TagsLink, z.undefined()]).optional(),
 });
 
@@ -145,6 +147,7 @@ export const FeedList = z.object({
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
+  pinned: z.boolean().optional(),
   tags: TagsLink.optional(),
 });
 
@@ -458,6 +461,7 @@ export const get_ListFeeds = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
+      pinned: z.boolean().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
     }),
