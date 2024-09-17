@@ -64,6 +64,7 @@ impl Creatable for FeedSqlRepository {
                     let pf_id = match query::profile_feed::insert(
                         txn,
                         Uuid::new_v4(),
+                        Some(data.pinned),
                         data.profile_id,
                         feed_id,
                     )

@@ -61,6 +61,7 @@ pub struct Feed {
     pub link: String,
     #[schema(required)]
     pub title: Option<String>,
+    pub pinned: bool,
     pub original_title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
@@ -77,6 +78,7 @@ impl From<colette_core::Feed> for Feed {
             id: value.id,
             link: value.link,
             title: value.title,
+            pinned: value.pinned,
             original_title: value.original_title,
             url: value.url,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
@@ -90,6 +92,8 @@ impl From<colette_core::Feed> for Feed {
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    #[schema(required = false, default = false)]
+    pub pinned: bool,
     #[schema(nullable = false)]
     pub tags: Option<TagsLink>,
 }
@@ -98,6 +102,7 @@ impl From<FeedCreate> for feed::FeedCreate {
     fn from(value: FeedCreate) -> Self {
         Self {
             url: value.url,
+            pinned: value.pinned,
             tags: value.tags.map(|e| e.into()),
         }
     }
@@ -114,6 +119,8 @@ pub struct FeedUpdate {
     )]
     pub title: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]
+    pub pinned: Option<bool>,
+    #[schema(nullable = false)]
     pub tags: Option<TagsLink>,
 }
 
@@ -121,6 +128,7 @@ impl From<FeedUpdate> for feed::FeedUpdate {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
+            pinned: value.pinned,
             tags: value.tags.map(|e| e.into()),
         }
     }

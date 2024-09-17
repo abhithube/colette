@@ -24,6 +24,7 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(ProfileFeed::Id).primary_key())
                     .col(text_null(ProfileFeed::Title))
+                    .col(boolean(ProfileFeed::Pinned).default(false))
                     .col(uuid(ProfileFeed::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -178,6 +179,7 @@ pub enum ProfileFeed {
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
+    Pinned,
     ProfileId,
     FeedId,
     #[cfg_attr(feature = "sqlite", strum(disabled))]

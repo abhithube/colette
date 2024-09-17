@@ -494,6 +494,7 @@ dependencies = [
  "email_address",
  "http",
  "serde",
+ "serde_json",
  "serde_with",
  "thiserror",
  "tower-http",

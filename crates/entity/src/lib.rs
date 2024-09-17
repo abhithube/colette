@@ -66,6 +66,7 @@ impl From<PfWithFeedAndTagsAndUnreadCount> for Feed {
             id: value.pf.id,
             link: value.feed.link,
             title: value.pf.title,
+            pinned: value.pf.pinned,
             original_title: value.feed.title,
             url: value.feed.url,
             tags: if value.tags.is_empty() {

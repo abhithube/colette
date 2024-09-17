@@ -19,6 +19,7 @@ pub struct Feed {
     pub id: Uuid,
     pub link: String,
     pub title: Option<String>,
+    pub pinned: bool,
     pub original_title: String,
     pub url: Option<String>,
     pub tags: Option<Vec<Tag>>,
@@ -28,12 +29,14 @@ pub struct Feed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FeedCreate {
     pub url: Url,
+    pub pinned: bool,
     pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
+    pub pinned: Option<bool>,
     pub tags: Option<TagsLink>,
 }
 
@@ -100,6 +103,7 @@ impl FeedService {
             .create(FeedCreateData {
                 url: url.clone(),
                 feed: None,
+                pinned: data.pinned,
                 tags: data.tags.clone().map(|e| TagsLinkData {
                     data: e.data.into_iter().map(|e| e.into()).collect(),
                     action: e.action,
@@ -117,6 +121,7 @@ impl FeedService {
                     .create(FeedCreateData {
                         url,
                         feed: Some(scraped),
+                        pinned: data.pinned,
                         tags: data.tags.map(|e| TagsLinkData {
                             data: e.data.into_iter().map(|e| e.into()).collect(),
                             action: e.action,
@@ -208,6 +213,7 @@ impl From<FeedListQuery> for FeedFindManyFilters {
 pub struct FeedCreateData {
     pub url: String,
     pub feed: Option<ProcessedFeed>,
+    pub pinned: bool,
     pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
 }
@@ -221,6 +227,7 @@ pub struct FeedCacheData {
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
+    pub pinned: Option<bool>,
     pub tags: Option<TagsLinkData>,
 }
 
@@ -228,6 +235,7 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(|e| e.map(String::from)),
+            pinned: value.pinned,
             tags: value.tags.map(|e| TagsLinkData {
                 data: e.data.into_iter().map(|e| e.into()).collect(),
                 action: e.action,

@@ -39,6 +39,7 @@ impl BackupRepository for BackupSqlRepository {
                         let profile_feed_id = match query::profile_feed::insert(
                             db,
                             Uuid::new_v4(),
+                            None,
                             profile_id,
                             inserted.last_insert_id,
                         )

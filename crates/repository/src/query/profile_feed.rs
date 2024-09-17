@@ -99,15 +99,19 @@ pub async fn load_tags<Db: ConnectionTrait>(
 pub async fn insert<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
+    pinned: Option<bool>,
     profile_id: Uuid,
     feed_id: i32,
 ) -> Result<InsertResult<profile_feed::ActiveModel>, DbErr> {
-    let model = profile_feed::ActiveModel {
+    let mut model = profile_feed::ActiveModel {
         id: Set(id),
         profile_id: Set(profile_id),
         feed_id: Set(feed_id),
         ..Default::default()
     };
+    if let Some(pinned) = pinned {
+        model.pinned = Set(pinned);
+    }
 
     profile_feed::Entity::insert(model)
         .on_conflict(

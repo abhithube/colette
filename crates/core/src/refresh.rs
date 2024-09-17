@@ -86,6 +86,7 @@ impl RefreshService {
                 .create(FeedCreateData {
                     url: url_raw.clone(),
                     feed: Some(feed.clone()),
+                    pinned: false,
                     tags: None,
                     profile_id,
                 })

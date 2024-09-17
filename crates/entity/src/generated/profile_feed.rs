@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_type = "Text", nullable)]
     pub title: Option<String>,
+    pub pinned: bool,
     pub profile_id: Uuid,
     pub feed_id: i32,
     pub created_at: DateTimeWithTimeZone,
