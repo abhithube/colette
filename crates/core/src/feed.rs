@@ -42,6 +42,7 @@ pub struct FeedUpdate {
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedListQuery {
+    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -200,12 +201,16 @@ pub trait FeedRepository:
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedFindManyFilters {
+    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
 impl From<FeedListQuery> for FeedFindManyFilters {
     fn from(value: FeedListQuery) -> Self {
-        Self { tags: value.tags }
+        Self {
+            pinned: value.pinned,
+            tags: value.tags,
+        }
     }
 }
 

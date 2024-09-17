@@ -139,6 +139,8 @@ impl From<FeedUpdate> for feed::FeedUpdate {
 #[into_params(parameter_in = Query)]
 pub struct ListFeedsQuery {
     #[param(nullable = false)]
+    pub pinned: Option<bool>,
+    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -148,6 +150,7 @@ pub struct ListFeedsQuery {
 impl From<ListFeedsQuery> for feed::FeedListQuery {
     fn from(value: ListFeedsQuery) -> Self {
         Self {
+            pinned: value.pinned,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

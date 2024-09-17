@@ -39,6 +39,9 @@ pub async fn select_with_feed<Db: ConnectionTrait>(
 
             conditions = conditions.add(tag::Column::Title.is_in(tags));
         }
+        if let Some(pinned) = filters.pinned {
+            query = query.filter(profile_feed::Column::Pinned.eq(pinned));
+        }
     }
     if let Some(cursor) = cursor {
         conditions = conditions.add(
