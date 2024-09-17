@@ -15,8 +15,8 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Error, Id, Session, BOOKMARKS_TAG},
-    tag::{Tag, TagCreate},
+    common::{BaseError, BookmarkList, Error, Id, Session, TagsLink, BOOKMARKS_TAG},
+    tag::Tag,
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -87,7 +87,7 @@ pub struct BookmarkCreate {
     pub url: Url,
     pub collection_id: Option<Uuid>,
     #[schema(nullable = false)]
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {
@@ -95,9 +95,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
         Self {
             url: value.url,
             collection_id: value.collection_id,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.into()).collect()),
+            tags: value.tags.map(|e| e.into()),
         }
     }
 }
@@ -114,7 +112,7 @@ pub struct BookmarkUpdate {
     )]
     pub collection_id: Option<Option<Uuid>>,
     #[schema(nullable = false)]
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
@@ -122,9 +120,7 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
         Self {
             sort_index: value.sort_index,
             collection_id: value.collection_id,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.into()).collect()),
+            tags: value.tags.map(|e| e.into()),
         }
     }
 }

@@ -6,9 +6,11 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use colette_core::{auth, common};
+use colette_core::{
+    auth,
+    common::{self, NonEmptyString},
+};
 use http::{request::Parts, StatusCode};
-use serde::{Deserialize, Serialize};
 use tower_sessions::session;
 use uuid::Uuid;
 
@@ -56,9 +58,45 @@ where
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub enum TagsLinkAction {
+    Add,
+    Set,
+    Remove,
+}
+
+impl From<TagsLinkAction> for common::TagsLinkAction {
+    fn from(value: TagsLinkAction) -> Self {
+        match value {
+            TagsLinkAction::Add => Self::Add,
+            TagsLinkAction::Set => Self::Set,
+            TagsLinkAction::Remove => Self::Remove,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TagsLink {
+    #[schema(value_type = Vec<String>, min_length = 1)]
+    pub data: Vec<NonEmptyString>,
+    #[schema(inline)]
+    pub action: TagsLinkAction,
+}
+
+impl From<TagsLink> for common::TagsLink {
+    fn from(value: TagsLink) -> Self {
+        Self {
+            data: value.data,
+            action: value.action.into(),
+        }
+    }
+}
+
 pub const SESSION_KEY: &str = "session";
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Session {
     pub user_id: Uuid,
     pub profile_id: Uuid,

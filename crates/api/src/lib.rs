@@ -7,6 +7,7 @@ use bookmark::BookmarkState;
 use colette_config::AppConfig;
 use collection::CollectionState;
 pub use common::Session;
+use common::TagsLink;
 use feed::FeedState;
 use feed_entry::FeedEntryState;
 use http::{header, HeaderValue, Method};
@@ -75,7 +76,7 @@ impl ApiState {
   servers(
       (url = "http://localhost:8000/api/v1"),
   ),
-  components(schemas(BaseError))
+  components(schemas(BaseError, TagsLink))
 )]
 struct ApiDoc;
 

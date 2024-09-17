@@ -7,8 +7,10 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Deletable, Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT},
-    tag::TagCreate,
+    common::{
+        Creatable, Deletable, Findable, IdParams, Paginated, TagsLink, TagsLinkData, Updatable,
+        PAGINATION_LIMIT,
+    },
     Tag,
 };
 
@@ -29,14 +31,14 @@ pub struct Bookmark {
 pub struct BookmarkCreate {
     pub url: Url,
     pub collection_id: Option<Uuid>,
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkUpdate {
     pub sort_index: Option<u32>,
     pub collection_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -129,9 +131,11 @@ impl BookmarkService {
                 url: data.url.into(),
                 bookmark: scraped,
                 collection_id: data.collection_id,
-                tags: data
-                    .tags
-                    .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+
+                tags: data.tags.map(|e| TagsLinkData {
+                    data: e.data.into_iter().map(|e| e.into()).collect(),
+                    action: e.action,
+                }),
                 profile_id,
             })
             .await
@@ -182,7 +186,7 @@ pub struct BookmarkCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
     pub collection_id: Option<Uuid>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
 }
 
@@ -190,7 +194,7 @@ pub struct BookmarkCreateData {
 pub struct BookmarkUpdateData {
     pub sort_index: Option<u32>,
     pub collection_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<TagsLinkData>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
@@ -198,9 +202,10 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
         Self {
             sort_index: value.sort_index,
             collection_id: value.collection_id,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+            tags: value.tags.map(|e| TagsLinkData {
+                data: e.data.into_iter().map(|e| e.into()).collect(),
+                action: e.action,
+            }),
         }
     }
 }

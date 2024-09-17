@@ -7,8 +7,10 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
-    tag::TagCreate,
+    common::{
+        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, TagsLink,
+        TagsLinkData, Updatable,
+    },
     Tag,
 };
 
@@ -26,13 +28,13 @@ pub struct Feed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FeedCreate {
     pub url: Url,
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -98,10 +100,10 @@ impl FeedService {
             .create(FeedCreateData {
                 url: url.clone(),
                 feed: None,
-                tags: data
-                    .tags
-                    .clone()
-                    .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+                tags: data.tags.clone().map(|e| TagsLinkData {
+                    data: e.data.into_iter().map(|e| e.into()).collect(),
+                    action: e.action,
+                }),
                 profile_id,
             })
             .await;
@@ -115,9 +117,10 @@ impl FeedService {
                     .create(FeedCreateData {
                         url,
                         feed: Some(scraped),
-                        tags: data
-                            .tags
-                            .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+                        tags: data.tags.map(|e| TagsLinkData {
+                            data: e.data.into_iter().map(|e| e.into()).collect(),
+                            action: e.action,
+                        }),
                         profile_id,
                     })
                     .await
@@ -205,7 +208,7 @@ impl From<FeedListQuery> for FeedFindManyFilters {
 pub struct FeedCreateData {
     pub url: String,
     pub feed: Option<ProcessedFeed>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
 }
 
@@ -218,16 +221,17 @@ pub struct FeedCacheData {
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<TagsLinkData>,
 }
 
 impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(|e| e.map(String::from)),
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.title.into()).collect()),
+            tags: value.tags.map(|e| TagsLinkData {
+                data: e.data.into_iter().map(|e| e.into()).collect(),
+                action: e.action,
+            }),
         }
     }
 }

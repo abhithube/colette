@@ -48,16 +48,24 @@ impl IdParams {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum TagsLinkAction {
     Add,
     Set,
     Remove,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct TagsLink {
-    pub tags: Vec<String>,
+    pub data: Vec<NonEmptyString>,
+    pub action: TagsLinkAction,
+}
+
+#[derive(Clone, Debug)]
+pub struct TagsLinkData {
+    pub data: Vec<String>,
     pub action: TagsLinkAction,
 }
 

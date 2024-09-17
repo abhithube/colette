@@ -17,8 +17,8 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Session, FEEDS_TAG},
-    tag::{Tag, TagCreate},
+    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Session, TagsLink, FEEDS_TAG},
+    tag::Tag,
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -91,16 +91,14 @@ pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
     #[schema(nullable = false)]
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
     fn from(value: FeedCreate) -> Self {
         Self {
             url: value.url,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.into()).collect()),
+            tags: value.tags.map(|e| e.into()),
         }
     }
 }
@@ -116,16 +114,14 @@ pub struct FeedUpdate {
     )]
     pub title: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]
-    pub tags: Option<Vec<TagCreate>>,
+    pub tags: Option<TagsLink>,
 }
 
 impl From<FeedUpdate> for feed::FeedUpdate {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(|e| e.into()).collect()),
+            tags: value.tags.map(|e| e.into()),
         }
     }
 }
