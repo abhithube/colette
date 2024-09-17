@@ -82,6 +82,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let collection_repository = Arc::new(CollectionSqlRepository::new(db.clone()));
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
+    let tag_repository = Arc::new(TagSqlRepository::new(db.clone()));
 
     colette_task::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
 
@@ -97,6 +98,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_repository.clone(),
         collection_repository.clone(),
         feed_repository.clone(),
+        tag_repository.clone(),
         Arc::new(OpmlManager),
         Arc::new(NetscapeManager),
     ));
@@ -120,7 +122,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         profile_repository.clone(),
     ));
-    let tag_service = Arc::new(TagService::new(Arc::new(TagSqlRepository::new(db))));
+    let tag_service = Arc::new(TagService::new(tag_repository));
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),

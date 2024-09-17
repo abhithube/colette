@@ -1,18 +1,24 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
 use colette_netscape::{Item, Netscape};
-use colette_opml::{Opml, Outline};
+use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::{bookmark::BookmarkRepository, collection::CollectionRepository, feed::FeedRepository};
+use crate::{
+    bookmark::BookmarkRepository,
+    collection::CollectionRepository,
+    feed::FeedRepository,
+    tag::{TagFindManyFilters, TagRepository, TagType},
+};
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
     _bookmark_repository: Arc<dyn BookmarkRepository>,
     _collection_repository: Arc<dyn CollectionRepository>,
-    _feed_repository: Arc<dyn FeedRepository>,
+    feed_repository: Arc<dyn FeedRepository>,
+    tag_repository: Arc<dyn TagRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
@@ -34,7 +40,8 @@ impl BackupService {
         backup_repository: Arc<dyn BackupRepository>,
         _bookmark_repository: Arc<dyn BookmarkRepository>,
         _collection_repository: Arc<dyn CollectionRepository>,
-        _feed_repository: Arc<dyn FeedRepository>,
+        feed_repository: Arc<dyn FeedRepository>,
+        tag_repository: Arc<dyn TagRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
         netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {
@@ -42,7 +49,8 @@ impl BackupService {
             backup_repository,
             _bookmark_repository,
             _collection_repository,
-            _feed_repository,
+            feed_repository,
+            tag_repository,
             opml_manager,
             netscape_manager,
         }
@@ -59,110 +67,73 @@ impl BackupService {
             .await
     }
 
-    pub async fn export_opml(&self, _profile_id: Uuid) -> Result<Bytes, Error> {
-        todo!()
-        // let folders = self
-        //     .folder_repository
-        //     .list(profile_id, None, None)
-        //     .await
-        //     .map_err(|e| Error::Unknown(e.into()))?;
-        // let feeds = self
-        //     .feed_repository
-        //     .list(profile_id, None, None, None)
-        //     .await
-        //     .map_err(|e| Error::Unknown(e.into()))?;
+    pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
+        let tags = self
+            .tag_repository
+            .list(
+                profile_id,
+                None,
+                None,
+                Some(TagFindManyFilters {
+                    tag_type: TagType::Feeds,
+                }),
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let feeds = self
+            .feed_repository
+            .list(profile_id, None, None, None)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        // let mut folder_map: HashMap<Uuid, OutlineWrapper> = HashMap::new();
-        // let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-        // let mut root_folders: Vec<Uuid> = vec![];
+        let mut tag_map: BTreeMap<String, Outline> = BTreeMap::new();
 
-        // for folder in folders {
-        //     folder_map.insert(
-        //         folder.id,
-        //         OutlineWrapper {
-        //             parent_id: folder.parent_id,
-        //             outline: Outline {
-        //                 text: folder.title,
-        //                 ..Default::default()
-        //             },
-        //         },
-        //     );
+        for tag in tags {
+            tag_map.insert(
+                tag.title.clone(),
+                Outline {
+                    text: tag.title,
+                    ..Default::default()
+                },
+            );
+        }
 
-        //     match folder.parent_id {
-        //         Some(parent_id) => {
-        //             children_map.entry(parent_id).or_default().push(folder.id);
-        //         }
-        //         None => root_folders.push(folder.id),
-        //     }
-        // }
+        let mut root_feeds: Vec<Outline> = vec![];
+        for feed in feeds {
+            let outline = Outline {
+                r#type: Some(OutlineType::default()),
+                title: feed.title.or_else(|| Some(feed.original_title.clone())),
+                text: feed.original_title,
+                xml_url: feed.url,
+                html_url: Some(feed.link),
+                ..Default::default()
+            };
 
-        // let mut root_feeds: Vec<Outline> = vec![];
-        // for feed in feeds {
-        //     let outline = Outline {
-        //         r#type: Some(OutlineType::default()),
-        //         title: feed.title.or_else(|| Some(feed.original_title.clone())),
-        //         text: feed.original_title,
-        //         xml_url: feed.url,
-        //         html_url: Some(feed.link),
-        //         ..Default::default()
-        //     };
+            if let Some(tags) = feed.tags {
+                for tag in tags {
+                    if let Some(parent) = tag_map.get_mut(&tag.title) {
+                        parent
+                            .outline
+                            .get_or_insert_with(Vec::new)
+                            .push(outline.clone());
+                    }
+                }
+            } else {
+                root_feeds.push(outline);
+            }
+        }
 
-        //     root_feeds.push(outline);
-        //     match feed.folder_id {
-        //         Some(folder_id) => {
-        //             if let Some(parent) = folder_map.get_mut(&folder_id) {
-        //                 parent
-        //                     .outline
-        //                     .outline
-        //                     .get_or_insert_with(Vec::new)
-        //                     .push(outline);
-        //             }
-        //         }
-        //         None => root_feeds.push(outline),
-        //     }
-        // }
+        let mut outlines = tag_map.into_values().collect::<Vec<_>>();
+        outlines.append(&mut root_feeds);
 
-        // fn build_hierarchy(
-        //     folder_map: &mut HashMap<Uuid, OutlineWrapper>,
-        //     children_map: &HashMap<Uuid, Vec<Uuid>>,
-        //     folder_id: Uuid,
-        // ) {
-        //     if let Some(children) = children_map.get(&folder_id) {
-        //         for &child_id in children {
-        //             build_hierarchy(folder_map, children_map, child_id);
-        //             if let Some(child) = folder_map.remove(&child_id) {
-        //                 if let Some(children) = folder_map
-        //                     .get_mut(&folder_id)
-        //                     .unwrap()
-        //                     .outline
-        //                     .outline
-        //                     .as_mut()
-        //                 {
-        //                     children.push(child.outline);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+        let opml = Opml {
+            body: Body { outlines },
+            ..Default::default()
+        };
 
-        // for &root_id in &root_folders {
-        //     build_hierarchy(&mut folder_map, &children_map, root_id);
-        // }
-
-        // let mut outlines = root_folders
-        //     .into_iter()
-        //     .filter_map(|id| folder_map.remove(&id).map(|e| e.outline))
-        //     .collect::<Vec<_>>();
-        // outlines.append(&mut root_feeds);
-
-        // let opml = Opml {
-        //     body: Body { outlines },
-        //     ..Default::default()
-        // };
-
-        // self.opml_manager
-        //     .export(opml)
-        //     .map_err(|e| Error::Opml(OpmlError(e.into())))
+        self.opml_manager
+            .export(opml)
+            .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 
     pub async fn import_netscape(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
