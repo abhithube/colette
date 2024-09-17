@@ -1,6 +1,6 @@
-use std::io::BufRead;
+use std::{collections::BTreeMap, io::BufRead};
 
-use html5gum::{IoReader, StartTag, Token, Tokenizer};
+use html5gum::{HtmlString, IoReader, Token, Tokenizer};
 
 use crate::{Item, Netscape};
 
@@ -27,13 +27,13 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
                 b"h3" => {
                     current = Some(NetscapeField::H3);
 
-                    let item = parse_start_tag(tag)?;
+                    let item = parse_attributes(tag.attributes)?;
                     stack.push(item);
                 }
                 b"a" => {
                     current = Some(NetscapeField::A);
 
-                    let item = parse_start_tag(tag)?;
+                    let item = parse_attributes(tag.attributes)?;
                     stack.push(item);
                 }
                 _ => {}
@@ -102,15 +102,23 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
     Ok(netscape)
 }
 
-fn parse_start_tag(tag: StartTag) -> Result<Item, anyhow::Error> {
+fn parse_attributes(attributes: BTreeMap<HtmlString, HtmlString>) -> Result<Item, anyhow::Error> {
     let mut item = Item::default();
 
-    for (key, value) in tag.attributes {
+    for (key, value) in attributes {
         match key.0.as_slice() {
             b"href" => item.href = Some(String::from_utf8(value.0)?),
             b"add_date" => item.add_date = Some(String::from_utf8(value.0)?.parse()?),
             b"last_visit" => item.last_visit = Some(String::from_utf8(value.0)?.parse()?),
             b"last_modified" => item.last_modified = Some(String::from_utf8(value.0)?.parse()?),
+            b"tags" => {
+                item.tags = Some(
+                    String::from_utf8(value.0)?
+                        .split(",")
+                        .map(|e| e.to_owned())
+                        .collect::<Vec<_>>(),
+                )
+            }
             _ => {}
         }
     }

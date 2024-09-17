@@ -39,6 +39,9 @@ fn write_items<W: Write>(
         if let Some(last_modified) = item.last_modified {
             attributes.push(format!(r#"LAST_MODIFIED="{}""#, last_modified));
         }
+        if let Some(tags) = &item.tags {
+            attributes.push(format!(r#"TAGS="{}""#, tags.join(",")));
+        }
 
         let attributes_str = attributes.join(" ");
         let indent_str = " ".repeat(4).repeat(level);

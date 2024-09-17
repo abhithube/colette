@@ -30,5 +30,6 @@ pub struct Item {
     pub last_modified: Option<i64>,
     pub href: Option<String>,
     pub last_visit: Option<i64>,
+    pub tags: Option<Vec<String>>,
     pub item: Option<Vec<Item>>,
 }
