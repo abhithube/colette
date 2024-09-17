@@ -70,7 +70,7 @@ function Component() {
         bg="bg.default"
         p={8}
       >
-        <Heading as="h1" fontSize="3xl" fontWeight="medium">
+        <Heading as="h1" fontSize="3xl" fontWeight="medium" lineClamp={1}>
           {feed.title ?? feed.originalTitle}
         </Heading>
         <HStack>
