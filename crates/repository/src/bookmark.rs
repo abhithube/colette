@@ -267,7 +267,7 @@ pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Resul
     Ok(bookmarks.swap_remove(0))
 }
 
-async fn link_tags<Db: ConnectionTrait>(
+pub(crate) async fn link_tags<Db: ConnectionTrait>(
     db: &Db,
     profile_bookmark_id: Uuid,
     data: TagsLinkData,

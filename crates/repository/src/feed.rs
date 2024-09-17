@@ -342,7 +342,7 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
     Ok(feed_id)
 }
 
-async fn link_tags<Db: ConnectionTrait>(
+pub(crate) async fn link_tags<Db: ConnectionTrait>(
     db: &Db,
     profile_feed_id: Uuid,
     tags: TagsLinkData,

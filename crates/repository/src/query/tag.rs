@@ -76,18 +76,6 @@ pub async fn select_by_id<Db: ConnectionTrait>(
         .await
 }
 
-pub async fn select_by_title<Db: ConnectionTrait>(
-    db: &Db,
-    title: String,
-    profile_id: Uuid,
-) -> Result<Option<tag::Model>, DbErr> {
-    tag::Entity::find()
-        .filter(tag::Column::ProfileId.eq(profile_id))
-        .filter(tag::Column::Title.eq(title))
-        .one(db)
-        .await
-}
-
 pub struct InsertMany {
     pub id: Uuid,
     pub title: String,

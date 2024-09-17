@@ -1,11 +1,14 @@
-use colette_core::backup::{BackupRepository, Error};
+use colette_core::{
+    backup::{BackupRepository, Error},
+    common::{TagsLinkAction, TagsLinkData},
+};
 use colette_netscape::Item;
 use colette_opml::Outline;
 use futures::{future::BoxFuture, FutureExt};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use uuid::Uuid;
 
-use crate::query;
+use crate::{bookmark, feed, query};
 
 pub struct BackupSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -23,7 +26,7 @@ impl BackupRepository for BackupSqlRepository {
         fn recurse<Db: ConnectionTrait>(
             db: &Db,
             children: Vec<Outline>,
-            tag_id: Option<Uuid>,
+            tag: Option<String>,
             profile_id: Uuid,
         ) -> BoxFuture<Result<(), DbErr>> {
             async move {
@@ -46,7 +49,7 @@ impl BackupRepository for BackupSqlRepository {
                             Err(e) => Err(e),
                         }?;
 
-                        if let Some(tag_id) = tag_id {
+                        if let Some(tag) = tag.clone() {
                             let profile_feed_id = match profile_feed_id {
                                 Some(id) => id,
                                 None => match query::profile_feed::select_by_unique_index(
@@ -63,29 +66,19 @@ impl BackupRepository for BackupSqlRepository {
                                 }?,
                             };
 
-                            query::profile_feed_tag::insert_many(
+                            feed::link_tags(
                                 db,
-                                vec![query::profile_feed_tag::InsertMany {
-                                    profile_feed_id,
-                                    tag_id,
-                                }],
+                                profile_feed_id,
+                                TagsLinkData {
+                                    data: vec![tag],
+                                    action: TagsLinkAction::Add,
+                                },
                                 profile_id,
                             )
                             .await?;
                         }
                     } else if let Some(children) = outline.outline {
-                        let model =
-                            match query::tag::select_by_title(db, outline.text.clone(), profile_id)
-                                .await?
-                            {
-                                Some(model) => model,
-                                None => {
-                                    query::tag::insert(db, Uuid::new_v4(), outline.text, profile_id)
-                                        .await?
-                                }
-                            };
-
-                        recurse(db, children, Some(model.id), profile_id).await?;
+                        recurse(db, children, Some(outline.text), profile_id).await?;
                     }
                 }
 
@@ -121,7 +114,7 @@ impl BackupRepository for BackupSqlRepository {
 
                         let prev = query::profile_bookmark::select_last(db).await?;
 
-                        match query::profile_bookmark::insert(
+                        let profile_bookmark_id = match query::profile_bookmark::insert(
                             db,
                             Uuid::new_v4(),
                             prev.map(|e| e.sort_index + 1).unwrap_or_default(),
@@ -131,9 +124,39 @@ impl BackupRepository for BackupSqlRepository {
                         )
                         .await
                         {
-                            Ok(_) | Err(DbErr::RecordNotInserted) => Ok(()),
+                            Ok(model) => Ok(Some(model.last_insert_id)),
+                            Err(DbErr::RecordNotInserted) => Ok(None),
                             Err(e) => Err(e),
-                        }?
+                        }?;
+
+                        if let Some(tags) = item.tags {
+                            let profile_bookmark_id = match profile_bookmark_id {
+                                Some(id) => id,
+                                None => match query::profile_bookmark::select_by_unique_index(
+                                    db,
+                                    profile_id,
+                                    inserted.last_insert_id,
+                                )
+                                .await?
+                                {
+                                    Some(model) => Ok(model.id),
+                                    None => Err(DbErr::RecordNotFound(
+                                        "Failed to fetch created profile bookmark".to_owned(),
+                                    )),
+                                }?,
+                            };
+
+                            bookmark::link_tags(
+                                db,
+                                profile_bookmark_id,
+                                TagsLinkData {
+                                    data: tags,
+                                    action: TagsLinkAction::Add,
+                                },
+                                profile_id,
+                            )
+                            .await?;
+                        }
                     } else if let Some(children) = item.item {
                         let model = match query::collection::select_by_title_and_parent(
                             db,
