@@ -1,21 +1,18 @@
-import { Icon } from '@/components/icon'
-import { Button } from '@/components/ui/button'
 import {
-  Form,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Dialog, IconButton } from '@colette/components'
-import { BookmarkCreate } from '@colette/core'
+  Button,
+  Dialog,
+  Field,
+  Flex,
+  IconButton,
+  VStack,
+} from '@colette/components'
 import { createBookmarkOptions } from '@colette/query'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { Loader2, X } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { zodValidator } from '@tanstack/zod-form-adapter'
+import { X } from 'lucide-react'
+import { z } from 'zod'
 import { Route } from '../../bookmarks'
 
 type Props = {
@@ -25,11 +22,15 @@ type Props = {
 export function AddBookmarkModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const form = useForm<BookmarkCreate>({
-    resolver: zodResolver(BookmarkCreate),
+  const {
+    Field: TField,
+    handleSubmit,
+    reset,
+  } = useForm({
     defaultValues: {
       url: '',
     },
+    onSubmit: ({ value }) => createBookmark(value),
   })
 
   const navigate = useNavigate()
@@ -37,11 +38,11 @@ export function AddBookmarkModal({ close }: Props) {
   const { mutateAsync: createBookmark, isPending } = useMutation(
     createBookmarkOptions(
       {
-        onSuccess: () => {
-          form.reset()
+        onSuccess: async () => {
+          reset()
           close()
 
-          navigate({
+          await navigate({
             to: '/bookmarks/stash',
           })
         },
@@ -51,35 +52,48 @@ export function AddBookmarkModal({ close }: Props) {
   )
 
   return (
-    <Dialog.Content>
-      <Form {...form}>
-        <form
-          className="space-y-4"
-          onSubmit={form.handleSubmit((data) => createBookmark(data))}
-        >
-          <Dialog.Title>Add Bookmark</Dialog.Title>
-          <Dialog.Description>Add a bookmark to the stash.</Dialog.Description>
-          <FormField
-            control={form.control}
+    <Dialog.Content p={6}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSubmit()
+        }}
+      >
+        <Dialog.Title>Add Bookmark</Dialog.Title>
+        <Dialog.Description>Add a bookmark to the stash.</Dialog.Description>
+        <VStack alignItems="stretch" spaceY={4} mt={4}>
+          <TField
             name="url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>URL</FormLabel>
-                <Input {...field} />
-                <FormDescription>URL of the bookmark</FormDescription>
-              </FormItem>
+            validatorAdapter={zodValidator()}
+            validators={{
+              onBlur: z.string().url('Please enter a valid URL'),
+            }}
+          >
+            {({ state, handleChange, handleBlur }) => (
+              <Field.Root
+                defaultValue={state.value}
+                invalid={state.meta.errors.length > 0}
+              >
+                <Field.Label>URL</Field.Label>
+                <Field.Input
+                  placeholder="https://www.website.com"
+                  onChange={(e) => handleChange(e.target.value)}
+                  onBlur={handleBlur}
+                />
+                <Field.HelperText>URL of the bookmark</Field.HelperText>
+                <Field.ErrorText>
+                  {state.meta.errors[0]?.toString()}
+                </Field.ErrorText>
+              </Field.Root>
             )}
-          />
-          <Button disabled={isPending}>
-            {isPending && (
-              <Icon className="mr-2 animate-spin" value={Loader2} />
-            )}
-            Submit
-          </Button>
-        </form>
-      </Form>
+          </TField>
+          <Flex justify="end">
+            <Button loading={isPending}>Submit</Button>
+          </Flex>
+        </VStack>
+      </form>
       <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
-        <IconButton aria-label="Close Dialog" variant="ghost" size="sm">
+        <IconButton variant="ghost" size="sm">
           <X />
         </IconButton>
       </Dialog.CloseTrigger>
