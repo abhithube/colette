@@ -5,7 +5,6 @@
 			"./crates/**/*",
 			"./packages/core/lib/openapi.gen.ts",
 			"./packages/web/src/routeTree.gen.ts",
-			"./packages/web/src/components/ui/**/*",
 			"./packages/components/lib/**/*"
 		]
 	},
@@ -18,9 +17,6 @@
 	},
 	"linter": {
 		"rules": {
-			"nursery": {
-				"useSortedClasses": "warn"
-			},
 			"style": {
 				"noNonNullAssertion": "warn"
 			},
