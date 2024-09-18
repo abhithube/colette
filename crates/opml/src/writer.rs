@@ -60,11 +60,7 @@ fn write_outlines<W: Write>(
 
             writeln!(writer, "{}</outline>", indent_str)?;
         } else {
-            writeln!(
-                writer,
-                r#"{}<outline {}></outline>"#,
-                indent_str, attributes_str
-            )?;
+            writeln!(writer, r#"{}<outline {}/>"#, indent_str, attributes_str)?;
         }
     }
 
