@@ -70,10 +70,12 @@ export class HttpAPI implements API {
         },
         ...rest,
       }).then(async (res) => {
-        const data = await res.json()
-        if (!res.ok) await handleError(data, res.status)
+        if (res.status !== 204) {
+          const data = await res.json()
+          if (!res.ok) await handleError(data, res.status)
 
-        return data
+          return data
+        }
       })
     }, baseUrl)
 
