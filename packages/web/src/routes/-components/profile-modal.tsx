@@ -9,9 +9,10 @@ import {
   Text,
 } from '@colette/components'
 import type { Profile } from '@colette/core'
-import { listProfilesOptions } from '@colette/query'
+import { listProfilesOptions, switchProfileOptions } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { XIcon } from 'lucide-react'
 import { Route } from '../_private'
 
@@ -22,6 +23,8 @@ type Props = {
 
 export function ProfileModal({ active, close }: Props) {
   const context = Route.useRouteContext()
+
+  const navigate = useNavigate()
 
   const { data: profiles } = useQuery(listProfilesOptions(context.api))
 
@@ -34,9 +37,27 @@ export function ProfileModal({ active, close }: Props) {
         return close()
       }
 
-      console.log(value)
+      return login(value)
     },
   })
+
+  const { mutateAsync: login, isPending } = useMutation(
+    switchProfileOptions(
+      {
+        onSuccess: async (profile) => {
+          close()
+
+          context.profile = profile
+
+          await navigate({
+            to: '/',
+            replace: true,
+          })
+        },
+      },
+      context.api,
+    ),
+  )
 
   if (!profiles) return
 
@@ -83,7 +104,7 @@ export function ProfileModal({ active, close }: Props) {
         </TField>
 
         <Flex justify="end" mt={4}>
-          <Button>Select</Button>
+          <Button loading={isPending}>Select</Button>
         </Flex>
       </form>
       <Dialog.CloseTrigger asChild position="absolute" top={2} right={2}>

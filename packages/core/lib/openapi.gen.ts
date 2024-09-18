@@ -190,6 +190,11 @@ export const Register = z.object({
   password: z.string(),
 });
 
+export type SwitchProfile = z.infer<typeof SwitchProfile>;
+export const SwitchProfile = z.object({
+  id: z.string(),
+});
+
 export type TagCreate = z.infer<typeof TagCreate>;
 export const TagCreate = z.object({
   title: z.string(),
@@ -241,6 +246,17 @@ export const get_GetActiveUser = {
   requestFormat: z.literal("json"),
   parameters: z.never(),
   response: User,
+};
+
+export type post_SwitchProfile = typeof post_SwitchProfile;
+export const post_SwitchProfile = {
+  method: z.literal("POST"),
+  path: z.literal("/auth/switchProfile"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: SwitchProfile,
+  }),
+  response: Profile,
 };
 
 export type post_ImportOpml = typeof post_ImportOpml;
@@ -669,6 +685,7 @@ export const EndpointByMethod = {
   post: {
     "/auth/register": post_Register,
     "/auth/login": post_Login,
+    "/auth/switchProfile": post_SwitchProfile,
     "/backups/opml/import": post_ImportOpml,
     "/backups/opml/export": post_ExportOpml,
     "/backups/netscape/import": post_ImportNetscape,

@@ -29,6 +29,7 @@ export {
   ProfileList,
   ProfileUpdate,
   Register,
+  SwitchProfile,
   Tag,
   TagCreate,
   TagList,
