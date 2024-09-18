@@ -11,14 +11,10 @@ import {
 } from '@colette/components'
 import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
-import { useState } from 'react'
 import { ProfileModal } from './profile-modal'
 import { SettingsModal } from './settings-modal'
 
 export const OuterSidebar = () => {
-  const [isProfileModalOpen, setProfileModalOpen] = useState(false)
-  const [isSettingsModalOpen, setSettingsModalOpen] = useState(false)
-
   return (
     <VStack h="full" p={4}>
       <Tooltip.Root
@@ -135,10 +131,7 @@ export const OuterSidebar = () => {
         </Tooltip.Positioner>
       </Tooltip.Root>
       <Flex grow={1} />
-      <Dialog.Root
-        open={isProfileModalOpen}
-        onOpenChange={(e) => setProfileModalOpen(e.open)}
-      >
+      <Dialog.Root>
         <Tooltip.Root
           positioning={{
             placement: 'right',
@@ -160,13 +153,12 @@ export const OuterSidebar = () => {
         </Tooltip.Root>
         <Dialog.Backdrop />
         <Dialog.Positioner>
-          <ProfileModal close={() => setProfileModalOpen(false)} />
+          <Dialog.Context>
+            {({ setOpen }) => <ProfileModal close={() => setOpen(false)} />}
+          </Dialog.Context>
         </Dialog.Positioner>
       </Dialog.Root>
-      <Dialog.Root
-        open={isSettingsModalOpen}
-        onOpenChange={(e) => setSettingsModalOpen(e.open)}
-      >
+      <Dialog.Root>
         <Tooltip.Root
           positioning={{
             placement: 'right',
@@ -188,7 +180,9 @@ export const OuterSidebar = () => {
         </Tooltip.Root>
         <Dialog.Backdrop />
         <Dialog.Positioner>
-          <SettingsModal close={() => setSettingsModalOpen(false)} />
+          <Dialog.Context>
+            {({ setOpen }) => <SettingsModal close={() => setOpen(false)} />}
+          </Dialog.Context>
         </Dialog.Positioner>
       </Dialog.Root>
     </VStack>

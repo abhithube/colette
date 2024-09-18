@@ -18,7 +18,6 @@ import { listFeedsOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, Link as TLink, createFileRoute } from '@tanstack/react-router'
 import { History, Home, PlusCircle, Wrench } from 'lucide-react'
-import { useState } from 'react'
 import { FeedItem } from './feeds/-components/feed-item'
 import { SubscribeModal } from './feeds/-components/subscribe-modal'
 
@@ -41,8 +40,6 @@ export const Route = createFileRoute('/_private/feeds')({
 
 function Component() {
   const { options } = Route.useLoaderData()
-
-  const [isFeedModalOpen, setFeedModalOpen] = useState(false)
 
   const { data: feeds } = useQuery(options)
 
@@ -70,10 +67,7 @@ function Component() {
               <Heading as="h2" fontSize="3xl" fontWeight="medium">
                 Feeds
               </Heading>
-              <Dialog.Root
-                open={isFeedModalOpen}
-                onOpenChange={(e) => setFeedModalOpen(e.open)}
-              >
+              <Dialog.Root>
                 <Dialog.Trigger asChild>
                   <IconButton flexShrink={0}>
                     <PlusCircle />
@@ -82,7 +76,11 @@ function Component() {
                 </Dialog.Trigger>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
-                  <SubscribeModal close={() => setFeedModalOpen(false)} />
+                  <Dialog.Context>
+                    {({ setOpen }) => (
+                      <SubscribeModal close={() => setOpen(false)} />
+                    )}
+                  </Dialog.Context>
                 </Dialog.Positioner>
               </Dialog.Root>
             </HStack>

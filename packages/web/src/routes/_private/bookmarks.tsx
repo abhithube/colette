@@ -17,7 +17,7 @@ import {
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Link as TLink } from '@tanstack/react-router'
 import { History, Home, PlusCircle } from 'lucide-react'
-import { useState } from 'react'
+
 import { AddBookmarkModal } from './bookmarks/-components/add-bookmark-modal'
 
 export const Route = createFileRoute('/_private/bookmarks')({
@@ -25,8 +25,6 @@ export const Route = createFileRoute('/_private/bookmarks')({
 })
 
 function Component() {
-  const [isBookmarkModalOpen, setBookmarkModalOpen] = useState(false)
-
   return (
     <Flex h="full" w="full">
       <Splitter.Root
@@ -49,10 +47,7 @@ function Component() {
               <Heading as="h2" fontSize="3xl" fontWeight="medium">
                 Bookmarks
               </Heading>
-              <Dialog.Root
-                open={isBookmarkModalOpen}
-                onOpenChange={(e) => setBookmarkModalOpen(e.open)}
-              >
+              <Dialog.Root>
                 <Dialog.Trigger asChild>
                   <IconButton flexShrink={0}>
                     <PlusCircle />
@@ -61,7 +56,11 @@ function Component() {
                 </Dialog.Trigger>
                 <Dialog.Backdrop />
                 <Dialog.Positioner>
-                  <AddBookmarkModal close={() => setBookmarkModalOpen(false)} />
+                  <Dialog.Context>
+                    {({ setOpen }) => (
+                      <AddBookmarkModal close={() => setOpen(false)} />
+                    )}
+                  </Dialog.Context>
                 </Dialog.Positioner>
               </Dialog.Root>
             </HStack>

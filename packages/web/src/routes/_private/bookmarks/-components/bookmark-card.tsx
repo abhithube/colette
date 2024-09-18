@@ -14,7 +14,6 @@ import {
 } from '@colette/components'
 import type { Bookmark } from '@colette/core'
 import { ExternalLink, Pencil } from 'lucide-react'
-import { useState } from 'react'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 
 type Props = {
@@ -22,8 +21,6 @@ type Props = {
 }
 
 export function BookmarkCard({ bookmark }: Props) {
-  const [isEditModalOpen, setEditModalOpen] = useState(false)
-
   return (
     <Card.Root>
       <img
@@ -78,10 +75,7 @@ export function BookmarkCard({ bookmark }: Props) {
             </Icon>
           </Link>
         </Button>
-        <Dialog.Root
-          open={isEditModalOpen}
-          onOpenChange={(e) => setEditModalOpen(e.open)}
-        >
+        <Dialog.Root>
           <Dialog.Trigger asChild>
             <IconButton variant="ghost" color="fg.muted" title="Edit bookmark">
               <Pencil />
@@ -89,10 +83,14 @@ export function BookmarkCard({ bookmark }: Props) {
           </Dialog.Trigger>
           <Dialog.Backdrop />
           <Dialog.Positioner>
-            <EditBookmarkModal
-              bookmark={bookmark}
-              close={() => setEditModalOpen(false)}
-            />
+            <Dialog.Context>
+              {({ setOpen }) => (
+                <EditBookmarkModal
+                  bookmark={bookmark}
+                  close={() => setOpen(false)}
+                />
+              )}
+            </Dialog.Context>
           </Dialog.Positioner>
         </Dialog.Root>
       </Card.Footer>

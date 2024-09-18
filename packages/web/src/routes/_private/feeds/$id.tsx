@@ -56,7 +56,6 @@ function Component() {
     fetchNextPage,
   } = useInfiniteQuery(feedEntryOptions)
 
-  const [isEditModalOpen, setEditModalOpen] = useState(false)
   const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
@@ -88,12 +87,9 @@ function Component() {
               Open Link
             </Link>
           </Button>
-          <Dialog.Root
-            open={isEditModalOpen}
-            onOpenChange={(e) => setEditModalOpen(e.open)}
-          >
+          <Dialog.Root>
             <Dialog.Trigger asChild>
-              <Button variant="subtle" onClick={() => setEditModalOpen(true)}>
+              <Button variant="subtle">
                 <Icon>
                   <Pencil />
                 </Icon>
@@ -102,10 +98,11 @@ function Component() {
             </Dialog.Trigger>
             <Dialog.Backdrop />
             <Dialog.Positioner>
-              <EditFeedModal
-                feed={feed}
-                close={() => setEditModalOpen(false)}
-              />
+              <Dialog.Context>
+                {({ setOpen }) => (
+                  <EditFeedModal feed={feed} close={() => setOpen(false)} />
+                )}
+              </Dialog.Context>
             </Dialog.Positioner>
           </Dialog.Root>
           <Button variant="subtle">
