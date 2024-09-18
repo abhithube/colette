@@ -1,4 +1,3 @@
-'use client'
 import type { Assign } from '@ark-ui/react'
 import { Combobox } from '@ark-ui/react/combobox'
 import { type ComboboxVariantProps, combobox } from '@colette/styled-system/recipes'
