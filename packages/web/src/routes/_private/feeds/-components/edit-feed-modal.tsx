@@ -32,11 +32,7 @@ export function EditFeedModal({ feed, close }: Props) {
     listTagsOptions({}, context.profile.id, context.api),
   )
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       title: feed.title ?? feed.originalTitle,
       pinned: feed.pinned,
@@ -95,7 +91,7 @@ export function EditFeedModal({ feed, close }: Props) {
     updateFeedOptions(
       {
         onSuccess: async (data) => {
-          reset()
+          form.reset()
           close()
 
           await context.queryClient.setQueryData(['feeds', feed.id], data)
@@ -110,8 +106,8 @@ export function EditFeedModal({ feed, close }: Props) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    reset()
-  }, [reset, feed.id])
+    form.reset()
+  }, [form.reset, feed.id])
 
   if (!tags) return
 
@@ -120,7 +116,7 @@ export function EditFeedModal({ feed, close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
         <Dialog.Title lineClamp={1}>
@@ -128,7 +124,7 @@ export function EditFeedModal({ feed, close }: Props) {
         </Dialog.Title>
         <Dialog.Description>Edit a feed's data.</Dialog.Description>
         <VStack alignItems="stretch" spaceY={4} mt={4}>
-          <TField
+          <form.Field
             name="title"
             validatorAdapter={zodValidator()}
             validators={{
@@ -149,8 +145,8 @@ export function EditFeedModal({ feed, close }: Props) {
                 </Field.ErrorText>
               </Field.Root>
             )}
-          </TField>
-          <TField name="pinned">
+          </form.Field>
+          <form.Field name="pinned">
             {({ state, handleChange }) => (
               <Fieldset.Root paddingBlock={0} borderTop="none">
                 <Fieldset.Legend>Pinned</Fieldset.Legend>
@@ -165,8 +161,8 @@ export function EditFeedModal({ feed, close }: Props) {
                 </Field.Root>
               </Fieldset.Root>
             )}
-          </TField>
-          <TField name="tags">
+          </form.Field>
+          <form.Field name="tags">
             {({ state, handleChange }) => (
               <Combobox.Root
                 asChild
@@ -229,7 +225,7 @@ export function EditFeedModal({ feed, close }: Props) {
                 </TagsInput.Root>
               </Combobox.Root>
             )}
-          </TField>
+          </form.Field>
           <Flex justify="end">
             <Button loading={isPending}>Submit</Button>
           </Flex>

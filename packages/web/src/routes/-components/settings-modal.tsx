@@ -19,11 +19,7 @@ type Props = {
 export function SettingsModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       file: undefined as unknown as File,
     },
@@ -34,7 +30,7 @@ export function SettingsModal({ close }: Props) {
     importOpmlOptions(
       {
         onSuccess: async () => {
-          reset()
+          form.reset()
           close()
 
           await context.queryClient.invalidateQueries({
@@ -51,14 +47,14 @@ export function SettingsModal({ close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
         <Dialog.Title>Import Feeds</Dialog.Title>
         <Dialog.Description>
           Upload an OPML file to import feeds.
         </Dialog.Description>
-        <TField
+        <form.Field
           name="file"
           validators={{
             onSubmit: ({ value }) => {
@@ -106,7 +102,7 @@ export function SettingsModal({ close }: Props) {
               </Field.ErrorText>
             </Field.Root>
           )}
-        </TField>
+        </form.Field>
         <Flex justify="end" mt={4}>
           <Button loading={isPending}>Submit</Button>
         </Flex>

@@ -22,11 +22,7 @@ type Props = {
 export function AddBookmarkModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       url: '',
     },
@@ -39,7 +35,7 @@ export function AddBookmarkModal({ close }: Props) {
     createBookmarkOptions(
       {
         onSuccess: async () => {
-          reset()
+          form.reset()
           close()
 
           await navigate({
@@ -56,13 +52,13 @@ export function AddBookmarkModal({ close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
         <Dialog.Title>Add Bookmark</Dialog.Title>
         <Dialog.Description>Add a bookmark to the stash.</Dialog.Description>
         <VStack alignItems="stretch" spaceY={4} mt={4}>
-          <TField
+          <form.Field
             name="url"
             validatorAdapter={zodValidator()}
             validators={{
@@ -86,7 +82,7 @@ export function AddBookmarkModal({ close }: Props) {
                 </Field.ErrorText>
               </Field.Root>
             )}
-          </TField>
+          </form.Field>
           <Flex justify="end">
             <Button loading={isPending}>Submit</Button>
           </Flex>

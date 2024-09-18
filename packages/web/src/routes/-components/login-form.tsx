@@ -12,11 +12,7 @@ export const LoginForm = () => {
 
   const navigate = useNavigate()
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       email: '',
       password: '',
@@ -28,7 +24,7 @@ export const LoginForm = () => {
     loginOptions(
       {
         onSuccess: async (profile) => {
-          reset()
+          form.reset()
           context.profile = profile
 
           await navigate({
@@ -45,7 +41,7 @@ export const LoginForm = () => {
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        handleSubmit()
+        form.handleSubmit()
       }}
     >
       <Card.Root>
@@ -54,7 +50,7 @@ export const LoginForm = () => {
           <Card.Description>Login to your account</Card.Description>
         </Card.Header>
         <Card.Body spaceY="4">
-          <TField
+          <form.Field
             name="email"
             validatorAdapter={zodValidator()}
             validators={{
@@ -77,8 +73,8 @@ export const LoginForm = () => {
                 </Field.ErrorText>
               </Field.Root>
             )}
-          </TField>
-          <TField
+          </form.Field>
+          <form.Field
             name="password"
             validatorAdapter={zodValidator()}
             validators={{
@@ -104,7 +100,7 @@ export const LoginForm = () => {
                 </Field.ErrorText>
               </Field.Root>
             )}
-          </TField>
+          </form.Field>
         </Card.Body>
         <Card.Footer>
           <Button flexGrow={1} loading={isPending}>

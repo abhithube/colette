@@ -27,11 +27,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
     listTagsOptions({}, context.profile.id, context.api),
   )
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       tags: bookmark.tags?.map((tag) => tag.title) ?? [],
     },
@@ -73,7 +69,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
     updateBookmarkOptions(
       {
         onSuccess: async (data) => {
-          reset()
+          form.reset()
           close()
 
           await context.queryClient.setQueryData(['feeds', bookmark.id], data)
@@ -88,8 +84,8 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
-    reset()
-  }, [reset, bookmark.id])
+    form.reset()
+  }, [form.reset, bookmark.id])
 
   if (!tags) return
 
@@ -98,13 +94,13 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
         <Dialog.Title lineClamp={1}>Edit {bookmark.title}</Dialog.Title>
         <Dialog.Description>Edit a feed's data.</Dialog.Description>
         <VStack alignItems="stretch" spaceY={4} mt={4}>
-          <TField name="tags">
+          <form.Field name="tags">
             {({ state, handleChange }) => (
               <Combobox.Root
                 asChild
@@ -167,7 +163,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
                 </TagsInput.Root>
               </Combobox.Root>
             )}
-          </TField>
+          </form.Field>
           <Flex justify="end">
             <Button loading={isPending}>Submit</Button>
           </Flex>

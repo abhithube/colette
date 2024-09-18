@@ -26,7 +26,7 @@ export function ProfileModal({ close }: Props) {
 
   const { data: profiles } = useQuery(listProfilesOptions(context.api))
 
-  const { Field: TField, handleSubmit } = useForm({
+  const form = useForm({
     defaultValues: {
       id: '',
     },
@@ -66,10 +66,10 @@ export function ProfileModal({ close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
-        <TField name="id">
+        <form.Field name="id">
           {({ handleChange }) => (
             <RadioButtonGroup.Root
               asChild
@@ -99,7 +99,7 @@ export function ProfileModal({ close }: Props) {
               </Grid>
             </RadioButtonGroup.Root>
           )}
-        </TField>
+        </form.Field>
 
         <Flex justify="end" mt={4}>
           <Button loading={isPending}>Select</Button>

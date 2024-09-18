@@ -24,11 +24,7 @@ type Props = {
 export function SubscribeModal({ close }: Props) {
   const context = Route.useRouteContext()
 
-  const {
-    Field: TField,
-    handleSubmit,
-    reset,
-  } = useForm({
+  const form = useForm({
     defaultValues: {
       url: '',
       pinned: false,
@@ -42,7 +38,7 @@ export function SubscribeModal({ close }: Props) {
     createFeedOptions(
       {
         onSuccess: async (data) => {
-          reset()
+          form.reset()
           close()
 
           await context.queryClient.invalidateQueries({
@@ -66,7 +62,7 @@ export function SubscribeModal({ close }: Props) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          handleSubmit()
+          form.handleSubmit()
         }}
       >
         <Dialog.Title>Add Feed</Dialog.Title>
@@ -74,7 +70,7 @@ export function SubscribeModal({ close }: Props) {
           Subscribe to a RSS or Atom feed and receive the latest updates.
         </Dialog.Description>
         <VStack alignItems="stretch" spaceY={4} mt={4}>
-          <TField
+          <form.Field
             name="url"
             validatorAdapter={zodValidator()}
             validators={{
@@ -98,8 +94,8 @@ export function SubscribeModal({ close }: Props) {
                 </Field.ErrorText>
               </Field.Root>
             )}
-          </TField>
-          <TField name="pinned">
+          </form.Field>
+          <form.Field name="pinned">
             {({ handleChange }) => (
               <Fieldset.Root paddingBlock={0} borderTop="none">
                 <Fieldset.Legend>Pinned</Fieldset.Legend>
@@ -113,7 +109,7 @@ export function SubscribeModal({ close }: Props) {
                 </Field.Root>
               </Fieldset.Root>
             )}
-          </TField>
+          </form.Field>
           <Flex justify="end">
             <Button loading={isPending}>Submit</Button>
           </Flex>
