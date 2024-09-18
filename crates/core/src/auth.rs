@@ -23,6 +23,11 @@ pub struct Login {
     pub password: NonEmptyString,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct SwitchProfile {
+    pub id: Uuid,
+}
+
 pub struct AuthService {
     user_repository: Arc<dyn UserRepository>,
     profile_repository: Arc<dyn ProfileRepository>,
@@ -85,6 +90,23 @@ impl AuthService {
             .find(UserIdParams::Id(user_id))
             .await
             .map_err(|e| e.into())
+    }
+
+    pub async fn switch_profile(
+        &self,
+        data: SwitchProfile,
+        user_id: Uuid,
+    ) -> Result<Profile, Error> {
+        self.profile_repository
+            .find(ProfileIdOrDefaultParams {
+                id: Some(data.id),
+                user_id,
+            })
+            .await
+            .map_err(|e| match e {
+                profile::Error::NotFound(_) => Error::NotAuthenticated,
+                _ => e.into(),
+            })
     }
 }
 

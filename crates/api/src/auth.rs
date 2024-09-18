@@ -33,7 +33,7 @@ impl AuthState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Register, Login, User)))]
+#[openapi(components(schemas(Register, Login, User, SwitchProfile)))]
 pub struct AuthApi;
 
 impl AuthApi {
@@ -42,6 +42,7 @@ impl AuthApi {
             .routes(routes!(register))
             .routes(routes!(login))
             .routes(routes!(get_active_user))
+            .routes(routes!(switch_profile))
     }
 }
 
@@ -95,6 +96,18 @@ impl From<Login> for auth::Login {
             email: value.email,
             password: value.password,
         }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SwitchProfile {
+    pub id: Uuid,
+}
+
+impl From<SwitchProfile> for auth::SwitchProfile {
+    fn from(value: SwitchProfile) -> Self {
+        Self { id: value.id }
     }
 }
 
@@ -178,6 +191,41 @@ pub async fn get_active_user(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/switchProfile",
+    request_body = SwitchProfile,
+    responses(SwitchProfileResponse),
+    operation_id = "switchProfile",
+    description = "Switch to a different profile",
+    tag = AUTH_TAG
+)]
+#[axum::debug_handler]
+pub async fn switch_profile(
+    State(service): State<Arc<AuthService>>,
+    session_store: tower_sessions::Session,
+    session: Session,
+    Json(body): Json<SwitchProfile>,
+) -> Result<impl IntoResponse, Error> {
+    match service.switch_profile(body.into(), session.user_id).await {
+        Ok(data) => {
+            let session = Session {
+                user_id: data.user_id,
+                profile_id: data.id,
+            };
+            session_store.insert(SESSION_KEY, session).await?;
+
+            Ok(SwitchProfileResponse::Ok(data.into()))
+        }
+        Err(e) => match e {
+            auth::Error::NotAuthenticated => Ok(SwitchProfileResponse::Unauthorized(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown),
+        },
+    }
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
@@ -232,6 +280,28 @@ impl IntoResponse for GetActiveResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum SwitchProfileResponse {
+    #[response(status = 200, description = "Selected profile")]
+    Ok(Profile),
+
+    #[response(status = 401, description = "Bad credentials")]
+    Unauthorized(BaseError),
+
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for SwitchProfileResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::Ok(data) => Json(data).into_response(),
+            Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }
