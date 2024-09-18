@@ -166,7 +166,7 @@ export const OuterSidebar = ({ profile }: Props) => {
         <Dialog.Backdrop />
         <Dialog.Positioner>
           <ProfileModal
-            profile={profile}
+            active={profile}
             close={() => setProfileModalOpen(false)}
           />
         </Dialog.Positioner>
