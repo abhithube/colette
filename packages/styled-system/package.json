@@ -38,7 +38,6 @@
 	},
 	"devDependencies": {
 		"@colette/panda-preset": "*",
-		"@pandacss/dev": "^0.46",
-		"@park-ui/panda-preset": "^0.42"
+		"@pandacss/dev": "^0.46"
 	}
 }
