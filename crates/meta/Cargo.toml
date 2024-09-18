@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+anyhow.workspace = true
 html5gum.workspace = true
 ordered-float = { version = "4", default-features = false }
 serde.workspace = true

@@ -26,7 +26,7 @@ pub struct Metadata {
     schema_stack: Vec<SchemaObjectOrValue>,
 }
 
-pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
+pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
     let mut metadata = Metadata::default();
 
     let mut tokenizer = Tokenizer::new(IoReader::new(reader));
@@ -36,16 +36,16 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
             Token::StartTag(mut tag) => {
                 if let Some(name) = tag.attributes.remove("name".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        let name = str::from_utf8(&name).unwrap();
-                        let content = String::from_utf8(content.0).unwrap();
+                        let name = str::from_utf8(&name)?;
+                        let content = String::from_utf8(content.0)?;
 
                         metadata.handle_basic(name, content);
                     }
                 } else if let Some(property) = tag.attributes.remove("property".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
                         if property.as_slice().starts_with(b"og:") {
-                            let property = str::from_utf8(&property).unwrap();
-                            let content = String::from_utf8(content.0).unwrap();
+                            let property = str::from_utf8(&property)?;
+                            let content = String::from_utf8(content.0)?;
 
                             metadata.handle_open_graph(property, content);
                         }
@@ -57,8 +57,8 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
                             tag.attributes.remove("title".as_bytes()),
                             tag.attributes.remove("href".as_bytes()),
                         ) {
-                            let title = String::from_utf8(title.0).unwrap();
-                            let href = String::from_utf8(href.0).unwrap();
+                            let title = String::from_utf8(title.0)?;
+                            let href = String::from_utf8(href.0)?;
 
                             metadata.handle_rss(title, href);
                         }
@@ -66,11 +66,8 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
                         metadata.in_json_ld = true;
                     }
                 } else if let Some(itemtype) = tag.attributes.remove("itemtype".as_bytes()) {
-                    let schema = match str::from_utf8(itemtype.as_slice())
-                        .unwrap()
-                        .split("/")
-                        .last()
-                    {
+                    let url = str::from_utf8(itemtype.as_slice())?;
+                    let schema = match url.split("/").last() {
                         Some("Article") => SchemaObjectOrValue::SchemaObject(
                             SchemaObject::Article(Article::default()),
                         ),
@@ -95,8 +92,8 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
                     metadata.schema_stack.push(schema);
                 } else if let Some(itemprop) = tag.attributes.remove("itemprop".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        let itemprop = String::from_utf8(itemprop.0).unwrap();
-                        let content = String::from_utf8(content.0).unwrap();
+                        let itemprop = String::from_utf8(itemprop.0)?;
+                        let content = String::from_utf8(content.0)?;
 
                         metadata.current_itemprop = Some(itemprop.clone());
                         metadata.handle_microdata(itemprop, content);
@@ -105,7 +102,8 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
             }
             Token::String(text) => {
                 if metadata.in_json_ld {
-                    metadata.handle_json_ld(String::from_utf8(text.0).unwrap());
+                    let json_ld = String::from_utf8(text.0)?;
+                    metadata.handle_json_ld(json_ld);
                 }
             }
             Token::EndTag(_) => {
@@ -228,5 +226,5 @@ pub fn parse_metadata<R: Read>(reader: R) -> Metadata {
         }
     }
 
-    metadata
+    Ok(metadata)
 }

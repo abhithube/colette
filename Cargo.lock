@@ -561,6 +561,7 @@ dependencies = [
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "html5gum",
  "ordered-float 4.2.2",
  "serde",

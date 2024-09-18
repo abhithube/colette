@@ -119,7 +119,7 @@ pub trait BookmarkScraper: Send + Sync {
                 Ok(bookmark)
             }
             None => {
-                let metadata = colette_meta::parse_metadata(body);
+                let metadata = colette_meta::parse_metadata(body)?;
 
                 let mut bookmark = ExtractedBookmark {
                     title: metadata.basic.title,
