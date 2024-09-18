@@ -8,7 +8,6 @@ import {
   RadioButtonGroup,
   Text,
 } from '@colette/components'
-import type { Profile } from '@colette/core'
 import { listProfilesOptions, switchProfileOptions } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -17,11 +16,10 @@ import { XIcon } from 'lucide-react'
 import { Route } from '../_private'
 
 type Props = {
-  active: Profile
   close: () => void
 }
 
-export function ProfileModal({ active, close }: Props) {
+export function ProfileModal({ close }: Props) {
   const context = Route.useRouteContext()
 
   const navigate = useNavigate()
@@ -33,7 +31,7 @@ export function ProfileModal({ active, close }: Props) {
       id: '',
     },
     onSubmit: ({ value }) => {
-      if (value.id === active.id) {
+      if (value.id === context.profile.id) {
         return close()
       }
 

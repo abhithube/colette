@@ -18,13 +18,9 @@ export const Route = createFileRoute('/_private')({
 })
 
 function Component() {
-  const { profile } = Route.useRouteContext()
-
-  if (!profile) return
-
   return (
     <Flex h="screen">
-      <OuterSidebar profile={profile} />
+      <OuterSidebar />
       <Divider orientation="vertical" />
       <Box w="full" overflowY="auto">
         <Outlet />

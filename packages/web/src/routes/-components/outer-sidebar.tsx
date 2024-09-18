@@ -9,18 +9,13 @@ import {
   VStack,
   css,
 } from '@colette/components'
-import type { Profile } from '@colette/core'
 import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { useState } from 'react'
 import { ProfileModal } from './profile-modal'
 import { SettingsModal } from './settings-modal'
 
-type Props = {
-  profile: Profile
-}
-
-export const OuterSidebar = ({ profile }: Props) => {
+export const OuterSidebar = () => {
   const [isProfileModalOpen, setProfileModalOpen] = useState(false)
   const [isSettingsModalOpen, setSettingsModalOpen] = useState(false)
 
@@ -165,10 +160,7 @@ export const OuterSidebar = ({ profile }: Props) => {
         </Tooltip.Root>
         <Dialog.Backdrop />
         <Dialog.Positioner>
-          <ProfileModal
-            active={profile}
-            close={() => setProfileModalOpen(false)}
-          />
+          <ProfileModal close={() => setProfileModalOpen(false)} />
         </Dialog.Positioner>
       </Dialog.Root>
       <Dialog.Root
