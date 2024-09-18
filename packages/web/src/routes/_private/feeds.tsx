@@ -17,7 +17,7 @@ import {
 import { listFeedsOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, Link as TLink, createFileRoute } from '@tanstack/react-router'
-import { History, Home, PlusCircle } from 'lucide-react'
+import { History, Home, PlusCircle, Wrench } from 'lucide-react'
 import { useState } from 'react'
 import { FeedItem } from './feeds/-components/feed-item'
 import { SubscribeModal } from './feeds/-components/subscribe-modal'
@@ -124,6 +124,25 @@ function Component() {
                     </Icon>
                     <Text as="span" flexGrow={1} truncate>
                       Archived
+                    </Text>
+                  </TLink>
+                </Link>
+              </Button>
+              <Button asChild variant="ghost">
+                <Link asChild textDecoration="none">
+                  <TLink
+                    to="/feeds/manage"
+                    activeProps={{
+                      className: css({
+                        bg: 'bg.muted',
+                      }),
+                    }}
+                  >
+                    <Icon>
+                      <Wrench />
+                    </Icon>
+                    <Text as="span" flexGrow={1} truncate>
+                      Manage Feeds
                     </Text>
                   </TLink>
                 </Link>

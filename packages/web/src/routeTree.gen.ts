@@ -18,6 +18,7 @@ import { Route as PrivateFeedsImport } from './routes/_private/feeds'
 import { Route as PrivateBookmarksImport } from './routes/_private/bookmarks'
 import { Route as PrivateFeedsIndexImport } from './routes/_private/feeds/index'
 import { Route as PrivateBookmarksIndexImport } from './routes/_private/bookmarks/index'
+import { Route as PrivateFeedsManageImport } from './routes/_private/feeds/manage'
 import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
 import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
 import { Route as PrivateBookmarksStashImport } from './routes/_private/bookmarks/stash'
@@ -57,6 +58,11 @@ const PrivateFeedsIndexRoute = PrivateFeedsIndexImport.update({
 const PrivateBookmarksIndexRoute = PrivateBookmarksIndexImport.update({
   path: '/',
   getParentRoute: () => PrivateBookmarksRoute,
+} as any)
+
+const PrivateFeedsManageRoute = PrivateFeedsManageImport.update({
+  path: '/manage',
+  getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 const PrivateFeedsArchivedRoute = PrivateFeedsArchivedImport.update({
@@ -134,6 +140,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivateFeedsArchivedImport
       parentRoute: typeof PrivateFeedsImport
     }
+    '/_private/feeds/manage': {
+      id: '/_private/feeds/manage'
+      path: '/manage'
+      fullPath: '/feeds/manage'
+      preLoaderRoute: typeof PrivateFeedsManageImport
+      parentRoute: typeof PrivateFeedsImport
+    }
     '/_private/bookmarks/': {
       id: '/_private/bookmarks/'
       path: '/'
@@ -169,12 +182,14 @@ const PrivateBookmarksRouteWithChildren =
 interface PrivateFeedsRouteChildren {
   PrivateFeedsIdRoute: typeof PrivateFeedsIdRoute
   PrivateFeedsArchivedRoute: typeof PrivateFeedsArchivedRoute
+  PrivateFeedsManageRoute: typeof PrivateFeedsManageRoute
   PrivateFeedsIndexRoute: typeof PrivateFeedsIndexRoute
 }
 
 const PrivateFeedsRouteChildren: PrivateFeedsRouteChildren = {
   PrivateFeedsIdRoute: PrivateFeedsIdRoute,
   PrivateFeedsArchivedRoute: PrivateFeedsArchivedRoute,
+  PrivateFeedsManageRoute: PrivateFeedsManageRoute,
   PrivateFeedsIndexRoute: PrivateFeedsIndexRoute,
 }
 
@@ -206,6 +221,7 @@ export interface FileRoutesByFullPath {
   '/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/feeds/$id': typeof PrivateFeedsIdRoute
   '/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/feeds/manage': typeof PrivateFeedsManageRoute
   '/bookmarks/': typeof PrivateBookmarksIndexRoute
   '/feeds/': typeof PrivateFeedsIndexRoute
 }
@@ -216,6 +232,7 @@ export interface FileRoutesByTo {
   '/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/feeds/$id': typeof PrivateFeedsIdRoute
   '/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/feeds/manage': typeof PrivateFeedsManageRoute
   '/bookmarks': typeof PrivateBookmarksIndexRoute
   '/feeds': typeof PrivateFeedsIndexRoute
 }
@@ -230,6 +247,7 @@ export interface FileRoutesById {
   '/_private/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/_private/feeds/$id': typeof PrivateFeedsIdRoute
   '/_private/feeds/archived': typeof PrivateFeedsArchivedRoute
+  '/_private/feeds/manage': typeof PrivateFeedsManageRoute
   '/_private/bookmarks/': typeof PrivateBookmarksIndexRoute
   '/_private/feeds/': typeof PrivateFeedsIndexRoute
 }
@@ -245,6 +263,7 @@ export interface FileRouteTypes {
     | '/bookmarks/stash'
     | '/feeds/$id'
     | '/feeds/archived'
+    | '/feeds/manage'
     | '/bookmarks/'
     | '/feeds/'
   fileRoutesByTo: FileRoutesByTo
@@ -254,6 +273,7 @@ export interface FileRouteTypes {
     | '/bookmarks/stash'
     | '/feeds/$id'
     | '/feeds/archived'
+    | '/feeds/manage'
     | '/bookmarks'
     | '/feeds'
   id:
@@ -266,6 +286,7 @@ export interface FileRouteTypes {
     | '/_private/bookmarks/stash'
     | '/_private/feeds/$id'
     | '/_private/feeds/archived'
+    | '/_private/feeds/manage'
     | '/_private/bookmarks/'
     | '/_private/feeds/'
   fileRoutesById: FileRoutesById
@@ -322,6 +343,7 @@ export const routeTree = rootRoute
       "children": [
         "/_private/feeds/$id",
         "/_private/feeds/archived",
+        "/_private/feeds/manage",
         "/_private/feeds/"
       ]
     },
@@ -339,6 +361,10 @@ export const routeTree = rootRoute
     },
     "/_private/feeds/archived": {
       "filePath": "_private/feeds/archived.tsx",
+      "parent": "/_private/feeds"
+    },
+    "/_private/feeds/manage": {
+      "filePath": "_private/feeds/manage.tsx",
       "parent": "/_private/feeds"
     },
     "/_private/bookmarks/": {
