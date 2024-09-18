@@ -156,7 +156,10 @@ pub async fn get_active_profile(
     State(service): State<Arc<ProfileService>>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get_active_profile(session.user_id).await {
+    match service
+        .get_profile(session.profile_id, session.user_id)
+        .await
+    {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(_) => Err(Error::Unknown),
     }

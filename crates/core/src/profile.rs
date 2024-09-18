@@ -59,12 +59,6 @@ impl ProfileService {
             .await
     }
 
-    pub async fn get_active_profile(&self, user_id: Uuid) -> Result<Profile, Error> {
-        self.repository
-            .find(ProfileIdOrDefaultParams { id: None, user_id })
-            .await
-    }
-
     pub async fn create_profile(
         &self,
         data: ProfileCreate,

@@ -7,7 +7,7 @@ export const listProfilesOptions = (api: API) =>
     queryFn: () => api.profiles.list(),
   })
 
-export const getDefaultProfileOptions = (api: API) =>
+export const getActiveProfileOptions = (api: API) =>
   queryOptions({
     queryKey: ['profiles', '@me'],
     queryFn: () => api.profiles.getActive(),
