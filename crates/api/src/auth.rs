@@ -43,6 +43,7 @@ impl AuthApi {
             .routes(routes!(login))
             .routes(routes!(get_active_user))
             .routes(routes!(switch_profile))
+            .routes(routes!(logout))
     }
 }
 
@@ -226,6 +227,21 @@ pub async fn switch_profile(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/logout",
+    responses(LogoutResponse),
+    operation_id = "logout",
+    description = "Log out of user account",
+    tag = AUTH_TAG
+)]
+#[axum::debug_handler]
+pub async fn logout(session_store: tower_sessions::Session) -> Result<impl IntoResponse, Error> {
+    session_store.delete().await?;
+
+    Ok(LogoutResponse::NoContent)
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
@@ -301,6 +317,24 @@ impl IntoResponse for SwitchProfileResponse {
         match self {
             Self::Ok(data) => Json(data).into_response(),
             Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
+            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+        }
+    }
+}
+
+#[derive(Debug, utoipa::IntoResponses)]
+pub enum LogoutResponse {
+    #[response(status = 204, description = "Successfully logged out")]
+    NoContent,
+
+    #[response(status = 422, description = "Invalid input")]
+    UnprocessableEntity(BaseError),
+}
+
+impl IntoResponse for LogoutResponse {
+    fn into_response(self) -> Response {
+        match self {
+            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
