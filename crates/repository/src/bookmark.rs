@@ -226,7 +226,7 @@ impl BookmarkRepository for BookmarkSqlRepository {
     }
 }
 
-async fn find<Db: ConnectionTrait>(
+pub(crate) async fn find<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,

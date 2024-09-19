@@ -259,7 +259,7 @@ impl FeedRepository for FeedSqlRepository {
     }
 }
 
-async fn find<Db: ConnectionTrait>(
+pub(crate) async fn find<Db: ConnectionTrait>(
     db: &Db,
     id: Option<Uuid>,
     profile_id: Uuid,

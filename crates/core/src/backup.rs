@@ -9,19 +9,10 @@ use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::{
-    bookmark::BookmarkRepository,
-    collection::CollectionRepository,
-    feed::FeedRepository,
-    tag::{TagFindManyFilters, TagRepository, TagType},
-};
+use crate::{Bookmark, Collection, Feed, Tag};
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
-    bookmark_repository: Arc<dyn BookmarkRepository>,
-    collection_repository: Arc<dyn CollectionRepository>,
-    feed_repository: Arc<dyn FeedRepository>,
-    tag_repository: Arc<dyn TagRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
@@ -35,19 +26,11 @@ pub struct ItemWrapper {
 impl BackupService {
     pub fn new(
         backup_repository: Arc<dyn BackupRepository>,
-        bookmark_repository: Arc<dyn BookmarkRepository>,
-        collection_repository: Arc<dyn CollectionRepository>,
-        feed_repository: Arc<dyn FeedRepository>,
-        tag_repository: Arc<dyn TagRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
         netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {
         Self {
             backup_repository,
-            bookmark_repository,
-            collection_repository,
-            feed_repository,
-            tag_repository,
             opml_manager,
             netscape_manager,
         }
@@ -65,23 +48,7 @@ impl BackupService {
     }
 
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
-        let tags = self
-            .tag_repository
-            .list(
-                profile_id,
-                None,
-                None,
-                Some(TagFindManyFilters {
-                    tag_type: TagType::Feeds,
-                }),
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let feeds = self
-            .feed_repository
-            .list(profile_id, None, None, None)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let (tags, feeds) = self.backup_repository.export_opml(profile_id).await?;
 
         let mut tag_map: BTreeMap<String, Outline> = BTreeMap::new();
 
@@ -145,16 +112,7 @@ impl BackupService {
     }
 
     pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
-        let collections = self
-            .collection_repository
-            .list(profile_id, None, None)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-        let bookmarks = self
-            .bookmark_repository
-            .list(profile_id, None, None, None)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let (collections, bookmarks) = self.backup_repository.export_netscape(profile_id).await?;
 
         let mut collection_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
         let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
@@ -248,7 +206,14 @@ impl BackupService {
 pub trait BackupRepository: Send + Sync {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
 
+    async fn export_opml(&self, profile_id: Uuid) -> Result<(Vec<Tag>, Vec<Feed>), Error>;
+
     async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
+
+    async fn export_netscape(
+        &self,
+        profile_id: Uuid,
+    ) -> Result<(Vec<Collection>, Vec<Bookmark>), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
