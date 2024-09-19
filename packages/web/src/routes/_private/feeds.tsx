@@ -69,7 +69,7 @@ function Component() {
               </Heading>
               <Dialog.Root>
                 <Dialog.Trigger asChild>
-                  <IconButton flexShrink={0}>
+                  <IconButton variant="outline" flexShrink={0}>
                     <PlusCircle />
                     New
                   </IconButton>
