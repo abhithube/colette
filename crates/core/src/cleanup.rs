@@ -1,5 +1,16 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Local, Utc};
+
+#[derive(Clone, Debug, Default)]
+#[allow(dead_code)]
+pub struct CleanupJob(DateTime<Utc>);
+impl From<DateTime<Utc>> for CleanupJob {
+    fn from(value: DateTime<Utc>) -> Self {
+        CleanupJob(value)
+    }
+}
+
 pub struct CleanupService {
     cleanup_repository: Arc<dyn CleanupRepository>,
 }
@@ -9,12 +20,17 @@ impl CleanupService {
         Self { cleanup_repository }
     }
 
-    pub async fn cleanup_feeds(&self) -> Result<(), Error> {
-        self.cleanup_repository.cleanup_feeds().await
-    }
+    pub async fn cleanup(&self) -> Result<(), Error> {
+        let start = Local::now();
+        println!("Started cleanup task at: {}", start);
 
-    pub async fn cleanup_tags(&self) -> Result<(), Error> {
-        self.cleanup_repository.cleanup_tags().await
+        self.cleanup_repository.cleanup_feeds().await?;
+        self.cleanup_repository.cleanup_tags().await?;
+
+        let elasped = (Local::now().time() - start.time()).num_milliseconds();
+        println!("Finished cleanup task in {} ms", elasped);
+
+        Ok(())
     }
 }
 

@@ -1,33 +1,10 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
-use chrono::Local;
-use colette_core::feed::FeedRepository;
-use cron::Schedule;
+use apalis::prelude::Data;
+use colette_core::cleanup::{CleanupJob, CleanupService};
 
-pub fn handle_cleanup_task(cron: &str, repository: Arc<dyn FeedRepository>) {
-    let schedule = Schedule::from_str(cron).unwrap();
-
-    tokio::spawn(async move {
-        let repository = repository.clone();
-
-        loop {
-            let upcoming = schedule.upcoming(Local).take(1).next().unwrap();
-            let duration = (upcoming - Local::now()).to_std().unwrap();
-
-            tokio::time::sleep(duration).await;
-
-            let start = Local::now();
-            println!("Started cleanup task at: {}", start);
-
-            match repository.cleanup().await {
-                Ok(_) => {
-                    let elasped = (Local::now().time() - start.time()).num_milliseconds();
-                    println!("Finished cleanup task in {} ms", elasped);
-                }
-                Err(e) => {
-                    println!("Failed cleanup task: {}", e);
-                }
-            }
-        }
-    });
+pub async fn cleanup(_job: CleanupJob, service: Data<Arc<CleanupService>>) {
+    if let Err(e) = service.cleanup().await {
+        println!("{:?}", e);
+    }
 }

@@ -16,15 +16,16 @@ use colette_api::{
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService, cleanup::CleanupService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
     profile::ProfileService, refresh::RefreshService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
-    BackupSqlRepository, BookmarkSqlRepository, CollectionSqlRepository, FeedEntrySqlRepository,
-    FeedSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+    BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, CollectionSqlRepository,
+    FeedEntrySqlRepository, FeedSqlRepository, ProfileSqlRepository, TagSqlRepository,
+    UserSqlRepository,
 };
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
@@ -84,8 +85,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
     let tag_repository = Arc::new(TagSqlRepository::new(db.clone()));
 
-    colette_task::handle_cleanup_task(CRON_CLEANUP, feed_repository.clone());
-
     let base64_decoder = Arc::new(Base64Encoder);
 
     let auth_service = Arc::new(AuthService::new(
@@ -107,6 +106,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(register_bookmark_plugins()),
         base64_decoder.clone(),
     ));
+    let cleanup_service = Arc::new(CleanupService::new(Arc::new(CleanupSqlRepository::new(
+        db.clone(),
+    ))));
     let collection_service = Arc::new(CollectionService::new(collection_repository));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
@@ -161,8 +163,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Ok(())
         }
     };
+    let cleanup_worker = async {
+        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
 
-    let _ = tokio::join!(server, refresh_worker);
+        let worker = WorkerBuilder::new("cleanup")
+            .data(cleanup_service)
+            .backend(CronStream::new(schedule))
+            .build_fn(colette_task::cleanup);
+
+        Monitor::<TokioExecutor>::new().register(worker).run().await
+    };
+
+    let _ = tokio::join!(server, refresh_worker, cleanup_worker);
 
     deletion_task.await??;
 
