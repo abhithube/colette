@@ -18,8 +18,6 @@ export function FeedRowActions({ feed }: Props) {
     updateFeedOptions(
       {
         onSuccess: async (data) => {
-          close()
-
           await context.queryClient.setQueryData(['feeds', feed.id], data)
           await context.queryClient.invalidateQueries({
             queryKey: ['profiles', context.profile.id, 'feeds'],
