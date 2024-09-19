@@ -14,7 +14,7 @@ import {
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { EditFeedModal } from './-components/edit-feed-modal'
 import { FeedEntryGrid } from './-components/feed-entry-grid'
 import { UnsubscribeAlert } from './-components/unsubscribe-alert'
@@ -55,8 +55,6 @@ function Component() {
     hasNextPage,
     fetchNextPage,
   } = useInfiniteQuery(feedEntryOptions)
-
-  const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
@@ -111,16 +109,24 @@ function Component() {
             </Icon>
             Mark as Read
           </Button>
-          <Button
-            variant="subtle"
-            colorPalette="red"
-            onClick={() => setUnsubscribeAlertOpen(true)}
-          >
-            <Icon>
-              <CircleX />
-            </Icon>
-            Unsubscribe
-          </Button>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="subtle" colorPalette="red">
+                <Icon>
+                  <CircleX />
+                </Icon>
+                Unsubscribe
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Context>
+                {({ setOpen }) => (
+                  <UnsubscribeAlert feed={feed} close={() => setOpen(false)} />
+                )}
+              </Dialog.Context>
+            </Dialog.Positioner>
+          </Dialog.Root>
         </HStack>
       </HStack>
       <main>
@@ -130,11 +136,6 @@ function Component() {
           loadMore={fetchNextPage}
         />
       </main>
-      <UnsubscribeAlert
-        feed={feed}
-        isOpen={isUnsubscribeAlertOpen}
-        setOpen={setUnsubscribeAlertOpen}
-      />
     </>
   )
 }

@@ -5,15 +5,12 @@ import { useMutation } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { Route } from '../../feeds'
 
-export function UnsubscribeAlert({
-  feed,
-  isOpen,
-  setOpen,
-}: {
+type Props = {
   feed: Feed
-  isOpen: boolean
-  setOpen: React.Dispatch<React.SetStateAction<boolean>>
-}) {
+  close: () => void
+}
+
+export function UnsubscribeAlert({ feed, close }: Props) {
   const context = Route.useRouteContext()
 
   const navigate = useNavigate()
@@ -26,6 +23,8 @@ export function UnsubscribeAlert({
       feed.id,
       {
         onSuccess: async () => {
+          close()
+
           if (typeof params === 'object' && params.id === feed.id) {
             await navigate({
               to: '/feeds',
@@ -42,26 +41,21 @@ export function UnsubscribeAlert({
   )
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => setOpen(e.open)}>
-      <Dialog.Backdrop />
-      <Dialog.Positioner>
-        <Dialog.Content maxW="md" p={6}>
-          <Dialog.Title lineClamp={1}>
-            Unsubscribe from {feed.title ?? feed.originalTitle}?
-          </Dialog.Title>
-          <Dialog.Description>
-            Are you sure you want to unsubscribe? This action cannot be undone.
-          </Dialog.Description>
-          <Flex justify="end" spaceX={4} mt={8}>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button loading={isPending} onClick={() => unsubscribe()}>
-              Submit
-            </Button>
-          </Flex>
-        </Dialog.Content>
-      </Dialog.Positioner>
-    </Dialog.Root>
+    <Dialog.Content maxW="md" p={6}>
+      <Dialog.Title lineClamp={1}>
+        Unsubscribe from {feed.title ?? feed.originalTitle}?
+      </Dialog.Title>
+      <Dialog.Description>
+        Are you sure you want to unsubscribe? This action cannot be undone.
+      </Dialog.Description>
+      <Flex justify="end" spaceX={4} mt={8}>
+        <Dialog.CloseTrigger asChild>
+          <Button variant="outline">Cancel</Button>
+        </Dialog.CloseTrigger>
+        <Button loading={isPending} onClick={() => unsubscribe()}>
+          Submit
+        </Button>
+      </Flex>
+    </Dialog.Content>
   )
 }
