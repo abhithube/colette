@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::Local;
+use chrono::{DateTime, Local, Utc};
 use colette_scraper::FeedScraper;
 use futures::StreamExt;
 use tokio::sync::Semaphore;
@@ -10,6 +10,15 @@ use crate::{
     feed::{FeedCreateData, FeedRepository},
     profile::ProfileRepository,
 };
+
+#[derive(Clone, Debug, Default)]
+#[allow(dead_code)]
+pub struct RefreshJob(DateTime<Utc>);
+impl From<DateTime<Utc>> for RefreshJob {
+    fn from(value: DateTime<Utc>) -> Self {
+        RefreshJob(value)
+    }
+}
 
 pub struct RefreshService {
     feed_scraper: Arc<dyn FeedScraper>,
@@ -31,6 +40,9 @@ impl RefreshService {
     }
 
     pub async fn refresh_feeds(&self) -> Result<(), Error> {
+        let start = Local::now();
+        println!("Started refresh task at: {}", start.to_rfc3339());
+
         let semaphore = Arc::new(Semaphore::new(5));
 
         let feeds_stream = self
@@ -63,6 +75,9 @@ impl RefreshService {
             .buffer_unordered(5);
 
         tasks.for_each(|_| async {}).await;
+
+        let elasped = (Local::now().time() - start.time()).num_milliseconds();
+        println!("Finished refresh task in {} ms", elasped);
 
         Ok(())
     }
