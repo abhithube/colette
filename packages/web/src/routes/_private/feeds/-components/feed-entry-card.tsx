@@ -60,7 +60,11 @@ export function FeedEntryCard({ feedEntry }: Props) {
         </Card.Header>
         <Card.Body pt={2} pb={4}>
           {feedEntry.description ? (
-            <Text lineClamp={2} title={feedEntry.description}>
+            <Text
+              lineClamp={2}
+              wordBreak="break-word"
+              title={feedEntry.description}
+            >
               {feedEntry.description}
             </Text>
           ) : (
