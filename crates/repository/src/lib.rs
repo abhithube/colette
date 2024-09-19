@@ -1,5 +1,6 @@
 pub use backup::BackupSqlRepository;
 pub use bookmark::BookmarkSqlRepository;
+pub use cleanup::CleanupSqlRepository;
 pub use collection::CollectionSqlRepository;
 pub use feed::FeedSqlRepository;
 pub use feed_entry::FeedEntrySqlRepository;
@@ -9,6 +10,7 @@ pub use user::UserSqlRepository;
 
 mod backup;
 mod bookmark;
+mod cleanup;
 mod collection;
 mod feed;
 mod feed_entry;

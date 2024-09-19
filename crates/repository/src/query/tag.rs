@@ -1,7 +1,7 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
-    sea_query::{Alias, Expr, OnConflict},
+    sea_query::{Alias, Expr, OnConflict, Query},
     ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, JoinType,
     QueryFilter, QuerySelect, RelationTrait, Set,
 };
@@ -142,6 +142,33 @@ pub async fn delete_by_id<Db: ConnectionTrait>(
 ) -> Result<DeleteResult, DbErr> {
     tag::Entity::delete_by_id(id)
         .filter(tag::Column::ProfileId.eq(profile_id))
+        .exec(db)
+        .await
+}
+
+pub async fn delete_many<Db: ConnectionTrait>(db: &Db) -> Result<DeleteResult, DbErr> {
+    let feed_subquery = Query::select()
+        .from(profile_feed_tag::Entity)
+        .and_where(
+            Expr::col((profile_feed_tag::Entity, profile_feed_tag::Column::TagId))
+                .equals((tag::Entity, tag::Column::Id)),
+        )
+        .to_owned();
+
+    let bookmark_subquery = Query::select()
+        .from(profile_bookmark_tag::Entity)
+        .and_where(
+            Expr::col((
+                profile_bookmark_tag::Entity,
+                profile_bookmark_tag::Column::TagId,
+            ))
+            .equals((tag::Entity, tag::Column::Id)),
+        )
+        .to_owned();
+
+    tag::Entity::delete_many()
+        .filter(Expr::exists(feed_subquery).not())
+        .filter(Expr::exists(bookmark_subquery).not())
         .exec(db)
         .await
 }

@@ -9,6 +9,7 @@ pub use user::User;
 pub mod auth;
 pub mod backup;
 pub mod bookmark;
+pub mod cleanup;
 pub mod collection;
 pub mod common;
 pub mod feed;
