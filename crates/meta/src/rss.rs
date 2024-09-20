@@ -1,13 +1,9 @@
-use crate::Metadata;
-
 #[derive(Debug, Clone)]
 pub struct Feed {
     pub title: String,
     pub href: String,
 }
 
-impl Metadata {
-    pub(crate) fn handle_rss(&mut self, title: String, href: String) {
-        self.feeds.push(Feed { title, href });
-    }
+pub(crate) fn handle_rss(feeds: &mut Vec<Feed>, title: String, href: String) {
+    feeds.push(Feed { title, href });
 }

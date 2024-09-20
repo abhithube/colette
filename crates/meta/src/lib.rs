@@ -2,11 +2,14 @@ use core::str;
 use std::io::Read;
 
 use html5gum::{IoReader, Token, Tokenizer};
+use open_graph::handle_open_graph;
+use rss::{handle_rss, Feed};
 use schema_org::{
-    Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, VideoObject, WebPage, WebSite,
+    handle_json_ld, handle_microdata, Article, ImageObject, Person, SchemaObject,
+    SchemaObjectOrValue, VideoObject, WebPage, WebSite,
 };
 
-use crate::{basic::Basic, open_graph::OpenGraph, rss::Feed, util::Value};
+use crate::{basic::Basic, open_graph::OpenGraph, util::Value};
 
 pub mod basic;
 pub mod open_graph;
@@ -20,14 +23,14 @@ pub struct Metadata {
     pub feeds: Vec<Feed>,
     pub open_graph: Option<OpenGraph>,
     pub schema_org: Vec<SchemaObjectOrValue>,
-
-    in_json_ld: bool,
-    current_itemprop: Option<String>,
-    schema_stack: Vec<SchemaObjectOrValue>,
 }
 
 pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
     let mut metadata = Metadata::default();
+
+    let mut in_json_ld = false;
+    let mut current_itemprop: Option<String> = None;
+    let mut schema_stack: Vec<SchemaObjectOrValue> = Vec::new();
 
     let mut tokenizer = Tokenizer::new(IoReader::new(reader));
 
@@ -47,7 +50,9 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                             let property = str::from_utf8(&property)?;
                             let content = String::from_utf8(content.0)?;
 
-                            metadata.handle_open_graph(property, content);
+                            let open_graph =
+                                metadata.open_graph.get_or_insert_with(OpenGraph::default);
+                            handle_open_graph(open_graph, property, content);
                         }
                     }
                 } else if let Some(r#type) = tag.attributes.remove("type".as_bytes()) {
@@ -60,10 +65,10 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                             let title = String::from_utf8(title.0)?;
                             let href = String::from_utf8(href.0)?;
 
-                            metadata.handle_rss(title, href);
+                            handle_rss(&mut metadata.feeds, title, href);
                         }
                     } else if r#type.as_slice() == b"application/ld+json" {
-                        metadata.in_json_ld = true;
+                        in_json_ld = true;
                     }
                 } else if let Some(itemtype) = tag.attributes.remove("itemtype".as_bytes()) {
                     let url = str::from_utf8(itemtype.as_slice())?;
@@ -89,34 +94,36 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                         _ => SchemaObjectOrValue::Other(Value::default()),
                     };
 
-                    metadata.schema_stack.push(schema);
+                    schema_stack.push(schema);
                 } else if let Some(itemprop) = tag.attributes.remove("itemprop".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
                         let itemprop = String::from_utf8(itemprop.0)?;
                         let content = String::from_utf8(content.0)?;
 
-                        metadata.current_itemprop = Some(itemprop.clone());
-                        metadata.handle_microdata(itemprop, content);
+                        current_itemprop = Some(itemprop.clone());
+                        if let Some(schema_org) = schema_stack.last_mut() {
+                            handle_microdata(schema_org, itemprop, content);
+                        }
                     }
                 }
             }
             Token::String(text) => {
-                if metadata.in_json_ld {
+                if in_json_ld {
                     let json_ld = String::from_utf8(text.0)?;
-                    metadata.handle_json_ld(json_ld);
+
+                    handle_json_ld(&mut metadata.schema_org, json_ld);
                 }
             }
             Token::EndTag(_) => {
-                if metadata.in_json_ld {
-                    metadata.in_json_ld = false;
+                if in_json_ld {
+                    in_json_ld = false;
                     continue;
                 }
 
-                let Some(completed_schema) = metadata.schema_stack.pop() else {
+                let Some(completed_schema) = schema_stack.pop() else {
                     continue;
                 };
-                let Some(parent_schema) = metadata.schema_stack.last_mut() else {
-                    // println!("{:?}", completed_schema);
+                let Some(parent_schema) = schema_stack.last_mut() else {
                     metadata.schema_org.push(completed_schema);
                     continue;
                 };
@@ -129,7 +136,7 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                 match completed_schema {
                     SchemaObjectOrValue::SchemaObject(schema) => match schema {
                         SchemaObject::ImageObject(image_object) => {
-                            match metadata.current_itemprop.as_deref() {
+                            match current_itemprop.as_deref() {
                                 Some("image") => image = Some(image_object),
                                 Some("thumbnail") => thumbnail = Some(image_object),
                                 _ => {}
@@ -210,7 +217,7 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                     },
                     SchemaObjectOrValue::Other(other) => {
                         if let (Value::Object(object), Some(itemprop)) =
-                            (other, metadata.current_itemprop.as_deref())
+                            (other, current_itemprop.as_deref())
                         {
                             let other = object
                                 .entry(itemprop.to_owned())
