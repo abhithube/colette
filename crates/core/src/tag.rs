@@ -10,6 +10,7 @@ use crate::common::{
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    pub parent_id: Option<Uuid>,
     pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
 }
@@ -17,11 +18,13 @@ pub struct Tag {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct TagCreate {
     pub title: NonEmptyString,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct TagUpdate {
     pub title: Option<NonEmptyString>,
+    pub parent_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -75,6 +78,7 @@ impl TagService {
         self.repository
             .create(TagCreateData {
                 title: data.title.into(),
+                parent_id: data.parent_id,
                 profile_id,
             })
             .await
@@ -125,18 +129,21 @@ impl From<TagListQuery> for TagFindManyFilters {
 #[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
     pub title: String,
+    pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct TagUpdateData {
     pub title: Option<String>,
+    pub parent_id: Option<Uuid>,
 }
 
 impl From<TagUpdate> for TagUpdateData {
     fn from(value: TagUpdate) -> Self {
         Self {
             title: value.title.map(String::from),
+            parent_id: value.parent_id,
         }
     }
 }

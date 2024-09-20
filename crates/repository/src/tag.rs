@@ -41,6 +41,7 @@ impl Creatable for TagSqlRepository {
             &self.db,
             Uuid::new_v4(),
             data.title.clone(),
+            data.parent_id,
             data.profile_id,
         )
         .await
@@ -52,6 +53,7 @@ impl Creatable for TagSqlRepository {
         Ok(Tag {
             id: model.id,
             title: model.title,
+            parent_id: model.parent_id,
             bookmark_count: Some(0),
             feed_count: Some(0),
         })
@@ -79,6 +81,7 @@ impl Updatable for TagSqlRepository {
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title);
                     }
+                    active_model.parent_id.set_if_not_equals(data.parent_id);
 
                     if active_model.is_changed() {
                         active_model

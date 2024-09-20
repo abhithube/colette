@@ -118,6 +118,7 @@ impl From<tag::Model> for Tag {
         Self {
             id: value.id,
             title: value.title,
+            parent_id: value.parent_id,
             bookmark_count: None,
             feed_count: None,
         }
@@ -128,6 +129,7 @@ impl From<tag::Model> for Tag {
 pub struct PartialTag {
     id: Uuid,
     title: String,
+    parent_id: Option<Uuid>,
     bookmark_count: i64,
     feed_count: i64,
 }
@@ -137,6 +139,7 @@ impl From<PartialTag> for Tag {
         Self {
             id: value.id,
             title: value.title,
+            parent_id: value.parent_id,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
         }

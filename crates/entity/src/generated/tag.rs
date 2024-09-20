@@ -9,6 +9,7 @@ pub struct Model {
     pub id: Uuid,
     #[sea_orm(column_type = "Text")]
     pub title: String,
+    pub parent_id: Option<Uuid>,
     pub profile_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
@@ -28,6 +29,14 @@ pub enum Relation {
     ProfileBookmarkTag,
     #[sea_orm(has_many = "super::profile_feed_tag::Entity")]
     ProfileFeedTag,
+    #[sea_orm(
+        belongs_to = "Entity",
+        from = "Column::ParentId",
+        to = "Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    SelfRef,
 }
 
 impl Related<super::profile::Entity> for Entity {

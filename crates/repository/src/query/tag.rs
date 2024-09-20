@@ -123,11 +123,13 @@ pub async fn insert<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
     title: String,
+    parent_id: Option<Uuid>,
     profile_id: Uuid,
 ) -> Result<tag::Model, DbErr> {
     let model = tag::ActiveModel {
         id: Set(id),
         title: Set(title),
+        parent_id: Set(parent_id),
         profile_id: Set(profile_id),
         ..Default::default()
     };
