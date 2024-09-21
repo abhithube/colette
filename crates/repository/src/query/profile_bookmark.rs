@@ -1,9 +1,10 @@
 use colette_core::bookmark::{BookmarkFindManyFilters, Cursor};
-use colette_entity::{bookmark, profile_bookmark, profile_bookmark_tag, tag};
+use colette_entity::{bookmark, profile_bookmark, profile_bookmark_tag, tag, PartialBookmarkTag};
+use indexmap::IndexMap;
 use sea_orm::{
-    sea_query::{Expr, OnConflict, SimpleExpr},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, InsertResult, JoinType,
-    LoaderTrait, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
+    sea_query::{Alias, CommonTableExpression, Expr, OnConflict, Query, SimpleExpr, UnionType},
+    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, InsertResult,
+    JoinType, Order, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
 use uuid::Uuid;
 
@@ -89,15 +90,86 @@ pub async fn select_last<Db: ConnectionTrait>(
 
 pub async fn load_tags<Db: ConnectionTrait>(
     db: &Db,
-    models: Vec<profile_bookmark::Model>,
-) -> Result<Vec<Vec<tag::Model>>, DbErr> {
-    models
-        .load_many_to_many(
-            tag::Entity::find().order_by_asc(tag::Column::Title),
+    pb_ids: Vec<Uuid>,
+) -> Result<Vec<Vec<PartialBookmarkTag>>, DbErr> {
+    let tag_tree = Alias::new("tag_tree");
+    let level = Alias::new("level");
+
+    let mut tag_map: IndexMap<Uuid, Vec<PartialBookmarkTag>> =
+        IndexMap::from_iter(pb_ids.iter().map(|e| (*e, Vec::new())));
+
+    let mut base_query = Query::select()
+        .column(tag::Column::Id)
+        .column(tag::Column::Title)
+        .column(tag::Column::ParentId)
+        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
+        .expr_as(Expr::val(1), level.clone())
+        .from(tag::Entity)
+        .inner_join(
             profile_bookmark_tag::Entity,
-            db,
+            Expr::col((
+                profile_bookmark_tag::Entity,
+                profile_bookmark_tag::Column::TagId,
+            ))
+            .equals((tag::Entity, tag::Column::Id)),
         )
-        .await
+        .and_where(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids))
+        .to_owned();
+
+    let recursive_query = Query::select()
+        .column((tag::Entity, tag::Column::Id))
+        .column((tag::Entity, tag::Column::Title))
+        .column((tag::Entity, tag::Column::ParentId))
+        .column((
+            tag_tree.clone(),
+            profile_bookmark_tag::Column::ProfileBookmarkId,
+        ))
+        .expr(Expr::col(level.clone()).add(1))
+        .from(tag::Entity)
+        .inner_join(
+            tag_tree.clone(),
+            Expr::col((tag_tree.clone(), tag::Column::ParentId))
+                .equals((tag::Entity, tag::Column::Id)),
+        )
+        .to_owned();
+
+    let final_query = Query::select()
+        .column((tag_tree.clone(), tag::Column::Id))
+        .column((tag_tree.clone(), tag::Column::Title))
+        .column((tag_tree.clone(), tag::Column::ParentId))
+        .column((
+            tag_tree.clone(),
+            profile_bookmark_tag::Column::ProfileBookmarkId,
+        ))
+        .column((tag_tree.clone(), level.clone()))
+        .from(tag_tree.clone())
+        .order_by((tag_tree.clone(), level), Order::Asc)
+        .to_owned();
+
+    let query = final_query.with(
+        Query::with()
+            .cte(
+                CommonTableExpression::new()
+                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
+                    .table_name(tag_tree)
+                    .to_owned(),
+            )
+            .recursive(true)
+            .to_owned(),
+    );
+
+    let partial_tags =
+        PartialBookmarkTag::find_by_statement(db.get_database_backend().build(&query))
+            .all(db)
+            .await?;
+
+    for partial_tag in partial_tags {
+        if let Some(tags) = tag_map.get_mut(&partial_tag.profile_bookmark_id) {
+            tags.push(partial_tag);
+        }
+    }
+
+    Ok(tag_map.into_values().collect::<Vec<_>>())
 }
 
 pub async fn insert<Db: ConnectionTrait>(

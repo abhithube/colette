@@ -10,7 +10,7 @@ mod generated;
 pub struct PbWithBookmarkAndTags {
     pub pb: profile_bookmark::Model,
     pub bookmark: bookmark::Model,
-    pub tags: Vec<tag::Model>,
+    pub tags: Vec<PartialBookmarkTag>,
 }
 
 impl From<PbWithBookmarkAndTags> for Bookmark {
@@ -142,6 +142,27 @@ impl From<PartialTag> for Tag {
             parent_id: value.parent_id,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
+        }
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialBookmarkTag {
+    pub id: Uuid,
+    pub title: String,
+    pub parent_id: Option<Uuid>,
+    pub profile_bookmark_id: Uuid,
+    pub level: i32,
+}
+
+impl From<PartialBookmarkTag> for Tag {
+    fn from(value: PartialBookmarkTag) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            parent_id: value.parent_id,
+            bookmark_count: None,
+            feed_count: None,
         }
     }
 }
