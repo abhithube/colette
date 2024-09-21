@@ -13,5 +13,6 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-util.workspace = true
 futures.workspace = true
+indexmap = { version = "2", default-features = false }
 sea-orm.workspace = true
 uuid.workspace = true

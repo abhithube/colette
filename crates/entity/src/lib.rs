@@ -56,7 +56,7 @@ impl From<PartialCollection> for Collection {
 pub struct PfWithFeedAndTagsAndUnreadCount {
     pub pf: profile_feed::Model,
     pub feed: feed::Model,
-    pub tags: Vec<tag::Model>,
+    pub tags: Vec<PartialFeedTag>,
     pub unread_count: i64,
 }
 
@@ -142,6 +142,27 @@ impl From<PartialTag> for Tag {
             parent_id: value.parent_id,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
+        }
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialFeedTag {
+    pub id: Uuid,
+    pub title: String,
+    pub parent_id: Option<Uuid>,
+    pub profile_feed_id: Uuid,
+    pub level: i32,
+}
+
+impl From<PartialFeedTag> for Tag {
+    fn from(value: PartialFeedTag) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            parent_id: value.parent_id,
+            bookmark_count: None,
+            feed_count: None,
         }
     }
 }

@@ -621,6 +621,7 @@ dependencies = [
  "colette-opml",
  "colette-util",
  "futures",
+ "indexmap",
  "sea-orm",
  "uuid",
 ]

@@ -254,10 +254,9 @@ pub(crate) async fn find<Db: ConnectionTrait>(
                 .collect::<Vec<_>>()
         })
         .map_err(|e| Error::Unknown(e.into()))?;
-    let pf_models = models.iter().map(|e| e.0.to_owned()).collect::<Vec<_>>();
-    let pf_ids = pf_models.iter().map(|e| e.id).collect::<Vec<_>>();
+    let pf_ids = models.iter().map(|e| e.0.id).collect::<Vec<_>>();
 
-    let tag_models = query::profile_feed::load_tags(db, pf_models)
+    let tag_models = query::profile_feed::load_tags(db, pf_ids.clone())
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
