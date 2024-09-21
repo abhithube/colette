@@ -1,9 +1,9 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
-    sea_query::{Alias, Expr, OnConflict, Query},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, JoinType,
-    QueryFilter, QuerySelect, RelationTrait, Set,
+    sea_query::{Alias, CommonTableExpression, Expr, OnConflict, Query, UnionType},
+    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult, Order,
+    QueryFilter, Set,
 };
 use uuid::Uuid;
 
@@ -15,54 +15,106 @@ pub async fn select<Db: ConnectionTrait>(
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<PartialTag>, DbErr> {
-    let mut query = tag::Entity::find()
-        .expr_as(
-            Expr::col((
-                Alias::new("pbt"),
-                profile_bookmark_tag::Column::ProfileBookmarkId,
-            ))
-            .count(),
-            "bookmark_count",
-        )
-        .expr_as(
-            Expr::col((Alias::new("pft"), profile_feed_tag::Column::ProfileFeedId)).count(),
-            "feed_count",
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            tag::Relation::ProfileBookmarkTag.def(),
-            Alias::new("pbt"),
-        )
-        .join_as(
-            JoinType::LeftJoin,
-            tag::Relation::ProfileFeedTag.def(),
-            Alias::new("pft"),
-        )
-        .group_by(tag::Column::Id);
+    let tag_tree = Alias::new("tag_tree");
+    let root_id = Alias::new("root_id");
 
-    let mut conditions = Condition::all().add(tag::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(tag::Column::Id.eq(id));
-    }
+    let mut base_query = Query::select()
+        .expr_as(Expr::col(tag::Column::Id), root_id.clone())
+        .column(tag::Column::Title)
+        .column(tag::Column::ParentId)
+        .column(tag::Column::Id)
+        .from(tag::Entity)
+        .and_where(tag::Column::ProfileId.eq(profile_id))
+        .and_where_option(id.map(|e| tag::Column::Id.eq(e)))
+        .and_where_option(cursor.map(|e| tag::Column::Title.gt(e.title)))
+        .to_owned();
+
     if let Some(filters) = filters {
-        query = match filters.tag_type {
+        match filters.tag_type {
             TagType::Bookmarks => {
-                query.join(JoinType::InnerJoin, tag::Relation::ProfileBookmarkTag.def())
+                base_query.inner_join(
+                    profile_bookmark_tag::Entity,
+                    Expr::col(profile_bookmark_tag::Column::TagId).equals(tag::Column::Id),
+                );
             }
-            TagType::Feeds => query.join(JoinType::InnerJoin, tag::Relation::ProfileFeedTag.def()),
-            _ => query,
+            TagType::Feeds => {
+                base_query.inner_join(
+                    profile_feed_tag::Entity,
+                    Expr::col(profile_feed_tag::Column::TagId).equals(tag::Column::Id),
+                );
+            }
+            _ => {}
         };
     }
-
-    let mut query = query.filter(conditions).cursor_by(tag::Column::Title);
-    if let Some(cursor) = cursor {
-        query.after(cursor.title);
-    }
     if let Some(limit) = limit {
-        query.first(limit);
+        base_query.limit(limit);
     }
 
-    query.into_model::<PartialTag>().all(db).await
+    let recursive_query = Query::select()
+        .column((tag_tree.clone(), root_id.clone()))
+        .column((tag_tree.clone(), tag::Column::Title))
+        .column((tag_tree.clone(), tag::Column::ParentId))
+        .column((tag::Entity, tag::Column::Id))
+        .from(tag_tree.clone())
+        .inner_join(
+            tag::Entity,
+            Expr::col((tag::Entity, tag::Column::ParentId))
+                .equals((tag_tree.clone(), tag::Column::Id)),
+        )
+        .to_owned();
+
+    let final_query = Query::select()
+        .expr_as(
+            Expr::col((tag_tree.clone(), root_id.clone())),
+            Alias::new("id"),
+        )
+        .column((tag_tree.clone(), tag::Column::Title))
+        .column((tag_tree.clone(), tag::Column::ParentId))
+        .expr_as(
+            profile_feed_tag::Column::ProfileFeedId.count(),
+            Alias::new("feed_count"),
+        )
+        .expr_as(
+            profile_bookmark_tag::Column::ProfileBookmarkId.count(),
+            Alias::new("bookmark_count"),
+        )
+        .from(tag_tree.clone())
+        .left_join(
+            profile_feed_tag::Entity,
+            Expr::col((profile_feed_tag::Entity, profile_feed_tag::Column::TagId))
+                .equals((tag_tree.clone(), tag::Column::Id)),
+        )
+        .left_join(
+            profile_bookmark_tag::Entity,
+            Expr::col((
+                profile_bookmark_tag::Entity,
+                profile_bookmark_tag::Column::TagId,
+            ))
+            .equals((tag_tree.clone(), tag::Column::Id)),
+        )
+        .group_by_columns([
+            (tag_tree.clone(), root_id),
+            (tag_tree.clone(), Alias::new("title")),
+            (tag_tree.clone(), Alias::new("parent_id")),
+        ])
+        .order_by((tag_tree.clone(), tag::Column::Title), Order::Asc)
+        .to_owned();
+
+    let query = final_query.with(
+        Query::with()
+            .cte(
+                CommonTableExpression::new()
+                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
+                    .table_name(tag_tree)
+                    .to_owned(),
+            )
+            .recursive(true)
+            .to_owned(),
+    );
+
+    PartialTag::find_by_statement(db.get_database_backend().build(&query))
+        .all(db)
+        .await
 }
 
 pub async fn select_by_id<Db: ConnectionTrait>(
