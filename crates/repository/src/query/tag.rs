@@ -1,7 +1,7 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
-    sea_query::{Alias, CommonTableExpression, Expr, Func, OnConflict, Query, UnionType},
+    sea_query::{Alias, CommonTableExpression, Expr, OnConflict, Query, UnionType},
     ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult, JoinType,
     Order, QueryFilter, Set,
 };
@@ -18,67 +18,13 @@ pub async fn select<Db: ConnectionTrait>(
     let tag_hierarchy = Alias::new("tag_hierarchy");
     let tag_hierarchy2 = Alias::new("tag_hierarchy2");
     let depth = Alias::new("depth");
-    let pft = Alias::new("pft");
-    let pbt = Alias::new("pbt");
-    let feed_count = Alias::new("feed_count");
-    let bookmark_count = Alias::new("bookmark_count");
-
-    let feed_count_subquery = Query::select()
-        .column(profile_feed_tag::Column::TagId)
-        .expr_as(
-            profile_feed_tag::Column::ProfileFeedId.count(),
-            feed_count.clone(),
-        )
-        .from(profile_feed_tag::Entity)
-        .and_where(profile_feed_tag::Column::ProfileId.eq(profile_id))
-        .group_by_col(profile_feed_tag::Column::TagId)
-        .to_owned();
-
-    let bookmark_count_subquery = Query::select()
-        .column(profile_bookmark_tag::Column::TagId)
-        .expr_as(
-            profile_bookmark_tag::Column::ProfileBookmarkId.count(),
-            bookmark_count.clone(),
-        )
-        .from(profile_bookmark_tag::Entity)
-        .and_where(profile_bookmark_tag::Column::ProfileId.eq(profile_id))
-        .group_by_col(profile_bookmark_tag::Column::TagId)
-        .to_owned();
 
     let mut base_query = Query::select()
         .column(tag::Column::Id)
         .column(tag::Column::Title)
         .column(tag::Column::ParentId)
         .expr_as(Expr::val(1), depth.clone())
-        .expr_as(
-            Func::coalesce([
-                Expr::col((pft.clone(), feed_count.clone())).into(),
-                Expr::val(0).into(),
-            ]),
-            feed_count.clone(),
-        )
-        .expr_as(
-            Func::coalesce([
-                Expr::col((pbt.clone(), bookmark_count.clone())).into(),
-                Expr::val(0).into(),
-            ]),
-            bookmark_count.clone(),
-        )
         .from(tag::Entity)
-        .join_subquery(
-            JoinType::LeftJoin,
-            feed_count_subquery.clone(),
-            pft.clone(),
-            Expr::col((pft.clone(), profile_feed_tag::Column::TagId))
-                .eq(Expr::col((tag::Entity, tag::Column::Id))),
-        )
-        .join_subquery(
-            JoinType::LeftJoin,
-            bookmark_count_subquery.clone(),
-            pbt.clone(),
-            Expr::col((pbt.clone(), profile_feed_tag::Column::TagId))
-                .eq(Expr::col((tag::Entity, tag::Column::Id))),
-        )
         .and_where(tag::Column::ProfileId.eq(profile_id))
         .and_where(tag::Column::ParentId.is_null())
         .to_owned();
@@ -109,39 +55,11 @@ pub async fn select<Db: ConnectionTrait>(
         .column((tag::Entity, tag::Column::Title))
         .column((tag::Entity, tag::Column::ParentId))
         .expr(Expr::col((tag_hierarchy.clone(), depth.clone())).add(1))
-        .expr_as(
-            Func::coalesce([
-                Expr::col((pft.clone(), feed_count.clone())).into(),
-                Expr::val(0).into(),
-            ]),
-            feed_count.clone(),
-        )
-        .expr_as(
-            Func::coalesce([
-                Expr::col((pbt.clone(), bookmark_count.clone())).into(),
-                Expr::val(0).into(),
-            ]),
-            bookmark_count.clone(),
-        )
         .from(tag::Entity)
         .inner_join(
             tag_hierarchy.clone(),
             Expr::col((tag_hierarchy.clone(), tag::Column::Id))
                 .eq(Expr::col((tag::Entity, tag::Column::ParentId))),
-        )
-        .join_subquery(
-            JoinType::LeftJoin,
-            feed_count_subquery,
-            pft.clone(),
-            Expr::col((pft, profile_feed_tag::Column::TagId))
-                .eq(Expr::col((tag::Entity, tag::Column::Id))),
-        )
-        .join_subquery(
-            JoinType::LeftJoin,
-            bookmark_count_subquery,
-            pbt.clone(),
-            Expr::col((pbt, profile_feed_tag::Column::TagId))
-                .eq(Expr::col((tag::Entity, tag::Column::Id))),
         )
         .to_owned();
 
@@ -151,16 +69,12 @@ pub async fn select<Db: ConnectionTrait>(
         .column((tag_hierarchy.clone(), tag::Column::ParentId))
         .column((tag_hierarchy.clone(), depth.clone()))
         .expr_as(
-            Expr::col((tag_hierarchy2.clone(), feed_count.clone()))
-                .sum()
-                .cast_as(Alias::new("bigint")),
-            feed_count.clone(),
+            profile_feed_tag::Column::ProfileFeedId.count(),
+            Alias::new("feed_count"),
         )
         .expr_as(
-            Expr::col((tag_hierarchy2.clone(), bookmark_count.clone()))
-                .sum()
-                .cast_as(Alias::new("bigint")),
-            bookmark_count.clone(),
+            profile_bookmark_tag::Column::ProfileBookmarkId.count(),
+            Alias::new("bookmark_count"),
         )
         .from(tag_hierarchy.clone())
         .join_as(
@@ -169,8 +83,16 @@ pub async fn select<Db: ConnectionTrait>(
             tag_hierarchy2.clone(),
             Expr::col((tag_hierarchy2.clone(), tag::Column::Id))
                 .equals((tag_hierarchy.clone(), tag::Column::Id))
-                .or(Expr::col((tag_hierarchy2, tag::Column::ParentId))
+                .or(Expr::col((tag_hierarchy2.clone(), tag::Column::ParentId))
                     .equals((tag_hierarchy.clone(), tag::Column::Id))),
+        )
+        .left_join(
+            profile_feed_tag::Entity,
+            Expr::col((
+                profile_feed_tag::Entity,
+                profile_bookmark_tag::Column::TagId,
+            ))
+            .equals((tag_hierarchy2.clone(), tag::Column::Id)),
         )
         .left_join(
             profile_bookmark_tag::Entity,
@@ -178,7 +100,7 @@ pub async fn select<Db: ConnectionTrait>(
                 profile_bookmark_tag::Entity,
                 profile_bookmark_tag::Column::TagId,
             ))
-            .equals((tag_hierarchy.clone(), tag::Column::Id)),
+            .equals((tag_hierarchy2, tag::Column::Id)),
         )
         .and_where_option(id.map(|e| Expr::col((tag_hierarchy.clone(), tag::Column::Id)).eq(e)))
         .and_where_option(cursor.map(|e| tag::Column::Title.gt(e.title)))
@@ -187,8 +109,6 @@ pub async fn select<Db: ConnectionTrait>(
             (tag_hierarchy.clone(), Alias::new("title")),
             (tag_hierarchy.clone(), Alias::new("parent_id")),
             (tag_hierarchy.clone(), depth.clone()),
-            (tag_hierarchy.clone(), feed_count),
-            (tag_hierarchy.clone(), bookmark_count),
         ])
         .order_by((tag_hierarchy.clone(), depth), Order::Asc)
         .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
