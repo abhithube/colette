@@ -7,16 +7,8 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-pub async fn select<Db: ConnectionTrait>(
-    db: &Db,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<TagFindManyFilters>,
-) -> Result<Vec<PartialTag>, DbErr> {
+pub(crate) fn tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
     let tag_hierarchy = Alias::new("tag_hierarchy");
-    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
     let depth = Alias::new("depth");
 
     let mut base_query = Query::select()
@@ -33,7 +25,7 @@ pub async fn select<Db: ConnectionTrait>(
         .column((tag::Entity, tag::Column::Id))
         .column((tag::Entity, tag::Column::Title))
         .column((tag::Entity, tag::Column::ParentId))
-        .expr(Expr::col((tag_hierarchy.clone(), depth.clone())).add(1))
+        .expr(Expr::col((tag_hierarchy.clone(), depth)).add(1))
         .from(tag::Entity)
         .inner_join(
             tag_hierarchy.clone(),
@@ -41,6 +33,24 @@ pub async fn select<Db: ConnectionTrait>(
                 .eq(Expr::col((tag::Entity, tag::Column::ParentId))),
         )
         .to_owned();
+
+    CommonTableExpression::new()
+        .query(base_query.union(UnionType::All, recursive_query).to_owned())
+        .table_name(tag_hierarchy)
+        .to_owned()
+}
+
+pub async fn select<Db: ConnectionTrait>(
+    db: &Db,
+    id: Option<Uuid>,
+    profile_id: Uuid,
+    limit: Option<u64>,
+    cursor: Option<Cursor>,
+    filters: Option<TagFindManyFilters>,
+) -> Result<Vec<PartialTag>, DbErr> {
+    let tag_hierarchy = Alias::new("tag_hierarchy");
+    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
+    let depth = Alias::new("depth");
 
     let mut final_query = Query::select()
         .column((tag_hierarchy.clone(), tag::Column::Id))
@@ -113,12 +123,7 @@ pub async fn select<Db: ConnectionTrait>(
 
     let query = final_query.with(
         Query::with()
-            .cte(
-                CommonTableExpression::new()
-                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
-                    .table_name(tag_hierarchy)
-                    .to_owned(),
-            )
+            .cte(tag_recursive_cte(profile_id))
             .recursive(true)
             .to_owned(),
     );

@@ -2,13 +2,13 @@ use colette_core::feed::{Cursor, FeedFindManyFilters};
 use colette_entity::{feed, profile_feed, profile_feed_tag, tag, PartialFeedTag};
 use indexmap::IndexMap;
 use sea_orm::{
-    sea_query::{
-        Alias, CommonTableExpression, Expr, Func, OnConflict, Query, SimpleExpr, UnionType,
-    },
+    sea_query::{Alias, Expr, Func, OnConflict, Query, SimpleExpr},
     ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult,
     InsertResult, JoinType, Order, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
 use uuid::Uuid;
+
+use super::tag::tag_recursive_cte;
 
 pub async fn select_with_feed<Db: ConnectionTrait>(
     db: &Db,
@@ -101,29 +101,6 @@ pub async fn load_tags<Db: ConnectionTrait>(
     let mut tag_map: IndexMap<Uuid, Vec<PartialFeedTag>> =
         IndexMap::from_iter(pf_ids.iter().map(|e| (*e, Vec::new())));
 
-    let mut base_query = Query::select()
-        .column(tag::Column::Id)
-        .column(tag::Column::Title)
-        .column(tag::Column::ParentId)
-        .expr_as(Expr::val(1), depth.clone())
-        .from(tag::Entity)
-        .and_where(tag::Column::ProfileId.eq(profile_id))
-        .and_where(tag::Column::ParentId.is_null())
-        .to_owned();
-
-    let recursive_query = Query::select()
-        .column((tag::Entity, tag::Column::Id))
-        .column((tag::Entity, tag::Column::Title))
-        .column((tag::Entity, tag::Column::ParentId))
-        .expr(Expr::col(depth.clone()).add(1))
-        .from(tag::Entity)
-        .inner_join(
-            tag_hierarchy.clone(),
-            Expr::col((tag_hierarchy.clone(), tag::Column::Id))
-                .equals((tag::Entity, tag::Column::ParentId)),
-        )
-        .to_owned();
-
     let final_query = Query::select()
         .distinct()
         .column((tag_hierarchy.clone(), tag::Column::Id))
@@ -153,12 +130,7 @@ pub async fn load_tags<Db: ConnectionTrait>(
 
     let query = final_query.with(
         Query::with()
-            .cte(
-                CommonTableExpression::new()
-                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
-                    .table_name(tag_hierarchy)
-                    .to_owned(),
-            )
+            .cte(tag_recursive_cte(profile_id))
             .recursive(true)
             .to_owned(),
     );
