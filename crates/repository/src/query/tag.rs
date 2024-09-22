@@ -29,27 +29,6 @@ pub async fn select<Db: ConnectionTrait>(
         .and_where(tag::Column::ParentId.is_null())
         .to_owned();
 
-    if let Some(filters) = filters {
-        match filters.tag_type {
-            TagType::Bookmarks => {
-                base_query.inner_join(
-                    profile_bookmark_tag::Entity,
-                    Expr::col(profile_bookmark_tag::Column::TagId).equals(tag::Column::Id),
-                );
-            }
-            TagType::Feeds => {
-                base_query.inner_join(
-                    profile_feed_tag::Entity,
-                    Expr::col(profile_feed_tag::Column::TagId).equals(tag::Column::Id),
-                );
-            }
-            _ => {}
-        };
-    }
-    if let Some(limit) = limit {
-        base_query.limit(limit);
-    }
-
     let recursive_query = Query::select()
         .column((tag::Entity, tag::Column::Id))
         .column((tag::Entity, tag::Column::Title))
@@ -63,7 +42,7 @@ pub async fn select<Db: ConnectionTrait>(
         )
         .to_owned();
 
-    let final_query = Query::select()
+    let mut final_query = Query::select()
         .column((tag_hierarchy.clone(), tag::Column::Id))
         .column((tag_hierarchy.clone(), tag::Column::Title))
         .column((tag_hierarchy.clone(), tag::Column::ParentId))
@@ -100,7 +79,7 @@ pub async fn select<Db: ConnectionTrait>(
                 profile_bookmark_tag::Entity,
                 profile_bookmark_tag::Column::TagId,
             ))
-            .equals((tag_hierarchy2, tag::Column::Id)),
+            .equals((tag_hierarchy2.clone(), tag::Column::Id)),
         )
         .and_where_option(id.map(|e| Expr::col((tag_hierarchy.clone(), tag::Column::Id)).eq(e)))
         .and_where_option(cursor.map(|e| tag::Column::Title.gt(e.title)))
@@ -113,6 +92,24 @@ pub async fn select<Db: ConnectionTrait>(
         .order_by((tag_hierarchy.clone(), depth), Order::Asc)
         .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
         .to_owned();
+
+    if let Some(filters) = filters {
+        match filters.tag_type {
+            TagType::Bookmarks => {
+                final_query.and_having(
+                    Expr::expr(profile_bookmark_tag::Column::ProfileBookmarkId.count()).gt(0),
+                );
+            }
+            TagType::Feeds => {
+                final_query
+                    .and_having(Expr::expr(profile_feed_tag::Column::ProfileFeedId.count()).gt(0));
+            }
+            _ => {}
+        };
+    }
+    if let Some(limit) = limit {
+        final_query.limit(limit);
+    }
 
     let query = final_query.with(
         Query::with()
