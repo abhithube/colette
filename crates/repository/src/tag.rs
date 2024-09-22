@@ -37,27 +37,30 @@ impl Creatable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let model = query::tag::insert(
-            &self.db,
-            Uuid::new_v4(),
-            data.title.clone(),
-            data.parent_id,
-            data.profile_id,
-        )
-        .await
-        .map_err(|e| match e.sql_err() {
-            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-            _ => Error::Unknown(e.into()),
-        })?;
+        self.db
+            .transaction::<_, Tag, Error>(|txn| {
+                Box::pin(async move {
+                    let model = query::tag::insert(
+                        txn,
+                        Uuid::new_v4(),
+                        data.title.clone(),
+                        data.parent_id,
+                        data.profile_id,
+                    )
+                    .await
+                    .map_err(|e| match e.sql_err() {
+                        Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+                        _ => Error::Unknown(e.into()),
+                    })?;
 
-        Ok(Tag {
-            id: model.id,
-            title: model.title,
-            parent_id: model.parent_id,
-            depth: -1,
-            bookmark_count: Some(0),
-            feed_count: Some(0),
-        })
+                    find_by_id(txn, IdParams::new(model.id, data.profile_id)).await
+                })
+            })
+            .await
+            .map_err(|e| match e {
+                TransactionError::Transaction(e) => e,
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
