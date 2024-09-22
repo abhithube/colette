@@ -256,7 +256,7 @@ pub(crate) async fn find<Db: ConnectionTrait>(
         .map_err(|e| Error::Unknown(e.into()))?;
     let pf_ids = models.iter().map(|e| e.0.id).collect::<Vec<_>>();
 
-    let tag_models = query::profile_feed::load_tags(db, pf_ids.clone())
+    let tag_models = query::profile_feed::load_tags(db, pf_ids.clone(), profile_id)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 

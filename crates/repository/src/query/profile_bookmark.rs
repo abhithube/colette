@@ -91,9 +91,11 @@ pub async fn select_last<Db: ConnectionTrait>(
 pub async fn load_tags<Db: ConnectionTrait>(
     db: &Db,
     pb_ids: Vec<Uuid>,
+    profile_id: Uuid,
 ) -> Result<Vec<Vec<PartialBookmarkTag>>, DbErr> {
-    let tag_tree = Alias::new("tag_tree");
-    let level = Alias::new("level");
+    let tag_hierarchy = Alias::new("tag_hierarchy");
+    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
+    let depth = Alias::new("depth");
 
     let mut tag_map: IndexMap<Uuid, Vec<PartialBookmarkTag>> =
         IndexMap::from_iter(pb_ids.iter().map(|e| (*e, Vec::new())));
@@ -102,48 +104,53 @@ pub async fn load_tags<Db: ConnectionTrait>(
         .column(tag::Column::Id)
         .column(tag::Column::Title)
         .column(tag::Column::ParentId)
-        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
-        .expr_as(Expr::val(1), level.clone())
+        .expr_as(Expr::val(1), depth.clone())
         .from(tag::Entity)
-        .inner_join(
-            profile_bookmark_tag::Entity,
-            Expr::col((
-                profile_bookmark_tag::Entity,
-                profile_bookmark_tag::Column::TagId,
-            ))
-            .equals((tag::Entity, tag::Column::Id)),
-        )
-        .and_where(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids))
+        .and_where(tag::Column::ProfileId.eq(profile_id))
+        .and_where(tag::Column::ParentId.is_null())
         .to_owned();
 
     let recursive_query = Query::select()
         .column((tag::Entity, tag::Column::Id))
         .column((tag::Entity, tag::Column::Title))
         .column((tag::Entity, tag::Column::ParentId))
-        .column((
-            tag_tree.clone(),
-            profile_bookmark_tag::Column::ProfileBookmarkId,
-        ))
-        .expr(Expr::col(level.clone()).add(1))
+        .expr(Expr::col(depth.clone()).add(1))
         .from(tag::Entity)
         .inner_join(
-            tag_tree.clone(),
-            Expr::col((tag_tree.clone(), tag::Column::ParentId))
-                .equals((tag::Entity, tag::Column::Id)),
+            tag_hierarchy.clone(),
+            Expr::col((tag_hierarchy.clone(), tag::Column::Id))
+                .equals((tag::Entity, tag::Column::ParentId)),
         )
         .to_owned();
 
     let final_query = Query::select()
-        .column((tag_tree.clone(), tag::Column::Id))
-        .column((tag_tree.clone(), tag::Column::Title))
-        .column((tag_tree.clone(), tag::Column::ParentId))
-        .column((
-            tag_tree.clone(),
-            profile_bookmark_tag::Column::ProfileBookmarkId,
-        ))
-        .column((tag_tree.clone(), level.clone()))
-        .from(tag_tree.clone())
-        .order_by((tag_tree.clone(), level), Order::Asc)
+        .distinct()
+        .column((tag_hierarchy.clone(), tag::Column::Id))
+        .column((tag_hierarchy.clone(), tag::Column::Title))
+        .column((tag_hierarchy.clone(), tag::Column::ParentId))
+        .column((tag_hierarchy.clone(), depth.clone()))
+        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
+        .from(tag_hierarchy.clone())
+        .join_as(
+            JoinType::InnerJoin,
+            tag_hierarchy.clone(),
+            tag_hierarchy2.clone(),
+            Expr::col((tag_hierarchy2.clone(), tag::Column::Id))
+                .equals((tag_hierarchy.clone(), tag::Column::Id))
+                .or(Expr::col((tag_hierarchy2.clone(), tag::Column::ParentId))
+                    .equals((tag_hierarchy.clone(), tag::Column::Id))),
+        )
+        .inner_join(
+            profile_bookmark_tag::Entity,
+            Expr::col((
+                profile_bookmark_tag::Entity,
+                profile_bookmark_tag::Column::TagId,
+            ))
+            .eq(Expr::col((tag_hierarchy2, tag::Column::Id))),
+        )
+        .and_where(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids))
+        .order_by((tag_hierarchy.clone(), depth), Order::Asc)
+        .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
         .to_owned();
 
     let query = final_query.with(
@@ -151,7 +158,7 @@ pub async fn load_tags<Db: ConnectionTrait>(
             .cte(
                 CommonTableExpression::new()
                     .query(base_query.union(UnionType::All, recursive_query).to_owned())
-                    .table_name(tag_tree)
+                    .table_name(tag_hierarchy)
                     .to_owned(),
             )
             .recursive(true)
