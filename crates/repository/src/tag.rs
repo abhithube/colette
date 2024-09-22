@@ -54,6 +54,7 @@ impl Creatable for TagSqlRepository {
             id: model.id,
             title: model.title,
             parent_id: model.parent_id,
+            depth: -1,
             bookmark_count: Some(0),
             feed_count: Some(0),
         })

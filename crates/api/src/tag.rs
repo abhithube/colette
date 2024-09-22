@@ -46,6 +46,7 @@ pub struct Tag {
     pub title: String,
     #[schema(required)]
     pub parent_id: Option<Uuid>,
+    pub depth: i32,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -60,6 +61,7 @@ impl From<colette_core::Tag> for Tag {
             id: value.id,
             title: value.title,
             parent_id: value.parent_id,
+            depth: value.depth,
             bookmark_count: value.bookmark_count,
             feed_count: value.feed_count,
         }

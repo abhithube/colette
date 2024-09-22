@@ -113,23 +113,12 @@ impl From<profile::Model> for Profile {
     }
 }
 
-impl From<tag::Model> for Tag {
-    fn from(value: tag::Model) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            parent_id: value.parent_id,
-            bookmark_count: None,
-            feed_count: None,
-        }
-    }
-}
-
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct PartialTag {
     id: Uuid,
     title: String,
     parent_id: Option<Uuid>,
+    depth: i32,
     bookmark_count: i64,
     feed_count: i64,
 }
@@ -140,6 +129,7 @@ impl From<PartialTag> for Tag {
             id: value.id,
             title: value.title,
             parent_id: value.parent_id,
+            depth: value.depth,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
         }
@@ -152,7 +142,7 @@ pub struct PartialBookmarkTag {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub profile_bookmark_id: Uuid,
-    pub level: i32,
+    pub depth: i32,
 }
 
 impl From<PartialBookmarkTag> for Tag {
@@ -161,6 +151,7 @@ impl From<PartialBookmarkTag> for Tag {
             id: value.id,
             title: value.title,
             parent_id: value.parent_id,
+            depth: value.depth,
             bookmark_count: None,
             feed_count: None,
         }
@@ -173,7 +164,7 @@ pub struct PartialFeedTag {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub profile_feed_id: Uuid,
-    pub level: i32,
+    pub depth: i32,
 }
 
 impl From<PartialFeedTag> for Tag {
@@ -182,6 +173,7 @@ impl From<PartialFeedTag> for Tag {
             id: value.id,
             title: value.title,
             parent_id: value.parent_id,
+            depth: value.depth,
             bookmark_count: None,
             feed_count: None,
         }
