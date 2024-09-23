@@ -346,6 +346,8 @@ pub(crate) async fn link_tags<Db: ConnectionTrait>(
     let tag_models = query::tag::select_by_tags(db, &tags.data).await?;
     let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
+    let tag_ids = query::tag::prune_tag_list(db, tag_ids.clone(), profile_id).await?;
+
     if let TagsLinkAction::Remove = tags.action {
         return query::profile_feed_tag::delete_many_in(db, profile_feed_id, tag_ids.clone()).await;
     }

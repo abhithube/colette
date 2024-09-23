@@ -161,6 +161,77 @@ pub async fn select_by_title_and_parent<Db: ConnectionTrait>(
         .await
 }
 
+pub async fn prune_tag_list<Db: ConnectionTrait>(
+    db: &Db,
+    tag_ids: Vec<Uuid>,
+    profile_id: Uuid,
+) -> Result<Vec<Uuid>, DbErr> {
+    let tag_hierarchy = Alias::new("tag_hierarchy");
+
+    let mut base_query = Query::select()
+        .column(tag::Column::Id)
+        .column(tag::Column::ParentId)
+        .from(tag::Entity)
+        .and_where(tag::Column::ProfileId.eq(profile_id))
+        .and_where(tag::Column::Id.is_in(tag_ids.clone()))
+        .to_owned();
+
+    let recursive_query = Query::select()
+        .column((tag::Entity, tag::Column::Id))
+        .column((tag::Entity, tag::Column::ParentId))
+        .from(tag::Entity)
+        .inner_join(
+            tag_hierarchy.clone(),
+            Expr::col((tag_hierarchy.clone(), tag::Column::Id))
+                .eq(Expr::col((tag::Entity, tag::Column::ParentId))),
+        )
+        .to_owned();
+
+    let subquery = Query::select()
+        .expr(Expr::val(1))
+        .from(tag_hierarchy.clone())
+        .and_where(
+            Expr::col((tag_hierarchy.clone(), tag::Column::ParentId))
+                .eq(Expr::col((tag::Entity, tag::Column::Id))),
+        )
+        .and_where(Expr::col((tag_hierarchy.clone(), tag::Column::ParentId)).is_in(tag_ids.clone()))
+        .to_owned();
+
+    let final_query = Query::select()
+        .distinct()
+        .column(tag::Column::Id)
+        .from(tag::Entity)
+        .and_where(
+            tag::Column::Id
+                .is_in(tag_ids)
+                .and(Expr::exists(subquery).not()),
+        )
+        .to_owned();
+
+    let query = final_query.with(
+        Query::with()
+            .cte(
+                CommonTableExpression::new()
+                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
+                    .table_name(tag_hierarchy)
+                    .to_owned(),
+            )
+            .recursive(true)
+            .to_owned(),
+    );
+
+    let rows = db
+        .query_all(db.get_database_backend().build(&query))
+        .await?;
+
+    let pruned = rows
+        .into_iter()
+        .filter_map(|e| e.try_get_by(0).ok())
+        .collect::<Vec<Uuid>>();
+
+    Ok(pruned)
+}
+
 pub struct InsertMany {
     pub id: Uuid,
     pub title: String,
