@@ -10,7 +10,11 @@ use futures::{future::BoxFuture, FutureExt};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use uuid::Uuid;
 
-use crate::{bookmark, collection, feed, query, tag};
+use crate::{
+    bookmark, collection, feed,
+    query::{self, profile_feed_tag::InsertMany},
+    tag,
+};
 
 pub struct BackupSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -28,7 +32,7 @@ impl BackupRepository for BackupSqlRepository {
         fn recurse<Db: ConnectionTrait>(
             db: &Db,
             children: Vec<Outline>,
-            tag: Option<String>,
+            parent_id: Option<Uuid>,
             profile_id: Uuid,
         ) -> BoxFuture<Result<(), DbErr>> {
             async move {
@@ -38,50 +42,62 @@ impl BackupRepository for BackupSqlRepository {
 
                         let inserted = query::feed::insert(db, link, title, Some(url)).await?;
 
-                        let profile_feed_id = match query::profile_feed::insert(
+                        let profile_feed_id = match query::profile_feed::select_by_unique_index(
                             db,
-                            Uuid::new_v4(),
-                            None,
                             profile_id,
                             inserted.last_insert_id,
                         )
-                        .await
+                        .await?
                         {
-                            Ok(model) => Ok(Some(model.last_insert_id)),
-                            Err(DbErr::RecordNotInserted) => Ok(None),
-                            Err(e) => Err(e),
+                            Some(model) => Ok(model.id),
+                            None => match query::profile_feed::insert(
+                                db,
+                                Uuid::new_v4(),
+                                None,
+                                profile_id,
+                                inserted.last_insert_id,
+                            )
+                            .await
+                            {
+                                Ok(model) => Ok(model.last_insert_id),
+                                Err(e) => Err(e),
+                            },
                         }?;
 
-                        if let Some(tag) = tag.clone() {
-                            let profile_feed_id = match profile_feed_id {
-                                Some(id) => id,
-                                None => match query::profile_feed::select_by_unique_index(
-                                    db,
-                                    profile_id,
-                                    inserted.last_insert_id,
-                                )
-                                .await?
-                                {
-                                    Some(model) => Ok(model.id),
-                                    None => Err(DbErr::RecordNotFound(
-                                        "Failed to fetch created profile feed".to_owned(),
-                                    )),
-                                }?,
-                            };
-
-                            feed::link_tags(
+                        if let Some(tag_id) = parent_id {
+                            query::profile_feed_tag::insert_many(
                                 db,
-                                profile_feed_id,
-                                TagsLinkData {
-                                    data: vec![tag],
-                                    action: TagsLinkAction::Add,
-                                },
+                                vec![InsertMany {
+                                    profile_feed_id,
+                                    tag_id,
+                                }],
                                 profile_id,
                             )
                             .await?;
                         }
                     } else if let Some(children) = outline.outline {
-                        recurse(db, children, Some(outline.text), profile_id).await?;
+                        let model = match query::tag::select_by_title_and_parent(
+                            db,
+                            outline.text.clone(),
+                            parent_id,
+                            profile_id,
+                        )
+                        .await?
+                        {
+                            Some(model) => model,
+                            None => {
+                                query::tag::insert(
+                                    db,
+                                    Uuid::new_v4(),
+                                    outline.text,
+                                    parent_id,
+                                    profile_id,
+                                )
+                                .await?
+                            }
+                        };
+
+                        recurse(db, children, Some(model.id), profile_id).await?;
                     }
                 }
 

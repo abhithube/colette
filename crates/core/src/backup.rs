@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-    sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
@@ -15,6 +12,12 @@ pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct OutlineWrapper {
+    pub parent_id: Option<Uuid>,
+    pub outline: Outline,
 }
 
 #[derive(Clone, Debug)]
@@ -50,16 +53,28 @@ impl BackupService {
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let (tags, feeds) = self.backup_repository.export_opml(profile_id).await?;
 
-        let mut tag_map: BTreeMap<String, Outline> = BTreeMap::new();
+        let mut tag_map: HashMap<Uuid, OutlineWrapper> = HashMap::new();
+        let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
+        let mut root_tags: Vec<Uuid> = vec![];
 
         for tag in tags {
             tag_map.insert(
-                tag.title.clone(),
-                Outline {
-                    text: tag.title,
-                    ..Default::default()
+                tag.id,
+                OutlineWrapper {
+                    parent_id: tag.parent_id,
+                    outline: Outline {
+                        text: tag.title,
+                        ..Default::default()
+                    },
                 },
             );
+
+            match tag.parent_id {
+                Some(parent_id) => {
+                    children_map.entry(parent_id).or_default().push(tag.id);
+                }
+                None => root_tags.push(tag.id),
+            }
         }
 
         let mut root_feeds: Vec<Outline> = vec![];
@@ -75,8 +90,9 @@ impl BackupService {
 
             if let Some(tags) = feed.tags {
                 for tag in tags {
-                    if let Some(parent) = tag_map.get_mut(&tag.title) {
+                    if let Some(parent) = tag_map.get_mut(&tag.id) {
                         parent
+                            .outline
                             .outline
                             .get_or_insert_with(Vec::new)
                             .push(outline.clone());
@@ -87,7 +103,37 @@ impl BackupService {
             }
         }
 
-        let mut outlines = tag_map.into_values().collect::<Vec<_>>();
+        fn build_hierarchy(
+            tag_map: &mut HashMap<Uuid, OutlineWrapper>,
+            children_map: &HashMap<Uuid, Vec<Uuid>>,
+            folder_id: Uuid,
+        ) {
+            if let Some(children) = children_map.get(&folder_id) {
+                for &child_id in children {
+                    build_hierarchy(tag_map, children_map, child_id);
+                    if let Some(child) = tag_map.remove(&child_id) {
+                        if let Some(children) = tag_map
+                            .get_mut(&folder_id)
+                            .unwrap()
+                            .outline
+                            .outline
+                            .as_mut()
+                        {
+                            children.push(child.outline);
+                        }
+                    }
+                }
+            }
+        }
+
+        for &root_id in &root_tags {
+            build_hierarchy(&mut tag_map, &children_map, root_id);
+        }
+
+        let mut outlines = root_tags
+            .into_iter()
+            .filter_map(|id| tag_map.remove(&id).map(|e| e.outline))
+            .collect::<Vec<_>>();
         outlines.append(&mut root_feeds);
 
         let opml = Opml {
