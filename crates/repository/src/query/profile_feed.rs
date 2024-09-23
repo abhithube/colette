@@ -121,9 +121,9 @@ pub async fn load_tags<Db: ConnectionTrait>(
         .inner_join(
             profile_feed_tag::Entity,
             Expr::col((profile_feed_tag::Entity, profile_feed_tag::Column::TagId))
-                .eq(Expr::col((tag_hierarchy2, tag::Column::Id))),
+                .eq(Expr::col((tag_hierarchy2, tag::Column::Id)))
+                .and(profile_feed_tag::Column::ProfileFeedId.is_in(pf_ids)),
         )
-        .and_where(profile_feed_tag::Column::ProfileFeedId.is_in(pf_ids))
         .order_by((tag_hierarchy.clone(), depth), Order::Asc)
         .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
         .to_owned();

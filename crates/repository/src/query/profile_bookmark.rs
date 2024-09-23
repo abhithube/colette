@@ -125,9 +125,9 @@ pub async fn load_tags<Db: ConnectionTrait>(
                 profile_bookmark_tag::Entity,
                 profile_bookmark_tag::Column::TagId,
             ))
-            .eq(Expr::col((tag_hierarchy2, tag::Column::Id))),
+            .eq(Expr::col((tag_hierarchy2, tag::Column::Id)))
+            .and(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids)),
         )
-        .and_where(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids))
         .order_by((tag_hierarchy.clone(), depth), Order::Asc)
         .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
         .to_owned();
