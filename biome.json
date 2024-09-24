@@ -3,8 +3,8 @@
 	"files": {
 		"ignore": [
 			"./crates/**/*",
+			"./packages/app/src/routeTree.gen.ts",
 			"./packages/core/lib/openapi.gen.ts",
-			"./packages/web/src/routeTree.gen.ts",
 			"./packages/ui/lib/**/*"
 		]
 	},

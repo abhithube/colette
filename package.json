@@ -2,12 +2,12 @@
 	"name": "colette",
 	"type": "module",
 	"workspaces": [
+		"packages/app",
 		"packages/core",
 		"packages/panda-preset",
 		"packages/query",
 		"packages/styled-system",
-		"packages/ui",
-		"packages/web"
+		"packages/ui"
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^1",
