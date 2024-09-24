@@ -8,9 +8,9 @@ import {
 } from './openapi.gen'
 
 export interface AuthAPI {
-  register(body: Register): Promise<User>
+  register(data: Register): Promise<User>
 
-  login(body: Login): Promise<Profile>
+  login(data: Login): Promise<Profile>
 
   getActive(): Promise<User>
 

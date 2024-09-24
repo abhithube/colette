@@ -16,9 +16,9 @@ export interface TagAPI {
 
   get(id: string): Promise<Tag>
 
-  create(body: TagCreate): Promise<Tag>
+  create(data: TagCreate): Promise<Tag>
 
-  update(id: string, body: TagUpdate): Promise<Tag>
+  update(id: string, data: TagUpdate): Promise<Tag>
 
   delete(id: string): Promise<void>
 }
