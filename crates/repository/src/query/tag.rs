@@ -179,25 +179,6 @@ pub async fn prune_tag_list<Db: ConnectionTrait>(
 ) -> Result<Vec<Uuid>, DbErr> {
     let tag_hierarchy = Alias::new("tag_hierarchy");
 
-    let mut base_query = Query::select()
-        .column(tag::Column::Id)
-        .column(tag::Column::ParentId)
-        .from(tag::Entity)
-        .and_where(tag::Column::ProfileId.eq(profile_id))
-        .and_where(tag::Column::Id.is_in(tag_ids.clone()))
-        .to_owned();
-
-    let recursive_query = Query::select()
-        .column((tag::Entity, tag::Column::Id))
-        .column((tag::Entity, tag::Column::ParentId))
-        .from(tag::Entity)
-        .inner_join(
-            tag_hierarchy.clone(),
-            Expr::col((tag_hierarchy.clone(), tag::Column::Id))
-                .eq(Expr::col((tag::Entity, tag::Column::ParentId))),
-        )
-        .to_owned();
-
     let subquery = Query::select()
         .expr(Expr::val(1))
         .from(tag_hierarchy.clone())
@@ -205,7 +186,7 @@ pub async fn prune_tag_list<Db: ConnectionTrait>(
             Expr::col((tag_hierarchy.clone(), tag::Column::ParentId))
                 .eq(Expr::col((tag::Entity, tag::Column::Id))),
         )
-        .and_where(Expr::col((tag_hierarchy.clone(), tag::Column::ParentId)).is_in(tag_ids.clone()))
+        .and_where(Expr::col((tag_hierarchy, tag::Column::Id)).is_in(tag_ids.clone()))
         .to_owned();
 
     let final_query = Query::select()
@@ -221,12 +202,7 @@ pub async fn prune_tag_list<Db: ConnectionTrait>(
 
     let query = final_query.with(
         Query::with()
-            .cte(
-                CommonTableExpression::new()
-                    .query(base_query.union(UnionType::All, recursive_query).to_owned())
-                    .table_name(tag_hierarchy)
-                    .to_owned(),
-            )
+            .cte(tag_recursive_cte(profile_id))
             .recursive(true)
             .to_owned(),
     );
