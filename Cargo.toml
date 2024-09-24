@@ -1,5 +1,7 @@
 [workspace]
 members = [
+  "apps/server",
+
   "crates/api",
   "crates/backup",
   "crates/config",
@@ -12,7 +14,6 @@ members = [
   "crates/plugins",
   "crates/repository",
   "crates/scraper",
-  "crates/server",
   "crates/session",
   "crates/task",
   "crates/util",
