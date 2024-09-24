@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Collection, Feed, FeedEntry, Profile, Tag, User};
+use colette_core::{Bookmark, Feed, FeedEntry, Profile, Tag, User};
 pub use generated::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
@@ -23,31 +23,11 @@ impl From<PbWithBookmarkAndTags> for Bookmark {
             published_at: value.bookmark.published_at.map(DateTime::<Utc>::from),
             author: value.bookmark.author,
             sort_index: value.pb.sort_index as u32,
-            collection_id: value.pb.collection_id,
             tags: if value.tags.is_empty() {
                 None
             } else {
                 Some(value.tags.into_iter().map(Tag::from).collect::<Vec<_>>())
             },
-        }
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct PartialCollection {
-    id: Uuid,
-    title: String,
-    parent_id: Option<Uuid>,
-    bookmark_count: i64,
-}
-
-impl From<PartialCollection> for Collection {
-    fn from(value: PartialCollection) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            parent_id: value.parent_id,
-            bookmark_count: Some(value.bookmark_count),
         }
     }
 }

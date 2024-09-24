@@ -5,7 +5,6 @@ use axum::{extract::FromRef, routing, Router};
 use backup::BackupState;
 use bookmark::BookmarkState;
 use colette_config::AppConfig;
-use collection::CollectionState;
 pub use common::Session;
 use common::TagsLink;
 use feed::FeedState;
@@ -20,14 +19,13 @@ use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
-    auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi, collection::CollectionApi,
-    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, profile::ProfileApi, tag::TagApi,
+    auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi, common::BaseError, feed::FeedApi,
+    feed_entry::FeedEntryApi, profile::ProfileApi, tag::TagApi,
 };
 
 pub mod auth;
 pub mod backup;
 pub mod bookmark;
-pub mod collection;
 mod common;
 pub mod feed;
 pub mod feed_entry;
@@ -39,7 +37,6 @@ pub struct ApiState {
     auth_state: AuthState,
     backup_state: BackupState,
     bookmark_state: BookmarkState,
-    collection_state: CollectionState,
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
     profile_state: ProfileState,
@@ -52,7 +49,6 @@ impl ApiState {
         auth_state: AuthState,
         backup_state: BackupState,
         bookmark_state: BookmarkState,
-        collection_state: CollectionState,
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
         profile_state: ProfileState,
@@ -62,7 +58,6 @@ impl ApiState {
             auth_state,
             backup_state,
             bookmark_state,
-            collection_state,
             feed_state,
             feed_entry_state,
             profile_state,
@@ -106,8 +101,6 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_state(BackupState::from_ref(self.api_state))
                     .nest("/bookmarks", BookmarkApi::router())
                     .with_state(BookmarkState::from_ref(self.api_state))
-                    .nest("/collections", CollectionApi::router())
-                    .with_state(CollectionState::from_ref(self.api_state))
                     .nest("/feedEntries", FeedEntryApi::router())
                     .with_state(FeedEntryState::from_ref(self.api_state))
                     .nest("/feeds", FeedApi::router())

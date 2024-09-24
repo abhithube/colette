@@ -1,5 +1,4 @@
 pub(crate) mod bookmark;
-pub(crate) mod collection;
 pub(crate) mod feed;
 pub(crate) mod feed_entry;
 pub(crate) mod profile;

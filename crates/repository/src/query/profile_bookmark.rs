@@ -27,9 +27,6 @@ pub async fn select_with_bookmark<Db: ConnectionTrait>(
         conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
     }
     if let Some(filters) = filters {
-        if let Some(collection_id) = filters.collection_id {
-            conditions = conditions.add(profile_bookmark::Column::CollectionId.eq(collection_id));
-        }
         if let Some(tags) = filters.tags {
             query = query
                 .join(
@@ -168,14 +165,12 @@ pub async fn insert<Db: ConnectionTrait>(
     sort_index: i32,
     profile_id: Uuid,
     bookmark_id: i32,
-    collection_id: Option<Uuid>,
 ) -> Result<InsertResult<profile_bookmark::ActiveModel>, DbErr> {
     let model = profile_bookmark::ActiveModel {
         id: Set(id),
         sort_index: Set(sort_index),
         profile_id: Set(profile_id),
         bookmark_id: Set(bookmark_id),
-        collection_id: Set(collection_id),
         ..Default::default()
     };
 

@@ -3,7 +3,6 @@
 pub mod prelude;
 
 pub mod bookmark;
-pub mod collection;
 pub mod feed;
 pub mod feed_entry;
 pub mod profile;

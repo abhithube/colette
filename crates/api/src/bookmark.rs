@@ -56,8 +56,6 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(required)]
-    pub collection_id: Option<Uuid>,
     pub sort_index: u32,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -74,7 +72,6 @@ impl From<colette_core::Bookmark> for Bookmark {
             published_at: value.published_at,
             author: value.author,
             sort_index: value.sort_index,
-            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
@@ -85,7 +82,6 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    pub collection_id: Option<Uuid>,
     #[schema(nullable = false)]
     pub tags: Option<TagsLink>,
 }
@@ -94,7 +90,6 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     fn from(value: BookmarkCreate) -> Self {
         Self {
             url: value.url,
-            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into()),
         }
     }
@@ -105,12 +100,6 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 pub struct BookmarkUpdate {
     #[schema(nullable = false)]
     pub sort_index: Option<u32>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub collection_id: Option<Option<Uuid>>,
     #[schema(nullable = false)]
     pub tags: Option<TagsLink>,
 }
@@ -119,7 +108,6 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             sort_index: value.sort_index,
-            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into()),
         }
     }
@@ -129,10 +117,6 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {
-    #[param(nullable = false)]
-    pub filter_by_collection: Option<bool>,
-    #[param(nullable = false)]
-    pub collection_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
@@ -145,14 +129,6 @@ pub struct BookmarkListQuery {
 impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     fn from(value: BookmarkListQuery) -> Self {
         Self {
-            collection_id: if value
-                .filter_by_collection
-                .unwrap_or(value.collection_id.is_some())
-            {
-                Some(value.collection_id)
-            } else {
-                None
-            },
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

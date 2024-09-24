@@ -8,7 +8,7 @@ use crate::postgres;
 use crate::sqlite;
 use crate::{
     m0001_initial_user::Profile, m0004_initial_profile_feed::ProfileFeed,
-    m0005_initial_collection::ProfileBookmark,
+    m0005_initial_profile_bookmark::ProfileBookmark,
 };
 
 #[derive(DeriveMigrationName)]

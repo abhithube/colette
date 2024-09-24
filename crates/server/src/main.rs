@@ -10,22 +10,20 @@ use apalis::{
 use apalis_cron::{CronStream, Schedule};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
-    feed::FeedState, feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api,
-    ApiState,
+    auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
+    feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, cleanup::CleanupService,
-    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    profile::ProfileService, refresh::RefreshService, tag::TagService,
+    feed::FeedService, feed_entry::FeedEntryService, profile::ProfileService,
+    refresh::RefreshService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
-    BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, CollectionSqlRepository,
-    FeedEntrySqlRepository, FeedSqlRepository, ProfileSqlRepository, TagSqlRepository,
-    UserSqlRepository,
+    BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, FeedEntrySqlRepository,
+    FeedSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
 };
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
@@ -105,9 +103,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let cleanup_service = Arc::new(CleanupService::new(Arc::new(CleanupSqlRepository::new(
         db.clone(),
     ))));
-    let collection_service = Arc::new(CollectionService::new(Arc::new(
-        CollectionSqlRepository::new(db.clone()),
-    )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
         feed_plugin_registry.clone(),
@@ -128,7 +123,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         AuthState::new(auth_service),
         BackupState::new(backup_service),
         BookmarkState::new(bookmark_service),
-        CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         ProfileState::new(profile_service),

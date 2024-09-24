@@ -69,7 +69,6 @@ impl Creatable for BookmarkSqlRepository {
                         prev.map(|e| e.sort_index + 1).unwrap_or_default(),
                         data.profile_id,
                         bookmark_id,
-                        data.collection_id,
                     )
                     .await
                     {
@@ -148,10 +147,6 @@ impl Updatable for BookmarkSqlRepository {
                         .map_err(|e| Error::Unknown(e.into()))?;
 
                         active_model.sort_index.set_if_not_equals(sort_index as i32);
-                    }
-
-                    if let Some(collection_id) = data.collection_id {
-                        active_model.collection_id.set_if_not_equals(collection_id);
                     }
 
                     if active_model.is_changed() {

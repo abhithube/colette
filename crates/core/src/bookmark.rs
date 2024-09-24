@@ -23,27 +23,23 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
     pub sort_index: u32,
-    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub collection_id: Option<Uuid>,
     pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkUpdate {
     pub sort_index: Option<u32>,
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<TagsLink>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkListQuery {
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
@@ -87,10 +83,7 @@ impl BookmarkService {
                 profile_id,
                 Some(PAGINATION_LIMIT + 1),
                 cursor,
-                Some(BookmarkFindManyFilters {
-                    collection_id: query.collection_id,
-                    tags: query.tags,
-                }),
+                Some(BookmarkFindManyFilters { tags: query.tags }),
             )
             .await?;
         let mut cursor: Option<String> = None;
@@ -130,8 +123,6 @@ impl BookmarkService {
             .create(BookmarkCreateData {
                 url: data.url.into(),
                 bookmark: scraped,
-                collection_id: data.collection_id,
-
                 tags: data.tags.map(|e| TagsLinkData {
                     data: e.data.into_iter().map(|e| e.into()).collect(),
                     action: e.action,
@@ -177,7 +168,6 @@ pub trait BookmarkRepository:
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkFindManyFilters {
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -185,7 +175,6 @@ pub struct BookmarkFindManyFilters {
 pub struct BookmarkCreateData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
-    pub collection_id: Option<Uuid>,
     pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
 }
@@ -193,7 +182,6 @@ pub struct BookmarkCreateData {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
     pub sort_index: Option<u32>,
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<TagsLinkData>,
 }
 
@@ -201,7 +189,6 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             sort_index: value.sort_index,
-            collection_id: value.collection_id,
             tags: value.tags.map(|e| TagsLinkData {
                 data: e.data.into_iter().map(|e| e.into()).collect(),
                 action: e.action,

@@ -140,7 +140,6 @@ impl BackupRepository for BackupSqlRepository {
                                         prev.map(|e| e.sort_index + 1).unwrap_or_default(),
                                         profile_id,
                                         inserted.last_insert_id,
-                                        None,
                                     )
                                     .await
                                     {
