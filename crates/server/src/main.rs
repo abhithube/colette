@@ -79,6 +79,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let feed_plugin_registry = Arc::new(register_feed_plugins());
 
+    let bookmark_repository = Arc::new(BookmarkSqlRepository::new(db.clone()));
     let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
     let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
@@ -92,11 +93,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let backup_service = Arc::new(BackupService::new(
         Arc::new(BackupSqlRepository::new(db.clone())),
         feed_repository.clone(),
+        bookmark_repository.clone(),
         Arc::new(OpmlManager),
         Arc::new(NetscapeManager),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
-        Arc::new(BookmarkSqlRepository::new(db.clone())),
+        bookmark_repository,
         Arc::new(register_bookmark_plugins()),
         base64_decoder.clone(),
     ));

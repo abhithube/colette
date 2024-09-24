@@ -1,18 +1,11 @@
-use colette_core::{
-    backup::{BackupRepository, Error},
-    common::{TagsLinkAction, TagsLinkData},
-    Bookmark, Collection,
-};
+use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
 use futures::{future::BoxFuture, FutureExt};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use uuid::Uuid;
 
-use crate::{
-    bookmark, collection,
-    query::{self, profile_feed_tag::InsertMany},
-};
+use crate::query;
 
 pub struct BackupSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -65,7 +58,7 @@ impl BackupRepository for BackupSqlRepository {
                         if let Some(tag_id) = parent_id {
                             query::profile_feed_tag::insert_many(
                                 db,
-                                vec![InsertMany {
+                                vec![query::profile_feed_tag::InsertMany {
                                     profile_feed_id,
                                     tag_id,
                                 }],
@@ -129,53 +122,47 @@ impl BackupRepository for BackupSqlRepository {
                         let inserted =
                             query::bookmark::insert(db, link, item.title, None, None, None).await?;
 
-                        let prev = query::profile_bookmark::select_last(db).await?;
-
-                        let profile_bookmark_id = match query::profile_bookmark::insert(
-                            db,
-                            Uuid::new_v4(),
-                            prev.map(|e| e.sort_index + 1).unwrap_or_default(),
-                            profile_id,
-                            inserted.last_insert_id,
-                            parent_id,
-                        )
-                        .await
-                        {
-                            Ok(model) => Ok(Some(model.last_insert_id)),
-                            Err(DbErr::RecordNotInserted) => Ok(None),
-                            Err(e) => Err(e),
-                        }?;
-
-                        if let Some(tags) = item.tags {
-                            let profile_bookmark_id = match profile_bookmark_id {
-                                Some(id) => id,
-                                None => match query::profile_bookmark::select_by_unique_index(
-                                    db,
-                                    profile_id,
-                                    inserted.last_insert_id,
-                                )
-                                .await?
-                                {
-                                    Some(model) => Ok(model.id),
-                                    None => Err(DbErr::RecordNotFound(
-                                        "Failed to fetch created profile bookmark".to_owned(),
-                                    )),
-                                }?,
-                            };
-
-                            bookmark::link_tags(
+                        let profile_bookmark_id =
+                            match query::profile_bookmark::select_by_unique_index(
                                 db,
-                                profile_bookmark_id,
-                                TagsLinkData {
-                                    data: tags,
-                                    action: TagsLinkAction::Add,
-                                },
+                                profile_id,
+                                inserted.last_insert_id,
+                            )
+                            .await?
+                            {
+                                Some(model) => Ok(model.id),
+                                None => {
+                                    let prev = query::profile_bookmark::select_last(db).await?;
+
+                                    match query::profile_bookmark::insert(
+                                        db,
+                                        Uuid::new_v4(),
+                                        prev.map(|e| e.sort_index + 1).unwrap_or_default(),
+                                        profile_id,
+                                        inserted.last_insert_id,
+                                        None,
+                                    )
+                                    .await
+                                    {
+                                        Ok(model) => Ok(model.last_insert_id),
+                                        Err(e) => Err(e),
+                                    }
+                                }
+                            }?;
+
+                        if let Some(tag_id) = parent_id {
+                            query::profile_bookmark_tag::insert_many(
+                                db,
+                                vec![query::profile_bookmark_tag::InsertMany {
+                                    profile_bookmark_id,
+                                    tag_id,
+                                }],
                                 profile_id,
                             )
                             .await?;
                         }
                     } else if let Some(children) = item.item {
-                        let model = match query::collection::select_by_title_and_parent(
+                        let model = match query::tag::select_by_title_and_parent(
                             db,
                             item.title.clone(),
                             parent_id,
@@ -185,7 +172,7 @@ impl BackupRepository for BackupSqlRepository {
                         {
                             Some(model) => model,
                             None => {
-                                query::collection::insert(
+                                query::tag::insert(
                                     db,
                                     Uuid::new_v4(),
                                     item.title,
@@ -211,28 +198,6 @@ impl BackupRepository for BackupSqlRepository {
                     recurse(txn, items, None, profile_id).await?;
 
                     Ok(())
-                })
-            })
-            .await
-            .map_err(|e| Error::Unknown(e.into()))
-    }
-
-    async fn export_netscape(
-        &self,
-        profile_id: Uuid,
-    ) -> Result<(Vec<Collection>, Vec<Bookmark>), Error> {
-        self.db
-            .transaction::<_, (Vec<Collection>, Vec<Bookmark>), Error>(|txn| {
-                Box::pin(async move {
-                    let collections = collection::find(txn, None, profile_id, None, None)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let bookmarks = bookmark::find(txn, None, profile_id, None, None, None)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok((collections, bookmarks))
                 })
             })
             .await

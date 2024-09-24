@@ -9,11 +9,12 @@ use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::{feed::FeedRepository, Bookmark, Collection};
+use crate::{bookmark::BookmarkRepository, feed::FeedRepository};
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
     feed_repository: Arc<dyn FeedRepository>,
+    bookmark_repository: Arc<dyn BookmarkRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
@@ -34,12 +35,14 @@ impl BackupService {
     pub fn new(
         backup_repository: Arc<dyn BackupRepository>,
         feed_repository: Arc<dyn FeedRepository>,
+        bookmark_repository: Arc<dyn BookmarkRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
         netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {
         Self {
             backup_repository,
             feed_repository,
+            bookmark_repository,
             opml_manager,
             netscape_manager,
         }
@@ -163,82 +166,84 @@ impl BackupService {
     }
 
     pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
-        let (collections, bookmarks) = self.backup_repository.export_netscape(profile_id).await?;
+        let bookmarks = self
+            .bookmark_repository
+            .list(profile_id, None, None, None)
+            .await
+            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 
-        let mut collection_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
+        let mut tag_map: HashMap<Uuid, ItemWrapper> = HashMap::new();
         let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-        let mut root_collections: Vec<Uuid> = vec![];
-
-        for collection in collections {
-            collection_map.insert(
-                collection.id,
-                ItemWrapper {
-                    parent_id: collection.parent_id,
-                    item: Item {
-                        title: collection.title,
-                        ..Default::default()
-                    },
-                },
-            );
-
-            match collection.parent_id {
-                Some(parent_id) => {
-                    children_map
-                        .entry(parent_id)
-                        .or_default()
-                        .push(collection.id);
-                }
-                None => root_collections.push(collection.id),
-            }
-        }
+        let mut root_tags: HashSet<Uuid> = HashSet::new();
 
         let mut root_bookmarks: Vec<Item> = vec![];
         for bookmark in bookmarks {
             let item = Item {
                 title: bookmark.title,
                 href: Some(bookmark.link),
-                tags: bookmark
-                    .tags
-                    .map(|e| e.into_iter().map(|e| e.title).collect()),
                 ..Default::default()
             };
 
-            match bookmark.collection_id {
-                Some(collection_id) => {
-                    if let Some(parent) = collection_map.get_mut(&collection_id) {
-                        parent.item.item.get_or_insert_with(Vec::new).push(item);
+            if let Some(tags) = bookmark.tags {
+                for tag in tags {
+                    let parent = tag_map.entry(tag.id).or_insert_with(|| ItemWrapper {
+                        parent_id: tag.parent_id,
+                        item: Item {
+                            title: tag.title,
+                            ..Default::default()
+                        },
+                    });
+
+                    match tag.parent_id {
+                        Some(parent_id) => {
+                            children_map.entry(parent_id).or_default().push(tag.id);
+                        }
+                        None => {
+                            root_tags.insert(tag.id);
+                        }
+                    }
+
+                    if tag.direct.is_some_and(|e| e) {
+                        parent
+                            .item
+                            .item
+                            .get_or_insert_with(Vec::new)
+                            .push(item.clone());
                     }
                 }
-                None => root_bookmarks.push(item),
+            } else {
+                root_bookmarks.push(item);
             }
         }
 
         fn build_hierarchy(
-            folder_map: &mut HashMap<Uuid, ItemWrapper>,
+            tag_map: &mut HashMap<Uuid, ItemWrapper>,
             children_map: &HashMap<Uuid, Vec<Uuid>>,
-            folder_id: Uuid,
+            root_id: &Uuid,
         ) {
-            if let Some(children) = children_map.get(&folder_id) {
-                for &child_id in children {
-                    build_hierarchy(folder_map, children_map, child_id);
-                    if let Some(child) = folder_map.remove(&child_id) {
-                        if let Some(children) =
-                            folder_map.get_mut(&folder_id).unwrap().item.item.as_mut()
-                        {
-                            children.push(child.item);
+            if let Some(children) = children_map.get(root_id) {
+                for child_id in children {
+                    if let Some(child) = tag_map.remove(child_id) {
+                        if let Some(wrapper) = tag_map.get_mut(root_id) {
+                            let items = wrapper.item.item.get_or_insert_with(Vec::new);
+
+                            items.push(child.item);
+                            items.sort();
                         }
                     }
+
+                    build_hierarchy(tag_map, children_map, child_id);
                 }
             }
         }
 
-        for &root_id in &root_collections {
-            build_hierarchy(&mut collection_map, &children_map, root_id);
+        for root_id in &root_tags {
+            build_hierarchy(&mut tag_map, &children_map, root_id);
         }
 
-        let mut items = root_collections
+        let mut items = root_tags
             .into_iter()
-            .filter_map(|id| collection_map.remove(&id).map(|e| e.item))
+            .filter_map(|id| tag_map.remove(&id).map(|e| e.item))
             .collect::<Vec<_>>();
         items.append(&mut root_bookmarks);
 
@@ -258,11 +263,6 @@ pub trait BackupRepository: Send + Sync {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
 
     async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
-
-    async fn export_netscape(
-        &self,
-        profile_id: Uuid,
-    ) -> Result<(Vec<Collection>, Vec<Bookmark>), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]
