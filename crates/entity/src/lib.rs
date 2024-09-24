@@ -130,6 +130,7 @@ impl From<PartialTag> for Tag {
             title: value.title,
             parent_id: value.parent_id,
             depth: value.depth,
+            direct: None,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
         }
@@ -143,6 +144,7 @@ pub struct PartialBookmarkTag {
     pub parent_id: Option<Uuid>,
     pub profile_bookmark_id: Uuid,
     pub depth: i32,
+    pub direct: Option<bool>,
 }
 
 impl From<PartialBookmarkTag> for Tag {
@@ -152,6 +154,7 @@ impl From<PartialBookmarkTag> for Tag {
             title: value.title,
             parent_id: value.parent_id,
             depth: value.depth,
+            direct: value.direct,
             bookmark_count: None,
             feed_count: None,
         }
@@ -165,6 +168,7 @@ pub struct PartialFeedTag {
     pub parent_id: Option<Uuid>,
     pub profile_feed_id: Uuid,
     pub depth: i32,
+    pub direct: Option<bool>,
 }
 
 impl From<PartialFeedTag> for Tag {
@@ -174,6 +178,7 @@ impl From<PartialFeedTag> for Tag {
             title: value.title,
             parent_id: value.parent_id,
             depth: value.depth,
+            direct: value.direct,
             bookmark_count: None,
             feed_count: None,
         }

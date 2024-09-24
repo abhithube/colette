@@ -12,6 +12,7 @@ pub struct Tag {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub depth: i32,
+    pub direct: Option<bool>,
     pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
 }

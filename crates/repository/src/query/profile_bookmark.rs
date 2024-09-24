@@ -104,11 +104,20 @@ pub async fn load_tags<Db: ConnectionTrait>(
 
     let final_query = Query::select()
         .distinct()
+        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
         .column((tag_hierarchy.clone(), tag::Column::Id))
         .column((tag_hierarchy.clone(), tag::Column::Title))
         .column((tag_hierarchy.clone(), tag::Column::ParentId))
         .column((tag_hierarchy.clone(), depth.clone()))
-        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
+        .expr_as(
+            Expr::case(
+                Expr::col(profile_bookmark_tag::Column::TagId)
+                    .eq(Expr::col((tag_hierarchy.clone(), tag::Column::Id))),
+                true,
+            )
+            .finally(false),
+            Alias::new("direct"),
+        )
         .from(tag_hierarchy.clone())
         .join_as(
             JoinType::InnerJoin,
