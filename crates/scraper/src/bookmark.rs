@@ -219,10 +219,10 @@ pub trait BookmarkScraper: Send + Sync {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let builder = self.before_download(url);
         let resp = self.download(builder)?;
-        let mut feed = self.extract(url, resp)?;
-        self.before_postprocess(url, &mut feed)?;
+        let mut bookmark = self.extract(url, resp)?;
+        self.before_postprocess(url, &mut bookmark)?;
 
-        Ok(feed.try_into()?)
+        Ok(bookmark.try_into()?)
     }
 }
 
@@ -246,10 +246,10 @@ impl BookmarkScraper for BookmarkPluginRegistry {
             None => {
                 let builder = self.before_download(url);
                 let resp = self.download(builder)?;
-                let mut feed = self.extract(url, resp)?;
-                self.before_postprocess(url, &mut feed)?;
+                let mut bookmark = self.extract(url, resp)?;
+                self.before_postprocess(url, &mut bookmark)?;
 
-                Ok(feed.try_into()?)
+                Ok(bookmark.try_into()?)
             }
         }
     }
