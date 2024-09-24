@@ -1,5 +1,6 @@
 import type { Feed } from '@colette/core'
-import { Badge, HStack, Table, Text } from '@colette/ui'
+import { Badge, HStack, Link, Table, Text } from '@colette/ui'
+import { Link as TLink } from '@tanstack/react-router'
 import {
   createColumnHelper,
   flexRender,
@@ -12,13 +13,23 @@ const columnHelper = createColumnHelper<Feed>()
 
 const columns = [
   columnHelper.accessor(
-    (row) => ({ title: row.title ?? row.originalTitle, tags: row.tags }),
+    (row) => ({
+      id: row.id,
+      title: row.title ?? row.originalTitle,
+      tags: row.tags,
+    }),
     {
       id: 'title',
       header: 'Title',
       cell: (props) => (
         <HStack>
-          <Text>{props.getValue().title}</Text>
+          <Link asChild>
+            <TLink to="/feeds/$id" params={{ id: props.getValue().id }}>
+              <Text as="span" truncate title={props.getValue().title}>
+                {props.getValue().title}
+              </Text>
+            </TLink>
+          </Link>
           <HStack>
             {props.getValue().tags?.map((tag) => (
               <Badge key={tag.id}>{tag.title}</Badge>
