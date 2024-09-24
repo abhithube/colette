@@ -23,7 +23,7 @@ impl Default for Netscape {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Item {
     pub title: String,
     pub add_date: Option<i64>,

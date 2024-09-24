@@ -65,7 +65,7 @@ pub struct Body {
     pub outlines: Vec<Outline>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Outline {
     pub r#type: Option<OutlineType>,
     pub text: String,
@@ -75,7 +75,7 @@ pub struct Outline {
     pub outline: Option<Vec<Outline>>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum OutlineType {
     #[default]
     Rss,
