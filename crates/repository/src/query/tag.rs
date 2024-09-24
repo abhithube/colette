@@ -116,6 +116,17 @@ pub async fn select<Db: ConnectionTrait>(
             }
             _ => {}
         };
+
+        final_query.and_where_option(
+            filters
+                .feed_id
+                .map(|e| profile_feed_tag::Column::ProfileFeedId.eq(e)),
+        );
+        final_query.and_where_option(
+            filters
+                .bookmark_id
+                .map(|e| profile_bookmark_tag::Column::ProfileBookmarkId.eq(e)),
+        );
     }
     if let Some(limit) = limit {
         final_query.limit(limit);

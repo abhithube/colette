@@ -117,12 +117,16 @@ pub trait TagRepository:
 #[derive(Clone, Debug, Default)]
 pub struct TagFindManyFilters {
     pub tag_type: TagType,
+    pub feed_id: Option<Uuid>,
+    pub bookmark_id: Option<Uuid>,
 }
 
 impl From<TagListQuery> for TagFindManyFilters {
     fn from(value: TagListQuery) -> Self {
         Self {
             tag_type: value.tag_type,
+            feed_id: None,
+            bookmark_id: None,
         }
     }
 }
