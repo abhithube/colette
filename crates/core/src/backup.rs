@@ -1,4 +1,7 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::Arc,
+};
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
@@ -6,10 +9,11 @@ use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use uuid::Uuid;
 
-use crate::{Bookmark, Collection, Feed, Tag};
+use crate::{feed::FeedRepository, Bookmark, Collection};
 
 pub struct BackupService {
     backup_repository: Arc<dyn BackupRepository>,
+    feed_repository: Arc<dyn FeedRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
@@ -29,11 +33,13 @@ pub struct ItemWrapper {
 impl BackupService {
     pub fn new(
         backup_repository: Arc<dyn BackupRepository>,
+        feed_repository: Arc<dyn FeedRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
         netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {
         Self {
             backup_repository,
+            feed_repository,
             opml_manager,
             netscape_manager,
         }
@@ -51,31 +57,15 @@ impl BackupService {
     }
 
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
-        let (tags, feeds) = self.backup_repository.export_opml(profile_id).await?;
+        let feeds = self
+            .feed_repository
+            .list(profile_id, None, None, None)
+            .await
+            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         let mut tag_map: HashMap<Uuid, OutlineWrapper> = HashMap::new();
         let mut children_map: HashMap<Uuid, Vec<Uuid>> = HashMap::new();
-        let mut root_tags: Vec<Uuid> = vec![];
-
-        for tag in tags {
-            tag_map.insert(
-                tag.id,
-                OutlineWrapper {
-                    parent_id: tag.parent_id,
-                    outline: Outline {
-                        text: tag.title,
-                        ..Default::default()
-                    },
-                },
-            );
-
-            match tag.parent_id {
-                Some(parent_id) => {
-                    children_map.entry(parent_id).or_default().push(tag.id);
-                }
-                None => root_tags.push(tag.id),
-            }
-        }
+        let mut root_tags: HashSet<Uuid> = HashSet::new();
 
         let mut root_feeds: Vec<Outline> = vec![];
         for feed in feeds {
@@ -90,7 +80,24 @@ impl BackupService {
 
             if let Some(tags) = feed.tags {
                 for tag in tags {
-                    if let Some(parent) = tag_map.get_mut(&tag.id) {
+                    let parent = tag_map.entry(tag.id).or_insert_with(|| OutlineWrapper {
+                        parent_id: tag.parent_id,
+                        outline: Outline {
+                            text: tag.title,
+                            ..Default::default()
+                        },
+                    });
+
+                    match tag.parent_id {
+                        Some(parent_id) => {
+                            children_map.entry(parent_id).or_default().push(tag.id);
+                        }
+                        None => {
+                            root_tags.insert(tag.id);
+                        }
+                    }
+
+                    if tag.direct.is_some_and(|e| e) {
                         parent
                             .outline
                             .outline
@@ -106,27 +113,25 @@ impl BackupService {
         fn build_hierarchy(
             tag_map: &mut HashMap<Uuid, OutlineWrapper>,
             children_map: &HashMap<Uuid, Vec<Uuid>>,
-            folder_id: Uuid,
+            root_id: &Uuid,
         ) {
-            if let Some(children) = children_map.get(&folder_id) {
-                for &child_id in children {
-                    build_hierarchy(tag_map, children_map, child_id);
-                    if let Some(child) = tag_map.remove(&child_id) {
-                        if let Some(children) = tag_map
-                            .get_mut(&folder_id)
-                            .unwrap()
-                            .outline
-                            .outline
-                            .as_mut()
-                        {
-                            children.push(child.outline);
+            if let Some(children) = children_map.get(root_id) {
+                for child_id in children {
+                    if let Some(child) = tag_map.remove(child_id) {
+                        if let Some(wrapper) = tag_map.get_mut(root_id) {
+                            let outlines = wrapper.outline.outline.get_or_insert_with(Vec::new);
+
+                            outlines.push(child.outline);
+                            outlines.sort();
                         }
                     }
+
+                    build_hierarchy(tag_map, children_map, child_id);
                 }
             }
         }
 
-        for &root_id in &root_tags {
+        for root_id in &root_tags {
             build_hierarchy(&mut tag_map, &children_map, root_id);
         }
 
@@ -251,8 +256,6 @@ impl BackupService {
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
-
-    async fn export_opml(&self, profile_id: Uuid) -> Result<(Vec<Tag>, Vec<Feed>), Error>;
 
     async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
 

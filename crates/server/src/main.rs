@@ -91,6 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let backup_service = Arc::new(BackupService::new(
         Arc::new(BackupSqlRepository::new(db.clone())),
+        feed_repository.clone(),
         Arc::new(OpmlManager),
         Arc::new(NetscapeManager),
     ));

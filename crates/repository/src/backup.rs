@@ -1,8 +1,7 @@
 use colette_core::{
     backup::{BackupRepository, Error},
     common::{TagsLinkAction, TagsLinkData},
-    tag::{TagFindManyFilters, TagType},
-    Bookmark, Collection, Feed, Tag,
+    Bookmark, Collection,
 };
 use colette_netscape::Item;
 use colette_opml::Outline;
@@ -11,9 +10,8 @@ use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 use uuid::Uuid;
 
 use crate::{
-    bookmark, collection, feed,
+    bookmark, collection,
     query::{self, profile_feed_tag::InsertMany},
-    tag,
 };
 
 pub struct BackupSqlRepository {
@@ -112,34 +110,6 @@ impl BackupRepository for BackupSqlRepository {
                     recurse(txn, outlines, None, profile_id).await?;
 
                     Ok(())
-                })
-            })
-            .await
-            .map_err(|e| Error::Unknown(e.into()))
-    }
-
-    async fn export_opml(&self, profile_id: Uuid) -> Result<(Vec<Tag>, Vec<Feed>), Error> {
-        self.db
-            .transaction::<_, (Vec<Tag>, Vec<Feed>), Error>(|txn| {
-                Box::pin(async move {
-                    let tags = tag::find(
-                        txn,
-                        None,
-                        profile_id,
-                        None,
-                        None,
-                        Some(TagFindManyFilters {
-                            tag_type: TagType::Feeds,
-                        }),
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let feeds = feed::find(txn, None, profile_id, None, None, None)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok((tags, feeds))
                 })
             })
             .await
