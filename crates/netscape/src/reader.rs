@@ -111,14 +111,6 @@ fn parse_attributes(attributes: BTreeMap<HtmlString, HtmlString>) -> Result<Item
             b"add_date" => item.add_date = Some(String::from_utf8(value.0)?.parse()?),
             b"last_visit" => item.last_visit = Some(String::from_utf8(value.0)?.parse()?),
             b"last_modified" => item.last_modified = Some(String::from_utf8(value.0)?.parse()?),
-            b"tags" => {
-                item.tags = Some(
-                    String::from_utf8(value.0)?
-                        .split(",")
-                        .map(|e| e.to_owned())
-                        .collect::<Vec<_>>(),
-                )
-            }
             _ => {}
         }
     }
