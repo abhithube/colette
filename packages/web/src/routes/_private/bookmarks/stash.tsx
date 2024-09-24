@@ -7,11 +7,7 @@ import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/stash')({
   loader: async ({ context }) => {
-    const options = listBookmarksOptions(
-      { filterByCollection: true },
-      context.profile.id,
-      context.api,
-    )
+    const options = listBookmarksOptions({}, context.profile.id, context.api)
 
     await ensureInfiniteQueryData(context.queryClient, options as any)
 
