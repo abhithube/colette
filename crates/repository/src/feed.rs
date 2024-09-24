@@ -7,6 +7,7 @@ use colette_core::{
         Cursor, Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository,
         FeedUpdateData, ProcessedFeed,
     },
+    tag::TagFindManyFilters,
     Feed,
 };
 use colette_entity::PfWithFeedAndTagsAndUnreadCount;
@@ -344,17 +345,32 @@ pub(crate) async fn link_tags<Db: ConnectionTrait>(
     .await?;
 
     let tag_models = query::tag::select_by_tags(db, &tags.data).await?;
-    let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
-
-    let tag_ids = query::tag::prune_tag_list(db, tag_ids.clone(), profile_id).await?;
+    let mut tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
     if let TagsLinkAction::Remove = tags.action {
-        return query::profile_feed_tag::delete_many_in(db, profile_feed_id, tag_ids.clone()).await;
+        return query::profile_feed_tag::delete_many_in(db, profile_feed_id, tag_ids).await;
     }
 
-    if let TagsLinkAction::Set = tags.action {
-        query::profile_feed_tag::delete_many_not_in(db, profile_feed_id, tag_ids.clone()).await?;
+    if let TagsLinkAction::Add = tags.action {
+        let tags = query::tag::select(
+            db,
+            None,
+            profile_id,
+            None,
+            None,
+            Some(TagFindManyFilters {
+                feed_id: Some(profile_feed_id),
+                ..Default::default()
+            }),
+        )
+        .await?;
+
+        tag_ids.append(&mut tags.into_iter().map(|e| e.id).collect());
     }
+
+    let tag_ids = query::tag::prune_tag_list(db, tag_ids, profile_id).await?;
+
+    query::profile_feed_tag::delete_many_not_in(db, profile_feed_id, tag_ids.clone()).await?;
 
     let insert_many = tag_ids
         .into_iter()

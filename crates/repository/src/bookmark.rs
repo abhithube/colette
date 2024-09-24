@@ -6,6 +6,7 @@ use colette_core::{
         Cursor, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
+    tag::TagFindManyFilters,
     Bookmark,
 };
 use colette_entity::PbWithBookmarkAndTags;
@@ -239,7 +240,7 @@ pub(crate) async fn find<Db: ConnectionTrait>(
             .await
             .map(|e| {
                 e.into_iter()
-                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|feed| (pb, feed)))
+                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|bookmark| (pb, bookmark)))
                     .collect::<Vec<_>>()
             })
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -270,12 +271,12 @@ pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Resul
 pub(crate) async fn link_tags<Db: ConnectionTrait>(
     db: &Db,
     profile_bookmark_id: Uuid,
-    data: TagsLinkData,
+    tags: TagsLinkData,
     profile_id: Uuid,
 ) -> Result<(), DbErr> {
     query::tag::insert_many(
         db,
-        data.data
+        tags.data
             .iter()
             .map(|e| query::tag::InsertMany {
                 id: Uuid::new_v4(),
@@ -286,24 +287,34 @@ pub(crate) async fn link_tags<Db: ConnectionTrait>(
     )
     .await?;
 
-    let tag_models = query::tag::select_by_tags(db, &data.data).await?;
-    let tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
+    let tag_models = query::tag::select_by_tags(db, &tags.data).await?;
+    let mut tag_ids = tag_models.iter().map(|e| e.id).collect::<Vec<_>>();
 
-    let tag_ids = query::tag::prune_tag_list(db, tag_ids.clone(), profile_id).await?;
+    if let TagsLinkAction::Remove = tags.action {
+        return query::profile_bookmark_tag::delete_many_in(db, profile_bookmark_id, tag_ids).await;
+    }
 
-    if let TagsLinkAction::Remove = data.action {
-        return query::profile_bookmark_tag::delete_many_in(
+    if let TagsLinkAction::Add = tags.action {
+        let tags = query::tag::select(
             db,
-            profile_bookmark_id,
-            tag_ids.clone(),
+            None,
+            profile_id,
+            None,
+            None,
+            Some(TagFindManyFilters {
+                bookmark_id: Some(profile_bookmark_id),
+                ..Default::default()
+            }),
         )
-        .await;
+        .await?;
+
+        tag_ids.append(&mut tags.into_iter().map(|e| e.id).collect());
     }
 
-    if let TagsLinkAction::Set = data.action {
-        query::profile_bookmark_tag::delete_many_not_in(db, profile_bookmark_id, tag_ids.clone())
-            .await?;
-    }
+    let tag_ids = query::tag::prune_tag_list(db, tag_ids, profile_id).await?;
+
+    query::profile_bookmark_tag::delete_many_not_in(db, profile_bookmark_id, tag_ids.clone())
+        .await?;
 
     let insert_many = tag_ids
         .into_iter()

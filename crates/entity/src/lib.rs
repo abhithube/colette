@@ -115,12 +115,12 @@ impl From<profile::Model> for Profile {
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct PartialTag {
-    id: Uuid,
-    title: String,
-    parent_id: Option<Uuid>,
-    depth: i32,
-    bookmark_count: i64,
-    feed_count: i64,
+    pub id: Uuid,
+    pub title: String,
+    pub parent_id: Option<Uuid>,
+    pub depth: i32,
+    pub bookmark_count: i64,
+    pub feed_count: i64,
 }
 
 impl From<PartialTag> for Tag {
