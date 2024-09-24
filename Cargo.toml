@@ -21,7 +21,7 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false, features = ["std"] }
-apalis = { version = "=0.6.0-rc.6", default-features = false, features = [
+apalis = { version = "=0.6.0-rc.7", default-features = false, features = [
   "tokio-comp",
 ] }
 async-trait = { version = "0.1", default-features = false }
