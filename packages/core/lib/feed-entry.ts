@@ -19,22 +19,22 @@ export interface FeedEntryAPI {
 export class HTTPFeedEntryAPI implements FeedEntryAPI {
   constructor(private client: ApiClient) {}
 
-  async list(query: ListFeedEntriesQuery): Promise<FeedEntryList> {
+  list(query: ListFeedEntriesQuery): Promise<FeedEntryList> {
     return this.client
       .get('/feedEntries', {
-        query: await ListFeedEntriesQuery.parseAsync(query),
+        query: ListFeedEntriesQuery.parse(query),
       })
-      .then(FeedEntryList.parseAsync)
+      .then(FeedEntryList.parse)
   }
 
-  async update(id: string, data: FeedEntryUpdate): Promise<FeedEntry> {
+  update(id: string, data: FeedEntryUpdate): Promise<FeedEntry> {
     return this.client
       .patch('/feedEntries/{id}', {
         path: {
           id,
         },
-        body: await FeedEntryUpdate.parseAsync(data),
+        body: FeedEntryUpdate.parse(data),
       })
-      .then(FeedEntry.parseAsync)
+      .then(FeedEntry.parse)
   }
 }

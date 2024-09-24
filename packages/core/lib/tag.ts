@@ -26,44 +26,44 @@ export interface TagAPI {
 export class HTTPTagAPI implements TagAPI {
   constructor(private client: ApiClient) {}
 
-  async list(query: ListTagsQuery): Promise<TagList> {
+  list(query: ListTagsQuery): Promise<TagList> {
     return this.client
       .get('/tags', {
-        query: await ListTagsQuery.parseAsync(query),
+        query: ListTagsQuery.parse(query),
       })
-      .then(TagList.parseAsync)
+      .then(TagList.parse)
   }
 
-  async get(id: string): Promise<Tag> {
+  get(id: string): Promise<Tag> {
     return this.client
       .get('/tags/{id}', {
         path: {
           id,
         },
       })
-      .then(Tag.parseAsync)
+      .then(Tag.parse)
   }
 
-  async create(body: TagCreate): Promise<Tag> {
+  create(body: TagCreate): Promise<Tag> {
     return this.client
       .post('/tags', {
-        body: await TagCreate.parseAsync(body),
+        body: TagCreate.parse(body),
       })
-      .then(Tag.parseAsync)
+      .then(Tag.parse)
   }
 
-  async update(id: string, body: TagUpdate): Promise<Tag> {
+  update(id: string, body: TagUpdate): Promise<Tag> {
     return this.client
       .patch('/tags/{id}', {
         path: {
           id,
         },
-        body: await TagUpdate.parseAsync(body),
+        body: TagUpdate.parse(body),
       })
-      .then(Tag.parseAsync)
+      .then(Tag.parse)
   }
 
-  async delete(id: string): Promise<void> {
+  delete(id: string): Promise<void> {
     return this.client
       .delete('/tags/{id}', {
         path: {

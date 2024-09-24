@@ -90,7 +90,7 @@ export class HttpAPI implements API {
 }
 
 async function handleError(data: unknown, status: number) {
-  const parsed = await BaseError.safeParseAsync(data)
+  const parsed = BaseError.safeParse(data)
   if (parsed.error) {
     throw new UnprocessableContentError(parsed.error.message)
   }

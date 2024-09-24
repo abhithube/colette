@@ -26,44 +26,44 @@ export interface FeedAPI {
 export class HTTPFeedAPI implements FeedAPI {
   constructor(private client: ApiClient) {}
 
-  async list(query: ListFeedsQuery): Promise<FeedList> {
+  list(query: ListFeedsQuery): Promise<FeedList> {
     return this.client
       .get('/feeds', {
-        query: await ListFeedsQuery.parseAsync(query),
+        query: ListFeedsQuery.parse(query),
       })
-      .then(FeedList.parseAsync)
+      .then(FeedList.parse)
   }
 
-  async get(id: string): Promise<Feed> {
+  get(id: string): Promise<Feed> {
     return this.client
       .get('/feeds/{id}', {
         path: {
           id,
         },
       })
-      .then(Feed.parseAsync)
+      .then(Feed.parse)
   }
 
-  async create(data: FeedCreate): Promise<Feed> {
+  create(data: FeedCreate): Promise<Feed> {
     return this.client
       .post('/feeds', {
-        body: await FeedCreate.parseAsync(data),
+        body: FeedCreate.parse(data),
       })
-      .then(Feed.parseAsync)
+      .then(Feed.parse)
   }
 
-  async update(id: string, data: FeedUpdate): Promise<Feed> {
+  update(id: string, data: FeedUpdate): Promise<Feed> {
     return this.client
       .patch('/feeds/{id}', {
         path: {
           id,
         },
-        body: await FeedUpdate.parseAsync(data),
+        body: FeedUpdate.parse(data),
       })
-      .then(Feed.parseAsync)
+      .then(Feed.parse)
   }
 
-  async delete(id: string): Promise<void> {
+  delete(id: string): Promise<void> {
     return this.client
       .delete('/feeds/{id}', {
         path: {

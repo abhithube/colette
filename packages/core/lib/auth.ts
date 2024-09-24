@@ -20,31 +20,31 @@ export interface AuthAPI {
 export class HTTPAuthAPI implements AuthAPI {
   constructor(private client: ApiClient) {}
 
-  async register(data: Register): Promise<User> {
+  register(data: Register): Promise<User> {
     return this.client
       .post('/auth/register', {
-        body: await Register.parseAsync(data),
+        body: Register.parse(data),
       })
-      .then(User.parseAsync)
+      .then(User.parse)
   }
 
-  async login(data: Login): Promise<Profile> {
+  login(data: Login): Promise<Profile> {
     return this.client
       .post('/auth/login', {
-        body: await Login.parseAsync(data),
+        body: Login.parse(data),
       })
-      .then(Profile.parseAsync)
+      .then(Profile.parse)
   }
 
-  async getActive(): Promise<User> {
-    return this.client.get('/auth/@me').then(User.parseAsync)
+  getActive(): Promise<User> {
+    return this.client.get('/auth/@me').then(User.parse)
   }
 
-  async switchProfile(data: SwitchProfile): Promise<Profile> {
+  switchProfile(data: SwitchProfile): Promise<Profile> {
     return this.client
       .post('/auth/switchProfile', {
-        body: await SwitchProfile.parseAsync(data),
+        body: SwitchProfile.parse(data),
       })
-      .then(Profile.parseAsync)
+      .then(Profile.parse)
   }
 }
