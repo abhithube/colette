@@ -39,7 +39,7 @@ export function AddBookmarkModal({ close }: Props) {
           close()
 
           await navigate({
-            to: '/bookmarks/stash',
+            to: '/bookmarks',
           })
         },
       },

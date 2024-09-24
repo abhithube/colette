@@ -21,7 +21,6 @@ import { Route as PrivateBookmarksIndexImport } from './routes/_private/bookmark
 import { Route as PrivateFeedsManageImport } from './routes/_private/feeds/manage'
 import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
 import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
-import { Route as PrivateBookmarksStashImport } from './routes/_private/bookmarks/stash'
 
 // Create/Update Routes
 
@@ -75,11 +74,6 @@ const PrivateFeedsIdRoute = PrivateFeedsIdImport.update({
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
-const PrivateBookmarksStashRoute = PrivateBookmarksStashImport.update({
-  path: '/stash',
-  getParentRoute: () => PrivateBookmarksRoute,
-} as any)
-
 // Populate the FileRoutesByPath interface
 
 declare module '@tanstack/react-router' {
@@ -118,13 +112,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof PrivateIndexImport
       parentRoute: typeof PrivateImport
-    }
-    '/_private/bookmarks/stash': {
-      id: '/_private/bookmarks/stash'
-      path: '/stash'
-      fullPath: '/bookmarks/stash'
-      preLoaderRoute: typeof PrivateBookmarksStashImport
-      parentRoute: typeof PrivateBookmarksImport
     }
     '/_private/feeds/$id': {
       id: '/_private/feeds/$id'
@@ -167,12 +154,10 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 interface PrivateBookmarksRouteChildren {
-  PrivateBookmarksStashRoute: typeof PrivateBookmarksStashRoute
   PrivateBookmarksIndexRoute: typeof PrivateBookmarksIndexRoute
 }
 
 const PrivateBookmarksRouteChildren: PrivateBookmarksRouteChildren = {
-  PrivateBookmarksStashRoute: PrivateBookmarksStashRoute,
   PrivateBookmarksIndexRoute: PrivateBookmarksIndexRoute,
 }
 
@@ -218,7 +203,6 @@ export interface FileRoutesByFullPath {
   '/bookmarks': typeof PrivateBookmarksRouteWithChildren
   '/feeds': typeof PrivateFeedsRouteWithChildren
   '/': typeof PrivateIndexRoute
-  '/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/feeds/$id': typeof PrivateFeedsIdRoute
   '/feeds/archived': typeof PrivateFeedsArchivedRoute
   '/feeds/manage': typeof PrivateFeedsManageRoute
@@ -229,7 +213,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/': typeof PrivateIndexRoute
-  '/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/feeds/$id': typeof PrivateFeedsIdRoute
   '/feeds/archived': typeof PrivateFeedsArchivedRoute
   '/feeds/manage': typeof PrivateFeedsManageRoute
@@ -244,7 +227,6 @@ export interface FileRoutesById {
   '/_private/bookmarks': typeof PrivateBookmarksRouteWithChildren
   '/_private/feeds': typeof PrivateFeedsRouteWithChildren
   '/_private/': typeof PrivateIndexRoute
-  '/_private/bookmarks/stash': typeof PrivateBookmarksStashRoute
   '/_private/feeds/$id': typeof PrivateFeedsIdRoute
   '/_private/feeds/archived': typeof PrivateFeedsArchivedRoute
   '/_private/feeds/manage': typeof PrivateFeedsManageRoute
@@ -260,7 +242,6 @@ export interface FileRouteTypes {
     | '/bookmarks'
     | '/feeds'
     | '/'
-    | '/bookmarks/stash'
     | '/feeds/$id'
     | '/feeds/archived'
     | '/feeds/manage'
@@ -270,7 +251,6 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/'
-    | '/bookmarks/stash'
     | '/feeds/$id'
     | '/feeds/archived'
     | '/feeds/manage'
@@ -283,7 +263,6 @@ export interface FileRouteTypes {
     | '/_private/bookmarks'
     | '/_private/feeds'
     | '/_private/'
-    | '/_private/bookmarks/stash'
     | '/_private/feeds/$id'
     | '/_private/feeds/archived'
     | '/_private/feeds/manage'
@@ -333,7 +312,6 @@ export const routeTree = rootRoute
       "filePath": "_private/bookmarks.tsx",
       "parent": "/_private",
       "children": [
-        "/_private/bookmarks/stash",
         "/_private/bookmarks/"
       ]
     },
@@ -350,10 +328,6 @@ export const routeTree = rootRoute
     "/_private/": {
       "filePath": "_private/index.tsx",
       "parent": "/_private"
-    },
-    "/_private/bookmarks/stash": {
-      "filePath": "_private/bookmarks/stash.tsx",
-      "parent": "/_private/bookmarks"
     },
     "/_private/feeds/$id": {
       "filePath": "_private/feeds/$id.tsx",

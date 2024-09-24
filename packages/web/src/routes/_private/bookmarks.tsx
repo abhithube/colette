@@ -16,7 +16,7 @@ import {
 } from '@colette/components'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Link as TLink } from '@tanstack/react-router'
-import { History, Home, PlusCircle } from 'lucide-react'
+import { Home, PlusCircle } from 'lucide-react'
 
 import { AddBookmarkModal } from './bookmarks/-components/add-bookmark-modal'
 
@@ -83,25 +83,6 @@ function Component() {
                     </Icon>
                     <Text as="span" flexGrow={1} truncate>
                       All Bookmarks
-                    </Text>
-                  </TLink>
-                </Link>
-              </Button>
-              <Button asChild variant="ghost">
-                <Link asChild textDecoration="none">
-                  <TLink
-                    to="/bookmarks/stash"
-                    activeProps={{
-                      className: css({
-                        bg: 'bg.muted',
-                      }),
-                    }}
-                  >
-                    <Icon>
-                      <History />
-                    </Icon>
-                    <Text as="span" flexGrow={1} truncate>
-                      Stash
                     </Text>
                   </TLink>
                 </Link>
