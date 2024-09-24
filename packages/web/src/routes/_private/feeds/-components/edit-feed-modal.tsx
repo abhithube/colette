@@ -1,3 +1,5 @@
+import type { Feed, Tag } from '@colette/core'
+import { listTagsOptions, updateFeedOptions } from '@colette/query'
 import {
   Button,
   Combobox,
@@ -9,9 +11,7 @@ import {
   Switch,
   TagsInput,
   VStack,
-} from '@colette/components'
-import type { Feed, Tag } from '@colette/core'
-import { listTagsOptions, updateFeedOptions } from '@colette/query'
+} from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { zodValidator } from '@tanstack/zod-form-adapter'

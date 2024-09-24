@@ -1,6 +1,6 @@
-import { Button, Dialog, Flex } from '@colette/components'
 import type { Feed } from '@colette/core'
 import { deleteFeedOptions } from '@colette/query'
+import { Button, Dialog, Flex } from '@colette/ui'
 import { useMutation } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { Route } from '../../feeds'

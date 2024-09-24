@@ -1,4 +1,4 @@
-import { Box, Divider, Flex } from '@colette/components'
+import { Box, Divider, Flex } from '@colette/ui'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { OuterSidebar } from './-components/outer-sidebar'
 

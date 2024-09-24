@@ -1,4 +1,4 @@
-import { Box, Center } from '@colette/components'
+import { Box, Center } from '@colette/ui'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { LoginForm } from './-components/login-form'
 

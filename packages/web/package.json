@@ -7,7 +7,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@colette/components": "*",
+		"@colette/ui": "*",
 		"@colette/core": "*",
 		"@colette/query": "*",
 		"@dnd-kit/core": "^6",

@@ -1,16 +1,9 @@
 import {
-  Button,
-  Dialog,
-  HStack,
-  Heading,
-  Icon,
-  Link,
-} from '@colette/components'
-import {
   ensureInfiniteQueryData,
   getFeedOptions,
   listFeedEntriesOptions,
 } from '@colette/query'
+import { Button, Dialog, HStack, Heading, Icon, Link } from '@colette/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'

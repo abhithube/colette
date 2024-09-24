@@ -1,6 +1,6 @@
-import { Dialog, HStack, IconButton } from '@colette/components'
 import type { Feed } from '@colette/core'
 import { updateFeedOptions } from '@colette/query'
+import { Dialog, HStack, IconButton } from '@colette/ui'
 import { useMutation } from '@tanstack/react-query'
 import { Pencil, Pin, Trash2 } from 'lucide-react'
 import { Route } from '../../manage'

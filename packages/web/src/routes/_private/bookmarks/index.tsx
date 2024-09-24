@@ -1,5 +1,5 @@
-import { HStack, Heading } from '@colette/components'
 import { ensureInfiniteQueryData, listBookmarksOptions } from '@colette/query'
+import { HStack, Heading } from '@colette/ui'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'

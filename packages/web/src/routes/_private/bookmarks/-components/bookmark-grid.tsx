@@ -1,5 +1,5 @@
-import { Box, Grid, GridItem } from '@colette/components'
 import type { Bookmark } from '@colette/core'
+import { Box, Grid, GridItem } from '@colette/ui'
 import { useInView } from 'react-intersection-observer'
 import { BookmarkCard } from './bookmark-card'
 

@@ -2,11 +2,11 @@
 	"name": "colette",
 	"type": "module",
 	"workspaces": [
-		"packages/components",
 		"packages/core",
 		"packages/panda-preset",
 		"packages/query",
 		"packages/styled-system",
+		"packages/ui",
 		"packages/web"
 	],
 	"devDependencies": {

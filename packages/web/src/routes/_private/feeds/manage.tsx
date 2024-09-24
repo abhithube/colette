@@ -1,5 +1,5 @@
-import { HStack, Heading } from '@colette/components'
 import { listFeedsOptions } from '@colette/query'
+import { HStack, Heading } from '@colette/ui'
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'

@@ -1,12 +1,5 @@
-import {
-  Button,
-  Dialog,
-  Field,
-  Flex,
-  IconButton,
-  VStack,
-} from '@colette/components'
 import { createBookmarkOptions } from '@colette/query'
+import { Button, Dialog, Field, Flex, IconButton, VStack } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'

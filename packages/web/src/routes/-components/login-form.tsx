@@ -1,5 +1,5 @@
-import { Button, Card, Field } from '@colette/components'
 import { loginOptions } from '@colette/query'
+import { Button, Card, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'

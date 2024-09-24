@@ -1,3 +1,5 @@
+import type { Bookmark, Tag } from '@colette/core'
+import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
 import {
   Button,
   Combobox,
@@ -6,9 +8,7 @@ import {
   IconButton,
   TagsInput,
   VStack,
-} from '@colette/components'
-import type { Bookmark, Tag } from '@colette/core'
-import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
+} from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'

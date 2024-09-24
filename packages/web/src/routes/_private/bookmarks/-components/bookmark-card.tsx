@@ -1,5 +1,6 @@
 import { Favicon } from '@/components/favicon'
 import { formatRelativeDate } from '@/lib/utils'
+import type { Bookmark } from '@colette/core'
 import {
   Button,
   Card,
@@ -11,8 +12,7 @@ import {
   Link,
   Text,
   css,
-} from '@colette/components'
-import type { Bookmark } from '@colette/core'
+} from '@colette/ui'
 import { ExternalLink, Pencil } from 'lucide-react'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 

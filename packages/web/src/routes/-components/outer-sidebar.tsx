@@ -8,7 +8,7 @@ import {
   Tooltip,
   VStack,
   css,
-} from '@colette/components'
+} from '@colette/ui'
 import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
 import { ProfileModal } from './profile-modal'

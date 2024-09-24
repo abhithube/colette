@@ -1,5 +1,5 @@
-import { Box, Container, Divider, HStack, Text } from '@colette/components'
 import type { FeedEntry } from '@colette/core'
+import { Box, Container, Divider, HStack, Text } from '@colette/ui'
 import { useInView } from 'react-intersection-observer'
 import { FeedEntryCard } from './feed-entry-card'
 

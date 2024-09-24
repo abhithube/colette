@@ -1,5 +1,5 @@
-import { Badge, HStack, Table, Text } from '@colette/components'
 import type { Feed } from '@colette/core'
+import { Badge, HStack, Table, Text } from '@colette/ui'
 import {
   createColumnHelper,
   flexRender,

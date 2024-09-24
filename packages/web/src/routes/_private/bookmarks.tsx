@@ -13,7 +13,7 @@ import {
   Text,
   VStack,
   css,
-} from '@colette/components'
+} from '@colette/ui'
 import { Outlet, createFileRoute } from '@tanstack/react-router'
 import { Link as TLink } from '@tanstack/react-router'
 import { Home, PlusCircle } from 'lucide-react'

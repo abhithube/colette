@@ -1,5 +1,7 @@
 import { Favicon } from '@/components/favicon'
 import { formatRelativeDate } from '@/lib/utils'
+import type { FeedEntry } from '@colette/core'
+import { updateFeedEntryOptions } from '@colette/query'
 import {
   Button,
   Card,
@@ -11,9 +13,7 @@ import {
   Text,
   VStack,
   css,
-} from '@colette/components'
-import type { FeedEntry } from '@colette/core'
-import { updateFeedEntryOptions } from '@colette/query'
+} from '@colette/ui'
 import { useMutation } from '@tanstack/react-query'
 import { ExternalLink } from 'lucide-react'
 import { Route } from '../../feeds'

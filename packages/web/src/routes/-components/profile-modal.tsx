@@ -1,3 +1,4 @@
+import { listProfilesOptions, switchProfileOptions } from '@colette/query'
 import {
   Avatar,
   Button,
@@ -7,8 +8,7 @@ import {
   IconButton,
   RadioButtonGroup,
   Text,
-} from '@colette/components'
-import { listProfilesOptions, switchProfileOptions } from '@colette/query'
+} from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'

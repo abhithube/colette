@@ -1,3 +1,4 @@
+import { createFeedOptions } from '@colette/query'
 import {
   Button,
   Dialog,
@@ -7,8 +8,7 @@ import {
   IconButton,
   Switch,
   VStack,
-} from '@colette/components'
-import { createFeedOptions } from '@colette/query'
+} from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'

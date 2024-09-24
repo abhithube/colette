@@ -1,3 +1,4 @@
+import { listFeedsOptions } from '@colette/query'
 import {
   Box,
   Button,
@@ -13,8 +14,7 @@ import {
   Text,
   VStack,
   css,
-} from '@colette/components'
-import { listFeedsOptions } from '@colette/query'
+} from '@colette/ui'
 import { useQuery } from '@tanstack/react-query'
 import { Outlet, Link as TLink, createFileRoute } from '@tanstack/react-router'
 import { History, Home, PlusCircle, Wrench } from 'lucide-react'

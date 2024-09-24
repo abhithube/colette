@@ -1,5 +1,5 @@
 {
-	"name": "@colette/components",
+	"name": "@colette/ui",
 	"exports": ["./lib/index.ts"],
 	"dependencies": {
 		"@ark-ui/react": "^3",
