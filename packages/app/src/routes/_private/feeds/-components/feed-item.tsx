@@ -1,7 +1,7 @@
-import { Favicon } from '@/components/favicon'
 import type { Feed } from '@colette/core'
 import { Button, Flex, Link, Text, css } from '@colette/ui'
 import { Link as TLink } from '@tanstack/react-router'
+import { Favicon } from '../../../../components/favicon'
 
 type Props = {
   feed: Feed

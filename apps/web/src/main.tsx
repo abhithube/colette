@@ -1,11 +1,10 @@
+import { ThemeProvider, createRouter } from '@colette/app'
+import { HttpAPI } from '@colette/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { RouterProvider } from '@tanstack/react-router'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import './index.css'
-import { HttpAPI } from '@colette/core'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { ThemeProvider } from './components/theme-provider'
-import { routeTree } from './routeTree.gen'
 
 const queryClient = new QueryClient()
 const api = new HttpAPI({
@@ -13,20 +12,7 @@ const api = new HttpAPI({
   credentials: 'include',
 })
 
-const router = createRouter({
-  routeTree,
-  context: {
-    queryClient,
-    api,
-  },
-  defaultPreload: 'intent',
-})
-
-declare module '@tanstack/react-router' {
-  interface Register {
-    router: typeof router
-  }
-}
+const router = createRouter(queryClient, api)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

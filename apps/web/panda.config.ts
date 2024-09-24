@@ -3,6 +3,6 @@ import { defineConfig } from '@pandacss/dev'
 
 export default defineConfig({
   presets: [customPreset],
-  include: ['./src/**/*.{ts,tsx}'],
-  lightningcss: true
+  include: ['../../node_modules/@colette/app/src/**/*.{ts,tsx}'],
+  lightningcss: true,
 })

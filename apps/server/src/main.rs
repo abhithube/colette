@@ -38,7 +38,7 @@ use tower_sessions::ExpiredDeletion;
 const CRON_CLEANUP: &str = "0 0 0 * * *";
 
 #[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../../packages/app/dist"]
+#[folder = "$CARGO_MANIFEST_DIR/../web/dist"]
 struct Asset;
 
 #[tokio::main]

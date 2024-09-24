@@ -1,5 +1,3 @@
-import { Favicon } from '@/components/favicon'
-import { formatRelativeDate } from '@/lib/utils'
 import type { FeedEntry } from '@colette/core'
 import { updateFeedEntryOptions } from '@colette/query'
 import {
@@ -16,6 +14,8 @@ import {
 } from '@colette/ui'
 import { useMutation } from '@tanstack/react-query'
 import { ExternalLink } from 'lucide-react'
+import { Favicon } from '../../../../components/favicon'
+import { formatRelativeDate } from '../../../../lib/utils'
 import { Route } from '../../feeds'
 
 type Props = {

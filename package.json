@@ -2,6 +2,8 @@
 	"name": "colette",
 	"type": "module",
 	"workspaces": [
+		"apps/web",
+
 		"packages/app",
 		"packages/core",
 		"packages/panda-preset",
