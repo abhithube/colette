@@ -60,14 +60,21 @@ export class HttpAPI implements API {
         finalUrl = `${finalUrl}?${search.toString()}`
       }
 
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        ...rest.headers,
+        ...params?.header,
+      }
+      const body: any = params?.body
+        ? (headers as any)['Content-Type'] === 'application/json'
+          ? JSON.stringify(params.body)
+          : params.body
+        : undefined
+
       return fetch(finalUrl, {
         method: method.toUpperCase(),
-        body: params?.body ? JSON.stringify(params.body) : undefined,
-        headers: {
-          'Content-Type': 'application/json',
-          ...rest.headers,
-          ...params?.header,
-        },
+        body,
+        headers,
         ...rest,
       }).then(async (res) => {
         if (res.status !== 204) {

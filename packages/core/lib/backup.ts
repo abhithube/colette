@@ -10,16 +10,11 @@ export class HTTPBackupAPI implements BackupAPI {
   async import(data: File): Promise<void> {
     return this.client
       .post('/backups/opml/import', {
-        body: await Array.fromAsync(fileToAsyncIterator(data)),
-      })
+        body: new Uint8Array(await data.arrayBuffer()),
+        header: {
+          'Content-Type': 'application/octet-stream',
+        },
+      } as any)
       .then()
-  }
-}
-
-async function* fileToAsyncIterator(file: File) {
-  const buffer = await file.arrayBuffer()
-
-  for (const chunk of new Uint8Array(buffer)) {
-    yield chunk
   }
 }
