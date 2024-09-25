@@ -52,10 +52,10 @@ pub fn run() {
                     Arc::new(FeedSqlRepository::new(db.clone())),
                     Arc::new(register_feed_plugins()),
                 );
-                let feed_entry_service = Arc::new(FeedEntryService::new(
+                let feed_entry_service = FeedEntryService::new(
                     Arc::new(FeedEntrySqlRepository::new(db)),
                     Arc::new(Base64Encoder),
-                ));
+                );
                 let profile_service = ProfileService::new(profile_repository.clone());
 
                 let email = EmailAddress::from_str("default@default.com")?;
@@ -96,21 +96,15 @@ pub fn run() {
             auth::register,
             auth::login,
             auth::get_active_user,
-            auth::switch_profile
-        ])
-        .invoke_handler(tauri::generate_handler![
+            auth::switch_profile,
             feed::list_feeds,
             feed::create_feed,
             feed::get_feed,
             feed::update_feed,
-            feed::delete_feed
-        ])
-        .invoke_handler(tauri::generate_handler![
+            feed::delete_feed,
             feed_entry::list_feed_entries,
             feed_entry::get_feed_entry,
-            feed_entry::update_feed_entry
-        ])
-        .invoke_handler(tauri::generate_handler![
+            feed_entry::update_feed_entry,
             profile::list_profiles,
             profile::create_profile,
             profile::get_profile,
