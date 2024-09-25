@@ -7,7 +7,12 @@ import type {
   ProfileAPI,
   TagAPI,
 } from '@colette/core'
-import { AuthCommands, ProfileCommands } from './commands'
+import {
+  AuthCommands,
+  FeedCommands,
+  FeedEntryCommands,
+  ProfileCommands,
+} from './commands'
 
 export interface API {
   auth: AuthAPI
@@ -32,8 +37,8 @@ export class CommandsAPI implements API {
     this.auth = new AuthCommands()
     this.backups = undefined as any
     this.bookmarks = undefined as any
-    this.feedEntries = undefined as any
-    this.feeds = undefined as any
+    this.feedEntries = new FeedEntryCommands()
+    this.feeds = new FeedCommands()
     this.profiles = new ProfileCommands()
     this.tags = undefined as any
   }
