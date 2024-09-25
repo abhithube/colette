@@ -782,10 +782,12 @@ dependencies = [
 name = "colette-desktop"
 version = "0.1.0"
 dependencies = [
+ "colette-api",
  "colette-core",
  "colette-migration",
  "colette-repository",
  "colette-util",
+ "email_address",
  "sea-orm",
  "serde",
  "serde_json",

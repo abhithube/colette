@@ -1,9 +1,15 @@
-use std::{fs, sync::Arc};
+use std::{fs, str::FromStr, sync::Arc};
 
-use colette_core::{auth::AuthService, profile::ProfileService};
+use colette_api::Session;
+use colette_core::{
+    auth::{AuthService, Login, Register},
+    common::{Findable, NonEmptyString},
+    profile::{ProfileIdOrDefaultParams, ProfileService},
+};
 use colette_migration::{Migrator, MigratorTrait};
 use colette_repository::{ProfileSqlRepository, UserSqlRepository};
 use colette_util::password::ArgonHasher;
+use email_address::EmailAddress;
 use sea_orm::{ConnectOptions, Database};
 use tauri::Manager;
 
@@ -34,7 +40,33 @@ pub fn run() {
                     profile_repository.clone(),
                     Arc::new(ArgonHasher),
                 );
-                let profile_service = ProfileService::new(profile_repository);
+                let profile_service = ProfileService::new(profile_repository.clone());
+
+                let email = EmailAddress::from_str("default@default.com")?;
+                let password = NonEmptyString::try_from("default".to_owned())?;
+                let profile = match auth_service
+                    .login(Login {
+                        email: email.clone(),
+                        password: password.clone(),
+                    })
+                    .await
+                {
+                    Ok(profile) => profile,
+                    _ => {
+                        let user = auth_service.register(Register { email, password }).await?;
+                        profile_repository
+                            .find(ProfileIdOrDefaultParams {
+                                user_id: user.id,
+                                ..Default::default()
+                            })
+                            .await?
+                    }
+                };
+
+                app.manage(Session {
+                    profile_id: profile.id,
+                    user_id: profile.user_id,
+                });
 
                 app.manage(auth_service);
                 app.manage(profile_service);
