@@ -4,12 +4,17 @@ use colette_api::Session;
 use colette_core::{
     auth::{AuthService, Login, Register},
     common::{Findable, NonEmptyString},
+    feed::FeedService,
+    feed_entry::FeedEntryService,
     profile::{ProfileIdOrDefaultParams, ProfileService},
 };
 use colette_migration::{Migrator, MigratorTrait};
-use colette_repository::{ProfileSqlRepository, UserSqlRepository};
-use colette_util::password::ArgonHasher;
-use command::{auth, profile};
+use colette_plugins::register_feed_plugins;
+use colette_repository::{
+    FeedEntrySqlRepository, FeedSqlRepository, ProfileSqlRepository, UserSqlRepository,
+};
+use colette_util::{base64::Base64Encoder, password::ArgonHasher};
+use command::{auth, feed, feed_entry, profile};
 use email_address::EmailAddress;
 use sea_orm::{ConnectOptions, Database};
 use tauri::Manager;
@@ -39,10 +44,18 @@ pub fn run() {
                 let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
 
                 let auth_service = AuthService::new(
-                    Arc::new(UserSqlRepository::new(db)),
+                    Arc::new(UserSqlRepository::new(db.clone())),
                     profile_repository.clone(),
                     Arc::new(ArgonHasher),
                 );
+                let feed_service = FeedService::new(
+                    Arc::new(FeedSqlRepository::new(db.clone())),
+                    Arc::new(register_feed_plugins()),
+                );
+                let feed_entry_service = Arc::new(FeedEntryService::new(
+                    Arc::new(FeedEntrySqlRepository::new(db)),
+                    Arc::new(Base64Encoder),
+                ));
                 let profile_service = ProfileService::new(profile_repository.clone());
 
                 let email = EmailAddress::from_str("default@default.com")?;
@@ -72,6 +85,8 @@ pub fn run() {
                 });
 
                 app.manage(auth_service);
+                app.manage(feed_service);
+                app.manage(feed_entry_service);
                 app.manage(profile_service);
 
                 Ok(())
@@ -82,6 +97,18 @@ pub fn run() {
             auth::login,
             auth::get_active_user,
             auth::switch_profile
+        ])
+        .invoke_handler(tauri::generate_handler![
+            feed::list_feeds,
+            feed::create_feed,
+            feed::get_feed,
+            feed::update_feed,
+            feed::delete_feed
+        ])
+        .invoke_handler(tauri::generate_handler![
+            feed_entry::list_feed_entries,
+            feed_entry::get_feed_entry,
+            feed_entry::update_feed_entry
         ])
         .invoke_handler(tauri::generate_handler![
             profile::list_profiles,
