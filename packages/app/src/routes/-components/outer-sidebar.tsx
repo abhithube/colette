@@ -23,7 +23,7 @@ export const OuterSidebar = () => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg">
+          <Button asChild variant="ghost" size="lg" flexShrink={0}>
             <Link asChild>
               <TLink
                 to="/"
@@ -53,7 +53,7 @@ export const OuterSidebar = () => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg">
+          <Button asChild variant="ghost" size="lg" flexShrink={0}>
             <Link asChild>
               <TLink
                 to="/feeds"
@@ -86,7 +86,7 @@ export const OuterSidebar = () => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg">
+          <Button asChild variant="ghost" size="lg" flexShrink={0}>
             <Link asChild>
               <TLink
                 to="/bookmarks"
@@ -119,7 +119,7 @@ export const OuterSidebar = () => {
         }}
       >
         <Tooltip.Trigger asChild>
-          <IconButton variant="ghost" size="lg">
+          <IconButton variant="ghost" size="lg" flexShrink={0}>
             <Search />
           </IconButton>
         </Tooltip.Trigger>
@@ -139,7 +139,7 @@ export const OuterSidebar = () => {
         >
           <Tooltip.Trigger asChild>
             <Dialog.Trigger asChild>
-              <IconButton variant="ghost" size="lg">
+              <IconButton variant="ghost" size="lg" flexShrink={0}>
                 <User />
               </IconButton>
             </Dialog.Trigger>
@@ -166,7 +166,7 @@ export const OuterSidebar = () => {
         >
           <Tooltip.Trigger asChild>
             <Dialog.Trigger asChild>
-              <IconButton variant="ghost" size="lg">
+              <IconButton variant="ghost" size="lg" flexShrink={0}>
                 <Settings />
               </IconButton>
             </Dialog.Trigger>
