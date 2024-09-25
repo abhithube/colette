@@ -13,10 +13,14 @@ tauri-build = { version = "2.0.0-rc", default-features = false, features = [
 ] }
 
 [dependencies]
+colette-migration = { workspace = true, default-features = false, features = [
+  "sqlite",
+] }
+sea-orm = { workspace = true, features = ["sqlx-sqlite"] }
+serde.workspace = true
+serde_json.workspace = true
 tauri = { version = "2.0.0-rc", default-features = false, features = [
   "wry",
   "compression",
 ] }
 tauri-plugin-shell = { version = "2.0.0-rc", default-features = false }
-serde.workspace = true
-serde_json.workspace = true
