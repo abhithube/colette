@@ -1,6 +1,9 @@
-use std::fs;
+use std::{fs, sync::Arc};
 
+use colette_core::{auth::AuthService, profile::ProfileService};
 use colette_migration::{Migrator, MigratorTrait};
+use colette_repository::{ProfileSqlRepository, UserSqlRepository};
+use colette_util::password::ArgonHasher;
 use sea_orm::{ConnectOptions, Database};
 use tauri::Manager;
 
@@ -23,6 +26,18 @@ pub fn run() {
 
                 let db = Database::connect(opts).await?;
                 Migrator::up(&db, None).await?;
+
+                let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
+
+                let auth_service = AuthService::new(
+                    Arc::new(UserSqlRepository::new(db)),
+                    profile_repository.clone(),
+                    Arc::new(ArgonHasher),
+                );
+                let profile_service = ProfileService::new(profile_repository);
+
+                app.manage(auth_service);
+                app.manage(profile_service);
 
                 Ok(())
             })
