@@ -8,7 +8,7 @@ import {
   get_ListBookmarks,
 } from './openapi.gen'
 
-const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
+export const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
 export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>
 
 export interface BookmarkAPI {

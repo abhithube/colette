@@ -8,7 +8,7 @@ import {
   get_ListTags,
 } from './openapi.gen'
 
-const TagListQuery = get_ListTags.parameters.shape.query
+export const TagListQuery = get_ListTags.parameters.shape.query
 export type TagListQuery = z.infer<typeof TagListQuery>
 
 export interface TagAPI {

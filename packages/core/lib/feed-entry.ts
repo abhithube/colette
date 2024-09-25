@@ -7,7 +7,7 @@ import {
   get_ListFeedEntries,
 } from './openapi.gen'
 
-const FeedEntryListQuery = get_ListFeedEntries.parameters.shape.query
+export const FeedEntryListQuery = get_ListFeedEntries.parameters.shape.query
 export type FeedEntryListQuery = z.infer<typeof FeedEntryListQuery>
 
 export interface FeedEntryAPI {
