@@ -137,7 +137,7 @@ impl From<FeedUpdate> for feed::FeedUpdate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct ListFeedsQuery {
+pub struct FeedListQuery {
     #[param(nullable = false)]
     pub pinned: Option<bool>,
     #[param(nullable = false)]
@@ -147,8 +147,8 @@ pub struct ListFeedsQuery {
     pub tags: Option<Vec<String>>,
 }
 
-impl From<ListFeedsQuery> for feed::FeedListQuery {
-    fn from(value: ListFeedsQuery) -> Self {
+impl From<FeedListQuery> for feed::FeedListQuery {
+    fn from(value: FeedListQuery) -> Self {
         Self {
             pinned: value.pinned,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
@@ -193,7 +193,7 @@ impl From<feed::FeedDetected> for FeedDetected {
 #[utoipa::path(
     get,
     path = "",
-    params(ListFeedsQuery),
+    params(FeedListQuery),
     responses(ListResponse),
     operation_id = "listFeeds",
     description = "List the active profile feeds",
@@ -202,7 +202,7 @@ impl From<feed::FeedDetected> for FeedDetected {
 #[axum::debug_handler]
 pub async fn list_feeds(
     State(service): State<Arc<FeedService>>,
-    Query(query): Query<ListFeedsQuery>,
+    Query(query): Query<FeedListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.list_feeds(query.into(), session.profile_id).await {
