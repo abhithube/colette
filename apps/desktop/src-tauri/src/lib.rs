@@ -9,9 +9,12 @@ use colette_core::{
 use colette_migration::{Migrator, MigratorTrait};
 use colette_repository::{ProfileSqlRepository, UserSqlRepository};
 use colette_util::password::ArgonHasher;
+use command::{auth, profile};
 use email_address::EmailAddress;
 use sea_orm::{ConnectOptions, Database};
 use tauri::Manager;
+
+mod command;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -74,6 +77,20 @@ pub fn run() {
                 Ok(())
             })
         })
+        .invoke_handler(tauri::generate_handler![
+            auth::register,
+            auth::login,
+            auth::get_active_user,
+            auth::switch_profile
+        ])
+        .invoke_handler(tauri::generate_handler![
+            profile::list_profiles,
+            profile::create_profile,
+            profile::get_profile,
+            profile::get_active_profile,
+            profile::update_profile,
+            profile::delete_profile
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
