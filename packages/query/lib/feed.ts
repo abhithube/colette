@@ -2,13 +2,13 @@ import type {
   API,
   Feed,
   FeedCreate,
+  FeedListQuery,
   FeedUpdate,
-  ListFeedsQuery,
 } from '@colette/core'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listFeedsOptions = (
-  query: ListFeedsQuery,
+  query: FeedListQuery,
   profileId: string,
   api: API,
 ) =>

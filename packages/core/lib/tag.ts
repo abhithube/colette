@@ -8,11 +8,11 @@ import {
   get_ListTags,
 } from './openapi.gen'
 
-const ListTagsQuery = get_ListTags.parameters.shape.query
-export type ListTagsQuery = z.infer<typeof ListTagsQuery>
+const TagListQuery = get_ListTags.parameters.shape.query
+export type TagListQuery = z.infer<typeof TagListQuery>
 
 export interface TagAPI {
-  list(query: ListTagsQuery): Promise<TagList>
+  list(query: TagListQuery): Promise<TagList>
 
   get(id: string): Promise<Tag>
 
@@ -26,10 +26,10 @@ export interface TagAPI {
 export class HTTPTagAPI implements TagAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: ListTagsQuery): Promise<TagList> {
+  list(query: TagListQuery): Promise<TagList> {
     return this.client
       .get('/tags', {
-        query: ListTagsQuery.parse(query),
+        query: TagListQuery.parse(query),
       })
       .then(TagList.parse)
   }

@@ -8,11 +8,11 @@ import {
   get_ListFeeds,
 } from './openapi.gen'
 
-const ListFeedsQuery = get_ListFeeds.parameters.shape.query
-export type ListFeedsQuery = z.infer<typeof ListFeedsQuery>
+const FeedListQuery = get_ListFeeds.parameters.shape.query
+export type FeedListQuery = z.infer<typeof FeedListQuery>
 
 export interface FeedAPI {
-  list(query: ListFeedsQuery): Promise<FeedList>
+  list(query: FeedListQuery): Promise<FeedList>
 
   get(id: string): Promise<Feed>
 
@@ -26,10 +26,10 @@ export interface FeedAPI {
 export class HTTPFeedAPI implements FeedAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: ListFeedsQuery): Promise<FeedList> {
+  list(query: FeedListQuery): Promise<FeedList> {
     return this.client
       .get('/feeds', {
-        query: ListFeedsQuery.parse(query),
+        query: FeedListQuery.parse(query),
       })
       .then(FeedList.parse)
   }

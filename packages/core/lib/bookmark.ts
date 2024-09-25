@@ -8,11 +8,11 @@ import {
   get_ListBookmarks,
 } from './openapi.gen'
 
-const ListBookmarksQuery = get_ListBookmarks.parameters.shape.query
-export type ListBookmarksQuery = z.infer<typeof ListBookmarksQuery>
+const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
+export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>
 
 export interface BookmarkAPI {
-  list(query: ListBookmarksQuery): Promise<BookmarkList>
+  list(query: BookmarkListQuery): Promise<BookmarkList>
 
   get(id: string): Promise<Bookmark>
 
@@ -26,10 +26,10 @@ export interface BookmarkAPI {
 export class HTTPBookmarkAPI implements BookmarkAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: ListBookmarksQuery): Promise<BookmarkList> {
+  list(query: BookmarkListQuery): Promise<BookmarkList> {
     return this.client
       .get('/bookmarks', {
-        query: ListBookmarksQuery.parse(query),
+        query: BookmarkListQuery.parse(query),
       })
       .then(BookmarkList.parse)
   }

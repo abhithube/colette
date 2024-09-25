@@ -7,11 +7,11 @@ import {
   get_ListFeedEntries,
 } from './openapi.gen'
 
-const ListFeedEntriesQuery = get_ListFeedEntries.parameters.shape.query
-export type ListFeedEntriesQuery = z.infer<typeof ListFeedEntriesQuery>
+const FeedEntryListQuery = get_ListFeedEntries.parameters.shape.query
+export type FeedEntryListQuery = z.infer<typeof FeedEntryListQuery>
 
 export interface FeedEntryAPI {
-  list(query: ListFeedEntriesQuery): Promise<FeedEntryList>
+  list(query: FeedEntryListQuery): Promise<FeedEntryList>
 
   update(id: string, data: FeedEntryUpdate): Promise<FeedEntry>
 }
@@ -19,10 +19,10 @@ export interface FeedEntryAPI {
 export class HTTPFeedEntryAPI implements FeedEntryAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: ListFeedEntriesQuery): Promise<FeedEntryList> {
+  list(query: FeedEntryListQuery): Promise<FeedEntryList> {
     return this.client
       .get('/feedEntries', {
-        query: ListFeedEntriesQuery.parse(query),
+        query: FeedEntryListQuery.parse(query),
       })
       .then(FeedEntryList.parse)
   }

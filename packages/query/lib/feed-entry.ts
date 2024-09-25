@@ -1,8 +1,8 @@
 import type {
   API,
   FeedEntry,
+  FeedEntryListQuery,
   FeedEntryUpdate,
-  ListFeedEntriesQuery,
 } from '@colette/core'
 import {
   type UseMutationOptions,
@@ -10,7 +10,7 @@ import {
 } from '@tanstack/react-query'
 
 export const listFeedEntriesOptions = (
-  query: ListFeedEntriesQuery,
+  query: FeedEntryListQuery,
   profileId: string,
   api: API,
 ) =>

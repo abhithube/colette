@@ -2,8 +2,8 @@ import type {
   API,
   Bookmark,
   BookmarkCreate,
+  BookmarkListQuery,
   BookmarkUpdate,
-  ListBookmarksQuery,
 } from '@colette/core'
 import {
   type UseMutationOptions,
@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-query'
 
 export const listBookmarksOptions = (
-  query: ListBookmarksQuery,
+  query: BookmarkListQuery,
   profileId: string,
   api: API,
 ) =>
