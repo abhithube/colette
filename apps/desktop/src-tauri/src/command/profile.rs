@@ -9,7 +9,7 @@ use uuid::Uuid;
 #[tauri::command]
 pub async fn list_profiles(
     service: State<'_, ProfileService>,
-    session: Session,
+    session: State<'_, Session>,
 ) -> Result<Paginated<Profile>, String> {
     let profiles = service
         .list_profiles(session.user_id)
@@ -22,7 +22,7 @@ pub async fn list_profiles(
 #[tauri::command]
 pub async fn create_profile(
     service: State<'_, ProfileService>,
-    session: Session,
+    session: State<'_, Session>,
     data: ProfileCreate,
 ) -> Result<Profile, String> {
     let profile = service

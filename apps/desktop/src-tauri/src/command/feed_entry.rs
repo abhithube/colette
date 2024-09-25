@@ -9,7 +9,7 @@ use uuid::Uuid;
 #[tauri::command]
 pub async fn list_feed_entries(
     service: State<'_, FeedEntryService>,
-    session: Session,
+    session: State<'_, Session>,
     query: FeedEntryListQuery,
 ) -> Result<Paginated<FeedEntry>, String> {
     let entries = service
