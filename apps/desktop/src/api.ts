@@ -9,9 +9,12 @@ import type {
 } from '@colette/core'
 import {
   AuthCommands,
+  BackupCommands,
+  BookmarkCommands,
   FeedCommands,
   FeedEntryCommands,
   ProfileCommands,
+  TagCommands,
 } from './commands'
 
 export interface API {
@@ -35,11 +38,11 @@ export class CommandsAPI implements API {
 
   constructor() {
     this.auth = new AuthCommands()
-    this.backups = undefined as any
-    this.bookmarks = undefined as any
+    this.backups = new BackupCommands()
+    this.bookmarks = new BookmarkCommands()
     this.feedEntries = new FeedEntryCommands()
     this.feeds = new FeedCommands()
     this.profiles = new ProfileCommands()
-    this.tags = undefined as any
+    this.tags = new TagCommands()
   }
 }

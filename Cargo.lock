@@ -783,6 +783,7 @@ name = "colette-desktop"
 version = "0.1.0"
 dependencies = [
  "colette-api",
+ "colette-backup",
  "colette-core",
  "colette-migration",
  "colette-plugins",
