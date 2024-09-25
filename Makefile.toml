@@ -6,6 +6,10 @@ config.default_to_workspace = false
 command = "cargo"
 args = ["run", "-p", "colette-server"]
 
+[tasks.tauri-dev]
+command = "npm"
+args = ["run", "tauri", "dev", "--workspace=@colette/desktop"]
+
 [tasks.build]
 command = "cargo"
 args = ["build", "--release", "-p", "colette-server"]
