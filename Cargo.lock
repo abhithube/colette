@@ -810,6 +810,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-feed"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "quick-xml 0.36.2",
+]
+
+[[package]]
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [

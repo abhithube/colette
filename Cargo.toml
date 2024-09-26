@@ -8,6 +8,7 @@ members = [
   "crates/config",
   "crates/core",
   "crates/entity",
+  "crates/feed",
   "crates/meta",
   "crates/migration",
   "crates/netscape",
