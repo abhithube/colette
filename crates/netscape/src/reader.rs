@@ -4,7 +4,8 @@ use html5gum::{HtmlString, IoReader, Token, Tokenizer};
 
 use crate::{Item, Netscape};
 
-enum NetscapeField {
+#[derive(Debug, Clone)]
+enum StartTag {
     Title,
     H1,
     H3,
@@ -14,79 +15,63 @@ enum NetscapeField {
 pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
     let mut netscape = Netscape::default();
 
-    let mut current: Option<NetscapeField> = None;
-    let mut stack: Vec<Item> = Vec::new();
+    let mut tag_stack: Vec<StartTag> = Vec::new();
+    let mut item_stack: Vec<Item> = Vec::new();
 
     let mut tokenizer = Tokenizer::new(IoReader::new(reader));
 
     while let Some(Ok(token)) = tokenizer.next() {
         match token {
             Token::StartTag(tag) => match tag.name.as_slice() {
-                b"title" => current = Some(NetscapeField::Title),
-                b"h1" => current = Some(NetscapeField::H1),
+                b"title" => tag_stack.push(StartTag::Title),
+                b"h1" => tag_stack.push(StartTag::H1),
                 b"h3" => {
-                    current = Some(NetscapeField::H3);
-
                     let item = parse_attributes(tag.attributes)?;
-                    stack.push(item);
+                    item_stack.push(item);
+
+                    tag_stack.push(StartTag::H3)
                 }
                 b"a" => {
-                    current = Some(NetscapeField::A);
-
                     let item = parse_attributes(tag.attributes)?;
-                    stack.push(item);
+                    item_stack.push(item);
+
+                    tag_stack.push(StartTag::A)
                 }
                 _ => {}
             },
             Token::String(text) => {
-                let text = String::from_utf8(text.0)
-                    .unwrap()
+                let text = String::from_utf8(text.0)?
                     .split_whitespace()
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
                     .join(" ");
 
-                match current {
-                    Some(NetscapeField::Title) => {
+                match tag_stack.last() {
+                    Some(StartTag::Title) => {
                         netscape.title = text;
-
-                        current = None;
                     }
-                    Some(NetscapeField::H1) => {
+                    Some(StartTag::H1) => {
                         netscape.h1 = text;
-
-                        current = None;
                     }
-                    Some(NetscapeField::H3) => {
-                        if let Some(item) = stack.last_mut() {
+                    Some(StartTag::H3) => {
+                        if let Some(item) = item_stack.last_mut() {
                             item.title = text;
                         }
-
-                        current = None
                     }
-                    Some(NetscapeField::A) => {
-                        if let Some(item) = stack.last_mut() {
+                    Some(StartTag::A) => {
+                        if let Some(item) = item_stack.last_mut() {
                             item.title = text;
                         }
-
-                        current = None
                     }
-                    _ => {}
+                    None => {}
                 }
+
+                tag_stack.pop();
             }
             Token::EndTag(tag) => match tag.name.as_slice() {
-                b"a" => {
-                    if let Some(item) = stack.pop() {
-                        if let Some(parent) = stack.last_mut() {
-                            parent.item.get_or_insert_with(Vec::new).push(item);
-                        } else {
-                            netscape.items.push(item);
-                        }
-                    }
-                }
-                b"dl" => {
-                    if let Some(item) = stack.pop() {
-                        if let Some(parent) = stack.last_mut() {
+                b"a" | b"dl" => {
+                    if let Some(item) = item_stack.pop() {
+                        if let Some(parent) = item_stack.last_mut() {
                             parent.item.get_or_insert_with(Vec::new).push(item);
                         } else {
                             netscape.items.push(item);
