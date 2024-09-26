@@ -7,22 +7,34 @@ use quick_xml::{
 
 use crate::{Opml, Outline};
 
-enum OpmlField {
+#[derive(Debug, Clone)]
+enum StartTag {
+    Opml,
+    Head,
     Title,
+    Body,
+    Outline,
 }
 
 pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
     let mut opml = Opml::default();
 
-    let mut current: Option<OpmlField> = None;
-    let mut stack: Vec<Outline> = Vec::new();
+    let mut tag_stack: Vec<StartTag> = Vec::new();
+    let mut outline_stack: Vec<Outline> = Vec::new();
 
     let mut buf: Vec<u8> = Vec::new();
     let mut reader = Reader::from_reader(reader);
+    reader.config_mut().trim_text(true);
 
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) => match e.name().as_ref() {
+                b"body" => {
+                    tag_stack.push(StartTag::Body);
+                }
+                b"head" => {
+                    tag_stack.push(StartTag::Head);
+                }
                 b"opml" => {
                     for attribute in e.attributes() {
                         let attribute = attribute?;
@@ -33,12 +45,18 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                             opml.version = value.parse()?;
                         }
                     }
+
+                    tag_stack.push(StartTag::Opml);
                 }
-                b"title" => current = Some(OpmlField::Title),
                 b"outline" => {
                     let outline = handle_outline(&reader, e)?;
 
-                    stack.push(outline);
+                    outline_stack.push(outline);
+
+                    tag_stack.push(StartTag::Outline);
+                }
+                b"title" => {
+                    tag_stack.push(StartTag::Title);
                 }
                 _ => {}
             },
@@ -46,7 +64,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                 if e.name().as_ref() == b"outline" {
                     let outline = handle_outline(&reader, e)?;
 
-                    if let Some(parent) = stack.last_mut() {
+                    if let Some(parent) = outline_stack.last_mut() {
                         parent.outline.get_or_insert_with(Vec::new).push(outline);
                     } else {
                         opml.body.outlines.push(outline);
@@ -54,16 +72,16 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                 }
             }
             Ok(Event::Text(e)) => {
-                if let Some(OpmlField::Title) = current {
+                if let Some(StartTag::Title) = tag_stack.last() {
                     opml.head.title = e.unescape()?.into_owned();
-
-                    current = None;
                 }
+
+                tag_stack.pop();
             }
             Ok(Event::End(e)) => {
                 if e.name().as_ref() == b"outline" {
-                    if let Some(outline) = stack.pop() {
-                        if let Some(parent) = stack.last_mut() {
+                    if let Some(outline) = outline_stack.pop() {
+                        if let Some(parent) = outline_stack.last_mut() {
                             parent.outline.get_or_insert_with(Vec::new).push(outline);
                         } else {
                             opml.body.outlines.push(outline);
