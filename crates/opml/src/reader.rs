@@ -72,11 +72,9 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                 }
             }
             Ok(Event::Text(e)) => {
-                if let Some(StartTag::Title) = tag_stack.last() {
+                if let Some(StartTag::Title) = tag_stack.pop() {
                     opml.head.title = e.unescape()?.into_owned();
                 }
-
-                tag_stack.pop();
             }
             Ok(Event::End(e)) => {
                 if e.name().as_ref() == b"outline" {

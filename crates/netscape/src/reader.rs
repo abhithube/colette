@@ -46,7 +46,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
                     .collect::<Vec<_>>()
                     .join(" ");
 
-                match tag_stack.last() {
+                match tag_stack.pop() {
                     Some(StartTag::Title) => {
                         netscape.title = text;
                     }
@@ -65,8 +65,6 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
                     }
                     None => {}
                 }
-
-                tag_stack.pop();
             }
             Token::EndTag(tag) => match tag.name.as_slice() {
                 b"a" | b"dl" => {
