@@ -3,6 +3,8 @@ use std::io::BufRead;
 use anyhow::anyhow;
 use quick_xml::{events::Event, Reader};
 
+pub mod util;
+
 #[derive(Debug, Clone)]
 pub enum Feed {
     Atom,
