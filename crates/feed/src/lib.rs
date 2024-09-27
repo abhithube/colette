@@ -1,7 +1,7 @@
 use std::io::BufRead;
 
 use anyhow::anyhow;
-use atom::{parse_atom, AtomFeed};
+use atom::AtomFeed;
 use quick_xml::{events::Event, Reader};
 use rss::{parse_rss, RssFeed};
 
@@ -25,7 +25,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) => match e.name().0 {
                 b"feed" => {
-                    let atom = parse_atom(&mut reader, &mut buf)?;
+                    let atom = atom::from_reader(&mut reader, &mut buf)?;
                     return Ok(Feed::Atom(atom));
                 }
                 b"rss" => {
