@@ -3,7 +3,7 @@ use std::io::BufRead;
 use anyhow::anyhow;
 use atom::AtomFeed;
 use quick_xml::{events::Event, Reader};
-use rss::{parse_rss, RssFeed};
+use rss::RssFeed;
 
 pub mod atom;
 pub mod rss;
@@ -29,7 +29,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
                     return Ok(Feed::Atom(atom));
                 }
                 b"rss" => {
-                    let rss = parse_rss(&mut reader, &mut buf)?;
+                    let rss = rss::from_reader(&mut reader, &mut buf)?;
                     return Ok(Feed::Rss(rss));
                 }
                 _ => {}
