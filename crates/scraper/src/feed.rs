@@ -1,10 +1,14 @@
-use std::{collections::HashMap, io::Read};
+use std::{
+    collections::HashMap,
+    io::{BufReader, Read},
+};
 
 use anyhow::anyhow;
 use chrono::{DateTime, Utc};
-use feed_rs::{
-    model::{Entry, Feed, Link},
-    parser,
+use colette_feed::{
+    atom::{AtomEntry, AtomFeed, AtomLink, AtomRel},
+    rss::{RssFeed, RssItem},
+    Feed,
 };
 use http::{request::Builder, Request, Response};
 use scraper::{Html, Selector};
@@ -151,11 +155,20 @@ impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
 
 impl From<Feed> for ExtractedFeed {
     fn from(value: Feed) -> Self {
+        match value {
+            Feed::Atom(atom) => atom.into(),
+            Feed::Rss(rss) => rss.into(),
+        }
+    }
+}
+
+impl From<AtomFeed> for ExtractedFeed {
+    fn from(value: AtomFeed) -> Self {
         Self {
-            link: parse_atom_link(value.links),
-            title: value.title.map(|e| e.content),
+            link: parse_atom_link(value.link),
+            title: Some(value.title.text),
             entries: value
-                .entries
+                .entry
                 .into_iter()
                 .map(ExtractedFeedEntry::from)
                 .collect(),
@@ -163,42 +176,36 @@ impl From<Feed> for ExtractedFeed {
     }
 }
 
-impl From<Entry> for ExtractedFeedEntry {
-    fn from(mut value: Entry) -> Self {
-        let mut title = value.title.map(|e| e.content);
-        let mut description = value.summary.map(|e| e.content);
+impl From<AtomEntry> for ExtractedFeedEntry {
+    fn from(value: AtomEntry) -> Self {
+        let mut title = value.title.text;
+        let mut description = value.summary.map(|e| e.text);
         let mut thumbnail = Option::<String>::None;
 
-        if !value.media.is_empty() {
-            let mut media = value.media.swap_remove(0);
-            if let Some(t) = media.title.map(|e| e.content) {
-                title = Some(t);
-            }
-            if let Some(d) = media.description.map(|e| e.content) {
-                description = Some(d);
-            }
-            if !media.thumbnails.is_empty() {
-                thumbnail = Some(media.thumbnails.swap_remove(0).image.uri);
-            } else if !media.content.is_empty() {
-                let content = media.content.swap_remove(0);
-                if let Some(content_type) = content.content_type {
-                    if content_type.ty().as_str() == "image" {
-                        if let Some(url) = content.url {
-                            thumbnail = Some(url.into())
-                        }
-                    }
+        if let Some(extension) = value.extension {
+            if let Some(mut media_group) = extension.media_group {
+                if let Some(media_title) = media_group.media_title {
+                    title = media_title;
+                }
+                if media_group.media_description.is_some() {
+                    description = media_group.media_description;
+                }
+
+                if !media_group.media_thumbnail.is_empty() {
+                    let media_thumbnail = media_group.media_thumbnail.swap_remove(0);
+                    thumbnail = Some(media_thumbnail.url);
                 }
             }
         }
 
         Self {
-            link: parse_atom_link(value.links),
-            title,
-            published: value.published.map(|e| e.to_rfc3339()),
+            link: parse_atom_link(value.link),
+            title: Some(title),
+            published: value.published,
             description,
             author: Some(
                 value
-                    .authors
+                    .author
                     .into_iter()
                     .map(|e| e.name)
                     .collect::<Vec<_>>()
@@ -209,11 +216,39 @@ impl From<Entry> for ExtractedFeedEntry {
     }
 }
 
-fn parse_atom_link(links: Vec<Link>) -> Option<String> {
-    links.into_iter().find_map(|l| match l.rel.as_deref() {
-        Some("alternate") | None => Some(l.href),
+fn parse_atom_link(links: Vec<AtomLink>) -> Option<String> {
+    links.into_iter().find_map(|l| match l.rel {
+        AtomRel::Alternate => Some(l.href),
         _ => None,
     })
+}
+
+impl From<RssFeed> for ExtractedFeed {
+    fn from(value: RssFeed) -> Self {
+        Self {
+            link: Some(value.channel.link),
+            title: Some(value.channel.title),
+            entries: value
+                .channel
+                .item
+                .into_iter()
+                .map(ExtractedFeedEntry::from)
+                .collect(),
+        }
+    }
+}
+
+impl From<RssItem> for ExtractedFeedEntry {
+    fn from(value: RssItem) -> Self {
+        Self {
+            link: Some(value.link),
+            title: Some(value.title),
+            published: value.pub_date,
+            description: Some(value.description),
+            author: value.author,
+            thumbnail: None,
+        }
+    }
 }
 
 pub trait FeedScraper: Send + Sync {
@@ -290,22 +325,9 @@ pub trait FeedScraper: Send + Sync {
 
                 Ok(feed)
             }
-            None => {
-                let parser = parser::Builder::new()
-                    .timestamp_parser(|e| {
-                        DateTime::parse_from_rfc3339(e.trim())
-                            .ok()
-                            .or(DateTime::parse_from_rfc2822(e).ok())
-                            .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
-                            .map(|f| f.to_utc())
-                    })
-                    .build();
-
-                parser
-                    .parse(resp.into_body())
-                    .map(ExtractedFeed::from)
-                    .map_err(|e| ExtractorError(e.into()))
-            }
+            None => colette_feed::from_reader(BufReader::new(resp.into_body()))
+                .map(ExtractedFeed::from)
+                .map_err(|e| e.into()),
         }
     }
 
