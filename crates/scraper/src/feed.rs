@@ -179,7 +179,7 @@ impl From<AtomFeed> for ExtractedFeed {
 impl From<AtomEntry> for ExtractedFeedEntry {
     fn from(value: AtomEntry) -> Self {
         let mut title = value.title.text;
-        let mut description = value.summary.map(|e| e.text);
+        let mut description = value.summary.or(value.content).map(|e| e.text);
         let mut thumbnail = Option::<String>::None;
 
         if let Some(extension) = value.extension {
