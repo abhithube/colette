@@ -1,14 +1,18 @@
 use std::io::BufRead;
 
 use anyhow::anyhow;
+use atom::{parse_atom, AtomFeed};
 use quick_xml::{events::Event, Reader};
+use rss::{parse_rss, RssFeed};
 
+pub mod atom;
+pub mod rss;
 pub mod util;
 
 #[derive(Debug, Clone)]
 pub enum Feed {
-    Atom,
-    Rss,
+    Atom(AtomFeed),
+    Rss(RssFeed),
 }
 
 pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
@@ -20,8 +24,14 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
     loop {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) => match e.name().0 {
-                b"feed" => return Ok(Feed::Atom),
-                b"rss" => return Ok(Feed::Rss),
+                b"feed" => {
+                    let atom = parse_atom(&mut reader, &mut buf)?;
+                    return Ok(Feed::Atom(atom));
+                }
+                b"rss" => {
+                    let rss = parse_rss(&mut reader, &mut buf)?;
+                    return Ok(Feed::Rss(rss));
+                }
                 _ => {}
             },
             Ok(Event::Eof) => break,
