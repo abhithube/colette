@@ -6,6 +6,7 @@ use quick_xml::{events::Event, Reader};
 use rss::RssFeed;
 
 pub mod atom;
+pub mod extension;
 pub mod rss;
 pub mod util;
 

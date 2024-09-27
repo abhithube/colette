@@ -3,7 +3,13 @@ use std::{collections::HashMap, io::BufRead};
 use quick_xml::{events::Event, Reader};
 
 use super::{handle_link, handle_text, person, AtomLink, AtomPerson, AtomText};
-use crate::util::{handle_properties, parse_value, Value};
+use crate::{
+    extension::{
+        media::{self, handle_media_thumbnail, MediaGroup},
+        Extension,
+    },
+    util::{handle_properties, parse_value, Value},
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct AtomEntry {
@@ -13,6 +19,8 @@ pub struct AtomEntry {
     pub author: Vec<AtomPerson>,
     pub summary: Option<AtomText>,
     pub content: Option<AtomText>,
+
+    pub extension: Option<Extension>,
 
     pub additional_properties: HashMap<String, Value>,
 }
@@ -52,6 +60,12 @@ pub(crate) fn from_reader<R: BufRead>(
                 } else if tag == "content" {
                     let text = handle_text(reader, &e)?;
                     tag_stack.push(EntryTag::Content(text));
+                } else if tag == "media:group" {
+                    let media_group = media::from_reader(reader, buf)?;
+                    entry
+                        .extension
+                        .get_or_insert_with(Extension::default)
+                        .media_group = Some(media_group);
                 } else {
                     let value = handle_properties(reader, &e)?;
                     let value = parse_value(reader, buf, tag.clone(), value)?;
@@ -72,6 +86,15 @@ pub(crate) fn from_reader<R: BufRead>(
                 if tag == "link" {
                     let link = handle_link(reader, &e)?;
                     entry.link.push(link);
+                } else if tag == "media:thumbnail" {
+                    let media_thumbnail = handle_media_thumbnail(reader, &e)?;
+                    entry
+                        .extension
+                        .get_or_insert_with(Extension::default)
+                        .media_group
+                        .get_or_insert_with(MediaGroup::default)
+                        .media_thumbnail
+                        .push(media_thumbnail);
                 } else {
                     let value = handle_properties(reader, &e)?;
 
