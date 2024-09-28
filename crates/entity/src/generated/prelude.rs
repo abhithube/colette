@@ -5,5 +5,6 @@ pub use super::{
     profile::Entity as Profile, profile_bookmark::Entity as ProfileBookmark,
     profile_bookmark_tag::Entity as ProfileBookmarkTag, profile_feed::Entity as ProfileFeed,
     profile_feed_entry::Entity as ProfileFeedEntry, profile_feed_tag::Entity as ProfileFeedTag,
+    smart_feed::Entity as SmartFeed, smart_feed_filter::Entity as SmartFeedFilter,
     tag::Entity as Tag, user::Entity as User,
 };

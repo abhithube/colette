@@ -29,6 +29,10 @@ pub enum Relation {
     ProfileFeedEntry,
     #[sea_orm(has_many = "super::profile_feed_tag::Entity")]
     ProfileFeedTag,
+    #[sea_orm(has_many = "super::smart_feed::Entity")]
+    SmartFeed,
+    #[sea_orm(has_many = "super::smart_feed_filter::Entity")]
+    SmartFeedFilter,
     #[sea_orm(has_many = "super::tag::Entity")]
     Tag,
     #[sea_orm(
@@ -68,6 +72,18 @@ impl Related<super::profile_feed_entry::Entity> for Entity {
 impl Related<super::profile_feed_tag::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::ProfileFeedTag.def()
+    }
+}
+
+impl Related<super::smart_feed::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SmartFeed.def()
+    }
+}
+
+impl Related<super::smart_feed_filter::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SmartFeedFilter.def()
     }
 }
 
