@@ -7,6 +7,7 @@ mod m0003_initial_bookmark;
 mod m0004_initial_profile_feed;
 mod m0005_initial_profile_bookmark;
 mod m0006_initial_tag;
+mod m0007_initial_smart_feed;
 #[cfg(feature = "postgres")]
 mod postgres;
 #[cfg(feature = "sqlite")]
@@ -25,6 +26,7 @@ impl MigratorTrait for Migrator {
             Box::new(m0004_initial_profile_feed::Migration),
             Box::new(m0005_initial_profile_bookmark::Migration),
             Box::new(m0006_initial_tag::Migration),
+            Box::new(m0007_initial_smart_feed::Migration),
         ]
     }
 }
