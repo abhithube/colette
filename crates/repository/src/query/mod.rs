@@ -7,5 +7,6 @@ pub(crate) mod profile_bookmark_tag;
 pub(crate) mod profile_feed;
 pub(crate) mod profile_feed_entry;
 pub(crate) mod profile_feed_tag;
+pub(crate) mod smart_feed;
 pub(crate) mod tag;
 pub(crate) mod user;

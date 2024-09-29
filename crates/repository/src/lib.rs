@@ -4,6 +4,7 @@ pub use cleanup::CleanupSqlRepository;
 pub use feed::FeedSqlRepository;
 pub use feed_entry::FeedEntrySqlRepository;
 pub use profile::ProfileSqlRepository;
+pub use smart_feed::SmartFeedSqlRepository;
 pub use tag::TagSqlRepository;
 pub use user::UserSqlRepository;
 
@@ -14,5 +15,6 @@ mod feed;
 mod feed_entry;
 mod profile;
 mod query;
+mod smart_feed;
 mod tag;
 mod user;

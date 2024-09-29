@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::{Bookmark, Feed, FeedEntry, Profile, Tag, User};
+use colette_core::{Bookmark, Feed, FeedEntry, Profile, SmartFeed, Tag, User};
 pub use generated::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
 use uuid::Uuid;
@@ -89,6 +89,23 @@ impl From<profile::Model> for Profile {
             image_url: value.image_url,
             is_default: value.is_default,
             user_id: value.user_id,
+        }
+    }
+}
+
+#[derive(Clone, Debug, sea_orm::FromQueryResult)]
+pub struct PartialSmartFeed {
+    pub id: Uuid,
+    pub title: String,
+    pub unread_count: i64,
+}
+
+impl From<PartialSmartFeed> for SmartFeed {
+    fn from(value: PartialSmartFeed) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            unread_count: Some(value.unread_count),
         }
     }
 }
