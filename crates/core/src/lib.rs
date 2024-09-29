@@ -2,6 +2,7 @@ pub use bookmark::Bookmark;
 pub use feed::Feed;
 pub use feed_entry::FeedEntry;
 pub use profile::Profile;
+pub use smart_feed::SmartFeed;
 pub use tag::Tag;
 pub use user::User;
 
@@ -14,5 +15,6 @@ pub mod feed;
 pub mod feed_entry;
 pub mod profile;
 pub mod refresh;
+pub mod smart_feed;
 pub mod tag;
 pub mod user;
