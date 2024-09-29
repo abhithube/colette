@@ -11,19 +11,21 @@ use apalis_cron::{CronStream, Schedule};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, profile::ProfileState, tag::TagState, Api, ApiState,
+    feed_entry::FeedEntryState, profile::ProfileState, smart_feed::SmartFeedState, tag::TagState,
+    Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, cleanup::CleanupService,
     feed::FeedService, feed_entry::FeedEntryService, profile::ProfileService,
-    refresh::RefreshService, tag::TagService,
+    refresh::RefreshService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
     BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, FeedEntrySqlRepository,
-    FeedSqlRepository, ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+    FeedSqlRepository, ProfileSqlRepository, SmartFeedSqlRepository, TagSqlRepository,
+    UserSqlRepository,
 };
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
@@ -117,6 +119,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         profile_repository.clone(),
     ));
+    let smart_feed_service = Arc::new(SmartFeedService::new(Arc::new(
+        SmartFeedSqlRepository::new(db.clone()),
+    )));
     let tag_service = Arc::new(TagService::new(Arc::new(TagSqlRepository::new(db.clone()))));
 
     let api_state = ApiState::new(
@@ -126,6 +131,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         ProfileState::new(profile_service),
+        SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );
     let api = Api::new(&api_state, &app_config, session_backend)

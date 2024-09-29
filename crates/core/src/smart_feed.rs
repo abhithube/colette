@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
 use uuid::Uuid;
 
-use crate::common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Updatable};
+use crate::common::{
+    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+};
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SmartFeed {
@@ -63,6 +67,58 @@ pub enum DateOperation {
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
     pub title: String,
+}
+
+pub struct SmartFeedService {
+    repository: Arc<dyn SmartFeedRepository>,
+}
+
+impl SmartFeedService {
+    pub fn new(repository: Arc<dyn SmartFeedRepository>) -> Self {
+        Self { repository }
+    }
+
+    pub async fn list_smart_feeds(&self, profile_id: Uuid) -> Result<Paginated<SmartFeed>, Error> {
+        let feeds = self.repository.list(profile_id, None, None).await?;
+
+        Ok(Paginated {
+            data: feeds,
+            ..Default::default()
+        })
+    }
+
+    pub async fn get_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<SmartFeed, Error> {
+        self.repository.find(IdParams::new(id, profile_id)).await
+    }
+
+    pub async fn create_smart_feed(
+        &self,
+        data: SmartFeedCreate,
+        profile_id: Uuid,
+    ) -> Result<SmartFeed, Error> {
+        self.repository
+            .create(SmartFeedCreateData {
+                title: data.title.into(),
+                filters: data.filters,
+                profile_id,
+            })
+            .await
+    }
+
+    pub async fn update_smart_feed(
+        &self,
+        id: Uuid,
+        data: SmartFeedUpdate,
+        profile_id: Uuid,
+    ) -> Result<SmartFeed, Error> {
+        self.repository
+            .update(IdParams::new(id, profile_id), data.into())
+            .await
+    }
+
+    pub async fn delete_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, profile_id)).await
+    }
 }
 
 #[async_trait::async_trait]
