@@ -15,6 +15,9 @@ use crate::{
     DownloaderError, Error, ExtractorError, PostprocessorError,
 };
 
+const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
+const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
+
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkExtractorOptions<'a> {
     pub title_queries: Vec<ExtractorQuery<'a>>,
@@ -62,6 +65,8 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
                 DateTime::parse_from_rfc3339(e)
                     .ok()
                     .or(DateTime::parse_from_rfc2822(e).ok())
+                    .or(DateTime::parse_from_str(e, RFC3339_WITH_MILLI).ok())
+                    .or(DateTime::parse_from_str(e, RFC3339_WITH_MICRO).ok())
                     .map(|f| f.to_utc())
             }),
             author: value.author,
