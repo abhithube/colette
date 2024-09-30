@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use crate::common::{
@@ -27,41 +28,33 @@ pub struct SmartFeedUpdate {
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum SmartFeedFilter {
-    Link {
-        operation: TextOperation,
-        negated: bool,
-    },
-    Title {
-        operation: TextOperation,
-        negated: bool,
-    },
-    PublishedAt {
-        operation: DateOperation,
-    },
-    Description {
-        operation: TextOperation,
-        negated: bool,
-    },
-    Author {
-        operation: TextOperation,
-        negated: bool,
-    },
-    HasRead(bool),
+    Link(TextOperation),
+    Title(TextOperation),
+    PublishedAt(DateOperation),
+    Description(TextOperation),
+    Author(TextOperation),
+    HasRead(BooleanOperation),
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum TextOperation {
-    #[default]
-    Equals,
-    Contains,
+    Equals(String),
+    DoesNotEqual(String),
+    Contains(String),
+    DoesNotContain(String),
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct BooleanOperation {
+    pub value: bool,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub enum DateOperation {
-    #[default]
-    Equals,
-    GreaterThan,
-    LessThan,
+    Equals(DateTime<Utc>),
+    GreaterThan(DateTime<Utc>),
+    LessThan(DateTime<Utc>),
+    InLast(i64),
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]

@@ -5,6 +5,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{DateTime, Utc};
 use colette_core::{
     common::NonEmptyString,
     smart_feed::{self, SmartFeedService},
@@ -35,6 +36,7 @@ impl SmartFeedState {
     SmartFeedUpdate,
     SmartFeedFilter,
     TextOperation,
+    BooleanOperation,
     DateOperation
 )))]
 pub struct SmartFeedApi;
@@ -111,89 +113,77 @@ impl From<SmartFeedUpdate> for smart_feed::SmartFeedUpdate {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase", tag = "field")]
+#[serde(rename_all = "camelCase", tag = "field", content = "operation")]
 pub enum SmartFeedFilter {
-    Link {
-        operation: TextOperation,
-        negated: bool,
-    },
-    Title {
-        operation: TextOperation,
-        negated: bool,
-    },
-    PublishedAt {
-        operation: DateOperation,
-    },
-    Description {
-        operation: TextOperation,
-        negated: bool,
-    },
-    Author {
-        operation: TextOperation,
-        negated: bool,
-    },
-    HasRead(bool),
+    Link(TextOperation),
+    Title(TextOperation),
+    PublishedAt(DateOperation),
+    Description(TextOperation),
+    Author(TextOperation),
+    HasRead(BooleanOperation),
 }
 
 impl From<SmartFeedFilter> for smart_feed::SmartFeedFilter {
     fn from(value: SmartFeedFilter) -> Self {
         match value {
-            SmartFeedFilter::Link { operation, negated } => Self::Link {
-                operation: operation.into(),
-                negated,
-            },
-            SmartFeedFilter::Title { operation, negated } => Self::Title {
-                operation: operation.into(),
-                negated,
-            },
-            SmartFeedFilter::PublishedAt { operation } => Self::PublishedAt {
-                operation: operation.into(),
-            },
-            SmartFeedFilter::Description { operation, negated } => Self::Description {
-                operation: operation.into(),
-                negated,
-            },
-            SmartFeedFilter::Author { operation, negated } => Self::Author {
-                operation: operation.into(),
-                negated,
-            },
-            SmartFeedFilter::HasRead(has_read) => Self::HasRead(has_read),
+            SmartFeedFilter::Link(op) => Self::Link(op.into()),
+            SmartFeedFilter::Title(op) => Self::Title(op.into()),
+            SmartFeedFilter::PublishedAt(op) => Self::PublishedAt(op.into()),
+            SmartFeedFilter::Description(op) => Self::Description(op.into()),
+            SmartFeedFilter::Author(op) => Self::Author(op.into()),
+            SmartFeedFilter::HasRead(op) => Self::HasRead(op.into()),
         }
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum TextOperation {
-    #[default]
-    Equals,
-    Contains,
+    Equals(String),
+    DoesNotEqual(String),
+    Contains(String),
+    DoesNotContain(String),
 }
 
 impl From<TextOperation> for smart_feed::TextOperation {
     fn from(value: TextOperation) -> Self {
         match value {
-            TextOperation::Equals => Self::Equals,
-            TextOperation::Contains => Self::Contains,
+            TextOperation::Equals(data) => Self::Equals(data),
+            TextOperation::DoesNotEqual(data) => Self::DoesNotEqual(data),
+            TextOperation::Contains(data) => Self::Contains(data),
+            TextOperation::DoesNotContain(data) => Self::DoesNotContain(data),
         }
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
+pub struct BooleanOperation {
+    pub value: bool,
+}
+
+impl From<BooleanOperation> for smart_feed::BooleanOperation {
+    fn from(value: BooleanOperation) -> Self {
+        Self { value: value.value }
+    }
+}
+
+#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", tag = "operation", content = "value")]
 pub enum DateOperation {
-    #[default]
-    Equals,
-    GreaterThan,
-    LessThan,
+    Equals(DateTime<Utc>),
+    GreaterThan(DateTime<Utc>),
+    LessThan(DateTime<Utc>),
+    InLast(i64),
 }
 
 impl From<DateOperation> for smart_feed::DateOperation {
     fn from(value: DateOperation) -> Self {
         match value {
-            DateOperation::Equals => Self::Equals,
-            DateOperation::GreaterThan => Self::GreaterThan,
-            DateOperation::LessThan => Self::LessThan,
+            DateOperation::Equals(data) => Self::Equals(data),
+            DateOperation::GreaterThan(data) => Self::GreaterThan(data),
+            DateOperation::LessThan(data) => Self::LessThan(data),
+            DateOperation::InLast(data) => Self::InLast(data),
         }
     }
 }
