@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
-chrono.workspace = true
 colette-core.workspace = true
 colette-entity.workspace = true
 colette-netscape.workspace = true
@@ -15,4 +14,3 @@ colette-util.workspace = true
 futures.workspace = true
 indexmap = { version = "2", default-features = false }
 sea-orm.workspace = true
-uuid.workspace = true

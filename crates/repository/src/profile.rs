@@ -9,10 +9,9 @@ use colette_core::{
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, ModelTrait, SqlErr,
-    TransactionError, TransactionTrait,
+    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel,
+    ModelTrait, SqlErr, TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::query;
 

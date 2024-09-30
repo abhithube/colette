@@ -1,10 +1,10 @@
 use colette_core::smart_feed::Cursor;
 use colette_entity::{smart_feed, PartialSmartFeed};
 use sea_orm::{
-    prelude::Expr, ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait,
-    InsertResult, QueryFilter, QueryOrder, QuerySelect, Set,
+    prelude::{Expr, Uuid},
+    ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult,
+    QueryFilter, QueryOrder, QuerySelect, Set,
 };
-use uuid::Uuid;
 
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,

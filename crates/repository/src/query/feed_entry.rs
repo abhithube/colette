@@ -1,6 +1,6 @@
-use chrono::{DateTime, FixedOffset};
 use colette_entity::{feed_entry, profile_feed_entry};
 use sea_orm::{
+    prelude::DateTimeWithTimeZone,
     sea_query::{Expr, OnConflict, Query},
     ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
 };
@@ -18,7 +18,7 @@ pub async fn select_many_by_feed_id<Db: ConnectionTrait>(
 pub struct InsertMany {
     pub link: String,
     pub title: String,
-    pub published_at: DateTime<FixedOffset>,
+    pub published_at: DateTimeWithTimeZone,
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail_url: Option<String>,

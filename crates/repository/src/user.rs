@@ -3,8 +3,7 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
     User,
 };
-use sea_orm::{DatabaseConnection, SqlErr, TransactionError, TransactionTrait};
-use uuid::Uuid;
+use sea_orm::{prelude::Uuid, DatabaseConnection, SqlErr, TransactionError, TransactionTrait};
 
 use crate::query;
 

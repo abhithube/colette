@@ -1,6 +1,5 @@
 use colette_entity::user;
-use sea_orm::{ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set};
-use uuid::Uuid;
+use sea_orm::{prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set};
 
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,

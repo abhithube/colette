@@ -7,10 +7,9 @@ use colette_core::{
 };
 use colette_entity::PfeWithFe;
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, TransactionError,
-    TransactionTrait,
+    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel,
+    TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::query;
 

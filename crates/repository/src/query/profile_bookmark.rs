@@ -2,11 +2,11 @@ use colette_core::bookmark::{BookmarkFindManyFilters, Cursor};
 use colette_entity::{bookmark, profile_bookmark, profile_bookmark_tag, tag, PartialBookmarkTag};
 use indexmap::IndexMap;
 use sea_orm::{
+    prelude::Uuid,
     sea_query::{Alias, Expr, OnConflict, Query, SimpleExpr},
     ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, InsertResult,
     JoinType, Order, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
-use uuid::Uuid;
 
 use super::tag::tag_recursive_cte;
 

@@ -2,11 +2,11 @@ use colette_core::feed::{Cursor, FeedFindManyFilters};
 use colette_entity::{feed, profile_feed, profile_feed_tag, tag, PartialFeedTag};
 use indexmap::IndexMap;
 use sea_orm::{
+    prelude::Uuid,
     sea_query::{Alias, Expr, Func, OnConflict, Query, SimpleExpr},
     ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult,
     InsertResult, JoinType, Order, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
 };
-use uuid::Uuid;
 
 use super::tag::tag_recursive_cte;
 

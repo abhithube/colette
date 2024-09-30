@@ -1,13 +1,15 @@
-use chrono::{DateTime, FixedOffset};
 use colette_entity::bookmark;
-use sea_orm::{sea_query::OnConflict, ConnectionTrait, DbErr, EntityTrait, InsertResult, Set};
+use sea_orm::{
+    prelude::DateTimeWithTimeZone, sea_query::OnConflict, ConnectionTrait, DbErr, EntityTrait,
+    InsertResult, Set,
+};
 
 pub async fn insert<Db: ConnectionTrait>(
     db: &Db,
     url: String,
     title: String,
     thumbnail_url: Option<String>,
-    published_at: Option<DateTime<FixedOffset>>,
+    published_at: Option<DateTimeWithTimeZone>,
     author: Option<String>,
 ) -> Result<InsertResult<bookmark::ActiveModel>, DbErr> {
     let model = bookmark::ActiveModel {

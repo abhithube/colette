@@ -1,11 +1,11 @@
 use colette_core::feed_entry::{Cursor, FeedEntryFindManyFilters};
 use colette_entity::{feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag};
 use sea_orm::{
+    prelude::Uuid,
     sea_query::{Expr, OnConflict},
     ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
     QuerySelect, RelationTrait, Set,
 };
-use uuid::Uuid;
 
 pub async fn select_with_entry<Db: ConnectionTrait>(
     db: &Db,

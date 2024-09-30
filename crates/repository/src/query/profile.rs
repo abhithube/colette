@@ -2,10 +2,9 @@ use colette_core::profile::Cursor;
 use colette_entity::{profile, profile_feed};
 use futures::Stream;
 use sea_orm::{
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, Set, StreamTrait,
+    prelude::Uuid, ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType,
+    QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set, StreamTrait,
 };
-use uuid::Uuid;
 
 pub async fn select<Db: ConnectionTrait>(
     db: &Db,

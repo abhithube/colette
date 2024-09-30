@@ -4,10 +4,9 @@ use colette_core::{
     SmartFeed,
 };
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
+    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
     TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::query;
 

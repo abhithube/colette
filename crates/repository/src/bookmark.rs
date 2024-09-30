@@ -1,5 +1,4 @@
 use anyhow::anyhow;
-use chrono::{DateTime, FixedOffset};
 use colette_core::{
     bookmark::{
         BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
@@ -11,10 +10,10 @@ use colette_core::{
 };
 use colette_entity::PbWithBookmarkAndTags;
 use sea_orm::{
+    prelude::{DateTimeWithTimeZone, Uuid},
     ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
     TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::query;
 
@@ -52,7 +51,7 @@ impl Creatable for BookmarkSqlRepository {
                         data.url,
                         data.bookmark.title,
                         data.bookmark.thumbnail.map(String::from),
-                        data.bookmark.published.map(DateTime::<FixedOffset>::from),
+                        data.bookmark.published.map(DateTimeWithTimeZone::from),
                         data.bookmark.author,
                     )
                     .await

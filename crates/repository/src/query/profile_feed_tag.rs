@@ -1,8 +1,8 @@
 use colette_entity::profile_feed_tag;
 use sea_orm::{
-    sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set,
+    prelude::Uuid, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
+    QueryFilter, Set,
 };
-use uuid::Uuid;
 
 pub struct InsertMany {
     pub profile_feed_id: Uuid,

@@ -13,10 +13,9 @@ use colette_core::{
 use colette_entity::PfWithFeedAndTagsAndUnreadCount;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
+    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
     TransactionError, TransactionTrait,
 };
-use uuid::Uuid;
 
 use crate::query;
 

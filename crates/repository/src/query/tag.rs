@@ -1,11 +1,11 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
 use sea_orm::{
+    prelude::Uuid,
     sea_query::{Alias, CommonTableExpression, Expr, OnConflict, Query, UnionType},
     ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult, JoinType,
     Order, QueryFilter, Set,
 };
-use uuid::Uuid;
 
 pub(crate) fn tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
     let tag_hierarchy = Alias::new("tag_hierarchy");

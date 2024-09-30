@@ -2,8 +2,7 @@ use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
 use futures::{future::BoxFuture, FutureExt};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
-use uuid::Uuid;
+use sea_orm::{prelude::Uuid, ConnectionTrait, DatabaseConnection, DbErr, TransactionTrait};
 
 use crate::query;
 
