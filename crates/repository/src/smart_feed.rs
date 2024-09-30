@@ -1,10 +1,15 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
-    smart_feed::{Cursor, Error, SmartFeedCreateData, SmartFeedRepository, SmartFeedUpdateData},
+    smart_feed::{
+        Cursor, DateOperation, Error, SmartFeedCreateData, SmartFeedFilter, SmartFeedRepository,
+        SmartFeedUpdateData, TextOperation,
+    },
     SmartFeed,
 };
+use colette_entity::sea_orm_active_enums::{Field, Operation};
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
+    prelude::{Json, Uuid},
+    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel, SqlErr,
     TransactionError, TransactionTrait,
 };
 
@@ -51,6 +56,12 @@ impl Creatable for SmartFeedSqlRepository {
                         _ => Error::Unknown(e.into()),
                     })?;
 
+                    if let Some(filters) = data.filters {
+                        insert_filters(txn, filters, model.last_insert_id, data.profile_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
                     find_by_id(txn, IdParams::new(model.last_insert_id, data.profile_id)).await
                 })
             })
@@ -80,6 +91,8 @@ impl Updatable for SmartFeedSqlRepository {
                         return Err(Error::NotFound(params.id));
                     };
 
+                    let smart_feed_id = model.id;
+
                     let mut active_model = model.into_active_model();
                     if let Some(title) = data.title {
                         active_model.title.set_if_not_equals(title);
@@ -88,6 +101,20 @@ impl Updatable for SmartFeedSqlRepository {
                     if active_model.is_changed() {
                         active_model
                             .update(txn)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+                    }
+
+                    if let Some(filters) = data.filters {
+                        query::smart_feed_filter::delete_many_by_smart_feed(
+                            txn,
+                            smart_feed_id,
+                            params.profile_id,
+                        )
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                        insert_filters(txn, filters, smart_feed_id, params.profile_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
@@ -155,4 +182,104 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Sm
     }
 
     Ok(feeds.swap_remove(0))
+}
+
+struct Op {
+    r#type: Operation,
+    negated: Option<bool>,
+    value: Json,
+}
+
+impl From<TextOperation> for Op {
+    fn from(value: TextOperation) -> Self {
+        match value {
+            TextOperation::Equals(value) => Self {
+                r#type: Operation::Equals,
+                negated: None,
+                value: Json::String(value),
+            },
+            TextOperation::DoesNotEqual(value) => Self {
+                r#type: Operation::Equals,
+                negated: Some(true),
+                value: Json::String(value),
+            },
+            TextOperation::Contains(value) => Self {
+                r#type: Operation::Contains,
+                negated: None,
+                value: Json::String(value),
+            },
+            TextOperation::DoesNotContain(value) => Self {
+                r#type: Operation::Contains,
+                negated: Some(true),
+                value: Json::String(value),
+            },
+        }
+    }
+}
+
+impl From<DateOperation> for Op {
+    fn from(value: DateOperation) -> Self {
+        match value {
+            DateOperation::Equals(value) => Self {
+                r#type: Operation::Equals,
+                negated: None,
+                value: Json::String(value.to_rfc3339()),
+            },
+            DateOperation::GreaterThan(value) => Self {
+                r#type: Operation::GreaterThan,
+                negated: None,
+                value: Json::String(value.to_rfc3339()),
+            },
+            DateOperation::LessThan(value) => Self {
+                r#type: Operation::LessThan,
+                negated: None,
+                value: Json::String(value.to_rfc3339()),
+            },
+            DateOperation::InLast(value) => Self {
+                r#type: Operation::InLastMillis,
+                negated: None,
+                value: Json::Number(value.into()),
+            },
+        }
+    }
+}
+
+async fn insert_filters<DB: ConnectionTrait>(
+    db: &DB,
+    filters: Vec<SmartFeedFilter>,
+    smart_feed_id: Uuid,
+    profile_id: Uuid,
+) -> Result<(), DbErr> {
+    let insert_data = filters
+        .into_iter()
+        .map(|e| {
+            let (field, op): (Field, Op) = match e {
+                SmartFeedFilter::Link(op) => (Field::Link, op.into()),
+                SmartFeedFilter::Title(op) => (Field::Title, op.into()),
+                SmartFeedFilter::PublishedAt(op) => (Field::Title, op.into()),
+                SmartFeedFilter::Description(op) => (Field::Description, op.into()),
+                SmartFeedFilter::Author(op) => (Field::Author, op.into()),
+                SmartFeedFilter::HasRead(op) => (
+                    Field::HasRead,
+                    Op {
+                        r#type: Operation::Equals,
+                        negated: None,
+                        value: Json::Bool(op.value),
+                    },
+                ),
+            };
+
+            query::smart_feed_filter::InsertMany {
+                id: Uuid::new_v4(),
+                field,
+                operation: op.r#type,
+                is_negated: op.negated,
+                value: op.value,
+            }
+        })
+        .collect::<Vec<_>>();
+
+    query::smart_feed_filter::insert_many(db, insert_data, smart_feed_id, profile_id).await?;
+
+    Ok(())
 }
