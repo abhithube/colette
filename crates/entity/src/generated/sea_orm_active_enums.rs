@@ -27,6 +27,8 @@ pub enum Operation {
     Equals,
     #[sea_orm(string_value = "GreaterThan")]
     GreaterThan,
+    #[sea_orm(string_value = "InLastMillis")]
+    InLastMillis,
     #[sea_orm(string_value = "LessThan")]
     LessThan,
 }

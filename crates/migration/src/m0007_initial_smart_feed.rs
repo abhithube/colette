@@ -85,9 +85,10 @@ impl MigrationTrait for Migration {
                         .as_enum(Operation::Enum)
                         .values([
                             Operation::Equals,
+                            Operation::Contains,
                             Operation::GreaterThan,
                             Operation::LessThan,
-                            Operation::Contains,
+                            Operation::InLastMillis,
                         ])
                         .to_owned(),
                 )
@@ -120,6 +121,7 @@ impl MigrationTrait for Migration {
                             Operation::Contains,
                             Operation::GreaterThan,
                             Operation::LessThan,
+                            Operation::InLastMillis,
                         ],
                     ))
                     .col(boolean(SmartFeedFilter::IsNegated).default(false))
@@ -274,4 +276,6 @@ pub enum Operation {
     GreaterThan,
     #[sea_orm(iden = "LessThan")]
     LessThan,
+    #[sea_orm(iden = "InLastMillis")]
+    InLastMillis,
 }
