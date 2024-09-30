@@ -12,8 +12,7 @@ pub struct Model {
     pub field: Field,
     pub operation: Operation,
     pub is_negated: bool,
-    #[sea_orm(column_type = "Text")]
-    pub value: String,
+    pub value: Json,
     pub smart_feed_id: Uuid,
     pub profile_id: Uuid,
     pub created_at: DateTimeWithTimeZone,
