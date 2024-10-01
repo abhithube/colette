@@ -244,7 +244,6 @@ pub enum SmartFeedFilter {
     UpdatedAt,
 }
 
-#[cfg(feature = "postgres")]
 #[derive(DeriveIden)]
 pub enum Field {
     #[sea_orm(iden = "field")]
@@ -263,7 +262,6 @@ pub enum Field {
     HasRead,
 }
 
-#[cfg(feature = "postgres")]
 #[derive(DeriveIden)]
 pub enum Operation {
     #[sea_orm(iden = "operation")]
