@@ -67,7 +67,6 @@ quick-xml = { version = "0.36", default-features = false }
 sea-orm = { version = "=1.1.0-rc.1", default-features = false, features = [
   "macros",
   "with-chrono",
-  "with-json",
   "with-uuid",
 ] }
 scraper = { version = "0.20", default-features = false }
