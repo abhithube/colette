@@ -169,7 +169,7 @@ impl From<BooleanOperation> for smart_feed::BooleanOperation {
 }
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase", tag = "operation", content = "value")]
+#[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum DateOperation {
     Equals(DateTime<Utc>),
     GreaterThan(DateTime<Utc>),
