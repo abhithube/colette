@@ -1,11 +1,17 @@
 use colette_core::feed_entry::{Cursor, FeedEntryFindManyFilters};
-use colette_entity::{feed_entry, profile_feed, profile_feed_entry, profile_feed_tag, tag};
-use sea_orm::{
-    prelude::Uuid,
-    sea_query::{Expr, OnConflict},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, JoinType, QueryFilter, QueryOrder,
-    QuerySelect, RelationTrait, Set,
+use colette_entity::{
+    feed_entry, profile_feed, profile_feed_entry, profile_feed_tag,
+    sea_orm_active_enums::{Field, Operation},
+    tag,
 };
+use sea_orm::{
+    prelude::{DateTimeWithTimeZone, Uuid},
+    sea_query::{Expr, OnConflict},
+    ColumnTrait, Condition, ConnectionTrait, DatabaseBackend, DbErr, EntityTrait, JoinType,
+    QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
+};
+
+use super::smart_feed_filter;
 
 pub async fn select_with_entry<Db: ConnectionTrait>(
     db: &Db,
@@ -28,6 +34,81 @@ pub async fn select_with_entry<Db: ConnectionTrait>(
     if let Some(filters) = filters {
         if let Some(feed_id) = filters.feed_id {
             conditions = conditions.add(profile_feed_entry::Column::ProfileFeedId.eq(feed_id));
+        }
+        if let Some(smart_feed_id) = filters.smart_feed_id {
+            let filters =
+                smart_feed_filter::select_by_smart_feed(db, smart_feed_id, profile_id).await?;
+
+            for filter in filters {
+                let column = match filter.field {
+                    Field::Link => Expr::col((feed_entry::Entity, feed_entry::Column::Link)),
+                    Field::Title => Expr::col((feed_entry::Entity, feed_entry::Column::Title)),
+                    Field::PublishedAt => {
+                        Expr::col((feed_entry::Entity, feed_entry::Column::PublishedAt))
+                    }
+                    Field::Description => {
+                        Expr::col((feed_entry::Entity, feed_entry::Column::Description))
+                    }
+                    Field::Author => Expr::col((feed_entry::Entity, feed_entry::Column::Author)),
+                    Field::HasRead => Expr::col((
+                        profile_feed_entry::Entity,
+                        profile_feed_entry::Column::HasRead,
+                    )),
+                };
+                let expr = match filter.operation {
+                    Operation::Equals => {
+                        if let Some(text) = filter.value.as_str() {
+                            Some(column.eq(text))
+                        } else {
+                            filter.value.as_bool().map(|e| column.eq(e))
+                        }
+                    }
+                    Operation::Contains => filter
+                        .value
+                        .as_str()
+                        .map(|e| column.like(format!("%{}%", e))),
+                    Operation::GreaterThan => filter.value.as_str().and_then(|e| {
+                        DateTimeWithTimeZone::parse_from_rfc3339(e)
+                            .ok()
+                            .map(|e| column.gt(e))
+                    }),
+                    Operation::LessThan => filter.value.as_str().and_then(|e| {
+                        DateTimeWithTimeZone::parse_from_rfc3339(e)
+                            .ok()
+                            .map(|e| column.lt(e))
+                    }),
+                    Operation::InLastMillis => {
+                        filter
+                            .value
+                            .as_i64()
+                            .and_then(|e| match db.get_database_backend() {
+                                DatabaseBackend::Postgres => Some(
+                                    Expr::expr(Expr::cust_with_expr(
+                                        "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - $1))",
+                                        column,
+                                    ))
+                                    .lt(e),
+                                ),
+                                DatabaseBackend::Sqlite => Some(
+                                    Expr::expr(Expr::cust_with_expr(
+                                        "strftime('%s', CURRENT_TIMESTAMP) - strftime('%s', ?)",
+                                        column,
+                                    ))
+                                    .lt(e),
+                                ),
+                                _ => None,
+                            })
+                    }
+                };
+
+                if let Some(mut expr) = expr {
+                    if filter.is_negated {
+                        expr = expr.not();
+                    }
+
+                    conditions = conditions.add(expr);
+                }
+            }
         }
         if let Some(has_read) = filters.has_read {
             conditions = conditions.add(profile_feed_entry::Column::HasRead.eq(has_read));
