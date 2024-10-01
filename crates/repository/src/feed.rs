@@ -260,7 +260,7 @@ pub(crate) async fn find<Db: ConnectionTrait>(
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
-    let counts = query::profile_feed_entry::count_many_in(db, pf_ids)
+    let counts = query::profile_feed_entry::count_many_in_pfs(db, pf_ids)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
     let mut count_map: HashMap<Uuid, i64> = counts.into_iter().collect();

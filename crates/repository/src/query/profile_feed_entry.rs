@@ -155,7 +155,7 @@ pub async fn select_by_id<Db: ConnectionTrait>(
         .await
 }
 
-pub async fn count_many_in<Db: ConnectionTrait>(
+pub async fn count_many_in_pfs<Db: ConnectionTrait>(
     db: &Db,
     ids: Vec<Uuid>,
 ) -> Result<Vec<(Uuid, i64)>, DbErr> {
