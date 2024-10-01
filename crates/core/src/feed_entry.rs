@@ -27,6 +27,7 @@ pub struct FeedEntryUpdate {
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
+    pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
@@ -71,6 +72,7 @@ impl FeedEntryService {
                 cursor,
                 Some(FeedEntryFindManyFilters {
                     feed_id: query.feed_id,
+                    smart_feed_id: query.smart_feed_id,
                     has_read: query.has_read,
                     tags: query.tags,
                 }),
@@ -134,6 +136,7 @@ pub trait FeedEntryRepository:
 #[derive(Clone, Debug, Default)]
 pub struct FeedEntryFindManyFilters {
     pub feed_id: Option<Uuid>,
+    pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
 }

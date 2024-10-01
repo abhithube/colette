@@ -93,6 +93,8 @@ pub struct FeedEntryListQuery {
     #[param(nullable = false)]
     pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
+    pub smart_feed_id: Option<Uuid>,
+    #[param(nullable = false)]
     pub has_read: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -105,6 +107,7 @@ impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
     fn from(value: FeedEntryListQuery) -> Self {
         Self {
             feed_id: value.feed_id,
+            smart_feed_id: value.smart_feed_id,
             has_read: value.has_read,
             tags: value.tags,
             cursor: value.cursor,
