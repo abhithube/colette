@@ -256,7 +256,7 @@ async fn insert_filters<DB: ConnectionTrait>(
             let (field, op): (Field, Op) = match e {
                 SmartFeedFilter::Link(op) => (Field::Link, op.into()),
                 SmartFeedFilter::Title(op) => (Field::Title, op.into()),
-                SmartFeedFilter::PublishedAt(op) => (Field::Title, op.into()),
+                SmartFeedFilter::PublishedAt(op) => (Field::PublishedAt, op.into()),
                 SmartFeedFilter::Description(op) => (Field::Description, op.into()),
                 SmartFeedFilter::Author(op) => (Field::Author, op.into()),
                 SmartFeedFilter::HasRead(op) => (
