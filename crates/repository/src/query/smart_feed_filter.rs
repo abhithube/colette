@@ -3,9 +3,8 @@ use colette_entity::{
     smart_feed_filter,
 };
 use sea_orm::{
-    prelude::{Json, Uuid},
-    ActiveValue::NotSet,
-    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult, QueryFilter, Set,
+    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectionTrait, DbErr, DeleteResult,
+    EntityTrait, InsertResult, QueryFilter, Set,
 };
 
 #[derive(Clone, Debug)]
@@ -14,7 +13,7 @@ pub struct InsertMany {
     pub field: Field,
     pub operation: Operation,
     pub is_negated: Option<bool>,
-    pub value: Json,
+    pub value: String,
 }
 
 pub async fn select_by_smart_feed<Db: ConnectionTrait>(

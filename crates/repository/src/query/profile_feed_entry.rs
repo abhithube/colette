@@ -57,48 +57,40 @@ pub async fn select_with_entry<Db: ConnectionTrait>(
                 };
                 let expr = match filter.operation {
                     Operation::Equals => {
-                        if let Some(text) = filter.value.as_str() {
-                            Some(column.eq(text))
+                        if let Ok(boolean) = filter.value.parse::<bool>() {
+                            Some(column.eq(boolean))
                         } else {
-                            filter.value.as_bool().map(|e| column.eq(e))
+                            Some(column.eq(filter.value))
                         }
                     }
-                    Operation::Contains => filter
-                        .value
-                        .as_str()
-                        .map(|e| column.like(format!("%{}%", e))),
-                    Operation::GreaterThan => filter.value.as_str().and_then(|e| {
-                        DateTimeWithTimeZone::parse_from_rfc3339(e)
+                    Operation::Contains => Some(column.like(format!("%{}%", filter.value))),
+                    Operation::GreaterThan => {
+                        DateTimeWithTimeZone::parse_from_rfc3339(&filter.value)
                             .ok()
                             .map(|e| column.gt(e))
-                    }),
-                    Operation::LessThan => filter.value.as_str().and_then(|e| {
-                        DateTimeWithTimeZone::parse_from_rfc3339(e)
-                            .ok()
-                            .map(|e| column.lt(e))
-                    }),
-                    Operation::InLastMillis => {
-                        filter
-                            .value
-                            .as_i64()
-                            .and_then(|e| match db.get_database_backend() {
-                                DatabaseBackend::Postgres => Some(
-                                    Expr::expr(Expr::cust_with_expr(
-                                        "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - $1))",
-                                        column,
-                                    ))
-                                    .lt(e),
-                                ),
-                                DatabaseBackend::Sqlite => Some(
-                                    Expr::expr(Expr::cust_with_expr(
-                                        "strftime('%s', CURRENT_TIMESTAMP) - strftime('%s', ?)",
-                                        column,
-                                    ))
-                                    .lt(e),
-                                ),
-                                _ => None,
-                            })
                     }
+                    Operation::LessThan => DateTimeWithTimeZone::parse_from_rfc3339(&filter.value)
+                        .ok()
+                        .map(|e| column.lt(e)),
+                    Operation::InLastMillis => filter.value.parse::<i64>().ok().and_then(|e| {
+                        match db.get_database_backend() {
+                            DatabaseBackend::Postgres => Some(
+                                Expr::expr(Expr::cust_with_expr(
+                                    "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - $1))",
+                                    column,
+                                ))
+                                .lt(e),
+                            ),
+                            DatabaseBackend::Sqlite => Some(
+                                Expr::expr(Expr::cust_with_expr(
+                                    "strftime('%s', CURRENT_TIMESTAMP) - strftime('%s', ?)",
+                                    column,
+                                ))
+                                .lt(e),
+                            ),
+                            _ => None,
+                        }
+                    }),
                 };
 
                 if let Some(mut expr) = expr {

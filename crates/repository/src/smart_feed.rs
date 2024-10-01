@@ -8,9 +8,8 @@ use colette_core::{
 };
 use colette_entity::sea_orm_active_enums::{Field, Operation};
 use sea_orm::{
-    prelude::{Json, Uuid},
-    ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel, SqlErr,
-    TransactionError, TransactionTrait,
+    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
+    SqlErr, TransactionError, TransactionTrait,
 };
 
 use crate::query;
@@ -187,7 +186,7 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Sm
 struct Op {
     r#type: Operation,
     negated: Option<bool>,
-    value: Json,
+    value: String,
 }
 
 impl From<TextOperation> for Op {
@@ -196,22 +195,22 @@ impl From<TextOperation> for Op {
             TextOperation::Equals(value) => Self {
                 r#type: Operation::Equals,
                 negated: None,
-                value: Json::String(value),
+                value,
             },
             TextOperation::DoesNotEqual(value) => Self {
                 r#type: Operation::Equals,
                 negated: Some(true),
-                value: Json::String(value),
+                value,
             },
             TextOperation::Contains(value) => Self {
                 r#type: Operation::Contains,
                 negated: None,
-                value: Json::String(value),
+                value,
             },
             TextOperation::DoesNotContain(value) => Self {
                 r#type: Operation::Contains,
                 negated: Some(true),
-                value: Json::String(value),
+                value,
             },
         }
     }
@@ -223,22 +222,22 @@ impl From<DateOperation> for Op {
             DateOperation::Equals(value) => Self {
                 r#type: Operation::Equals,
                 negated: None,
-                value: Json::String(value.to_rfc3339()),
+                value: value.to_rfc3339(),
             },
             DateOperation::GreaterThan(value) => Self {
                 r#type: Operation::GreaterThan,
                 negated: None,
-                value: Json::String(value.to_rfc3339()),
+                value: value.to_rfc3339(),
             },
             DateOperation::LessThan(value) => Self {
                 r#type: Operation::LessThan,
                 negated: None,
-                value: Json::String(value.to_rfc3339()),
+                value: value.to_rfc3339(),
             },
             DateOperation::InLast(value) => Self {
                 r#type: Operation::InLastMillis,
                 negated: None,
-                value: Json::Number(value.into()),
+                value: value.to_string(),
             },
         }
     }
@@ -264,7 +263,7 @@ async fn insert_filters<DB: ConnectionTrait>(
                     Op {
                         r#type: Operation::Equals,
                         negated: None,
-                        value: Json::Bool(op.value),
+                        value: op.value.to_string(),
                     },
                 ),
             };

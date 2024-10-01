@@ -125,7 +125,7 @@ impl MigrationTrait for Migration {
                         ],
                     ))
                     .col(boolean(SmartFeedFilter::IsNegated).default(false))
-                    .col(json(SmartFeedFilter::Value))
+                    .col(text(SmartFeedFilter::Value))
                     .col(uuid(SmartFeedFilter::SmartFeedId))
                     .foreign_key(
                         ForeignKey::create()
