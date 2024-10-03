@@ -20,8 +20,8 @@ pub struct InsertMany {
     pub tag_id: Uuid,
 }
 
-pub async fn insert_many<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn insert_many(
+    executor: impl PgExecutor<'_>,
     data: Vec<InsertMany>,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
@@ -53,8 +53,8 @@ pub async fn insert_many<'a, E: PgExecutor<'a>>(
     Ok(())
 }
 
-pub async fn delete_many_by_titles<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn delete_many_by_titles(
+    executor: impl PgExecutor<'_>,
     titles: &[String],
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
@@ -76,8 +76,8 @@ pub async fn delete_many_by_titles<'a, E: PgExecutor<'a>>(
     Ok(())
 }
 
-pub async fn delete_many_not_in_ids<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn delete_many_not_in_ids(
+    executor: impl PgExecutor<'_>,
     ids: Vec<Uuid>,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {

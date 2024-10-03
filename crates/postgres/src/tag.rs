@@ -54,8 +54,8 @@ pub struct InsertMany {
     pub title: String,
 }
 
-pub async fn select<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn select(
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -154,8 +154,8 @@ pub async fn select<'a, E: PgExecutor<'a>>(
         .map(|e| e.into_iter().map(|e| e.into()).collect())
 }
 
-pub async fn select_ids_by_titles<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn select_ids_by_titles(
+    executor: impl PgExecutor<'_>,
     titles: &[String],
     profile_id: Uuid,
 ) -> sqlx::Result<Vec<Uuid>> {
@@ -173,8 +173,8 @@ pub async fn select_ids_by_titles<'a, E: PgExecutor<'a>>(
         .map(|e| e.into_iter().map(|e| e.id).collect())
 }
 
-pub async fn select_ids_by_pf_id<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn select_ids_by_pf_id(
+    executor: impl PgExecutor<'_>,
     profile_feed_id: Uuid,
     profile_id: Uuid,
 ) -> sqlx::Result<Vec<Uuid>> {
@@ -200,8 +200,8 @@ pub async fn select_ids_by_pf_id<'a, E: PgExecutor<'a>>(
         .map(|e| e.into_iter().map(|e| e.id).collect())
 }
 
-pub async fn insert_many<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn insert_many(
+    executor: impl PgExecutor<'_>,
     data: Vec<InsertMany>,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
@@ -225,8 +225,8 @@ pub async fn insert_many<'a, E: PgExecutor<'a>>(
     Ok(())
 }
 
-pub async fn prune_tag_list<'a, E: PgExecutor<'a>>(
-    executor: E,
+pub async fn prune_tag_list(
+    executor: impl PgExecutor<'_>,
     tag_ids: Vec<Uuid>,
     profile_id: Uuid,
 ) -> sqlx::Result<Vec<Uuid>> {
