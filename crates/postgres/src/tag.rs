@@ -1,6 +1,7 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{
-    Alias, CommonTableExpression, Expr, JoinType, Order, PostgresQueryBuilder, Query, UnionType,
+    Alias, CommonTableExpression, Expr, JoinType, OnConflict, Order, PostgresQueryBuilder, Query,
+    UnionType,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
@@ -41,6 +42,16 @@ impl From<TagSelect> for colette_core::Tag {
             feed_count: Some(value.feed_count),
         }
     }
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct TagSelectId {
+    pub id: Uuid,
+}
+
+pub struct InsertMany {
+    pub id: Uuid,
+    pub title: String,
 }
 
 pub async fn select<'a, E: PgExecutor<'a>>(
@@ -137,11 +148,122 @@ pub async fn select<'a, E: PgExecutor<'a>>(
     );
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-
     sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
+}
+
+pub async fn select_ids_by_titles<'a, E: PgExecutor<'a>>(
+    executor: E,
+    titles: &[String],
+    profile_id: Uuid,
+) -> sqlx::Result<Vec<Uuid>> {
+    let query = Query::select()
+        .column(Tag::Id)
+        .from(Tag::Table)
+        .and_where(Expr::col(Tag::ProfileId).eq(profile_id))
+        .and_where(Expr::col(Tag::Title).is_in(titles))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_as_with::<_, TagSelectId, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(|e| e.id).collect())
+}
+
+pub async fn select_ids_by_pf_id<'a, E: PgExecutor<'a>>(
+    executor: E,
+    profile_feed_id: Uuid,
+    profile_id: Uuid,
+) -> sqlx::Result<Vec<Uuid>> {
+    let query = Query::select()
+        .column(Tag::Id)
+        .from(Tag::Table)
+        .inner_join(
+            ProfileFeedTag::Table,
+            Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId))
+                .eq(Expr::col((Tag::Table, Tag::Id)))
+                .and(
+                    Expr::col((ProfileFeedTag::Table, ProfileFeedTag::ProfileFeedId))
+                        .eq(profile_feed_id),
+                ),
+        )
+        .and_where(Expr::col(Tag::ProfileId).eq(profile_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_as_with::<_, TagSelectId, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(|e| e.id).collect())
+}
+
+pub async fn insert_many<'a, E: PgExecutor<'a>>(
+    executor: E,
+    data: Vec<InsertMany>,
+    profile_id: Uuid,
+) -> sqlx::Result<()> {
+    let mut query = Query::insert()
+        .into_table(Tag::Table)
+        .columns([Tag::Id, Tag::Title, Tag::ProfileId])
+        .on_conflict(
+            OnConflict::columns([Tag::ProfileId, Tag::Title])
+                .do_nothing()
+                .to_owned(),
+        )
+        .to_owned();
+
+    for t in data {
+        query.values_panic([t.id.into(), t.title.into(), profile_id.into()]);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
+}
+
+pub async fn prune_tag_list<'a, E: PgExecutor<'a>>(
+    executor: E,
+    tag_ids: Vec<Uuid>,
+    profile_id: Uuid,
+) -> sqlx::Result<Vec<Uuid>> {
+    let tag_hierarchy = Alias::new("tag_hierarchy");
+
+    let subquery = Query::select()
+        .expr(Expr::val(1))
+        .from(tag_hierarchy.clone())
+        .and_where(
+            Expr::col((tag_hierarchy.clone(), Tag::ParentId)).eq(Expr::col((Tag::Table, Tag::Id))),
+        )
+        .and_where(Expr::col((tag_hierarchy, Tag::Id)).is_in(tag_ids.clone()))
+        .to_owned();
+
+    let final_query = Query::select()
+        .distinct()
+        .column(Tag::Id)
+        .from(Tag::Table)
+        .and_where(
+            Expr::col(Tag::Id)
+                .is_in(tag_ids)
+                .and(Expr::exists(subquery).not()),
+        )
+        .to_owned();
+
+    let query = final_query.with(
+        Query::with()
+            .cte(build_tag_recursive_cte(profile_id))
+            .recursive(true)
+            .to_owned(),
+    );
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_as_with::<_, TagSelectId, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(|e| e.id).collect())
 }
 
 pub(crate) fn build_tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
