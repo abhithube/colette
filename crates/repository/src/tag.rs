@@ -4,8 +4,8 @@ use colette_core::{
     Tag,
 };
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel, SqlErr,
-    TransactionError, TransactionTrait,
+    prelude::Uuid, ActiveModelTrait, DatabaseConnection, IntoActiveModel, SqlErr, TransactionError,
+    TransactionTrait,
 };
 
 use crate::query;
@@ -36,30 +36,20 @@ impl Creatable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, Tag, Error>(|txn| {
-                Box::pin(async move {
-                    let model = query::tag::insert(
-                        txn,
-                        Uuid::new_v4(),
-                        data.title.clone(),
-                        data.parent_id,
-                        data.profile_id,
-                    )
-                    .await
-                    .map_err(|e| match e.sql_err() {
-                        Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-                        _ => Error::Unknown(e.into()),
-                    })?;
+        let model = query::tag::insert(
+            &self.db,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.parent_id,
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| match e.sql_err() {
+            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
 
-                    find_by_id(txn, IdParams::new(model.id, data.profile_id)).await
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+        find_by_id(&self.db, IdParams::new(model.id, data.profile_id)).await
     }
 }
 
@@ -71,7 +61,7 @@ impl Updatable for TagSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
-            .transaction::<_, Tag, Error>(|txn| {
+            .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) = query::tag::select_by_id(txn, params.id, params.profile_id)
                         .await
@@ -93,14 +83,16 @@ impl Updatable for TagSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    Ok(())
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -135,23 +127,30 @@ impl TagRepository for TagSqlRepository {
     }
 }
 
-pub(crate) async fn find<Db: ConnectionTrait>(
-    db: &Db,
+pub(crate) async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<Tag>, Error> {
-    let tags = query::tag::select(db, id, profile_id, limit, cursor, filters)
-        .await
-        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+    let tags = colette_postgres::tag::select(
+        db.get_postgres_connection_pool(),
+        id,
+        profile_id,
+        limit,
+        cursor,
+        filters,
+    )
+    .await
+    .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+    .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(tags)
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Tag, Error> {
+async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Tag, Error> {
     let mut tags = find(db, Some(params.id), params.profile_id, None, None, None).await?;
     if tags.is_empty() {
         return Err(Error::NotFound(params.id));

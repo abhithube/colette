@@ -14,6 +14,7 @@ members = [
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
+  "crates/postgres",
   "crates/repository",
   "crates/scraper",
   "crates/session",
@@ -51,6 +52,7 @@ colette-meta.path = "crates/meta"
 colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
+colette-postgres.path = "crates/postgres"
 colette-repository.path = "crates/repository"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"

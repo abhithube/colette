@@ -1,0 +1,15 @@
+[package]
+name = "colette-postgres"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+colette-core.workspace = true
+sea-query = { version = "=0.32.0-rc.1", default-features = false }
+sea-query-binder = { version = "=0.7.0-rc.2", default-features = false, features = [
+  "sqlx-postgres",
+] }
+sqlx = { version = "0.8", default-features = false, features = [
+  "postgres",
+  "uuid",
+] }

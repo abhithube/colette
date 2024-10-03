@@ -868,6 +868,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-postgres"
+version = "0.1.0"
+dependencies = [
+ "colette-core",
+ "sea-query",
+ "sea-query-binder",
+ "sqlx",
+]
+
+[[package]]
 name = "colette-repository"
 version = "0.1.0"
 dependencies = [
@@ -877,6 +887,7 @@ dependencies = [
  "colette-entity",
  "colette-netscape",
  "colette-opml",
+ "colette-postgres",
  "colette-util",
  "futures",
  "indexmap 2.5.0",
