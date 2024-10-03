@@ -1,10 +1,8 @@
-use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
-use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag, PartialTag};
+use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag};
 use sea_orm::{
     prelude::Uuid,
-    sea_query::{Alias, CommonTableExpression, Expr, OnConflict, Query, UnionType},
-    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, FromQueryResult, JoinType,
-    Order, QueryFilter, Set,
+    sea_query::{Alias, CommonTableExpression, Expr, Query, UnionType},
+    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
 };
 
 pub(crate) fn tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
@@ -40,110 +38,6 @@ pub(crate) fn tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
         .to_owned()
 }
 
-pub async fn select<Db: ConnectionTrait>(
-    db: &Db,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<TagFindManyFilters>,
-) -> Result<Vec<PartialTag>, DbErr> {
-    let tag_hierarchy = Alias::new("tag_hierarchy");
-    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
-    let depth = Alias::new("depth");
-
-    let mut final_query = Query::select()
-        .column((tag_hierarchy.clone(), tag::Column::Id))
-        .column((tag_hierarchy.clone(), tag::Column::Title))
-        .column((tag_hierarchy.clone(), tag::Column::ParentId))
-        .column((tag_hierarchy.clone(), depth.clone()))
-        .expr_as(
-            profile_feed_tag::Column::ProfileFeedId.count(),
-            Alias::new("feed_count"),
-        )
-        .expr_as(
-            profile_bookmark_tag::Column::ProfileBookmarkId.count(),
-            Alias::new("bookmark_count"),
-        )
-        .from(tag_hierarchy.clone())
-        .join_as(
-            JoinType::InnerJoin,
-            tag_hierarchy.clone(),
-            tag_hierarchy2.clone(),
-            Expr::col((tag_hierarchy2.clone(), tag::Column::Id))
-                .equals((tag_hierarchy.clone(), tag::Column::Id))
-                .or(Expr::col((tag_hierarchy2.clone(), tag::Column::ParentId))
-                    .equals((tag_hierarchy.clone(), tag::Column::Id))),
-        )
-        .left_join(
-            profile_feed_tag::Entity,
-            Expr::col((
-                profile_feed_tag::Entity,
-                profile_bookmark_tag::Column::TagId,
-            ))
-            .equals((tag_hierarchy2.clone(), tag::Column::Id)),
-        )
-        .left_join(
-            profile_bookmark_tag::Entity,
-            Expr::col((
-                profile_bookmark_tag::Entity,
-                profile_bookmark_tag::Column::TagId,
-            ))
-            .equals((tag_hierarchy2.clone(), tag::Column::Id)),
-        )
-        .and_where_option(id.map(|e| Expr::col((tag_hierarchy.clone(), tag::Column::Id)).eq(e)))
-        .and_where_option(cursor.map(|e| tag::Column::Title.gt(e.title)))
-        .group_by_columns([
-            (tag_hierarchy.clone(), Alias::new("id")),
-            (tag_hierarchy.clone(), Alias::new("title")),
-            (tag_hierarchy.clone(), Alias::new("parent_id")),
-            (tag_hierarchy.clone(), depth.clone()),
-        ])
-        .order_by((tag_hierarchy.clone(), depth), Order::Asc)
-        .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
-        .to_owned();
-
-    if let Some(filters) = filters {
-        match filters.tag_type {
-            TagType::Bookmarks => {
-                final_query.and_having(
-                    Expr::expr(profile_bookmark_tag::Column::ProfileBookmarkId.count()).gt(0),
-                );
-            }
-            TagType::Feeds => {
-                final_query
-                    .and_having(Expr::expr(profile_feed_tag::Column::ProfileFeedId.count()).gt(0));
-            }
-            _ => {}
-        };
-
-        final_query.and_where_option(
-            filters
-                .feed_id
-                .map(|e| profile_feed_tag::Column::ProfileFeedId.eq(e)),
-        );
-        final_query.and_where_option(
-            filters
-                .bookmark_id
-                .map(|e| profile_bookmark_tag::Column::ProfileBookmarkId.eq(e)),
-        );
-    }
-    if let Some(limit) = limit {
-        final_query.limit(limit);
-    }
-
-    let query = final_query.with(
-        Query::with()
-            .cte(tag_recursive_cte(profile_id))
-            .recursive(true)
-            .to_owned(),
-    );
-
-    PartialTag::find_by_statement(db.get_database_backend().build(&query))
-        .all(db)
-        .await
-}
-
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,
     id: Uuid,
@@ -169,96 +63,6 @@ pub async fn select_by_title_and_parent<Db: ConnectionTrait>(
             None => tag::Column::ParentId.is_null(),
         })
         .one(db)
-        .await
-}
-
-pub async fn prune_tag_list<Db: ConnectionTrait>(
-    db: &Db,
-    tag_ids: Vec<Uuid>,
-    profile_id: Uuid,
-) -> Result<Vec<Uuid>, DbErr> {
-    let tag_hierarchy = Alias::new("tag_hierarchy");
-
-    let subquery = Query::select()
-        .expr(Expr::val(1))
-        .from(tag_hierarchy.clone())
-        .and_where(
-            Expr::col((tag_hierarchy.clone(), tag::Column::ParentId))
-                .eq(Expr::col((tag::Entity, tag::Column::Id))),
-        )
-        .and_where(Expr::col((tag_hierarchy, tag::Column::Id)).is_in(tag_ids.clone()))
-        .to_owned();
-
-    let final_query = Query::select()
-        .distinct()
-        .column(tag::Column::Id)
-        .from(tag::Entity)
-        .and_where(
-            tag::Column::Id
-                .is_in(tag_ids)
-                .and(Expr::exists(subquery).not()),
-        )
-        .to_owned();
-
-    let query = final_query.with(
-        Query::with()
-            .cte(tag_recursive_cte(profile_id))
-            .recursive(true)
-            .to_owned(),
-    );
-
-    let rows = db
-        .query_all(db.get_database_backend().build(&query))
-        .await?;
-
-    let pruned = rows
-        .into_iter()
-        .filter_map(|e| e.try_get_by(0).ok())
-        .collect::<Vec<Uuid>>();
-
-    Ok(pruned)
-}
-
-pub struct InsertMany {
-    pub id: Uuid,
-    pub title: String,
-}
-
-pub async fn insert_many<Db: ConnectionTrait>(
-    db: &Db,
-    tags: Vec<InsertMany>,
-    profile_id: Uuid,
-) -> Result<(), DbErr> {
-    let models = tags
-        .into_iter()
-        .map(|e| tag::ActiveModel {
-            id: Set(e.id),
-            title: Set(e.title),
-            profile_id: Set(profile_id),
-            ..Default::default()
-        })
-        .collect::<Vec<_>>();
-
-    tag::Entity::insert_many(models)
-        .on_empty_do_nothing()
-        .on_conflict(
-            OnConflict::columns([tag::Column::ProfileId, tag::Column::Title])
-                .do_nothing()
-                .to_owned(),
-        )
-        .exec(db)
-        .await?;
-
-    Ok(())
-}
-
-pub async fn select_by_tags<Db: ConnectionTrait>(
-    db: &Db,
-    tags: &[String],
-) -> Result<Vec<tag::Model>, DbErr> {
-    tag::Entity::find()
-        .filter(tag::Column::Title.is_in(tags))
-        .all(db)
         .await
 }
 

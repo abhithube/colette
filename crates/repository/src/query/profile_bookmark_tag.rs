@@ -1,8 +1,5 @@
 use colette_entity::profile_bookmark_tag;
-use sea_orm::{
-    prelude::Uuid, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
-    QueryFilter, Set,
-};
+use sea_orm::{prelude::Uuid, sea_query::OnConflict, ConnectionTrait, DbErr, EntityTrait, Set};
 
 pub struct InsertMany {
     pub profile_bookmark_id: Uuid,
@@ -34,34 +31,6 @@ pub async fn insert_many<Db: ConnectionTrait>(
             .do_nothing()
             .to_owned(),
         )
-        .exec(db)
-        .await?;
-
-    Ok(())
-}
-
-pub async fn delete_many_in<Db: ConnectionTrait>(
-    db: &Db,
-    profile_bookmark_id: Uuid,
-    ids: Vec<Uuid>,
-) -> Result<(), DbErr> {
-    profile_bookmark_tag::Entity::delete_many()
-        .filter(profile_bookmark_tag::Column::ProfileBookmarkId.eq(profile_bookmark_id))
-        .filter(profile_bookmark_tag::Column::TagId.is_in(ids))
-        .exec(db)
-        .await?;
-
-    Ok(())
-}
-
-pub async fn delete_many_not_in<Db: ConnectionTrait>(
-    db: &Db,
-    profile_bookmark_id: Uuid,
-    ids: Vec<Uuid>,
-) -> Result<(), DbErr> {
-    profile_bookmark_tag::Entity::delete_many()
-        .filter(profile_bookmark_tag::Column::ProfileBookmarkId.eq(profile_bookmark_id))
-        .filter(profile_bookmark_tag::Column::TagId.is_not_in(ids))
         .exec(db)
         .await?;
 

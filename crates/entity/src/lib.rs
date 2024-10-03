@@ -111,30 +111,6 @@ impl From<PartialSmartFeed> for SmartFeed {
 }
 
 #[derive(Clone, Debug, sea_orm::FromQueryResult)]
-pub struct PartialTag {
-    pub id: Uuid,
-    pub title: String,
-    pub parent_id: Option<Uuid>,
-    pub depth: i32,
-    pub bookmark_count: i64,
-    pub feed_count: i64,
-}
-
-impl From<PartialTag> for Tag {
-    fn from(value: PartialTag) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            parent_id: value.parent_id,
-            depth: value.depth,
-            direct: None,
-            bookmark_count: Some(value.bookmark_count),
-            feed_count: Some(value.feed_count),
-        }
-    }
-}
-
-#[derive(Clone, Debug, sea_orm::FromQueryResult)]
 pub struct PartialBookmarkTag {
     pub id: Uuid,
     pub title: String,
