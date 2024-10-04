@@ -11,7 +11,6 @@ pub struct Model {
     pub id: Uuid,
     pub field: Field,
     pub operation: Operation,
-    pub is_negated: bool,
     #[sea_orm(column_type = "Text")]
     pub value: String,
     pub smart_feed_id: Uuid,

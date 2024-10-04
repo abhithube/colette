@@ -5,30 +5,34 @@ use sea_orm::entity::prelude::*;
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "field")]
 pub enum Field {
-    #[sea_orm(string_value = "Author")]
+    #[sea_orm(string_value = "author")]
     Author,
-    #[sea_orm(string_value = "Description")]
+    #[sea_orm(string_value = "description")]
     Description,
-    #[sea_orm(string_value = "HasRead")]
+    #[sea_orm(string_value = "has_read")]
     HasRead,
-    #[sea_orm(string_value = "Link")]
+    #[sea_orm(string_value = "link")]
     Link,
-    #[sea_orm(string_value = "PublishedAt")]
+    #[sea_orm(string_value = "published_at")]
     PublishedAt,
-    #[sea_orm(string_value = "Title")]
+    #[sea_orm(string_value = "title")]
     Title,
 }
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "operation")]
 pub enum Operation {
-    #[sea_orm(string_value = "Contains")]
-    Contains,
-    #[sea_orm(string_value = "Equals")]
-    Equals,
-    #[sea_orm(string_value = "GreaterThan")]
-    GreaterThan,
-    #[sea_orm(string_value = "InLastMillis")]
-    InLastMillis,
-    #[sea_orm(string_value = "LessThan")]
-    LessThan,
+    #[sea_orm(string_value = "!=")]
+    U0021U003D,
+    #[sea_orm(string_value = "<")]
+    U003C,
+    #[sea_orm(string_value = "=")]
+    U003D,
+    #[sea_orm(string_value = ">")]
+    U003E,
+    #[sea_orm(string_value = "LIKE")]
+    Like,
+    #[sea_orm(string_value = "NOT LIKE")]
+    NotLike,
+    #[sea_orm(string_value = "in_last_x_sec")]
+    InLastXSec,
 }

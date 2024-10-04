@@ -3,8 +3,8 @@ use colette_entity::{
     smart_feed_filter,
 };
 use sea_orm::{
-    prelude::Uuid, ActiveValue::NotSet, ColumnTrait, ConnectionTrait, DbErr, DeleteResult,
-    EntityTrait, InsertResult, QueryFilter, Set,
+    prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult,
+    QueryFilter, Set,
 };
 
 #[derive(Clone, Debug)]
@@ -12,7 +12,6 @@ pub struct InsertMany {
     pub id: Uuid,
     pub field: Field,
     pub operation: Operation,
-    pub is_negated: Option<bool>,
     pub value: String,
 }
 
@@ -29,11 +28,6 @@ pub async fn insert_many<Db: ConnectionTrait>(
             id: Set(e.id),
             field: Set(e.field),
             operation: Set(e.operation),
-            is_negated: if let Some(is_negated) = e.is_negated {
-                Set(is_negated)
-            } else {
-                NotSet
-            },
             value: Set(e.value),
             smart_feed_id: Set(smart_feed_id),
             profile_id: Set(profile_id),

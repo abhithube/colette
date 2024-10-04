@@ -185,7 +185,6 @@ async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Sm
 
 struct Op {
     r#type: Operation,
-    negated: Option<bool>,
     value: String,
 }
 
@@ -193,23 +192,19 @@ impl From<TextOperation> for Op {
     fn from(value: TextOperation) -> Self {
         match value {
             TextOperation::Equals(value) => Self {
-                r#type: Operation::Equals,
-                negated: None,
+                r#type: Operation::U003D,
                 value,
             },
             TextOperation::DoesNotEqual(value) => Self {
-                r#type: Operation::Equals,
-                negated: Some(true),
+                r#type: Operation::U0021U003D,
                 value,
             },
             TextOperation::Contains(value) => Self {
-                r#type: Operation::Contains,
-                negated: None,
+                r#type: Operation::Like,
                 value,
             },
             TextOperation::DoesNotContain(value) => Self {
-                r#type: Operation::Contains,
-                negated: Some(true),
+                r#type: Operation::NotLike,
                 value,
             },
         }
@@ -220,23 +215,19 @@ impl From<DateOperation> for Op {
     fn from(value: DateOperation) -> Self {
         match value {
             DateOperation::Equals(value) => Self {
-                r#type: Operation::Equals,
-                negated: None,
+                r#type: Operation::U003D,
                 value: value.to_rfc3339(),
             },
             DateOperation::GreaterThan(value) => Self {
-                r#type: Operation::GreaterThan,
-                negated: None,
+                r#type: Operation::U003E,
                 value: value.to_rfc3339(),
             },
             DateOperation::LessThan(value) => Self {
-                r#type: Operation::LessThan,
-                negated: None,
+                r#type: Operation::U003C,
                 value: value.to_rfc3339(),
             },
             DateOperation::InLast(value) => Self {
-                r#type: Operation::InLastMillis,
-                negated: None,
+                r#type: Operation::InLastXSec,
                 value: value.to_string(),
             },
         }
@@ -261,8 +252,7 @@ async fn insert_filters<DB: ConnectionTrait>(
                 SmartFeedFilter::HasRead(op) => (
                     Field::HasRead,
                     Op {
-                        r#type: Operation::Equals,
-                        negated: None,
+                        r#type: Operation::U003D,
                         value: op.value.to_string(),
                     },
                 ),
@@ -272,7 +262,6 @@ async fn insert_filters<DB: ConnectionTrait>(
                 id: Uuid::new_v4(),
                 field,
                 operation: op.r#type,
-                is_negated: op.negated,
                 value: op.value,
             }
         })

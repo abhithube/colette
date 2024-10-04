@@ -84,11 +84,13 @@ impl MigrationTrait for Migration {
                     Type::create()
                         .as_enum(Operation::Enum)
                         .values([
-                            Operation::Equals,
-                            Operation::Contains,
+                            Operation::Eq,
+                            Operation::Ne,
+                            Operation::Like,
+                            Operation::NotLike,
                             Operation::GreaterThan,
                             Operation::LessThan,
-                            Operation::InLastMillis,
+                            Operation::InLastXSec,
                         ])
                         .to_owned(),
                 )
@@ -117,14 +119,15 @@ impl MigrationTrait for Migration {
                         SmartFeedFilter::Operation,
                         Operation::Enum,
                         [
-                            Operation::Equals,
-                            Operation::Contains,
+                            Operation::Eq,
+                            Operation::Ne,
+                            Operation::Like,
+                            Operation::NotLike,
                             Operation::GreaterThan,
                             Operation::LessThan,
-                            Operation::InLastMillis,
+                            Operation::InLastXSec,
                         ],
                     ))
-                    .col(boolean(SmartFeedFilter::IsNegated).default(false))
                     .col(text(SmartFeedFilter::Value))
                     .col(uuid(SmartFeedFilter::SmartFeedId))
                     .foreign_key(
@@ -234,7 +237,6 @@ pub enum SmartFeedFilter {
     Id,
     Field,
     Operation,
-    IsNegated,
     Value,
     SmartFeedId,
     ProfileId,
@@ -248,17 +250,17 @@ pub enum SmartFeedFilter {
 pub enum Field {
     #[sea_orm(iden = "field")]
     Enum,
-    #[sea_orm(iden = "Link")]
+    #[sea_orm(iden = "link")]
     Link,
-    #[sea_orm(iden = "Title")]
+    #[sea_orm(iden = "title")]
     Title,
-    #[sea_orm(iden = "PublishedAt")]
+    #[sea_orm(iden = "published_at")]
     PublishedAt,
-    #[sea_orm(iden = "Description")]
+    #[sea_orm(iden = "description")]
     Description,
-    #[sea_orm(iden = "Author")]
+    #[sea_orm(iden = "author")]
     Author,
-    #[sea_orm(iden = "HasRead")]
+    #[sea_orm(iden = "has_read")]
     HasRead,
 }
 
@@ -266,14 +268,18 @@ pub enum Field {
 pub enum Operation {
     #[sea_orm(iden = "operation")]
     Enum,
-    #[sea_orm(iden = "Equals")]
-    Equals,
-    #[sea_orm(iden = "Contains")]
-    Contains,
-    #[sea_orm(iden = "GreaterThan")]
+    #[sea_orm(iden = "=")]
+    Eq,
+    #[sea_orm(iden = "!=")]
+    Ne,
+    #[sea_orm(iden = "LIKE")]
+    Like,
+    #[sea_orm(iden = "NOT LIKE")]
+    NotLike,
+    #[sea_orm(iden = ">")]
     GreaterThan,
-    #[sea_orm(iden = "LessThan")]
+    #[sea_orm(iden = "<")]
     LessThan,
-    #[sea_orm(iden = "InLastMillis")]
-    InLastMillis,
+    #[sea_orm(iden = "in_last_x_sec")]
+    InLastXSec,
 }
