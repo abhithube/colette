@@ -1,5 +1,5 @@
 use colette_core::feed_entry::Cursor;
-use sea_query::{Expr, JoinType, Order, PostgresQueryBuilder, Query};
+use sea_query::{CaseStatement, Expr, JoinType, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::{
@@ -10,7 +10,11 @@ use sqlx::{
 };
 
 use crate::{
-    feed_entry::FeedEntry, profile_feed::ProfileFeed, profile_feed_tag::ProfileFeedTag, tag::Tag,
+    feed_entry::FeedEntry,
+    profile_feed::ProfileFeed,
+    profile_feed_tag::ProfileFeedTag,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter, SmartFilterCase},
+    tag::Tag,
 };
 
 #[allow(dead_code)]
@@ -63,7 +67,7 @@ pub async fn select(
     feed_id: Option<Uuid>,
     has_read: Option<bool>,
     tags: Option<&[String]>,
-    _smart_feed_id: Option<Uuid>,
+    smart_feed_id: Option<Uuid>,
     cursor: Option<Cursor>,
     limit: Option<u64>,
 ) -> sqlx::Result<Vec<colette_core::FeedEntry>> {
@@ -133,6 +137,41 @@ pub async fn select(
                     .eq(Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId))),
             )
             .and_where(Expr::col((Tag::Table, Tag::Title)).is_in(tags));
+    }
+
+    if let Some(smart_feed_id) = smart_feed_id {
+        query.join(
+            JoinType::InnerJoin,
+            SmartFeedFilter::Table,
+            Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
+                .eq(Expr::val(smart_feed_id))
+                .and(
+                    CaseStatement::new()
+                        .add_smart_filter(Field::Link, Operation::Eq)
+                        .add_smart_filter(Field::Link, Operation::Ne)
+                        .add_smart_filter(Field::Link, Operation::Like)
+                        .add_smart_filter(Field::Link, Operation::NotLike)
+                        .add_smart_filter(Field::Title, Operation::Eq)
+                        .add_smart_filter(Field::Title, Operation::Ne)
+                        .add_smart_filter(Field::Title, Operation::Like)
+                        .add_smart_filter(Field::Title, Operation::NotLike)
+                        .add_smart_filter(Field::PublishedAt, Operation::Eq)
+                        .add_smart_filter(Field::PublishedAt, Operation::Ne)
+                        .add_smart_filter(Field::PublishedAt, Operation::GreaterThan)
+                        .add_smart_filter(Field::PublishedAt, Operation::LessThan)
+                        .add_smart_filter(Field::PublishedAt, Operation::InLastXSec)
+                        .add_smart_filter(Field::Description, Operation::Eq)
+                        .add_smart_filter(Field::Description, Operation::Ne)
+                        .add_smart_filter(Field::Description, Operation::Like)
+                        .add_smart_filter(Field::Description, Operation::NotLike)
+                        .add_smart_filter(Field::Author, Operation::Eq)
+                        .add_smart_filter(Field::Author, Operation::Ne)
+                        .add_smart_filter(Field::Author, Operation::Like)
+                        .add_smart_filter(Field::Author, Operation::NotLike)
+                        .add_smart_filter(Field::HasRead, Operation::Eq)
+                        .into(),
+                ),
+        );
     }
 
     if let Some(limit) = limit {
