@@ -16,18 +16,6 @@ pub struct InsertMany {
     pub value: String,
 }
 
-pub async fn select_by_smart_feed<Db: ConnectionTrait>(
-    db: &Db,
-    smart_feed_id: Uuid,
-    profile_id: Uuid,
-) -> Result<Vec<smart_feed_filter::Model>, DbErr> {
-    smart_feed_filter::Entity::find()
-        .filter(smart_feed_filter::Column::SmartFeedId.eq(smart_feed_id))
-        .filter(smart_feed_filter::Column::ProfileId.eq(profile_id))
-        .all(db)
-        .await
-}
-
 #[allow(clippy::too_many_arguments)]
 pub async fn insert_many<Db: ConnectionTrait>(
     db: &Db,

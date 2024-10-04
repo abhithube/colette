@@ -1,6 +1,7 @@
 pub mod bookmark;
 mod common;
 pub mod feed;
+pub mod feed_entry;
 pub mod profile_bookmark;
 pub mod profile_bookmark_tag;
 pub mod profile_feed;

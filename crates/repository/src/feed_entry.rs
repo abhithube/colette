@@ -5,10 +5,9 @@ use colette_core::{
     },
     FeedEntry,
 };
-use colette_entity::PfeWithFe;
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel,
-    TransactionError, TransactionTrait,
+    prelude::Uuid, ActiveModelTrait, DatabaseConnection, IntoActiveModel, TransactionError,
+    TransactionTrait,
 };
 
 use crate::query;
@@ -41,7 +40,7 @@ impl Updatable for FeedEntrySqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
-            .transaction::<_, FeedEntry, Error>(|txn| {
+            .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) =
                         query::profile_feed_entry::select_by_id(txn, params.id, params.profile_id)
@@ -63,14 +62,16 @@ impl Updatable for FeedEntrySqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    Ok(())
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -87,28 +88,42 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
     }
 }
 
-async fn find<Db: ConnectionTrait>(
-    db: &Db,
+async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<FeedEntryFindManyFilters>,
 ) -> Result<Vec<FeedEntry>, Error> {
-    let models =
-        query::profile_feed_entry::select_with_entry(db, id, profile_id, limit, cursor, filters)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+    let mut feed_id: Option<Uuid> = None;
+    let mut smart_feed_id: Option<Uuid> = None;
+    let mut has_read: Option<bool> = None;
+    let mut tags: Option<Vec<String>> = None;
 
-    let feed_entries = models
-        .into_iter()
-        .filter_map(|(pfe, fe_opt)| fe_opt.map(|fe| FeedEntry::from(PfeWithFe { pfe, fe })))
-        .collect::<Vec<_>>();
+    if let Some(filters) = filters {
+        feed_id = filters.feed_id;
+        smart_feed_id = filters.smart_feed_id;
+        has_read = filters.has_read;
+        tags = filters.tags;
+    }
 
-    Ok(feed_entries)
+    colette_postgres::profile_feed_entry::select(
+        db.get_postgres_connection_pool(),
+        id,
+        profile_id,
+        feed_id,
+        has_read,
+        tags.as_deref(),
+        smart_feed_id,
+        cursor,
+        limit,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<FeedEntry, Error> {
+async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<FeedEntry, Error> {
     let mut feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
     if feed_entries.is_empty() {
         return Err(Error::NotFound(params.id));
