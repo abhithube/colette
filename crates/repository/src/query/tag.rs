@@ -1,42 +1,9 @@
 use colette_entity::{profile_bookmark_tag, profile_feed_tag, tag};
 use sea_orm::{
     prelude::Uuid,
-    sea_query::{Alias, CommonTableExpression, Expr, Query, UnionType},
+    sea_query::{Expr, Query},
     ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
 };
-
-pub(crate) fn tag_recursive_cte(profile_id: Uuid) -> CommonTableExpression {
-    let tag_hierarchy = Alias::new("tag_hierarchy");
-    let depth = Alias::new("depth");
-
-    let mut base_query = Query::select()
-        .column(tag::Column::Id)
-        .column(tag::Column::Title)
-        .column(tag::Column::ParentId)
-        .expr_as(Expr::val(1), depth.clone())
-        .from(tag::Entity)
-        .and_where(tag::Column::ProfileId.eq(profile_id))
-        .and_where(tag::Column::ParentId.is_null())
-        .to_owned();
-
-    let recursive_query = Query::select()
-        .column((tag::Entity, tag::Column::Id))
-        .column((tag::Entity, tag::Column::Title))
-        .column((tag::Entity, tag::Column::ParentId))
-        .expr(Expr::col((tag_hierarchy.clone(), depth)).add(1))
-        .from(tag::Entity)
-        .inner_join(
-            tag_hierarchy.clone(),
-            Expr::col((tag_hierarchy.clone(), tag::Column::Id))
-                .eq(Expr::col((tag::Entity, tag::Column::ParentId))),
-        )
-        .to_owned();
-
-    CommonTableExpression::new()
-        .query(base_query.union(UnionType::All, recursive_query).to_owned())
-        .table_name(tag_hierarchy)
-        .to_owned()
-}
 
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,

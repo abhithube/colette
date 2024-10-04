@@ -1,59 +1,10 @@
-use colette_core::bookmark::{BookmarkFindManyFilters, Cursor};
-use colette_entity::{bookmark, profile_bookmark, profile_bookmark_tag, tag, PartialBookmarkTag};
-use indexmap::IndexMap;
+use colette_entity::profile_bookmark;
 use sea_orm::{
     prelude::Uuid,
-    sea_query::{Alias, Expr, OnConflict, Query, SimpleExpr},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, FromQueryResult, InsertResult,
-    JoinType, Order, QueryFilter, QueryOrder, QuerySelect, RelationTrait, Set,
+    sea_query::{Expr, OnConflict, SimpleExpr},
+    ColumnTrait, Condition, ConnectionTrait, DbErr, EntityTrait, InsertResult, QueryFilter,
+    QueryOrder, Set,
 };
-
-use super::tag::tag_recursive_cte;
-
-pub async fn select_with_bookmark<Db: ConnectionTrait>(
-    db: &Db,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<BookmarkFindManyFilters>,
-) -> Result<Vec<(profile_bookmark::Model, Option<bookmark::Model>)>, DbErr> {
-    let mut query = profile_bookmark::Entity::find()
-        .find_also_related(bookmark::Entity)
-        .order_by_asc(profile_bookmark::Column::SortIndex);
-
-    let mut conditions = Condition::all().add(profile_bookmark::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(profile_bookmark::Column::Id.eq(id));
-    }
-    if let Some(filters) = filters {
-        if let Some(tags) = filters.tags {
-            query = query
-                .join(
-                    JoinType::InnerJoin,
-                    profile_bookmark::Relation::ProfileBookmarkTag.def(),
-                )
-                .join(
-                    JoinType::InnerJoin,
-                    profile_bookmark_tag::Relation::Tag.def(),
-                );
-
-            conditions = conditions.add(tag::Column::Title.is_in(tags));
-        }
-    }
-
-    let mut query = query
-        .filter(conditions)
-        .cursor_by(profile_bookmark::Column::SortIndex);
-    if let Some(cursor) = cursor {
-        query.after(cursor.sort_index);
-    };
-    if let Some(limit) = limit {
-        query.first(limit);
-    }
-
-    query.all(db).await
-}
 
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,
@@ -85,78 +36,6 @@ pub async fn select_last<Db: ConnectionTrait>(
         .order_by_desc(profile_bookmark::Column::SortIndex)
         .one(db)
         .await
-}
-
-pub async fn load_tags<Db: ConnectionTrait>(
-    db: &Db,
-    pb_ids: Vec<Uuid>,
-    profile_id: Uuid,
-) -> Result<Vec<Vec<PartialBookmarkTag>>, DbErr> {
-    let tag_hierarchy = Alias::new("tag_hierarchy");
-    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
-    let depth = Alias::new("depth");
-
-    let mut tag_map: IndexMap<Uuid, Vec<PartialBookmarkTag>> =
-        IndexMap::from_iter(pb_ids.iter().map(|e| (*e, Vec::new())));
-
-    let final_query = Query::select()
-        .distinct()
-        .column(profile_bookmark_tag::Column::ProfileBookmarkId)
-        .column((tag_hierarchy.clone(), tag::Column::Id))
-        .column((tag_hierarchy.clone(), tag::Column::Title))
-        .column((tag_hierarchy.clone(), tag::Column::ParentId))
-        .column((tag_hierarchy.clone(), depth.clone()))
-        .expr_as(
-            Expr::case(
-                Expr::col(profile_bookmark_tag::Column::TagId)
-                    .eq(Expr::col((tag_hierarchy.clone(), tag::Column::Id))),
-                true,
-            )
-            .finally(false),
-            Alias::new("direct"),
-        )
-        .from(tag_hierarchy.clone())
-        .join_as(
-            JoinType::InnerJoin,
-            tag_hierarchy.clone(),
-            tag_hierarchy2.clone(),
-            Expr::col((tag_hierarchy2.clone(), tag::Column::Id))
-                .equals((tag_hierarchy.clone(), tag::Column::Id))
-                .or(Expr::col((tag_hierarchy2.clone(), tag::Column::ParentId))
-                    .equals((tag_hierarchy.clone(), tag::Column::Id))),
-        )
-        .inner_join(
-            profile_bookmark_tag::Entity,
-            Expr::col((
-                profile_bookmark_tag::Entity,
-                profile_bookmark_tag::Column::TagId,
-            ))
-            .eq(Expr::col((tag_hierarchy2, tag::Column::Id)))
-            .and(profile_bookmark_tag::Column::ProfileBookmarkId.is_in(pb_ids)),
-        )
-        .order_by((tag_hierarchy.clone(), depth), Order::Asc)
-        .order_by((tag_hierarchy.clone(), tag::Column::Title), Order::Asc)
-        .to_owned();
-
-    let query = final_query.with(
-        Query::with()
-            .cte(tag_recursive_cte(profile_id))
-            .recursive(true)
-            .to_owned(),
-    );
-
-    let partial_tags =
-        PartialBookmarkTag::find_by_statement(db.get_database_backend().build(&query))
-            .all(db)
-            .await?;
-
-    for partial_tag in partial_tags {
-        if let Some(tags) = tag_map.get_mut(&partial_tag.profile_bookmark_id) {
-            tags.push(partial_tag);
-        }
-    }
-
-    Ok(tag_map.into_values().collect::<Vec<_>>())
 }
 
 pub async fn insert<Db: ConnectionTrait>(

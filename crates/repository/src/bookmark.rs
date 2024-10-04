@@ -7,11 +7,10 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
 };
-use colette_entity::PbWithBookmarkAndTags;
 use sea_orm::{
     prelude::{DateTimeWithTimeZone, Uuid},
-    sqlx, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr, IntoActiveModel,
-    TransactionError, TransactionTrait,
+    sqlx, ActiveModelTrait, DatabaseConnection, DbErr, IntoActiveModel, TransactionError,
+    TransactionTrait,
 };
 
 use crate::query;
@@ -237,39 +236,33 @@ impl BookmarkRepository for BookmarkSqlRepository {
     }
 }
 
-pub(crate) async fn find<Db: ConnectionTrait>(
-    db: &Db,
+pub(crate) async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<BookmarkFindManyFilters>,
 ) -> Result<Vec<Bookmark>, Error> {
-    let models =
-        query::profile_bookmark::select_with_bookmark(db, id, profile_id, limit, cursor, filters)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .filter_map(|(pb, bookmark_opt)| bookmark_opt.map(|bookmark| (pb, bookmark)))
-                    .collect::<Vec<_>>()
-            })
-            .map_err(|e| Error::Unknown(e.into()))?;
-    let pb_ids = models.iter().map(|e| e.0.id).collect::<Vec<_>>();
+    let mut tags: Option<Vec<String>> = None;
 
-    let tag_models = query::profile_bookmark::load_tags(db, pb_ids, profile_id)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+    if let Some(filters) = filters {
+        tags = filters.tags;
+    }
 
-    let bookmarks = models
-        .into_iter()
-        .zip(tag_models.into_iter())
-        .map(|((pb, bookmark), tags)| Bookmark::from(PbWithBookmarkAndTags { pb, bookmark, tags }))
-        .collect::<Vec<_>>();
-
-    Ok(bookmarks)
+    colette_postgres::profile_bookmark::find(
+        db.get_postgres_connection_pool(),
+        id,
+        profile_id,
+        tags,
+        cursor,
+        limit,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))
 }
 
-pub async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Bookmark, Error> {
+pub async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Bookmark, Error> {
     let mut bookmarks = find(db, Some(params.id), params.profile_id, None, None, None).await?;
     if bookmarks.is_empty() {
         return Err(Error::NotFound(params.id));
