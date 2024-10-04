@@ -278,10 +278,17 @@ pub(crate) async fn link_tags(
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
-        return colette_postgres::profile_bookmark_tag::delete_many_by_titles(
+        return colette_postgres::profile_bookmark_tag::delete_many_in_titles(
             pool, &tags.data, profile_id,
         )
         .await;
+    }
+
+    if let TagsLinkAction::Set = tags.action {
+        colette_postgres::profile_bookmark_tag::delete_many_not_in_titles(
+            pool, &tags.data, profile_id,
+        )
+        .await?;
     }
 
     colette_postgres::tag::insert_many(
@@ -297,25 +304,7 @@ pub(crate) async fn link_tags(
     )
     .await?;
 
-    let mut tag_ids =
-        colette_postgres::tag::select_ids_by_titles(pool, &tags.data, profile_id).await?;
-
-    if let TagsLinkAction::Add = tags.action {
-        let mut current_ids =
-            colette_postgres::tag::select_ids_by_pf_id(pool, profile_bookmark_id, profile_id)
-                .await?;
-
-        tag_ids.append(&mut current_ids);
-    }
-
-    let tag_ids = colette_postgres::tag::prune_tag_list(pool, tag_ids, profile_id).await?;
-
-    colette_postgres::profile_bookmark_tag::delete_many_not_in_ids(
-        pool,
-        tag_ids.clone(),
-        profile_id,
-    )
-    .await?;
+    let tag_ids = colette_postgres::tag::select_ids_by_titles(pool, &tags.data, profile_id).await?;
 
     let insert_many = tag_ids
         .into_iter()
