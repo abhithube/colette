@@ -40,8 +40,9 @@ impl Creatable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, SmartFeed, Error>(|txn| {
+        let id = self
+            .db
+            .transaction::<_, Uuid, Error>(|txn| {
                 Box::pin(async move {
                     let model = query::smart_feed::insert(
                         txn,
@@ -61,14 +62,16 @@ impl Creatable for SmartFeedSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, IdParams::new(model.last_insert_id, data.profile_id)).await
+                    Ok(model.last_insert_id)
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        find_by_id(&self.db, IdParams::new(id, data.profile_id)).await
     }
 }
 
@@ -80,7 +83,7 @@ impl Updatable for SmartFeedSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         self.db
-            .transaction::<_, SmartFeed, Error>(|txn| {
+            .transaction::<_, (), Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) =
                         query::smart_feed::select_by_id(txn, params.id, params.profile_id)
@@ -118,14 +121,16 @@ impl Updatable for SmartFeedSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    find_by_id(txn, params).await
+                    Ok(())
                 })
             })
             .await
             .map_err(|e| match e {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        find_by_id(&self.db, params).await
     }
 }
 
@@ -159,22 +164,25 @@ impl SmartFeedRepository for SmartFeedSqlRepository {
     }
 }
 
-pub(crate) async fn find<Db: ConnectionTrait>(
-    db: &Db,
+pub(crate) async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<SmartFeed>, Error> {
-    let feeds = query::smart_feed::select(db, id, profile_id, limit, cursor)
-        .await
-        .map(|e| e.into_iter().map(SmartFeed::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    Ok(feeds)
+    colette_postgres::smart_feed::select(
+        db.get_postgres_connection_pool(),
+        id,
+        profile_id,
+        cursor,
+        limit,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<SmartFeed, Error> {
+async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<SmartFeed, Error> {
     let mut feeds = find(db, Some(params.id), params.profile_id, None, None).await?;
     if feeds.is_empty() {
         return Err(Error::NotFound(params.id));

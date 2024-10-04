@@ -129,3 +129,29 @@ impl SmartFilterCase for CaseStatement {
         self.case(cond, then)
     }
 }
+
+pub(crate) fn build_case_statement() -> CaseStatement {
+    CaseStatement::new()
+        .add_smart_filter(Field::Link, Operation::Eq)
+        .add_smart_filter(Field::Link, Operation::Ne)
+        .add_smart_filter(Field::Link, Operation::Like)
+        .add_smart_filter(Field::Link, Operation::NotLike)
+        .add_smart_filter(Field::Title, Operation::Eq)
+        .add_smart_filter(Field::Title, Operation::Ne)
+        .add_smart_filter(Field::Title, Operation::Like)
+        .add_smart_filter(Field::Title, Operation::NotLike)
+        .add_smart_filter(Field::PublishedAt, Operation::Eq)
+        .add_smart_filter(Field::PublishedAt, Operation::Ne)
+        .add_smart_filter(Field::PublishedAt, Operation::GreaterThan)
+        .add_smart_filter(Field::PublishedAt, Operation::LessThan)
+        .add_smart_filter(Field::PublishedAt, Operation::InLastXSec)
+        .add_smart_filter(Field::Description, Operation::Eq)
+        .add_smart_filter(Field::Description, Operation::Ne)
+        .add_smart_filter(Field::Description, Operation::Like)
+        .add_smart_filter(Field::Description, Operation::NotLike)
+        .add_smart_filter(Field::Author, Operation::Eq)
+        .add_smart_filter(Field::Author, Operation::Ne)
+        .add_smart_filter(Field::Author, Operation::Like)
+        .add_smart_filter(Field::Author, Operation::NotLike)
+        .add_smart_filter(Field::HasRead, Operation::Eq)
+}

@@ -1,38 +1,8 @@
-use colette_core::smart_feed::Cursor;
-use colette_entity::{smart_feed, PartialSmartFeed};
+use colette_entity::smart_feed;
 use sea_orm::{
-    prelude::{Expr, Uuid},
-    ColumnTrait, Condition, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult,
-    QueryFilter, QueryOrder, QuerySelect, Set,
+    prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult,
+    QueryFilter, Set,
 };
-
-pub async fn select<Db: ConnectionTrait>(
-    db: &Db,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-) -> Result<Vec<PartialSmartFeed>, DbErr> {
-    let mut conditions = Condition::all().add(smart_feed::Column::ProfileId.eq(profile_id));
-    if let Some(id) = id {
-        conditions = conditions.add(smart_feed::Column::Id.eq(id));
-    }
-
-    let mut query = smart_feed::Entity::find()
-        .expr_as(Expr::val(0), "unread_count")
-        .filter(conditions)
-        .cursor_by(smart_feed::Column::Title)
-        .order_by_asc(smart_feed::Column::Title);
-
-    if let Some(cursor) = cursor {
-        query.after(cursor.title);
-    }
-    if let Some(limit) = limit {
-        query.first(limit);
-    }
-
-    query.into_model::<PartialSmartFeed>().all(db).await
-}
 
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,

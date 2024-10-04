@@ -1,5 +1,5 @@
 use colette_core::feed_entry::Cursor;
-use sea_query::{CaseStatement, Expr, JoinType, Order, PostgresQueryBuilder, Query};
+use sea_query::{Expr, JoinType, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::{
@@ -13,7 +13,7 @@ use crate::{
     feed_entry::FeedEntry,
     profile_feed::ProfileFeed,
     profile_feed_tag::ProfileFeedTag,
-    smart_feed_filter::{Field, Operation, SmartFeedFilter, SmartFilterCase},
+    smart_feed_filter::{build_case_statement, SmartFeedFilter},
     tag::Tag,
 };
 
@@ -145,32 +145,7 @@ pub async fn select(
             SmartFeedFilter::Table,
             Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
                 .eq(Expr::val(smart_feed_id))
-                .and(
-                    CaseStatement::new()
-                        .add_smart_filter(Field::Link, Operation::Eq)
-                        .add_smart_filter(Field::Link, Operation::Ne)
-                        .add_smart_filter(Field::Link, Operation::Like)
-                        .add_smart_filter(Field::Link, Operation::NotLike)
-                        .add_smart_filter(Field::Title, Operation::Eq)
-                        .add_smart_filter(Field::Title, Operation::Ne)
-                        .add_smart_filter(Field::Title, Operation::Like)
-                        .add_smart_filter(Field::Title, Operation::NotLike)
-                        .add_smart_filter(Field::PublishedAt, Operation::Eq)
-                        .add_smart_filter(Field::PublishedAt, Operation::Ne)
-                        .add_smart_filter(Field::PublishedAt, Operation::GreaterThan)
-                        .add_smart_filter(Field::PublishedAt, Operation::LessThan)
-                        .add_smart_filter(Field::PublishedAt, Operation::InLastXSec)
-                        .add_smart_filter(Field::Description, Operation::Eq)
-                        .add_smart_filter(Field::Description, Operation::Ne)
-                        .add_smart_filter(Field::Description, Operation::Like)
-                        .add_smart_filter(Field::Description, Operation::NotLike)
-                        .add_smart_filter(Field::Author, Operation::Eq)
-                        .add_smart_filter(Field::Author, Operation::Ne)
-                        .add_smart_filter(Field::Author, Operation::Like)
-                        .add_smart_filter(Field::Author, Operation::NotLike)
-                        .add_smart_filter(Field::HasRead, Operation::Eq)
-                        .into(),
-                ),
+                .and(build_case_statement().into()),
         );
     }
 
