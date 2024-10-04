@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
@@ -9,7 +7,6 @@ use colette_core::{
     },
     Feed,
 };
-use colette_entity::PfWithFeedAndTagsAndUnreadCount;
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Uuid, sqlx, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr,
@@ -253,51 +250,36 @@ impl FeedRepository for FeedSqlRepository {
     }
 }
 
-pub(crate) async fn find<Db: ConnectionTrait>(
-    db: &Db,
+pub(crate) async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<FeedFindManyFilters>,
 ) -> Result<Vec<Feed>, Error> {
-    let models = query::profile_feed::select_with_feed(db, id, profile_id, limit, cursor, filters)
-        .await
-        .map(|e| {
-            e.into_iter()
-                .filter_map(|(pf, feed_opt)| feed_opt.map(|feed| (pf, feed)))
-                .collect::<Vec<_>>()
-        })
-        .map_err(|e| Error::Unknown(e.into()))?;
-    let pf_ids = models.iter().map(|e| e.0.id).collect::<Vec<_>>();
+    let mut pinned: Option<bool> = None;
+    let mut tags: Option<Vec<String>> = None;
 
-    let tag_models = query::profile_feed::load_tags(db, pf_ids.clone(), profile_id)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+    if let Some(filters) = filters {
+        pinned = filters.pinned;
+        tags = filters.tags;
+    }
 
-    let counts = query::profile_feed_entry::count_many_in_pfs(db, pf_ids)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-    let mut count_map: HashMap<Uuid, i64> = counts.into_iter().collect();
-
-    let feeds = models
-        .into_iter()
-        .zip(tag_models.into_iter())
-        .map(|((pf, feed), tags)| {
-            let unread_count = count_map.remove(&pf.id).unwrap_or_default();
-            Feed::from(PfWithFeedAndTagsAndUnreadCount {
-                pf,
-                feed,
-                tags,
-                unread_count,
-            })
-        })
-        .collect::<Vec<_>>();
-
-    Ok(feeds)
+    colette_postgres::profile_feed::find(
+        db.get_postgres_connection_pool(),
+        id,
+        profile_id,
+        pinned,
+        tags,
+        cursor,
+        limit,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id<Db: ConnectionTrait>(db: &Db, params: IdParams) -> Result<Feed, Error> {
+async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Feed, Error> {
     let mut feeds = find(db, Some(params.id), params.profile_id, None, None, None).await?;
     if feeds.is_empty() {
         return Err(Error::NotFound(params.id));

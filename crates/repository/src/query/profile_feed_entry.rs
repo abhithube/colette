@@ -147,22 +147,6 @@ pub async fn select_by_id<Db: ConnectionTrait>(
         .await
 }
 
-pub async fn count_many_in_pfs<Db: ConnectionTrait>(
-    db: &Db,
-    ids: Vec<Uuid>,
-) -> Result<Vec<(Uuid, i64)>, DbErr> {
-    profile_feed_entry::Entity::find()
-        .select_only()
-        .column(profile_feed_entry::Column::ProfileFeedId)
-        .column_as(profile_feed_entry::Column::Id.count(), "count")
-        .filter(profile_feed_entry::Column::ProfileFeedId.is_in(ids))
-        .filter(profile_feed_entry::Column::HasRead.eq(false))
-        .group_by(profile_feed_entry::Column::ProfileFeedId)
-        .into_tuple()
-        .all(db)
-        .await
-}
-
 pub struct InsertMany {
     pub id: Uuid,
     pub feed_entry_id: i32,

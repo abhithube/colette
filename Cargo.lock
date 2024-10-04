@@ -874,6 +874,7 @@ dependencies = [
  "colette-core",
  "sea-query",
  "sea-query-binder",
+ "serde",
  "sqlx",
 ]
 
