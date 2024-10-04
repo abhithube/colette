@@ -1,7 +1,6 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{
-    Alias, CommonTableExpression, Expr, JoinType, OnConflict, Order, PostgresQueryBuilder, Query,
-    UnionType,
+    Alias, CommonTableExpression, Expr, OnConflict, Order, PostgresQueryBuilder, Query, UnionType,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
@@ -24,8 +23,6 @@ pub(crate) enum Tag {
 struct TagSelect {
     id: Uuid,
     title: String,
-    parent_id: Option<Uuid>,
-    depth: i32,
     bookmark_count: i64,
     feed_count: i64,
 }
@@ -35,8 +32,8 @@ impl From<TagSelect> for colette_core::Tag {
         Self {
             id: value.id,
             title: value.title,
-            parent_id: value.parent_id,
-            depth: value.depth,
+            parent_id: None,
+            depth: 0,
             direct: None,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
@@ -62,15 +59,9 @@ pub async fn select(
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> sqlx::Result<Vec<colette_core::Tag>> {
-    let tag_hierarchy = Alias::new("tag_hierarchy");
-    let tag_hierarchy2 = Alias::new("tag_hierarchy2");
-    let depth = Alias::new("depth");
-
-    let mut final_query = Query::select()
-        .column((tag_hierarchy.clone(), Tag::Id))
-        .column((tag_hierarchy.clone(), Tag::Title))
-        .column((tag_hierarchy.clone(), Tag::ParentId))
-        .column((tag_hierarchy.clone(), depth.clone()))
+    let mut query = Query::select()
+        .column((Tag::Table, Tag::Id))
+        .column((Tag::Table, Tag::Title))
         .expr_as(
             Expr::col(ProfileFeedTag::ProfileFeedId).count(),
             Alias::new("feed_count"),
@@ -79,73 +70,52 @@ pub async fn select(
             Expr::col(ProfileBookmarkTag::ProfileBookmarkId).count(),
             Alias::new("bookmark_count"),
         )
-        .from(tag_hierarchy.clone())
-        .join_as(
-            JoinType::InnerJoin,
-            tag_hierarchy.clone(),
-            tag_hierarchy2.clone(),
-            Expr::col((tag_hierarchy2.clone(), Tag::Id))
-                .eq(Expr::col((tag_hierarchy.clone(), Tag::Id)))
-                .or(Expr::col((tag_hierarchy2.clone(), Tag::ParentId))
-                    .eq(Expr::col((tag_hierarchy.clone(), Tag::Id)))),
-        )
+        .from(Tag::Table)
         .left_join(
             ProfileFeedTag::Table,
             Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId))
-                .eq(Expr::col((tag_hierarchy2.clone(), Tag::Id))),
+                .eq(Expr::col((Tag::Table, Tag::Id))),
         )
         .left_join(
             ProfileBookmarkTag::Table,
             Expr::col((ProfileBookmarkTag::Table, ProfileBookmarkTag::TagId))
-                .eq(Expr::col((tag_hierarchy2.clone(), Tag::Id))),
+                .eq(Expr::col((Tag::Table, Tag::Id))),
         )
-        .and_where_option(id.map(|e| Expr::col((tag_hierarchy.clone(), Tag::Id)).eq(e)))
+        .and_where(Expr::col((Tag::Table, Tag::ProfileId)).eq(profile_id))
+        .and_where_option(id.map(|e| Expr::col((Tag::Table, Tag::Id)).eq(e)))
         .and_where_option(cursor.map(|e| Expr::col(Tag::Title).gt(e.title)))
-        .group_by_columns([
-            (tag_hierarchy.clone(), Alias::new("id")),
-            (tag_hierarchy.clone(), Alias::new("title")),
-            (tag_hierarchy.clone(), Alias::new("parent_id")),
-            (tag_hierarchy.clone(), depth.clone()),
-        ])
-        .order_by((tag_hierarchy.clone(), depth), Order::Asc)
-        .order_by((tag_hierarchy.clone(), Tag::Title), Order::Asc)
+        .group_by_columns([(Tag::Table, Tag::Id), (Tag::Table, Tag::Title)])
+        .order_by((Tag::Table, Tag::Title), Order::Asc)
         .to_owned();
 
     if let Some(filters) = filters {
         match filters.tag_type {
             TagType::Bookmarks => {
-                final_query.and_having(
+                query.and_having(
                     Expr::expr(Expr::col(ProfileBookmarkTag::ProfileBookmarkId).count()).gt(0),
                 );
             }
             TagType::Feeds => {
-                final_query
+                query
                     .and_having(Expr::expr(Expr::col(ProfileFeedTag::ProfileFeedId).count()).gt(0));
             }
             _ => {}
         };
 
-        final_query.and_where_option(
+        query.and_where_option(
             filters
                 .feed_id
                 .map(|e| Expr::col(ProfileFeedTag::ProfileFeedId).eq(e)),
         );
-        final_query.and_where_option(
+        query.and_where_option(
             filters
                 .bookmark_id
                 .map(|e| Expr::col(ProfileBookmarkTag::ProfileBookmarkId).eq(e)),
         );
     }
     if let Some(limit) = limit {
-        final_query.limit(limit);
+        query.limit(limit);
     }
-
-    let query = final_query.with(
-        Query::with()
-            .cte(build_tag_recursive_cte(profile_id))
-            .recursive(true)
-            .to_owned(),
-    );
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
