@@ -1,8 +1,7 @@
-use colette_entity::{feed_entry, profile_feed_entry};
+use colette_entity::feed_entry;
 use sea_orm::{
-    prelude::DateTimeWithTimeZone,
-    sea_query::{Expr, OnConflict, Query},
-    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
+    prelude::DateTimeWithTimeZone, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr,
+    EntityTrait, QueryFilter, Set,
 };
 
 pub async fn select_many_by_feed_id<Db: ConnectionTrait>(
@@ -60,22 +59,4 @@ pub async fn insert_many<Db: ConnectionTrait>(
         .await?;
 
     Ok(())
-}
-
-pub async fn delete_many<Db: ConnectionTrait>(db: &Db) -> Result<DeleteResult, DbErr> {
-    let subquery = Query::select()
-        .from(profile_feed_entry::Entity)
-        .and_where(
-            Expr::col((
-                profile_feed_entry::Entity,
-                profile_feed_entry::Column::FeedEntryId,
-            ))
-            .equals((feed_entry::Entity, feed_entry::Column::Id)),
-        )
-        .to_owned();
-
-    feed_entry::Entity::delete_many()
-        .filter(Expr::exists(subquery).not())
-        .exec(db)
-        .await
 }

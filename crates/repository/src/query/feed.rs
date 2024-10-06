@@ -1,9 +1,9 @@
-use colette_entity::{feed, profile_feed};
+use colette_entity::feed;
 use futures::Stream;
 use sea_orm::{
-    sea_query::{Expr, Func, OnConflict, Query},
-    ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult, QueryFilter,
-    QuerySelect, Set, StreamTrait,
+    sea_query::{Expr, Func, OnConflict},
+    ColumnTrait, ConnectionTrait, DbErr, EntityTrait, InsertResult, QueryFilter, QuerySelect, Set,
+    StreamTrait,
 };
 
 pub async fn select_by_url<Db: ConnectionTrait>(
@@ -58,20 +58,5 @@ pub async fn stream<Db: ConnectionTrait + StreamTrait>(
         )
         .into_tuple()
         .stream(db)
-        .await
-}
-
-pub async fn delete_many<Db: ConnectionTrait>(db: &Db) -> Result<DeleteResult, DbErr> {
-    let subquery = Query::select()
-        .from(profile_feed::Entity)
-        .and_where(
-            Expr::col((profile_feed::Entity, profile_feed::Column::FeedId))
-                .equals((feed::Entity, feed::Column::Id)),
-        )
-        .to_owned();
-
-    feed::Entity::delete_many()
-        .filter(Expr::exists(subquery).not())
-        .exec(db)
         .await
 }

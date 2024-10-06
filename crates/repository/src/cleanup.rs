@@ -1,7 +1,5 @@
 use colette_core::cleanup::{CleanupRepository, Error};
-use sea_orm::{DatabaseConnection, DbErr, TransactionTrait};
-
-use crate::query;
+use sea_orm::DatabaseConnection;
 
 pub struct CleanupSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -16,39 +14,38 @@ impl CleanupSqlRepository {
 #[async_trait::async_trait]
 impl CleanupRepository for CleanupSqlRepository {
     async fn cleanup_feeds(&self) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), DbErr>(|txn| {
-                Box::pin(async move {
-                    let result = query::feed_entry::delete_many(txn).await?;
-                    if result.rows_affected > 0 {
-                        println!("Deleted {} orphaned feed entries", result.rows_affected);
-                    }
-
-                    let result = query::feed::delete_many(txn).await?;
-                    if result.rows_affected > 0 {
-                        println!("Deleted {} orphaned feeds", result.rows_affected);
-                    }
-
-                    Ok(())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let mut count = colette_postgres::feed_entry::delete_many(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        if count > 0 {
+            println!("Deleted {} orphaned feed entries", count);
+        }
+
+        count = colette_postgres::feed::delete_many(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        if count > 0 {
+            println!("Deleted {} orphaned feeds", count);
+        }
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn cleanup_tags(&self) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), DbErr>(|txn| {
-                Box::pin(async move {
-                    let result = query::tag::delete_many(txn).await?;
-                    if result.rows_affected > 0 {
-                        println!("Deleted {} orphaned tags", result.rows_affected);
-                    }
-
-                    Ok(())
-                })
-            })
+        let count = colette_postgres::tag::delete_many(self.db.get_postgres_connection_pool())
             .await
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| Error::Unknown(e.into()))?;
+        if count > 0 {
+            println!("Deleted {} orphaned tags", count);
+        }
+
+        Ok(())
     }
 }

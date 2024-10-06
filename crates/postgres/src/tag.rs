@@ -166,6 +166,34 @@ pub async fn insert_many(
     Ok(())
 }
 
+pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
+    let feed_subquery = Query::select()
+        .from(ProfileFeedTag::Table)
+        .and_where(
+            Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId)).equals((Tag::Table, Tag::Id)),
+        )
+        .to_owned();
+
+    let bookmark_subquery = Query::select()
+        .from(ProfileBookmarkTag::Table)
+        .and_where(
+            Expr::col((ProfileBookmarkTag::Table, ProfileBookmarkTag::TagId))
+                .equals((Tag::Table, Tag::Id)),
+        )
+        .to_owned();
+
+    let query = Query::delete()
+        .from_table(Tag::Table)
+        .and_where(Expr::exists(feed_subquery).not())
+        .and_where(Expr::exists(bookmark_subquery).not())
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(result.rows_affected())
+}
+
 pub(crate) fn build_titles_subquery(titles: &[String], profile_id: Uuid) -> SelectStatement {
     Query::select()
         .column(Tag::Id)
