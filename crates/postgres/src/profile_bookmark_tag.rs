@@ -42,10 +42,10 @@ pub async fn insert_many(
         )
         .to_owned();
 
-    for pft in data {
+    for pbt in data {
         query.values_panic([
-            pft.profile_bookmark_id.into(),
-            pft.tag_id.into(),
+            pbt.profile_bookmark_id.into(),
+            pbt.tag_id.into(),
             profile_id.into(),
         ]);
     }
