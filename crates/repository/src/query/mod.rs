@@ -10,4 +10,3 @@ pub(crate) mod profile_feed_tag;
 pub(crate) mod smart_feed;
 pub(crate) mod smart_feed_filter;
 pub(crate) mod tag;
-pub(crate) mod user;

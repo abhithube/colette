@@ -8,10 +8,7 @@ use colette_core::{
     Profile,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, ConnectionTrait, DatabaseConnection, IntoActiveModel,
-    ModelTrait, SqlErr, TransactionError, TransactionTrait,
-};
+use sea_orm::{prelude::Uuid, sqlx, DatabaseConnection};
 
 use crate::query;
 
@@ -31,19 +28,19 @@ impl Findable for ProfileSqlRepository {
     type Output = Result<Profile, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        match params.id {
-            Some(id) => find_by_id(&self.db, id, params.user_id).await,
-            None => {
-                let Some(profile) = query::profile::select_default(&self.db, params.user_id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::Unknown(anyhow!("couldn't find default profile")));
-                };
+        let is_default = params.id.map_or_else(|| Some(true), |_| None);
 
-                Ok(profile.into())
+        let mut profiles =
+            find(&self.db, params.id, params.user_id, is_default, None, None).await?;
+        if profiles.is_empty() {
+            if let Some(id) = params.id {
+                return Err(Error::NotFound(id));
+            } else {
+                return Err(Error::Unknown(anyhow!("couldn't find default profile")));
             }
         }
+
+        Ok(profiles.swap_remove(0))
     }
 }
 
@@ -53,8 +50,8 @@ impl Creatable for ProfileSqlRepository {
     type Output = Result<Profile, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let model = query::profile::insert(
-            &self.db,
+        colette_postgres::profile::insert(
+            self.db.get_postgres_connection_pool(),
             Uuid::new_v4(),
             data.title.clone(),
             data.image_url,
@@ -62,12 +59,10 @@ impl Creatable for ProfileSqlRepository {
             data.user_id,
         )
         .await
-        .map_err(|e| match e.sql_err() {
-            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
             _ => Error::Unknown(e.into()),
-        })?;
-
-        Ok(model.into())
+        })
     }
 }
 
@@ -78,40 +73,18 @@ impl Updatable for ProfileSqlRepository {
     type Output = Result<Profile, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, Profile, Error>(|txn| {
-                Box::pin(async move {
-                    let Some(mut model) =
-                        query::profile::select_by_id(txn, params.id, params.user_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-                    let mut active_model = model.clone().into_active_model();
-
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-                    if data.image_url.is_some() {
-                        active_model.image_url.set_if_not_equals(data.image_url);
-                    }
-
-                    if active_model.is_changed() {
-                        model = active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(model.into())
-                })
-            })
-            .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+        colette_postgres::profile::update(
+            self.db.get_postgres_connection_pool(),
+            params.id,
+            params.user_id,
+            data.title,
+            Some(data.image_url),
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -121,34 +94,37 @@ impl Deletable for ProfileSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(profile) =
-                        query::profile::select_by_id(txn, params.id, params.user_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    if profile.is_default {
-                        return Err(Error::DeletingDefault);
-                    }
-
-                    profile
-                        .delete(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let profiles = colette_postgres::profile::select(
+            &mut *tx,
+            Some(params.id),
+            params.user_id,
+            None,
+            None,
+            None,
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        if let Some(profile) = profiles.first() {
+            if profile.is_default {
+                return Err(Error::DeletingDefault);
+            }
+        } else {
+            return Err(Error::NotFound(params.id));
+        }
+
+        colette_postgres::profile::delete(&mut *tx, params.id, params.user_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -160,7 +136,7 @@ impl ProfileRepository for ProfileSqlRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error> {
-        find(&self.db, None, user_id, limit, cursor).await
+        find(&self.db, None, user_id, None, limit, cursor).await
     }
 
     async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
@@ -175,30 +151,25 @@ impl ProfileRepository for ProfileSqlRepository {
     }
 }
 
-async fn find<Db: ConnectionTrait>(
-    db: &Db,
+async fn find(
+    db: &DatabaseConnection,
     id: Option<Uuid>,
     user_id: Uuid,
+    is_default: Option<bool>,
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<Profile>, Error> {
-    let profiles = query::profile::select(db, id, user_id, limit, cursor)
-        .await
-        .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+    let profiles = colette_postgres::profile::select(
+        db.get_postgres_connection_pool(),
+        id,
+        user_id,
+        is_default,
+        cursor,
+        limit,
+    )
+    .await
+    .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+    .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(profiles)
-}
-
-async fn find_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    user_id: Uuid,
-) -> Result<colette_core::Profile, Error> {
-    let mut profiles = find(db, Some(id), user_id, None, None).await?;
-    if profiles.is_empty() {
-        return Err(Error::NotFound(id));
-    }
-
-    Ok(profiles.swap_remove(0))
 }

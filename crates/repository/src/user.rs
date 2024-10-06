@@ -3,9 +3,7 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
     User,
 };
-use sea_orm::{prelude::Uuid, DatabaseConnection, SqlErr, TransactionError, TransactionTrait};
-
-use crate::query;
+use sea_orm::{prelude::Uuid, sqlx, DatabaseConnection};
 
 pub struct UserSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -24,26 +22,29 @@ impl Findable for UserSqlRepository {
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         match params {
-            UserIdParams::Id(id) => {
-                let Some(profile) = query::user::select_by_id(&self.db, id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Id(id)));
-                };
-
-                Ok(profile.into())
-            }
-            UserIdParams::Email(email) => {
-                let Some(profile) = query::user::select_by_email(&self.db, email.clone())
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                else {
-                    return Err(Error::NotFound(NotFoundError::Email(email)));
-                };
-
-                Ok(profile.into())
-            }
+            UserIdParams::Id(id) => colette_postgres::user::select(
+                self.db.get_postgres_connection_pool(),
+                Some(id),
+                None,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
+                _ => Error::Unknown(e.into()),
+            }),
+            UserIdParams::Email(email) => colette_postgres::user::select(
+                self.db.get_postgres_connection_pool(),
+                None,
+                Some(email.clone()),
+            )
+            .await
+            .map_err(|e| {
+                if let sqlx::Error::RowNotFound = e {
+                    Error::NotFound(NotFoundError::Email(email))
+                } else {
+                    Error::Unknown(e.into())
+                }
+            }),
         }
     }
 }
@@ -54,39 +55,38 @@ impl Creatable for UserSqlRepository {
     type Output = Result<User, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, User, Error>(|txn| {
-                Box::pin(async move {
-                    let user_id = Uuid::new_v4();
-                    let model =
-                        query::user::insert(txn, user_id, data.email.clone(), data.password)
-                            .await
-                            .map_err(|e| match e.sql_err() {
-                                Some(SqlErr::UniqueConstraintViolation(_)) => {
-                                    Error::Conflict(data.email)
-                                }
-                                _ => Error::Unknown(e.into()),
-                            })?;
-
-                    query::profile::insert(
-                        txn,
-                        Uuid::new_v4(),
-                        "Default".to_owned(),
-                        None,
-                        Some(true),
-                        user_id,
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(model.into())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let user_id = Uuid::new_v4();
+        let user =
+            colette_postgres::user::insert(&mut *tx, user_id, data.email.clone(), data.password)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.email)
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?;
+
+        colette_postgres::profile::insert(
+            &mut *tx,
+            Uuid::new_v4(),
+            "Default".to_owned(),
+            None,
+            Some(true),
+            user_id,
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(user)
     }
 }
 
