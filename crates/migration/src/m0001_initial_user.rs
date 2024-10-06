@@ -75,6 +75,25 @@ CREATE UNIQUE INDEX {profile}_{user_id}_{is_default}_idx
             .execute_unprepared(&profile_user_id_is_default_idx)
             .await?;
 
+        let profile_user_id_title_idx = format!(
+            "{profile}_{user_id}_{title}_idx",
+            profile = Profile::Table.to_string(),
+            user_id = Profile::UserId.to_string(),
+            title = Profile::Title.to_string()
+        );
+        manager
+            .create_index(
+                Index::create()
+                    .name(profile_user_id_title_idx)
+                    .table(Profile::Table)
+                    .if_not_exists()
+                    .col(Profile::UserId)
+                    .col(Profile::Title)
+                    .unique()
+                    .to_owned(),
+            )
+            .await?;
+
         match manager.get_database_backend() {
             #[cfg(feature = "postgres")]
             DatabaseBackend::Postgres => {
