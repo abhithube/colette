@@ -1,6 +1,8 @@
 use std::fmt;
 
-use sea_query::{Alias, CaseStatement, Expr, Func, SimpleExpr};
+use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, Query, SimpleExpr};
+use sea_query_binder::SqlxBinder;
+use sqlx::{types::Uuid, PgExecutor};
 
 use crate::{feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry};
 
@@ -18,7 +20,68 @@ pub(crate) enum SmartFeedFilter {
     UpdatedAt,
 }
 
-pub(crate) enum Field {
+#[derive(Debug, Clone)]
+pub struct InsertMany {
+    pub id: Uuid,
+    pub field: Field,
+    pub operation: Operation,
+    pub value: String,
+}
+
+pub async fn insert_many(
+    executor: impl PgExecutor<'_>,
+    data: Vec<InsertMany>,
+    smart_feed_id: Uuid,
+    profile_id: Uuid,
+) -> sqlx::Result<()> {
+    let mut query = Query::insert()
+        .into_table(SmartFeedFilter::Table)
+        .columns([
+            SmartFeedFilter::Id,
+            SmartFeedFilter::Field,
+            SmartFeedFilter::Operation,
+            SmartFeedFilter::Value,
+            SmartFeedFilter::SmartFeedId,
+            SmartFeedFilter::ProfileId,
+        ])
+        .to_owned();
+
+    for t in data {
+        query.values_panic([
+            t.id.into(),
+            t.field.to_string().into(),
+            t.operation.to_string().into(),
+            t.value.into(),
+            smart_feed_id.into(),
+            profile_id.into(),
+        ]);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
+}
+
+pub async fn delete_many(
+    executor: impl PgExecutor<'_>,
+    profile_id: Uuid,
+    smart_feed_id: Uuid,
+) -> sqlx::Result<()> {
+    let query = Query::delete()
+        .from_table(SmartFeedFilter::Table)
+        .and_where(Expr::col(SmartFeedFilter::ProfileId).eq(profile_id))
+        .and_where(Expr::col(SmartFeedFilter::SmartFeedId).eq(smart_feed_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
+}
+
+#[derive(Debug, Clone)]
+pub enum Field {
     Link,
     Title,
     PublishedAt,
@@ -42,7 +105,8 @@ impl fmt::Display for Field {
     }
 }
 
-pub(crate) enum Operation {
+#[derive(Debug, Clone)]
+pub enum Operation {
     Eq,
     Ne,
     Like,

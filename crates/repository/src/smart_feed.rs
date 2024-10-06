@@ -6,10 +6,10 @@ use colette_core::{
     },
     SmartFeed,
 };
-use colette_entity::sea_orm_active_enums::{Field, Operation};
+use colette_postgres::smart_feed_filter::{Field, Operation};
 use sea_orm::{
-    prelude::Uuid, sqlx, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr,
-    IntoActiveModel, SqlErr, TransactionError, TransactionTrait,
+    prelude::Uuid, sqlx, ActiveModelTrait, DatabaseConnection, IntoActiveModel, SqlErr,
+    TransactionError, TransactionTrait,
 };
 
 use crate::query;
@@ -56,12 +56,6 @@ impl Creatable for SmartFeedSqlRepository {
                         _ => Error::Unknown(e.into()),
                     })?;
 
-                    if let Some(filters) = data.filters {
-                        insert_filters(txn, filters, model.last_insert_id, data.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
                     Ok(model.last_insert_id)
                 })
             })
@@ -70,6 +64,12 @@ impl Creatable for SmartFeedSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })?;
+
+        if let Some(filters) = data.filters {
+            insert_filters(&self.db, filters, id, data.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
         find_by_id(&self.db, IdParams::new(id, data.profile_id)).await
     }
@@ -82,8 +82,9 @@ impl Updatable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
+        let id = self
+            .db
+            .transaction::<_, Uuid, Error>(|txn| {
                 Box::pin(async move {
                     let Some(model) =
                         query::smart_feed::select_by_id(txn, params.id, params.profile_id)
@@ -107,21 +108,7 @@ impl Updatable for SmartFeedSqlRepository {
                             .map_err(|e| Error::Unknown(e.into()))?;
                     }
 
-                    if let Some(filters) = data.filters {
-                        query::smart_feed_filter::delete_many_by_smart_feed(
-                            txn,
-                            smart_feed_id,
-                            params.profile_id,
-                        )
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                        insert_filters(txn, filters, smart_feed_id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(())
+                    Ok(smart_feed_id)
                 })
             })
             .await
@@ -129,6 +116,20 @@ impl Updatable for SmartFeedSqlRepository {
                 TransactionError::Transaction(e) => e,
                 _ => Error::Unknown(e.into()),
             })?;
+
+        if let Some(filters) = data.filters {
+            colette_postgres::smart_feed_filter::delete_many(
+                self.db.get_postgres_connection_pool(),
+                id,
+                params.profile_id,
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+            insert_filters(&self.db, filters, id, params.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
         find_by_id(&self.db, params).await
     }
@@ -201,11 +202,11 @@ impl From<TextOperation> for Op {
     fn from(value: TextOperation) -> Self {
         match value {
             TextOperation::Equals(value) => Self {
-                r#type: Operation::U003D,
+                r#type: Operation::Eq,
                 value,
             },
             TextOperation::DoesNotEqual(value) => Self {
-                r#type: Operation::U0021U003D,
+                r#type: Operation::Ne,
                 value,
             },
             TextOperation::Contains(value) => Self {
@@ -224,15 +225,15 @@ impl From<DateOperation> for Op {
     fn from(value: DateOperation) -> Self {
         match value {
             DateOperation::Equals(value) => Self {
-                r#type: Operation::U003D,
+                r#type: Operation::Eq,
                 value: value.to_rfc3339(),
             },
             DateOperation::GreaterThan(value) => Self {
-                r#type: Operation::U003E,
+                r#type: Operation::GreaterThan,
                 value: value.to_rfc3339(),
             },
             DateOperation::LessThan(value) => Self {
-                r#type: Operation::U003C,
+                r#type: Operation::LessThan,
                 value: value.to_rfc3339(),
             },
             DateOperation::InLast(value) => Self {
@@ -243,12 +244,12 @@ impl From<DateOperation> for Op {
     }
 }
 
-async fn insert_filters<DB: ConnectionTrait>(
-    db: &DB,
+async fn insert_filters(
+    db: &DatabaseConnection,
     filters: Vec<SmartFeedFilter>,
     smart_feed_id: Uuid,
     profile_id: Uuid,
-) -> Result<(), DbErr> {
+) -> Result<(), sqlx::Error> {
     let insert_data = filters
         .into_iter()
         .map(|e| {
@@ -261,13 +262,13 @@ async fn insert_filters<DB: ConnectionTrait>(
                 SmartFeedFilter::HasRead(op) => (
                     Field::HasRead,
                     Op {
-                        r#type: Operation::U003D,
+                        r#type: Operation::Eq,
                         value: op.value.to_string(),
                     },
                 ),
             };
 
-            query::smart_feed_filter::InsertMany {
+            colette_postgres::smart_feed_filter::InsertMany {
                 id: Uuid::new_v4(),
                 field,
                 operation: op.r#type,
@@ -276,7 +277,13 @@ async fn insert_filters<DB: ConnectionTrait>(
         })
         .collect::<Vec<_>>();
 
-    query::smart_feed_filter::insert_many(db, insert_data, smart_feed_id, profile_id).await?;
+    colette_postgres::smart_feed_filter::insert_many(
+        db.get_postgres_connection_pool(),
+        insert_data,
+        smart_feed_id,
+        profile_id,
+    )
+    .await?;
 
     Ok(())
 }
