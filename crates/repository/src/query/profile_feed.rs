@@ -1,7 +1,7 @@
 use colette_entity::profile_feed;
 use sea_orm::{
-    prelude::Uuid, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, DeleteResult,
-    EntityTrait, InsertResult, QueryFilter, Set,
+    prelude::Uuid, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
+    InsertResult, QueryFilter, Set,
 };
 
 pub async fn select_by_id<Db: ConnectionTrait>(
@@ -53,17 +53,6 @@ pub async fn insert<Db: ConnectionTrait>(
             .do_nothing()
             .to_owned(),
         )
-        .exec(db)
-        .await
-}
-
-pub async fn delete_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<DeleteResult, DbErr> {
-    profile_feed::Entity::delete_by_id(id)
-        .filter(profile_feed::Column::ProfileId.eq(profile_id))
         .exec(db)
         .await
 }

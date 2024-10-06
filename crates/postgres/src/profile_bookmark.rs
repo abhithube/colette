@@ -232,3 +232,40 @@ pub async fn find(
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
 }
+
+pub async fn decrement_many_sort_indexes(
+    executor: impl PgExecutor<'_>,
+    profile_id: Uuid,
+    sort_index: u32,
+) -> sqlx::Result<()> {
+    let query = Query::update()
+        .table(ProfileBookmark::Table)
+        .value(
+            ProfileBookmark::SortIndex,
+            Expr::col(ProfileBookmark::SortIndex).sub(1),
+        )
+        .and_where(Expr::col(ProfileBookmark::ProfileId).eq(profile_id))
+        .and_where(Expr::col(ProfileBookmark::SortIndex).gt(sort_index))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
+}
+
+pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {
+    let query = Query::delete()
+        .from_table(ProfileBookmark::Table)
+        .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::Id)).eq(id))
+        .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::ProfileId)).eq(profile_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
+}

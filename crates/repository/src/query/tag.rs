@@ -1,7 +1,5 @@
 use colette_entity::tag;
-use sea_orm::{
-    prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, QueryFilter, Set,
-};
+use sea_orm::{prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, QueryFilter, Set};
 
 pub async fn select_by_id<Db: ConnectionTrait>(
     db: &Db,
@@ -47,15 +45,4 @@ pub async fn insert<Db: ConnectionTrait>(
     };
 
     tag::Entity::insert(model).exec_with_returning(db).await
-}
-
-pub async fn delete_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<DeleteResult, DbErr> {
-    tag::Entity::delete_by_id(id)
-        .filter(tag::Column::ProfileId.eq(profile_id))
-        .exec(db)
-        .await
 }

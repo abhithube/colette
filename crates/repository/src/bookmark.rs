@@ -177,39 +177,45 @@ impl Deletable for BookmarkSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(pb_model) =
-                        query::profile_bookmark::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    query::profile_bookmark::decrement_many_sort_indexes(
-                        txn,
-                        pb_model.sort_index,
-                        params.profile_id,
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    pb_model
-                        .into_active_model()
-                        .delete(txn)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let bookmarks = colette_postgres::profile_bookmark::find(
+            &mut *tx,
+            Some(params.id),
+            params.profile_id,
+            None,
+            None,
+            None,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
+
+        if let Some(bookmark) = bookmarks.first() {
+            colette_postgres::profile_bookmark::decrement_many_sort_indexes(
+                &mut *tx,
+                params.profile_id,
+                bookmark.sort_index,
+            )
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+            colette_postgres::profile_bookmark::delete(&mut *tx, params.id, params.profile_id)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                    _ => Error::Unknown(e.into()),
+                })?;
+        }
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 }
 

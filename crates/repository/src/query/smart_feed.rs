@@ -1,7 +1,6 @@
 use colette_entity::smart_feed;
 use sea_orm::{
-    prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, DeleteResult, EntityTrait, InsertResult,
-    QueryFilter, Set,
+    prelude::Uuid, ColumnTrait, ConnectionTrait, DbErr, EntityTrait, InsertResult, QueryFilter, Set,
 };
 
 pub async fn select_by_id<Db: ConnectionTrait>(
@@ -29,15 +28,4 @@ pub async fn insert<Db: ConnectionTrait>(
     };
 
     smart_feed::Entity::insert(model).exec(db).await
-}
-
-pub async fn delete_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<DeleteResult, DbErr> {
-    smart_feed::Entity::delete_by_id(id)
-        .filter(smart_feed::Column::ProfileId.eq(profile_id))
-        .exec(db)
-        .await
 }

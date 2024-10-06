@@ -98,21 +98,3 @@ pub async fn update_many_sort_indexes<Db: ConnectionTrait>(
 
     Ok(())
 }
-
-pub async fn decrement_many_sort_indexes<Db: ConnectionTrait>(
-    db: &Db,
-    sort_index: i32,
-    profile_id: Uuid,
-) -> Result<(), DbErr> {
-    profile_bookmark::Entity::update_many()
-        .col_expr(
-            profile_bookmark::Column::SortIndex,
-            Expr::col(profile_bookmark::Column::SortIndex).sub(1),
-        )
-        .filter(profile_bookmark::Column::ProfileId.eq(profile_id))
-        .filter(profile_bookmark::Column::SortIndex.gt(sort_index))
-        .exec(db)
-        .await?;
-
-    Ok(())
-}

@@ -166,6 +166,26 @@ pub async fn insert_many(
     Ok(())
 }
 
+pub async fn delete_by_id(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    profile_id: Uuid,
+) -> sqlx::Result<()> {
+    let query = Query::delete()
+        .from_table(Tag::Table)
+        .and_where(Expr::col((Tag::Table, Tag::Id)).eq(id))
+        .and_where(Expr::col((Tag::Table, Tag::ProfileId)).eq(profile_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
+}
+
 pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
     let feed_subquery = Query::select()
         .from(ProfileFeedTag::Table)

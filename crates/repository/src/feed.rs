@@ -188,15 +188,16 @@ impl Deletable for FeedSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = query::profile_feed::delete_by_id(&self.db, params.id, params.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        if result.rows_affected == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
+        colette_postgres::profile_feed::delete(
+            self.db.get_postgres_connection_pool(),
+            params.id,
+            params.profile_id,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
