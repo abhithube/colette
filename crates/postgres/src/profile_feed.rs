@@ -1,7 +1,7 @@
 use colette_core::feed::Cursor;
 use sea_query::{
-    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, PgFunc,
-    PostgresQueryBuilder, Query, WithClause,
+    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, OnConflict,
+    PgFunc, PostgresQueryBuilder, Query, WithClause,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{
@@ -274,6 +274,48 @@ pub async fn find(
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
+}
+
+pub async fn select_by_unique_index(
+    executor: impl PgExecutor<'_>,
+    profile_id: Uuid,
+    feed_id: i32,
+) -> sqlx::Result<Uuid> {
+    let query = Query::select()
+        .column(ProfileFeed::Id)
+        .from(ProfileFeed::Table)
+        .and_where(Expr::col(ProfileFeed::ProfileId).eq(profile_id))
+        .and_where(Expr::col(ProfileFeed::FeedId).eq(feed_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
+}
+
+pub async fn insert(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    feed_id: i32,
+    profile_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    let query = Query::insert()
+        .into_table(ProfileFeed::Table)
+        .columns([ProfileFeed::Id, ProfileFeed::FeedId, ProfileFeed::ProfileId])
+        .values_panic([id.into(), feed_id.into(), profile_id.into()])
+        .on_conflict(
+            OnConflict::columns([ProfileFeed::ProfileId, ProfileFeed::FeedId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .returning_col(ProfileFeed::Id)
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {

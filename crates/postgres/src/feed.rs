@@ -1,6 +1,6 @@
-use sea_query::{Expr, PostgresQueryBuilder, Query};
+use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
-use sqlx::PgExecutor;
+use sqlx::{PgExecutor, Row};
 
 use crate::profile_feed::ProfileFeed;
 
@@ -14,6 +14,30 @@ pub(crate) enum Feed {
     Url,
     CreatedAt,
     UpdatedAt,
+}
+
+pub async fn insert(
+    executor: impl PgExecutor<'_>,
+    link: String,
+    title: String,
+    url: Option<String>,
+) -> sqlx::Result<i32> {
+    let query = Query::insert()
+        .into_table(Feed::Table)
+        .columns([Feed::Link, Feed::Title, Feed::Url])
+        .values_panic([link.into(), title.into(), url.into()])
+        .on_conflict(
+            OnConflict::column(Feed::Link)
+                .update_columns([Feed::Title, Feed::Url])
+                .to_owned(),
+        )
+        .returning_col(Feed::Id)
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
 }
 
 pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
