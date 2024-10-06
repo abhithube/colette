@@ -1,7 +1,7 @@
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, PgFunc,
-    PostgresQueryBuilder, Query, WithClause,
+    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, OnConflict,
+    PgFunc, PostgresQueryBuilder, Query, WithClause,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{
@@ -231,6 +231,68 @@ pub async fn find(
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
+}
+
+pub async fn select_by_unique_index(
+    executor: impl PgExecutor<'_>,
+    profile_id: Uuid,
+    bookmark_id: i32,
+) -> sqlx::Result<Uuid> {
+    let query = Query::select()
+        .column(ProfileBookmark::Id)
+        .from(ProfileBookmark::Table)
+        .and_where(Expr::col(ProfileBookmark::ProfileId).eq(profile_id))
+        .and_where(Expr::col(ProfileBookmark::BookmarkId).eq(bookmark_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
+}
+
+pub async fn insert(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    bookmark_id: i32,
+    profile_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    let select = Query::select()
+        .expr(Expr::val(id))
+        .expr(
+            Expr::expr(Func::coalesce([
+                Expr::col(ProfileBookmark::SortIndex).max(),
+                Expr::val(0).into(),
+            ]))
+            .add(1),
+        )
+        .expr(Expr::val(bookmark_id))
+        .expr(Expr::val(profile_id))
+        .from(ProfileBookmark::Table)
+        .to_owned();
+
+    let query = Query::insert()
+        .into_table(ProfileBookmark::Table)
+        .columns([
+            ProfileBookmark::Id,
+            ProfileBookmark::SortIndex,
+            ProfileBookmark::BookmarkId,
+            ProfileBookmark::ProfileId,
+        ])
+        .select_from(select)
+        .unwrap()
+        .on_conflict(
+            OnConflict::columns([ProfileBookmark::ProfileId, ProfileBookmark::BookmarkId])
+                .do_nothing()
+                .to_owned(),
+        )
+        .returning_col(ProfileBookmark::Id)
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
 }
 
 pub async fn decrement_many_sort_indexes(

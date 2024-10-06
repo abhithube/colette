@@ -1,7 +1,7 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{Alias, Expr, OnConflict, Order, PostgresQueryBuilder, Query, SelectStatement};
 use sea_query_binder::SqlxBinder;
-use sqlx::{types::Uuid, PgExecutor};
+use sqlx::{types::Uuid, PgExecutor, Row};
 
 use crate::{profile_bookmark_tag::ProfileBookmarkTag, profile_feed_tag::ProfileFeedTag};
 
@@ -122,6 +122,24 @@ pub async fn select(
         .map(|e| e.into_iter().map(|e| e.into()).collect())
 }
 
+pub async fn select_by_title(
+    executor: impl PgExecutor<'_>,
+    title: String,
+    profile_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    let query = Query::select()
+        .column(Tag::Id)
+        .from(Tag::Table)
+        .and_where(Expr::col(Tag::ProfileId).eq(profile_id))
+        .and_where(Expr::col(Tag::Title).eq(title))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
+}
+
 pub async fn select_ids_by_titles(
     executor: impl PgExecutor<'_>,
     titles: &[String],
@@ -139,6 +157,25 @@ pub async fn select_ids_by_titles(
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.id).collect())
+}
+
+pub async fn insert(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    title: String,
+    profile_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    let query = Query::insert()
+        .into_table(Tag::Table)
+        .columns([Tag::Id, Tag::Title, Tag::ProfileId])
+        .values_panic([id.into(), title.into(), profile_id.into()])
+        .returning_col(Tag::Id)
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
 }
 
 pub async fn insert_many(
