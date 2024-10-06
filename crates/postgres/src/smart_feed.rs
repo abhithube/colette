@@ -4,7 +4,7 @@ use sea_query::{
     WithClause,
 };
 use sea_query_binder::SqlxBinder;
-use sqlx::{types::Uuid, PgExecutor};
+use sqlx::{types::Uuid, PgExecutor, Row};
 
 use crate::{
     feed_entry::FeedEntry,
@@ -131,6 +131,50 @@ pub async fn select(
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
+}
+
+pub async fn insert(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    title: String,
+    profile_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    let query = Query::insert()
+        .into_table(SmartFeed::Table)
+        .columns([SmartFeed::Id, SmartFeed::Title, SmartFeed::ProfileId])
+        .values_panic([id.into(), title.into(), profile_id.into()])
+        .returning_col(SmartFeed::Id)
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
+}
+
+pub async fn update(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    profile_id: Uuid,
+    title: Option<String>,
+) -> sqlx::Result<()> {
+    let mut query = Query::update()
+        .table(SmartFeed::Table)
+        .and_where(Expr::col(SmartFeed::Id).eq(id))
+        .and_where(Expr::col(SmartFeed::ProfileId).eq(profile_id))
+        .to_owned();
+
+    if let Some(title) = title {
+        query.value(SmartFeed::Title, title);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {

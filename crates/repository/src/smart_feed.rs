@@ -8,11 +8,10 @@ use colette_core::{
 };
 use colette_postgres::smart_feed_filter::{Field, Operation};
 use sea_orm::{
-    prelude::Uuid, sqlx, ActiveModelTrait, DatabaseConnection, IntoActiveModel, SqlErr,
-    TransactionError, TransactionTrait,
+    prelude::Uuid,
+    sqlx::{self, PgExecutor},
+    DatabaseConnection,
 };
-
-use crate::query;
 
 pub struct SmartFeedSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -30,7 +29,7 @@ impl Findable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.db, params).await
+        find_by_id(self.db.get_postgres_connection_pool(), params).await
     }
 }
 
@@ -40,38 +39,36 @@ impl Creatable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let id = self
+        let mut tx = self
             .db
-            .transaction::<_, Uuid, Error>(|txn| {
-                Box::pin(async move {
-                    let model = query::smart_feed::insert(
-                        txn,
-                        Uuid::new_v4(),
-                        data.title.clone(),
-                        data.profile_id,
-                    )
-                    .await
-                    .map_err(|e| match e.sql_err() {
-                        Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
-                        _ => Error::Unknown(e.into()),
-                    })?;
-
-                    Ok(model.last_insert_id)
-                })
-            })
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })?;
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = colette_postgres::smart_feed::insert(
+            &mut *tx,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         if let Some(filters) = data.filters {
-            insert_filters(&self.db, filters, id, data.profile_id)
+            insert_filters(&mut *tx, filters, id, data.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        find_by_id(&self.db, IdParams::new(id, data.profile_id)).await
+        let feed = find_by_id(&mut *tx, IdParams::new(id, data.profile_id)).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(feed)
     }
 }
 
@@ -82,56 +79,41 @@ impl Updatable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let id = self
+        let mut tx = self
             .db
-            .transaction::<_, Uuid, Error>(|txn| {
-                Box::pin(async move {
-                    let Some(model) =
-                        query::smart_feed::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
+            .get_postgres_connection_pool()
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-                    let smart_feed_id = model.id;
-
-                    let mut active_model = model.into_active_model();
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-
-                    if active_model.is_changed() {
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(smart_feed_id)
-                })
-            })
+        colette_postgres::smart_feed::update(&mut *tx, params.id, params.profile_id, data.title)
             .await
             .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
 
         if let Some(filters) = data.filters {
             colette_postgres::smart_feed_filter::delete_many(
-                self.db.get_postgres_connection_pool(),
-                id,
+                &mut *tx,
+                params.id,
                 params.profile_id,
             )
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-            insert_filters(&self.db, filters, id, params.profile_id)
+            insert_filters(&mut *tx, filters, params.id, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        find_by_id(&self.db, params).await
+        let feed = find_by_id(&mut *tx, params)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(feed)
     }
 }
 
@@ -162,30 +144,31 @@ impl SmartFeedRepository for SmartFeedSqlRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<SmartFeed>, Error> {
-        find(&self.db, None, profile_id, limit, cursor).await
+        find(
+            self.db.get_postgres_connection_pool(),
+            None,
+            profile_id,
+            limit,
+            cursor,
+        )
+        .await
     }
 }
 
 pub(crate) async fn find(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<SmartFeed>, Error> {
-    colette_postgres::smart_feed::select(
-        db.get_postgres_connection_pool(),
-        id,
-        profile_id,
-        cursor,
-        limit,
-    )
-    .await
-    .map_err(|e| Error::Unknown(e.into()))
+    colette_postgres::smart_feed::select(executor, id, profile_id, cursor, limit)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<SmartFeed, Error> {
-    let mut feeds = find(db, Some(params.id), params.profile_id, None, None).await?;
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<SmartFeed, Error> {
+    let mut feeds = find(executor, Some(params.id), params.profile_id, None, None).await?;
     if feeds.is_empty() {
         return Err(Error::NotFound(params.id));
     }
@@ -245,7 +228,7 @@ impl From<DateOperation> for Op {
 }
 
 async fn insert_filters(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     filters: Vec<SmartFeedFilter>,
     smart_feed_id: Uuid,
     profile_id: Uuid,
@@ -278,7 +261,7 @@ async fn insert_filters(
         .collect::<Vec<_>>();
 
     colette_postgres::smart_feed_filter::insert_many(
-        db.get_postgres_connection_pool(),
+        executor,
         insert_data,
         smart_feed_id,
         profile_id,
