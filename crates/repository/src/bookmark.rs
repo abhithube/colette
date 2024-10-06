@@ -100,14 +100,9 @@ impl Creatable for BookmarkSqlRepository {
             })?;
 
         if let Some(tags) = data.tags {
-            link_tags(
-                self.db.get_postgres_connection_pool(),
-                id,
-                tags,
-                data.profile_id,
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            link_tags(&self.db, id, tags, data.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         find_by_id(&self.db, IdParams::new(id, data.profile_id)).await
@@ -167,14 +162,9 @@ impl Updatable for BookmarkSqlRepository {
             })?;
 
         if let Some(tags) = data.tags {
-            link_tags(
-                self.db.get_postgres_connection_pool(),
-                id,
-                tags,
-                params.profile_id,
-            )
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            link_tags(&self.db, id, tags, params.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         find_by_id(&self.db, params).await
@@ -272,27 +262,31 @@ pub async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Boo
 }
 
 pub(crate) async fn link_tags(
-    pool: &sqlx::PgPool,
+    db: &DatabaseConnection,
     profile_bookmark_id: Uuid,
     tags: TagsLinkData,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
         return colette_postgres::profile_bookmark_tag::delete_many_in_titles(
-            pool, &tags.data, profile_id,
+            db.get_postgres_connection_pool(),
+            &tags.data,
+            profile_id,
         )
         .await;
     }
 
+    let mut tx = db.get_postgres_connection_pool().begin().await?;
+
     if let TagsLinkAction::Set = tags.action {
         colette_postgres::profile_bookmark_tag::delete_many_not_in_titles(
-            pool, &tags.data, profile_id,
+            &mut *tx, &tags.data, profile_id,
         )
         .await?;
     }
 
     colette_postgres::tag::insert_many(
-        pool,
+        &mut *tx,
         tags.data
             .iter()
             .map(|e| colette_postgres::tag::InsertMany {
@@ -304,7 +298,8 @@ pub(crate) async fn link_tags(
     )
     .await?;
 
-    let tag_ids = colette_postgres::tag::select_ids_by_titles(pool, &tags.data, profile_id).await?;
+    let tag_ids =
+        colette_postgres::tag::select_ids_by_titles(&mut *tx, &tags.data, profile_id).await?;
 
     let insert_many = tag_ids
         .into_iter()
@@ -314,5 +309,7 @@ pub(crate) async fn link_tags(
         })
         .collect::<Vec<_>>();
 
-    colette_postgres::profile_bookmark_tag::insert_many(pool, insert_many, profile_id).await
+    colette_postgres::profile_bookmark_tag::insert_many(&mut *tx, insert_many, profile_id).await?;
+
+    tx.commit().await
 }
