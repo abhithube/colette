@@ -24,7 +24,7 @@ tower-http = { version = "0.6", default-features = false, features = [
 ] }
 tower-sessions.workspace = true
 url.workspace = true
-utoipa = { version = "=5.0.0-beta.0", default-features = false, features = [
+utoipa = { version = "=5.0.0-rc.0", default-features = false, features = [
   "chrono",
   "macros",
   "preserve_order",
@@ -32,8 +32,8 @@ utoipa = { version = "=5.0.0-beta.0", default-features = false, features = [
   "url",
   "uuid",
 ] }
-utoipa-axum = { version = "=0.1.0-beta.2", default-features = false }
-utoipa-scalar = { version = "=0.2.0-beta.0", default-features = false, features = [
+utoipa-axum = { version = "=0.1.0-rc.0", default-features = false }
+utoipa-scalar = { version = "=0.2.0-rc.0", default-features = false, features = [
   "axum",
 ] }
 uuid.workspace = true

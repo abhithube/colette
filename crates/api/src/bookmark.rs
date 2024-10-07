@@ -15,8 +15,9 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, BookmarkList, Error, Id, Session, TagsLink, BOOKMARKS_TAG},
+    common::{BaseError, Error, Id, Session, TagsLink, BOOKMARKS_TAG},
     tag::Tag,
+    Paginated,
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -31,7 +32,7 @@ impl BookmarkState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Bookmark, BookmarkList, BookmarkCreate, BookmarkUpdate)))]
+#[openapi(components(schemas(Bookmark, Paginated<Bookmark>, BookmarkCreate, BookmarkUpdate)))]
 pub struct BookmarkApi;
 
 impl BookmarkApi {
@@ -268,7 +269,7 @@ pub async fn delete_bookmark(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of bookmarks")]
-    Ok(BookmarkList),
+    Ok(Paginated<Bookmark>),
 }
 
 impl IntoResponse for ListResponse {

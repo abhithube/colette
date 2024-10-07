@@ -13,7 +13,10 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, FeedEntryList, Id, Session, FEED_ENTRIES_TAG};
+use crate::{
+    common::{BaseError, Error, Id, Session, FEED_ENTRIES_TAG},
+    Paginated,
+};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedEntryState {
@@ -27,7 +30,7 @@ impl FeedEntryState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(FeedEntry, FeedEntryList, FeedEntryUpdate)))]
+#[openapi(components(schemas(FeedEntry, Paginated<FeedEntry>, FeedEntryUpdate)))]
 pub struct FeedEntryApi;
 
 impl FeedEntryApi {
@@ -199,7 +202,7 @@ pub async fn update_feed_entry(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of feed entries")]
-    Ok(FeedEntryList),
+    Ok(Paginated<FeedEntry>),
 }
 
 impl IntoResponse for ListResponse {

@@ -17,8 +17,9 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, FeedDetectedList, FeedList, Id, Session, TagsLink, FEEDS_TAG},
+    common::{BaseError, Error, Id, Session, TagsLink, FEEDS_TAG},
     tag::Tag,
+    Paginated,
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -35,12 +36,12 @@ impl FeedState {
 #[derive(OpenApi)]
 #[openapi(components(schemas(
     Feed,
-    FeedList,
-    FeedDetectedList,
+    Paginated<Feed>,
     FeedCreate,
     FeedUpdate,
     FeedDetect,
-    FeedDetected
+    FeedDetected,
+    Paginated<FeedDetected>
 )))]
 pub struct FeedApi;
 
@@ -344,7 +345,7 @@ pub async fn detect_feeds(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(FeedList),
+    Ok(Paginated<Feed>),
 }
 
 impl IntoResponse for ListResponse {
@@ -438,7 +439,7 @@ impl IntoResponse for DeleteResponse {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum DetectResponse {
     #[response(status = 201, description = "Detected feeds")]
-    Ok(FeedDetectedList),
+    Ok(Paginated<FeedDetected>),
 
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),

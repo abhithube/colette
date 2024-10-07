@@ -15,7 +15,10 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, ProfileList, Session, PROFILES_TAG};
+use crate::{
+    common::{BaseError, Error, Id, Session, PROFILES_TAG},
+    Paginated,
+};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfileState {
@@ -29,7 +32,7 @@ impl ProfileState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Profile, ProfileList, ProfileCreate, ProfileUpdate)))]
+#[openapi(components(schemas(Profile, Paginated<Profile>, ProfileCreate, ProfileUpdate)))]
 pub struct ProfileApi;
 
 impl ProfileApi {
@@ -254,7 +257,7 @@ pub async fn delete_profile(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
-    Ok(ProfileList),
+    Ok(Paginated<Profile>),
 }
 
 impl IntoResponse for ListResponse {

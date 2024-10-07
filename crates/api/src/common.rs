@@ -14,15 +14,6 @@ use http::{request::Parts, StatusCode};
 use tower_sessions::session;
 use uuid::Uuid;
 
-use crate::{
-    bookmark::Bookmark,
-    feed::{Feed, FeedDetected},
-    feed_entry::FeedEntry,
-    profile::Profile,
-    smart_feed::SmartFeed,
-    tag::Tag,
-};
-
 pub const AUTH_TAG: &str = "Auth";
 pub const BACKUPS_TAG: &str = "Backups";
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
@@ -37,17 +28,8 @@ pub const TAGS_TAG: &str = "Tags";
 pub struct Id(pub Uuid);
 
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[aliases(
-    BookmarkList = Paginated<Bookmark>,
-    FeedDetectedList = Paginated<FeedDetected>,
-    FeedEntryList = Paginated<FeedEntry>,
-    FeedList = Paginated<Feed>,
-    ProfileList = Paginated<Profile>,
-    SmartFeedList = Paginated<SmartFeed>,
-    TagList = Paginated<Tag>
-)]
 #[serde(rename_all = "camelCase")]
-pub struct Paginated<T: serde::Serialize> {
+pub struct Paginated<T: utoipa::ToSchema> {
     pub data: Vec<T>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -56,7 +38,7 @@ pub struct Paginated<T: serde::Serialize> {
 
 impl<T, U> From<common::Paginated<U>> for Paginated<T>
 where
-    T: From<U> + serde::Serialize,
+    T: From<U> + utoipa::ToSchema,
 {
     fn from(value: common::Paginated<U>) -> Self {
         Self {

@@ -14,7 +14,10 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Session, TagList, TAGS_TAG};
+use crate::{
+    common::{BaseError, Error, Id, Session, TAGS_TAG},
+    Paginated,
+};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagState {
@@ -28,7 +31,7 @@ impl TagState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Tag, TagList, TagCreate, TagUpdate)))]
+#[openapi(components(schemas(Tag, Paginated<Tag>, TagCreate, TagUpdate)))]
 pub struct TagApi;
 
 impl TagApi {
@@ -255,7 +258,7 @@ pub async fn delete_tag(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of tags")]
-    Ok(TagList),
+    Ok(Paginated<Tag>),
 }
 
 impl IntoResponse for ListResponse {

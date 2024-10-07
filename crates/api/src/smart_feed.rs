@@ -15,7 +15,10 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{BaseError, Error, Id, Session, SmartFeedList, SMART_FEEDS_TAG};
+use crate::{
+    common::{BaseError, Error, Id, Session, SMART_FEEDS_TAG},
+    Paginated,
+};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct SmartFeedState {
@@ -31,7 +34,7 @@ impl SmartFeedState {
 #[derive(OpenApi)]
 #[openapi(components(schemas(
     SmartFeed,
-    SmartFeedList,
+    Paginated<SmartFeed>,
     SmartFeedCreate,
     SmartFeedUpdate,
     SmartFeedFilter,
@@ -317,7 +320,7 @@ pub async fn delete_smart_feed(
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of smart feeds")]
-    Ok(SmartFeedList),
+    Ok(Paginated<SmartFeed>),
 }
 
 impl IntoResponse for ListResponse {
