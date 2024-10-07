@@ -203,6 +203,31 @@ pub async fn insert_many(
     Ok(())
 }
 
+pub async fn update(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    profile_id: Uuid,
+    title: Option<String>,
+) -> sqlx::Result<()> {
+    let mut query = Query::update()
+        .table(Tag::Table)
+        .and_where(Expr::col(Tag::Id).eq(id))
+        .and_where(Expr::col(Tag::ProfileId).eq(profile_id))
+        .to_owned();
+
+    if let Some(title) = title {
+        query.value(Tag::Title, title);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
+}
+
 pub async fn delete_by_id(
     executor: impl PgExecutor<'_>,
     id: Uuid,

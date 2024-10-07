@@ -4,11 +4,10 @@ use colette_core::{
     Tag,
 };
 use sea_orm::{
-    prelude::Uuid, sqlx, ActiveModelTrait, DatabaseConnection, IntoActiveModel, SqlErr,
-    TransactionError, TransactionTrait,
+    prelude::Uuid,
+    sqlx::{self, PgExecutor},
+    DatabaseConnection,
 };
-
-use crate::query;
 
 pub struct TagSqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -26,7 +25,7 @@ impl Findable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.db, params).await
+        find_by_id(self.db.get_postgres_connection_pool(), params).await
     }
 }
 
@@ -36,20 +35,32 @@ impl Creatable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let model = query::tag::insert(
-            &self.db,
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = colette_postgres::tag::insert(
+            self.db.get_postgres_connection_pool(),
             Uuid::new_v4(),
             data.title.clone(),
-            data.parent_id,
             data.profile_id,
         )
         .await
-        .map_err(|e| match e.sql_err() {
-            Some(SqlErr::UniqueConstraintViolation(_)) => Error::Conflict(data.title),
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
             _ => Error::Unknown(e.into()),
         })?;
 
-        find_by_id(&self.db, IdParams::new(model.id, data.profile_id)).await
+        let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(tag)
     }
 }
 
@@ -60,39 +71,27 @@ impl Updatable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(model) = query::tag::select_by_id(txn, params.id, params.profile_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-                    let mut active_model = model.into_active_model();
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-                    active_model.parent_id.set_if_not_equals(data.parent_id);
-
-                    if active_model.is_changed() {
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(())
-                })
-            })
+        colette_postgres::tag::update(&mut *tx, params.id, params.profile_id, data.title)
             .await
             .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
 
-        find_by_id(&self.db, params).await
+        let tag = find_by_id(&mut *tx, params)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(tag)
     }
 }
 
@@ -124,35 +123,44 @@ impl TagRepository for TagSqlRepository {
         cursor: Option<Cursor>,
         filters: Option<TagFindManyFilters>,
     ) -> Result<Vec<Tag>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
+        find(
+            self.db.get_postgres_connection_pool(),
+            None,
+            profile_id,
+            limit,
+            cursor,
+            filters,
+        )
+        .await
     }
 }
 
 pub(crate) async fn find(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<Tag>, Error> {
-    let tags = colette_postgres::tag::select(
-        db.get_postgres_connection_pool(),
-        id,
-        profile_id,
-        limit,
-        cursor,
-        filters,
-    )
-    .await
-    .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let tags = colette_postgres::tag::select(executor, id, profile_id, limit, cursor, filters)
+        .await
+        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(tags)
 }
 
-async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Tag, Error> {
-    let mut tags = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Tag, Error> {
+    let mut tags = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if tags.is_empty() {
         return Err(Error::NotFound(params.id));
     }
