@@ -82,7 +82,7 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
             return Err(PostprocessorError(anyhow!("could not process feed title")));
         }
 
-        let mut entries: Vec<ProcessedFeedEntry> = vec![];
+        let mut entries: Vec<ProcessedFeedEntry> = Vec::new();
 
         for entry in value.entries.into_iter() {
             entries.push(entry.try_into()?);

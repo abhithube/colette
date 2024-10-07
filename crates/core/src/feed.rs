@@ -152,9 +152,9 @@ impl FeedService {
 
     pub async fn detect_feeds(&self, _data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
         // let urls = self.scraper.detect(&mut data.url)?;
-        let urls: Vec<Url> = vec![];
+        let urls: Vec<Url> = Vec::new();
 
-        let mut feeds: Vec<FeedDetected> = vec![];
+        let mut feeds: Vec<FeedDetected> = Vec::new();
 
         for mut url in urls.into_iter() {
             let feed = self.scraper.scrape(&mut url)?;

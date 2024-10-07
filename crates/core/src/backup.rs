@@ -52,7 +52,7 @@ impl BackupService {
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         let mut tag_map: HashMap<Uuid, Outline> = HashMap::new();
-        let mut root_feeds: Vec<Outline> = vec![];
+        let mut root_feeds: Vec<Outline> = Vec::new();
 
         for feed in feeds {
             let outline = Outline {
@@ -114,7 +114,7 @@ impl BackupService {
             .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 
         let mut tag_map: HashMap<Uuid, Item> = HashMap::new();
-        let mut root_bookmarks: Vec<Item> = vec![];
+        let mut root_bookmarks: Vec<Item> = Vec::new();
 
         for bookmark in bookmarks {
             let item = Item {

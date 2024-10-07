@@ -39,7 +39,7 @@ pub(crate) fn from_reader<R: BufRead>(
 ) -> Result<AtomEntry, anyhow::Error> {
     let mut entry = AtomEntry::default();
 
-    let mut tag_stack: Vec<EntryTag> = vec![];
+    let mut tag_stack: Vec<EntryTag> = Vec::new();
 
     loop {
         match reader.read_event_into(buf) {

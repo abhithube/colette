@@ -34,7 +34,7 @@ where
 }
 
 fn default_origin_urls() -> Vec<String> {
-    vec![]
+    Vec::new()
 }
 
 fn default_refresh_enabled() -> bool {

@@ -35,7 +35,7 @@ pub(crate) fn from_reader<R: BufRead>(
 ) -> Result<MediaGroup, anyhow::Error> {
     let mut media_group = MediaGroup::default();
 
-    let mut tag_stack: Vec<MediaGroupTag> = vec![];
+    let mut tag_stack: Vec<MediaGroupTag> = Vec::new();
 
     loop {
         match reader.read_event_into(buf) {
