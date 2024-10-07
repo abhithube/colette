@@ -1,5 +1,5 @@
 use colette_core::feed_entry::Cursor;
-use sea_query::{Expr, JoinType, Order, PostgresQueryBuilder, Query};
+use sea_query::{Expr, JoinType, OnConflict, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::{
@@ -57,6 +57,11 @@ impl From<EntrySelect> for colette_core::FeedEntry {
             feed_id: value.profile_feed_id,
         }
     }
+}
+
+pub struct InsertMany {
+    pub id: Uuid,
+    pub feed_entry_id: i32,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -158,6 +163,46 @@ pub async fn select(
         .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
+}
+
+pub async fn insert_many(
+    executor: impl PgExecutor<'_>,
+    data: Vec<InsertMany>,
+    pf_id: Uuid,
+    profile_id: Uuid,
+) -> sqlx::Result<()> {
+    let mut query = Query::insert()
+        .into_table(ProfileFeedEntry::Table)
+        .columns([
+            ProfileFeedEntry::Id,
+            ProfileFeedEntry::FeedEntryId,
+            ProfileFeedEntry::ProfileFeedId,
+            ProfileFeedEntry::ProfileId,
+        ])
+        .on_conflict(
+            OnConflict::columns([
+                ProfileFeedEntry::ProfileFeedId,
+                ProfileFeedEntry::FeedEntryId,
+            ])
+            .do_nothing()
+            .to_owned(),
+        )
+        .returning_col(FeedEntry::Id)
+        .to_owned();
+
+    for pfe in data {
+        query.values_panic([
+            pfe.id.into(),
+            pfe.feed_entry_id.into(),
+            pf_id.into(),
+            profile_id.into(),
+        ]);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
 }
 
 pub async fn update(

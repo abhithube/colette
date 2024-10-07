@@ -1,6 +1,9 @@
-use sea_query::{Expr, PostgresQueryBuilder, Query};
+use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
-use sqlx::PgExecutor;
+use sqlx::{
+    types::chrono::{DateTime, Utc},
+    PgExecutor, Row,
+};
 
 use crate::profile_feed_entry::ProfileFeedEntry;
 
@@ -18,6 +21,85 @@ pub(crate) enum FeedEntry {
     FeedId,
     CreatedAt,
     UpdatedAt,
+}
+
+pub async fn select_many_by_feed_id(
+    executor: impl PgExecutor<'_>,
+    feed_id: i32,
+) -> sqlx::Result<Vec<i32>> {
+    let query = Query::select()
+        .column(FeedEntry::Id)
+        .from(FeedEntry::Table)
+        .and_where(Expr::col(FeedEntry::FeedId).eq(feed_id))
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let rows = sqlx::query_with(&sql, values).fetch_all(executor).await?;
+
+    let mut uuids: Vec<i32> = Vec::new();
+    for row in rows {
+        uuids.push(row.try_get("id")?);
+    }
+
+    Ok(uuids)
+}
+
+pub struct InsertMany {
+    pub link: String,
+    pub title: String,
+    pub published_at: DateTime<Utc>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub thumbnail_url: Option<String>,
+}
+
+pub async fn insert_many(
+    executor: impl PgExecutor<'_>,
+    data: Vec<InsertMany>,
+    feed_id: i32,
+) -> sqlx::Result<()> {
+    let mut query = Query::insert()
+        .into_table(FeedEntry::Table)
+        .columns([
+            FeedEntry::Link,
+            FeedEntry::Title,
+            FeedEntry::PublishedAt,
+            FeedEntry::Description,
+            FeedEntry::Author,
+            FeedEntry::ThumbnailUrl,
+            FeedEntry::FeedId,
+        ])
+        .on_conflict(
+            OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
+                .update_columns([
+                    FeedEntry::Title,
+                    FeedEntry::PublishedAt,
+                    FeedEntry::Description,
+                    FeedEntry::Author,
+                    FeedEntry::ThumbnailUrl,
+                    FeedEntry::FeedId,
+                ])
+                .to_owned(),
+        )
+        .returning_col(FeedEntry::Id)
+        .to_owned();
+
+    for fe in data {
+        query.values_panic([
+            fe.link.into(),
+            fe.title.into(),
+            fe.published_at.into(),
+            fe.description.into(),
+            fe.author.into(),
+            fe.thumbnail_url.into(),
+            feed_id.into(),
+        ]);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    sqlx::query_with(&sql, values).execute(executor).await?;
+
+    Ok(())
 }
 
 pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {

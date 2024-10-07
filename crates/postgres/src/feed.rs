@@ -16,6 +16,23 @@ pub(crate) enum Feed {
     UpdatedAt,
 }
 
+pub async fn select_by_url(executor: impl PgExecutor<'_>, url: String) -> sqlx::Result<i32> {
+    let query = Query::select()
+        .column(Feed::Id)
+        .from(Feed::Table)
+        .and_where(
+            Expr::col(Feed::Url)
+                .eq(url.clone())
+                .or(Expr::col(Feed::Link).eq(url)),
+        )
+        .to_owned();
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
+
+    row.try_get("id")
+}
+
 pub async fn insert(
     executor: impl PgExecutor<'_>,
     link: String,

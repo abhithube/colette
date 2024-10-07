@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     feed::{
@@ -11,7 +10,7 @@ use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
     prelude::Uuid,
     sqlx::{self, PgExecutor},
-    ConnectionTrait, DatabaseConnection, DbErr, TransactionError, TransactionTrait,
+    DatabaseConnection,
 };
 
 use crate::query;
@@ -42,93 +41,79 @@ impl Creatable for FeedSqlRepository {
     type Output = Result<Feed, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let id = self
+        let mut tx = self
             .db
-            .transaction::<_, Uuid, Error>(|txn| {
-                Box::pin(async move {
-                    let feed_id = if let Some(feed) = data.feed {
-                        create_feed_with_entries(txn, data.url, feed).await?
-                    } else {
-                        let Some(feed_model) = query::feed::select_by_url(txn, data.url.clone())
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                        else {
-                            return Err(Error::Conflict(data.url));
-                        };
-
-                        feed_model.id
-                    };
-
-                    let pf_id = match query::profile_feed::insert(
-                        txn,
-                        Uuid::new_v4(),
-                        Some(data.pinned),
-                        data.profile_id,
-                        feed_id,
-                    )
-                    .await
-                    {
-                        Ok(result) => Ok(result.last_insert_id),
-                        Err(DbErr::RecordNotInserted) => {
-                            let Some(model) = query::profile_feed::select_by_unique_index(
-                                txn,
-                                data.profile_id,
-                                feed_id,
-                            )
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                            else {
-                                return Err(Error::Unknown(anyhow!(
-                                    "Failed to fetch created profile feed"
-                                )));
-                            };
-
-                            Ok(model.id)
-                        }
-                        Err(e) => Err(Error::Unknown(e.into())),
-                    }?;
-
-                    let fe_models = query::feed_entry::select_many_by_feed_id(txn, feed_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-
-                    let insert_many = fe_models
-                        .into_iter()
-                        .map(|e| query::profile_feed_entry::InsertMany {
-                            id: Uuid::new_v4(),
-                            feed_entry_id: e.id,
-                        })
-                        .collect::<Vec<_>>();
-
-                    query::profile_feed_entry::insert_many(
-                        txn,
-                        insert_many,
-                        pf_id,
-                        data.profile_id,
-                    )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                    Ok(pf_id)
-                })
-            })
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })?;
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let feed_id = if let Some(feed) = data.feed {
+            create_feed_with_entries(&mut tx, data.url, feed).await
+        } else {
+            colette_postgres::feed::select_by_url(&mut *tx, data.url.clone())
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::Conflict(data.url),
+                    _ => Error::Unknown(e.into()),
+                })
+        }?;
+
+        let pf_id = match colette_postgres::profile_feed::select_by_unique_index(
+            &mut *tx,
+            data.profile_id,
+            feed_id,
+        )
+        .await
+        {
+            Ok(id) => Ok(id),
+            _ => {
+                colette_postgres::profile_feed::insert(
+                    &mut *tx,
+                    Uuid::new_v4(),
+                    None,
+                    feed_id,
+                    data.profile_id,
+                )
+                .await
+            }
+        }
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+        let fe_ids = colette_postgres::feed_entry::select_many_by_feed_id(&mut *tx, feed_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let insert_many = fe_ids
+            .into_iter()
+            .map(
+                |feed_entry_id| colette_postgres::profile_feed_entry::InsertMany {
+                    id: Uuid::new_v4(),
+                    feed_entry_id,
+                },
+            )
+            .collect::<Vec<_>>();
+
+        colette_postgres::profile_feed_entry::insert_many(
+            &mut *tx,
+            insert_many,
+            pf_id,
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, id, tags, data.profile_id)
+            link_tags(&mut tx, pf_id, tags, data.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        find_by_id(
-            self.db.get_postgres_connection_pool(),
-            IdParams::new(id, data.profile_id),
-        )
-        .await
+        let feed = find_by_id(&mut *tx, IdParams::new(pf_id, data.profile_id)).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(feed)
     }
 }
 
@@ -160,7 +145,7 @@ impl Updatable for FeedSqlRepository {
         })?;
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, params.id, tags, params.profile_id)
+            link_tags(&mut tx, params.id, tags, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -213,19 +198,16 @@ impl FeedRepository for FeedSqlRepository {
     }
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    create_feed_with_entries(txn, data.url, data.feed).await?;
-
-                    Ok(())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        create_feed_with_entries(&mut tx, data.url, data.feed).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
@@ -278,33 +260,32 @@ async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<F
     Ok(feeds.swap_remove(0))
 }
 
-async fn create_feed_with_entries<Db: ConnectionTrait>(
-    db: &Db,
+async fn create_feed_with_entries(
+    conn: &mut sqlx::PgConnection,
     url: String,
     feed: ProcessedFeed,
 ) -> Result<i32, Error> {
     let link = feed.link.to_string();
     let url = if url == link { None } else { Some(url) };
 
-    let result = query::feed::insert(db, link, feed.title, url)
+    let feed_id = colette_postgres::feed::insert(&mut *conn, link, feed.title, url)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
-    let feed_id = result.last_insert_id;
 
     let insert_many = feed
         .entries
         .into_iter()
-        .map(|e| query::feed_entry::InsertMany {
+        .map(|e| colette_postgres::feed_entry::InsertMany {
             link: e.link.to_string(),
             title: e.title,
-            published_at: e.published.into(),
+            published_at: e.published,
             description: e.description,
             author: e.author,
             thumbnail_url: e.thumbnail.map(String::from),
         })
         .collect::<Vec<_>>();
 
-    query::feed_entry::insert_many(db, insert_many, feed_id)
+    colette_postgres::feed_entry::insert_many(&mut *conn, insert_many, feed_id)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -312,31 +293,27 @@ async fn create_feed_with_entries<Db: ConnectionTrait>(
 }
 
 pub(crate) async fn link_tags(
-    db: &DatabaseConnection,
+    conn: &mut sqlx::PgConnection,
     profile_feed_id: Uuid,
     tags: TagsLinkData,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
         return colette_postgres::profile_feed_tag::delete_many_in_titles(
-            db.get_postgres_connection_pool(),
-            &tags.data,
-            profile_id,
+            &mut *conn, &tags.data, profile_id,
         )
         .await;
     }
 
-    let mut tx = db.get_postgres_connection_pool().begin().await?;
-
     if let TagsLinkAction::Set = tags.action {
         colette_postgres::profile_feed_tag::delete_many_not_in_titles(
-            &mut *tx, &tags.data, profile_id,
+            &mut *conn, &tags.data, profile_id,
         )
         .await?;
     }
 
     colette_postgres::tag::insert_many(
-        &mut *tx,
+        &mut *conn,
         tags.data
             .iter()
             .map(|e| colette_postgres::tag::InsertMany {
@@ -349,7 +326,7 @@ pub(crate) async fn link_tags(
     .await?;
 
     let tag_ids =
-        colette_postgres::tag::select_ids_by_titles(&mut *tx, &tags.data, profile_id).await?;
+        colette_postgres::tag::select_ids_by_titles(&mut *conn, &tags.data, profile_id).await?;
 
     let insert_many = tag_ids
         .into_iter()
@@ -359,7 +336,5 @@ pub(crate) async fn link_tags(
         })
         .collect::<Vec<_>>();
 
-    colette_postgres::profile_feed_tag::insert_many(&mut *tx, insert_many, profile_id).await?;
-
-    tx.commit().await
+    colette_postgres::profile_feed_tag::insert_many(&mut *conn, insert_many, profile_id).await
 }
