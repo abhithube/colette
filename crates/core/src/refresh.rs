@@ -86,7 +86,9 @@ impl RefreshService {
             .await
             .map_err(|e| Error::Unknown(e.into()))??;
 
-        while let Some(Ok(profile_id)) = self.profile_repository.stream(feed_id).next().await {
+        let mut profile_stream = self.profile_repository.stream(feed_id);
+
+        while let Some(Ok(profile_id)) = profile_stream.next().await {
             self.feed_repository
                 .create(FeedCreateData {
                     url: url_raw.clone(),
