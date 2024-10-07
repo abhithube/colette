@@ -56,7 +56,6 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    pub sort_index: u32,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -71,7 +70,6 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            sort_index: value.sort_index,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
@@ -99,15 +97,12 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
     #[schema(nullable = false)]
-    pub sort_index: Option<u32>,
-    #[schema(nullable = false)]
     pub tags: Option<TagsLink>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            sort_index: value.sort_index,
             tags: value.tags.map(|e| e.into()),
         }
     }

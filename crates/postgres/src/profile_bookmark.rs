@@ -24,7 +24,6 @@ use crate::{
 pub(crate) enum ProfileBookmark {
     Table,
     Id,
-    SortIndex,
     ProfileId,
     BookmarkId,
     CreatedAt,
@@ -39,7 +38,6 @@ struct BookmarkSelect {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub sort_index: i32,
     pub tags: Option<Json<Vec<TagSelect>>>,
 }
 
@@ -52,7 +50,6 @@ impl FromRow<'_, sqlx::postgres::PgRow> for BookmarkSelect {
             thumbnail_url: row.try_get("thumbnail_url")?,
             published_at: row.try_get("published_at")?,
             author: row.try_get("author")?,
-            sort_index: row.try_get("sort_index")?,
             tags: row.try_get("tags")?,
         };
 
@@ -69,7 +66,6 @@ impl From<BookmarkSelect> for colette_core::Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            sort_index: value.sort_index as u32,
             tags: value
                 .tags
                 .map(|e| e.0.into_iter().map(|e| e.into()).collect()),
@@ -156,10 +152,7 @@ pub async fn find(
     let json_tags = Alias::new("json_tags");
 
     let mut select = Query::select()
-        .columns([
-            (ProfileBookmark::Table, ProfileBookmark::Id),
-            (ProfileBookmark::Table, ProfileBookmark::SortIndex),
-        ])
+        .column((ProfileBookmark::Table, ProfileBookmark::Id))
         .columns([
             (Bookmark::Table, Bookmark::Link),
             (Bookmark::Table, Bookmark::Title),
@@ -206,8 +199,8 @@ pub async fn find(
             )
         }))
         .and_where_option(cursor.map(|e| {
-            Expr::col((ProfileBookmark::Table, ProfileBookmark::SortIndex))
-                .gt(Expr::val(e.sort_index))
+            Expr::col((ProfileBookmark::Table, ProfileBookmark::CreatedAt))
+                .gt(Expr::val(e.created_at))
         }))
         .to_owned();
 
@@ -257,30 +250,14 @@ pub async fn insert(
     bookmark_id: i32,
     profile_id: Uuid,
 ) -> sqlx::Result<Uuid> {
-    let select = Query::select()
-        .expr(Expr::val(id))
-        .expr(
-            Expr::expr(Func::coalesce([
-                Expr::col(ProfileBookmark::SortIndex).max(),
-                Expr::val(0).into(),
-            ]))
-            .add(1),
-        )
-        .expr(Expr::val(bookmark_id))
-        .expr(Expr::val(profile_id))
-        .from(ProfileBookmark::Table)
-        .to_owned();
-
     let query = Query::insert()
         .into_table(ProfileBookmark::Table)
         .columns([
             ProfileBookmark::Id,
-            ProfileBookmark::SortIndex,
             ProfileBookmark::BookmarkId,
             ProfileBookmark::ProfileId,
         ])
-        .select_from(select)
-        .unwrap()
+        .values_panic([id.into(), bookmark_id.into(), profile_id.into()])
         .on_conflict(
             OnConflict::columns([ProfileBookmark::ProfileId, ProfileBookmark::BookmarkId])
                 .do_nothing()
@@ -293,27 +270,6 @@ pub async fn insert(
     let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
 
     row.try_get("id")
-}
-
-pub async fn decrement_many_sort_indexes(
-    executor: impl PgExecutor<'_>,
-    profile_id: Uuid,
-    sort_index: u32,
-) -> sqlx::Result<()> {
-    let query = Query::update()
-        .table(ProfileBookmark::Table)
-        .value(
-            ProfileBookmark::SortIndex,
-            Expr::col(ProfileBookmark::SortIndex).sub(1),
-        )
-        .and_where(Expr::col(ProfileBookmark::ProfileId).eq(profile_id))
-        .and_where(Expr::col(ProfileBookmark::SortIndex).gt(sort_index))
-        .to_owned();
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_with(&sql, values).execute(executor).await?;
-
-    Ok(())
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {

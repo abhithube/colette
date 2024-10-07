@@ -20,7 +20,6 @@ impl MigrationTrait for Migration {
                     .table(ProfileBookmark::Table)
                     .if_not_exists()
                     .col(uuid(ProfileBookmark::Id).primary_key())
-                    .col(unsigned(ProfileBookmark::SortIndex))
                     .col(uuid(ProfileBookmark::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -107,7 +106,6 @@ pub enum ProfileBookmark {
     Table,
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
-    SortIndex,
     ProfileId,
     BookmarkId,
     #[cfg_attr(feature = "sqlite", strum(disabled))]

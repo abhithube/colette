@@ -7,7 +7,6 @@ use sea_orm::entity::prelude::*;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub sort_index: i32,
     pub profile_id: Uuid,
     pub bookmark_id: i32,
     pub created_at: DateTimeWithTimeZone,

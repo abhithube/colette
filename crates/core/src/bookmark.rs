@@ -22,7 +22,6 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub sort_index: u32,
     pub tags: Option<Vec<Tag>>,
 }
 
@@ -34,7 +33,6 @@ pub struct BookmarkCreate {
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkUpdate {
-    pub sort_index: Option<u32>,
     pub tags: Option<TagsLink>,
 }
 
@@ -46,7 +44,7 @@ pub struct BookmarkListQuery {
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
-    pub sort_index: u32,
+    pub created_at: DateTime<Utc>,
 }
 
 pub struct BookmarkService {
@@ -94,7 +92,7 @@ impl BookmarkService {
 
             if let Some(last) = bookmarks.last() {
                 let c = Cursor {
-                    sort_index: last.sort_index,
+                    created_at: Utc::now(),
                 };
                 let encoded = self.base64_encoder.encode(&c)?;
 
@@ -181,14 +179,12 @@ pub struct BookmarkCreateData {
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
-    pub sort_index: Option<u32>,
     pub tags: Option<TagsLinkData>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            sort_index: value.sort_index,
             tags: value.tags.map(|e| TagsLinkData {
                 data: e.data.into_iter().map(|e| e.into()).collect(),
                 action: e.action,
