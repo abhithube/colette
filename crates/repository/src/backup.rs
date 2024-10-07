@@ -1,15 +1,15 @@
 use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
-use sea_orm::{prelude::Uuid, DatabaseConnection};
+use sqlx::{types::Uuid, PgPool};
 
 pub struct BackupSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl BackupSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -22,8 +22,7 @@ struct Parent {
 impl BackupRepository for BackupSqlRepository {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error> {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -113,8 +112,7 @@ impl BackupRepository for BackupSqlRepository {
 
     async fn import_netscape(&self, items: Vec<Item>, profile_id: Uuid) -> Result<(), Error> {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;

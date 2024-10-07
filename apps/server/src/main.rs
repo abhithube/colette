@@ -20,7 +20,6 @@ use colette_core::{
     feed::FeedService, feed_entry::FeedEntryService, profile::ProfileService,
     refresh::RefreshService, smart_feed::SmartFeedService, tag::TagService,
 };
-use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
     BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, FeedEntrySqlRepository,
@@ -33,7 +32,7 @@ use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
-use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseBackend};
+use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
 
@@ -47,23 +46,53 @@ struct Asset;
 async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = colette_config::load_config()?;
 
-    let mut opts = ConnectOptions::new(&app_config.database_url);
-    opts.max_connections(100);
-
-    let db = Database::connect(opts).await?;
-    Migrator::up(&db, None).await?;
-
-    let session_backend = match db.get_database_backend() {
+    let (
+        backup_repository,
+        bookmark_repository,
+        cleanup_repository,
+        feed_repository,
+        feed_entry_repository,
+        profile_repository,
+        smart_feed_repository,
+        tag_repository,
+        user_repository,
+        session_backend,
+    ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
-        DatabaseBackend::Postgres => {
-            let store = PostgresStore::new(db.get_postgres_connection_pool().to_owned());
+        url if url.starts_with("postgres") => {
+            let pool = PgPool::connect(url).await?;
+
+            let backup_repository = Arc::new(BackupSqlRepository::new(pool.clone()));
+            let bookmark_repository = Arc::new(BookmarkSqlRepository::new(pool.clone()));
+            let cleanup_repository = Arc::new(CleanupSqlRepository::new(pool.clone()));
+            let feed_repository = Arc::new(FeedSqlRepository::new(pool.clone()));
+            let feed_entry_repository = Arc::new(FeedEntrySqlRepository::new(pool.clone()));
+            let profile_repository = Arc::new(ProfileSqlRepository::new(pool.clone()));
+            let smart_feed_repository = Arc::new(SmartFeedSqlRepository::new(pool.clone()));
+            let tag_repository = Arc::new(TagSqlRepository::new(pool.clone()));
+            let user_repository = Arc::new(UserSqlRepository::new(pool.clone()));
+
+            let store = PostgresStore::new(pool);
             store.migrate().await?;
 
-            SessionBackend::Postgres(store)
+            (
+                backup_repository,
+                bookmark_repository,
+                cleanup_repository,
+                feed_repository,
+                feed_entry_repository,
+                profile_repository,
+                smart_feed_repository,
+                tag_repository,
+                user_repository,
+                SessionBackend::Postgres(store),
+            )
         }
         #[cfg(feature = "sqlite")]
-        DatabaseBackend::Sqlite => {
-            let store = SqliteStore::new(db.get_sqlite_connection_pool().to_owned());
+        url if url.starts_with("sqlite") => {
+            let pool = SqlitePool::connect(url).await?;
+
+            let store = SqliteStore::new(pool);
             store.migrate().await?;
 
             SessionBackend::Sqlite(store)
@@ -79,19 +108,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let feed_plugin_registry = Arc::new(register_feed_plugins());
 
-    let bookmark_repository = Arc::new(BookmarkSqlRepository::new(db.clone()));
-    let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
-    let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
-
     let base64_decoder = Arc::new(Base64Encoder);
 
     let auth_service = Arc::new(AuthService::new(
-        Arc::new(UserSqlRepository::new(db.clone())),
+        user_repository,
         profile_repository.clone(),
         Arc::new(ArgonHasher),
     ));
     let backup_service = Arc::new(BackupService::new(
-        Arc::new(BackupSqlRepository::new(db.clone())),
+        backup_repository,
         feed_repository.clone(),
         bookmark_repository.clone(),
         Arc::new(OpmlManager),
@@ -102,27 +127,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(register_bookmark_plugins()),
         base64_decoder.clone(),
     ));
-    let cleanup_service = Arc::new(CleanupService::new(Arc::new(CleanupSqlRepository::new(
-        db.clone(),
-    ))));
+    let cleanup_service = Arc::new(CleanupService::new(cleanup_repository));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
         feed_plugin_registry.clone(),
     ));
-    let feed_entry_service = Arc::new(FeedEntryService::new(
-        Arc::new(FeedEntrySqlRepository::new(db.clone())),
-        base64_decoder,
-    ));
+    let feed_entry_service = Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
     let refresh_service = Arc::new(RefreshService::new(
         feed_plugin_registry,
         feed_repository.clone(),
         profile_repository.clone(),
     ));
-    let smart_feed_service = Arc::new(SmartFeedService::new(Arc::new(
-        SmartFeedSqlRepository::new(db.clone()),
-    )));
-    let tag_service = Arc::new(TagService::new(Arc::new(TagSqlRepository::new(db.clone()))));
+    let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
+    let tag_service = Arc::new(TagService::new(tag_repository));
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),

@@ -628,7 +628,7 @@ dependencies = [
  "colette-opml",
  "colette-postgres",
  "futures",
- "sea-orm",
+ "sqlx",
 ]
 
 [[package]]
@@ -660,7 +660,6 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
- "colette-migration",
  "colette-plugins",
  "colette-repository",
  "colette-scraper",
@@ -668,7 +667,7 @@ dependencies = [
  "colette-task",
  "colette-util",
  "rust-embed",
- "sea-orm",
+ "sqlx",
  "tokio",
  "tower-sessions",
 ]
@@ -2422,7 +2421,6 @@ checksum = "b0de8c7f07061425ed7c9faab3aa3738e135adc7245c5c0afdbeebdf2d72fcc9"
 dependencies = [
  "async-stream",
  "async-trait",
- "chrono",
  "futures",
  "log",
  "ouroboros",
@@ -2435,7 +2433,6 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -2496,6 +2493,7 @@ dependencies = [
  "inherent",
  "ordered-float 3.9.2",
  "sea-query-derive",
+ "serde_json",
  "uuid",
 ]
 
@@ -2507,6 +2505,7 @@ checksum = "643c2e6fbba4440ff0075c405d37079a7da1a46892623b1cc8f06e05233eee1b"
 dependencies = [
  "chrono",
  "sea-query",
+ "serde_json",
  "sqlx",
  "uuid",
 ]

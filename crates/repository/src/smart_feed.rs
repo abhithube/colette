@@ -7,19 +7,15 @@ use colette_core::{
     SmartFeed,
 };
 use colette_postgres::smart_feed_filter::{Field, Operation};
-use sea_orm::{
-    prelude::Uuid,
-    sqlx::{self, PgExecutor},
-    DatabaseConnection,
-};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct SmartFeedSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl SmartFeedSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -29,7 +25,7 @@ impl Findable for SmartFeedSqlRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(self.db.get_postgres_connection_pool(), params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -40,8 +36,7 @@ impl Creatable for SmartFeedSqlRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -80,8 +75,7 @@ impl Updatable for SmartFeedSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -123,16 +117,12 @@ impl Deletable for SmartFeedSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        colette_postgres::smart_feed::delete(
-            self.db.get_postgres_connection_pool(),
-            params.id,
-            params.profile_id,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        colette_postgres::smart_feed::delete(&self.pool, params.id, params.profile_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -144,14 +134,7 @@ impl SmartFeedRepository for SmartFeedSqlRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<SmartFeed>, Error> {
-        find(
-            self.db.get_postgres_connection_pool(),
-            None,
-            profile_id,
-            limit,
-            cursor,
-        )
-        .await
+        find(&self.pool, None, profile_id, limit, cursor).await
     }
 }
 

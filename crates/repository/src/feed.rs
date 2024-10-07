@@ -7,19 +7,15 @@ use colette_core::{
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sea_orm::{
-    prelude::Uuid,
-    sqlx::{self, PgExecutor},
-    DatabaseConnection,
-};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct FeedSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl FeedSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -29,7 +25,7 @@ impl Findable for FeedSqlRepository {
     type Output = Result<Feed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(self.db.get_postgres_connection_pool(), params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -40,8 +36,7 @@ impl Creatable for FeedSqlRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -123,8 +118,7 @@ impl Updatable for FeedSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -162,16 +156,12 @@ impl Deletable for FeedSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        colette_postgres::profile_feed::delete(
-            self.db.get_postgres_connection_pool(),
-            params.id,
-            params.profile_id,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        colette_postgres::profile_feed::delete(&self.pool, params.id, params.profile_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -184,21 +174,12 @@ impl FeedRepository for FeedSqlRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Vec<Feed>, Error> {
-        find(
-            self.db.get_postgres_connection_pool(),
-            None,
-            profile_id,
-            limit,
-            cursor,
-            filters,
-        )
-        .await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -209,7 +190,7 @@ impl FeedRepository for FeedSqlRepository {
     }
 
     fn stream(&self) -> BoxStream<Result<(i32, String), Error>> {
-        colette_postgres::feed::stream(self.db.get_postgres_connection_pool())
+        colette_postgres::feed::stream(&self.pool)
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
     }

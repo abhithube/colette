@@ -5,19 +5,15 @@ use colette_core::{
     },
     FeedEntry,
 };
-use sea_orm::{
-    prelude::Uuid,
-    sqlx::{self, PgExecutor},
-    DatabaseConnection,
-};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct FeedEntrySqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl FeedEntrySqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -27,7 +23,7 @@ impl Findable for FeedEntrySqlRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(self.db.get_postgres_connection_pool(), params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -39,8 +35,7 @@ impl Updatable for FeedEntrySqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -74,15 +69,7 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Vec<FeedEntry>, Error> {
-        find(
-            self.db.get_postgres_connection_pool(),
-            None,
-            profile_id,
-            limit,
-            cursor,
-            filters,
-        )
-        .await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 

@@ -13,7 +13,6 @@ colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
-colette-migration.workspace = true
 colette-plugins.workspace = true
 colette-repository.workspace = true
 colette-scraper.workspace = true
@@ -23,19 +22,11 @@ colette-util.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
-sea-orm.workspace = true
+sqlx.workspace = true
 tokio.workspace = true
 tower-sessions.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = [
-  "colette-migration/postgres",
-  "colette-session/postgres",
-  "sea-orm/sqlx-postgres",
-]
-sqlite = [
-  "colette-migration/sqlite",
-  "colette-session/sqlite",
-  "sea-orm/sqlx-sqlite",
-]
+postgres = ["colette-session/postgres", "sqlx/postgres"]
+sqlite = ["colette-session/sqlite", "sqlx/sqlite"]

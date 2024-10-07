@@ -8,15 +8,15 @@ use colette_core::{
     Profile,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sea_orm::{prelude::Uuid, sqlx, DatabaseConnection};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct ProfileSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl ProfileSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -28,8 +28,15 @@ impl Findable for ProfileSqlRepository {
     async fn find(&self, params: Self::Params) -> Self::Output {
         let is_default = params.id.map_or_else(|| Some(true), |_| None);
 
-        let mut profiles =
-            find(&self.db, params.id, params.user_id, is_default, None, None).await?;
+        let mut profiles = find(
+            &self.pool,
+            params.id,
+            params.user_id,
+            is_default,
+            None,
+            None,
+        )
+        .await?;
         if profiles.is_empty() {
             if let Some(id) = params.id {
                 return Err(Error::NotFound(id));
@@ -49,7 +56,7 @@ impl Creatable for ProfileSqlRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         colette_postgres::profile::insert(
-            self.db.get_postgres_connection_pool(),
+            &self.pool,
             Uuid::new_v4(),
             data.title.clone(),
             data.image_url,
@@ -72,7 +79,7 @@ impl Updatable for ProfileSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         colette_postgres::profile::update(
-            self.db.get_postgres_connection_pool(),
+            &self.pool,
             params.id,
             params.user_id,
             data.title,
@@ -93,8 +100,7 @@ impl Deletable for ProfileSqlRepository {
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -134,35 +140,29 @@ impl ProfileRepository for ProfileSqlRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error> {
-        find(&self.db, None, user_id, None, limit, cursor).await
+        find(&self.pool, None, user_id, None, limit, cursor).await
     }
 
     fn stream(&self, feed_id: i32) -> BoxStream<Result<Uuid, Error>> {
-        colette_postgres::profile::stream(self.db.get_postgres_connection_pool(), feed_id)
+        colette_postgres::profile::stream(&self.pool, feed_id)
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
     }
 }
 
 async fn find(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     user_id: Uuid,
     is_default: Option<bool>,
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<Profile>, Error> {
-    let profiles = colette_postgres::profile::select(
-        db.get_postgres_connection_pool(),
-        id,
-        user_id,
-        is_default,
-        cursor,
-        limit,
-    )
-    .await
-    .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
-    .map_err(|e| Error::Unknown(e.into()))?;
+    let profiles =
+        colette_postgres::profile::select(executor, id, user_id, is_default, cursor, limit)
+            .await
+            .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
 
     Ok(profiles)
 }

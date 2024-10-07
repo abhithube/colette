@@ -3,19 +3,15 @@ use colette_core::{
     tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
-use sea_orm::{
-    prelude::Uuid,
-    sqlx::{self, PgExecutor},
-    DatabaseConnection,
-};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct TagSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl TagSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -25,7 +21,7 @@ impl Findable for TagSqlRepository {
     type Output = Result<Tag, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(self.db.get_postgres_connection_pool(), params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -36,14 +32,13 @@ impl Creatable for TagSqlRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let id = colette_postgres::tag::insert(
-            self.db.get_postgres_connection_pool(),
+            &self.pool,
             Uuid::new_v4(),
             data.title.clone(),
             data.profile_id,
@@ -72,8 +67,7 @@ impl Updatable for TagSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -101,16 +95,12 @@ impl Deletable for TagSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        colette_postgres::tag::delete_by_id(
-            self.db.get_postgres_connection_pool(),
-            params.id,
-            params.profile_id,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        colette_postgres::tag::delete_by_id(&self.pool, params.id, params.profile_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -123,15 +113,7 @@ impl TagRepository for TagSqlRepository {
         cursor: Option<Cursor>,
         filters: Option<TagFindManyFilters>,
     ) -> Result<Vec<Tag>, Error> {
-        find(
-            self.db.get_postgres_connection_pool(),
-            None,
-            profile_id,
-            limit,
-            cursor,
-            filters,
-        )
-        .await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 

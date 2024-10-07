@@ -1,13 +1,13 @@
 use colette_core::cleanup::{CleanupRepository, Error};
-use sea_orm::DatabaseConnection;
+use sqlx::PgPool;
 
 pub struct CleanupSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl CleanupSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -15,8 +15,7 @@ impl CleanupSqlRepository {
 impl CleanupRepository for CleanupSqlRepository {
     async fn cleanup_feeds(&self) -> Result<(), Error> {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -39,7 +38,7 @@ impl CleanupRepository for CleanupSqlRepository {
     }
 
     async fn cleanup_tags(&self) -> Result<(), Error> {
-        let count = colette_postgres::tag::delete_many(self.db.get_postgres_connection_pool())
+        let count = colette_postgres::tag::delete_many(&self.pool)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if count > 0 {

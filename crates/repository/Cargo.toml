@@ -11,7 +11,7 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-postgres = { workspace = true, optional = true }
 futures.workspace = true
-sea-orm.workspace = true
+sqlx.workspace = true
 
 [features]
 default = ["postgres"]

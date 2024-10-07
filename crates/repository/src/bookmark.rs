@@ -6,23 +6,21 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
 };
-use sea_orm::{
-    prelude::Uuid,
-    sqlx::{
-        self,
-        types::chrono::{DateTime, Utc},
-        PgExecutor,
+use sqlx::{
+    types::{
+        chrono::{DateTime, Utc},
+        Uuid,
     },
-    DatabaseConnection,
+    PgExecutor, PgPool,
 };
 
 pub struct BookmarkSqlRepository {
-    pub(crate) db: DatabaseConnection,
+    pub(crate) pool: PgPool,
 }
 
 impl BookmarkSqlRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
@@ -32,7 +30,7 @@ impl Findable for BookmarkSqlRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(self.db.get_postgres_connection_pool(), params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -43,8 +41,7 @@ impl Creatable for BookmarkSqlRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -104,8 +101,7 @@ impl Updatable for BookmarkSqlRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
-            .db
-            .get_postgres_connection_pool()
+            .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
@@ -130,16 +126,12 @@ impl Deletable for BookmarkSqlRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        colette_postgres::profile_bookmark::delete(
-            self.db.get_postgres_connection_pool(),
-            params.id,
-            params.profile_id,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        colette_postgres::profile_bookmark::delete(&self.pool, params.id, params.profile_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -152,15 +144,7 @@ impl BookmarkRepository for BookmarkSqlRepository {
         cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Vec<Bookmark>, Error> {
-        find(
-            self.db.get_postgres_connection_pool(),
-            None,
-            profile_id,
-            limit,
-            cursor,
-            filters,
-        )
-        .await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 
