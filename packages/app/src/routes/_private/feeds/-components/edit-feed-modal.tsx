@@ -1,4 +1,4 @@
-import type { Feed, Tag } from '@colette/core'
+import type { Feed } from '@colette/core'
 import { listTagsOptions, updateFeedOptions } from '@colette/query'
 import {
   Button,
@@ -11,6 +11,7 @@ import {
   Switch,
   TagsInput,
   VStack,
+  createListCollection,
 } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -166,9 +167,9 @@ export function EditFeedModal({ feed, close }: Props) {
             {({ state, handleChange }) => (
               <Combobox.Root
                 asChild
-                items={tags.data}
-                itemToString={(item) => (item as Tag).title}
-                itemToValue={(item) => (item as Tag).title}
+                collection={createListCollection({
+                  items: tags.data,
+                })}
                 multiple
                 openOnClick
                 closeOnSelect

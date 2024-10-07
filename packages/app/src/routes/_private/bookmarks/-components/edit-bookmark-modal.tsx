@@ -1,4 +1,4 @@
-import type { Bookmark, Tag } from '@colette/core'
+import type { Bookmark } from '@colette/core'
 import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
 import {
   Button,
@@ -8,6 +8,7 @@ import {
   IconButton,
   TagsInput,
   VStack,
+  createListCollection,
 } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
@@ -104,9 +105,9 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
             {({ state, handleChange }) => (
               <Combobox.Root
                 asChild
-                items={tags.data}
-                itemToString={(item) => (item as Tag).title}
-                itemToValue={(item) => (item as Tag).title}
+                collection={createListCollection({
+                  items: tags.data,
+                })}
                 multiple
                 openOnClick
                 closeOnSelect
