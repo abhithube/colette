@@ -182,8 +182,9 @@ impl SmartFilterCase for CaseStatement {
             Operation::GreaterThan => Expr::expr(field_col).gt(value_col),
             Operation::LessThan => Expr::expr(field_col).lt(value_col),
             Operation::InLastXSec => Expr::cust_with_exprs(
-                "EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - $1)) < $2",
+                "EXTRACT(EPOCH FROM ($1 - $2)) < $3",
                 [
+                    Expr::current_timestamp().into(),
                     Func::cast_as(field_col, Alias::new("timestamptz")).into(),
                     Func::cast_as(value_col, Alias::new("numeric")).into(),
                 ],
