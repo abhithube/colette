@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 colette-core.workspace = true
+futures.workspace = true
 sea-query = { version = "=0.32.0-rc.2", default-features = false }
 sea-query-binder = { version = "=0.7.0-rc.2", default-features = false, features = [
   "sqlx-postgres",

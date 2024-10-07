@@ -45,13 +45,9 @@ impl RefreshService {
 
         let semaphore = Arc::new(Semaphore::new(5));
 
-        let feeds_stream = self
+        let tasks = self
             .feed_repository
             .stream()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tasks = feeds_stream
             .map(|item| {
                 let semaphore = semaphore.clone();
 
@@ -90,13 +86,7 @@ impl RefreshService {
             .await
             .map_err(|e| Error::Unknown(e.into()))??;
 
-        let mut profiles_stream = self
-            .profile_repository
-            .stream(feed_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        while let Some(Ok(profile_id)) = profiles_stream.next().await {
+        while let Some(Ok(profile_id)) = self.profile_repository.stream(feed_id).next().await {
             self.feed_repository
                 .create(FeedCreateData {
                     url: url_raw.clone(),

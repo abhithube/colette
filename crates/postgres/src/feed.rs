@@ -1,3 +1,4 @@
+use futures::stream::BoxStream;
 use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::PgExecutor;
@@ -74,4 +75,10 @@ pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
     let result = sqlx::query_with(&sql, values).execute(executor).await?;
 
     Ok(result.rows_affected())
+}
+
+pub fn stream<'a>(
+    executor: impl PgExecutor<'a> + 'a,
+) -> BoxStream<'a, sqlx::Result<(i32, String)>> {
+    sqlx::query_as::<_, (i32, String)>("SELECT id, COALESCE(url, link) FROM feed").fetch(executor)
 }

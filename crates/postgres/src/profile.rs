@@ -1,4 +1,5 @@
 use colette_core::profile::Cursor;
+use futures::stream::BoxStream;
 use sea_query::{Expr, Func, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
@@ -160,4 +161,13 @@ pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, user_id: Uuid) -> s
     }
 
     Ok(())
+}
+
+pub fn stream<'a>(
+    executor: impl PgExecutor<'a> + 'a,
+    feed_id: i32,
+) -> BoxStream<'a, sqlx::Result<Uuid>> {
+    sqlx::query_scalar::<_, Uuid>("SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1")
+        .bind(feed_id)
+        .fetch(executor)
 }

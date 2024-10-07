@@ -866,6 +866,7 @@ name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
  "colette-core",
+ "futures",
  "sea-query",
  "sea-query-binder",
  "serde",
@@ -879,13 +880,10 @@ dependencies = [
  "anyhow",
  "async-trait",
  "colette-core",
- "colette-entity",
  "colette-netscape",
  "colette-opml",
  "colette-postgres",
- "colette-util",
  "futures",
- "indexmap 2.6.0",
  "sea-orm",
 ]
 

@@ -7,13 +7,10 @@ edition = "2021"
 anyhow.workspace = true
 async-trait.workspace = true
 colette-core.workspace = true
-colette-entity.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-postgres = { workspace = true, optional = true }
-colette-util.workspace = true
 futures.workspace = true
-indexmap = { version = "2", default-features = false }
 sea-orm.workspace = true
 
 [features]

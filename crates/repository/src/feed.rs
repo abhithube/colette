@@ -13,8 +13,6 @@ use sea_orm::{
     DatabaseConnection,
 };
 
-use crate::query;
-
 pub struct FeedSqlRepository {
     pub(crate) db: DatabaseConnection,
 }
@@ -210,15 +208,10 @@ impl FeedRepository for FeedSqlRepository {
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
-        query::feed::stream(&self.db)
-            .await
-            .map(|e| {
-                e.map(|e| e.map_err(|e| Error::Unknown(e.into())))
-                    .map_err(|e| Error::Unknown(e.into()))
-                    .boxed()
-            })
+    fn stream(&self) -> BoxStream<Result<(i32, String), Error>> {
+        colette_postgres::feed::stream(self.db.get_postgres_connection_pool())
             .map_err(|e| Error::Unknown(e.into()))
+            .boxed()
     }
 }
 

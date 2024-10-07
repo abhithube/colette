@@ -10,8 +10,6 @@ use colette_core::{
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{prelude::Uuid, sqlx, DatabaseConnection};
 
-use crate::query;
-
 pub struct ProfileSqlRepository {
     pub(crate) db: DatabaseConnection,
 }
@@ -139,15 +137,10 @@ impl ProfileRepository for ProfileSqlRepository {
         find(&self.db, None, user_id, None, limit, cursor).await
     }
 
-    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
-        query::profile::stream(&self.db, feed_id)
-            .await
-            .map(|e| {
-                e.map(|e| e.map_err(|e| Error::Unknown(e.into())))
-                    .map_err(|e| Error::Unknown(e.into()))
-                    .boxed()
-            })
+    fn stream(&self, feed_id: i32) -> BoxStream<Result<Uuid, Error>> {
+        colette_postgres::profile::stream(self.db.get_postgres_connection_pool(), feed_id)
             .map_err(|e| Error::Unknown(e.into()))
+            .boxed()
     }
 }
 

@@ -14,7 +14,6 @@ mod cleanup;
 mod feed;
 mod feed_entry;
 mod profile;
-mod query;
 mod smart_feed;
 mod tag;
 mod user;
