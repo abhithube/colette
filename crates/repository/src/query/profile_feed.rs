@@ -4,17 +4,6 @@ use sea_orm::{
     InsertResult, QueryFilter, Set,
 };
 
-pub async fn select_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<Option<profile_feed::Model>, DbErr> {
-    profile_feed::Entity::find_by_id(id)
-        .filter(profile_feed::Column::ProfileId.eq(profile_id))
-        .one(db)
-        .await
-}
-
 pub async fn select_by_unique_index<Db: ConnectionTrait>(
     db: &Db,
     profile_id: Uuid,

@@ -159,3 +159,28 @@ pub async fn select(
         .await
         .map(|e| e.into_iter().map(|e| e.into()).collect())
 }
+
+pub async fn update(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    profile_id: Uuid,
+    has_read: Option<bool>,
+) -> sqlx::Result<()> {
+    let mut query = Query::update()
+        .table(ProfileFeedEntry::Table)
+        .and_where(Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::Id)).eq(id))
+        .and_where(Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::ProfileId)).eq(profile_id))
+        .to_owned();
+
+    if let Some(has_read) = has_read {
+        query.value(ProfileFeedEntry::HasRead, has_read);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
+}

@@ -315,6 +315,35 @@ pub async fn insert(
     row.try_get("id")
 }
 
+pub async fn update(
+    executor: impl PgExecutor<'_>,
+    id: Uuid,
+    profile_id: Uuid,
+    title: Option<Option<String>>,
+    pinned: Option<bool>,
+) -> sqlx::Result<()> {
+    let mut query = Query::update()
+        .table(ProfileFeed::Table)
+        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
+        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
+        .to_owned();
+
+    if let Some(title) = title {
+        query.value(ProfileFeed::Title, title);
+    }
+    if let Some(pinned) = pinned {
+        query.value(ProfileFeed::Pinned, pinned);
+    }
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
+}
+
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {
     let query = Query::delete()
         .from_table(ProfileFeed::Table)

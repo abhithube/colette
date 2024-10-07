@@ -9,8 +9,9 @@ use colette_core::{
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_orm::{
-    prelude::Uuid, sqlx, ActiveModelTrait, ConnectionTrait, DatabaseConnection, DbErr,
-    IntoActiveModel, TransactionError, TransactionTrait,
+    prelude::Uuid,
+    sqlx::{self, PgExecutor},
+    ConnectionTrait, DatabaseConnection, DbErr, TransactionError, TransactionTrait,
 };
 
 use crate::query;
@@ -31,7 +32,7 @@ impl Findable for FeedSqlRepository {
     type Output = Result<Feed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.db, params).await
+        find_by_id(self.db.get_postgres_connection_pool(), params).await
     }
 }
 
@@ -123,7 +124,11 @@ impl Creatable for FeedSqlRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        find_by_id(&self.db, IdParams::new(id, data.profile_id)).await
+        find_by_id(
+            self.db.get_postgres_connection_pool(),
+            IdParams::new(id, data.profile_id),
+        )
+        .await
     }
 }
 
@@ -134,51 +139,37 @@ impl Updatable for FeedSqlRepository {
     type Output = Result<Feed, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let id = self
+        let mut tx = self
             .db
-            .transaction::<_, Uuid, Error>(|txn| {
-                Box::pin(async move {
-                    let Some(pf_model) =
-                        query::profile_feed::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-
-                    let profile_feed_id = pf_model.id;
-
-                    let mut active_model = pf_model.into_active_model();
-                    if let Some(title) = data.title {
-                        active_model.title.set_if_not_equals(title);
-                    }
-                    if let Some(pinned) = data.pinned {
-                        active_model.pinned.set_if_not_equals(pinned);
-                    }
-
-                    if active_model.is_changed() {
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(profile_feed_id)
-                })
-            })
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })?;
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        colette_postgres::profile_feed::update(
+            &mut *tx,
+            params.id,
+            params.profile_id,
+            data.title,
+            data.pinned,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, id, tags, params.profile_id)
+            link_tags(&self.db, params.id, tags, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        find_by_id(&self.db, params).await
+        let feed = find_by_id(&mut *tx, params).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(feed)
     }
 }
 
@@ -210,7 +201,15 @@ impl FeedRepository for FeedSqlRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Vec<Feed>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
+        find(
+            self.db.get_postgres_connection_pool(),
+            None,
+            profile_id,
+            limit,
+            cursor,
+            filters,
+        )
+        .await
     }
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
@@ -242,7 +241,7 @@ impl FeedRepository for FeedSqlRepository {
 }
 
 pub(crate) async fn find(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -257,21 +256,21 @@ pub(crate) async fn find(
         tags = filters.tags;
     }
 
-    colette_postgres::profile_feed::find(
-        db.get_postgres_connection_pool(),
-        id,
-        profile_id,
-        pinned,
-        tags,
-        cursor,
-        limit,
-    )
-    .await
-    .map_err(|e| Error::Unknown(e.into()))
+    colette_postgres::profile_feed::find(executor, id, profile_id, pinned, tags, cursor, limit)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<Feed, Error> {
-    let mut feeds = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Feed, Error> {
+    let mut feeds = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if feeds.is_empty() {
         return Err(Error::NotFound(params.id));
     }

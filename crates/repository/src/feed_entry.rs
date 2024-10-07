@@ -6,11 +6,10 @@ use colette_core::{
     FeedEntry,
 };
 use sea_orm::{
-    prelude::Uuid, ActiveModelTrait, DatabaseConnection, IntoActiveModel, TransactionError,
-    TransactionTrait,
+    prelude::Uuid,
+    sqlx::{self, PgExecutor},
+    DatabaseConnection,
 };
-
-use crate::query;
 
 pub struct FeedEntrySqlRepository {
     pub(crate) db: DatabaseConnection,
@@ -28,7 +27,7 @@ impl Findable for FeedEntrySqlRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.db, params).await
+        find_by_id(self.db.get_postgres_connection_pool(), params).await
     }
 }
 
@@ -39,39 +38,30 @@ impl Updatable for FeedEntrySqlRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        self.db
-            .transaction::<_, (), Error>(|txn| {
-                Box::pin(async move {
-                    let Some(model) =
-                        query::profile_feed_entry::select_by_id(txn, params.id, params.profile_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    else {
-                        return Err(Error::NotFound(params.id));
-                    };
-                    let mut active_model = model.into_active_model();
-
-                    if let Some(has_read) = data.has_read {
-                        active_model.has_read.set_if_not_equals(has_read);
-                    }
-
-                    if active_model.is_changed() {
-                        active_model
-                            .update(txn)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-                    }
-
-                    Ok(())
-                })
-            })
+        let mut tx = self
+            .db
+            .get_postgres_connection_pool()
+            .begin()
             .await
-            .map_err(|e| match e {
-                TransactionError::Transaction(e) => e,
-                _ => Error::Unknown(e.into()),
-            })?;
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        find_by_id(&self.db, params).await
+        colette_postgres::profile_feed_entry::update(
+            &mut *tx,
+            params.id,
+            params.profile_id,
+            data.has_read,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
+
+        let entry = find_by_id(&mut *tx, params).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(entry)
     }
 }
 
@@ -84,12 +74,20 @@ impl FeedEntryRepository for FeedEntrySqlRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Vec<FeedEntry>, Error> {
-        find(&self.db, None, profile_id, limit, cursor, filters).await
+        find(
+            self.db.get_postgres_connection_pool(),
+            None,
+            profile_id,
+            limit,
+            cursor,
+            filters,
+        )
+        .await
     }
 }
 
 async fn find(
-    db: &DatabaseConnection,
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -109,7 +107,7 @@ async fn find(
     }
 
     colette_postgres::profile_feed_entry::select(
-        db.get_postgres_connection_pool(),
+        executor,
         id,
         profile_id,
         feed_id,
@@ -123,8 +121,16 @@ async fn find(
     .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id(db: &DatabaseConnection, params: IdParams) -> Result<FeedEntry, Error> {
-    let mut feed_entries = find(db, Some(params.id), params.profile_id, None, None, None).await?;
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<FeedEntry, Error> {
+    let mut feed_entries = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if feed_entries.is_empty() {
         return Err(Error::NotFound(params.id));
     }

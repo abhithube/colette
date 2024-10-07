@@ -1,19 +1,5 @@
 use colette_entity::profile_feed_entry;
-use sea_orm::{
-    prelude::Uuid, sea_query::OnConflict, ColumnTrait, ConnectionTrait, DbErr, EntityTrait,
-    QueryFilter, Set,
-};
-
-pub async fn select_by_id<Db: ConnectionTrait>(
-    db: &Db,
-    id: Uuid,
-    profile_id: Uuid,
-) -> Result<Option<profile_feed_entry::Model>, DbErr> {
-    profile_feed_entry::Entity::find_by_id(id)
-        .filter(profile_feed_entry::Column::ProfileId.eq(profile_id))
-        .one(db)
-        .await
-}
+use sea_orm::{prelude::Uuid, sea_query::OnConflict, ConnectionTrait, DbErr, EntityTrait, Set};
 
 pub struct InsertMany {
     pub id: Uuid,
