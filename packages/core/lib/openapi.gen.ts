@@ -9,9 +9,6 @@ export type Tag = z.infer<typeof Tag>;
 export const Tag = z.object({
   id: z.string(),
   title: z.string(),
-  parentId: z.union([z.string(), z.null()]),
-  depth: z.number(),
-  direct: z.union([z.boolean(), z.undefined()]).optional(),
   bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
   feedCount: z.union([z.number(), z.undefined()]).optional(),
 });
@@ -24,7 +21,6 @@ export const Bookmark = z.object({
   thumbnailUrl: z.union([z.string(), z.null()]),
   publishedAt: z.union([z.string(), z.null()]),
   author: z.union([z.string(), z.null()]),
-  sortIndex: z.number(),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
@@ -40,17 +36,35 @@ export const BookmarkCreate = z.object({
   tags: z.union([TagsLink, z.undefined()]).optional(),
 });
 
-export type BookmarkList = z.infer<typeof BookmarkList>;
-export const BookmarkList = z.object({
-  data: z.array(Bookmark),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type BookmarkUpdate = z.infer<typeof BookmarkUpdate>;
 export const BookmarkUpdate = z.object({
-  sortIndex: z.number().optional(),
   tags: TagsLink.optional(),
 });
+
+export type BooleanOperation = z.infer<typeof BooleanOperation>;
+export const BooleanOperation = z.object({
+  value: z.boolean(),
+});
+
+export type DateOperation = z.infer<typeof DateOperation>;
+export const DateOperation = z.union([
+  z.object({
+    value: z.string(),
+    type: z.literal("equals"),
+  }),
+  z.object({
+    value: z.string(),
+    type: z.literal("greaterThan"),
+  }),
+  z.object({
+    value: z.string(),
+    type: z.literal("lessThan"),
+  }),
+  z.object({
+    value: z.number(),
+    type: z.literal("inLast"),
+  }),
+]);
 
 export type Feed = z.infer<typeof Feed>;
 export const Feed = z.object({
@@ -82,12 +96,6 @@ export const FeedDetected = z.object({
   title: z.string(),
 });
 
-export type FeedDetectedList = z.infer<typeof FeedDetectedList>;
-export const FeedDetectedList = z.object({
-  data: z.array(FeedDetected),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type FeedEntry = z.infer<typeof FeedEntry>;
 export const FeedEntry = z.object({
   id: z.string(),
@@ -101,21 +109,9 @@ export const FeedEntry = z.object({
   feedId: z.string(),
 });
 
-export type FeedEntryList = z.infer<typeof FeedEntryList>;
-export const FeedEntryList = z.object({
-  data: z.array(FeedEntry),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type FeedEntryUpdate = z.infer<typeof FeedEntryUpdate>;
 export const FeedEntryUpdate = z.object({
   hasRead: z.union([z.boolean(), z.null()]).optional(),
-});
-
-export type FeedList = z.infer<typeof FeedList>;
-export const FeedList = z.object({
-  data: z.array(Feed),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
@@ -129,6 +125,107 @@ export type Login = z.infer<typeof Login>;
 export const Login = z.object({
   email: z.string(),
   password: z.string(),
+});
+
+export type Paginated_Bookmark = z.infer<typeof Paginated_Bookmark>;
+export const Paginated_Bookmark = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      link: z.string(),
+      title: z.string(),
+      thumbnailUrl: z.union([z.string(), z.null()]),
+      publishedAt: z.union([z.string(), z.null()]),
+      author: z.union([z.string(), z.null()]),
+      tags: z.union([z.array(Tag), z.undefined()]).optional(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_Feed = z.infer<typeof Paginated_Feed>;
+export const Paginated_Feed = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      link: z.string(),
+      title: z.union([z.string(), z.null()]),
+      pinned: z.boolean(),
+      originalTitle: z.string(),
+      url: z.union([z.string(), z.null()]),
+      tags: z.union([z.array(Tag), z.undefined()]).optional(),
+      unreadCount: z.union([z.number(), z.undefined()]).optional(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_FeedDetected = z.infer<typeof Paginated_FeedDetected>;
+export const Paginated_FeedDetected = z.object({
+  data: z.array(
+    z.object({
+      url: z.string(),
+      title: z.string(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_FeedEntry = z.infer<typeof Paginated_FeedEntry>;
+export const Paginated_FeedEntry = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      link: z.string(),
+      title: z.string(),
+      publishedAt: z.string(),
+      description: z.union([z.string(), z.null()]),
+      author: z.union([z.string(), z.null()]),
+      thumbnailUrl: z.union([z.string(), z.null()]),
+      hasRead: z.boolean(),
+      feedId: z.string(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_Profile = z.infer<typeof Paginated_Profile>;
+export const Paginated_Profile = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      imageUrl: z.union([z.string(), z.null()]),
+      isDefault: z.boolean(),
+      userId: z.string(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_SmartFeed = z.infer<typeof Paginated_SmartFeed>;
+export const Paginated_SmartFeed = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      unreadCount: z.union([z.number(), z.undefined()]).optional(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_Tag = z.infer<typeof Paginated_Tag>;
+export const Paginated_Tag = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
+      feedCount: z.union([z.number(), z.undefined()]).optional(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
 export type Profile = z.infer<typeof Profile>;
@@ -146,12 +243,6 @@ export const ProfileCreate = z.object({
   imageUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
-export type ProfileList = z.infer<typeof ProfileList>;
-export const ProfileList = z.object({
-  data: z.array(Profile),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type ProfileUpdate = z.infer<typeof ProfileUpdate>;
 export const ProfileUpdate = z.object({
   title: z.string().optional(),
@@ -164,6 +255,73 @@ export const Register = z.object({
   password: z.string(),
 });
 
+export type SmartFeed = z.infer<typeof SmartFeed>;
+export const SmartFeed = z.object({
+  id: z.string(),
+  title: z.string(),
+  unreadCount: z.union([z.number(), z.undefined()]).optional(),
+});
+
+export type TextOperation = z.infer<typeof TextOperation>;
+export const TextOperation = z.union([
+  z.object({
+    value: z.string(),
+    type: z.literal("equals"),
+  }),
+  z.object({
+    value: z.string(),
+    type: z.literal("doesNotEqual"),
+  }),
+  z.object({
+    value: z.string(),
+    type: z.literal("contains"),
+  }),
+  z.object({
+    value: z.string(),
+    type: z.literal("doesNotContain"),
+  }),
+]);
+
+export type SmartFeedFilter = z.infer<typeof SmartFeedFilter>;
+export const SmartFeedFilter = z.union([
+  z.object({
+    operation: TextOperation,
+    field: z.literal("link"),
+  }),
+  z.object({
+    operation: TextOperation,
+    field: z.literal("title"),
+  }),
+  z.object({
+    operation: DateOperation,
+    field: z.literal("publishedAt"),
+  }),
+  z.object({
+    operation: TextOperation,
+    field: z.literal("description"),
+  }),
+  z.object({
+    operation: TextOperation,
+    field: z.literal("author"),
+  }),
+  z.object({
+    operation: BooleanOperation,
+    field: z.literal("hasRead"),
+  }),
+]);
+
+export type SmartFeedCreate = z.infer<typeof SmartFeedCreate>;
+export const SmartFeedCreate = z.object({
+  title: z.string(),
+  filters: z.union([z.array(SmartFeedFilter), z.undefined()]).optional(),
+});
+
+export type SmartFeedUpdate = z.infer<typeof SmartFeedUpdate>;
+export const SmartFeedUpdate = z.object({
+  title: z.union([z.string(), z.null()]).optional(),
+  filters: z.array(SmartFeedFilter).optional(),
+});
+
 export type SwitchProfile = z.infer<typeof SwitchProfile>;
 export const SwitchProfile = z.object({
   id: z.string(),
@@ -172,20 +330,15 @@ export const SwitchProfile = z.object({
 export type TagCreate = z.infer<typeof TagCreate>;
 export const TagCreate = z.object({
   title: z.string(),
-  parentId: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type TagList = z.infer<typeof TagList>;
-export const TagList = z.object({
-  data: z.array(Tag),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
 export type TagUpdate = z.infer<typeof TagUpdate>;
 export const TagUpdate = z.object({
   title: z.string().optional(),
-  parentId: z.union([z.string(), z.null()]).optional(),
 });
+
+export type TagsLinkAction = z.infer<typeof TagsLinkAction>;
+export const TagsLinkAction = z.union([z.literal("add"), z.literal("set"), z.literal("remove")]);
 
 export type User = z.infer<typeof User>;
 export const User = z.object({
@@ -296,7 +449,7 @@ export const get_ListBookmarks = {
       cursor: z.string().optional(),
     }),
   }),
-  response: BookmarkList,
+  response: Paginated_Bookmark,
 };
 
 export type post_CreateBookmark = typeof post_CreateBookmark;
@@ -323,6 +476,19 @@ export const get_GetBookmark = {
   response: Bookmark,
 };
 
+export type delete_DeleteBookmark = typeof delete_DeleteBookmark;
+export const delete_DeleteBookmark = {
+  method: z.literal("DELETE"),
+  path: z.literal("/bookmarks/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
 export type patch_UpdateBookmark = typeof patch_UpdateBookmark;
 export const patch_UpdateBookmark = {
   method: z.literal("PATCH"),
@@ -337,19 +503,6 @@ export const patch_UpdateBookmark = {
   response: Bookmark,
 };
 
-export type delete_DeleteBookmark = typeof delete_DeleteBookmark;
-export const delete_DeleteBookmark = {
-  method: z.literal("DELETE"),
-  path: z.literal("/bookmarks/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
 export type get_ListFeedEntries = typeof get_ListFeedEntries;
 export const get_ListFeedEntries = {
   method: z.literal("GET"),
@@ -358,12 +511,13 @@ export const get_ListFeedEntries = {
   parameters: z.object({
     query: z.object({
       feedId: z.string().optional(),
+      smartFeedId: z.string().optional(),
       hasRead: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
     }),
   }),
-  response: FeedEntryList,
+  response: Paginated_FeedEntry,
 };
 
 export type get_GetFeedEntry = typeof get_GetFeedEntry;
@@ -405,7 +559,7 @@ export const get_ListFeeds = {
       "tag[]": z.array(z.string()).optional(),
     }),
   }),
-  response: FeedList,
+  response: Paginated_Feed,
 };
 
 export type post_CreateFeed = typeof post_CreateFeed;
@@ -432,6 +586,19 @@ export const get_GetFeed = {
   response: Feed,
 };
 
+export type delete_DeleteFeed = typeof delete_DeleteFeed;
+export const delete_DeleteFeed = {
+  method: z.literal("DELETE"),
+  path: z.literal("/feeds/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
 export type patch_UpdateFeed = typeof patch_UpdateFeed;
 export const patch_UpdateFeed = {
   method: z.literal("PATCH"),
@@ -446,19 +613,6 @@ export const patch_UpdateFeed = {
   response: Feed,
 };
 
-export type delete_DeleteFeed = typeof delete_DeleteFeed;
-export const delete_DeleteFeed = {
-  method: z.literal("DELETE"),
-  path: z.literal("/feeds/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
 export type post_DetectFeeds = typeof post_DetectFeeds;
 export const post_DetectFeeds = {
   method: z.literal("POST"),
@@ -467,7 +621,7 @@ export const post_DetectFeeds = {
   parameters: z.object({
     body: FeedDetect,
   }),
-  response: FeedDetectedList,
+  response: Paginated_FeedDetected,
 };
 
 export type get_ListProfiles = typeof get_ListProfiles;
@@ -476,7 +630,7 @@ export const get_ListProfiles = {
   path: z.literal("/profiles"),
   requestFormat: z.literal("json"),
   parameters: z.never(),
-  response: ProfileList,
+  response: Paginated_Profile,
 };
 
 export type post_CreateProfile = typeof post_CreateProfile;
@@ -503,6 +657,19 @@ export const get_GetProfile = {
   response: Profile,
 };
 
+export type delete_DeleteProfile = typeof delete_DeleteProfile;
+export const delete_DeleteProfile = {
+  method: z.literal("DELETE"),
+  path: z.literal("/profiles/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
 export type patch_UpdateProfile = typeof patch_UpdateProfile;
 export const patch_UpdateProfile = {
   method: z.literal("PATCH"),
@@ -517,10 +684,52 @@ export const patch_UpdateProfile = {
   response: Profile,
 };
 
-export type delete_DeleteProfile = typeof delete_DeleteProfile;
-export const delete_DeleteProfile = {
+export type get_GetActiveProfile = typeof get_GetActiveProfile;
+export const get_GetActiveProfile = {
+  method: z.literal("GET"),
+  path: z.literal("/profiles/@me"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: Profile,
+};
+
+export type get_ListSmartFeeds = typeof get_ListSmartFeeds;
+export const get_ListSmartFeeds = {
+  method: z.literal("GET"),
+  path: z.literal("/smartFeeds"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: Paginated_SmartFeed,
+};
+
+export type post_CreateSmartFeed = typeof post_CreateSmartFeed;
+export const post_CreateSmartFeed = {
+  method: z.literal("POST"),
+  path: z.literal("/smartFeeds"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: SmartFeedCreate,
+  }),
+  response: SmartFeed,
+};
+
+export type get_GetSmartFeed = typeof get_GetSmartFeed;
+export const get_GetSmartFeed = {
+  method: z.literal("GET"),
+  path: z.literal("/smartFeeds/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: SmartFeed,
+};
+
+export type delete_DeleteSmartFeed = typeof delete_DeleteSmartFeed;
+export const delete_DeleteSmartFeed = {
   method: z.literal("DELETE"),
-  path: z.literal("/profiles/{id}"),
+  path: z.literal("/smartFeeds/{id}"),
   requestFormat: z.literal("json"),
   parameters: z.object({
     path: z.object({
@@ -530,13 +739,18 @@ export const delete_DeleteProfile = {
   response: z.unknown(),
 };
 
-export type get_GetActiveProfile = typeof get_GetActiveProfile;
-export const get_GetActiveProfile = {
-  method: z.literal("GET"),
-  path: z.literal("/profiles/@me"),
+export type patch_UpdateSmartFeed = typeof patch_UpdateSmartFeed;
+export const patch_UpdateSmartFeed = {
+  method: z.literal("PATCH"),
+  path: z.literal("/smartFeeds/{id}"),
   requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Profile,
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: SmartFeedUpdate,
+  }),
+  response: SmartFeed,
 };
 
 export type get_ListTags = typeof get_ListTags;
@@ -549,7 +763,7 @@ export const get_ListTags = {
       tagType: z.union([z.literal("all"), z.literal("bookmarks"), z.literal("feeds")]).optional(),
     }),
   }),
-  response: TagList,
+  response: Paginated_Tag,
 };
 
 export type post_CreateTag = typeof post_CreateTag;
@@ -576,6 +790,19 @@ export const get_GetTag = {
   response: Tag,
 };
 
+export type delete_DeleteTag = typeof delete_DeleteTag;
+export const delete_DeleteTag = {
+  method: z.literal("DELETE"),
+  path: z.literal("/tags/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
 export type patch_UpdateTag = typeof patch_UpdateTag;
 export const patch_UpdateTag = {
   method: z.literal("PATCH"),
@@ -588,19 +815,6 @@ export const patch_UpdateTag = {
     body: TagUpdate,
   }),
   response: Tag,
-};
-
-export type delete_DeleteTag = typeof delete_DeleteTag;
-export const delete_DeleteTag = {
-  method: z.literal("DELETE"),
-  path: z.literal("/tags/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
 };
 
 // <EndpointByMethod>
@@ -618,6 +832,7 @@ export const EndpointByMethod = {
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
     "/profiles": post_CreateProfile,
+    "/smartFeeds": post_CreateSmartFeed,
     "/tags": post_CreateTag,
   },
   get: {
@@ -631,21 +846,25 @@ export const EndpointByMethod = {
     "/profiles": get_ListProfiles,
     "/profiles/{id}": get_GetProfile,
     "/profiles/@me": get_GetActiveProfile,
+    "/smartFeeds": get_ListSmartFeeds,
+    "/smartFeeds/{id}": get_GetSmartFeed,
     "/tags": get_ListTags,
     "/tags/{id}": get_GetTag,
+  },
+  delete: {
+    "/bookmarks/{id}": delete_DeleteBookmark,
+    "/feeds/{id}": delete_DeleteFeed,
+    "/profiles/{id}": delete_DeleteProfile,
+    "/smartFeeds/{id}": delete_DeleteSmartFeed,
+    "/tags/{id}": delete_DeleteTag,
   },
   patch: {
     "/bookmarks/{id}": patch_UpdateBookmark,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
     "/profiles/{id}": patch_UpdateProfile,
+    "/smartFeeds/{id}": patch_UpdateSmartFeed,
     "/tags/{id}": patch_UpdateTag,
-  },
-  delete: {
-    "/bookmarks/{id}": delete_DeleteBookmark,
-    "/feeds/{id}": delete_DeleteFeed,
-    "/profiles/{id}": delete_DeleteProfile,
-    "/tags/{id}": delete_DeleteTag,
   },
 };
 export type EndpointByMethod = typeof EndpointByMethod;
@@ -654,8 +873,8 @@ export type EndpointByMethod = typeof EndpointByMethod;
 // <EndpointByMethod.Shorthands>
 export type PostEndpoints = EndpointByMethod["post"];
 export type GetEndpoints = EndpointByMethod["get"];
-export type PatchEndpoints = EndpointByMethod["patch"];
 export type DeleteEndpoints = EndpointByMethod["delete"];
+export type PatchEndpoints = EndpointByMethod["patch"];
 export type AllEndpoints = EndpointByMethod[keyof EndpointByMethod];
 // </EndpointByMethod.Shorthands>
 
@@ -734,15 +953,6 @@ export class ApiClient {
   }
   // </ApiClient.get>
 
-  // <ApiClient.patch>
-  patch<Path extends keyof PatchEndpoints, TEndpoint extends PatchEndpoints[Path]>(
-    path: Path,
-    ...params: MaybeOptionalArg<z.infer<TEndpoint["parameters"]>>
-  ): Promise<z.infer<TEndpoint["response"]>> {
-    return this.fetcher("patch", this.baseUrl + path, params[0]) as Promise<z.infer<TEndpoint["response"]>>;
-  }
-  // </ApiClient.patch>
-
   // <ApiClient.delete>
   delete<Path extends keyof DeleteEndpoints, TEndpoint extends DeleteEndpoints[Path]>(
     path: Path,
@@ -751,6 +961,15 @@ export class ApiClient {
     return this.fetcher("delete", this.baseUrl + path, params[0]) as Promise<z.infer<TEndpoint["response"]>>;
   }
   // </ApiClient.delete>
+
+  // <ApiClient.patch>
+  patch<Path extends keyof PatchEndpoints, TEndpoint extends PatchEndpoints[Path]>(
+    path: Path,
+    ...params: MaybeOptionalArg<z.infer<TEndpoint["parameters"]>>
+  ): Promise<z.infer<TEndpoint["response"]>> {
+    return this.fetcher("patch", this.baseUrl + path, params[0]) as Promise<z.infer<TEndpoint["response"]>>;
+  }
+  // </ApiClient.patch>
 }
 
 export function createApiClient(fetcher: Fetcher, baseUrl?: string) {

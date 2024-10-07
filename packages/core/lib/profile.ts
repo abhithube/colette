@@ -1,10 +1,13 @@
 import {
   type ApiClient,
+  Paginated_Profile,
   Profile,
   ProfileCreate,
-  ProfileList,
   ProfileUpdate,
 } from './openapi.gen'
+
+export type ProfileList = Paginated_Profile
+export const ProfileList = Paginated_Profile
 
 export interface ProfileAPI {
   list(): Promise<ProfileList>

@@ -3,13 +3,16 @@ import {
   type ApiClient,
   Feed,
   FeedCreate,
-  FeedList,
   FeedUpdate,
+  Paginated_Feed,
   get_ListFeeds,
 } from './openapi.gen'
 
 export const FeedListQuery = get_ListFeeds.parameters.shape.query
 export type FeedListQuery = z.infer<typeof FeedListQuery>
+
+export type FeedList = Paginated_Feed
+export const FeedList = Paginated_Feed
 
 export interface FeedAPI {
   list(query: FeedListQuery): Promise<FeedList>

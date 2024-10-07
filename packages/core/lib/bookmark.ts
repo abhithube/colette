@@ -3,13 +3,16 @@ import {
   type ApiClient,
   Bookmark,
   BookmarkCreate,
-  BookmarkList,
   BookmarkUpdate,
+  Paginated_Bookmark,
   get_ListBookmarks,
 } from './openapi.gen'
 
 export const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
 export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>
+
+export type BookmarkList = Paginated_Bookmark
+export const BookmarkList = Paginated_Bookmark
 
 export interface BookmarkAPI {
   list(query: BookmarkListQuery): Promise<BookmarkList>
