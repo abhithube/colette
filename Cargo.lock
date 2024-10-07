@@ -794,16 +794,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-entity"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "colette-core",
- "sea-orm",
- "uuid",
-]
-
-[[package]]
 name = "colette-feed"
 version = "0.1.0"
 dependencies = [
