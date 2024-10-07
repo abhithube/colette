@@ -2,7 +2,7 @@ import { ensureInfiniteQueryData, listBookmarksOptions } from '@colette/query'
 import { HStack, Heading } from '@colette/ui'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { BookmarkGrid } from './-components/bookmark-grid'
 
 export const Route = createFileRoute('/_private/bookmarks/')({
@@ -23,14 +23,6 @@ function Component() {
 
   const { data, hasNextPage, fetchNextPage } = useInfiniteQuery(options)
 
-  const [bookmarks, setBookmarks] = useState(
-    data?.pages.flatMap((page) => page.data) ?? [],
-  )
-
-  useEffect(() => {
-    setBookmarks(data?.pages.flatMap((page) => page.data) ?? [])
-  }, [data])
-
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -44,8 +36,7 @@ function Component() {
       </HStack>
       <main>
         <BookmarkGrid
-          bookmarks={bookmarks}
-          setBookmarks={setBookmarks}
+          bookmarks={data?.pages.flatMap((page) => page.data) ?? []}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}
         />
