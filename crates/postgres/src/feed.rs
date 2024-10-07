@@ -1,6 +1,6 @@
 use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
-use sqlx::{PgExecutor, Row};
+use sqlx::PgExecutor;
 
 use crate::profile_feed::ProfileFeed;
 
@@ -28,9 +28,9 @@ pub async fn select_by_url(executor: impl PgExecutor<'_>, url: String) -> sqlx::
         .to_owned();
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
-
-    row.try_get("id")
+    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+        .fetch_one(executor)
+        .await
 }
 
 pub async fn insert(
@@ -52,9 +52,9 @@ pub async fn insert(
         .to_owned();
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
-
-    row.try_get("id")
+    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+        .fetch_one(executor)
+        .await
 }
 
 pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {

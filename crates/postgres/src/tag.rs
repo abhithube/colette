@@ -169,9 +169,9 @@ pub async fn insert(
         .to_owned();
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
-
-    row.try_get("id")
+    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+        .fetch_one(executor)
+        .await
 }
 
 pub async fn insert_many(

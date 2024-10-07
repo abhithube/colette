@@ -2,7 +2,7 @@ use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::chrono::{DateTime, Utc},
-    PgExecutor, Row,
+    PgExecutor,
 };
 
 use crate::profile_feed_entry::ProfileFeedEntry;
@@ -34,14 +34,9 @@ pub async fn select_many_by_feed_id(
         .to_owned();
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let rows = sqlx::query_with(&sql, values).fetch_all(executor).await?;
-
-    let mut uuids: Vec<i32> = Vec::new();
-    for row in rows {
-        uuids.push(row.try_get("id")?);
-    }
-
-    Ok(uuids)
+    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+        .fetch_all(executor)
+        .await
 }
 
 pub struct InsertMany {

@@ -2,7 +2,7 @@ use sea_query::{OnConflict, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::chrono::{DateTime, Utc},
-    PgExecutor, Row,
+    PgExecutor,
 };
 
 #[allow(dead_code)]
@@ -57,7 +57,7 @@ pub async fn insert(
         .to_owned();
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
-
-    row.try_get("id")
+    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+        .fetch_one(executor)
+        .await
 }
