@@ -294,13 +294,24 @@ pub async fn select_by_unique_index(
 pub async fn insert(
     executor: impl PgExecutor<'_>,
     id: Uuid,
+    pinned: Option<bool>,
     feed_id: i32,
     profile_id: Uuid,
 ) -> sqlx::Result<Uuid> {
     let query = Query::insert()
         .into_table(ProfileFeed::Table)
-        .columns([ProfileFeed::Id, ProfileFeed::FeedId, ProfileFeed::ProfileId])
-        .values_panic([id.into(), feed_id.into(), profile_id.into()])
+        .columns([
+            ProfileFeed::Id,
+            ProfileFeed::Pinned,
+            ProfileFeed::FeedId,
+            ProfileFeed::ProfileId,
+        ])
+        .values_panic([
+            id.into(),
+            pinned.unwrap_or_default().into(),
+            feed_id.into(),
+            profile_id.into(),
+        ])
         .on_conflict(
             OnConflict::columns([ProfileFeed::ProfileId, ProfileFeed::FeedId])
                 .do_nothing()

@@ -84,6 +84,7 @@ impl BackupRepository for BackupSqlRepository {
                         colette_postgres::profile_feed::insert(
                             &mut *tx,
                             Uuid::new_v4(),
+                            None,
                             feed_id,
                             profile_id,
                         )
