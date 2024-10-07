@@ -44,12 +44,6 @@ impl TagApi {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    #[schema(required)]
-    pub parent_id: Option<Uuid>,
-    pub depth: i32,
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    direct: Option<bool>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -63,9 +57,6 @@ impl From<colette_core::Tag> for Tag {
         Self {
             id: value.id,
             title: value.title,
-            parent_id: value.parent_id,
-            depth: value.depth,
-            direct: value.direct,
             bookmark_count: value.bookmark_count,
             feed_count: value.feed_count,
         }
@@ -77,15 +68,11 @@ impl From<colette_core::Tag> for Tag {
 pub struct TagCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    pub parent_id: Option<Uuid>,
 }
 
 impl From<TagCreate> for tag::TagCreate {
     fn from(value: TagCreate) -> Self {
-        Self {
-            title: value.title,
-            parent_id: value.parent_id,
-        }
+        Self { title: value.title }
     }
 }
 
@@ -94,15 +81,11 @@ impl From<TagCreate> for tag::TagCreate {
 pub struct TagUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
-    pub parent_id: Option<Uuid>,
 }
 
 impl From<TagUpdate> for tag::TagUpdate {
     fn from(value: TagUpdate) -> Self {
-        Self {
-            title: value.title,
-            parent_id: value.parent_id,
-        }
+        Self { title: value.title }
     }
 }
 

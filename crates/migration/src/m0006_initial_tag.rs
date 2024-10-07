@@ -24,13 +24,6 @@ impl MigrationTrait for Migration {
                     .if_not_exists()
                     .col(uuid(Tag::Id).primary_key())
                     .col(text(Tag::Title))
-                    .col(uuid_null(Tag::ParentId))
-                    .foreign_key(
-                        ForeignKey::create()
-                            .from(Tag::Table, Tag::ParentId)
-                            .to(Tag::Table, Profile::Id)
-                            .on_delete(ForeignKeyAction::Cascade),
-                    )
                     .col(uuid(Tag::ProfileId))
                     .foreign_key(
                         ForeignKey::create()
@@ -223,7 +216,6 @@ pub enum Tag {
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     Id,
     Title,
-    ParentId,
     ProfileId,
     #[cfg_attr(feature = "sqlite", strum(disabled))]
     CreatedAt,

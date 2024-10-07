@@ -11,7 +11,6 @@ pub(crate) enum Tag {
     Table,
     Id,
     Title,
-    ParentId,
     ProfileId,
     CreatedAt,
     UpdatedAt,
@@ -30,9 +29,6 @@ impl From<TagSelect> for colette_core::Tag {
         Self {
             id: value.id,
             title: value.title,
-            parent_id: None,
-            depth: 0,
-            direct: None,
             bookmark_count: Some(value.bookmark_count),
             feed_count: Some(value.feed_count),
         }

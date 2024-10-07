@@ -87,9 +87,6 @@ impl From<TagSelect> for colette_core::Tag {
         Self {
             id: value.id,
             title: value.title,
-            parent_id: None,
-            depth: 0,
-            direct: None,
             bookmark_count: None,
             feed_count: None,
         }
