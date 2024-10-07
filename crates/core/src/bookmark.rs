@@ -22,6 +22,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub created_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }
 
@@ -92,7 +93,7 @@ impl BookmarkService {
 
             if let Some(last) = bookmarks.last() {
                 let c = Cursor {
-                    created_at: Utc::now(),
+                    created_at: last.created_at,
                 };
                 let encoded = self.base64_encoder.encode(&c)?;
 

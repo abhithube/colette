@@ -38,6 +38,7 @@ struct BookmarkSelect {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub created_at: DateTime<Utc>,
     pub tags: Option<Json<Vec<TagSelect>>>,
 }
 
@@ -50,6 +51,7 @@ impl FromRow<'_, sqlx::postgres::PgRow> for BookmarkSelect {
             thumbnail_url: row.try_get("thumbnail_url")?,
             published_at: row.try_get("published_at")?,
             author: row.try_get("author")?,
+            created_at: row.try_get("created_at")?,
             tags: row.try_get("tags")?,
         };
 
@@ -66,6 +68,7 @@ impl From<BookmarkSelect> for colette_core::Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
+            created_at: value.created_at,
             tags: value
                 .tags
                 .map(|e| e.0.into_iter().map(|e| e.into()).collect()),
@@ -152,7 +155,10 @@ pub async fn find(
     let json_tags = Alias::new("json_tags");
 
     let mut select = Query::select()
-        .column((ProfileBookmark::Table, ProfileBookmark::Id))
+        .columns([
+            (ProfileBookmark::Table, ProfileBookmark::Id),
+            (ProfileBookmark::Table, ProfileBookmark::CreatedAt),
+        ])
         .columns([
             (Bookmark::Table, Bookmark::Link),
             (Bookmark::Table, Bookmark::Title),
