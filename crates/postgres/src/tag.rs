@@ -4,17 +4,6 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor, Row};
 
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-pub(crate) enum Tag {
-    Table,
-    Id,
-    Title,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
-}
-
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct TagSelect {
     id: Uuid,

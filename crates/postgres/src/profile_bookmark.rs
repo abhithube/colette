@@ -1,9 +1,6 @@
 use colette_core::bookmark::Cursor;
 use colette_sql::profile_bookmark;
-use sea_query::{
-    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, PgFunc,
-    PostgresQueryBuilder, Query, WithClause,
-};
+use sea_query::{Expr, PostgresQueryBuilder};
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::{
@@ -12,24 +9,6 @@ use sqlx::{
     },
     PgExecutor,
 };
-
-use crate::{
-    bookmark::Bookmark,
-    common::{JsonbArrayElements, JsonbBuildObject},
-    profile_bookmark_tag::ProfileBookmarkTag,
-    tag::Tag,
-};
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-pub(crate) enum ProfileBookmark {
-    Table,
-    Id,
-    ProfileId,
-    BookmarkId,
-    CreatedAt,
-    UpdatedAt,
-}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct BookmarkSelect {
@@ -85,126 +64,15 @@ pub async fn find(
     cursor: Option<Cursor>,
     limit: Option<u64>,
 ) -> sqlx::Result<Vec<colette_core::Bookmark>> {
-    let pf_id = Alias::new("pf_id");
-
-    let jsonb_agg = Expr::cust_with_exprs(
-        "JSONB_AGG($1 ORDER BY $2) FILTER (WHERE $3)",
-        [
-            Func::cust(JsonbBuildObject)
-                .args([
-                    Expr::val("id").into(),
-                    Expr::col((Tag::Table, Tag::Id)).into(),
-                    Expr::val("title").into(),
-                    Expr::col((Tag::Table, Tag::Title)).into(),
-                ])
-                .into(),
-            Expr::col((Tag::Table, Tag::Title)).into(),
-            Expr::col((Tag::Table, Tag::Id)).is_not_null(),
-        ],
-    )
-    .to_owned();
-
-    let a_tags = Alias::new("tags");
-
-    let json_tags_cte = Query::select()
-        .expr_as(
-            Expr::col((ProfileBookmark::Table, ProfileBookmark::Id)),
-            pf_id.clone(),
-        )
-        .expr_as(jsonb_agg, a_tags.clone())
-        .from(ProfileBookmark::Table)
-        .join(
-            JoinType::InnerJoin,
-            ProfileBookmarkTag::Table,
-            Expr::col((
-                ProfileBookmarkTag::Table,
-                ProfileBookmarkTag::ProfileBookmarkId,
-            ))
-            .eq(Expr::col((ProfileBookmark::Table, ProfileBookmark::Id))),
-        )
-        .join(
-            JoinType::InnerJoin,
-            Tag::Table,
-            Expr::col((Tag::Table, Tag::Id)).eq(Expr::col((
-                ProfileBookmarkTag::Table,
-                ProfileBookmarkTag::TagId,
-            ))),
-        )
-        .group_by_col((ProfileBookmark::Table, ProfileBookmark::Id))
-        .to_owned();
-
-    let json_tags = Alias::new("json_tags");
-
-    let mut select = Query::select()
-        .columns([
-            (ProfileBookmark::Table, ProfileBookmark::Id),
-            (ProfileBookmark::Table, ProfileBookmark::CreatedAt),
-        ])
-        .columns([
-            (Bookmark::Table, Bookmark::Link),
-            (Bookmark::Table, Bookmark::Title),
-            (Bookmark::Table, Bookmark::ThumbnailUrl),
-            (Bookmark::Table, Bookmark::PublishedAt),
-            (Bookmark::Table, Bookmark::Author),
-        ])
-        .expr_as(
-            Func::coalesce([Expr::col((json_tags.clone(), a_tags.clone())).into()]),
-            a_tags.clone(),
-        )
-        .from(ProfileBookmark::Table)
-        .join(
-            JoinType::Join,
-            Bookmark::Table,
-            Expr::col((Bookmark::Table, Bookmark::Id)).eq(Expr::col((
-                ProfileBookmark::Table,
-                ProfileBookmark::BookmarkId,
-            ))),
-        )
-        .join(
-            JoinType::LeftJoin,
-            json_tags.clone(),
-            Expr::col((json_tags.clone(), pf_id.clone()))
-                .eq(Expr::col((ProfileBookmark::Table, ProfileBookmark::Id))),
-        )
-        .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::ProfileId)).eq(profile_id))
-        .and_where_option(
-            id.map(|e| Expr::col((ProfileBookmark::Table, ProfileBookmark::Id)).eq(e)),
-        )
-        .and_where_option(tags.map(|e| {
-            let t = Alias::new("t");
-
-            Expr::exists(
-                Query::select()
-                    .expr(Expr::val(1))
-                    .from_function(
-                        Func::cust(JsonbArrayElements)
-                            .arg(Expr::col((json_tags.clone(), a_tags.clone()))),
-                        t.clone(),
-                    )
-                    .and_where(Expr::col(t).get_json_field("title").eq(PgFunc::any(e)))
-                    .to_owned(),
-            )
-        }))
-        .and_where_option(cursor.map(|e| {
-            Expr::col((ProfileBookmark::Table, ProfileBookmark::CreatedAt))
-                .gt(Expr::val(e.created_at))
-        }))
-        .to_owned();
-
-    if let Some(limit) = limit {
-        select.limit(limit);
-    }
-
-    let query = select.with(
-        WithClause::new()
-            .cte(
-                CommonTableExpression::new()
-                    .query(json_tags_cte)
-                    .table_name(json_tags)
-                    .to_owned(),
-            )
-            .to_owned(),
+    let jsonb_agg = Expr::cust(
+        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tag"."id", 'title', "tag"."title") ORDER BY "tag"."title") FILTER (WHERE "tag"."id" IS NOT NULL)"#,
     );
+
+    let tags_subquery = tags.map(|e| {
+        Expr::cust_with_expr(r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE "t" ->> 'title' = ANY($1))"#, e)
+    });
+
+    let query = profile_bookmark::select(id, profile_id, cursor, limit, jsonb_agg, tags_subquery);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_as_with::<_, BookmarkSelect, _>(&sql, values)

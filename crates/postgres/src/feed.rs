@@ -4,18 +4,6 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::PgExecutor;
 
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-pub(crate) enum Feed {
-    Table,
-    Id,
-    Link,
-    Title,
-    Url,
-    CreatedAt,
-    UpdatedAt,
-}
-
 pub async fn select_by_url(executor: impl PgExecutor<'_>, url: String) -> sqlx::Result<i32> {
     let query = feed::select_by_url(url);
 

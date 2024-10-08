@@ -3,16 +3,6 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
 
-#[derive(sea_query::Iden)]
-pub enum ProfileFeedTag {
-    Table,
-    ProfileFeedId,
-    TagId,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
-}
-
 pub async fn insert_many(
     executor: impl PgExecutor<'_>,
     data: Vec<InsertMany>,
