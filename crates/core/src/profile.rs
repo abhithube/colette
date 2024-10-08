@@ -24,7 +24,7 @@ pub struct ProfileCreate {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ProfileUpdate {
     pub title: Option<NonEmptyString>,
-    pub image_url: Option<Url>,
+    pub image_url: Option<Option<Url>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
@@ -138,14 +138,14 @@ pub struct ProfileCreateData {
 #[derive(Clone, Debug, Default)]
 pub struct ProfileUpdateData {
     pub title: Option<String>,
-    pub image_url: Option<String>,
+    pub image_url: Option<Option<String>>,
 }
 
 impl From<ProfileUpdate> for ProfileUpdateData {
     fn from(value: ProfileUpdate) -> Self {
         Self {
             title: value.title.map(String::from),
-            image_url: value.image_url.map(String::from),
+            image_url: value.image_url.map(|e| e.map(String::from)),
         }
     }
 }

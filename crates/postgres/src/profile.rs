@@ -66,14 +66,16 @@ pub async fn update(
     user_id: Uuid,
     title: Option<String>,
     image_url: Option<Option<String>>,
-) -> sqlx::Result<colette_core::Profile> {
+) -> sqlx::Result<()> {
     let query = profile::update(id, user_id, title, image_url);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
-        .fetch_one(executor)
-        .await
-        .map(|e| e.into())
+    let result = sqlx::query_with(&sql, values).execute(executor).await?;
+    if result.rows_affected() == 0 {
+        return Err(sqlx::Error::RowNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {

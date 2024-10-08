@@ -78,18 +78,36 @@ impl Updatable for ProfileSqlRepository {
     type Output = Result<Profile, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        colette_postgres::profile::update(
-            &self.pool,
-            params.id,
-            params.user_id,
-            data.title,
-            Some(data.image_url),
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if data.title.is_some() || data.image_url.is_some() {
+            colette_postgres::profile::update(
+                &mut *tx,
+                params.id,
+                params.user_id,
+                data.title,
+                data.image_url,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+        }
+
+        let mut profiles =
+            find(&mut *tx, Some(params.id), params.user_id, None, None, None).await?;
+        if profiles.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(profiles.swap_remove(0))
     }
 }
 
