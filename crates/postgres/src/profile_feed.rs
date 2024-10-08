@@ -7,7 +7,7 @@ use sea_query::{
 use sea_query_binder::SqlxBinder;
 use sqlx::{
     types::{Json, Uuid},
-    FromRow, PgExecutor, Row,
+    PgExecutor,
 };
 
 use crate::{
@@ -31,7 +31,7 @@ pub(crate) enum ProfileFeed {
     UpdatedAt,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 struct FeedSelect {
     pub id: Uuid,
     pub link: String,
@@ -41,23 +41,6 @@ struct FeedSelect {
     pub url: Option<String>,
     pub tags: Option<Json<Vec<TagSelect>>>,
     pub unread_count: i64,
-}
-
-impl FromRow<'_, sqlx::postgres::PgRow> for FeedSelect {
-    fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
-        let feed = Self {
-            id: row.try_get("id")?,
-            link: row.try_get("link")?,
-            title: row.try_get("title")?,
-            pinned: row.try_get("pinned")?,
-            original_title: row.try_get("original_title")?,
-            url: row.try_get("url")?,
-            tags: row.try_get("tags")?,
-            unread_count: row.try_get("unread_count")?,
-        };
-
-        Ok(feed)
-    }
 }
 
 impl From<FeedSelect> for colette_core::Feed {

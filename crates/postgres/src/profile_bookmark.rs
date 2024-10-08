@@ -10,7 +10,7 @@ use sqlx::{
         chrono::{DateTime, Utc},
         Json, Uuid,
     },
-    FromRow, PgExecutor, Row,
+    PgExecutor,
 };
 
 use crate::{
@@ -31,7 +31,7 @@ pub(crate) enum ProfileBookmark {
     UpdatedAt,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, sqlx::FromRow)]
 struct BookmarkSelect {
     pub id: Uuid,
     pub link: String,
@@ -41,23 +41,6 @@ struct BookmarkSelect {
     pub author: Option<String>,
     pub created_at: DateTime<Utc>,
     pub tags: Option<Json<Vec<TagSelect>>>,
-}
-
-impl FromRow<'_, sqlx::postgres::PgRow> for BookmarkSelect {
-    fn from_row(row: &sqlx::postgres::PgRow) -> Result<Self, sqlx::Error> {
-        let bookmark = Self {
-            id: row.try_get("id")?,
-            link: row.try_get("link")?,
-            title: row.try_get("title")?,
-            thumbnail_url: row.try_get("thumbnail_url")?,
-            published_at: row.try_get("published_at")?,
-            author: row.try_get("author")?,
-            created_at: row.try_get("created_at")?,
-            tags: row.try_get("tags")?,
-        };
-
-        Ok(bookmark)
-    }
 }
 
 impl From<BookmarkSelect> for colette_core::Bookmark {
