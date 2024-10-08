@@ -123,18 +123,20 @@ impl Updatable for FeedSqlRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        colette_postgres::profile_feed::update(
-            &mut *tx,
-            params.id,
-            params.profile_id,
-            data.title,
-            data.pinned,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })?;
+        if data.title.is_some() || data.pinned.is_some() {
+            colette_postgres::profile_feed::update(
+                &mut *tx,
+                params.id,
+                params.profile_id,
+                data.title,
+                data.pinned,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+        }
 
         if let Some(tags) = data.tags {
             link_tags(&mut tx, params.id, tags, params.profile_id)

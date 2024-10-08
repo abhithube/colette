@@ -40,17 +40,19 @@ impl Updatable for FeedEntrySqlRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        colette_postgres::profile_feed_entry::update(
-            &mut *tx,
-            params.id,
-            params.profile_id,
-            data.has_read,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })?;
+        if data.has_read.is_some() {
+            colette_postgres::profile_feed_entry::update(
+                &mut *tx,
+                params.id,
+                params.profile_id,
+                data.has_read,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+        }
 
         let entry = find_by_id(&mut *tx, params).await?;
 

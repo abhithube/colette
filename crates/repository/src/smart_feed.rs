@@ -80,12 +80,19 @@ impl Updatable for SmartFeedSqlRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        colette_postgres::smart_feed::update(&mut *tx, params.id, params.profile_id, data.title)
+        if data.title.is_some() {
+            colette_postgres::smart_feed::update(
+                &mut *tx,
+                params.id,
+                params.profile_id,
+                data.title,
+            )
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
             })?;
+        }
 
         if let Some(filters) = data.filters {
             colette_postgres::smart_feed_filter::delete_many(
