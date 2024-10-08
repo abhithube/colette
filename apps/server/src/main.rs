@@ -21,10 +21,10 @@ use colette_core::{
     refresh::RefreshService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_repository::{
-    BackupSqlRepository, BookmarkSqlRepository, CleanupSqlRepository, FeedEntrySqlRepository,
-    FeedSqlRepository, ProfileSqlRepository, SmartFeedSqlRepository, TagSqlRepository,
-    UserSqlRepository,
+use colette_postgres::{
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCleanupRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresProfileRepository,
+    PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
 };
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
@@ -62,15 +62,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         url if url.starts_with("postgres") => {
             let pool = PgPool::connect(url).await?;
 
-            let backup_repository = Arc::new(BackupSqlRepository::new(pool.clone()));
-            let bookmark_repository = Arc::new(BookmarkSqlRepository::new(pool.clone()));
-            let cleanup_repository = Arc::new(CleanupSqlRepository::new(pool.clone()));
-            let feed_repository = Arc::new(FeedSqlRepository::new(pool.clone()));
-            let feed_entry_repository = Arc::new(FeedEntrySqlRepository::new(pool.clone()));
-            let profile_repository = Arc::new(ProfileSqlRepository::new(pool.clone()));
-            let smart_feed_repository = Arc::new(SmartFeedSqlRepository::new(pool.clone()));
-            let tag_repository = Arc::new(TagSqlRepository::new(pool.clone()));
-            let user_repository = Arc::new(UserSqlRepository::new(pool.clone()));
+            let backup_repository = Arc::new(PostgresBackupRepository::new(pool.clone()));
+            let bookmark_repository = Arc::new(PostgresBookmarkRepository::new(pool.clone()));
+            let cleanup_repository = Arc::new(PostgresCleanupRepository::new(pool.clone()));
+            let feed_repository = Arc::new(PostgresFeedRepository::new(pool.clone()));
+            let feed_entry_repository = Arc::new(PostgresFeedEntryRepository::new(pool.clone()));
+            let profile_repository = Arc::new(PostgresProfileRepository::new(pool.clone()));
+            let smart_feed_repository = Arc::new(PostgresSmartFeedRepository::new(pool.clone()));
+            let tag_repository = Arc::new(PostgresTagRepository::new(pool.clone()));
+            let user_repository = Arc::new(PostgresUserRepository::new(pool.clone()));
 
             let store = PostgresStore::new(pool);
             store.migrate().await?;

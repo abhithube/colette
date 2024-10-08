@@ -10,7 +10,7 @@ use sqlx::{
     PgExecutor,
 };
 
-use crate::smart_feed_filter::build_case_statement;
+use super::smart_feed_filter::build_case_statement;
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]

@@ -609,27 +609,16 @@ dependencies = [
 name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
- "colette-core",
- "colette-sql",
- "futures",
- "sea-query",
- "sea-query-binder",
- "serde",
- "sqlx",
-]
-
-[[package]]
-name = "colette-repository"
-version = "0.1.0"
-dependencies = [
  "anyhow",
  "async-trait",
  "colette-core",
  "colette-netscape",
  "colette-opml",
- "colette-postgres",
  "colette-sql",
  "futures",
+ "sea-query",
+ "sea-query-binder",
+ "serde",
  "sqlx",
 ]
 
@@ -663,7 +652,7 @@ dependencies = [
  "colette-config",
  "colette-core",
  "colette-plugins",
- "colette-repository",
+ "colette-postgres",
  "colette-scraper",
  "colette-session",
  "colette-task",

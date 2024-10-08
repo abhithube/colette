@@ -1,54 +1,130 @@
-use colette_sql::feed_entry::{self, InsertMany};
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgExecutor;
+use colette_core::{
+    common::{Findable, IdParams, Updatable},
+    feed_entry::{
+        Cursor, Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData,
+    },
+    FeedEntry,
+};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-pub(crate) enum FeedEntry {
-    Table,
-    Id,
-    Link,
-    Title,
-    PublishedAt,
-    Description,
-    Author,
-    ThumbnailUrl,
-    FeedId,
-    CreatedAt,
-    UpdatedAt,
+use crate::query;
+
+pub struct PostgresFeedEntryRepository {
+    pub(crate) pool: PgPool,
 }
 
-pub async fn select_many_by_feed_id(
+impl PostgresFeedEntryRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for PostgresFeedEntryRepository {
+    type Params = IdParams;
+    type Output = Result<FeedEntry, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.pool, params).await
+    }
+}
+
+#[async_trait::async_trait]
+impl Updatable for PostgresFeedEntryRepository {
+    type Params = IdParams;
+    type Data = FeedEntryUpdateData;
+    type Output = Result<FeedEntry, Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if data.has_read.is_some() {
+            query::profile_feed_entry::update(
+                &mut *tx,
+                params.id,
+                params.profile_id,
+                data.has_read,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
+        }
+
+        let entry = find_by_id(&mut *tx, params).await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(entry)
+    }
+}
+
+#[async_trait::async_trait]
+impl FeedEntryRepository for PostgresFeedEntryRepository {
+    async fn list(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<Cursor>,
+        filters: Option<FeedEntryFindManyFilters>,
+    ) -> Result<Vec<FeedEntry>, Error> {
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
+    }
+}
+
+async fn find(
     executor: impl PgExecutor<'_>,
-    feed_id: i32,
-) -> sqlx::Result<Vec<i32>> {
-    let query = feed_entry::select_many_by_feed_id(feed_id);
+    id: Option<Uuid>,
+    profile_id: Uuid,
+    limit: Option<u64>,
+    cursor: Option<Cursor>,
+    filters: Option<FeedEntryFindManyFilters>,
+) -> Result<Vec<FeedEntry>, Error> {
+    let mut feed_id: Option<Uuid> = None;
+    let mut smart_feed_id: Option<Uuid> = None;
+    let mut has_read: Option<bool> = None;
+    let mut tags: Option<Vec<String>> = None;
 
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-        .fetch_all(executor)
-        .await
+    if let Some(filters) = filters {
+        feed_id = filters.feed_id;
+        smart_feed_id = filters.smart_feed_id;
+        has_read = filters.has_read;
+        tags = filters.tags;
+    }
+
+    query::profile_feed_entry::select(
+        executor,
+        id,
+        profile_id,
+        feed_id,
+        has_read,
+        tags.as_deref(),
+        smart_feed_id,
+        cursor,
+        limit,
+    )
+    .await
+    .map_err(|e| Error::Unknown(e.into()))
 }
 
-pub async fn insert_many(
-    executor: impl PgExecutor<'_>,
-    data: Vec<InsertMany>,
-    feed_id: i32,
-) -> sqlx::Result<()> {
-    let query = feed_entry::insert_many(data, feed_id);
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<FeedEntry, Error> {
+    let mut feed_entries = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
+    if feed_entries.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
 
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_with(&sql, values).execute(executor).await?;
-
-    Ok(())
-}
-
-pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
-    let query = feed_entry::delete_many();
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let result = sqlx::query_with(&sql, values).execute(executor).await?;
-
-    Ok(result.rows_affected())
+    Ok(feed_entries.swap_remove(0))
 }

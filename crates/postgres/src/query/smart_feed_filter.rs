@@ -3,7 +3,7 @@ use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, SimpleEx
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
 
-use crate::{feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry};
+use super::{feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]

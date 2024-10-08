@@ -1,142 +1,155 @@
-use colette_core::tag::{Cursor, TagFindManyFilters};
-use colette_sql::tag::{self, InsertMany};
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{types::Uuid, PgExecutor, Row};
+use colette_core::{
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
+    Tag,
+};
+use sqlx::{types::Uuid, PgExecutor, PgPool};
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct TagSelect {
-    id: Uuid,
-    title: String,
-    bookmark_count: i64,
-    feed_count: i64,
+use crate::query;
+
+pub struct PostgresTagRepository {
+    pub(crate) pool: PgPool,
 }
 
-impl From<TagSelect> for colette_core::Tag {
-    fn from(value: TagSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            bookmark_count: Some(value.bookmark_count),
-            feed_count: Some(value.feed_count),
-        }
+impl PostgresTagRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub struct TagSelectId {
-    pub id: Uuid,
+#[async_trait::async_trait]
+impl Findable for PostgresTagRepository {
+    type Params = IdParams;
+    type Output = Result<Tag, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        find_by_id(&self.pool, params).await
+    }
 }
 
-pub async fn select(
+#[async_trait::async_trait]
+impl Creatable for PostgresTagRepository {
+    type Data = TagCreateData;
+    type Output = Result<Tag, Error>;
+
+    async fn create(&self, data: Self::Data) -> Self::Output {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = query::tag::insert(
+            &self.pool,
+            Uuid::new_v4(),
+            data.title.clone(),
+            data.profile_id,
+        )
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+            _ => Error::Unknown(e.into()),
+        })?;
+
+        let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(tag)
+    }
+}
+
+#[async_trait::async_trait]
+impl Updatable for PostgresTagRepository {
+    type Params = IdParams;
+    type Data = TagUpdateData;
+    type Output = Result<Tag, Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        let mut tx = self
+            .pool
+            .begin()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if data.title.is_some() {
+            query::tag::update(&mut *tx, params.id, params.profile_id, data.title)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                    _ => Error::Unknown(e.into()),
+                })?;
+        }
+
+        let tag = find_by_id(&mut *tx, params)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(tag)
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for PostgresTagRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        query::tag::delete_by_id(&self.pool, params.id, params.profile_id)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
+    }
+}
+
+#[async_trait::async_trait]
+impl TagRepository for PostgresTagRepository {
+    async fn list(
+        &self,
+        profile_id: Uuid,
+        limit: Option<u64>,
+        cursor: Option<Cursor>,
+        filters: Option<TagFindManyFilters>,
+    ) -> Result<Vec<Tag>, Error> {
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
+    }
+}
+
+pub(crate) async fn find(
     executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
-) -> sqlx::Result<Vec<colette_core::Tag>> {
-    let query = tag::select(id, profile_id, limit, cursor, filters);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
-        .fetch_all(executor)
+) -> Result<Vec<Tag>, Error> {
+    let tags = query::tag::select(executor, id, profile_id, limit, cursor, filters)
         .await
-        .map(|e| e.into_iter().map(|e| e.into()).collect())
+        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))?;
+
+    Ok(tags)
 }
 
-pub async fn select_by_title(
-    executor: impl PgExecutor<'_>,
-    title: String,
-    profile_id: Uuid,
-) -> sqlx::Result<Uuid> {
-    let query = tag::select_by_title(title, profile_id);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let row = sqlx::query_with(&sql, values).fetch_one(executor).await?;
-
-    row.try_get("id")
-}
-
-pub async fn select_ids_by_titles(
-    executor: impl PgExecutor<'_>,
-    titles: &[String],
-    profile_id: Uuid,
-) -> sqlx::Result<Vec<Uuid>> {
-    let query = tag::select_ids_by_titles(titles, profile_id);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_as_with::<_, TagSelectId, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(|e| e.id).collect())
-}
-
-pub async fn insert(
-    executor: impl PgExecutor<'_>,
-    id: Uuid,
-    title: String,
-    profile_id: Uuid,
-) -> sqlx::Result<Uuid> {
-    let query = tag::insert(id, title, profile_id);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-        .fetch_one(executor)
-        .await
-}
-
-pub async fn insert_many(
-    executor: impl PgExecutor<'_>,
-    data: Vec<InsertMany>,
-    profile_id: Uuid,
-) -> sqlx::Result<()> {
-    let query = tag::insert_many(data, profile_id);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    sqlx::query_with(&sql, values).execute(executor).await?;
-
-    Ok(())
-}
-
-pub async fn update(
-    executor: impl PgExecutor<'_>,
-    id: Uuid,
-    profile_id: Uuid,
-    title: Option<String>,
-) -> sqlx::Result<()> {
-    let query = tag::update(id, profile_id, title);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let result = sqlx::query_with(&sql, values).execute(executor).await?;
-    if result.rows_affected() == 0 {
-        return Err(sqlx::Error::RowNotFound);
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Tag, Error> {
+    let mut tags = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
+    if tags.is_empty() {
+        return Err(Error::NotFound(params.id));
     }
 
-    Ok(())
-}
-
-pub async fn delete_by_id(
-    executor: impl PgExecutor<'_>,
-    id: Uuid,
-    profile_id: Uuid,
-) -> sqlx::Result<()> {
-    let query = tag::delete_by_id(id, profile_id);
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let result = sqlx::query_with(&sql, values).execute(executor).await?;
-    if result.rows_affected() == 0 {
-        return Err(sqlx::Error::RowNotFound);
-    }
-
-    Ok(())
-}
-
-pub async fn delete_many(executor: impl PgExecutor<'_>) -> sqlx::Result<u64> {
-    let query = tag::delete_many();
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-    let result = sqlx::query_with(&sql, values).execute(executor).await?;
-
-    Ok(result.rows_affected())
+    Ok(tags.swap_remove(0))
 }

@@ -3,11 +3,13 @@ use colette_netscape::Item;
 use colette_opml::Outline;
 use sqlx::{types::Uuid, PgPool};
 
-pub struct BackupSqlRepository {
+use crate::query;
+
+pub struct PostgresBackupRepository {
     pub(crate) pool: PgPool,
 }
 
-impl BackupSqlRepository {
+impl PostgresBackupRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
@@ -19,7 +21,7 @@ struct Parent {
 }
 
 #[async_trait::async_trait]
-impl BackupRepository for BackupSqlRepository {
+impl BackupRepository for PostgresBackupRepository {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error> {
         let mut tx = self
             .pool
@@ -36,25 +38,15 @@ impl BackupRepository for BackupSqlRepository {
             let title = outline.title.unwrap_or(outline.text);
 
             if outline.outline.is_some() {
-                let tag_id = match colette_postgres::tag::select_by_title(
-                    &mut *tx,
-                    title.clone(),
-                    profile_id,
-                )
-                .await
-                {
-                    Ok(id) => Ok(id),
-                    _ => {
-                        colette_postgres::tag::insert(
-                            &mut *tx,
-                            Uuid::new_v4(),
-                            title.clone(),
-                            profile_id,
-                        )
-                        .await
+                let tag_id =
+                    match query::tag::select_by_title(&mut *tx, title.clone(), profile_id).await {
+                        Ok(id) => Ok(id),
+                        _ => {
+                            query::tag::insert(&mut *tx, Uuid::new_v4(), title.clone(), profile_id)
+                                .await
+                        }
                     }
-                }
-                .map_err(|e| Error::Unknown(e.into()))?;
+                    .map_err(|e| Error::Unknown(e.into()))?;
 
                 if let Some(children) = outline.outline.take() {
                     for child in children.into_iter().rev() {
@@ -68,19 +60,18 @@ impl BackupRepository for BackupSqlRepository {
                     }
                 }
             } else if let Some(link) = outline.xml_url {
-                let feed_id =
-                    colette_postgres::feed::insert(&mut *tx, link, title, outline.html_url)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                let feed_id = query::feed::insert(&mut *tx, link, title, outline.html_url)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
 
-                let profile_feed_id = match colette_postgres::profile_feed::select_by_unique_index(
+                let profile_feed_id = match query::profile_feed::select_by_unique_index(
                     &mut *tx, profile_id, feed_id,
                 )
                 .await
                 {
                     Ok(id) => Ok(id),
                     _ => {
-                        colette_postgres::profile_feed::insert(
+                        query::profile_feed::insert(
                             &mut *tx,
                             Uuid::new_v4(),
                             None,
@@ -93,7 +84,7 @@ impl BackupRepository for BackupSqlRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
 
                 if let Some(tag) = parent {
-                    colette_postgres::profile_feed_tag::insert_many(
+                    query::profile_feed_tag::insert_many(
                         &mut *tx,
                         vec![colette_sql::profile_feed_tag::InsertMany {
                             profile_feed_id,
@@ -128,25 +119,15 @@ impl BackupRepository for BackupSqlRepository {
                     item.title
                 };
 
-                let tag_id = match colette_postgres::tag::select_by_title(
-                    &mut *tx,
-                    title.clone(),
-                    profile_id,
-                )
-                .await
-                {
-                    Ok(id) => Ok(id),
-                    _ => {
-                        colette_postgres::tag::insert(
-                            &mut *tx,
-                            Uuid::new_v4(),
-                            title.clone(),
-                            profile_id,
-                        )
-                        .await
+                let tag_id =
+                    match query::tag::select_by_title(&mut *tx, title.clone(), profile_id).await {
+                        Ok(id) => Ok(id),
+                        _ => {
+                            query::tag::insert(&mut *tx, Uuid::new_v4(), title.clone(), profile_id)
+                                .await
+                        }
                     }
-                }
-                .map_err(|e| Error::Unknown(e.into()))?;
+                    .map_err(|e| Error::Unknown(e.into()))?;
 
                 if let Some(children) = item.item.take() {
                     for child in children.into_iter().rev() {
@@ -160,35 +141,33 @@ impl BackupRepository for BackupSqlRepository {
                     }
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id = colette_postgres::bookmark::insert(
-                    &mut *tx, link, item.title, None, None, None,
+                let bookmark_id =
+                    query::bookmark::insert(&mut *tx, link, item.title, None, None, None)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                let profile_bookmark_id = match query::profile_bookmark::select_by_unique_index(
+                    &mut *tx,
+                    profile_id,
+                    bookmark_id,
                 )
                 .await
+                {
+                    Ok(id) => Ok(id),
+                    _ => {
+                        query::profile_bookmark::insert(
+                            &mut *tx,
+                            Uuid::new_v4(),
+                            bookmark_id,
+                            profile_id,
+                        )
+                        .await
+                    }
+                }
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-                let profile_bookmark_id =
-                    match colette_postgres::profile_bookmark::select_by_unique_index(
-                        &mut *tx,
-                        profile_id,
-                        bookmark_id,
-                    )
-                    .await
-                    {
-                        Ok(id) => Ok(id),
-                        _ => {
-                            colette_postgres::profile_bookmark::insert(
-                                &mut *tx,
-                                Uuid::new_v4(),
-                                bookmark_id,
-                                profile_id,
-                            )
-                            .await
-                        }
-                    }
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
                 if let Some(tag) = parent {
-                    colette_postgres::profile_bookmark_tag::insert_many(
+                    query::profile_bookmark_tag::insert_many(
                         &mut *tx,
                         vec![colette_sql::profile_bookmark_tag::InsertMany {
                             profile_bookmark_id,

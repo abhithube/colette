@@ -1,18 +1,20 @@
 use colette_core::cleanup::{CleanupRepository, Error};
 use sqlx::PgPool;
 
-pub struct CleanupSqlRepository {
+use crate::query;
+
+pub struct PostgresCleanupRepository {
     pub(crate) pool: PgPool,
 }
 
-impl CleanupSqlRepository {
+impl PostgresCleanupRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait::async_trait]
-impl CleanupRepository for CleanupSqlRepository {
+impl CleanupRepository for PostgresCleanupRepository {
     async fn cleanup_feeds(&self) -> Result<(), Error> {
         let mut tx = self
             .pool
@@ -20,14 +22,14 @@ impl CleanupRepository for CleanupSqlRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut count = colette_postgres::feed_entry::delete_many(&mut *tx)
+        let mut count = query::feed_entry::delete_many(&mut *tx)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if count > 0 {
             println!("Deleted {} orphaned feed entries", count);
         }
 
-        count = colette_postgres::feed::delete_many(&mut *tx)
+        count = query::feed::delete_many(&mut *tx)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if count > 0 {
@@ -38,7 +40,7 @@ impl CleanupRepository for CleanupSqlRepository {
     }
 
     async fn cleanup_tags(&self) -> Result<(), Error> {
-        let count = colette_postgres::tag::delete_many(&self.pool)
+        let count = query::tag::delete_many(&self.pool)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
         if count > 0 {
