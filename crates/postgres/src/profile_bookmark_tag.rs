@@ -1,10 +1,8 @@
-use sea_query::{Expr, OnConflict, PostgresQueryBuilder, Query};
+use colette_sql::profile_bookmark_tag::{self, InsertMany};
+use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
 
-use crate::tag::build_titles_subquery;
-
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum ProfileBookmarkTag {
     Table,
@@ -15,40 +13,12 @@ pub enum ProfileBookmarkTag {
     UpdatedAt,
 }
 
-pub struct InsertMany {
-    pub profile_bookmark_id: Uuid,
-    pub tag_id: Uuid,
-}
-
 pub async fn insert_many(
     executor: impl PgExecutor<'_>,
     data: Vec<InsertMany>,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
-    let mut query = Query::insert()
-        .into_table(ProfileBookmarkTag::Table)
-        .columns([
-            ProfileBookmarkTag::ProfileBookmarkId,
-            ProfileBookmarkTag::TagId,
-            ProfileBookmarkTag::ProfileId,
-        ])
-        .on_conflict(
-            OnConflict::columns([
-                ProfileBookmarkTag::ProfileBookmarkId,
-                ProfileBookmarkTag::TagId,
-            ])
-            .do_nothing()
-            .to_owned(),
-        )
-        .to_owned();
-
-    for pbt in data {
-        query.values_panic([
-            pbt.profile_bookmark_id.into(),
-            pbt.tag_id.into(),
-            profile_id.into(),
-        ]);
-    }
+    let query = profile_bookmark_tag::insert_many(data, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_with(&sql, values).execute(executor).await?;
@@ -61,13 +31,7 @@ pub async fn delete_many_in_titles(
     titles: &[String],
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(ProfileBookmarkTag::Table)
-        .and_where(
-            Expr::col(ProfileBookmarkTag::TagId)
-                .in_subquery(build_titles_subquery(titles, profile_id)),
-        )
-        .to_owned();
+    let query = profile_bookmark_tag::delete_many_in_titles(titles, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_with(&sql, values).execute(executor).await?;
@@ -80,15 +44,7 @@ pub async fn delete_many_not_in_titles(
     titles: &[String],
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(ProfileBookmarkTag::Table)
-        .and_where(Expr::col(ProfileBookmarkTag::ProfileId).eq(profile_id))
-        .and_where(
-            Expr::col(ProfileBookmarkTag::TagId)
-                .in_subquery(build_titles_subquery(titles, profile_id))
-                .not(),
-        )
-        .to_owned();
+    let query = profile_bookmark_tag::delete_many_not_in_titles(titles, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_with(&sql, values).execute(executor).await?;

@@ -1,7 +1,8 @@
 use colette_core::feed::Cursor;
+use colette_sql::profile_feed;
 use sea_query::{
-    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, OnConflict,
-    PgFunc, PostgresQueryBuilder, Query, WithClause,
+    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, PgFunc,
+    PostgresQueryBuilder, Query, WithClause,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{
@@ -278,12 +279,7 @@ pub async fn select_by_unique_index(
     profile_id: Uuid,
     feed_id: i32,
 ) -> sqlx::Result<Uuid> {
-    let query = Query::select()
-        .column(ProfileFeed::Id)
-        .from(ProfileFeed::Table)
-        .and_where(Expr::col(ProfileFeed::ProfileId).eq(profile_id))
-        .and_where(Expr::col(ProfileFeed::FeedId).eq(feed_id))
-        .to_owned();
+    let query = profile_feed::select_by_unique_index(profile_id, feed_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
@@ -298,27 +294,7 @@ pub async fn insert(
     feed_id: i32,
     profile_id: Uuid,
 ) -> sqlx::Result<Uuid> {
-    let query = Query::insert()
-        .into_table(ProfileFeed::Table)
-        .columns([
-            ProfileFeed::Id,
-            ProfileFeed::Pinned,
-            ProfileFeed::FeedId,
-            ProfileFeed::ProfileId,
-        ])
-        .values_panic([
-            id.into(),
-            pinned.unwrap_or_default().into(),
-            feed_id.into(),
-            profile_id.into(),
-        ])
-        .on_conflict(
-            OnConflict::columns([ProfileFeed::ProfileId, ProfileFeed::FeedId])
-                .do_nothing()
-                .to_owned(),
-        )
-        .returning_col(ProfileFeed::Id)
-        .to_owned();
+    let query = profile_feed::insert(id, pinned, feed_id, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
@@ -333,18 +309,7 @@ pub async fn update(
     title: Option<Option<String>>,
     pinned: Option<bool>,
 ) -> sqlx::Result<()> {
-    let mut query = Query::update()
-        .table(ProfileFeed::Table)
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
-        .to_owned();
-
-    if let Some(title) = title {
-        query.value(ProfileFeed::Title, title);
-    }
-    if let Some(pinned) = pinned {
-        query.value(ProfileFeed::Pinned, pinned);
-    }
+    let query = profile_feed::update(id, profile_id, title, pinned);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     let result = sqlx::query_with(&sql, values).execute(executor).await?;
@@ -356,11 +321,7 @@ pub async fn update(
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(ProfileFeed::Table)
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
-        .to_owned();
+    let query = profile_feed::delete(id, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     let result = sqlx::query_with(&sql, values).execute(executor).await?;

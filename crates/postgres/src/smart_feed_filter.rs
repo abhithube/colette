@@ -1,6 +1,5 @@
-use std::fmt;
-
-use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, Query, SimpleExpr};
+use colette_sql::smart_feed_filter::{self, Field, InsertMany, Operation};
+use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, SimpleExpr};
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
 
@@ -20,42 +19,13 @@ pub(crate) enum SmartFeedFilter {
     UpdatedAt,
 }
 
-#[derive(Debug, Clone)]
-pub struct InsertMany {
-    pub id: Uuid,
-    pub field: Field,
-    pub operation: Operation,
-    pub value: String,
-}
-
 pub async fn insert_many(
     executor: impl PgExecutor<'_>,
     data: Vec<InsertMany>,
     smart_feed_id: Uuid,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
-    let mut query = Query::insert()
-        .into_table(SmartFeedFilter::Table)
-        .columns([
-            SmartFeedFilter::Id,
-            SmartFeedFilter::Field,
-            SmartFeedFilter::Operation,
-            SmartFeedFilter::Value,
-            SmartFeedFilter::SmartFeedId,
-            SmartFeedFilter::ProfileId,
-        ])
-        .to_owned();
-
-    for t in data {
-        query.values_panic([
-            t.id.into(),
-            t.field.to_string().into(),
-            t.operation.to_string().into(),
-            t.value.into(),
-            smart_feed_id.into(),
-            profile_id.into(),
-        ]);
-    }
+    let query = smart_feed_filter::insert_many(data, smart_feed_id, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_with(&sql, values).execute(executor).await?;
@@ -68,68 +38,12 @@ pub async fn delete_many(
     profile_id: Uuid,
     smart_feed_id: Uuid,
 ) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(SmartFeedFilter::Table)
-        .and_where(Expr::col(SmartFeedFilter::ProfileId).eq(profile_id))
-        .and_where(Expr::col(SmartFeedFilter::SmartFeedId).eq(smart_feed_id))
-        .to_owned();
+    let query = smart_feed_filter::delete_many(profile_id, smart_feed_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_with(&sql, values).execute(executor).await?;
 
     Ok(())
-}
-
-#[derive(Debug, Clone)]
-pub enum Field {
-    Link,
-    Title,
-    PublishedAt,
-    Description,
-    Author,
-    HasRead,
-}
-
-impl fmt::Display for Field {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let str = match self {
-            Self::Link => "link",
-            Self::Title => "title",
-            Self::PublishedAt => "published_at",
-            Self::Description => "description",
-            Self::Author => "author",
-            Self::HasRead => "has_read",
-        };
-
-        write!(f, "{}", str)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Operation {
-    Eq,
-    Ne,
-    Like,
-    NotLike,
-    GreaterThan,
-    LessThan,
-    InLastXSec,
-}
-
-impl fmt::Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let str = match self {
-            Self::Eq => "=",
-            Self::Ne => "!=",
-            Self::Like => "LIKE",
-            Self::NotLike => "NOT LIKE",
-            Self::GreaterThan => ">",
-            Self::LessThan => "<",
-            Self::InLastXSec => "in_last_x_sec",
-        };
-
-        write!(f, "{}", str)
-    }
 }
 
 pub(crate) trait SmartFilterCase {

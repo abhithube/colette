@@ -1,7 +1,8 @@
 use colette_core::bookmark::Cursor;
+use colette_sql::profile_bookmark;
 use sea_query::{
-    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, OnConflict,
-    PgFunc, PostgresQueryBuilder, Query, WithClause,
+    extension::postgres::PgExpr, Alias, CommonTableExpression, Expr, Func, JoinType, PgFunc,
+    PostgresQueryBuilder, Query, WithClause,
 };
 use sea_query_binder::SqlxBinder;
 use sqlx::{
@@ -234,12 +235,7 @@ pub async fn select_by_unique_index(
     profile_id: Uuid,
     bookmark_id: i32,
 ) -> sqlx::Result<Uuid> {
-    let query = Query::select()
-        .column(ProfileBookmark::Id)
-        .from(ProfileBookmark::Table)
-        .and_where(Expr::col(ProfileBookmark::ProfileId).eq(profile_id))
-        .and_where(Expr::col(ProfileBookmark::BookmarkId).eq(bookmark_id))
-        .to_owned();
+    let query = profile_bookmark::select_by_unique_index(profile_id, bookmark_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
@@ -253,21 +249,7 @@ pub async fn insert(
     bookmark_id: i32,
     profile_id: Uuid,
 ) -> sqlx::Result<Uuid> {
-    let query = Query::insert()
-        .into_table(ProfileBookmark::Table)
-        .columns([
-            ProfileBookmark::Id,
-            ProfileBookmark::BookmarkId,
-            ProfileBookmark::ProfileId,
-        ])
-        .values_panic([id.into(), bookmark_id.into(), profile_id.into()])
-        .on_conflict(
-            OnConflict::columns([ProfileBookmark::ProfileId, ProfileBookmark::BookmarkId])
-                .do_nothing()
-                .to_owned(),
-        )
-        .returning_col(ProfileBookmark::Id)
-        .to_owned();
+    let query = profile_bookmark::insert(id, bookmark_id, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
@@ -276,11 +258,7 @@ pub async fn insert(
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, profile_id: Uuid) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(ProfileBookmark::Table)
-        .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::Id)).eq(id))
-        .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::ProfileId)).eq(profile_id))
-        .to_owned();
+    let query = profile_bookmark::delete(id, profile_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     let result = sqlx::query_with(&sql, values).execute(executor).await?;

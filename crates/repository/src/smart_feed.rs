@@ -6,7 +6,7 @@ use colette_core::{
     },
     SmartFeed,
 };
-use colette_postgres::smart_feed_filter::{Field, Operation};
+use colette_sql::smart_feed_filter::{Field, Operation};
 use sqlx::{types::Uuid, PgExecutor, PgPool};
 
 pub struct SmartFeedSqlRepository {
@@ -234,7 +234,7 @@ async fn insert_filters(
                 ),
             };
 
-            colette_postgres::smart_feed_filter::InsertMany {
+            colette_sql::smart_feed_filter::InsertMany {
                 id: Uuid::new_v4(),
                 field,
                 operation: op.r#type,

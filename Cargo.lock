@@ -610,6 +610,7 @@ name = "colette-postgres"
 version = "0.1.0"
 dependencies = [
  "colette-core",
+ "colette-sql",
  "futures",
  "sea-query",
  "sea-query-binder",
@@ -627,6 +628,7 @@ dependencies = [
  "colette-netscape",
  "colette-opml",
  "colette-postgres",
+ "colette-sql",
  "futures",
  "sqlx",
 ]
@@ -679,6 +681,15 @@ dependencies = [
  "async-trait",
  "tower-sessions",
  "tower-sessions-sqlx-store",
+]
+
+[[package]]
+name = "colette-sql"
+version = "0.1.0"
+dependencies = [
+ "colette-core",
+ "sea-query",
+ "sqlx",
 ]
 
 [[package]]

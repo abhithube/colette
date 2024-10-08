@@ -1,21 +1,9 @@
 use colette_core::profile::Cursor;
+use colette_sql::profile;
 use futures::stream::BoxStream;
-use sea_query::{Expr, Func, Order, PostgresQueryBuilder, Query};
+use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor};
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-pub enum Profile {
-    Table,
-    Id,
-    Title,
-    ImageUrl,
-    IsDefault,
-    UserId,
-    CreatedAt,
-    UpdatedAt,
-}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct ProfileSelect {
@@ -46,25 +34,7 @@ pub async fn select(
     cursor: Option<Cursor>,
     limit: Option<u64>,
 ) -> sqlx::Result<Vec<colette_core::Profile>> {
-    let mut query = Query::select()
-        .columns([
-            Profile::Id,
-            Profile::Title,
-            Profile::ImageUrl,
-            Profile::IsDefault,
-            Profile::UserId,
-        ])
-        .from(Profile::Table)
-        .and_where(Expr::col((Profile::Table, Profile::UserId)).eq(user_id))
-        .and_where_option(id.map(|e| Expr::col((Profile::Table, Profile::Id)).eq(e)))
-        .and_where_option(is_default.map(|e| Expr::col((Profile::Table, Profile::IsDefault)).eq(e)))
-        .and_where_option(cursor.map(|e| Expr::col((Profile::Table, Profile::Title)).gt(e.title)))
-        .order_by((Profile::Table, Profile::Title), Order::Asc)
-        .to_owned();
-
-    if let Some(limit) = limit {
-        query.limit(limit);
-    }
+    let query = profile::select(id, user_id, is_default, cursor, limit);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
@@ -81,24 +51,7 @@ pub async fn insert(
     is_default: Option<bool>,
     user_id: Uuid,
 ) -> sqlx::Result<colette_core::Profile> {
-    let query = Query::insert()
-        .into_table(Profile::Table)
-        .columns([
-            Profile::Id,
-            Profile::Title,
-            Profile::ImageUrl,
-            Profile::IsDefault,
-            Profile::UserId,
-        ])
-        .values_panic([
-            id.into(),
-            title.into(),
-            image_url.into(),
-            is_default.unwrap_or_default().into(),
-            user_id.into(),
-        ])
-        .returning_all()
-        .to_owned();
+    let query = profile::insert(id, title, image_url, is_default, user_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
@@ -114,31 +67,7 @@ pub async fn update(
     title: Option<String>,
     image_url: Option<Option<String>>,
 ) -> sqlx::Result<colette_core::Profile> {
-    let mut query = Query::update()
-        .table(Profile::Table)
-        .and_where(Expr::col((Profile::Table, Profile::Id)).eq(id))
-        .and_where(Expr::col((Profile::Table, Profile::UserId)).eq(user_id))
-        .returning_all()
-        .to_owned();
-
-    if let Some(title) = title {
-        query.value(
-            Profile::Title,
-            Func::coalesce([
-                title.into(),
-                Expr::col((Profile::Table, Profile::Title)).into(),
-            ]),
-        );
-    }
-    if let Some(image_url) = image_url {
-        query.value(
-            Profile::ImageUrl,
-            Func::coalesce([
-                image_url.into(),
-                Expr::col((Profile::Table, Profile::ImageUrl)).into(),
-            ]),
-        );
-    }
+    let query = profile::update(id, user_id, title, image_url);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
@@ -148,11 +77,7 @@ pub async fn update(
 }
 
 pub async fn delete(executor: impl PgExecutor<'_>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
-    let query = Query::delete()
-        .from_table(Profile::Table)
-        .and_where(Expr::col((Profile::Table, Profile::Id)).eq(id))
-        .and_where(Expr::col((Profile::Table, Profile::UserId)).eq(user_id))
-        .to_owned();
+    let query = profile::delete(id, user_id);
 
     let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
     let result = sqlx::query_with(&sql, values).execute(executor).await?;

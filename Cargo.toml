@@ -17,6 +17,7 @@ members = [
   "crates/repository",
   "crates/scraper",
   "crates/session",
+  "crates/sql",
   "crates/task",
   "crates/util",
 ]
@@ -55,6 +56,7 @@ colette-repository.path = "crates/repository"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
 colette-session.path = "crates/session"
+colette-sql.path = "crates/sql"
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 email_address = { version = "0.2", default-features = false, features = [

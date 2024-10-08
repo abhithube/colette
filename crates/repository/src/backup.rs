@@ -95,7 +95,7 @@ impl BackupRepository for BackupSqlRepository {
                 if let Some(tag) = parent {
                     colette_postgres::profile_feed_tag::insert_many(
                         &mut *tx,
-                        vec![colette_postgres::profile_feed_tag::InsertMany {
+                        vec![colette_sql::profile_feed_tag::InsertMany {
                             profile_feed_id,
                             tag_id: tag.id,
                         }],
@@ -190,7 +190,7 @@ impl BackupRepository for BackupSqlRepository {
                 if let Some(tag) = parent {
                     colette_postgres::profile_bookmark_tag::insert_many(
                         &mut *tx,
-                        vec![colette_postgres::profile_bookmark_tag::InsertMany {
+                        vec![colette_sql::profile_bookmark_tag::InsertMany {
                             profile_bookmark_id,
                             tag_id: tag.id,
                         }],

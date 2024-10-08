@@ -211,7 +211,7 @@ pub(crate) async fn link_tags(
         &mut *conn,
         tags.data
             .iter()
-            .map(|e| colette_postgres::tag::InsertMany {
+            .map(|e| colette_sql::tag::InsertMany {
                 id: Uuid::new_v4(),
                 title: e.to_owned(),
             })
@@ -225,7 +225,7 @@ pub(crate) async fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| colette_postgres::profile_bookmark_tag::InsertMany {
+        .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
             profile_bookmark_id,
             tag_id: e,
         })

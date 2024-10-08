@@ -80,7 +80,7 @@ impl Creatable for FeedSqlRepository {
         let insert_many = fe_ids
             .into_iter()
             .map(
-                |feed_entry_id| colette_postgres::profile_feed_entry::InsertMany {
+                |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
                     id: Uuid::new_v4(),
                     feed_entry_id,
                 },
@@ -249,7 +249,7 @@ async fn create_feed_with_entries(
     let insert_many = feed
         .entries
         .into_iter()
-        .map(|e| colette_postgres::feed_entry::InsertMany {
+        .map(|e| colette_sql::feed_entry::InsertMany {
             link: e.link.to_string(),
             title: e.title,
             published_at: e.published,
@@ -290,7 +290,7 @@ pub(crate) async fn link_tags(
         &mut *conn,
         tags.data
             .iter()
-            .map(|e| colette_postgres::tag::InsertMany {
+            .map(|e| colette_sql::tag::InsertMany {
                 id: Uuid::new_v4(),
                 title: e.to_owned(),
             })
@@ -304,7 +304,7 @@ pub(crate) async fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| colette_postgres::profile_feed_tag::InsertMany {
+        .map(|e| colette_sql::profile_feed_tag::InsertMany {
             profile_feed_id,
             tag_id: e,
         })
