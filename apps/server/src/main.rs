@@ -16,23 +16,25 @@ use colette_api::{
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService, cleanup::CleanupService,
-    feed::FeedService, feed_entry::FeedEntryService, profile::ProfileService,
-    refresh::RefreshService, smart_feed::SmartFeedService, tag::TagService,
+    auth::AuthService,
+    backup::{BackupRepository, BackupService},
+    bookmark::{BookmarkRepository, BookmarkService},
+    cleanup::{CleanupRepository, CleanupService},
+    feed::{FeedRepository, FeedService},
+    feed_entry::{FeedEntryRepository, FeedEntryService},
+    profile::{ProfileRepository, ProfileService},
+    refresh::RefreshService,
+    smart_feed::{SmartFeedRepository, SmartFeedService},
+    tag::{TagRepository, TagService},
+    user::UserRepository,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_postgres::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCleanupRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresProfileRepository,
-    PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
-};
 #[cfg(feature = "postgres")]
 use colette_session::PostgresStore;
 use colette_session::SessionBackend;
 #[cfg(feature = "sqlite")]
 use colette_session::SqliteStore;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
-use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
 
@@ -46,6 +48,7 @@ struct Asset;
 async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = colette_config::load_config()?;
 
+    #[allow(clippy::type_complexity)]
     let (
         backup_repository,
         bookmark_repository,
@@ -57,20 +60,46 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tag_repository,
         user_repository,
         session_backend,
+    ): (
+        Arc<dyn BackupRepository>,
+        Arc<dyn BookmarkRepository>,
+        Arc<dyn CleanupRepository>,
+        Arc<dyn FeedRepository>,
+        Arc<dyn FeedEntryRepository>,
+        Arc<dyn ProfileRepository>,
+        Arc<dyn SmartFeedRepository>,
+        Arc<dyn TagRepository>,
+        Arc<dyn UserRepository>,
+        SessionBackend,
     ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
         url if url.starts_with("postgres") => {
-            let pool = PgPool::connect(url).await?;
+            let pool = sqlx::PgPool::connect(url).await?;
 
-            let backup_repository = Arc::new(PostgresBackupRepository::new(pool.clone()));
-            let bookmark_repository = Arc::new(PostgresBookmarkRepository::new(pool.clone()));
-            let cleanup_repository = Arc::new(PostgresCleanupRepository::new(pool.clone()));
-            let feed_repository = Arc::new(PostgresFeedRepository::new(pool.clone()));
-            let feed_entry_repository = Arc::new(PostgresFeedEntryRepository::new(pool.clone()));
-            let profile_repository = Arc::new(PostgresProfileRepository::new(pool.clone()));
-            let smart_feed_repository = Arc::new(PostgresSmartFeedRepository::new(pool.clone()));
-            let tag_repository = Arc::new(PostgresTagRepository::new(pool.clone()));
-            let user_repository = Arc::new(PostgresUserRepository::new(pool.clone()));
+            let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
+                pool.clone(),
+            ));
+            let bookmark_repository = Arc::new(colette_postgres::PostgresBookmarkRepository::new(
+                pool.clone(),
+            ));
+            let cleanup_repository = Arc::new(colette_postgres::PostgresCleanupRepository::new(
+                pool.clone(),
+            ));
+            let feed_repository =
+                Arc::new(colette_postgres::PostgresFeedRepository::new(pool.clone()));
+            let feed_entry_repository = Arc::new(
+                colette_postgres::PostgresFeedEntryRepository::new(pool.clone()),
+            );
+            let profile_repository = Arc::new(colette_postgres::PostgresProfileRepository::new(
+                pool.clone(),
+            ));
+            let smart_feed_repository = Arc::new(
+                colette_postgres::PostgresSmartFeedRepository::new(pool.clone()),
+            );
+            let tag_repository =
+                Arc::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
+            let user_repository =
+                Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
             let store = PostgresStore::new(pool);
             store.migrate().await?;
@@ -90,12 +119,39 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         #[cfg(feature = "sqlite")]
         url if url.starts_with("sqlite") => {
-            let pool = SqlitePool::connect(url).await?;
+            let pool = sqlx::SqlitePool::connect(url).await?;
+
+            let backup_repository =
+                Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));
+            let bookmark_repository =
+                Arc::new(colette_sqlite::SqliteBookmarkRepository::new(pool.clone()));
+            let cleanup_repository =
+                Arc::new(colette_sqlite::SqliteCleanupRepository::new(pool.clone()));
+            let feed_repository = Arc::new(colette_sqlite::SqliteFeedRepository::new(pool.clone()));
+            let feed_entry_repository =
+                Arc::new(colette_sqlite::SqliteFeedEntryRepository::new(pool.clone()));
+            let profile_repository =
+                Arc::new(colette_sqlite::SqliteProfileRepository::new(pool.clone()));
+            let smart_feed_repository =
+                Arc::new(colette_sqlite::SqliteSmartFeedRepository::new(pool.clone()));
+            let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
+            let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
             let store = SqliteStore::new(pool);
             store.migrate().await?;
 
-            SessionBackend::Sqlite(store)
+            (
+                backup_repository,
+                bookmark_repository,
+                cleanup_repository,
+                feed_repository,
+                feed_entry_repository,
+                profile_repository,
+                smart_feed_repository,
+                tag_repository,
+                user_repository,
+                SessionBackend::Sqlite(store),
+            )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),
     };
