@@ -5,24 +5,20 @@ use colette_core::{
     },
     FeedEntry,
 };
+use deadpool_postgres::{GenericClient, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{
-    types::{
-        chrono::{DateTime, Utc},
-        Uuid,
-    },
-    PgExecutor, PgPool,
-};
+use sea_query_postgres::PostgresBinder;
+use tokio_postgres::Row;
+use uuid::Uuid;
 
 use crate::smart_feed::build_case_statement;
 
 pub struct PostgresFeedEntryRepository {
-    pub(crate) pool: PgPool,
+    pub(crate) pool: Pool,
 }
 
 impl PostgresFeedEntryRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -33,7 +29,13 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        find_by_id(&client, params).await
     }
 }
 
@@ -44,32 +46,36 @@ impl Updatable for PostgresFeedEntryRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.has_read.is_some() {
-            let result = {
+            let count = {
                 let (sql, values) = colette_sql::profile_feed_entry::update(
                     params.id,
                     params.profile_id,
                     data.has_read,
                 )
-                .build_sqlx(PostgresQueryBuilder);
+                .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                tx.execute(&sql, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
-            if result.rows_affected() == 0 {
+            if count == 0 {
                 return Err(Error::NotFound(params.id));
             }
         }
 
-        let entry = find_by_id(&mut *tx, params).await?;
+        let entry = find_by_id(&tx, params).await?;
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
@@ -86,41 +92,37 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Vec<FeedEntry>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        find(&client, None, profile_id, limit, cursor, filters).await
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct EntrySelect {
-    id: Uuid,
-    link: String,
-    title: String,
-    published_at: DateTime<Utc>,
-    description: Option<String>,
-    author: Option<String>,
-    thumbnail_url: Option<String>,
-    has_read: bool,
-    profile_feed_id: Uuid,
-}
+#[derive(Debug, Clone)]
+struct EntrySelect(FeedEntry);
 
-impl From<EntrySelect> for colette_core::FeedEntry {
-    fn from(value: EntrySelect) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at,
-            description: value.description,
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            has_read: value.has_read,
-            feed_id: value.profile_feed_id,
-        }
+impl From<&Row> for EntrySelect {
+    fn from(value: &Row) -> Self {
+        Self(FeedEntry {
+            id: value.get("id"),
+            link: value.get("link"),
+            title: value.get("title"),
+            published_at: value.get("published_at"),
+            description: value.get("description"),
+            author: value.get("author"),
+            thumbnail_url: value.get("thumbnail_url"),
+            has_read: value.get("has_read"),
+            feed_id: value.get("profile_feed_id"),
+        })
     }
 }
 
-async fn find(
-    executor: impl PgExecutor<'_>,
+async fn find<C: GenericClient>(
+    client: &C,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -150,25 +152,22 @@ async fn find(
         limit,
         build_case_statement(),
     )
-    .build_sqlx(PostgresQueryBuilder);
+    .build_postgres(PostgresQueryBuilder);
 
-    sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
-        .fetch_all(executor)
+    client
+        .query(&sql, &values.as_params())
         .await
-        .map(|e| e.into_iter().map(FeedEntry::from).collect())
+        .map(|e| {
+            e.into_iter()
+                .map(|e| EntrySelect::from(&e).0)
+                .collect::<Vec<_>>()
+        })
         .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<FeedEntry, Error> {
-    let mut feed_entries = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
+async fn find_by_id<C: GenericClient>(client: &C, params: IdParams) -> Result<FeedEntry, Error> {
+    let mut feed_entries =
+        find(client, Some(params.id), params.profile_id, None, None, None).await?;
     if feed_entries.is_empty() {
         return Err(Error::NotFound(params.id));
     }

@@ -20,14 +20,22 @@ colette-session.workspace = true
 colette-sqlite = { workspace = true, optional = true }
 colette-task.workspace = true
 colette-util.workspace = true
+deadpool-postgres = { workspace = true, optional = true }
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 sqlx.workspace = true
 tokio.workspace = true
+tokio-postgres = { workspace = true, optional = true }
 tower-sessions.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = ["dep:colette-postgres", "colette-session/postgres", "sqlx/postgres"]
+postgres = [
+  "dep:colette-postgres",
+  "dep:deadpool-postgres",
+  "dep:tokio-postgres",
+  "colette-session/postgres",
+  "sqlx/postgres",
+]
 sqlite = ["colette-session/sqlite", "dep:colette-sqlite", "sqlx/sqlite"]

@@ -74,7 +74,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
         url if url.starts_with("postgres") => {
-            let pool = sqlx::PgPool::connect(url).await?;
+            let mut config = deadpool_postgres::Config::new();
+            config.url = Some(url.to_owned());
+
+            let pool = config.create_pool(
+                Some(deadpool_postgres::Runtime::Tokio1),
+                tokio_postgres::NoTls,
+            )?;
 
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
@@ -98,9 +104,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             );
             let tag_repository =
                 Arc::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
-            let user_repository =
-                Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
+            let user_repository = Arc::new(colette_postgres::PostgresUserRepository::new(pool));
 
+            let pool = sqlx::PgPool::connect(url).await?;
             let store = PostgresStore::new(pool);
             store.migrate().await?;
 

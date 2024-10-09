@@ -1,14 +1,14 @@
 use colette_core::cleanup::{CleanupRepository, Error};
+use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgPool;
+use sea_query_postgres::PostgresBinder;
 
 pub struct PostgresCleanupRepository {
-    pub(crate) pool: PgPool,
+    pub(crate) pool: Pool,
 }
 
 impl PostgresCleanupRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -16,51 +16,62 @@ impl PostgresCleanupRepository {
 #[async_trait::async_trait]
 impl CleanupRepository for PostgresCleanupRepository {
     async fn cleanup_feeds(&self) -> Result<(), Error> {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut result = {
-            let (sql, values) =
-                colette_sql::feed_entry::delete_many().build_sqlx(PostgresQueryBuilder);
+        let tx = client
+            .transaction()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+        let mut count = {
+            let (sql, values) =
+                colette_sql::feed_entry::delete_many().build_postgres(PostgresQueryBuilder);
+
+            tx.execute(&sql, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned feed entries", result.rows_affected());
+        if count > 0 {
+            println!("Deleted {} orphaned feed entries", count);
         }
 
-        result = {
-            let (sql, values) = colette_sql::feed::delete_many().build_sqlx(PostgresQueryBuilder);
+        count = {
+            let (sql, values) =
+                colette_sql::feed::delete_many().build_postgres(PostgresQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+            tx.execute(&sql, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned feeds", result.rows_affected());
+        if count > 0 {
+            println!("Deleted {} orphaned feeds", count);
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn cleanup_tags(&self) -> Result<(), Error> {
-        let result = {
-            let (sql, values) = colette_sql::tag::delete_many().build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
+        let count = {
+            let (sql, values) =
+                colette_sql::tag::delete_many().build_postgres(PostgresQueryBuilder);
+
+            client
+                .execute(&sql, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned tags", result.rows_affected());
+        if count > 0 {
+            println!("Deleted {} orphaned tags", count);
         }
 
         Ok(())
