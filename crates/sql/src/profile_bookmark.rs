@@ -1,7 +1,7 @@
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
+    Alias, CommonTableExpression, DeleteStatement, Expr, InsertStatement, JoinType, OnConflict,
+    Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
 };
 use sqlx::types::Uuid;
 
@@ -28,14 +28,14 @@ pub fn select(
 ) -> WithQuery {
     let pf_id = Alias::new("pf_id");
 
-    let a_tags = Alias::new("tags");
+    let tags = Alias::new("tags");
 
     let json_tags_cte = Query::select()
         .expr_as(
             Expr::col((ProfileBookmark::Table, ProfileBookmark::Id)),
             pf_id.clone(),
         )
-        .expr_as(jsonb_agg, a_tags.clone())
+        .expr_as(jsonb_agg, tags.clone())
         .from(ProfileBookmark::Table)
         .join(
             JoinType::InnerJoin,
@@ -71,10 +71,7 @@ pub fn select(
             (Bookmark::Table, Bookmark::PublishedAt),
             (Bookmark::Table, Bookmark::Author),
         ])
-        .expr_as(
-            Func::coalesce([Expr::col((json_tags.clone(), a_tags.clone())).into()]),
-            a_tags.clone(),
-        )
+        .column((json_tags.clone(), tags.clone()))
         .from(ProfileBookmark::Table)
         .join(
             JoinType::Join,

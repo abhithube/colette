@@ -92,10 +92,7 @@ pub fn select(
             Expr::col((Feed::Table, Feed::Title)),
             Alias::new("original_title"),
         )
-        .expr_as(
-            Func::coalesce([Expr::col((json_tags.clone(), tags.clone())).into()]),
-            tags.clone(),
-        )
+        .column((json_tags.clone(), tags.clone()))
         .expr_as(
             Func::coalesce([
                 Expr::col((unread_counts.clone(), unread_count.clone())).into(),
