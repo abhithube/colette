@@ -53,7 +53,7 @@ pub async fn import_opml(
 ) -> Result<ImportResponse, Error> {
     match service.import_opml(bytes, session.profile_id).await {
         Ok(_) => Ok(ImportResponse::NoContent),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -72,7 +72,7 @@ pub async fn export_opml(
 ) -> Result<impl IntoResponse, Error> {
     match service.export_opml(session.profile_id).await {
         Ok(data) => Ok(ExportOpmlResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -93,7 +93,7 @@ pub async fn import_netscape(
 ) -> Result<ImportResponse, Error> {
     match service.import_netscape(bytes, session.profile_id).await {
         Ok(_) => Ok(ImportResponse::NoContent),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -112,7 +112,7 @@ pub async fn export_netscape(
 ) -> Result<impl IntoResponse, Error> {
     match service.export_netscape(session.profile_id).await {
         Ok(data) => Ok(ExportNetscapeResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

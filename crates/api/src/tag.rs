@@ -145,7 +145,7 @@ pub async fn list_tags(
 ) -> Result<impl IntoResponse, Error> {
     match service.list(query.into(), session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -170,7 +170,7 @@ pub async fn get_tag(
             tag::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -196,7 +196,7 @@ pub async fn create_tag(
             tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -224,7 +224,7 @@ pub async fn update_tag(
             tag::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -250,7 +250,7 @@ pub async fn delete_tag(
             tag::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

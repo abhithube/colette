@@ -121,7 +121,7 @@ pub async fn list_profiles(
 ) -> Result<impl IntoResponse, Error> {
     match service.list_profiles(session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(_) => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -146,7 +146,7 @@ pub async fn get_profile(
             profile::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -169,7 +169,7 @@ pub async fn get_active_profile(
         .await
     {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
-        Err(_) => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -194,7 +194,7 @@ pub async fn create_profile(
             profile::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -225,7 +225,7 @@ pub async fn update_profile(
             profile::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -254,7 +254,7 @@ pub async fn delete_profile(
             profile::Error::DeletingDefault => Ok(DeleteResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

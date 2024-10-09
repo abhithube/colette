@@ -138,7 +138,7 @@ pub async fn list_feed_entries(
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -163,7 +163,7 @@ pub async fn get_feed_entry(
             feed_entry::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -194,7 +194,7 @@ pub async fn update_feed_entry(
             feed_entry::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

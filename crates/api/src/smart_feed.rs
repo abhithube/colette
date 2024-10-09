@@ -206,7 +206,7 @@ pub async fn list_smart_feeds(
 ) -> Result<impl IntoResponse, Error> {
     match service.list_smart_feeds(session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -231,7 +231,7 @@ pub async fn get_smart_feed(
             smart_feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -256,7 +256,7 @@ pub async fn create_smart_feed(
         .await
     {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -286,7 +286,7 @@ pub async fn update_smart_feed(
             smart_feed::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -312,7 +312,7 @@ pub async fn delete_smart_feed(
             smart_feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

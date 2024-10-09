@@ -134,7 +134,7 @@ pub async fn register(
                     message: e.to_string(),
                 }))
             }
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -168,7 +168,7 @@ pub async fn login(
             auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -188,7 +188,7 @@ pub async fn get_active_user(
 ) -> Result<impl IntoResponse, Error> {
     match service.get_active(session.user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -222,7 +222,7 @@ pub async fn switch_profile(
             auth::Error::NotAuthenticated => Ok(SwitchProfileResponse::Unauthorized(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

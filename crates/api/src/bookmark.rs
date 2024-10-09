@@ -155,7 +155,7 @@ pub async fn list_bookmarks(
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -180,7 +180,7 @@ pub async fn get_bookmark(
             bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -205,7 +205,7 @@ pub async fn create_bookmark(
         .await
     {
         Ok(data) => Ok(CreateResponse::Created(Box::new(data.into()))),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -235,7 +235,7 @@ pub async fn update_bookmark(
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -261,7 +261,7 @@ pub async fn delete_bookmark(
             bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }

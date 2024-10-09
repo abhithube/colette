@@ -141,7 +141,7 @@ pub enum Error {
     Auth(#[from] auth::Error),
 
     #[error("Unknown error")]
-    Unknown,
+    Unknown(#[from] anyhow::Error),
 }
 
 impl IntoResponse for Error {
@@ -156,7 +156,11 @@ impl IntoResponse for Error {
             Error::Auth(auth::Error::NotAuthenticated) => {
                 (StatusCode::UNAUTHORIZED, e).into_response()
             }
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+            _ => {
+                println!("{:?}", self);
+
+                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
+            }
         }
     }
 }

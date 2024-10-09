@@ -208,7 +208,7 @@ pub async fn list_feeds(
 ) -> Result<impl IntoResponse, Error> {
     match service.list_feeds(query.into(), session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -233,7 +233,7 @@ pub async fn get_feed(
             feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -258,7 +258,7 @@ pub async fn create_feed(
         Err(feed::Error::Scraper(e)) => Ok(CreateResponse::BadGateway(BaseError {
             message: e.to_string(),
         })),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -288,7 +288,7 @@ pub async fn update_feed(
             feed::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -314,7 +314,7 @@ pub async fn delete_feed(
             feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
-            _ => Err(Error::Unknown),
+            e => Err(Error::Unknown(e.into())),
         },
     }
 }
@@ -338,7 +338,7 @@ pub async fn detect_feeds(
         Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
             message: e.to_string(),
         })),
-        _ => Err(Error::Unknown),
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
