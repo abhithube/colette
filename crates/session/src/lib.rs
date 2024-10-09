@@ -6,7 +6,7 @@ use tower_sessions::{
     session_store, ExpiredDeletion, SessionStore,
 };
 #[cfg(feature = "postgres")]
-pub use tower_sessions_sqlx_store::PostgresStore;
+pub use tower_sessions_postgres_store::PostgresStore;
 #[cfg(feature = "sqlite")]
 pub use tower_sessions_sqlx_store::SqliteStore;
 

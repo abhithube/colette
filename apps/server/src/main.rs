@@ -104,9 +104,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             );
             let tag_repository =
                 Arc::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
-            let user_repository = Arc::new(colette_postgres::PostgresUserRepository::new(pool));
+            let user_repository =
+                Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
-            let pool = sqlx::PgPool::connect(url).await?;
             let store = PostgresStore::new(pool);
             store.migrate().await?;
 

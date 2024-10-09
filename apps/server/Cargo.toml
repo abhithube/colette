@@ -36,6 +36,5 @@ postgres = [
   "dep:deadpool-postgres",
   "dep:tokio-postgres",
   "colette-session/postgres",
-  "sqlx/postgres",
 ]
 sqlite = ["colette-session/sqlite", "dep:colette-sqlite", "sqlx/sqlite"]
