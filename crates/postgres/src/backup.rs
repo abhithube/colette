@@ -1,9 +1,9 @@
 use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
+use sea_query::PostgresQueryBuilder;
+use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgPool};
-
-use crate::query;
 
 pub struct PostgresBackupRepository {
     pub(crate) pool: PgPool,
@@ -38,15 +38,28 @@ impl BackupRepository for PostgresBackupRepository {
             let title = outline.title.unwrap_or(outline.text);
 
             if outline.outline.is_some() {
-                let tag_id =
-                    match query::tag::select_by_title(&mut *tx, title.clone(), profile_id).await {
-                        Ok(id) => Ok(id),
-                        _ => {
-                            query::tag::insert(&mut *tx, Uuid::new_v4(), title.clone(), profile_id)
-                                .await
-                        }
-                    }
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                let tag_id = {
+                    let (mut sql, mut values) =
+                        colette_sql::tag::select_by_title(title.clone(), profile_id)
+                            .build_sqlx(PostgresQueryBuilder);
+
+                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                        .fetch_optional(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    {
+                        Ok(id)
+                    } else {
+                        (sql, values) =
+                            colette_sql::tag::insert(Uuid::new_v4(), title.clone(), profile_id)
+                                .build_sqlx(PostgresQueryBuilder);
+
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))
+                    }?
+                };
 
                 if let Some(children) = outline.outline.take() {
                     for child in children.into_iter().rev() {
@@ -60,40 +73,57 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = outline.xml_url {
-                let feed_id = query::feed::insert(&mut *tx, link, title, outline.html_url)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                let feed_id = {
+                    let (sql, values) = colette_sql::feed::insert(link, title, outline.html_url)
+                        .build_sqlx(PostgresQueryBuilder);
 
-                let profile_feed_id = match query::profile_feed::select_by_unique_index(
-                    &mut *tx, profile_id, feed_id,
-                )
-                .await
-                {
-                    Ok(id) => Ok(id),
-                    _ => {
-                        query::profile_feed::insert(
-                            &mut *tx,
+                    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                        .fetch_one(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                };
+
+                let pf_id = {
+                    let (mut sql, mut values) =
+                        colette_sql::profile_feed::select_by_unique_index(profile_id, feed_id)
+                            .build_sqlx(PostgresQueryBuilder);
+
+                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                        .fetch_optional(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    {
+                        Ok(id)
+                    } else {
+                        (sql, values) = colette_sql::profile_feed::insert(
                             Uuid::new_v4(),
                             None,
                             feed_id,
                             profile_id,
                         )
-                        .await
-                    }
-                }
-                .map_err(|e| Error::Unknown(e.into()))?;
+                        .build_sqlx(PostgresQueryBuilder);
+
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))
+                    }?
+                };
 
                 if let Some(tag) = parent {
-                    query::profile_feed_tag::insert_many(
-                        &mut *tx,
+                    let (sql, values) = colette_sql::profile_feed_tag::insert_many(
                         vec![colette_sql::profile_feed_tag::InsertMany {
-                            profile_feed_id,
+                            profile_feed_id: pf_id,
                             tag_id: tag.id,
                         }],
                         profile_id,
                     )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                    .build_sqlx(PostgresQueryBuilder);
+
+                    sqlx::query_with(&sql, values)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                 }
             }
         }
@@ -119,15 +149,28 @@ impl BackupRepository for PostgresBackupRepository {
                     item.title
                 };
 
-                let tag_id =
-                    match query::tag::select_by_title(&mut *tx, title.clone(), profile_id).await {
-                        Ok(id) => Ok(id),
-                        _ => {
-                            query::tag::insert(&mut *tx, Uuid::new_v4(), title.clone(), profile_id)
-                                .await
-                        }
-                    }
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                let tag_id = {
+                    let (mut sql, mut values) =
+                        colette_sql::tag::select_by_title(title.clone(), profile_id)
+                            .build_sqlx(PostgresQueryBuilder);
+
+                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                        .fetch_optional(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    {
+                        Ok(id)
+                    } else {
+                        (sql, values) =
+                            colette_sql::tag::insert(Uuid::new_v4(), title.clone(), profile_id)
+                                .build_sqlx(PostgresQueryBuilder);
+
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))
+                    }?
+                };
 
                 if let Some(children) = item.item.take() {
                     for child in children.into_iter().rev() {
@@ -141,42 +184,60 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id =
-                    query::bookmark::insert(&mut *tx, link, item.title, None, None, None)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                let bookmark_id = {
+                    let (sql, values) =
+                        colette_sql::bookmark::insert(link, item.title, None, None, None)
+                            .build_sqlx(PostgresQueryBuilder);
 
-                let profile_bookmark_id = match query::profile_bookmark::select_by_unique_index(
-                    &mut *tx,
-                    profile_id,
-                    bookmark_id,
-                )
-                .await
-                {
-                    Ok(id) => Ok(id),
-                    _ => {
-                        query::profile_bookmark::insert(
-                            &mut *tx,
+                    sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                        .fetch_one(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                };
+
+                let pb_id = {
+                    let (mut sql, mut values) =
+                        colette_sql::profile_bookmark::select_by_unique_index(
+                            profile_id,
+                            bookmark_id,
+                        )
+                        .build_sqlx(PostgresQueryBuilder);
+
+                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                        .fetch_optional(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
+                    {
+                        Ok(id)
+                    } else {
+                        (sql, values) = colette_sql::profile_bookmark::insert(
                             Uuid::new_v4(),
                             bookmark_id,
                             profile_id,
                         )
-                        .await
-                    }
-                }
-                .map_err(|e| Error::Unknown(e.into()))?;
+                        .build_sqlx(PostgresQueryBuilder);
+
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))
+                    }?
+                };
 
                 if let Some(tag) = parent {
-                    query::profile_bookmark_tag::insert_many(
-                        &mut *tx,
+                    let (sql, values) = colette_sql::profile_bookmark_tag::insert_many(
                         vec![colette_sql::profile_bookmark_tag::InsertMany {
-                            profile_bookmark_id,
+                            profile_bookmark_id: pb_id,
                             tag_id: tag.id,
                         }],
                         profile_id,
                     )
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                    .build_sqlx(PostgresQueryBuilder);
+
+                    sqlx::query_with(&sql, values)
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
                 }
             }
         }

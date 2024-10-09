@@ -3,9 +3,11 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
     User,
 };
+use sea_query::PostgresQueryBuilder;
+use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgPool};
 
-use crate::query;
+use crate::profile::ProfileSelect;
 
 pub struct PostgresUserRepository {
     pub(crate) pool: PgPool,
@@ -24,21 +26,30 @@ impl Findable for PostgresUserRepository {
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         match params {
-            UserIdParams::Id(id) => query::user::select(&self.pool, Some(id), None)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
-                    _ => Error::Unknown(e.into()),
-                }),
-            UserIdParams::Email(email) => {
-                query::user::select(&self.pool, None, Some(email.clone()))
+            UserIdParams::Id(id) => {
+                let (sql, values) =
+                    colette_sql::user::select(Some(id), None).build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
+                    .fetch_one(&self.pool)
                     .await
-                    .map_err(|e| {
-                        if let sqlx::Error::RowNotFound = e {
-                            Error::NotFound(NotFoundError::Email(email))
-                        } else {
-                            Error::Unknown(e.into())
-                        }
+                    .map(|e| e.into())
+                    .map_err(|e| match e {
+                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
+                        _ => Error::Unknown(e.into()),
+                    })
+            }
+            UserIdParams::Email(email) => {
+                let (sql, values) = colette_sql::user::select(None, Some(email.clone()))
+                    .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
+                    .fetch_one(&self.pool)
+                    .await
+                    .map(|e| e.into())
+                    .map_err(|e| match e {
+                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
+                        _ => Error::Unknown(e.into()),
                     })
             }
         }
@@ -57,24 +68,38 @@ impl Creatable for PostgresUserRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let user_id = Uuid::new_v4();
-        let user = query::user::insert(&mut *tx, user_id, data.email.clone(), data.password)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.email),
-                _ => Error::Unknown(e.into()),
-            })?;
+        let user = {
+            let (sql, values) =
+                colette_sql::user::insert(Uuid::new_v4(), data.email.clone(), data.password)
+                    .build_sqlx(PostgresQueryBuilder);
 
-        query::profile::insert(
-            &mut *tx,
-            Uuid::new_v4(),
-            "Default".to_owned(),
-            None,
-            Some(true),
-            user_id,
-        )
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
+                .fetch_one(&mut *tx)
+                .await
+                .map(User::from)
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.email)
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?
+        };
+
+        {
+            let (sql, values) = colette_sql::profile::insert(
+                Uuid::new_v4(),
+                "Default".to_owned(),
+                None,
+                Some(true),
+                user.id,
+            )
+            .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
@@ -84,3 +109,20 @@ impl Creatable for PostgresUserRepository {
 
 #[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct UserSelect {
+    id: Uuid,
+    email: String,
+    password: String,
+}
+
+impl From<UserSelect> for colette_core::User {
+    fn from(value: UserSelect) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            password: value.password,
+        }
+    }
+}

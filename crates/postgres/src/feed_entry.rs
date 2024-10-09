@@ -5,9 +5,17 @@ use colette_core::{
     },
     FeedEntry,
 };
-use sqlx::{types::Uuid, PgExecutor, PgPool};
+use sea_query::PostgresQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{
+    types::{
+        chrono::{DateTime, Utc},
+        Uuid,
+    },
+    PgExecutor, PgPool,
+};
 
-use crate::query;
+use crate::smart_feed::build_case_statement;
 
 pub struct PostgresFeedEntryRepository {
     pub(crate) pool: PgPool,
@@ -43,17 +51,22 @@ impl Updatable for PostgresFeedEntryRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.has_read.is_some() {
-            query::profile_feed_entry::update(
-                &mut *tx,
-                params.id,
-                params.profile_id,
-                data.has_read,
-            )
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+            let result = {
+                let (sql, values) = colette_sql::profile_feed_entry::update(
+                    params.id,
+                    params.profile_id,
+                    data.has_read,
+                )
+                .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if result.rows_affected() == 0 {
+                return Err(Error::NotFound(params.id));
+            }
         }
 
         let entry = find_by_id(&mut *tx, params).await?;
@@ -77,6 +90,35 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {
     }
 }
 
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct EntrySelect {
+    id: Uuid,
+    link: String,
+    title: String,
+    published_at: DateTime<Utc>,
+    description: Option<String>,
+    author: Option<String>,
+    thumbnail_url: Option<String>,
+    has_read: bool,
+    profile_feed_id: Uuid,
+}
+
+impl From<EntrySelect> for colette_core::FeedEntry {
+    fn from(value: EntrySelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url,
+            has_read: value.has_read,
+            feed_id: value.profile_feed_id,
+        }
+    }
+}
+
 async fn find(
     executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
@@ -97,8 +139,7 @@ async fn find(
         tags = filters.tags;
     }
 
-    query::profile_feed_entry::select(
-        executor,
+    let (sql, values) = colette_sql::profile_feed_entry::select(
         id,
         profile_id,
         feed_id,
@@ -107,9 +148,15 @@ async fn find(
         smart_feed_id,
         cursor,
         limit,
+        build_case_statement(),
     )
-    .await
-    .map_err(|e| Error::Unknown(e.into()))
+    .build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(FeedEntry::from).collect())
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
 async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<FeedEntry, Error> {

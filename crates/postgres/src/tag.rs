@@ -3,9 +3,9 @@ use colette_core::{
     tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
+use sea_query::PostgresQueryBuilder;
+use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor, PgPool};
-
-use crate::query;
 
 pub struct PostgresTagRepository {
     pub(crate) pool: PgPool,
@@ -39,17 +39,21 @@ impl Creatable for PostgresTagRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = query::tag::insert(
-            &self.pool,
-            Uuid::new_v4(),
-            data.title.clone(),
-            data.profile_id,
-        )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-            _ => Error::Unknown(e.into()),
-        })?;
+        let id = {
+            let (sql, values) =
+                colette_sql::tag::insert(Uuid::new_v4(), data.title.clone(), data.profile_id)
+                    .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.title)
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?
+        };
 
         let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
             .await
@@ -75,12 +79,19 @@ impl Updatable for PostgresTagRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            query::tag::update(&mut *tx, params.id, params.profile_id, data.title)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                    _ => Error::Unknown(e.into()),
-                })?;
+            let result = {
+                let (sql, values) =
+                    colette_sql::tag::update(params.id, params.profile_id, data.title)
+                        .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if result.rows_affected() == 0 {
+                return Err(Error::NotFound(params.id));
+            }
         }
 
         let tag = find_by_id(&mut *tx, params)
@@ -99,12 +110,20 @@ impl Deletable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        query::tag::delete_by_id(&self.pool, params.id, params.profile_id)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })
+        let result = {
+            let (sql, values) = colette_sql::tag::delete_by_id(params.id, params.profile_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
+        if result.rows_affected() == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
     }
 }
 
@@ -121,6 +140,25 @@ impl TagRepository for PostgresTagRepository {
     }
 }
 
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct TagSelect {
+    id: Uuid,
+    title: String,
+    bookmark_count: i64,
+    feed_count: i64,
+}
+
+impl From<TagSelect> for colette_core::Tag {
+    fn from(value: TagSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            bookmark_count: Some(value.bookmark_count),
+            feed_count: Some(value.feed_count),
+        }
+    }
+}
+
 pub(crate) async fn find(
     executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
@@ -129,12 +167,14 @@ pub(crate) async fn find(
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<Tag>, Error> {
-    let tags = query::tag::select(executor, id, profile_id, limit, cursor, filters)
+    let (sql, values) = colette_sql::tag::select(id, profile_id, limit, cursor, filters)
+        .build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    Ok(tags)
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
 async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Tag, Error> {

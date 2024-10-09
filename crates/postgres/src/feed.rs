@@ -7,9 +7,12 @@ use colette_core::{
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sqlx::{types::Uuid, PgExecutor, PgPool};
-
-use crate::query;
+use sea_query::{Expr, PostgresQueryBuilder};
+use sea_query_binder::SqlxBinder;
+use sqlx::{
+    types::{Json, Uuid},
+    PgExecutor, PgPool,
+};
 
 pub struct PostgresFeedRepository {
     pub(crate) pool: PgPool,
@@ -46,7 +49,11 @@ impl Creatable for PostgresFeedRepository {
         let feed_id = if let Some(feed) = data.feed {
             create_feed_with_entries(&mut tx, data.url, feed).await
         } else {
-            query::feed::select_by_url(&mut *tx, data.url.clone())
+            let (sql, values) =
+                colette_sql::feed::select_by_url(data.url.clone()).build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                .fetch_one(&mut *tx)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::RowNotFound => Error::Conflict(data.url),
@@ -54,27 +61,42 @@ impl Creatable for PostgresFeedRepository {
                 })
         }?;
 
-        let pf_id =
-            match query::profile_feed::select_by_unique_index(&mut *tx, data.profile_id, feed_id)
-                .await
-            {
-                Ok(id) => Ok(id),
-                _ => {
-                    query::profile_feed::insert(
-                        &mut *tx,
-                        Uuid::new_v4(),
-                        None,
-                        feed_id,
-                        data.profile_id,
-                    )
-                    .await
-                }
-            }
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let pf_id = {
+            let (mut sql, mut values) =
+                colette_sql::profile_feed::select_by_unique_index(data.profile_id, feed_id)
+                    .build_sqlx(PostgresQueryBuilder);
 
-        let fe_ids = query::feed_entry::select_many_by_feed_id(&mut *tx, feed_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            {
+                Ok(id)
+            } else {
+                (sql, values) = colette_sql::profile_feed::insert(
+                    Uuid::new_v4(),
+                    None,
+                    feed_id,
+                    data.profile_id,
+                )
+                .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))
+            }?
+        };
+
+        let fe_ids = {
+            let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
         let insert_many = fe_ids
             .into_iter()
@@ -86,9 +108,16 @@ impl Creatable for PostgresFeedRepository {
             )
             .collect::<Vec<_>>();
 
-        query::profile_feed_entry::insert_many(&mut *tx, insert_many, pf_id, data.profile_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        {
+            let (sql, values) =
+                colette_sql::profile_feed_entry::insert_many(insert_many, pf_id, data.profile_id)
+                    .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
         if let Some(tags) = data.tags {
             link_tags(&mut tx, pf_id, tags, data.profile_id)
@@ -118,18 +147,23 @@ impl Updatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() || data.pinned.is_some() {
-            query::profile_feed::update(
-                &mut *tx,
-                params.id,
-                params.profile_id,
-                data.title,
-                data.pinned,
-            )
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+            let result = {
+                let (sql, values) = colette_sql::profile_feed::update(
+                    params.id,
+                    params.profile_id,
+                    data.title,
+                    data.pinned,
+                )
+                .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if result.rows_affected() == 0 {
+                return Err(Error::NotFound(params.id));
+            }
         }
 
         if let Some(tags) = data.tags {
@@ -152,12 +186,20 @@ impl Deletable for PostgresFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        query::profile_feed::delete(&self.pool, params.id, params.profile_id)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })
+        let result = {
+            let (sql, values) = colette_sql::profile_feed::delete(params.id, params.profile_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
+        if result.rows_affected() == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
     }
 }
 
@@ -186,9 +228,56 @@ impl FeedRepository for PostgresFeedRepository {
     }
 
     fn stream(&self) -> BoxStream<Result<(i32, String), Error>> {
-        query::feed::stream(&self.pool)
+        sqlx::query_as::<_, (i32, String)>("SELECT id, COALESCE(url, link) FROM feed")
+            .fetch(&self.pool)
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
+    }
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct FeedSelect {
+    pub id: Uuid,
+    pub link: String,
+    pub title: Option<String>,
+    pub pinned: bool,
+    pub original_title: String,
+    pub url: Option<String>,
+    pub tags: Option<Json<Vec<TagSelect>>>,
+    pub unread_count: i64,
+}
+
+impl From<FeedSelect> for colette_core::Feed {
+    fn from(value: FeedSelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            pinned: value.pinned,
+            original_title: value.original_title,
+            url: value.url,
+            tags: value
+                .tags
+                .map(|e| e.0.into_iter().map(|e| e.into()).collect()),
+            unread_count: Some(value.unread_count),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct TagSelect {
+    id: Uuid,
+    title: String,
+}
+
+impl From<TagSelect> for colette_core::Tag {
+    fn from(value: TagSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            bookmark_count: None,
+            feed_count: None,
+        }
     }
 }
 
@@ -208,8 +297,29 @@ pub(crate) async fn find(
         tags = filters.tags;
     }
 
-    query::profile_feed::find(executor, id, profile_id, pinned, tags, cursor, limit)
+    let jsonb_agg = Expr::cust(
+        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tag"."id", 'title', "tag"."title") ORDER BY "tag"."title") FILTER (WHERE "tag"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = tags.map(|e| {
+        Expr::cust_with_expr(r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE "t" ->> 'title' = ANY($1))"#, e)
+    });
+
+    let (sql, values) = colette_sql::profile_feed::select(
+        id,
+        profile_id,
+        pinned,
+        cursor,
+        limit,
+        jsonb_agg,
+        tags_subquery,
+    )
+    .build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_as_with::<_, FeedSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
+        .map(|e| e.into_iter().map(Feed::from).collect())
         .map_err(|e| Error::Unknown(e.into()))
 }
 
@@ -238,9 +348,15 @@ async fn create_feed_with_entries(
     let link = feed.link.to_string();
     let url = if url == link { None } else { Some(url) };
 
-    let feed_id = query::feed::insert(&mut *conn, link, feed.title, url)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+    let feed_id = {
+        let (sql, values) =
+            colette_sql::feed::insert(link, feed.title, url).build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?
+    };
 
     let insert_many = feed
         .entries
@@ -255,9 +371,15 @@ async fn create_feed_with_entries(
         })
         .collect::<Vec<_>>();
 
-    query::feed_entry::insert_many(&mut *conn, insert_many, feed_id)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
+    {
+        let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
+            .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_with(&sql, values)
+            .execute(&mut *conn)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+    }
 
     Ok(feed_id)
 }
@@ -269,29 +391,47 @@ pub(crate) async fn link_tags(
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
-        return query::profile_feed_tag::delete_many_in_titles(&mut *conn, &tags.data, profile_id)
-            .await;
+        let (sql, values) =
+            colette_sql::profile_feed_tag::delete_many_in_titles(&tags.data, profile_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+
+        return Ok(());
     }
 
     if let TagsLinkAction::Set = tags.action {
-        query::profile_feed_tag::delete_many_not_in_titles(&mut *conn, &tags.data, profile_id)
-            .await?;
+        let (sql, values) =
+            colette_sql::profile_feed_tag::delete_many_not_in_titles(&tags.data, profile_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
-    query::tag::insert_many(
-        &mut *conn,
-        tags.data
-            .iter()
-            .map(|e| colette_sql::tag::InsertMany {
-                id: Uuid::new_v4(),
-                title: e.to_owned(),
-            })
-            .collect(),
-        profile_id,
-    )
-    .await?;
+    {
+        let (sql, values) = colette_sql::tag::insert_many(
+            tags.data
+                .iter()
+                .map(|e| colette_sql::tag::InsertMany {
+                    id: Uuid::new_v4(),
+                    title: e.to_owned(),
+                })
+                .collect(),
+            profile_id,
+        )
+        .build_sqlx(PostgresQueryBuilder);
 
-    let tag_ids = query::tag::select_ids_by_titles(&mut *conn, &tags.data, profile_id).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+    }
+
+    let tag_ids = {
+        let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags.data, profile_id)
+            .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_all(&mut *conn)
+            .await?
+    };
 
     let insert_many = tag_ids
         .into_iter()
@@ -301,5 +441,12 @@ pub(crate) async fn link_tags(
         })
         .collect::<Vec<_>>();
 
-    query::profile_feed_tag::insert_many(&mut *conn, insert_many, profile_id).await
+    {
+        let (sql, values) = colette_sql::profile_feed_tag::insert_many(insert_many, profile_id)
+            .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+    }
+
+    Ok(())
 }

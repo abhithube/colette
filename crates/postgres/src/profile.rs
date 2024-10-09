@@ -8,9 +8,9 @@ use colette_core::{
     Profile,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use sea_query::PostgresQueryBuilder;
+use sea_query_binder::SqlxBinder;
 use sqlx::{types::Uuid, PgExecutor, PgPool};
-
-use crate::query;
 
 pub struct PostgresProfileRepository {
     pub(crate) pool: PgPool,
@@ -57,19 +57,23 @@ impl Creatable for PostgresProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        query::profile::insert(
-            &self.pool,
+        let (sql, values) = colette_sql::profile::insert(
             Uuid::new_v4(),
             data.title.clone(),
             data.image_url,
             None,
             data.user_id,
         )
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-            _ => Error::Unknown(e.into()),
-        })
+        .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+            .fetch_one(&self.pool)
+            .await
+            .map(|e| e.into())
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -87,18 +91,23 @@ impl Updatable for PostgresProfileRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() || data.image_url.is_some() {
-            query::profile::update(
-                &mut *tx,
-                params.id,
-                params.user_id,
-                data.title,
-                data.image_url,
-            )
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })?;
+            let result = {
+                let (sql, values) = colette_sql::profile::update(
+                    params.id,
+                    params.user_id,
+                    data.title,
+                    data.image_url,
+                )
+                .build_sqlx(PostgresQueryBuilder);
+
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if result.rows_affected() == 0 {
+                return Err(Error::NotFound(params.id));
+            }
         }
 
         let mut profiles =
@@ -125,10 +134,17 @@ impl Deletable for PostgresProfileRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let profiles =
-            query::profile::select(&mut *tx, Some(params.id), params.user_id, None, None, None)
+        let profiles = {
+            let (sql, values) =
+                colette_sql::profile::select(Some(params.id), params.user_id, None, None, None)
+                    .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+                .fetch_all(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
         if let Some(profile) = profiles.first() {
             if profile.is_default {
@@ -138,9 +154,15 @@ impl Deletable for PostgresProfileRepository {
             return Err(Error::NotFound(params.id));
         }
 
-        query::profile::delete(&mut *tx, params.id, params.user_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        {
+            let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
+                .build_sqlx(PostgresQueryBuilder);
+
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
@@ -158,9 +180,34 @@ impl ProfileRepository for PostgresProfileRepository {
     }
 
     fn stream(&self, feed_id: i32) -> BoxStream<Result<Uuid, Error>> {
-        query::profile::stream(&self.pool, feed_id)
-            .map_err(|e| Error::Unknown(e.into()))
-            .boxed()
+        sqlx::query_scalar::<_, Uuid>(
+            "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
+        )
+        .bind(feed_id)
+        .fetch(&self.pool)
+        .map_err(|e| Error::Unknown(e.into()))
+        .boxed()
+    }
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub(crate) struct ProfileSelect {
+    id: Uuid,
+    title: String,
+    image_url: Option<String>,
+    is_default: bool,
+    user_id: Uuid,
+}
+
+impl From<ProfileSelect> for colette_core::Profile {
+    fn from(value: ProfileSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            image_url: value.image_url,
+            is_default: value.is_default,
+            user_id: value.user_id,
+        }
     }
 }
 
@@ -172,10 +219,12 @@ async fn find(
     limit: Option<u64>,
     cursor: Option<Cursor>,
 ) -> Result<Vec<Profile>, Error> {
-    let profiles = query::profile::select(executor, id, user_id, is_default, cursor, limit)
+    let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
+        .build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
         .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    Ok(profiles)
+        .map_err(|e| Error::Unknown(e.into()))
 }
