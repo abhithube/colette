@@ -72,7 +72,7 @@ pub fn select(
         .expr_as(
             Func::coalesce([
                 Expr::col((unread_counts.clone(), unread_count.clone())).into(),
-                Expr::val(0).into(),
+                Expr::val(0_i64).into(),
             ]),
             unread_count,
         )
