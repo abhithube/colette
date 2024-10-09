@@ -656,6 +656,7 @@ dependencies = [
  "colette-postgres",
  "colette-scraper",
  "colette-session",
+ "colette-sqlite",
  "colette-task",
  "colette-util",
  "rust-embed",
@@ -679,6 +680,23 @@ version = "0.1.0"
 dependencies = [
  "colette-core",
  "sea-query",
+ "sqlx",
+]
+
+[[package]]
+name = "colette-sqlite"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "colette-core",
+ "colette-netscape",
+ "colette-opml",
+ "colette-sql",
+ "futures",
+ "sea-query",
+ "sea-query-binder",
+ "serde",
  "sqlx",
 ]
 
