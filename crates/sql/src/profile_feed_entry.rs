@@ -3,7 +3,7 @@ use sea_query::{
     CaseStatement, Expr, InsertStatement, JoinType, OnConflict, Order, Query, SelectStatement,
     UpdateStatement,
 };
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 use crate::{
     feed_entry::FeedEntry, profile_feed::ProfileFeed, profile_feed_tag::ProfileFeedTag,

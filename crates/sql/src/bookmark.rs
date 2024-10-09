@@ -1,5 +1,5 @@
+use chrono::{DateTime, Utc};
 use sea_query::{InsertStatement, OnConflict, Query};
-use sqlx::types::chrono::{DateTime, Utc};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]

@@ -2,7 +2,7 @@ use colette_core::profile::Cursor;
 use sea_query::{
     DeleteStatement, Expr, Func, InsertStatement, Order, Query, SelectStatement, UpdateStatement,
 };
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 #[derive(sea_query::Iden)]
 pub enum Profile {

@@ -1,5 +1,5 @@
 use sea_query::{Expr, InsertStatement, Order, Query, SelectStatement};
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 #[derive(sea_query::Iden)]
 pub enum User {

@@ -1,5 +1,5 @@
+use chrono::{DateTime, Utc};
 use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query, SelectStatement};
-use sqlx::types::chrono::{DateTime, Utc};
 
 use crate::profile_feed_entry::ProfileFeedEntry;
 

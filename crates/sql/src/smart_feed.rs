@@ -3,7 +3,7 @@ use sea_query::{
     Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement,
     JoinType, Order, Query, UpdateStatement, WithClause, WithQuery,
 };
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 use crate::{
     feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry, smart_feed_filter::SmartFeedFilter,

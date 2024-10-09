@@ -3,7 +3,7 @@ use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement, JoinType,
     OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 use crate::{
     feed::Feed, profile_feed_entry::ProfileFeedEntry, profile_feed_tag::ProfileFeedTag, tag::Tag,

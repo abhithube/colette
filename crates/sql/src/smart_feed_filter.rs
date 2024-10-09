@@ -1,7 +1,7 @@
 use std::fmt;
 
 use sea_query::{DeleteStatement, Expr, InsertStatement, Query};
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]

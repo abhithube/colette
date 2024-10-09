@@ -690,9 +690,10 @@ dependencies = [
 name = "colette-sql"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "colette-core",
  "sea-query",
- "sqlx",
+ "uuid",
 ]
 
 [[package]]

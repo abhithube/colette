@@ -1,5 +1,5 @@
 use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query};
-use sqlx::types::Uuid;
+use uuid::Uuid;
 
 use crate::tag::build_titles_subquery;
 
