@@ -57,14 +57,21 @@ impl Creatable for PostgresProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let client = self
+        let mut client = self
             .pool
             .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
+        let tx = client
+            .transaction()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = Uuid::new_v4();
+
         let (sql, values) = colette_sql::profile::insert(
-            Uuid::new_v4(),
+            id,
             data.title.clone(),
             data.image_url,
             None,
@@ -72,15 +79,25 @@ impl Creatable for PostgresProfileRepository {
         )
         .build_postgres(PostgresQueryBuilder);
 
-        let row = client
-            .query_one(&sql, &values.as_params())
+        tx.execute(&sql, &values.as_params())
             .await
             .map_err(|e| match e.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
                 _ => Error::Unknown(e.into()),
             })?;
 
-        Ok(ProfileSelect::from(&row).0)
+        let profile = find_by_id(
+            &tx,
+            ProfileIdParams {
+                id,
+                user_id: data.user_id,
+            },
+        )
+        .await?;
+
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(profile)
     }
 }
 
@@ -121,18 +138,13 @@ impl Updatable for PostgresProfileRepository {
             }
         }
 
-        let (sql, values) =
-            colette_sql::profile::select(Some(params.id), params.user_id, None, None, None)
-                .build_postgres(PostgresQueryBuilder);
-
-        let row = tx
-            .query_one(&sql, &values.as_params())
+        let profile = find_by_id(&tx, params)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(ProfileSelect::from(&row).0)
+        Ok(profile)
     }
 }
 
@@ -153,24 +165,10 @@ impl Deletable for PostgresProfileRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        {
-            let (sql, values) =
-                colette_sql::profile::select(Some(params.id), params.user_id, None, None, None)
-                    .build_postgres(PostgresQueryBuilder);
-
-            if let Some(row) = tx
-                .query_opt(&sql, &values.as_params())
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-            {
-                let profile = ProfileSelect::from(&row).0;
-                if profile.is_default {
-                    return Err(Error::DeletingDefault);
-                }
-            } else {
-                return Err(Error::NotFound(params.id));
-            }
-        };
+        let profile = find_by_id(&tx, params.clone()).await?;
+        if profile.is_default {
+            return Err(Error::DeletingDefault);
+        }
 
         {
             let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
@@ -250,4 +248,16 @@ async fn find<C: GenericClient>(
                 .collect::<Vec<_>>()
         })
         .map_err(|e| Error::Unknown(e.into()))
+}
+
+async fn find_by_id<C: GenericClient>(
+    client: &C,
+    params: ProfileIdParams,
+) -> Result<Profile, Error> {
+    let mut profiles = find(client, Some(params.id), params.user_id, None, None, None).await?;
+    if profiles.is_empty() {
+        return Err(Error::NotFound(params.id));
+    }
+
+    Ok(profiles.swap_remove(0))
 }

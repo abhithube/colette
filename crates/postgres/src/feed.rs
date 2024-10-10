@@ -87,20 +87,17 @@ impl Creatable for PostgresFeedRepository {
             {
                 row.get("id")
             } else {
-                (sql, values) = colette_sql::profile_feed::insert(
-                    Uuid::new_v4(),
-                    None,
-                    feed_id,
-                    data.profile_id,
-                )
-                .build_postgres(PostgresQueryBuilder);
+                let id = Uuid::new_v4();
 
-                let row = tx
-                    .query_one(&sql, &values.as_params())
+                (sql, values) =
+                    colette_sql::profile_feed::insert(id, None, feed_id, data.profile_id)
+                        .build_postgres(PostgresQueryBuilder);
+
+                tx.execute(&sql, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
 
-                row.get("id")
+                id
             }
         };
 

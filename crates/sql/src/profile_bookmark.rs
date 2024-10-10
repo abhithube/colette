@@ -137,7 +137,6 @@ pub fn insert(id: Uuid, bookmark_id: i32, profile_id: Uuid) -> InsertStatement {
                 .do_nothing()
                 .to_owned(),
         )
-        .returning_col(ProfileBookmark::Id)
         .to_owned()
 }
 

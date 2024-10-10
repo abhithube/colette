@@ -192,7 +192,6 @@ pub fn insert(id: Uuid, pinned: Option<bool>, feed_id: i32, profile_id: Uuid) ->
                 .do_nothing()
                 .to_owned(),
         )
-        .returning_col(ProfileFeed::Id)
         .to_owned()
 }
 

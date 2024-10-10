@@ -114,7 +114,6 @@ pub fn insert(id: Uuid, title: String, profile_id: Uuid) -> InsertStatement {
         .into_table(Tag::Table)
         .columns([Tag::Id, Tag::Title, Tag::ProfileId])
         .values_panic([id.into(), title.into(), profile_id.into()])
-        .returning_col(Tag::Id)
         .to_owned()
 }
 

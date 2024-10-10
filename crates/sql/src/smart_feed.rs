@@ -112,7 +112,6 @@ pub fn insert(id: Uuid, title: String, profile_id: Uuid) -> InsertStatement {
         .into_table(SmartFeed::Table)
         .columns([SmartFeed::Id, SmartFeed::Title, SmartFeed::ProfileId])
         .values_panic([id.into(), title.into(), profile_id.into()])
-        .returning_col(SmartFeed::Id)
         .to_owned()
 }
 

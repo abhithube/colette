@@ -56,16 +56,16 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get("id")
                     } else {
-                        (sql, values) =
-                            colette_sql::tag::insert(Uuid::new_v4(), title.clone(), profile_id)
-                                .build_postgres(PostgresQueryBuilder);
+                        let id = Uuid::new_v4();
 
-                        let row = tx
-                            .query_one(&sql, &values.as_params())
+                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
+                            .build_postgres(PostgresQueryBuilder);
+
+                        tx.execute(&sql, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        row.get("id")
+                        id
                     }
                 };
 
@@ -105,20 +105,17 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get("id")
                     } else {
-                        (sql, values) = colette_sql::profile_feed::insert(
-                            Uuid::new_v4(),
-                            None,
-                            feed_id,
-                            profile_id,
-                        )
-                        .build_postgres(PostgresQueryBuilder);
+                        let id = Uuid::new_v4();
 
-                        let row = tx
-                            .query_one(&sql, &values.as_params())
+                        (sql, values) =
+                            colette_sql::profile_feed::insert(id, None, feed_id, profile_id)
+                                .build_postgres(PostgresQueryBuilder);
+
+                        tx.execute(&sql, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        row.get("id")
+                        id
                     }
                 };
 
@@ -177,16 +174,16 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get("id")
                     } else {
-                        (sql, values) =
-                            colette_sql::tag::insert(Uuid::new_v4(), title.clone(), profile_id)
-                                .build_postgres(PostgresQueryBuilder);
+                        let id = Uuid::new_v4();
 
-                        let row = tx
-                            .query_one(&sql, &values.as_params())
+                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
+                            .build_postgres(PostgresQueryBuilder);
+
+                        tx.execute(&sql, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        row.get("id")
+                        id
                     }
                 };
 
@@ -230,19 +227,17 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get("id")
                     } else {
-                        (sql, values) = colette_sql::profile_bookmark::insert(
-                            Uuid::new_v4(),
-                            bookmark_id,
-                            profile_id,
-                        )
-                        .build_postgres(PostgresQueryBuilder);
+                        let id = Uuid::new_v4();
 
-                        let row = tx
-                            .query_one(&sql, &values.as_params())
+                        (sql, values) =
+                            colette_sql::profile_bookmark::insert(id, bookmark_id, profile_id)
+                                .build_postgres(PostgresQueryBuilder);
+
+                        tx.execute(&sql, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
-                        row.get("id")
+                        id
                     }
                 };
 

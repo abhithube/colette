@@ -69,7 +69,6 @@ pub fn insert(
             is_default.unwrap_or_default().into(),
             user_id.into(),
         ])
-        .returning_all()
         .to_owned()
 }
 
@@ -83,7 +82,6 @@ pub fn update(
         .table(Profile::Table)
         .and_where(Expr::col((Profile::Table, Profile::Id)).eq(id))
         .and_where(Expr::col((Profile::Table, Profile::UserId)).eq(user_id))
-        .returning_all()
         .to_owned();
 
     if let Some(title) = title {
