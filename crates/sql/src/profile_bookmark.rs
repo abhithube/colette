@@ -11,7 +11,6 @@ use crate::{
     profile_bookmark_tag::ProfileBookmarkTag, tag::Tag,
 };
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum ProfileBookmark {
     Table,

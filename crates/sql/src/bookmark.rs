@@ -5,7 +5,6 @@ use sea_query::{
 
 use crate::common::WithTimestamps;
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum Bookmark {
     Table,

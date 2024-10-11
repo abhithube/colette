@@ -11,7 +11,6 @@ use crate::{
     profile_feed_entry::ProfileFeedEntry, smart_feed_filter::SmartFeedFilter,
 };
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum SmartFeed {
     Table,

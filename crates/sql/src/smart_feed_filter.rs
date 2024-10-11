@@ -6,7 +6,6 @@ use uuid::Uuid;
 
 use crate::{common::WithTimestamps, profile::Profile, smart_feed::SmartFeed};
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum SmartFeedFilter {
     Table,

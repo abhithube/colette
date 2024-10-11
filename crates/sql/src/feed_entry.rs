@@ -7,7 +7,6 @@ use sea_query::{
 
 use crate::{common::WithTimestamps, feed::Feed, profile_feed_entry::ProfileFeedEntry};
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum FeedEntry {
     Table,

@@ -11,7 +11,6 @@ use crate::{
     profile_feed_tag::ProfileFeedTag,
 };
 
-#[allow(dead_code)]
 #[derive(sea_query::Iden)]
 pub enum Tag {
     Table,
