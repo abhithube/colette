@@ -10,7 +10,7 @@ use deadpool_postgres::{GenericClient, Pool};
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
 use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{error::SqlState, types::Json, Row};
+use tokio_postgres::{types::Json, Row};
 use uuid::Uuid;
 
 pub struct PostgresFeedRepository {
@@ -64,15 +64,15 @@ impl Creatable for PostgresFeedRepository {
             let (sql, values) = colette_sql::feed::select_by_url(data.url.clone())
                 .build_postgres(PostgresQueryBuilder);
 
-            let row =
-                tx.query_one(&sql, &values.as_params())
-                    .await
-                    .map_err(|e| match e.code() {
-                        Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.url),
-                        _ => Error::Unknown(e.into()),
-                    })?;
-
-            row.get("id")
+            if let Some(row) = tx
+                .query_opt(&sql, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            {
+                row.get("id")
+            } else {
+                return Err(Error::Conflict(data.url));
+            }
         };
 
         let pf_id = {
