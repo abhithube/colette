@@ -209,7 +209,7 @@ impl ProfileRepository for PostgresProfileRepository {
 
         client
             .query_raw(
-                "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
+                "SELECT DISTINCT profile_id AS id FROM profile_feed WHERE feed_id = $1",
                 &[&feed_id],
             )
             .await

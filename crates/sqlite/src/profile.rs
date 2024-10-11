@@ -243,8 +243,9 @@ impl ProfileRepository for SqliteProfileRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let mut stmt = conn
-                .prepare_cached("SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = ?")?;
+            let mut stmt = conn.prepare_cached(
+                "SELECT DISTINCT profile_id AS id FROM profile_feed WHERE feed_id = ?",
+            )?;
             let rows = stmt.query_map([feed_id], |row| row.get::<_, Uuid>("id"))?;
 
             Ok::<_, rusqlite::Error>(rows.into_iter().collect::<Vec<_>>())
