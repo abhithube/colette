@@ -73,10 +73,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let mut config = deadpool_postgres::Config::new();
             config.url = Some(url.to_owned());
 
-            let pool = config.create_pool(
+            let mut pool = config.create_pool(
                 Some(deadpool_postgres::Runtime::Tokio1),
                 tokio_postgres::NoTls,
             )?;
+
+            colette_postgres::migrate(&mut pool).await?;
 
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
