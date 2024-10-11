@@ -1,15 +1,17 @@
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enabled");
 
+#[cfg(feature = "postgres")]
+pub use postgres::PostgresStore;
 #[cfg(feature = "sqlite")]
 pub use sqlite::SqliteStore;
-use tower_sessions::{
+use tower_sessions_core::{
     session::{Id, Record},
     session_store, ExpiredDeletion, SessionStore,
 };
-#[cfg(feature = "postgres")]
-pub use tower_sessions_postgres_store::PostgresStore;
 
+#[cfg(feature = "postgres")]
+mod postgres;
 #[cfg(feature = "sqlite")]
 mod sqlite;
 

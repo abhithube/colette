@@ -801,12 +801,14 @@ name = "colette-session"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "deadpool-postgres",
  "deadpool-sqlite",
  "rmp-serde",
  "rusqlite",
  "thiserror",
- "tower-sessions",
- "tower-sessions-postgres-store",
+ "time",
+ "tokio-postgres",
+ "tower-sessions-core",
 ]
 
 [[package]]
@@ -4750,21 +4752,6 @@ dependencies = [
  "time",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "tower-sessions-postgres-store"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d206cb33789cfc283b346c3acd428f2b085175742c2bff412778744c5bd26eb7"
-dependencies = [
- "async-trait",
- "deadpool-postgres",
- "rmp-serde",
- "thiserror",
- "time",
- "tokio-postgres",
- "tower-sessions-core",
 ]
 
 [[package]]

@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use deadpool_sqlite::Pool;
 use rusqlite::{params, OptionalExtension};
-use tower_sessions::{
-    cookie::time::OffsetDateTime,
+use time::OffsetDateTime;
+use tower_sessions_core::{
     session::{Id, Record},
     session_store, ExpiredDeletion, SessionStore,
 };
@@ -249,22 +249,3 @@ fn is_valid_table_name(name: &str) -> bool {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
-
-// #[async_trait]
-// impl SessionStore for SqliteStore {
-// async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
-//     let query = format!(
-//         r#"
-//         delete from {} where id = ?
-//         "#,
-//         self.table_name
-//     );
-//     sqlx::query(&query)
-//         .bind(session_id.to_string())
-//         .execute(&self.pool)
-//         .await
-//         .map_err(SqlxStoreError::Sqlx)?;
-
-//     Ok(())
-// }
-// }
