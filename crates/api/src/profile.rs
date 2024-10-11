@@ -87,7 +87,7 @@ impl From<ProfileCreate> for profile::ProfileCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
-    #[schema(value_type = Option<String>, min_length = 1)]
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
     #[serde(
         default,
