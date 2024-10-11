@@ -6,12 +6,19 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
+chrono.workspace = true
 colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-sql.workspace = true
+deadpool-sqlite.workspace = true
 futures.workspace = true
+rusqlite.workspace = true
 sea-query = { workspace = true, features = ["backend-sqlite"] }
-sea-query-binder = { workspace = true, features = ["sqlx-sqlite"] }
-serde.workspace = true
-sqlx.workspace = true
+sea-query-rusqlite = { version = "=0.7.0-rc.1", default-features = false, features = [
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
+serde_json.workspace = true
+uuid.workspace = true

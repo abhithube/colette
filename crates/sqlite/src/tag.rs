@@ -3,16 +3,18 @@ use colette_core::{
     tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
+use deadpool_sqlite::Pool;
+use rusqlite::{Connection, Row};
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{types::Uuid, SqliteExecutor, SqlitePool};
+use sea_query_rusqlite::RusqliteBinder;
+use uuid::Uuid;
 
 pub struct SqliteTagRepository {
-    pub(crate) pool: SqlitePool,
+    pub(crate) pool: Pool,
 }
 
 impl SqliteTagRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -23,7 +25,19 @@ impl Findable for SqliteTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| find_by_id(&conn, params.id, params.profile_id))
+            .await
+            .unwrap()
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -33,35 +47,43 @@ impl Creatable for SqliteTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = {
-            let (sql, values) =
-                colette_sql::tag::insert(Uuid::new_v4(), data.title.clone(), data.profile_id)
-                    .build_sqlx(SqliteQueryBuilder);
+        let title = data.title.clone();
 
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.title)
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
 
-        let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            let id = Uuid::new_v4();
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+            {
+                let (sql, values) =
+                    colette_sql::tag::insert(id, data.title.clone(), data.profile_id)
+                        .build_rusqlite(SqliteQueryBuilder);
 
-        Ok(tag)
+                tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+            }
+
+            let tag = find_by_id(&tx, id, data.profile_id)?;
+
+            tx.commit()?;
+
+            Ok(tag)
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::SqliteFailure(e, _)
+                if e.code == rusqlite::ErrorCode::ConstraintViolation =>
+            {
+                Error::Conflict(title)
+            }
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -72,35 +94,38 @@ impl Updatable for SqliteTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.title.is_some() {
-            let result = {
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
+
+            if data.title.is_some() {
                 let (sql, values) =
                     colette_sql::tag::update(params.id, params.profile_id, data.title)
-                        .build_sqlx(SqliteQueryBuilder);
+                        .build_rusqlite(SqliteQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
-            if result.rows_affected() == 0 {
-                return Err(Error::NotFound(params.id));
+                let count = tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+                if count == 0 {
+                    return Err(rusqlite::Error::QueryReturnedNoRows);
+                }
             }
-        }
 
-        let tag = find_by_id(&mut *tx, params)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            let tag = find_by_id(&tx, params.id, params.profile_id)?;
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+            tx.commit()?;
 
-        Ok(tag)
+            Ok(tag)
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -110,20 +135,29 @@ impl Deletable for SqliteTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = {
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| {
             let (sql, values) = colette_sql::tag::delete_by_id(params.id, params.profile_id)
-                .build_sqlx(SqliteQueryBuilder);
+                .build_rusqlite(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if result.rows_affected() == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+            let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+            if count == 0 {
+                return Err(rusqlite::Error::QueryReturnedNoRows);
+            }
 
-        Ok(())
+            Ok(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -136,59 +170,61 @@ impl TagRepository for SqliteTagRepository {
         cursor: Option<Cursor>,
         filters: Option<TagFindManyFilters>,
     ) -> Result<Vec<Tag>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| find(&conn, None, profile_id, limit, cursor, filters))
+            .await
+            .unwrap()
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct TagSelect {
-    id: Uuid,
-    title: String,
-    bookmark_count: i64,
-    feed_count: i64,
-}
+#[derive(Debug, Clone)]
+struct TagSelect(Tag);
 
-impl From<TagSelect> for colette_core::Tag {
-    fn from(value: TagSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            bookmark_count: Some(value.bookmark_count),
-            feed_count: Some(value.feed_count),
-        }
+impl TryFrom<&Row<'_>> for TagSelect {
+    type Error = rusqlite::Error;
+
+    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
+        Ok(Self(Tag {
+            id: value.get("id")?,
+            title: value.get("title")?,
+            bookmark_count: Some(value.get("bookmark_count")?),
+            feed_count: Some(value.get("feed_count")?),
+        }))
     }
 }
 
-pub(crate) async fn find(
-    executor: impl SqliteExecutor<'_>,
+pub(crate) fn find(
+    conn: &Connection,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<TagFindManyFilters>,
-) -> Result<Vec<Tag>, Error> {
+) -> rusqlite::Result<Vec<Tag>> {
     let (sql, values) = colette_sql::tag::select(id, profile_id, limit, cursor, filters)
-        .build_sqlx(SqliteQueryBuilder);
+        .build_rusqlite(SqliteQueryBuilder);
 
-    sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
+    let mut stmt = conn.prepare_cached(&sql)?;
+    let mut rows = stmt.query(&*values.as_params())?;
+
+    let mut tags: Vec<Tag> = Vec::new();
+    while let Some(row) = rows.next()? {
+        tags.push(TagSelect::try_from(row).map(|e| e.0)?);
+    }
+
+    Ok(tags)
 }
 
-async fn find_by_id(executor: impl SqliteExecutor<'_>, params: IdParams) -> Result<Tag, Error> {
-    let mut tags = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
+fn find_by_id(conn: &Connection, id: Uuid, profile_id: Uuid) -> rusqlite::Result<Tag> {
+    let mut tags = find(conn, Some(id), profile_id, None, None, None)?;
     if tags.is_empty() {
-        return Err(Error::NotFound(params.id));
+        return Err(rusqlite::Error::QueryReturnedNoRows);
     }
 
     Ok(tags.swap_remove(0))

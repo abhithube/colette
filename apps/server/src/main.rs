@@ -29,11 +29,7 @@ use colette_core::{
     user::UserRepository,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-#[cfg(feature = "postgres")]
-use colette_session::PostgresStore;
 use colette_session::SessionBackend;
-#[cfg(feature = "sqlite")]
-use colette_session::SqliteStore;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
@@ -107,7 +103,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let user_repository =
                 Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
-            let store = PostgresStore::new(pool);
+            let store = colette_session::PostgresStore::new(pool);
             store.migrate().await?;
 
             (
@@ -125,7 +121,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         #[cfg(feature = "sqlite")]
         url if url.starts_with("sqlite") => {
-            let pool = sqlx::SqlitePool::connect(url).await?;
+            let config = deadpool_sqlite::Config::new(url.replace("sqlite://", ""));
+            let pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
 
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));
@@ -143,7 +140,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
             let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
-            let store = SqliteStore::new(pool);
+            let store = colette_session::SqliteStore::new(pool);
             store.migrate().await?;
 
             (

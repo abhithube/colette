@@ -1,14 +1,14 @@
 use colette_core::cleanup::{CleanupRepository, Error};
+use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::SqlitePool;
+use sea_query_rusqlite::RusqliteBinder;
 
 pub struct SqliteCleanupRepository {
-    pub(crate) pool: SqlitePool,
+    pub(crate) pool: Pool,
 }
 
 impl SqliteCleanupRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -16,53 +16,64 @@ impl SqliteCleanupRepository {
 #[async_trait::async_trait]
 impl CleanupRepository for SqliteCleanupRepository {
     async fn cleanup_feeds(&self) -> Result<(), Error> {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut result = {
-            let (sql, values) =
-                colette_sql::feed_entry::delete_many().build_sqlx(SqliteQueryBuilder);
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned feed entries", result.rows_affected());
-        }
+            let mut count = {
+                let (sql, values) =
+                    colette_sql::feed_entry::delete_many().build_rusqlite(SqliteQueryBuilder);
 
-        result = {
-            let (sql, values) = colette_sql::feed::delete_many().build_sqlx(SqliteQueryBuilder);
+                tx.execute(&sql, &*values.as_params())?
+            };
+            if count > 0 {
+                println!("Deleted {} orphaned feed entries", count);
+            }
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned feeds", result.rows_affected());
-        }
+            count = {
+                let (sql, values) =
+                    colette_sql::feed::delete_many().build_rusqlite(SqliteQueryBuilder);
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+                tx.execute(&sql, &*values.as_params())?
+            };
+            if count > 0 {
+                println!("Deleted {} orphaned feeds", count);
+            }
+
+            Ok::<_, rusqlite::Error>(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn cleanup_tags(&self) -> Result<(), Error> {
-        let result = {
-            let (sql, values) = colette_sql::tag::delete_many().build_sqlx(SqliteQueryBuilder);
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if result.rows_affected() > 0 {
-            println!("Deleted {} orphaned tags", result.rows_affected());
-        }
+        conn.interact(move |conn| {
+            let count = {
+                let (sql, values) =
+                    colette_sql::tag::delete_many().build_rusqlite(SqliteQueryBuilder);
 
-        Ok(())
+                conn.execute(&sql, &*values.as_params())?
+            };
+            if count > 0 {
+                println!("Deleted {} orphaned tags", count);
+            }
+
+            Ok::<_, rusqlite::Error>(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }

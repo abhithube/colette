@@ -5,11 +5,14 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
+deadpool-sqlite = { workspace = true, optional = true }
+rmp-serde = { version = "1", default-features = false }
+rusqlite = { workspace = true, optional = true }
+thiserror.workspace = true
 tower-sessions.workspace = true
 tower-sessions-postgres-store = { version = "0.1", default-features = false, optional = true }
-tower-sessions-sqlx-store = { version = "0.14", default-features = false, optional = true }
 
 [features]
 default = ["postgres"]
 postgres = ["dep:tower-sessions-postgres-store"]
-sqlite = ["dep:tower-sessions-sqlx-store", "tower-sessions-sqlx-store/sqlite"]
+sqlite = ["dep:deadpool-sqlite", "dep:rusqlite", "rusqlite/time"]
