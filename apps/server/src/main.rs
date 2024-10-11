@@ -124,7 +124,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         #[cfg(feature = "sqlite")]
         url if url.starts_with("sqlite") => {
             let config = deadpool_sqlite::Config::new(url.replace("sqlite://", ""));
-            let pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
+            let mut pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
+
+            colette_sqlite::migrate(&mut pool).await?;
 
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));
