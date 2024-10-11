@@ -28,6 +28,11 @@ rust-embed = { version = "8", default-features = false, features = [
 tokio.workspace = true
 tokio-postgres = { workspace = true, optional = true }
 tower-sessions.workspace = true
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+  "ansi",
+  "env-filter",
+  "tracing-log",
+] }
 
 [features]
 default = ["postgres"]

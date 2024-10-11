@@ -13,7 +13,7 @@ use http::{header, HeaderValue, Method};
 use profile::ProfileState;
 use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
-use tower_http::cors::CorsLayer;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
@@ -122,6 +122,7 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .with_secure(false)
                     .with_expiry(Expiry::OnInactivity(Duration::days(1))),
             )
+            .layer(TraceLayer::new_for_http())
             .split_for_parts();
 
         openapi.paths.paths = openapi

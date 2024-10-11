@@ -95,6 +95,7 @@ tokio-postgres = { version = "0.7", default-features = false, features = [
 tower-sessions = { version = "0.13", default-features = false, features = [
   "axum-core",
 ] }
+tracing = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false, features = ["serde"] }
 uuid = { version = "1", default-features = false, features = ["serde", "v4"] }
 

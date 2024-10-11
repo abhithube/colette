@@ -33,6 +33,7 @@ use colette_session::SessionBackend;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower_sessions::ExpiredDeletion;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const CRON_CLEANUP: &str = "0 0 0 * * *";
 
@@ -42,6 +43,11 @@ struct Asset;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     let app_config = colette_config::load_config()?;
 
     #[allow(clippy::type_complexity)]
