@@ -3,7 +3,7 @@ use sea_query::{InsertStatement, OnConflict, Query};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum Bookmark {
+pub enum Bookmark {
     Table,
     Id,
     Link,

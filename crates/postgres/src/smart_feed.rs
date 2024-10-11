@@ -6,7 +6,11 @@ use colette_core::{
     },
     SmartFeed,
 };
-use colette_sql::smart_feed_filter::{Field, Operation};
+use colette_sql::{
+    feed_entry::FeedEntry,
+    profile_feed_entry::ProfileFeedEntry,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter},
+};
 use deadpool_postgres::{GenericClient, Pool};
 use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, SimpleExpr};
 use sea_query_postgres::PostgresBinder;
@@ -328,49 +332,6 @@ async fn insert_filters<C: GenericClient>(
     }
 
     Ok(())
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum FeedEntry {
-    Table,
-    Id,
-    Link,
-    Title,
-    PublishedAt,
-    Description,
-    Author,
-    ThumbnailUrl,
-    FeedId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum ProfileFeedEntry {
-    Table,
-    Id,
-    HasRead,
-    ProfileFeedId,
-    FeedEntryId,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum SmartFeedFilter {
-    Table,
-    Id,
-    Field,
-    Operation,
-    Value,
-    SmartFeedId,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
 }
 
 pub(crate) trait SmartFilterCase {

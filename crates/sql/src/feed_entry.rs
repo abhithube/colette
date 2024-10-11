@@ -5,7 +5,7 @@ use crate::profile_feed_entry::ProfileFeedEntry;
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum FeedEntry {
+pub enum FeedEntry {
     Table,
     Id,
     Link,

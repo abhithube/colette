@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum SmartFeedFilter {
+pub enum SmartFeedFilter {
     Table,
     Id,
     Field,

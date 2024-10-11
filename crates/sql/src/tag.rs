@@ -9,7 +9,7 @@ use crate::{profile_bookmark_tag::ProfileBookmarkTag, profile_feed_tag::ProfileF
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum Tag {
+pub enum Tag {
     Table,
     Id,
     Title,

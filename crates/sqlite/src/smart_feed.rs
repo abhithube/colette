@@ -6,7 +6,11 @@ use colette_core::{
     },
     SmartFeed,
 };
-use colette_sql::smart_feed_filter::{Field, Operation};
+use colette_sql::{
+    feed_entry::FeedEntry,
+    profile_feed_entry::ProfileFeedEntry,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter},
+};
 use deadpool_sqlite::Pool;
 use rusqlite::{Connection, Row};
 use sea_query::{Alias, CaseStatement, Expr, Func, SimpleExpr, SqliteQueryBuilder};
@@ -341,49 +345,6 @@ fn insert_filters(
     }
 
     Ok(())
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum FeedEntry {
-    Table,
-    Id,
-    Link,
-    Title,
-    PublishedAt,
-    Description,
-    Author,
-    ThumbnailUrl,
-    FeedId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum ProfileFeedEntry {
-    Table,
-    Id,
-    HasRead,
-    ProfileFeedId,
-    FeedEntryId,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-#[allow(dead_code)]
-#[derive(sea_query::Iden)]
-enum SmartFeedFilter {
-    Table,
-    Id,
-    Field,
-    Operation,
-    Value,
-    SmartFeedId,
-    ProfileId,
-    CreatedAt,
-    UpdatedAt,
 }
 
 pub(crate) trait SmartFilterCase {

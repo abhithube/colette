@@ -4,7 +4,7 @@ use crate::profile_feed::ProfileFeed;
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum Feed {
+pub enum Feed {
     Table,
     Id,
     Link,

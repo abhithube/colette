@@ -12,7 +12,7 @@ use crate::{
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
-pub(crate) enum ProfileFeedEntry {
+pub enum ProfileFeedEntry {
     Table,
     Id,
     HasRead,
