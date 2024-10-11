@@ -8,7 +8,7 @@ use colette_core::{
     Bookmark,
 };
 use deadpool_postgres::{GenericClient, Pool};
-use sea_query::{Expr, PostgresQueryBuilder};
+use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{types::Json, Row};
 use uuid::Uuid;
@@ -235,7 +235,10 @@ pub(crate) async fn find<C: GenericClient>(
     );
 
     let tags_subquery = tags.map(|e| {
-        Expr::cust_with_expr(r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE "t" ->> 'title' = ANY($1))"#, e)
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+        )
     });
 
     let (sql, values) = colette_sql::profile_bookmark::select(
