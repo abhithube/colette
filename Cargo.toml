@@ -9,7 +9,6 @@ members = [
   "crates/core",
   "crates/feed",
   "crates/meta",
-  "crates/migration",
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
