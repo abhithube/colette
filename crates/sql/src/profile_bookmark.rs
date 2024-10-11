@@ -1,11 +1,15 @@
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, InsertStatement, JoinType, OnConflict,
-    Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
+    Alias, ColumnDef, ColumnType, CommonTableExpression, DeleteStatement, Expr, ForeignKey,
+    ForeignKeyAction, Iden, Index, IndexCreateStatement, InsertStatement, JoinType, OnConflict,
+    Query, SelectStatement, SimpleExpr, Table, TableCreateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
-use crate::{bookmark::Bookmark, profile_bookmark_tag::ProfileBookmarkTag, tag::Tag};
+use crate::{
+    bookmark::Bookmark, common::WithTimestamps, profile::Profile,
+    profile_bookmark_tag::ProfileBookmarkTag, tag::Tag,
+};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
@@ -16,6 +20,49 @@ pub enum ProfileBookmark {
     BookmarkId,
     CreatedAt,
     UpdatedAt,
+}
+
+pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
+    Table::create()
+        .table(ProfileBookmark::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new_with_type(ProfileBookmark::Id, id_type.clone())
+                .not_null()
+                .primary_key(),
+        )
+        .col(ColumnDef::new_with_type(ProfileBookmark::ProfileId, id_type).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(ProfileBookmark::Table, ProfileBookmark::ProfileId)
+                .to(Profile::Table, Profile::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .col(ColumnDef::new_with_type(ProfileBookmark::BookmarkId, ColumnType::Integer).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(ProfileBookmark::Table, ProfileBookmark::BookmarkId)
+                .to(Bookmark::Table, Bookmark::Id)
+                .on_delete(ForeignKeyAction::Restrict),
+        )
+        .with_timestamps(timestamp_type)
+        .to_owned()
+}
+
+pub fn create_profile_id_bookmark_id_index() -> IndexCreateStatement {
+    Index::create()
+        .name(format!(
+            "{profile_bookmark}_{profile_id}_{bookmark_id}_idx",
+            profile_bookmark = ProfileBookmark::Table.to_string(),
+            profile_id = ProfileBookmark::ProfileId.to_string(),
+            bookmark_id = ProfileBookmark::BookmarkId.to_string()
+        ))
+        .table(ProfileBookmark::Table)
+        .if_not_exists()
+        .col(ProfileBookmark::ProfileId)
+        .col(ProfileBookmark::BookmarkId)
+        .unique()
+        .to_owned()
 }
 
 pub fn select(

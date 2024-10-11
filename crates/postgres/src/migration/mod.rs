@@ -5,4 +5,3 @@ mod V0004__initial_profile_feed;
 mod V0005__initial_profile_bookmark;
 mod V0006__initial_tag;
 mod V0007__initial_smart_feed;
-pub mod common;

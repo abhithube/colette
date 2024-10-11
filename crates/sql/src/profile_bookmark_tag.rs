@@ -1,7 +1,15 @@
-use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query};
+use sea_query::{
+    ColumnDef, ColumnType, DeleteStatement, Expr, ForeignKey, ForeignKeyAction, Index,
+    InsertStatement, OnConflict, Query, Table, TableCreateStatement,
+};
 use uuid::Uuid;
 
-use crate::tag::build_titles_subquery;
+use crate::{
+    common::WithTimestamps,
+    profile::Profile,
+    profile_bookmark::ProfileBookmark,
+    tag::{build_titles_subquery, Tag},
+};
 
 #[derive(sea_query::Iden)]
 pub enum ProfileBookmarkTag {
@@ -11,6 +19,46 @@ pub enum ProfileBookmarkTag {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
+    Table::create()
+        .table(ProfileBookmarkTag::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new_with_type(ProfileBookmarkTag::ProfileBookmarkId, id_type.clone())
+                .not_null(),
+        )
+        .foreign_key(
+            ForeignKey::create()
+                .from(
+                    ProfileBookmarkTag::Table,
+                    ProfileBookmarkTag::ProfileBookmarkId,
+                )
+                .to(ProfileBookmark::Table, ProfileBookmark::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .col(ColumnDef::new_with_type(ProfileBookmarkTag::TagId, id_type.clone()).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(ProfileBookmarkTag::Table, ProfileBookmarkTag::TagId)
+                .to(Tag::Table, Tag::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .primary_key(
+            Index::create()
+                .col(ProfileBookmarkTag::ProfileBookmarkId)
+                .col(ProfileBookmarkTag::TagId),
+        )
+        .col(ColumnDef::new_with_type(ProfileBookmarkTag::ProfileId, id_type).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(ProfileBookmarkTag::Table, ProfileBookmarkTag::ProfileId)
+                .to(Profile::Table, Profile::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .with_timestamps(timestamp_type)
+        .to_owned()
 }
 
 pub struct InsertMany {

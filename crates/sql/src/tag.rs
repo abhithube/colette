@@ -1,11 +1,15 @@
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{
-    Alias, DeleteStatement, Expr, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    UpdateStatement,
+    Alias, ColumnDef, ColumnType, DeleteStatement, Expr, ForeignKey, ForeignKeyAction, Iden, Index,
+    IndexCreateStatement, InsertStatement, OnConflict, Order, Query, SelectStatement, Table,
+    TableCreateStatement, UpdateStatement,
 };
 use uuid::Uuid;
 
-use crate::{profile_bookmark_tag::ProfileBookmarkTag, profile_feed_tag::ProfileFeedTag};
+use crate::{
+    common::WithTimestamps, profile::Profile, profile_bookmark_tag::ProfileBookmarkTag,
+    profile_feed_tag::ProfileFeedTag,
+};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
@@ -16,6 +20,43 @@ pub enum Tag {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
+    Table::create()
+        .table(Tag::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new_with_type(Tag::Id, id_type.clone())
+                .not_null()
+                .primary_key(),
+        )
+        .col(ColumnDef::new_with_type(Tag::Title, ColumnType::Text).not_null())
+        .col(ColumnDef::new_with_type(Tag::ProfileId, id_type).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(Tag::Table, Tag::ProfileId)
+                .to(Profile::Table, Profile::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .with_timestamps(timestamp_type)
+        .to_owned()
+}
+
+pub fn create_profile_id_title_index() -> IndexCreateStatement {
+    Index::create()
+        .name(format!(
+            "{tag}_{profile_id}_{title}_idx",
+            tag = Tag::Table.to_string(),
+            profile_id = Tag::ProfileId.to_string(),
+            title = Tag::Title.to_string()
+        ))
+        .table(Tag::Table)
+        .if_not_exists()
+        .col(Tag::ProfileId)
+        .col(Tag::Title)
+        .unique()
+        .to_owned()
 }
 
 pub struct InsertMany {

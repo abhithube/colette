@@ -1,5 +1,10 @@
-use sea_query::{Expr, InsertStatement, Order, Query, SelectStatement};
+use sea_query::{
+    ColumnDef, ColumnType, Expr, InsertStatement, Order, Query, SelectStatement, Table,
+    TableCreateStatement,
+};
 use uuid::Uuid;
+
+use crate::common::WithTimestamps;
 
 #[derive(sea_query::Iden)]
 pub enum User {
@@ -9,6 +14,25 @@ pub enum User {
     Password,
     CreatedAt,
     UpdatedAt,
+}
+
+pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
+    Table::create()
+        .table(User::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new_with_type(User::Id, id_type)
+                .not_null()
+                .primary_key(),
+        )
+        .col(
+            ColumnDef::new_with_type(User::Email, ColumnType::Text)
+                .not_null()
+                .unique_key(),
+        )
+        .col(ColumnDef::new_with_type(User::Password, ColumnType::Text).not_null())
+        .with_timestamps(timestamp_type)
+        .to_owned()
 }
 
 pub fn select(id: Option<Uuid>, email: Option<String>) -> SelectStatement {

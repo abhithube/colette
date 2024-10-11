@@ -1,12 +1,14 @@
 use colette_core::smart_feed::Cursor;
 use sea_query::{
-    Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement,
-    JoinType, Order, Query, UpdateStatement, WithClause, WithQuery,
+    Alias, CaseStatement, ColumnDef, ColumnType, CommonTableExpression, DeleteStatement, Expr,
+    ForeignKey, ForeignKeyAction, Func, Iden, Index, IndexCreateStatement, InsertStatement,
+    JoinType, Order, Query, Table, TableCreateStatement, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
 use crate::{
-    feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry, smart_feed_filter::SmartFeedFilter,
+    common::WithTimestamps, feed_entry::FeedEntry, profile::Profile,
+    profile_feed_entry::ProfileFeedEntry, smart_feed_filter::SmartFeedFilter,
 };
 
 #[allow(dead_code)]
@@ -18,6 +20,43 @@ pub enum SmartFeed {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
+    Table::create()
+        .table(SmartFeed::Table)
+        .if_not_exists()
+        .col(
+            ColumnDef::new_with_type(SmartFeed::Id, id_type.clone())
+                .not_null()
+                .primary_key(),
+        )
+        .col(ColumnDef::new_with_type(SmartFeed::Title, ColumnType::Text).not_null())
+        .col(ColumnDef::new_with_type(SmartFeed::ProfileId, id_type).not_null())
+        .foreign_key(
+            ForeignKey::create()
+                .from(SmartFeed::Table, SmartFeed::ProfileId)
+                .to(Profile::Table, Profile::Id)
+                .on_delete(ForeignKeyAction::Cascade),
+        )
+        .with_timestamps(timestamp_type)
+        .to_owned()
+}
+
+pub fn create_profile_id_title_index() -> IndexCreateStatement {
+    Index::create()
+        .name(format!(
+            "{smart_feed}_{profile_id}_{title}_idx",
+            smart_feed = SmartFeed::Table.to_string(),
+            profile_id = SmartFeed::ProfileId.to_string(),
+            title = SmartFeed::Title.to_string()
+        ))
+        .table(SmartFeed::Table)
+        .if_not_exists()
+        .col(SmartFeed::ProfileId)
+        .col(SmartFeed::Title)
+        .unique()
+        .to_owned()
 }
 
 pub fn select(
