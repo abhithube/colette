@@ -17,7 +17,7 @@ tower-sessions-core = { version = "0.13", default-features = false, features = [
 ] }
 
 [features]
-default = ["postgres"]
+default = []
 postgres = [
   "dep:deadpool-postgres",
   "dep:tokio-postgres",
