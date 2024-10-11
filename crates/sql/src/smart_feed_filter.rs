@@ -1,6 +1,4 @@
-use std::fmt;
-
-use sea_query::{DeleteStatement, Expr, InsertStatement, Query};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query};
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -66,6 +64,7 @@ pub fn delete_many(profile_id: Uuid, smart_feed_id: Uuid) -> DeleteStatement {
 
 #[derive(Debug, Clone)]
 pub enum Field {
+    Type,
     Link,
     Title,
     PublishedAt,
@@ -74,23 +73,28 @@ pub enum Field {
     HasRead,
 }
 
-impl fmt::Display for Field {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let str = match self {
-            Self::Link => "link",
-            Self::Title => "title",
-            Self::PublishedAt => "published_at",
-            Self::Description => "description",
-            Self::Author => "author",
-            Self::HasRead => "has_read",
-        };
-
-        write!(f, "{}", str)
+impl Iden for Field {
+    fn unquoted(&self, s: &mut dyn std::fmt::Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Type => "field",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::PublishedAt => "published_at",
+                Self::Description => "description",
+                Self::Author => "author",
+                Self::HasRead => "has_read",
+            }
+        )
+        .unwrap();
     }
 }
 
 #[derive(Debug, Clone)]
 pub enum Operation {
+    Type,
     Eq,
     Ne,
     Like,
@@ -100,18 +104,22 @@ pub enum Operation {
     InLastXSec,
 }
 
-impl fmt::Display for Operation {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let str = match self {
-            Self::Eq => "=",
-            Self::Ne => "!=",
-            Self::Like => "LIKE",
-            Self::NotLike => "NOT LIKE",
-            Self::GreaterThan => ">",
-            Self::LessThan => "<",
-            Self::InLastXSec => "in_last_x_sec",
-        };
-
-        write!(f, "{}", str)
+impl Iden for Operation {
+    fn unquoted(&self, s: &mut dyn std::fmt::Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Type => "operation",
+                Self::Eq => "=",
+                Self::Ne => "!=",
+                Self::Like => "LIKE",
+                Self::NotLike => "NOT LIKE",
+                Self::GreaterThan => ">",
+                Self::LessThan => "<",
+                Self::InLastXSec => "in_last_x_sec",
+            }
+        )
+        .unwrap();
     }
 }

@@ -13,7 +13,7 @@ use colette_sql::{
 };
 use deadpool_sqlite::Pool;
 use rusqlite::{Connection, Row};
-use sea_query::{Alias, CaseStatement, Expr, Func, SimpleExpr, SqliteQueryBuilder};
+use sea_query::{Alias, CaseStatement, Expr, Func, Iden, SimpleExpr, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
 
@@ -366,6 +366,7 @@ impl SmartFilterCase for CaseStatement {
                 Alias::new("TEXT"),
             )
             .into(),
+            Field::Type => unreachable!(),
         };
 
         let cond = Expr::col((SmartFeedFilter::Table, SmartFeedFilter::Field))
@@ -394,6 +395,7 @@ impl SmartFilterCase for CaseStatement {
                     Func::cast_as(value_col, Alias::new("NUMERIC")).into(),
                 ],
             ),
+            Operation::Type => unreachable!(),
         };
 
         self.case(cond, then)

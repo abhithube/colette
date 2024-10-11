@@ -12,7 +12,7 @@ use colette_sql::{
     smart_feed_filter::{Field, Operation, SmartFeedFilter},
 };
 use deadpool_postgres::{GenericClient, Pool};
-use sea_query::{Alias, CaseStatement, Expr, Func, PostgresQueryBuilder, SimpleExpr};
+use sea_query::{Alias, CaseStatement, Expr, Func, Iden, PostgresQueryBuilder, SimpleExpr};
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{error::SqlState, Row};
 use uuid::Uuid;
@@ -357,6 +357,7 @@ impl SmartFilterCase for CaseStatement {
                 Alias::new("text"),
             )
             .into(),
+            Field::Type => unreachable!(),
         };
 
         let cond = Expr::col((SmartFeedFilter::Table, SmartFeedFilter::Field))
@@ -391,6 +392,7 @@ impl SmartFilterCase for CaseStatement {
                     Func::cast_as(value_col, Alias::new("numeric")).into(),
                 ],
             ),
+            Operation::Type => unreachable!(),
         };
 
         self.case(cond, then)
