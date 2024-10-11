@@ -16,12 +16,11 @@ tauri-build = { version = "2.0.0-rc", default-features = false, features = [
 colette-api.workspace = true
 colette-backup.workspace = true
 colette-core.workspace = true
-colette-migration = { workspace = true, features = ["sqlite"] }
 colette-plugins.workspace = true
-colette-repository.workspace = true
+colette-sqlite.workspace = true
 colette-util.workspace = true
+deadpool-sqlite.workspace = true
 email_address.workspace = true
-sea-orm = { workspace = true, features = ["sqlx-sqlite"] }
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2.0.0-rc", default-features = false, features = [

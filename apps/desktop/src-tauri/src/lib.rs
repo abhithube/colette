@@ -10,18 +10,18 @@ use colette_core::{
     feed::FeedService,
     feed_entry::FeedEntryService,
     profile::{ProfileIdOrDefaultParams, ProfileService},
+    smart_feed::SmartFeedService,
     tag::TagService,
 };
-use colette_migration::{Migrator, MigratorTrait};
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_repository::{
-    BackupSqlRepository, BookmarkSqlRepository, FeedEntrySqlRepository, FeedSqlRepository,
-    ProfileSqlRepository, TagSqlRepository, UserSqlRepository,
+use colette_sqlite::{
+    SqliteBackupRepository, SqliteBookmarkRepository, SqliteCleanupRepository,
+    SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
+    SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use command::{auth, backup, bookmark, feed, feed_entry, profile, tag};
 use email_address::EmailAddress;
-use sea_orm::{ConnectOptions, Database};
 use tauri::Manager;
 
 mod command;
@@ -38,27 +38,30 @@ pub fn run() {
                 }
                 path = path.join("sqlite.db");
 
-                let database_url = format!("sqlite://{}?mode=rwc", path.to_string_lossy());
+                let config = deadpool_sqlite::Config::new(path);
+                let mut pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
 
-                let mut opts = ConnectOptions::new(database_url);
-                opts.max_connections(100);
+                colette_sqlite::migrate(&mut pool).await?;
 
-                let db = Database::connect(opts).await?;
-                Migrator::up(&db, None).await?;
-
-                let feed_repository = Arc::new(FeedSqlRepository::new(db.clone()));
-                let bookmark_repository = Arc::new(BookmarkSqlRepository::new(db.clone()));
-                let profile_repository = Arc::new(ProfileSqlRepository::new(db.clone()));
+                let backup_repository = Arc::new(SqliteBackupRepository::new(pool.clone()));
+                let bookmark_repository = Arc::new(SqliteBookmarkRepository::new(pool.clone()));
+                let _cleanup_repository = Arc::new(SqliteCleanupRepository::new(pool.clone()));
+                let feed_repository = Arc::new(SqliteFeedRepository::new(pool.clone()));
+                let feed_entry_repository = Arc::new(SqliteFeedEntryRepository::new(pool.clone()));
+                let profile_repository = Arc::new(SqliteProfileRepository::new(pool.clone()));
+                let smart_feed_repository = Arc::new(SqliteSmartFeedRepository::new(pool.clone()));
+                let tag_repository = Arc::new(SqliteTagRepository::new(pool.clone()));
+                let user_repository = Arc::new(SqliteUserRepository::new(pool.clone()));
 
                 let base64_decoder = Arc::new(Base64Encoder);
 
                 let auth_service = AuthService::new(
-                    Arc::new(UserSqlRepository::new(db.clone())),
+                    user_repository,
                     profile_repository.clone(),
                     Arc::new(ArgonHasher),
                 );
                 let backup_service = BackupService::new(
-                    Arc::new(BackupSqlRepository::new(db.clone())),
+                    backup_repository,
                     feed_repository.clone(),
                     bookmark_repository.clone(),
                     Arc::new(OpmlManager),
@@ -71,12 +74,11 @@ pub fn run() {
                 );
                 let feed_service =
                     FeedService::new(feed_repository, Arc::new(register_feed_plugins()));
-                let feed_entry_service = FeedEntryService::new(
-                    Arc::new(FeedEntrySqlRepository::new(db.clone())),
-                    base64_decoder,
-                );
+                let feed_entry_service =
+                    FeedEntryService::new(feed_entry_repository, base64_decoder);
                 let profile_service = ProfileService::new(profile_repository.clone());
-                let tag_service = TagService::new(Arc::new(TagSqlRepository::new(db)));
+                let smart_feed_service = SmartFeedService::new(smart_feed_repository.clone());
+                let tag_service = TagService::new(tag_repository);
 
                 let email = EmailAddress::from_str("default@default.com")?;
                 let password = NonEmptyString::try_from("default".to_owned())?;
@@ -110,6 +112,7 @@ pub fn run() {
                 app.manage(feed_service);
                 app.manage(feed_entry_service);
                 app.manage(profile_service);
+                app.manage(smart_feed_service);
                 app.manage(tag_service);
 
                 Ok(())

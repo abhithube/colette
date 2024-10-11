@@ -30,7 +30,7 @@ tokio-postgres = { workspace = true, optional = true }
 tower-sessions.workspace = true
 
 [features]
-default = ["sqlite"]
+default = ["postgres"]
 postgres = [
   "dep:colette-postgres",
   "dep:deadpool-postgres",
