@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use sea_query::{InsertStatement, OnConflict, Query};
+use sea_query::{Expr, InsertStatement, OnConflict, Query};
 
 #[allow(dead_code)]
 #[derive(sea_query::Iden)]
@@ -30,6 +30,7 @@ pub fn insert(
             Bookmark::ThumbnailUrl,
             Bookmark::PublishedAt,
             Bookmark::Author,
+            Bookmark::UpdatedAt,
         ])
         .values_panic([
             link.into(),
@@ -37,6 +38,7 @@ pub fn insert(
             thumbnail_url.into(),
             published_at.into(),
             author.into(),
+            Expr::current_timestamp().into(),
         ])
         .on_conflict(
             OnConflict::column(Bookmark::Link)
@@ -45,6 +47,7 @@ pub fn insert(
                     Bookmark::ThumbnailUrl,
                     Bookmark::PublishedAt,
                     Bookmark::Author,
+                    Bookmark::UpdatedAt,
                 ])
                 .to_owned(),
         )

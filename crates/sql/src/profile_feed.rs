@@ -203,6 +203,7 @@ pub fn update(
 ) -> UpdateStatement {
     let mut query = Query::update()
         .table(ProfileFeed::Table)
+        .value(ProfileFeed::UpdatedAt, Expr::current_timestamp())
         .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
         .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
         .to_owned();

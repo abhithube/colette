@@ -138,6 +138,7 @@ pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
 pub fn update(id: Uuid, profile_id: Uuid, title: Option<String>) -> UpdateStatement {
     let mut query = Query::update()
         .table(Tag::Table)
+        .value(Tag::UpdatedAt, Expr::current_timestamp())
         .and_where(Expr::col(Tag::Id).eq(id))
         .and_where(Expr::col(Tag::ProfileId).eq(profile_id))
         .to_owned();

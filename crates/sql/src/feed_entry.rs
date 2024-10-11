@@ -47,6 +47,7 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
             FeedEntry::Author,
             FeedEntry::ThumbnailUrl,
             FeedEntry::FeedId,
+            FeedEntry::UpdatedAt,
         ])
         .on_conflict(
             OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
@@ -57,6 +58,7 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
                     FeedEntry::Author,
                     FeedEntry::ThumbnailUrl,
                     FeedEntry::FeedId,
+                    FeedEntry::UpdatedAt,
                 ])
                 .to_owned(),
         )
@@ -72,6 +74,7 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
             fe.author.into(),
             fe.thumbnail_url.into(),
             feed_id.into(),
+            Expr::current_timestamp().into(),
         ]);
     }
 

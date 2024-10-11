@@ -118,6 +118,7 @@ pub fn insert(id: Uuid, title: String, profile_id: Uuid) -> InsertStatement {
 pub fn update(id: Uuid, profile_id: Uuid, title: Option<String>) -> UpdateStatement {
     let mut query = Query::update()
         .table(SmartFeed::Table)
+        .value(SmartFeed::UpdatedAt, Expr::current_timestamp())
         .and_where(Expr::col(SmartFeed::Id).eq(id))
         .and_where(Expr::col(SmartFeed::ProfileId).eq(profile_id))
         .to_owned();

@@ -29,11 +29,16 @@ pub fn select_by_url(url: String) -> SelectStatement {
 pub fn insert(link: String, title: String, url: Option<String>) -> InsertStatement {
     Query::insert()
         .into_table(Feed::Table)
-        .columns([Feed::Link, Feed::Title, Feed::Url])
-        .values_panic([link.into(), title.into(), url.into()])
+        .columns([Feed::Link, Feed::Title, Feed::Url, Feed::UpdatedAt])
+        .values_panic([
+            link.into(),
+            title.into(),
+            url.into(),
+            Expr::current_timestamp().into(),
+        ])
         .on_conflict(
             OnConflict::column(Feed::Link)
-                .update_columns([Feed::Title, Feed::Url])
+                .update_columns([Feed::Title, Feed::Url, Feed::UpdatedAt])
                 .to_owned(),
         )
         .returning_col(Feed::Id)

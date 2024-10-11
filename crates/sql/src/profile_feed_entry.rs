@@ -160,6 +160,7 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
 pub fn update(id: Uuid, profile_id: Uuid, has_read: Option<bool>) -> UpdateStatement {
     let mut query = Query::update()
         .table(ProfileFeedEntry::Table)
+        .value(ProfileFeedEntry::UpdatedAt, Expr::current_timestamp())
         .and_where(Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::Id)).eq(id))
         .and_where(Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::ProfileId)).eq(profile_id))
         .to_owned();

@@ -80,6 +80,7 @@ pub fn update(
 ) -> UpdateStatement {
     let mut query = Query::update()
         .table(Profile::Table)
+        .value(Profile::UpdatedAt, Expr::current_timestamp())
         .and_where(Expr::col((Profile::Table, Profile::Id)).eq(id))
         .and_where(Expr::col((Profile::Table, Profile::UserId)).eq(user_id))
         .to_owned();
