@@ -8,7 +8,7 @@ use colette_core::{
     Profile,
 };
 use deadpool_postgres::{GenericClient, Pool};
-use futures::stream::BoxStream;
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{error::SqlState, Row};
@@ -200,16 +200,25 @@ impl ProfileRepository for PostgresProfileRepository {
         find(&client, None, user_id, None, limit, cursor).await
     }
 
-    async fn stream(&self, _feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
-        // sqlx::query_scalar::<_, Uuid>(
-        //     "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
-        // )
-        // .bind(feed_id)
-        // .fetch(&self.pool)
-        // .map_err(|e| Error::Unknown(e.into()))
-        // .boxed()
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        todo!()
+        client
+            .query_raw(
+                "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
+                &[&feed_id],
+            )
+            .await
+            .map(|e| {
+                e.map(|e| e.map(|e| e.get("id")))
+                    .map_err(|e| Error::Unknown(e.into()))
+                    .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 

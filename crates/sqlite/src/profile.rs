@@ -8,7 +8,10 @@ use colette_core::{
     Profile,
 };
 use deadpool_sqlite::Pool;
-use futures::stream::BoxStream;
+use futures::{
+    stream::{self, BoxStream},
+    StreamExt,
+};
 use rusqlite::{Connection, Row};
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder;
@@ -232,16 +235,31 @@ impl ProfileRepository for SqliteProfileRepository {
             .map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn stream(&self, _feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
-        // sqlx::query_scalar::<_, Uuid>(
-        //     "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
-        // )
-        // .bind(feed_id)
-        // .fetch(&self.pool)
-        // .map_err(|e| Error::Unknown(e.into()))
-        // .boxed()
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        todo!()
+        conn.interact(move |conn| {
+            let mut stmt = conn
+                .prepare_cached("SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = ?")?;
+            let rows = stmt.query_map([feed_id], |row| row.get::<_, Uuid>("id"))?;
+
+            Ok::<_, rusqlite::Error>(rows.into_iter().collect::<Vec<_>>())
+        })
+        .await
+        .unwrap()
+        .map(|e| {
+            stream::iter(
+                e.into_iter()
+                    .map(|e| e.map_err(|e| Error::Unknown(e.into())))
+                    .collect::<Vec<_>>(),
+            )
+            .boxed()
+        })
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }
 

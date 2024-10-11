@@ -7,7 +7,7 @@ use colette_core::{
     Feed,
 };
 use deadpool_postgres::{GenericClient, Pool};
-use futures::stream::BoxStream;
+use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_query::{Expr, PostgresQueryBuilder};
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{error::SqlState, types::Json, Row};
@@ -269,12 +269,21 @@ impl FeedRepository for PostgresFeedRepository {
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
-        // sqlx::query_as::<_, (i32, String)>("SELECT id, COALESCE(url, link) FROM feed")
-        //     .fetch(&self.pool)
-        //     .map_err(|e| Error::Unknown(e.into()))
-        //     .boxed()
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        todo!()
+        client
+            .query_raw::<_, _, &[&str; 0]>("SELECT id, COALESCE(url, link) AS url FROM feed", &[])
+            .await
+            .map(|e| {
+                e.map(|e| e.map(|e| (e.get("id"), e.get("url"))))
+                    .map_err(|e| Error::Unknown(e.into()))
+                    .boxed()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 

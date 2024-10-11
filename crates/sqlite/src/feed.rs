@@ -7,7 +7,10 @@ use colette_core::{
     Feed,
 };
 use deadpool_sqlite::Pool;
-use futures::stream::BoxStream;
+use futures::{
+    stream::{self, BoxStream},
+    StreamExt,
+};
 use rusqlite::{types::Value, Connection, OptionalExtension, Row};
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
@@ -294,12 +297,32 @@ impl FeedRepository for SqliteFeedRepository {
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
-        // sqlx::query_as::<_, (i32, String)>("SELECT id, COALESCE(url, link) FROM feed")
-        //     .fetch(&self.pool)
-        //     .map_err(|e| Error::Unknown(e.into()))
-        //     .boxed()
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        todo!()
+        conn.interact(move |conn| {
+            let mut stmt =
+                conn.prepare_cached("SELECT id, COALESCE(url, link) AS url FROM feed")?;
+            let rows = stmt.query_map([], |row| {
+                Ok((row.get::<_, i32>("id")?, row.get::<_, String>("url")?))
+            })?;
+
+            Ok::<_, rusqlite::Error>(rows.into_iter().collect::<Vec<_>>())
+        })
+        .await
+        .unwrap()
+        .map(|e| {
+            stream::iter(
+                e.into_iter()
+                    .map(|e| e.map_err(|e| Error::Unknown(e.into())))
+                    .collect::<Vec<_>>(),
+            )
+            .boxed()
+        })
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
