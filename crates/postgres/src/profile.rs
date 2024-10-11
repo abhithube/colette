@@ -200,7 +200,7 @@ impl ProfileRepository for PostgresProfileRepository {
         find(&client, None, user_id, None, limit, cursor).await
     }
 
-    fn stream(&self, _feed_id: i32) -> BoxStream<Result<Uuid, Error>> {
+    async fn stream(&self, _feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error> {
         // sqlx::query_scalar::<_, Uuid>(
         //     "SELECT DISTINCT profile_id FROM profile_feed WHERE feed_id = $1",
         // )

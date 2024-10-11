@@ -107,7 +107,7 @@ pub trait ProfileRepository:
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error>;
 
-    fn stream(&self, feed_id: i32) -> BoxStream<Result<Uuid, Error>>;
+    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]
