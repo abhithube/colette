@@ -35,7 +35,7 @@ impl Findable for SqliteFeedEntryRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| find_by_id(&conn, params.id, params.profile_id))
+        conn.interact(move |conn| find_by_id(conn, params.id, params.profile_id))
             .await
             .unwrap()
             .map_err(|e| match e {
@@ -107,7 +107,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| find(&conn, None, profile_id, limit, cursor, filters))
+        conn.interact(move |conn| find(conn, None, profile_id, limit, cursor, filters))
             .await
             .unwrap()
             .map_err(|e| Error::Unknown(e.into()))

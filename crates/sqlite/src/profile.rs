@@ -229,7 +229,7 @@ impl ProfileRepository for SqliteProfileRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| find(&conn, None, user_id, None, limit, cursor))
+        conn.interact(move |conn| find(conn, None, user_id, None, limit, cursor))
             .await
             .unwrap()
             .map_err(|e| Error::Unknown(e.into()))
