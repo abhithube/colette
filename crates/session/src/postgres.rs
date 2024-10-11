@@ -1,6 +1,6 @@
 use async_trait::async_trait;
+use chrono::Utc;
 use deadpool_postgres::Pool;
-use time::OffsetDateTime;
 use tokio_postgres::error::SqlState;
 use tower_sessions_core::{
     session::{Id, Record},
@@ -225,10 +225,7 @@ impl SessionStore for PostgresStore {
         );
 
         let row = client
-            .query_opt(
-                &query,
-                &[&session_id.to_string(), &OffsetDateTime::now_utc()],
-            )
+            .query_opt(&query, &[&session_id.to_string(), &Utc::now()])
             .await
             .map_err(PostgresStoreError::from)?;
 

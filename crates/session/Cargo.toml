@@ -5,12 +5,12 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
+chrono.workspace = true
 deadpool-postgres = { workspace = true, optional = true }
 deadpool-sqlite = { workspace = true, optional = true }
 rmp-serde = { version = "1", default-features = false }
 rusqlite = { workspace = true, optional = true }
 thiserror.workspace = true
-time = { version = "0.3", default-features = false }
 tokio-postgres = { workspace = true, optional = true }
 tower-sessions-core = { version = "0.13", default-features = false, features = [
   "deletion-task",

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
+use chrono::Utc;
 use deadpool_sqlite::Pool;
 use rusqlite::{params, OptionalExtension};
-use time::OffsetDateTime;
 use tower_sessions_core::{
     session::{Id, Record},
     session_store, ExpiredDeletion, SessionStore,
@@ -201,7 +201,7 @@ impl SessionStore for SqliteStore {
         );
 
         let id = session_id.to_string();
-        let date = OffsetDateTime::now_utc();
+        let date = Utc::now();
 
         let data = conn
             .interact(move |conn| {

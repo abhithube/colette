@@ -801,12 +801,12 @@ name = "colette-session"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "deadpool-postgres",
  "deadpool-sqlite",
  "rmp-serde",
  "rusqlite",
  "thiserror",
- "time",
  "tokio-postgres",
  "tower-sessions-core",
 ]
