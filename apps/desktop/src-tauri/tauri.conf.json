@@ -3,6 +3,7 @@
 	"productName": "Colette",
 	"version": "0.1.0",
 	"identifier": "com.abhithube.colette",
+	"mainBinaryName": "colette",
 	"build": {
 		"beforeDevCommand": "npm run dev",
 		"devUrl": "http://localhost:1420",
