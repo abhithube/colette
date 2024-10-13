@@ -22,6 +22,9 @@ export {
   ProfileCreate,
   ProfileUpdate,
   Register,
+  SmartFeed,
+  SmartFeedCreate,
+  SmartFeedUpdate,
   SwitchProfile,
   Tag,
   TagCreate,
@@ -29,4 +32,5 @@ export {
   User,
 } from './openapi.gen'
 export * from './profile'
+export * from './smart-feed'
 export * from './tag'
