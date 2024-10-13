@@ -1,4 +1,4 @@
-import { listFeedsOptions } from '@colette/query'
+import { listFeedsOptions, listSmartFeedsOptions } from '@colette/query'
 import {
   Box,
   Button,
@@ -20,30 +20,41 @@ import { Outlet, Link as TLink, createFileRoute } from '@tanstack/react-router'
 import { History, Home, PlusCircle, Wrench } from 'lucide-react'
 import { FeedItem } from './feeds/-components/feed-item'
 import { SubscribeModal } from './feeds/-components/subscribe-modal'
+import { SmartFeedItem } from './feeds/smartFeeds/-components/smart-feed-item'
 
 export const Route = createFileRoute('/_private/feeds')({
   loader: async ({ context }) => {
-    const options = listFeedsOptions(
+    const feedOptions = listFeedsOptions(
       { pinned: true, filterByTags: true, 'tag[]': [] },
       context.profile.id,
       context.api,
     )
 
-    await context.queryClient.ensureQueryData(options)
+    const smartFeedOptions = listSmartFeedsOptions(
+      context.profile.id,
+      context.api,
+    )
+
+    await Promise.all([
+      context.queryClient.ensureQueryData(feedOptions),
+      context.queryClient.ensureQueryData(smartFeedOptions),
+    ])
 
     return {
-      options,
+      feedOptions,
+      smartFeedOptions,
     }
   },
   component: Component,
 })
 
 function Component() {
-  const { options } = Route.useLoaderData()
+  const { feedOptions, smartFeedOptions } = Route.useLoaderData()
 
-  const { data: feeds } = useQuery(options)
+  const { data: feeds } = useQuery(feedOptions)
+  const { data: smartFeeds } = useQuery(smartFeedOptions)
 
-  if (!feeds) return
+  if (!feeds || !smartFeeds) return
 
   return (
     <Flex h="full" w="full">
@@ -146,6 +157,34 @@ function Component() {
                 </Link>
               </Button>
             </VStack>
+            {smartFeeds.data.length > 0 && (
+              <>
+                <Divider w="full" />
+                <Box>
+                  <Flex
+                    justify="space-between"
+                    alignItems="center"
+                    mb={2}
+                    px={4}
+                  >
+                    <Text
+                      as="span"
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      color="fg.muted"
+                      flexGrow={1}
+                    >
+                      Smart Feeds
+                    </Text>
+                  </Flex>
+                  <Box mt={1} h="full" spaceY={1} px={4} overflowY="auto">
+                    {smartFeeds.data.map((smartFeed) => (
+                      <SmartFeedItem key={smartFeed.id} smartFeed={smartFeed} />
+                    ))}
+                  </Box>
+                </Box>
+              </>
+            )}
             {feeds.data.length > 0 && (
               <>
                 <Divider w="full" />

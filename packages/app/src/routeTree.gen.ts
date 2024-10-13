@@ -21,6 +21,7 @@ import { Route as PrivateBookmarksIndexImport } from './routes/_private/bookmark
 import { Route as PrivateFeedsManageImport } from './routes/_private/feeds/manage'
 import { Route as PrivateFeedsArchivedImport } from './routes/_private/feeds/archived'
 import { Route as PrivateFeedsIdImport } from './routes/_private/feeds/$id'
+import { Route as PrivateFeedsSmartFeedsIdImport } from './routes/_private/feeds/smartFeeds/$id'
 
 // Create/Update Routes
 
@@ -71,6 +72,11 @@ const PrivateFeedsArchivedRoute = PrivateFeedsArchivedImport.update({
 
 const PrivateFeedsIdRoute = PrivateFeedsIdImport.update({
   path: '/$id',
+  getParentRoute: () => PrivateFeedsRoute,
+} as any)
+
+const PrivateFeedsSmartFeedsIdRoute = PrivateFeedsSmartFeedsIdImport.update({
+  path: '/smartFeeds/$id',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
@@ -148,6 +154,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivateFeedsIndexImport
       parentRoute: typeof PrivateFeedsImport
     }
+    '/_private/feeds/smartFeeds/$id': {
+      id: '/_private/feeds/smartFeeds/$id'
+      path: '/smartFeeds/$id'
+      fullPath: '/feeds/smartFeeds/$id'
+      preLoaderRoute: typeof PrivateFeedsSmartFeedsIdImport
+      parentRoute: typeof PrivateFeedsImport
+    }
   }
 }
 
@@ -169,6 +182,7 @@ interface PrivateFeedsRouteChildren {
   PrivateFeedsArchivedRoute: typeof PrivateFeedsArchivedRoute
   PrivateFeedsManageRoute: typeof PrivateFeedsManageRoute
   PrivateFeedsIndexRoute: typeof PrivateFeedsIndexRoute
+  PrivateFeedsSmartFeedsIdRoute: typeof PrivateFeedsSmartFeedsIdRoute
 }
 
 const PrivateFeedsRouteChildren: PrivateFeedsRouteChildren = {
@@ -176,6 +190,7 @@ const PrivateFeedsRouteChildren: PrivateFeedsRouteChildren = {
   PrivateFeedsArchivedRoute: PrivateFeedsArchivedRoute,
   PrivateFeedsManageRoute: PrivateFeedsManageRoute,
   PrivateFeedsIndexRoute: PrivateFeedsIndexRoute,
+  PrivateFeedsSmartFeedsIdRoute: PrivateFeedsSmartFeedsIdRoute,
 }
 
 const PrivateFeedsRouteWithChildren = PrivateFeedsRoute._addFileChildren(
@@ -208,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/feeds/manage': typeof PrivateFeedsManageRoute
   '/bookmarks/': typeof PrivateBookmarksIndexRoute
   '/feeds/': typeof PrivateFeedsIndexRoute
+  '/feeds/smartFeeds/$id': typeof PrivateFeedsSmartFeedsIdRoute
 }
 
 export interface FileRoutesByTo {
@@ -218,6 +234,7 @@ export interface FileRoutesByTo {
   '/feeds/manage': typeof PrivateFeedsManageRoute
   '/bookmarks': typeof PrivateBookmarksIndexRoute
   '/feeds': typeof PrivateFeedsIndexRoute
+  '/feeds/smartFeeds/$id': typeof PrivateFeedsSmartFeedsIdRoute
 }
 
 export interface FileRoutesById {
@@ -232,6 +249,7 @@ export interface FileRoutesById {
   '/_private/feeds/manage': typeof PrivateFeedsManageRoute
   '/_private/bookmarks/': typeof PrivateBookmarksIndexRoute
   '/_private/feeds/': typeof PrivateFeedsIndexRoute
+  '/_private/feeds/smartFeeds/$id': typeof PrivateFeedsSmartFeedsIdRoute
 }
 
 export interface FileRouteTypes {
@@ -247,6 +265,7 @@ export interface FileRouteTypes {
     | '/feeds/manage'
     | '/bookmarks/'
     | '/feeds/'
+    | '/feeds/smartFeeds/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -256,6 +275,7 @@ export interface FileRouteTypes {
     | '/feeds/manage'
     | '/bookmarks'
     | '/feeds'
+    | '/feeds/smartFeeds/$id'
   id:
     | '__root__'
     | '/_private'
@@ -268,6 +288,7 @@ export interface FileRouteTypes {
     | '/_private/feeds/manage'
     | '/_private/bookmarks/'
     | '/_private/feeds/'
+    | '/_private/feeds/smartFeeds/$id'
   fileRoutesById: FileRoutesById
 }
 
@@ -322,7 +343,8 @@ export const routeTree = rootRoute
         "/_private/feeds/$id",
         "/_private/feeds/archived",
         "/_private/feeds/manage",
-        "/_private/feeds/"
+        "/_private/feeds/",
+        "/_private/feeds/smartFeeds/$id"
       ]
     },
     "/_private/": {
@@ -347,6 +369,10 @@ export const routeTree = rootRoute
     },
     "/_private/feeds/": {
       "filePath": "_private/feeds/index.tsx",
+      "parent": "/_private/feeds"
+    },
+    "/_private/feeds/smartFeeds/$id": {
+      "filePath": "_private/feeds/smartFeeds/$id.tsx",
       "parent": "/_private/feeds"
     }
   }
