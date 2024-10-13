@@ -1,5 +1,5 @@
 import type { API } from '@colette/core'
-import { queryOptions } from '@tanstack/react-query'
+import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listSmartFeedsOptions = (profileId: string, api: API) =>
   queryOptions({
@@ -12,3 +12,14 @@ export const getSmartFeedOptions = (id: string, api: API) =>
     queryKey: ['smartFeeds', id],
     queryFn: () => api.smartFeeds.get(id),
   })
+
+export const deleteSmartFeedOptions = (
+  id: string,
+  options: Omit<UseMutationOptions, 'mutationFn'>,
+  api: API,
+) => {
+  return {
+    ...options,
+    mutationFn: () => api.smartFeeds.delete(id),
+  } as UseMutationOptions
+}

@@ -3,11 +3,13 @@ import {
   getSmartFeedOptions,
   listFeedEntriesOptions,
 } from '@colette/query'
-import { HStack, Heading } from '@colette/ui'
+import { Button, Dialog, HStack, Heading, Icon } from '@colette/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
+import { CircleX } from 'lucide-react'
 import { useEffect } from 'react'
 import { FeedEntryGrid } from '../-components/feed-entry-grid'
+import { DeleteSmartFeedAlert } from './-components/delete-smart-feed-alert'
 
 export const Route = createFileRoute('/_private/feeds/smartFeeds/$id')({
   loader: async ({ context, params }) => {
@@ -66,6 +68,29 @@ function Component() {
         <Heading as="h1" fontSize="3xl" fontWeight="medium" lineClamp={1}>
           {smartFeed.title}
         </Heading>
+        <HStack>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="subtle" colorPalette="red">
+                <Icon>
+                  <CircleX />
+                </Icon>
+                Delete
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Context>
+                {({ setOpen }) => (
+                  <DeleteSmartFeedAlert
+                    smartFeed={smartFeed}
+                    close={() => setOpen(false)}
+                  />
+                )}
+              </Dialog.Context>
+            </Dialog.Positioner>
+          </Dialog.Root>
+        </HStack>
       </HStack>
       <main>
         <FeedEntryGrid
