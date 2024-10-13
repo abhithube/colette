@@ -1,19 +1,11 @@
 import type { Bookmark } from '@colette/core'
 import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
-import {
-  Button,
-  Combobox,
-  Dialog,
-  Flex,
-  IconButton,
-  TagsInput,
-  VStack,
-  createListCollection,
-} from '@colette/ui'
+import { Button, Dialog, Flex, IconButton, VStack } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { X } from 'lucide-react'
 import { useEffect } from 'react'
+import { TagSelector } from '../../../../components/tag-selector'
 import { Route } from '../../../_private'
 
 type Props = {
@@ -103,66 +95,11 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
         <VStack alignItems="stretch" spaceY={4} mt={4}>
           <form.Field name="tags">
             {({ state, handleChange }) => (
-              <Combobox.Root
-                asChild
-                collection={createListCollection({
-                  items: tags.data,
-                })}
-                multiple
-                openOnClick
-                closeOnSelect
-                onValueChange={(details) => handleChange(details.value)}
-              >
-                <TagsInput.Root
-                  value={state.value ?? []}
-                  onValueChange={(details) => handleChange(details.value)}
-                >
-                  <Combobox.Label>Tags</Combobox.Label>
-                  <TagsInput.Context>
-                    {({ value }) => (
-                      <Combobox.Control asChild>
-                        <TagsInput.Control>
-                          {value.map((item) => (
-                            <TagsInput.Item
-                              key={item}
-                              index={item}
-                              value={item}
-                            >
-                              <TagsInput.ItemPreview>
-                                <TagsInput.ItemText>{item}</TagsInput.ItemText>
-                                <TagsInput.ItemDeleteTrigger asChild>
-                                  <IconButton variant="link" size="xs">
-                                    <X />
-                                  </IconButton>
-                                </TagsInput.ItemDeleteTrigger>
-                              </TagsInput.ItemPreview>
-                              <TagsInput.ItemInput />
-                              <TagsInput.HiddenInput />
-                            </TagsInput.Item>
-                          ))}
-                          <Combobox.Input placeholder="Add tag..." asChild>
-                            <TagsInput.Input />
-                          </Combobox.Input>
-                        </TagsInput.Control>
-                      </Combobox.Control>
-                    )}
-                  </TagsInput.Context>
-                  <Combobox.Positioner>
-                    <Combobox.Content>
-                      <Combobox.ItemGroup>
-                        <Combobox.ItemGroupLabel>Tags</Combobox.ItemGroupLabel>
-                        {tags.data
-                          .filter((tag) => !state.value?.includes(tag.title))
-                          .map((tag) => (
-                            <Combobox.Item key={tag.id} item={tag}>
-                              {tag.title}
-                            </Combobox.Item>
-                          ))}
-                      </Combobox.ItemGroup>
-                    </Combobox.Content>
-                  </Combobox.Positioner>
-                </TagsInput.Root>
-              </Combobox.Root>
+              <TagSelector
+                tags={tags.data}
+                state={state}
+                handleChange={handleChange}
+              />
             )}
           </form.Field>
           <Flex justify="end">
