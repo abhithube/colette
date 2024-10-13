@@ -7,6 +7,8 @@ import {
   Field,
   Fieldset,
   Flex,
+  HStack,
+  Icon,
   IconButton,
   Switch,
   TagsInput,
@@ -16,7 +18,7 @@ import {
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { zodValidator } from '@tanstack/zod-form-adapter'
-import { X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { z } from 'zod'
 import { Route } from '../../../_private'
@@ -112,6 +114,12 @@ export function EditFeedModal({ feed, close }: Props) {
 
   if (!tags) return
 
+  const collection = createListCollection({
+    items: tags.data,
+    itemToString: (item) => item.title,
+    itemToValue: (item) => item.title,
+  })
+
   return (
     <Dialog.Content maxW="md" p={6}>
       <form
@@ -167,62 +175,94 @@ export function EditFeedModal({ feed, close }: Props) {
             {({ state, handleChange }) => (
               <Combobox.Root
                 asChild
-                collection={createListCollection({
-                  items: tags.data,
-                })}
+                collection={collection}
                 multiple
+                allowCustomValue
                 openOnClick
-                closeOnSelect
-                onValueChange={(details) => handleChange(details.value)}
+                value={state.value}
+                onValueChange={(details) =>
+                  handleChange(details.value.toSorted())
+                }
               >
                 <TagsInput.Root
-                  value={state.value ?? []}
-                  onValueChange={(details) => handleChange(details.value)}
+                  value={state.value}
+                  onValueChange={(details) =>
+                    handleChange(details.value.toSorted())
+                  }
                 >
                   <Combobox.Label>Tags</Combobox.Label>
                   <TagsInput.Context>
-                    {({ value }) => (
-                      <Combobox.Control asChild>
-                        <TagsInput.Control>
-                          {value.map((item) => (
-                            <TagsInput.Item
-                              key={item}
-                              index={item}
-                              value={item}
-                            >
-                              <TagsInput.ItemPreview>
-                                <TagsInput.ItemText>{item}</TagsInput.ItemText>
-                                <TagsInput.ItemDeleteTrigger asChild>
-                                  <IconButton variant="link" size="xs">
-                                    <X />
-                                  </IconButton>
-                                </TagsInput.ItemDeleteTrigger>
-                              </TagsInput.ItemPreview>
-                              <TagsInput.ItemInput />
-                              <TagsInput.HiddenInput />
-                            </TagsInput.Item>
-                          ))}
-                          <Combobox.Input placeholder="Add tag..." asChild>
-                            <TagsInput.Input />
-                          </Combobox.Input>
-                        </TagsInput.Control>
-                      </Combobox.Control>
+                    {({ value, inputValue, clearInputValue }) => (
+                      <>
+                        <Combobox.Control asChild>
+                          <TagsInput.Control>
+                            {value.map((item) => (
+                              <TagsInput.Item
+                                key={item}
+                                index={item}
+                                value={item}
+                              >
+                                <TagsInput.ItemPreview>
+                                  <TagsInput.ItemText>
+                                    {item}
+                                  </TagsInput.ItemText>
+                                  <TagsInput.ItemDeleteTrigger asChild>
+                                    <IconButton variant="link" size="xs">
+                                      <X />
+                                    </IconButton>
+                                  </TagsInput.ItemDeleteTrigger>
+                                </TagsInput.ItemPreview>
+                                <TagsInput.ItemInput />
+                                <TagsInput.HiddenInput />
+                              </TagsInput.Item>
+                            ))}
+                            <Combobox.Input placeholder="Add tag..." asChild>
+                              <TagsInput.Input />
+                            </Combobox.Input>
+                          </TagsInput.Control>
+                        </Combobox.Control>
+                        <Combobox.Positioner>
+                          <Combobox.Content>
+                            <Combobox.ItemGroup>
+                              <Combobox.ItemGroupLabel>
+                                Tags
+                              </Combobox.ItemGroupLabel>
+                              {collection.items
+                                .filter((tag) => !value.includes(tag.title))
+                                .filter((tag) =>
+                                  inputValue.length > 0
+                                    ? tag.title
+                                        .toLowerCase()
+                                        .includes(inputValue.toLowerCase())
+                                    : true,
+                                )
+                                .map((tag) => (
+                                  <Combobox.Item key={tag.title} item={tag}>
+                                    {tag.title}
+                                  </Combobox.Item>
+                                ))}
+                              {inputValue.length > 0 &&
+                                !collection.has(inputValue) &&
+                                !value.includes(inputValue) && (
+                                  <Combobox.Item
+                                    key={inputValue}
+                                    item={{ id: '', title: inputValue }}
+                                    onClick={clearInputValue}
+                                  >
+                                    <HStack>
+                                      <Icon>
+                                        <Plus />
+                                      </Icon>
+                                      Create new tag
+                                    </HStack>
+                                  </Combobox.Item>
+                                )}
+                            </Combobox.ItemGroup>
+                          </Combobox.Content>
+                        </Combobox.Positioner>
+                      </>
                     )}
                   </TagsInput.Context>
-                  <Combobox.Positioner>
-                    <Combobox.Content>
-                      <Combobox.ItemGroup>
-                        <Combobox.ItemGroupLabel>Tags</Combobox.ItemGroupLabel>
-                        {tags.data
-                          .filter((tag) => !state.value?.includes(tag.title))
-                          .map((tag) => (
-                            <Combobox.Item key={tag.id} item={tag}>
-                              {tag.title}
-                            </Combobox.Item>
-                          ))}
-                      </Combobox.ItemGroup>
-                    </Combobox.Content>
-                  </Combobox.Positioner>
                 </TagsInput.Root>
               </Combobox.Root>
             )}
