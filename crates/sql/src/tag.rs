@@ -198,29 +198,6 @@ pub fn delete_by_id(id: Uuid, profile_id: Uuid) -> DeleteStatement {
         .to_owned()
 }
 
-pub fn delete_many() -> DeleteStatement {
-    let feed_subquery = Query::select()
-        .from(ProfileFeedTag::Table)
-        .and_where(
-            Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId)).equals((Tag::Table, Tag::Id)),
-        )
-        .to_owned();
-
-    let bookmark_subquery = Query::select()
-        .from(ProfileBookmarkTag::Table)
-        .and_where(
-            Expr::col((ProfileBookmarkTag::Table, ProfileBookmarkTag::TagId))
-                .equals((Tag::Table, Tag::Id)),
-        )
-        .to_owned();
-
-    Query::delete()
-        .from_table(Tag::Table)
-        .and_where(Expr::exists(feed_subquery).not())
-        .and_where(Expr::exists(bookmark_subquery).not())
-        .to_owned()
-}
-
 pub(crate) fn build_titles_subquery(titles: &[String], profile_id: Uuid) -> SelectStatement {
     Query::select()
         .column(Tag::Id)

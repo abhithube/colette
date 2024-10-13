@@ -25,7 +25,6 @@ impl CleanupService {
         println!("Started cleanup task at: {}", start);
 
         self.cleanup_repository.cleanup_feeds().await?;
-        self.cleanup_repository.cleanup_tags().await?;
 
         let elasped = (Local::now().time() - start.time()).num_milliseconds();
         println!("Finished cleanup task in {} ms", elasped);
@@ -37,8 +36,6 @@ impl CleanupService {
 #[async_trait::async_trait]
 pub trait CleanupRepository: Send + Sync {
     async fn cleanup_feeds(&self) -> Result<(), Error>;
-
-    async fn cleanup_tags(&self) -> Result<(), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

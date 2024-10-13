@@ -51,29 +51,4 @@ impl CleanupRepository for SqliteCleanupRepository {
         .unwrap()
         .map_err(|e| Error::Unknown(e.into()))
     }
-
-    async fn cleanup_tags(&self) -> Result<(), Error> {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| {
-            let count = {
-                let (sql, values) =
-                    colette_sql::tag::delete_many().build_rusqlite(SqliteQueryBuilder);
-
-                conn.execute(&sql, &*values.as_params())?
-            };
-            if count > 0 {
-                println!("Deleted {} orphaned tags", count);
-            }
-
-            Ok::<_, rusqlite::Error>(())
-        })
-        .await
-        .unwrap()
-        .map_err(|e| Error::Unknown(e.into()))
-    }
 }

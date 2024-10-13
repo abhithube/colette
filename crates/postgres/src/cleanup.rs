@@ -53,27 +53,4 @@ impl CleanupRepository for PostgresCleanupRepository {
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
-
-    async fn cleanup_tags(&self) -> Result<(), Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let count = {
-            let (sql, values) =
-                colette_sql::tag::delete_many().build_postgres(PostgresQueryBuilder);
-
-            client
-                .execute(&sql, &values.as_params())
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if count > 0 {
-            println!("Deleted {} orphaned tags", count);
-        }
-
-        Ok(())
-    }
 }
