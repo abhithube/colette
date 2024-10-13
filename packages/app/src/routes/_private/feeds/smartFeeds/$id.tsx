@@ -6,10 +6,11 @@ import {
 import { Button, Dialog, HStack, Heading, Icon } from '@colette/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { CircleX } from 'lucide-react'
+import { CircleX, Pencil } from 'lucide-react'
 import { useEffect } from 'react'
 import { FeedEntryGrid } from '../-components/feed-entry-grid'
 import { DeleteSmartFeedAlert } from './-components/delete-smart-feed-alert'
+import { EditSmartFeedModal } from './-components/edit-feed-modal'
 
 export const Route = createFileRoute('/_private/feeds/smartFeeds/$id')({
   loader: async ({ context, params }) => {
@@ -69,6 +70,27 @@ function Component() {
           {smartFeed.title}
         </Heading>
         <HStack>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="subtle">
+                <Icon>
+                  <Pencil />
+                </Icon>
+                Edit
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Backdrop />
+            <Dialog.Positioner>
+              <Dialog.Context>
+                {({ setOpen }) => (
+                  <EditSmartFeedModal
+                    smartFeed={smartFeed}
+                    close={() => setOpen(false)}
+                  />
+                )}
+              </Dialog.Context>
+            </Dialog.Positioner>
+          </Dialog.Root>
           <Dialog.Root>
             <Dialog.Trigger asChild>
               <Button variant="subtle" colorPalette="red">

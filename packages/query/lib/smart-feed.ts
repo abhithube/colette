@@ -1,4 +1,4 @@
-import type { API } from '@colette/core'
+import type { API, SmartFeed, SmartFeedUpdate } from '@colette/core'
 import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
 
 export const listSmartFeedsOptions = (profileId: string, api: API) =>
@@ -12,6 +12,26 @@ export const getSmartFeedOptions = (id: string, api: API) =>
     queryKey: ['smartFeeds', id],
     queryFn: () => api.smartFeeds.get(id),
   })
+
+export type UpdateSmartFeedOptions = UseMutationOptions<
+  SmartFeed,
+  Error,
+  { id: string; body: SmartFeedUpdate }
+>
+
+export const updateSmartFeedOptions = (
+  options: Omit<UpdateSmartFeedOptions, 'mutationFn'>,
+  api: API,
+) => {
+  return {
+    ...options,
+    mutationFn: ({ id, body }) => api.smartFeeds.update(id, body),
+  } as UseMutationOptions<
+    SmartFeed,
+    Error,
+    { id: string; body: SmartFeedUpdate }
+  >
+}
 
 export const deleteSmartFeedOptions = (
   id: string,
