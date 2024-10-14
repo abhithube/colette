@@ -614,6 +614,7 @@ dependencies = [
  "thiserror",
  "tower-http",
  "tower-sessions",
+ "tracing",
  "url",
  "utoipa",
  "utoipa-axum",
@@ -856,6 +857,7 @@ dependencies = [
  "cron",
  "futures",
  "tokio",
+ "tracing",
  "url",
 ]
 

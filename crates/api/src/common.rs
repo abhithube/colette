@@ -12,6 +12,7 @@ use colette_core::{
 };
 use http::{request::Parts, StatusCode};
 use tower_sessions::session;
+use tracing::error;
 use uuid::Uuid;
 
 pub const AUTH_TAG: &str = "Auth";
@@ -157,7 +158,7 @@ impl IntoResponse for Error {
                 (StatusCode::UNAUTHORIZED, e).into_response()
             }
             _ => {
-                println!("{:?}", self);
+                error!("{:?}", self);
 
                 (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
             }

@@ -3,23 +3,24 @@ use std::sync::Arc;
 use apalis::prelude::Data;
 use chrono::Local;
 use colette_core::cleanup::{CleanupJob, CleanupService};
+use tracing::{error, info};
 
 pub async fn cleanup(_job: CleanupJob, service: Data<Arc<CleanupService>>) {
     let start = Local::now();
-    println!("Started cleanup task at: {}", start);
+    info!("Started cleanup task");
 
     match service.cleanup().await {
         Ok(info) => {
             if info.feed_count > 0 {
-                println!("Deleted {} orphaned feeds", info.feed_count);
+                info!("Deleted {} orphaned feeds", info.feed_count);
             }
             if info.feed_entry_count > 0 {
-                println!("Deleted {} orphaned feed entries", info.feed_entry_count);
+                info!("Deleted {} orphaned feed entries", info.feed_entry_count);
             }
 
             let elasped = (Local::now().time() - start.time()).num_milliseconds();
-            println!("Finished cleanup task in {} ms", elasped);
+            info!("Finished cleanup task in {} ms", elasped);
         }
-        Err(e) => println!("{:?}", e),
+        Err(e) => error!("{:?}", e),
     }
 }
