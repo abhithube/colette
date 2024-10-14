@@ -1,8 +1,9 @@
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    CaseStatement, ColumnDef, ColumnType, Expr, ForeignKey, ForeignKeyAction, Iden, Index,
-    IndexCreateStatement, InsertStatement, JoinType, OnConflict, Order, Query, SelectStatement,
-    Table, TableCreateStatement, UpdateStatement,
+    Alias, CaseStatement, ColumnDef, ColumnType, CommonTableExpression, Expr, ForeignKey,
+    ForeignKeyAction, Iden, Index, IndexCreateStatement, InsertStatement, JoinType, OnConflict,
+    Order, Query, SelectStatement, Table, TableCreateStatement, UpdateStatement, WithClause,
+    WithQuery,
 };
 use uuid::Uuid;
 
@@ -212,6 +213,85 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
     }
 
     query
+}
+
+pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> WithQuery {
+    let input = Alias::new("input");
+
+    let input_cte = Query::select()
+        .from_values(
+            data.into_iter()
+                .map(|e| (e.id, e.feed_entry_id, feed_id))
+                .collect::<Vec<_>>(),
+            Alias::new("rows (id, feed_entry_id, profile_feed_id)"),
+        )
+        .to_owned();
+
+    let pfe = Alias::new("pfe");
+
+    let pfe_cte = Query::select()
+        .columns([
+            (input.clone(), ProfileFeedEntry::Id),
+            (input.clone(), ProfileFeedEntry::FeedEntryId),
+            (input.clone(), ProfileFeedEntry::ProfileFeedId),
+        ])
+        .column((ProfileFeed::Table, ProfileFeed::ProfileId))
+        .from(ProfileFeed::Table)
+        .join(
+            JoinType::InnerJoin,
+            input.clone(),
+            Expr::col((input.clone(), Alias::new("feed_id")))
+                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
+        )
+        .to_owned();
+
+    let with_clause = WithClause::new()
+        .cte(
+            CommonTableExpression::new()
+                .query(input_cte)
+                .table_name(input)
+                .to_owned(),
+        )
+        .cte(
+            CommonTableExpression::new()
+                .query(pfe_cte)
+                .table_name(pfe.clone())
+                .to_owned(),
+        )
+        .to_owned();
+
+    let insert = Query::insert()
+        .into_table(ProfileFeedEntry::Table)
+        .columns([
+            ProfileFeedEntry::Id,
+            ProfileFeedEntry::FeedEntryId,
+            ProfileFeedEntry::ProfileFeedId,
+            ProfileFeedEntry::ProfileId,
+        ])
+        .select_from(
+            SelectStatement::new()
+                .columns([
+                    (pfe.clone(), ProfileFeedEntry::Id),
+                    (pfe.clone(), ProfileFeedEntry::FeedEntryId),
+                    (pfe.clone(), ProfileFeedEntry::ProfileFeedId),
+                    (pfe.clone(), ProfileFeedEntry::ProfileId),
+                ])
+                .from(pfe)
+                .to_owned(),
+        )
+        .unwrap()
+        .on_conflict(
+            OnConflict::columns([
+                ProfileFeedEntry::ProfileFeedId,
+                ProfileFeedEntry::FeedEntryId,
+            ])
+            .do_nothing()
+            .to_owned(),
+        )
+        .returning_col(FeedEntry::Id)
+        .to_owned();
+
+    insert.with(with_clause)
 }
 
 pub fn update(id: Uuid, profile_id: Uuid, has_read: Option<bool>) -> UpdateStatement {
