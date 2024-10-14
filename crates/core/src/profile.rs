@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
 
@@ -106,8 +105,6 @@ pub trait ProfileRepository:
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error>;
-
-    async fn stream(&self, feed_id: i32) -> Result<BoxStream<Result<Uuid, Error>>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]
