@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 
 #[derive(Clone, Debug, Default)]
 #[allow(dead_code)]
@@ -9,6 +9,11 @@ impl From<DateTime<Utc>> for CleanupJob {
     fn from(value: DateTime<Utc>) -> Self {
         CleanupJob(value)
     }
+}
+
+pub struct CleanupInfo {
+    pub feed_count: u64,
+    pub feed_entry_count: u64,
 }
 
 pub struct CleanupService {
@@ -20,22 +25,24 @@ impl CleanupService {
         Self { cleanup_repository }
     }
 
-    pub async fn cleanup(&self) -> Result<(), Error> {
-        let start = Local::now();
-        println!("Started cleanup task at: {}", start);
+    pub async fn cleanup(&self) -> Result<CleanupInfo, Error> {
+        let info = self.cleanup_repository.cleanup_feeds().await?;
 
-        self.cleanup_repository.cleanup_feeds().await?;
-
-        let elasped = (Local::now().time() - start.time()).num_milliseconds();
-        println!("Finished cleanup task in {} ms", elasped);
-
-        Ok(())
+        Ok(CleanupInfo {
+            feed_count: info.feed_count,
+            feed_entry_count: info.feed_entry_count,
+        })
     }
 }
 
 #[async_trait::async_trait]
 pub trait CleanupRepository: Send + Sync {
-    async fn cleanup_feeds(&self) -> Result<(), Error>;
+    async fn cleanup_feeds(&self) -> Result<FeedCleanupInfo, Error>;
+}
+
+pub struct FeedCleanupInfo {
+    pub feed_count: u64,
+    pub feed_entry_count: u64,
 }
 
 #[derive(Debug, thiserror::Error)]

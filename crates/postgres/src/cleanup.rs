@@ -1,4 +1,4 @@
-use colette_core::cleanup::{CleanupRepository, Error};
+use colette_core::cleanup::{CleanupRepository, Error, FeedCleanupInfo};
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
@@ -15,7 +15,7 @@ impl PostgresCleanupRepository {
 
 #[async_trait::async_trait]
 impl CleanupRepository for PostgresCleanupRepository {
-    async fn cleanup_feeds(&self) -> Result<(), Error> {
+    async fn cleanup_feeds(&self) -> Result<FeedCleanupInfo, Error> {
         let mut client = self
             .pool
             .get()
@@ -27,7 +27,7 @@ impl CleanupRepository for PostgresCleanupRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut count = {
+        let feed_count = {
             let (sql, values) =
                 colette_sql::feed_entry::delete_many().build_postgres(PostgresQueryBuilder);
 
@@ -35,11 +35,8 @@ impl CleanupRepository for PostgresCleanupRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-        if count > 0 {
-            println!("Deleted {} orphaned feed entries", count);
-        }
 
-        count = {
+        let feed_entry_count = {
             let (sql, values) =
                 colette_sql::feed::delete_many().build_postgres(PostgresQueryBuilder);
 
@@ -47,10 +44,12 @@ impl CleanupRepository for PostgresCleanupRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-        if count > 0 {
-            println!("Deleted {} orphaned feeds", count);
-        }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(FeedCleanupInfo {
+            feed_count,
+            feed_entry_count,
+        })
     }
 }
