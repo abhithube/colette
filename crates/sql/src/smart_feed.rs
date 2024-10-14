@@ -90,7 +90,7 @@ pub fn select(
             ))),
         )
         .join(
-            JoinType::Join,
+            JoinType::InnerJoin,
             SmartFeedFilter::Table,
             Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
                 .eq(Expr::col((SmartFeed::Table, SmartFeed::Id)))

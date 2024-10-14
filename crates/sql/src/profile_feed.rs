@@ -156,7 +156,7 @@ pub fn select(
         )
         .from(ProfileFeed::Table)
         .join(
-            JoinType::Join,
+            JoinType::InnerJoin,
             Feed::Table,
             Expr::col((Feed::Table, Feed::Id))
                 .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),

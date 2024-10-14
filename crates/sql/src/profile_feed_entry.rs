@@ -113,7 +113,7 @@ pub fn select(
         ])
         .from(ProfileFeedEntry::Table)
         .join(
-            JoinType::Join,
+            JoinType::InnerJoin,
             FeedEntry::Table,
             Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(Expr::col((
                 ProfileFeedEntry::Table,

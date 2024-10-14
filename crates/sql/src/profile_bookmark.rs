@@ -120,7 +120,7 @@ pub fn select(
         .column((json_tags.clone(), tags.clone()))
         .from(ProfileBookmark::Table)
         .join(
-            JoinType::Join,
+            JoinType::InnerJoin,
             Bookmark::Table,
             Expr::col((Bookmark::Table, Bookmark::Id)).eq(Expr::col((
                 ProfileBookmark::Table,
