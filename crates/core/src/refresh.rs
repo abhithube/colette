@@ -6,10 +6,7 @@ use futures::StreamExt;
 use tokio::sync::Semaphore;
 use url::Url;
 
-use crate::{
-    feed::{FeedCreateData, FeedRepository},
-    profile::ProfileRepository,
-};
+use crate::feed::FeedRepository;
 
 #[derive(Clone, Debug, Default)]
 #[allow(dead_code)]
@@ -23,19 +20,19 @@ impl From<DateTime<Utc>> for RefreshJob {
 pub struct RefreshService {
     feed_scraper: Arc<dyn FeedScraper>,
     feed_repository: Arc<dyn FeedRepository>,
-    profile_repository: Arc<dyn ProfileRepository>,
+    refresh_repository: Arc<dyn RefreshRepository>,
 }
 
 impl RefreshService {
     pub fn new(
         feed_scraper: Arc<dyn FeedScraper>,
         feed_repository: Arc<dyn FeedRepository>,
-        profile_repository: Arc<dyn ProfileRepository>,
+        refresh_repository: Arc<dyn RefreshRepository>,
     ) -> Self {
         Self {
             feed_scraper,
             feed_repository,
-            profile_repository,
+            refresh_repository,
         }
     }
 
@@ -61,12 +58,12 @@ impl RefreshService {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    if let Ok((feed_id, url)) = item {
+                    if let Ok((_feed_id, url)) = item {
                         let parsed = Url::parse(&url).map_err(|e| Error::Unknown(e.into()))?;
 
                         println!("{}: refreshing {}", Local::now().to_rfc3339(), url);
 
-                        self.refresh_feed(feed_id, parsed).await?;
+                        self.refresh_feed(parsed).await?;
                     }
 
                     Ok(()) as Result<(), Error>
@@ -82,7 +79,7 @@ impl RefreshService {
         Ok(())
     }
 
-    async fn refresh_feed(&self, feed_id: i32, mut url: Url) -> Result<(), Error> {
+    async fn refresh_feed(&self, mut url: Url) -> Result<(), Error> {
         let url_raw = url.to_string();
 
         let feed_scraper = self.feed_scraper.clone();
@@ -90,26 +87,9 @@ impl RefreshService {
             .await
             .map_err(|e| Error::Unknown(e.into()))??;
 
-        let mut profile_stream = self
-            .profile_repository
-            .stream(feed_id)
+        self.refresh_repository
+            .refresh_feed(FeedRefreshData { url: url_raw, feed })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        while let Some(Ok(profile_id)) = profile_stream.next().await {
-            self.feed_repository
-                .create(FeedCreateData {
-                    url: url_raw.clone(),
-                    feed: Some(feed.clone()),
-                    pinned: false,
-                    tags: None,
-                    profile_id,
-                })
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        Ok(())
     }
 }
 
