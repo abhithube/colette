@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use colette_scraper::{FeedScraper, ProcessedFeed};
 use futures::StreamExt;
 use tokio::sync::Semaphore;
@@ -37,9 +37,6 @@ impl RefreshService {
     }
 
     pub async fn refresh_feeds(&self) -> Result<(), Error> {
-        let start = Local::now();
-        println!("Started refresh task at: {}", start.to_rfc3339());
-
         let semaphore = Arc::new(Semaphore::new(5));
 
         let feeds_stream = self
@@ -61,8 +58,6 @@ impl RefreshService {
                     if let Ok(url) = item {
                         let parsed = Url::parse(&url).map_err(|e| Error::Unknown(e.into()))?;
 
-                        println!("{}: refreshing {}", Local::now().to_rfc3339(), url);
-
                         self.refresh_feed(parsed).await?;
                     }
 
@@ -72,9 +67,6 @@ impl RefreshService {
             .buffer_unordered(5);
 
         tasks.for_each(|_| async {}).await;
-
-        let elasped = (Local::now().time() - start.time()).num_milliseconds();
-        println!("Finished refresh task in {} ms", elasped);
 
         Ok(())
     }
