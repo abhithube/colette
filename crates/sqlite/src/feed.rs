@@ -296,7 +296,7 @@ impl FeedRepository for SqliteFeedRepository {
         .map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
+    async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
         let conn = self
             .pool
             .get()
@@ -304,11 +304,8 @@ impl FeedRepository for SqliteFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let mut stmt =
-                conn.prepare_cached("SELECT id, COALESCE(url, link) AS url FROM feed")?;
-            let rows = stmt.query_map([], |row| {
-                Ok((row.get::<_, i32>("id")?, row.get::<_, String>("url")?))
-            })?;
+            let mut stmt = conn.prepare_cached("SELECT COALESCE(url, link) AS url FROM feed")?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>("url"))?;
 
             Ok::<_, rusqlite::Error>(rows.into_iter().collect::<Vec<_>>())
         })

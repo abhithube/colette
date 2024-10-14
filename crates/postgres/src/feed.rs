@@ -268,7 +268,7 @@ impl FeedRepository for PostgresFeedRepository {
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error> {
+    async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
         let client = self
             .pool
             .get()
@@ -276,10 +276,10 @@ impl FeedRepository for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         client
-            .query_raw::<_, _, &[&str; 0]>("SELECT id, COALESCE(url, link) AS url FROM feed", &[])
+            .query_raw::<_, _, &[&str; 0]>("SELECT COALESCE(url, link) AS url FROM feed", &[])
             .await
             .map(|e| {
-                e.map(|e| e.map(|e| (e.get("id"), e.get("url"))))
+                e.map(|e| e.map(|e| e.get("url")))
                     .map_err(|e| Error::Unknown(e.into()))
                     .boxed()
             })

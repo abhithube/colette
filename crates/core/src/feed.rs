@@ -194,7 +194,7 @@ pub trait FeedRepository:
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
 
-    async fn stream(&self) -> Result<BoxStream<Result<(i32, String), Error>>, Error>;
+    async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error>;
 }
 
 #[derive(Clone, Debug, Default)]

@@ -58,7 +58,7 @@ impl RefreshService {
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    if let Ok((_feed_id, url)) = item {
+                    if let Ok(url) = item {
                         let parsed = Url::parse(&url).map_err(|e| Error::Unknown(e.into()))?;
 
                         println!("{}: refreshing {}", Local::now().to_rfc3339(), url);
