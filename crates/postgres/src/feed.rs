@@ -365,7 +365,7 @@ async fn find_by_id<C: GenericClient>(client: &C, params: IdParams) -> Result<Fe
     Ok(feeds.swap_remove(0))
 }
 
-async fn create_feed_with_entries<C: GenericClient>(
+pub(crate) async fn create_feed_with_entries<C: GenericClient>(
     client: &C,
     url: String,
     feed: ProcessedFeed,

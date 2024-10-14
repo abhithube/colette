@@ -410,7 +410,7 @@ fn find_by_id(conn: &Connection, id: Uuid, profile_id: Uuid) -> rusqlite::Result
     Ok(feeds.swap_remove(0))
 }
 
-fn create_feed_with_entries(
+pub(crate) fn create_feed_with_entries(
     conn: &Connection,
     url: String,
     feed: ProcessedFeed,

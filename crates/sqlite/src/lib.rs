@@ -4,6 +4,7 @@ pub use cleanup::SqliteCleanupRepository;
 pub use feed::SqliteFeedRepository;
 pub use feed_entry::SqliteFeedEntryRepository;
 pub use profile::SqliteProfileRepository;
+pub use refresh::SqliteRefreshRepository;
 pub use smart_feed::SqliteSmartFeedRepository;
 pub use tag::SqliteTagRepository;
 pub use user::SqliteUserRepository;
@@ -19,6 +20,7 @@ mod feed_entry;
 #[allow(non_snake_case)]
 mod migration;
 mod profile;
+mod refresh;
 mod smart_feed;
 mod tag;
 mod user;

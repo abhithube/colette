@@ -6,6 +6,7 @@ pub use cleanup::PostgresCleanupRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use profile::PostgresProfileRepository;
+pub use refresh::PostgresRefreshRepository;
 pub use smart_feed::PostgresSmartFeedRepository;
 pub use tag::PostgresTagRepository;
 pub use user::PostgresUserRepository;
@@ -21,6 +22,7 @@ mod feed_entry;
 #[allow(non_snake_case)]
 mod migration;
 mod profile;
+mod refresh;
 mod smart_feed;
 mod tag;
 mod user;

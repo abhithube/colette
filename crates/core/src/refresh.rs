@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Local, Utc};
-use colette_scraper::FeedScraper;
+use colette_scraper::{FeedScraper, ProcessedFeed};
 use futures::StreamExt;
 use tokio::sync::Semaphore;
 use url::Url;
@@ -111,6 +111,17 @@ impl RefreshService {
 
         Ok(())
     }
+}
+
+#[async_trait::async_trait]
+pub trait RefreshRepository: Send + Sync {
+    async fn refresh_feed(&self, data: FeedRefreshData) -> Result<(), Error>;
+}
+
+#[derive(Clone, Debug)]
+pub struct FeedRefreshData {
+    pub url: String,
+    pub feed: ProcessedFeed,
 }
 
 #[derive(Debug, thiserror::Error)]
