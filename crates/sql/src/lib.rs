@@ -8,6 +8,7 @@ pub mod profile_bookmark_tag;
 pub mod profile_feed;
 pub mod profile_feed_entry;
 pub mod profile_feed_tag;
+pub mod session;
 pub mod smart_feed;
 pub mod smart_feed_filter;
 pub mod tag;
