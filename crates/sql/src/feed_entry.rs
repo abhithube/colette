@@ -121,7 +121,6 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
                 ])
                 .to_owned(),
         )
-        .returning_col(FeedEntry::Id)
         .to_owned();
 
     for fe in data {
