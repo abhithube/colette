@@ -66,7 +66,12 @@ impl Updatable for PostgresFeedEntryRepository {
                 )
                 .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
@@ -154,8 +159,13 @@ async fn find<C: GenericClient>(
     )
     .build_postgres(PostgresQueryBuilder);
 
+    let stmt = client
+        .prepare_cached(&sql)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
     client
-        .query(&sql, &values.as_params())
+        .query(&stmt, &values.as_params())
         .await
         .map(|e| {
             e.into_iter()

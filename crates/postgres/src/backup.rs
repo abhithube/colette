@@ -49,8 +49,13 @@ impl BackupRepository for PostgresBackupRepository {
                         colette_sql::tag::select_by_title(title.clone(), profile_id)
                             .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     if let Some(row) = tx
-                        .query_opt(&sql, &values.as_params())
+                        .query_opt(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
@@ -61,7 +66,12 @@ impl BackupRepository for PostgresBackupRepository {
                         (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
                             .build_postgres(PostgresQueryBuilder);
 
-                        tx.execute(&sql, &values.as_params())
+                        let stmt = tx
+                            .prepare_cached(&sql)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        tx.execute(&stmt, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -85,8 +95,13 @@ impl BackupRepository for PostgresBackupRepository {
                     let (sql, values) = colette_sql::feed::insert(link, title, outline.xml_url)
                         .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     let row = tx
-                        .query_one(&sql, &values.as_params())
+                        .query_one(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -98,8 +113,13 @@ impl BackupRepository for PostgresBackupRepository {
                         colette_sql::profile_feed::select_by_unique_index(profile_id, feed_id)
                             .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     if let Some(row) = tx
-                        .query_opt(&sql, &values.as_params())
+                        .query_opt(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
@@ -111,7 +131,12 @@ impl BackupRepository for PostgresBackupRepository {
                             colette_sql::profile_feed::insert(id, None, feed_id, profile_id)
                                 .build_postgres(PostgresQueryBuilder);
 
-                        tx.execute(&sql, &values.as_params())
+                        let stmt = tx
+                            .prepare_cached(&sql)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        tx.execute(&stmt, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -129,7 +154,12 @@ impl BackupRepository for PostgresBackupRepository {
                     )
                     .build_postgres(PostgresQueryBuilder);
 
-                    tx.execute(&sql, &values.as_params())
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    tx.execute(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
                 }
@@ -167,8 +197,13 @@ impl BackupRepository for PostgresBackupRepository {
                         colette_sql::tag::select_by_title(title.clone(), profile_id)
                             .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     if let Some(row) = tx
-                        .query_opt(&sql, &values.as_params())
+                        .query_opt(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
@@ -179,7 +214,12 @@ impl BackupRepository for PostgresBackupRepository {
                         (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
                             .build_postgres(PostgresQueryBuilder);
 
-                        tx.execute(&sql, &values.as_params())
+                        let stmt = tx
+                            .prepare_cached(&sql)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        tx.execute(&stmt, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -204,8 +244,13 @@ impl BackupRepository for PostgresBackupRepository {
                         colette_sql::bookmark::insert(link, item.title, None, None, None)
                             .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     let row = tx
-                        .query_one(&sql, &values.as_params())
+                        .query_one(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -220,8 +265,13 @@ impl BackupRepository for PostgresBackupRepository {
                         )
                         .build_postgres(PostgresQueryBuilder);
 
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
                     if let Some(row) = tx
-                        .query_opt(&sql, &values.as_params())
+                        .query_opt(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
@@ -233,7 +283,12 @@ impl BackupRepository for PostgresBackupRepository {
                             colette_sql::profile_bookmark::insert(id, bookmark_id, profile_id)
                                 .build_postgres(PostgresQueryBuilder);
 
-                        tx.execute(&sql, &values.as_params())
+                        let stmt = tx
+                            .prepare_cached(&sql)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        tx.execute(&stmt, &values.as_params())
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -251,7 +306,12 @@ impl BackupRepository for PostgresBackupRepository {
                     )
                     .build_postgres(PostgresQueryBuilder);
 
-                    tx.execute(&sql, &values.as_params())
+                    let stmt = tx
+                        .prepare_cached(&sql)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
+
+                    tx.execute(&stmt, &values.as_params())
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?;
                 }

@@ -64,8 +64,13 @@ impl Creatable for PostgresFeedRepository {
             let (sql, values) = colette_sql::feed::select_by_url(data.url.clone())
                 .build_postgres(PostgresQueryBuilder);
 
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             if let Some(row) = tx
-                .query_opt(&sql, &values.as_params())
+                .query_opt(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
@@ -80,8 +85,13 @@ impl Creatable for PostgresFeedRepository {
                 colette_sql::profile_feed::select_by_unique_index(data.profile_id, feed_id)
                     .build_postgres(PostgresQueryBuilder);
 
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             if let Some(row) = tx
-                .query_opt(&sql, &values.as_params())
+                .query_opt(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
@@ -93,7 +103,12 @@ impl Creatable for PostgresFeedRepository {
                     colette_sql::profile_feed::insert(id, None, feed_id, data.profile_id)
                         .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -105,9 +120,14 @@ impl Creatable for PostgresFeedRepository {
             let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
                 .build_postgres(PostgresQueryBuilder);
 
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             let mut ids: Vec<i32> = Vec::new();
             for row in tx
-                .query(&sql, &values.as_params())
+                .query(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
@@ -132,7 +152,12 @@ impl Creatable for PostgresFeedRepository {
                 colette_sql::profile_feed_entry::insert_many(insert_many, pf_id, data.profile_id)
                     .build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -179,7 +204,12 @@ impl Updatable for PostgresFeedRepository {
                 )
                 .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
@@ -218,8 +248,13 @@ impl Deletable for PostgresFeedRepository {
             let (sql, values) = colette_sql::profile_feed::delete(params.id, params.profile_id)
                 .build_postgres(PostgresQueryBuilder);
 
+            let stmt = client
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             client
-                .execute(&sql, &values.as_params())
+                .execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
@@ -345,8 +380,13 @@ pub(crate) async fn find<C: GenericClient>(
     )
     .build_postgres(PostgresQueryBuilder);
 
+    let stmt = client
+        .prepare_cached(&sql)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
     client
-        .query(&sql, &values.as_params())
+        .query(&stmt, &values.as_params())
         .await
         .map(|e| {
             e.into_iter()
@@ -377,7 +417,9 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
         let (sql, values) =
             colette_sql::feed::insert(link, feed.title, url).build_postgres(PostgresQueryBuilder);
 
-        let row = client.query_one(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        let row = client.query_one(&stmt, &values.as_params()).await?;
 
         row.get::<_, i32>("id")
     };
@@ -399,7 +441,9 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
         let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
             .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     Ok(feed_id)
@@ -416,7 +460,9 @@ pub(crate) async fn link_tags<C: GenericClient>(
             colette_sql::profile_feed_tag::delete_many_in_titles(&tags.data, profile_id)
                 .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
 
         return Ok(());
     }
@@ -426,7 +472,9 @@ pub(crate) async fn link_tags<C: GenericClient>(
             colette_sql::profile_feed_tag::delete_many_not_in_titles(&tags.data, profile_id)
                 .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     {
@@ -442,15 +490,19 @@ pub(crate) async fn link_tags<C: GenericClient>(
         )
         .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     let tag_ids = {
         let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags.data, profile_id)
             .build_postgres(PostgresQueryBuilder);
 
+        let stmt = client.prepare_cached(&sql).await?;
+
         let mut ids: Vec<Uuid> = Vec::new();
-        for row in client.query(&sql, &values.as_params()).await? {
+        for row in client.query(&stmt, &values.as_params()).await? {
             ids.push(row.get("id"));
         }
 
@@ -469,7 +521,9 @@ pub(crate) async fn link_tags<C: GenericClient>(
         let (sql, values) = colette_sql::profile_feed_tag::insert_many(insert_many, profile_id)
             .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     Ok(())

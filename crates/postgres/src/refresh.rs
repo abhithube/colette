@@ -39,9 +39,14 @@ impl RefreshRepository for PostgresRefreshRepository {
             let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
                 .build_postgres(PostgresQueryBuilder);
 
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             let mut ids: Vec<i32> = Vec::new();
             for row in tx
-                .query(&sql, &values.as_params())
+                .query(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {

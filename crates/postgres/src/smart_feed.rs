@@ -67,7 +67,12 @@ impl Creatable for PostgresSmartFeedRepository {
                 colette_sql::smart_feed::insert(id, data.title.clone(), data.profile_id)
                     .build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| match e.code() {
                     Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
@@ -113,7 +118,12 @@ impl Updatable for PostgresSmartFeedRepository {
                     colette_sql::smart_feed::update(params.id, params.profile_id, data.title)
                         .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
@@ -128,7 +138,12 @@ impl Updatable for PostgresSmartFeedRepository {
                     colette_sql::smart_feed_filter::delete_many(params.profile_id, params.id)
                         .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
             }
@@ -164,8 +179,13 @@ impl Deletable for PostgresSmartFeedRepository {
             let (sql, values) = colette_sql::smart_feed::delete(params.id, params.profile_id)
                 .build_postgres(PostgresQueryBuilder);
 
+            let stmt = client
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
             client
-                .execute(&sql, &values.as_params())
+                .execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
@@ -219,8 +239,13 @@ pub(crate) async fn find<C: GenericClient>(
         colette_sql::smart_feed::select(id, profile_id, cursor, limit, build_case_statement())
             .build_postgres(PostgresQueryBuilder);
 
+    let stmt = client
+        .prepare_cached(&sql)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
     client
-        .query(&sql, &values.as_params())
+        .query(&stmt, &values.as_params())
         .await
         .map(|e| {
             e.into_iter()
@@ -328,7 +353,9 @@ async fn insert_filters<C: GenericClient>(
             colette_sql::smart_feed_filter::insert_many(insert_data, smart_feed_id, profile_id)
                 .build_postgres(PostgresQueryBuilder);
 
-        client.execute(&sql, &values.as_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     Ok(())

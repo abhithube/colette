@@ -31,7 +31,12 @@ impl CleanupRepository for PostgresCleanupRepository {
             let (sql, values) =
                 colette_sql::feed_entry::delete_many().build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
@@ -40,7 +45,12 @@ impl CleanupRepository for PostgresCleanupRepository {
             let (sql, values) =
                 colette_sql::feed::delete_many().build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };

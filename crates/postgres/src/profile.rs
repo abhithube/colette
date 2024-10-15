@@ -78,7 +78,12 @@ impl Creatable for PostgresProfileRepository {
         )
         .build_postgres(PostgresQueryBuilder);
 
-        tx.execute(&sql, &values.as_params())
+        let stmt = tx
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        tx.execute(&stmt, &values.as_params())
             .await
             .map_err(|e| match e.code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
@@ -128,7 +133,12 @@ impl Updatable for PostgresProfileRepository {
                 )
                 .build_postgres(PostgresQueryBuilder);
 
-                tx.execute(&sql, &values.as_params())
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
@@ -173,7 +183,12 @@ impl Deletable for PostgresProfileRepository {
             let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
                 .build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
@@ -226,8 +241,13 @@ async fn find<C: GenericClient>(
     let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
         .build_postgres(PostgresQueryBuilder);
 
+    let stmt = client
+        .prepare_cached(&sql)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+
     client
-        .query(&sql, &values.as_params())
+        .query(&stmt, &values.as_params())
         .await
         .map(|e| {
             e.into_iter()

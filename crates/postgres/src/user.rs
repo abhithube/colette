@@ -36,8 +36,13 @@ impl Findable for PostgresUserRepository {
                 let (sql, values) =
                     colette_sql::user::select(Some(id), None).build_postgres(PostgresQueryBuilder);
 
+                let stmt = client
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
                 if let Some(row) = client
-                    .query_opt(&sql, &values.as_params())
+                    .query_opt(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 {
@@ -50,8 +55,13 @@ impl Findable for PostgresUserRepository {
                 let (sql, values) = colette_sql::user::select(None, Some(email.clone()))
                     .build_postgres(PostgresQueryBuilder);
 
+                let stmt = client
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
                 if let Some(row) = client
-                    .query_opt(&sql, &values.as_params())
+                    .query_opt(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 {
@@ -86,13 +96,18 @@ impl Creatable for PostgresUserRepository {
                 colette_sql::user::insert(Uuid::new_v4(), data.email.clone(), data.password)
                     .build_postgres(PostgresQueryBuilder);
 
-            let row =
-                tx.query_one(&sql, &values.as_params())
-                    .await
-                    .map_err(|e| match e.code() {
-                        Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.email),
-                        _ => Error::Unknown(e.into()),
-                    })?;
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let row = tx
+                .query_one(&stmt, &values.as_params())
+                .await
+                .map_err(|e| match e.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.email),
+                    _ => Error::Unknown(e.into()),
+                })?;
 
             UserSelect::from(&row).0
         };
@@ -107,7 +122,12 @@ impl Creatable for PostgresUserRepository {
             )
             .build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
