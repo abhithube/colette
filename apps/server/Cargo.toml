@@ -35,7 +35,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 ] }
 
 [features]
-default = ["postgres"]
+default = ["postgres", "sqlite"]
 postgres = [
   "dep:colette-postgres",
   "dep:deadpool-postgres",
