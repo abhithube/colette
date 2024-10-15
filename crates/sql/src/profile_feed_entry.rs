@@ -1,15 +1,13 @@
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    Alias, Asterisk, CaseStatement, ColumnDef, ColumnType, CommonTableExpression, Expr, ForeignKey,
-    ForeignKeyAction, Iden, Index, IndexCreateStatement, InsertStatement, JoinType, OnConflict,
-    Order, Query, SelectStatement, Table, TableCreateStatement, UpdateStatement, WithClause,
-    WithQuery,
+    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, InsertStatement, JoinType,
+    OnConflict, Order, Query, SelectStatement, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
 use crate::{
-    common::WithTimestamps, feed_entry::FeedEntry, profile::Profile, profile_feed::ProfileFeed,
-    profile_feed_tag::ProfileFeedTag, smart_feed_filter::SmartFeedFilter, tag::Tag,
+    feed_entry::FeedEntry, profile_feed::ProfileFeed, profile_feed_tag::ProfileFeedTag,
+    smart_feed_filter::SmartFeedFilter, tag::Tag,
 };
 
 #[derive(sea_query::Iden)]
@@ -22,63 +20,6 @@ pub enum ProfileFeedEntry {
     ProfileId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
-    Table::create()
-        .table(ProfileFeedEntry::Table)
-        .if_not_exists()
-        .col(
-            ColumnDef::new_with_type(ProfileFeedEntry::Id, id_type.clone())
-                .not_null()
-                .primary_key(),
-        )
-        .col(
-            ColumnDef::new_with_type(ProfileFeedEntry::HasRead, ColumnType::Boolean)
-                .not_null()
-                .default(false),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeedEntry::ProfileFeedId, id_type.clone()).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedEntry::Table, ProfileFeedEntry::ProfileFeedId)
-                .to(ProfileFeed::Table, ProfileFeed::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .col(
-            ColumnDef::new_with_type(ProfileFeedEntry::FeedEntryId, ColumnType::Integer).not_null(),
-        )
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedEntry::Table, ProfileFeedEntry::FeedEntryId)
-                .to(FeedEntry::Table, FeedEntry::Id)
-                .on_delete(ForeignKeyAction::Restrict),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeedEntry::ProfileId, id_type).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedEntry::Table, ProfileFeedEntry::ProfileId)
-                .to(Profile::Table, Profile::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
-}
-
-pub fn create_profile_feed_id_feed_entry_id_index() -> IndexCreateStatement {
-    Index::create()
-        .name(format!(
-            "{profile_feed_entry}_{profile_feed_id}_{feed_entry_id}_idx",
-            profile_feed_entry = ProfileFeedEntry::Table.to_string(),
-            profile_feed_id = ProfileFeedEntry::ProfileFeedId.to_string(),
-            feed_entry_id = ProfileFeedEntry::FeedEntryId.to_string()
-        ))
-        .table(ProfileFeedEntry::Table)
-        .if_not_exists()
-        .col(ProfileFeedEntry::ProfileFeedId)
-        .col(ProfileFeedEntry::FeedEntryId)
-        .unique()
-        .to_owned()
 }
 
 pub struct InsertMany {

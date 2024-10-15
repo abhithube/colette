@@ -1,6 +1,29 @@
-use colette_sql::bookmark;
-use sea_query::{ColumnType, SqliteQueryBuilder};
+use colette_sql::{
+    bookmark::Bookmark,
+    common::{WithPk, WithTimestamps},
+};
+use sea_query::{ColumnDef, SqliteQueryBuilder, Table};
 
 pub fn migration() -> String {
-    [bookmark::create_table(ColumnType::Text).build(SqliteQueryBuilder)].join("; ")
+    [Table::create()
+        .table(Bookmark::Table)
+        .if_not_exists()
+        .with_integer_pk()
+        .col(
+            ColumnDef::new(Bookmark::Link)
+                .text()
+                .not_null()
+                .unique_key(),
+        )
+        .col(ColumnDef::new(Bookmark::Title).text().not_null())
+        .col(ColumnDef::new(Bookmark::ThumbnailUrl).text())
+        .col(
+            ColumnDef::new(Bookmark::PublishedAt)
+                .timestamp_with_time_zone()
+                .not_null(),
+        )
+        .col(ColumnDef::new(Bookmark::Author).text())
+        .with_timestamps()
+        .build(SqliteQueryBuilder)]
+    .join("; ")
 }

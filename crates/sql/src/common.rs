@@ -1,18 +1,47 @@
-use sea_query::{Alias, ColumnDef, ColumnType, Expr, TableCreateStatement};
+use sea_query::{Alias, ColumnDef, Expr, TableCreateStatement};
+
+pub trait WithPk {
+    fn with_uuid_pk(&mut self) -> &mut Self;
+
+    fn with_integer_pk(&mut self) -> &mut Self;
+}
+
+impl WithPk for TableCreateStatement {
+    fn with_uuid_pk(&mut self) -> &mut Self {
+        self.col(
+            ColumnDef::new(Alias::new("id"))
+                .uuid()
+                .not_null()
+                .primary_key(),
+        )
+    }
+
+    fn with_integer_pk(&mut self) -> &mut Self {
+        self.col(
+            ColumnDef::new(Alias::new("id"))
+                .integer()
+                .not_null()
+                .primary_key()
+                .auto_increment(),
+        )
+    }
+}
 
 pub trait WithTimestamps {
-    fn with_timestamps(&mut self, col_type: ColumnType) -> &mut Self;
+    fn with_timestamps(&mut self) -> &mut Self;
 }
 
 impl WithTimestamps for TableCreateStatement {
-    fn with_timestamps(&mut self, col_type: ColumnType) -> &mut Self {
+    fn with_timestamps(&mut self) -> &mut Self {
         self.col(
-            ColumnDef::new_with_type(Alias::new("created_at"), col_type.clone())
+            ColumnDef::new(Alias::new("created_at"))
+                .timestamp_with_time_zone()
                 .not_null()
                 .default(Expr::current_timestamp()),
         )
         .col(
-            ColumnDef::new_with_type(Alias::new("updated_at"), col_type)
+            ColumnDef::new(Alias::new("updated_at"))
+                .timestamp_with_time_zone()
                 .not_null()
                 .default(Expr::current_timestamp()),
         )

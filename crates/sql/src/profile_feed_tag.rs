@@ -1,15 +1,7 @@
-use sea_query::{
-    ColumnDef, ColumnType, DeleteStatement, Expr, ForeignKey, ForeignKeyAction, Index,
-    InsertStatement, OnConflict, Query, Table, TableCreateStatement,
-};
+use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
-use crate::{
-    common::WithTimestamps,
-    profile::Profile,
-    profile_feed::ProfileFeed,
-    tag::{build_titles_subquery, Tag},
-};
+use crate::tag::build_titles_subquery;
 
 #[derive(sea_query::Iden)]
 pub enum ProfileFeedTag {
@@ -19,40 +11,6 @@ pub enum ProfileFeedTag {
     ProfileId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
-    Table::create()
-        .table(ProfileFeedTag::Table)
-        .if_not_exists()
-        .col(ColumnDef::new_with_type(ProfileFeedTag::ProfileFeedId, id_type.clone()).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedTag::Table, ProfileFeedTag::ProfileFeedId)
-                .to(ProfileFeed::Table, ProfileFeed::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeedTag::TagId, id_type.clone()).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedTag::Table, ProfileFeedTag::TagId)
-                .to(Tag::Table, Tag::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .primary_key(
-            Index::create()
-                .col(ProfileFeedTag::ProfileFeedId)
-                .col(ProfileFeedTag::TagId),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeedTag::ProfileId, id_type).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeedTag::Table, ProfileFeedTag::ProfileId)
-                .to(Profile::Table, Profile::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
 }
 
 pub struct InsertMany {

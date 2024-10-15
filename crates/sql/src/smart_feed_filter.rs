@@ -1,10 +1,5 @@
-use sea_query::{
-    ColumnDef, ColumnType, DeleteStatement, Expr, ForeignKey, ForeignKeyAction, Iden,
-    InsertStatement, Query, Table, TableCreateStatement,
-};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query};
 use uuid::Uuid;
-
-use crate::{common::WithTimestamps, profile::Profile, smart_feed::SmartFeed};
 
 #[derive(sea_query::Iden)]
 pub enum SmartFeedFilter {
@@ -17,41 +12,6 @@ pub enum SmartFeedFilter {
     ProfileId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(
-    id_type: ColumnType,
-    field_type: ColumnType,
-    operation_type: ColumnType,
-    timestamp_type: ColumnType,
-) -> TableCreateStatement {
-    Table::create()
-        .table(SmartFeedFilter::Table)
-        .if_not_exists()
-        .col(
-            ColumnDef::new_with_type(SmartFeedFilter::Id, id_type.clone())
-                .not_null()
-                .primary_key(),
-        )
-        .col(ColumnDef::new_with_type(SmartFeedFilter::Field, field_type).not_null())
-        .col(ColumnDef::new_with_type(SmartFeedFilter::Operation, operation_type).not_null())
-        .col(ColumnDef::new_with_type(SmartFeedFilter::Value, ColumnType::Text).not_null())
-        .col(ColumnDef::new_with_type(SmartFeedFilter::SmartFeedId, id_type.clone()).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId)
-                .to(SmartFeed::Table, SmartFeed::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .col(ColumnDef::new_with_type(SmartFeedFilter::ProfileId, id_type).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(SmartFeedFilter::Table, SmartFeedFilter::ProfileId)
-                .to(Profile::Table, Profile::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
 }
 
 #[derive(Debug, Clone)]

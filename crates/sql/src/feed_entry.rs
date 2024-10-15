@@ -1,11 +1,7 @@
 use chrono::{DateTime, Utc};
-use sea_query::{
-    ColumnDef, ColumnType, DeleteStatement, Expr, ForeignKey, ForeignKeyAction, Iden, Index,
-    IndexCreateStatement, InsertStatement, OnConflict, Query, SelectStatement, Table,
-    TableCreateStatement,
-};
+use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query, SelectStatement};
 
-use crate::{common::WithTimestamps, feed::Feed, profile_feed_entry::ProfileFeedEntry};
+use crate::profile_feed_entry::ProfileFeedEntry;
 
 #[derive(sea_query::Iden)]
 pub enum FeedEntry {
@@ -20,62 +16,6 @@ pub enum FeedEntry {
     FeedId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(timestamp_type: ColumnType) -> TableCreateStatement {
-    Table::create()
-        .table(FeedEntry::Table)
-        .if_not_exists()
-        .col(
-            ColumnDef::new_with_type(FeedEntry::Id, ColumnType::Integer)
-                .not_null()
-                .primary_key()
-                .auto_increment(),
-        )
-        .col(
-            ColumnDef::new_with_type(FeedEntry::Link, ColumnType::Text)
-                .not_null()
-                .unique_key(),
-        )
-        .col(ColumnDef::new_with_type(FeedEntry::Title, ColumnType::Text).not_null())
-        .col(ColumnDef::new_with_type(FeedEntry::PublishedAt, timestamp_type.clone()).not_null())
-        .col(ColumnDef::new_with_type(
-            FeedEntry::Description,
-            ColumnType::Text,
-        ))
-        .col(ColumnDef::new_with_type(
-            FeedEntry::Author,
-            ColumnType::Text,
-        ))
-        .col(ColumnDef::new_with_type(
-            FeedEntry::ThumbnailUrl,
-            ColumnType::Text,
-        ))
-        .col(ColumnDef::new_with_type(FeedEntry::FeedId, ColumnType::Integer).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(FeedEntry::Table, FeedEntry::FeedId)
-                .to(Feed::Table, Feed::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
-}
-
-pub fn create_feed_id_link_index() -> IndexCreateStatement {
-    Index::create()
-        .name(format!(
-            "{feed_entry}_{feed_id}_{link}_idx",
-            feed_entry = FeedEntry::Table.to_string(),
-            feed_id = FeedEntry::FeedId.to_string(),
-            link = FeedEntry::Link.to_string()
-        ))
-        .table(FeedEntry::Table)
-        .if_not_exists()
-        .col(FeedEntry::FeedId)
-        .col(FeedEntry::Link)
-        .unique()
-        .to_owned()
 }
 
 pub struct InsertMany {

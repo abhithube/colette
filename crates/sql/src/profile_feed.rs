@@ -1,15 +1,12 @@
 use colette_core::feed::Cursor;
 use sea_query::{
-    Alias, ColumnDef, ColumnType, CommonTableExpression, DeleteStatement, Expr, ForeignKey,
-    ForeignKeyAction, Func, Iden, Index, IndexCreateStatement, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, Table, TableCreateStatement, UpdateStatement,
-    WithClause, WithQuery,
+    Alias, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement, JoinType,
+    OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
 use crate::{
-    common::WithTimestamps, feed::Feed, profile::Profile, profile_feed_entry::ProfileFeedEntry,
-    profile_feed_tag::ProfileFeedTag, tag::Tag,
+    feed::Feed, profile_feed_entry::ProfileFeedEntry, profile_feed_tag::ProfileFeedTag, tag::Tag,
 };
 
 #[derive(sea_query::Iden)]
@@ -22,58 +19,6 @@ pub enum ProfileFeed {
     FeedId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
-    Table::create()
-        .table(ProfileFeed::Table)
-        .if_not_exists()
-        .col(
-            ColumnDef::new_with_type(ProfileFeed::Id, id_type.clone())
-                .not_null()
-                .primary_key(),
-        )
-        .col(ColumnDef::new_with_type(
-            ProfileFeed::Title,
-            ColumnType::Text,
-        ))
-        .col(
-            ColumnDef::new_with_type(ProfileFeed::Pinned, ColumnType::Boolean)
-                .not_null()
-                .default(false),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeed::ProfileId, id_type).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeed::Table, ProfileFeed::ProfileId)
-                .to(Profile::Table, Profile::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .col(ColumnDef::new_with_type(ProfileFeed::FeedId, ColumnType::Integer).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(ProfileFeed::Table, ProfileFeed::FeedId)
-                .to(Feed::Table, Feed::Id)
-                .on_delete(ForeignKeyAction::Restrict),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
-}
-
-pub fn create_profile_id_feed_id_index() -> IndexCreateStatement {
-    Index::create()
-        .name(format!(
-            "{profile_feed}_{profile_id}_{feed_id}_idx",
-            profile_feed = ProfileFeed::Table.to_string(),
-            profile_id = ProfileFeed::ProfileId.to_string(),
-            feed_id = ProfileFeed::FeedId.to_string()
-        ))
-        .table(ProfileFeed::Table)
-        .if_not_exists()
-        .col(ProfileFeed::ProfileId)
-        .col(ProfileFeed::FeedId)
-        .unique()
-        .to_owned()
 }
 
 #[allow(clippy::too_many_arguments)]

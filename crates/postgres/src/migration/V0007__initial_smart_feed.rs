@@ -1,14 +1,43 @@
 use colette_sql::{
-    smart_feed,
-    smart_feed_filter::{self, Field, Operation},
+    common::{WithPk, WithTimestamps},
+    profile::Profile,
+    smart_feed::SmartFeed,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter},
 };
-use sea_query::{extension::postgres::Type, ColumnType, PostgresQueryBuilder, SeaRc};
+use sea_query::{
+    extension::postgres::Type, ColumnDef, ForeignKey, ForeignKeyAction, Iden, Index,
+    PostgresQueryBuilder, Table,
+};
 
 pub fn migration() -> String {
     [
-        smart_feed::create_table(ColumnType::Uuid, ColumnType::TimestampWithTimeZone)
+        Table::create()
+            .table(SmartFeed::Table)
+            .if_not_exists()
+            .with_uuid_pk()
+            .col(ColumnDef::new(SmartFeed::Title).text().not_null())
+            .col(ColumnDef::new(SmartFeed::ProfileId).uuid().not_null())
+            .foreign_key(
+                ForeignKey::create()
+                    .from(SmartFeed::Table, SmartFeed::ProfileId)
+                    .to(Profile::Table, Profile::Id)
+                    .on_delete(ForeignKeyAction::Cascade),
+            )
+            .with_timestamps()
             .build(PostgresQueryBuilder),
-        smart_feed::create_profile_id_title_index().build(PostgresQueryBuilder),
+        Index::create()
+            .name(format!(
+                "{smart_feed}_{profile_id}_{title}_idx",
+                smart_feed = SmartFeed::Table.to_string(),
+                profile_id = SmartFeed::ProfileId.to_string(),
+                title = SmartFeed::Title.to_string()
+            ))
+            .table(SmartFeed::Table)
+            .if_not_exists()
+            .col(SmartFeed::ProfileId)
+            .col(SmartFeed::Title)
+            .unique()
+            .build(PostgresQueryBuilder),
         Type::create()
             .as_enum(Field::Type)
             .values([
@@ -32,34 +61,62 @@ pub fn migration() -> String {
                 Operation::InLastXSec,
             ])
             .to_string(PostgresQueryBuilder),
-        smart_feed_filter::create_table(
-            ColumnType::Uuid,
-            ColumnType::Enum {
-                name: SeaRc::new(Field::Type),
-                variants: vec![
-                    SeaRc::new(Field::Link),
-                    SeaRc::new(Field::Title),
-                    SeaRc::new(Field::PublishedAt),
-                    SeaRc::new(Field::Description),
-                    SeaRc::new(Field::Author),
-                    SeaRc::new(Field::HasRead),
-                ],
-            },
-            ColumnType::Enum {
-                name: SeaRc::new(Operation::Type),
-                variants: vec![
-                    SeaRc::new(Operation::Eq),
-                    SeaRc::new(Operation::Ne),
-                    SeaRc::new(Operation::Like),
-                    SeaRc::new(Operation::NotLike),
-                    SeaRc::new(Operation::GreaterThan),
-                    SeaRc::new(Operation::LessThan),
-                    SeaRc::new(Operation::InLastXSec),
-                ],
-            },
-            ColumnType::TimestampWithTimeZone,
-        )
-        .build(PostgresQueryBuilder),
+        Table::create()
+            .table(SmartFeedFilter::Table)
+            .if_not_exists()
+            .with_uuid_pk()
+            .col(
+                ColumnDef::new(SmartFeedFilter::Field)
+                    .enumeration(
+                        Field::Type,
+                        vec![
+                            Field::Link,
+                            Field::Title,
+                            Field::PublishedAt,
+                            Field::Description,
+                            Field::Author,
+                            Field::HasRead,
+                        ],
+                    )
+                    .not_null(),
+            )
+            .col(
+                ColumnDef::new(SmartFeedFilter::Operation)
+                    .enumeration(
+                        Operation::Type,
+                        vec![
+                            Operation::Eq,
+                            Operation::Ne,
+                            Operation::Like,
+                            Operation::NotLike,
+                            Operation::GreaterThan,
+                            Operation::LessThan,
+                            Operation::InLastXSec,
+                        ],
+                    )
+                    .not_null(),
+            )
+            .col(ColumnDef::new(SmartFeedFilter::Value).text().not_null())
+            .col(
+                ColumnDef::new(SmartFeedFilter::SmartFeedId)
+                    .uuid()
+                    .not_null(),
+            )
+            .foreign_key(
+                ForeignKey::create()
+                    .from(SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId)
+                    .to(SmartFeed::Table, SmartFeed::Id)
+                    .on_delete(ForeignKeyAction::Cascade),
+            )
+            .col(ColumnDef::new(SmartFeedFilter::ProfileId).uuid().not_null())
+            .foreign_key(
+                ForeignKey::create()
+                    .from(SmartFeedFilter::Table, SmartFeedFilter::ProfileId)
+                    .to(Profile::Table, Profile::Id)
+                    .on_delete(ForeignKeyAction::Cascade),
+            )
+            .with_timestamps()
+            .build(PostgresQueryBuilder),
     ]
     .join("; ")
 }

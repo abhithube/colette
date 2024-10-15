@@ -1,12 +1,8 @@
 use colette_core::profile::Cursor;
 use sea_query::{
-    ColumnDef, ColumnType, ConditionalStatement, DeleteStatement, Expr, ForeignKey,
-    ForeignKeyAction, Func, Iden, Index, IndexCreateStatement, InsertStatement, Order, Query,
-    SelectStatement, Table, TableCreateStatement, UpdateStatement,
+    DeleteStatement, Expr, Func, InsertStatement, Order, Query, SelectStatement, UpdateStatement,
 };
 use uuid::Uuid;
-
-use crate::{common::WithTimestamps, user::User};
 
 #[derive(sea_query::Iden)]
 pub enum Profile {
@@ -18,69 +14,6 @@ pub enum Profile {
     UserId,
     CreatedAt,
     UpdatedAt,
-}
-
-pub fn create_table(id_type: ColumnType, timestamp_type: ColumnType) -> TableCreateStatement {
-    Table::create()
-        .table(Profile::Table)
-        .if_not_exists()
-        .col(
-            ColumnDef::new_with_type(Profile::Id, id_type.clone())
-                .not_null()
-                .primary_key(),
-        )
-        .col(ColumnDef::new_with_type(Profile::Title, ColumnType::Text).not_null())
-        .col(ColumnDef::new_with_type(
-            Profile::ImageUrl,
-            ColumnType::Text,
-        ))
-        .col(
-            ColumnDef::new_with_type(Profile::IsDefault, ColumnType::Boolean)
-                .not_null()
-                .default(false),
-        )
-        .col(ColumnDef::new_with_type(Profile::UserId, id_type).not_null())
-        .foreign_key(
-            ForeignKey::create()
-                .from(Profile::Table, Profile::UserId)
-                .to(User::Table, User::Id)
-                .on_delete(ForeignKeyAction::Cascade),
-        )
-        .with_timestamps(timestamp_type)
-        .to_owned()
-}
-
-pub fn create_user_id_is_default_index() -> IndexCreateStatement {
-    Index::create()
-        .name(format!(
-            "{profile}_{user_id}_{is_default}_idx",
-            profile = Profile::Table.to_string(),
-            user_id = Profile::UserId.to_string(),
-            is_default = Profile::IsDefault.to_string()
-        ))
-        .table(Profile::Table)
-        .if_not_exists()
-        .col(Profile::UserId)
-        .col(Profile::IsDefault)
-        .unique()
-        .and_where(Expr::col(Profile::IsDefault).into())
-        .to_owned()
-}
-
-pub fn create_user_id_title_index() -> IndexCreateStatement {
-    Index::create()
-        .name(format!(
-            "{profile}_{user_id}_{title}_idx",
-            profile = Profile::Table.to_string(),
-            user_id = Profile::UserId.to_string(),
-            title = Profile::Title.to_string()
-        ))
-        .table(Profile::Table)
-        .if_not_exists()
-        .col(Profile::UserId)
-        .col(Profile::Title)
-        .unique()
-        .to_owned()
 }
 
 pub fn select(
