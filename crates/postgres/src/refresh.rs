@@ -2,6 +2,7 @@ use colette_core::refresh::{Error, FeedRefreshData, RefreshRepository};
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
+use tokio_postgres::types::Type;
 use uuid::Uuid;
 
 use crate::feed::create_feed_with_entries;
@@ -50,14 +51,19 @@ impl RefreshRepository for PostgresRefreshRepository {
             ids
         };
 
+        let mut types: Vec<Type> = Vec::new();
         let insert_many = fe_ids
             .into_iter()
-            .map(
-                |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
+            .map(|feed_entry_id| {
+                types.push(Type::UUID);
+                types.push(Type::INT4);
+                types.push(Type::INT4);
+
+                colette_sql::profile_feed_entry::InsertMany {
                     id: Uuid::new_v4(),
                     feed_entry_id,
-                },
-            )
+                }
+            })
             .collect::<Vec<_>>();
 
         {
@@ -65,7 +71,12 @@ impl RefreshRepository for PostgresRefreshRepository {
                 colette_sql::profile_feed_entry::insert_many_for_all_profiles(insert_many, feed_id)
                     .build_postgres(PostgresQueryBuilder);
 
-            tx.execute(&sql, &values.as_params())
+            let stmt = tx
+                .prepare_typed_cached(&sql, &types)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
