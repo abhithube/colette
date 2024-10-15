@@ -1,6 +1,6 @@
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    Alias, CaseStatement, ColumnDef, ColumnType, CommonTableExpression, Expr, ForeignKey,
+    Alias, Asterisk, CaseStatement, ColumnDef, ColumnType, CommonTableExpression, Expr, ForeignKey,
     ForeignKeyAction, Iden, Index, IndexCreateStatement, InsertStatement, JoinType, OnConflict,
     Order, Query, SelectStatement, Table, TableCreateStatement, UpdateStatement, WithClause,
     WithQuery,
@@ -200,7 +200,6 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
             .do_nothing()
             .to_owned(),
         )
-        .returning_col(FeedEntry::Id)
         .to_owned();
 
     for pfe in data {
@@ -219,29 +218,12 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
     let input = Alias::new("input");
 
     let input_cte = Query::select()
+        .expr(Expr::col(Asterisk))
         .from_values(
             data.into_iter()
                 .map(|e| (e.id, e.feed_entry_id, feed_id))
                 .collect::<Vec<_>>(),
-            Alias::new("rows (id, feed_entry_id, profile_feed_id)"),
-        )
-        .to_owned();
-
-    let pfe = Alias::new("pfe");
-
-    let pfe_cte = Query::select()
-        .columns([
-            (input.clone(), ProfileFeedEntry::Id),
-            (input.clone(), ProfileFeedEntry::FeedEntryId),
-            (input.clone(), ProfileFeedEntry::ProfileFeedId),
-        ])
-        .column((ProfileFeed::Table, ProfileFeed::ProfileId))
-        .from(ProfileFeed::Table)
-        .join(
-            JoinType::InnerJoin,
-            input.clone(),
-            Expr::col((input.clone(), Alias::new("feed_id")))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
+            Alias::new("row"),
         )
         .to_owned();
 
@@ -249,13 +231,9 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
         .cte(
             CommonTableExpression::new()
                 .query(input_cte)
-                .table_name(input)
-                .to_owned(),
-        )
-        .cte(
-            CommonTableExpression::new()
-                .query(pfe_cte)
-                .table_name(pfe.clone())
+                .columns([ProfileFeedEntry::Id, ProfileFeedEntry::FeedEntryId])
+                .column(ProfileFeed::FeedId)
+                .table_name(input.clone())
                 .to_owned(),
         )
         .to_owned();
@@ -269,14 +247,22 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
             ProfileFeedEntry::ProfileId,
         ])
         .select_from(
-            SelectStatement::new()
+            Query::select()
                 .columns([
-                    (pfe.clone(), ProfileFeedEntry::Id),
-                    (pfe.clone(), ProfileFeedEntry::FeedEntryId),
-                    (pfe.clone(), ProfileFeedEntry::ProfileFeedId),
-                    (pfe.clone(), ProfileFeedEntry::ProfileId),
+                    (input.clone(), ProfileFeedEntry::Id),
+                    (input.clone(), ProfileFeedEntry::FeedEntryId),
                 ])
-                .from(pfe)
+                .columns([
+                    (ProfileFeed::Table, ProfileFeed::Id),
+                    (ProfileFeed::Table, ProfileFeed::ProfileId),
+                ])
+                .from(ProfileFeed::Table)
+                .join(
+                    JoinType::InnerJoin,
+                    input.clone(),
+                    Expr::col((input, ProfileFeed::FeedId))
+                        .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
+                )
                 .to_owned(),
         )
         .unwrap()
@@ -288,7 +274,6 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
             .do_nothing()
             .to_owned(),
         )
-        .returning_col(FeedEntry::Id)
         .to_owned();
 
     insert.with(with_clause)
