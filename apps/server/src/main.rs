@@ -32,7 +32,7 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
-use tower_sessions::ExpiredDeletion;
+use tower_sessions_core::ExpiredDeletion;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 const CRON_CLEANUP: &str = "0 0 0 * * *";
@@ -116,9 +116,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let user_repository =
                 Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
-            let store = colette_session::PostgresStore::new(pool);
-            store.migrate().await?;
-
             (
                 backup_repository,
                 bookmark_repository,
@@ -130,7 +127,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
-                SessionBackend::Postgres(store),
+                SessionBackend::Postgres(colette_postgres::PostgresSessionRepository::new(pool)),
             )
         }
         #[cfg(feature = "sqlite")]
@@ -158,9 +155,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
             let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
-            let store = colette_session::SqliteStore::new(pool);
-            store.migrate().await?;
-
             (
                 backup_repository,
                 bookmark_repository,
@@ -172,7 +166,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
-                SessionBackend::Sqlite(store),
+                SessionBackend::Sqlite(colette_sqlite::SqliteSessionRepository::new(pool)),
             )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),

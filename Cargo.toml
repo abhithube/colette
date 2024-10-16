@@ -92,8 +92,8 @@ tokio = { version = "1", default-features = false, features = [
 tokio-postgres = { version = "0.7", default-features = false, features = [
   "runtime",
 ] }
-tower-sessions = { version = "0.13", default-features = false, features = [
-  "axum-core",
+tower-sessions-core = { version = "0.13", default-features = false, features = [
+  "deletion-task",
 ] }
 tracing = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false, features = ["serde"] }

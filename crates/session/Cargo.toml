@@ -5,22 +5,13 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
-chrono.workspace = true
-deadpool-postgres = { workspace = true, optional = true }
-deadpool-sqlite = { workspace = true, optional = true }
-rmp-serde = { version = "1", default-features = false }
-rusqlite = { workspace = true, optional = true }
-thiserror.workspace = true
-tokio-postgres = { workspace = true, optional = true }
+colette-postgres = { workspace = true, optional = true }
+colette-sqlite = { workspace = true, optional = true }
 tower-sessions-core = { version = "0.13", default-features = false, features = [
   "deletion-task",
 ] }
 
 [features]
 default = []
-postgres = [
-  "dep:deadpool-postgres",
-  "dep:tokio-postgres",
-  "tokio-postgres/with-time-0_3",
-]
-sqlite = ["dep:deadpool-sqlite", "dep:rusqlite", "rusqlite/time"]
+postgres = ["dep:colette-postgres"]
+sqlite = ["dep:colette-sqlite"]

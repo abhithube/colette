@@ -22,4 +22,5 @@ sea-query-rusqlite = { version = "=0.7.0-rc.1", default-features = false, featur
   "with-uuid",
 ] }
 serde_json.workspace = true
+tower-sessions-core.workspace = true
 uuid.workspace = true
