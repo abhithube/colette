@@ -8,7 +8,7 @@ pub fn migration() -> String {
         .col(ColumnDef::new(Session::Id).text().not_null().primary_key())
         .col(ColumnDef::new(Session::Data).blob().not_null())
         .col(
-            ColumnDef::new(Session::ExpiryDate)
+            ColumnDef::new(Session::ExpiresAt)
                 .timestamp_with_time_zone()
                 .not_null(),
         )

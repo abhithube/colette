@@ -26,7 +26,7 @@ impl SessionStore for PostgresSessionRepository {
     async fn create(&self, record: &mut Record) -> session_store::Result<()> {
         let payload =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expiry = SystemTime::from(record.expiry_date);
+        let expires_at = SystemTime::from(record.expiry_date);
 
         let mut client = self
             .pool
@@ -34,8 +34,9 @@ impl SessionStore for PostgresSessionRepository {
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
-        let (sql, _) = colette_sql::session::insert(record.id.to_string(), &payload, expiry.into())
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, _) =
+            colette_sql::session::insert(record.id.to_string(), &payload, expires_at.into())
+                .build_postgres(PostgresQueryBuilder);
 
         let tx = client
             .transaction()
@@ -49,7 +50,7 @@ impl SessionStore for PostgresSessionRepository {
 
         loop {
             match tx
-                .execute(&stmt, &[&record.id.to_string(), &payload, &expiry])
+                .execute(&stmt, &[&record.id.to_string(), &payload, &expires_at])
                 .await
             {
                 Ok(_) => break,
@@ -68,7 +69,7 @@ impl SessionStore for PostgresSessionRepository {
     async fn save(&self, record: &Record) -> session_store::Result<()> {
         let payload =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expiry: SystemTime = record.expiry_date.into();
+        let expires_at: SystemTime = record.expiry_date.into();
 
         let client = self
             .pool
@@ -77,7 +78,7 @@ impl SessionStore for PostgresSessionRepository {
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
         let (sql, values) =
-            colette_sql::session::upsert(record.id.to_string(), &payload, expiry.into())
+            colette_sql::session::upsert(record.id.to_string(), &payload, expires_at.into())
                 .build_postgres(PostgresQueryBuilder);
 
         let stmt = client

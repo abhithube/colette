@@ -28,7 +28,7 @@ impl SessionStore for SqliteSessionRepository {
         let mut id = record.id;
         let payload =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expiry = SystemTime::from(record.expiry_date);
+        let expires_at = SystemTime::from(record.expiry_date);
 
         let conn = self
             .pool
@@ -36,8 +36,9 @@ impl SessionStore for SqliteSessionRepository {
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
-        let (sql, _) = colette_sql::session::insert(record.id.to_string(), &payload, expiry.into())
-            .build_rusqlite(SqliteQueryBuilder);
+        let (sql, _) =
+            colette_sql::session::insert(record.id.to_string(), &payload, expires_at.into())
+                .build_rusqlite(SqliteQueryBuilder);
 
         record.id = conn
             .interact(move |conn| {
@@ -50,7 +51,7 @@ impl SessionStore for SqliteSessionRepository {
                         match stmt.execute(params![
                             id.to_string(),
                             payload,
-                            DateTime::<Utc>::from(expiry)
+                            DateTime::<Utc>::from(expires_at)
                         ]) {
                             Ok(_) => break,
                             Err(rusqlite::Error::SqliteFailure(e, _))
@@ -79,7 +80,7 @@ impl SessionStore for SqliteSessionRepository {
     async fn save(&self, record: &Record) -> session_store::Result<()> {
         let payload =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expiry: SystemTime = record.expiry_date.into();
+        let expires_at: SystemTime = record.expiry_date.into();
 
         let conn = self
             .pool
@@ -88,7 +89,7 @@ impl SessionStore for SqliteSessionRepository {
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
         let (sql, values) =
-            colette_sql::session::upsert(record.id.to_string(), &payload, expiry.into())
+            colette_sql::session::upsert(record.id.to_string(), &payload, expires_at.into())
                 .build_rusqlite(SqliteQueryBuilder);
 
         conn.interact(move |conn| conn.prepare_cached(&sql)?.execute(&*values.as_params()))
