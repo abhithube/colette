@@ -4,7 +4,7 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 
 pub struct PostgresCleanupRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresCleanupRepository {

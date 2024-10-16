@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::feed::create_feed_with_entries;
 
 pub struct PostgresRefreshRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresRefreshRepository {

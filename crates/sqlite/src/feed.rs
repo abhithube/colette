@@ -17,7 +17,7 @@ use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
 
 pub struct SqliteFeedRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl SqliteFeedRepository {

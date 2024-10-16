@@ -7,7 +7,7 @@ use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 pub struct PostgresBackupRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresBackupRepository {

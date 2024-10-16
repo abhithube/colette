@@ -10,7 +10,7 @@ use tokio_postgres::{error::SqlState, Row};
 use uuid::Uuid;
 
 pub struct PostgresTagRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresTagRepository {

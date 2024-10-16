@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::smart_feed::build_case_statement;
 
 pub struct SqliteFeedEntryRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl SqliteFeedEntryRepository {

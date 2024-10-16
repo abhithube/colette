@@ -14,7 +14,7 @@ use tokio_postgres::{types::Json, Row};
 use uuid::Uuid;
 
 pub struct PostgresBookmarkRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresBookmarkRepository {

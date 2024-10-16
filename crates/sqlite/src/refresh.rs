@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::feed::create_feed_with_entries;
 
 pub struct SqliteRefreshRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl SqliteRefreshRepository {

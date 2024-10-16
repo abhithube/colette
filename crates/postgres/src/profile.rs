@@ -14,7 +14,7 @@ use tokio_postgres::{error::SqlState, Row};
 use uuid::Uuid;
 
 pub struct PostgresProfileRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresProfileRepository {

@@ -4,7 +4,7 @@ use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder;
 
 pub struct SqliteCleanupRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl SqliteCleanupRepository {

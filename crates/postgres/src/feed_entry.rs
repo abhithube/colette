@@ -14,7 +14,7 @@ use uuid::Uuid;
 use crate::smart_feed::build_case_statement;
 
 pub struct PostgresFeedEntryRepository {
-    pub(crate) pool: Pool,
+    pool: Pool,
 }
 
 impl PostgresFeedEntryRepository {
