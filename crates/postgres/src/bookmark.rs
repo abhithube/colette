@@ -7,18 +7,17 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
 };
-use deadpool_postgres::{GenericClient, Pool};
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{types::Json, Row};
+use sea_query_binder::SqlxBinder;
+use sqlx::{types::Json, PgConnection, PgExecutor, PgPool};
 use uuid::Uuid;
 
 pub struct PostgresBookmarkRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresBookmarkRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -29,13 +28,7 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        find_by_id(&client, params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -45,14 +38,9 @@ impl Creatable for PostgresBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -64,64 +52,46 @@ impl Creatable for PostgresBookmarkRepository {
                 data.bookmark.published.map(DateTime::<Utc>::from),
                 data.bookmark.author,
             )
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
+            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                .fetch_one(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            let row = tx
-                .query_one(&stmt, &values.as_params())
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            row.get("id")
+                .map_err(|e| Error::Unknown(e.into()))?
         };
 
         let pb_id = {
             let (mut sql, mut values) =
                 colette_sql::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
-                    .build_postgres(PostgresQueryBuilder);
+                    .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            if let Some(row) = tx
-                .query_opt(&stmt, &values.as_params())
+            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_optional(&mut *tx)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
-                row.get("id")
+                id
             } else {
                 let id = Uuid::new_v4();
 
                 (sql, values) =
                     colette_sql::profile_bookmark::insert(id, bookmark_id, data.profile_id)
-                        .build_postgres(PostgresQueryBuilder);
+                        .build_sqlx(PostgresQueryBuilder);
 
-                let stmt = tx
-                    .prepare_cached(&sql)
+                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                    .fetch_one(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                tx.execute(&stmt, &values.as_params())
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                id
+                    .map_err(|e| Error::Unknown(e.into()))?
             }
         };
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pb_id, tags, data.profile_id)
+            link_tags(&mut tx, pb_id, tags, data.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let bookmark = find_by_id(&tx, IdParams::new(pb_id, data.profile_id))
+        let bookmark = find_by_id(&mut *tx, IdParams::new(pb_id, data.profile_id))
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -138,24 +108,19 @@ impl Updatable for PostgresBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, tags, params.profile_id)
+            link_tags(&mut tx, params.id, tags, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let bookmark = find_by_id(&tx, params).await?;
+        let bookmark = find_by_id(&mut *tx, params).await?;
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
@@ -169,24 +134,14 @@ impl Deletable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let count = {
             let (sql, values) = colette_sql::profile_bookmark::delete(params.id, params.profile_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = client
-                .prepare_cached(&sql)
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            client
-                .execute(&stmt, &values.as_params())
-                .await
+                .map(|e| e.rows_affected())
                 .map_err(|e| Error::Unknown(e.into()))?
         };
         if count == 0 {
@@ -206,38 +161,39 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Vec<Bookmark>, Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        find(&client, None, profile_id, limit, cursor, filters).await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 
-#[derive(Debug, Clone)]
-struct BookmarkSelect(Bookmark);
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct BookmarkSelect {
+    pub id: Uuid,
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub tags: Option<Json<Vec<colette_core::Tag>>>,
+}
 
-impl From<&Row> for BookmarkSelect {
-    fn from(value: &Row) -> Self {
-        Self(Bookmark {
-            id: value.get("id"),
-            link: value.get("link"),
-            title: value.get("title"),
-            thumbnail_url: value.get("thumbnail_url"),
-            published_at: value.get("published_at"),
-            author: value.get("author"),
-            created_at: value.get("created_at"),
-            tags: value
-                .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")
-                .map(|e| e.0),
-        })
+impl From<BookmarkSelect> for colette_core::Bookmark {
+    fn from(value: BookmarkSelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            created_at: value.created_at,
+            tags: value.tags.map(|e| e.0.into_iter().collect()),
+        }
     }
 }
 
-pub(crate) async fn find<C: GenericClient>(
-    client: &C,
+pub(crate) async fn find(
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -269,26 +225,28 @@ pub(crate) async fn find<C: GenericClient>(
         jsonb_agg,
         tags_subquery,
     )
-    .build_postgres(PostgresQueryBuilder);
+    .build_sqlx(PostgresQueryBuilder);
 
-    let stmt = client
-        .prepare_cached(&sql)
+    sqlx::query_as_with::<_, BookmarkSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    client
-        .query(&stmt, &values.as_params())
-        .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| BookmarkSelect::from(&e).0)
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(Bookmark::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
 }
 
-pub async fn find_by_id<C: GenericClient>(client: &C, params: IdParams) -> Result<Bookmark, Error> {
-    let mut bookmarks = find(client, Some(params.id), params.profile_id, None, None, None).await?;
+pub async fn find_by_id(
+    executor: impl PgExecutor<'_>,
+    params: IdParams,
+) -> Result<Bookmark, Error> {
+    let mut bookmarks = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if bookmarks.is_empty() {
         return Err(Error::NotFound(params.id));
     }
@@ -296,20 +254,18 @@ pub async fn find_by_id<C: GenericClient>(client: &C, params: IdParams) -> Resul
     Ok(bookmarks.swap_remove(0))
 }
 
-pub(crate) async fn link_tags<C: GenericClient>(
-    client: &C,
+pub(crate) async fn link_tags(
+    conn: &mut PgConnection,
     profile_bookmark_id: Uuid,
     tags: TagsLinkData,
     profile_id: Uuid,
-) -> Result<(), tokio_postgres::Error> {
+) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
         let (sql, values) =
             colette_sql::profile_bookmark_tag::delete_many_in_titles(&tags.data, profile_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
 
         return Ok(());
     }
@@ -317,11 +273,9 @@ pub(crate) async fn link_tags<C: GenericClient>(
     if let TagsLinkAction::Set = tags.action {
         let (sql, values) =
             colette_sql::profile_bookmark_tag::delete_many_not_in_titles(&tags.data, profile_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     {
@@ -335,42 +289,33 @@ pub(crate) async fn link_tags<C: GenericClient>(
                 .collect(),
             profile_id,
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     let tag_ids = {
         let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags.data, profile_id)
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        let mut ids: Vec<Uuid> = Vec::new();
-        for row in client.query(&stmt, &values.as_params()).await? {
-            ids.push(row.get("id"));
-        }
-
-        ids
+        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_all(&mut *conn)
+            .await?
     };
 
-    let insert_many = tag_ids
-        .into_iter()
-        .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
-            profile_bookmark_id,
-            tag_id: e,
-        })
-        .collect::<Vec<_>>();
-
     {
+        let insert_many = tag_ids
+            .into_iter()
+            .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
+                profile_bookmark_id,
+                tag_id: e,
+            })
+            .collect::<Vec<_>>();
+
         let (sql, values) = colette_sql::profile_bookmark_tag::insert_many(insert_many, profile_id)
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     Ok(())

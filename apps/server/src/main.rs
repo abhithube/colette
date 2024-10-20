@@ -88,6 +88,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             colette_postgres::migrate(&mut pool).await?;
 
+            let pool = sqlx::PgPool::connect(url).await?;
+
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
             ));
@@ -116,6 +118,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let user_repository =
                 Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
+            let store = colette_session::PostgresStore::new(pool);
+            store.migrate().await?;
+
             (
                 backup_repository,
                 bookmark_repository,
@@ -127,7 +132,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
-                SessionBackend::Postgres(colette_postgres::PostgresSessionRepository::new(pool)),
+                SessionBackend::Postgres(store),
             )
         }
         #[cfg(feature = "sqlite")]

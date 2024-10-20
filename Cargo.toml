@@ -84,6 +84,10 @@ sea-query = { version = "=0.32.0-rc.2", default-features = false, features = [
 ] }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
+sqlx = { version = "0.8", default-features = false, features = [
+  "derive",
+  "migrate",
+] }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1", default-features = false, features = [
   "macros",

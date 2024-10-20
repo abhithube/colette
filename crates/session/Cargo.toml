@@ -5,13 +5,13 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
-colette-postgres = { workspace = true, optional = true }
 colette-sqlite = { workspace = true, optional = true }
 tower-sessions-core = { version = "0.13", default-features = false, features = [
   "deletion-task",
 ] }
+tower-sessions-sqlx-store = { version = "0.14", default-features = false }
 
 [features]
 default = []
-postgres = ["dep:colette-postgres"]
+postgres = ["tower-sessions-sqlx-store/postgres"]
 sqlite = ["dep:colette-sqlite"]

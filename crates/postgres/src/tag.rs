@@ -3,18 +3,17 @@ use colette_core::{
     tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
     Tag,
 };
-use deadpool_postgres::{GenericClient, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{error::SqlState, Row};
+use sea_query_binder::SqlxBinder;
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 pub struct PostgresTagRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresTagRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -25,13 +24,7 @@ impl Findable for PostgresTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        find_by_id(&client, params).await
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -41,14 +34,9 @@ impl Creatable for PostgresTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -56,22 +44,20 @@ impl Creatable for PostgresTagRepository {
 
         {
             let (sql, values) = colette_sql::tag::insert(id, data.title.clone(), data.profile_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            tx.execute(&stmt, &values.as_params())
-                .await
-                .map_err(|e| match e.code() {
-                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.title)
+                    }
                     _ => Error::Unknown(e.into()),
-                })?;
+                })?
         };
 
-        let tag = find_by_id(&tx, IdParams::new(id, data.profile_id))
+        let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -88,14 +74,9 @@ impl Updatable for PostgresTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -103,15 +84,12 @@ impl Updatable for PostgresTagRepository {
             let count = {
                 let (sql, values) =
                     colette_sql::tag::update(params.id, params.profile_id, data.title)
-                        .build_postgres(PostgresQueryBuilder);
+                        .build_sqlx(PostgresQueryBuilder);
 
-                let stmt = tx
-                    .prepare_cached(&sql)
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                tx.execute(&stmt, &values.as_params())
-                    .await
+                    .map(|e| e.rows_affected())
                     .map_err(|e| Error::Unknown(e.into()))?
             };
             if count == 0 {
@@ -119,7 +97,7 @@ impl Updatable for PostgresTagRepository {
             }
         }
 
-        let tag = find_by_id(&tx, params)
+        let tag = find_by_id(&mut *tx, params)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -135,24 +113,14 @@ impl Deletable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let count = {
             let (sql, values) = colette_sql::tag::delete_by_id(params.id, params.profile_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = client
-                .prepare_cached(&sql)
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            client
-                .execute(&stmt, &values.as_params())
-                .await
+                .map(|e| e.rows_affected())
                 .map_err(|e| Error::Unknown(e.into()))?
         };
         if count == 0 {
@@ -172,32 +140,31 @@ impl TagRepository for PostgresTagRepository {
         cursor: Option<Cursor>,
         filters: Option<TagFindManyFilters>,
     ) -> Result<Vec<Tag>, Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        find(&client, None, profile_id, limit, cursor, filters).await
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 
-#[derive(Debug, Clone)]
-struct TagSelect(Tag);
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct TagSelect {
+    id: Uuid,
+    title: String,
+    bookmark_count: i64,
+    feed_count: i64,
+}
 
-impl From<&Row> for TagSelect {
-    fn from(value: &Row) -> Self {
-        Self(Tag {
-            id: value.get("id"),
-            title: value.get("title"),
-            bookmark_count: Some(value.get("bookmark_count")),
-            feed_count: Some(value.get("feed_count")),
-        })
+impl From<TagSelect> for colette_core::Tag {
+    fn from(value: TagSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            bookmark_count: Some(value.bookmark_count),
+            feed_count: Some(value.feed_count),
+        }
     }
 }
 
-pub(crate) async fn find<C: GenericClient>(
-    client: &C,
+pub(crate) async fn find(
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
@@ -205,26 +172,25 @@ pub(crate) async fn find<C: GenericClient>(
     filters: Option<TagFindManyFilters>,
 ) -> Result<Vec<Tag>, Error> {
     let (sql, values) = colette_sql::tag::select(id, profile_id, limit, cursor, filters)
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-    let stmt = client
-        .prepare_cached(&sql)
+    sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    client
-        .query(&stmt, &values.as_params())
-        .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| TagSelect::from(&e).0)
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id<C: GenericClient>(client: &C, params: IdParams) -> Result<Tag, Error> {
-    let mut tags = find(client, Some(params.id), params.profile_id, None, None, None).await?;
+async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Tag, Error> {
+    let mut tags = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if tags.is_empty() {
         return Err(Error::NotFound(params.id));
     }

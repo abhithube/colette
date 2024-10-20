@@ -7,18 +7,17 @@ use colette_core::{
     },
     Profile,
 };
-use deadpool_postgres::{GenericClient, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{error::SqlState, Row};
+use sea_query_binder::SqlxBinder;
+use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
 pub struct PostgresProfileRepository {
-    pool: Pool,
+    pool: PgPool,
 }
 
 impl PostgresProfileRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
@@ -29,15 +28,17 @@ impl Findable for PostgresProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let is_default = params.id.map_or_else(|| Some(true), |_| None);
 
-        let mut profiles = find(&client, params.id, params.user_id, is_default, None, None).await?;
+        let mut profiles = find(
+            &self.pool,
+            params.id,
+            params.user_id,
+            is_default,
+            None,
+            None,
+        )
+        .await?;
         if profiles.is_empty() {
             if let Some(id) = params.id {
                 return Err(Error::NotFound(id));
@@ -56,14 +57,9 @@ impl Creatable for PostgresProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -76,22 +72,18 @@ impl Creatable for PostgresProfileRepository {
             None,
             data.user_id,
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = tx
-            .prepare_cached(&sql)
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        tx.execute(&stmt, &values.as_params())
-            .await
-            .map_err(|e| match e.code() {
-                Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
                 _ => Error::Unknown(e.into()),
             })?;
 
         let profile = find_by_id(
-            &tx,
+            &mut *tx,
             ProfileIdParams {
                 id,
                 user_id: data.user_id,
@@ -112,14 +104,9 @@ impl Updatable for PostgresProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -131,15 +118,12 @@ impl Updatable for PostgresProfileRepository {
                     data.title,
                     data.image_url,
                 )
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-                let stmt = tx
-                    .prepare_cached(&sql)
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                tx.execute(&stmt, &values.as_params())
-                    .await
+                    .map(|e| e.rows_affected())
                     .map_err(|e| Error::Unknown(e.into()))?
             };
             if count == 0 {
@@ -147,7 +131,7 @@ impl Updatable for PostgresProfileRepository {
             }
         }
 
-        let profile = find_by_id(&tx, params)
+        let profile = find_by_id(&mut *tx, params)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -163,32 +147,23 @@ impl Deletable for PostgresProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let tx = client
-            .transaction()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let profile = find_by_id(&tx, params.clone()).await?;
+        let profile = find_by_id(&mut *tx, params.clone()).await?;
         if profile.is_default {
             return Err(Error::DeletingDefault);
         }
 
         {
             let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            tx.execute(&stmt, &values.as_params())
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
         };
@@ -205,33 +180,33 @@ impl ProfileRepository for PostgresProfileRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        find(&client, None, user_id, None, limit, cursor).await
+        find(&self.pool, None, user_id, None, limit, cursor).await
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ProfileSelect(Profile);
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub(crate) struct ProfileSelect {
+    id: Uuid,
+    title: String,
+    image_url: Option<String>,
+    is_default: bool,
+    user_id: Uuid,
+}
 
-impl From<&Row> for ProfileSelect {
-    fn from(value: &Row) -> Self {
-        Self(Profile {
-            id: value.get("id"),
-            title: value.get("title"),
-            image_url: value.get("image_url"),
-            is_default: value.get("is_default"),
-            user_id: value.get("user_id"),
-        })
+impl From<ProfileSelect> for colette_core::Profile {
+    fn from(value: ProfileSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            image_url: value.image_url,
+            is_default: value.is_default,
+            user_id: value.user_id,
+        }
     }
 }
 
-async fn find<C: GenericClient>(
-    client: &C,
+async fn find(
+    executor: impl PgExecutor<'_>,
     id: Option<Uuid>,
     user_id: Uuid,
     is_default: Option<bool>,
@@ -239,29 +214,20 @@ async fn find<C: GenericClient>(
     cursor: Option<Cursor>,
 ) -> Result<Vec<Profile>, Error> {
     let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-    let stmt = client
-        .prepare_cached(&sql)
+    sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+        .fetch_all(executor)
         .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    client
-        .query(&stmt, &values.as_params())
-        .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| ProfileSelect::from(&e).0)
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
 }
 
-async fn find_by_id<C: GenericClient>(
-    client: &C,
+async fn find_by_id(
+    executor: impl PgExecutor<'_>,
     params: ProfileIdParams,
 ) -> Result<Profile, Error> {
-    let mut profiles = find(client, Some(params.id), params.user_id, None, None, None).await?;
+    let mut profiles = find(executor, Some(params.id), params.user_id, None, None, None).await?;
     if profiles.is_empty() {
         return Err(Error::NotFound(params.id));
     }

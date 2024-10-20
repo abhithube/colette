@@ -25,6 +25,7 @@ deadpool-sqlite = { workspace = true, optional = true }
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
+sqlx.workspace = true
 tokio.workspace = true
 tokio-postgres = { workspace = true, optional = true }
 tower-sessions-core.workspace = true

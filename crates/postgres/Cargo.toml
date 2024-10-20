@@ -15,14 +15,14 @@ deadpool-postgres.workspace = true
 futures.workspace = true
 refinery = { workspace = true, features = ["tokio-postgres"] }
 sea-query = { workspace = true, features = ["backend-postgres"] }
-sea-query-postgres = { version = "0.5.0-rc.1", features = [
+sea-query-binder = { version = "0.7.0-rc.1", features = [
+  "sqlx-postgres",
   "with-chrono",
   "with-json",
   "with-uuid",
 ] }
-serde_json.workspace = true
+sqlx = { workspace = true, features = ["postgres"] }
 thiserror.workspace = true
 tokio.workspace = true
-tokio-postgres.workspace = true
 tower-sessions-core.workspace = true
 uuid.workspace = true
