@@ -7,18 +7,17 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
 };
-use deadpool_sqlite::Pool;
-use rusqlite::{types::Value, Connection, OptionalExtension, Row};
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
-use sea_query_rusqlite::RusqliteBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{types::Json, SqliteConnection, SqliteExecutor, SqlitePool};
 use uuid::Uuid;
 
 pub struct SqliteBookmarkRepository {
-    pool: Pool,
+    pool: SqlitePool,
 }
 
 impl SqliteBookmarkRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
@@ -29,19 +28,7 @@ impl Findable for SqliteBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| find_by_id(conn, params.id, params.profile_id))
-            .await
-            .unwrap()
-            .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -51,68 +38,66 @@ impl Creatable for SqliteBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        let bookmark_id = {
+            let (sql, values) = colette_sql::bookmark::insert(
+                data.url,
+                data.bookmark.title,
+                data.bookmark.thumbnail.map(String::from),
+                data.bookmark.published,
+                data.bookmark.author,
+            )
+            .build_sqlx(SqliteQueryBuilder);
 
-            let bookmark_id = {
-                let (sql, values) = colette_sql::bookmark::insert(
-                    data.url,
-                    data.bookmark.title,
-                    data.bookmark.thumbnail.map(String::from),
-                    data.bookmark.published.map(DateTime::<Utc>::from),
-                    data.bookmark.author,
-                )
-                .build_rusqlite(SqliteQueryBuilder);
+            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
-                tx.prepare_cached(&sql)?
-                    .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?
-            };
+        let pb_id = {
+            let (mut sql, mut values) =
+                colette_sql::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
+                    .build_sqlx(SqliteQueryBuilder);
 
-            let pb_id = {
-                let (mut sql, mut values) = colette_sql::profile_bookmark::select_by_unique_index(
-                    data.profile_id,
-                    bookmark_id,
-                )
-                .build_rusqlite(SqliteQueryBuilder);
+            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            {
+                id
+            } else {
+                let id = Uuid::new_v4();
 
-                if let Some(id) = tx
-                    .prepare_cached(&sql)?
-                    .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))
-                    .optional()?
-                {
-                    id
-                } else {
-                    let id = Uuid::new_v4();
+                (sql, values) =
+                    colette_sql::profile_bookmark::insert(id, bookmark_id, data.profile_id)
+                        .build_sqlx(SqliteQueryBuilder);
 
-                    (sql, values) =
-                        colette_sql::profile_bookmark::insert(id, bookmark_id, data.profile_id)
-                            .build_rusqlite(SqliteQueryBuilder);
-
-                    tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
-
-                    id
-                }
-            };
-
-            if let Some(tags) = data.tags {
-                link_tags(&tx, pb_id, tags, data.profile_id)?;
+                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
             }
+        };
 
-            let bookmark = find_by_id(&tx, pb_id, data.profile_id)?;
+        if let Some(tags) = data.tags {
+            link_tags(&mut tx, pb_id, tags, data.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
-            tx.commit()?;
+        let bookmark = find_by_id(&mut *tx, IdParams::new(pb_id, data.profile_id))
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            Ok::<_, rusqlite::Error>(bookmark)
-        })
-        .await
-        .unwrap()
-        .map_err(|e| Error::Unknown(e.into()))
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(bookmark)
     }
 }
 
@@ -123,31 +108,23 @@ impl Updatable for SqliteBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        if let Some(tags) = data.tags {
+            link_tags(&mut tx, params.id, tags, params.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
-            if let Some(tags) = data.tags {
-                link_tags(&tx, params.id, tags, params.profile_id)?;
-            }
+        let bookmark = find_by_id(&mut *tx, params).await?;
 
-            let bookmark = find_by_id(&tx, params.id, params.profile_id)?;
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-            tx.commit()?;
-
-            Ok(bookmark)
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        Ok(bookmark)
     }
 }
 
@@ -157,29 +134,21 @@ impl Deletable for SqliteBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| {
+        let count = {
             let (sql, values) = colette_sql::profile_bookmark::delete(params.id, params.profile_id)
-                .build_rusqlite(SqliteQueryBuilder);
+                .build_sqlx(SqliteQueryBuilder);
 
-            let count = conn.execute(&sql, &*values.as_params())?;
-            if count == 0 {
-                return Err(rusqlite::Error::QueryReturnedNoRows);
-            }
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
+                .await
+                .map(|e| e.rows_affected())
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
+        if count == 0 {
+            return Err(Error::NotFound(params.id));
+        }
 
-            Ok(())
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        Ok(())
     }
 }
 
@@ -192,50 +161,45 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Vec<Bookmark>, Error> {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| find(conn, None, profile_id, limit, cursor, filters))
-            .await
-            .unwrap()
-            .map_err(|e| Error::Unknown(e.into()))
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 
-#[derive(Debug, Clone)]
-struct BookmarkSelect(Bookmark);
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct BookmarkSelect {
+    pub id: Uuid,
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub tags: Option<Json<Vec<colette_core::Tag>>>,
+}
 
-impl TryFrom<&Row<'_>> for BookmarkSelect {
-    type Error = rusqlite::Error;
-
-    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
-        Ok(Self(Bookmark {
-            id: value.get("id")?,
-            link: value.get("link")?,
-            title: value.get("title")?,
-            thumbnail_url: value.get("thumbnail_url")?,
-            published_at: value.get("published_at")?,
-            author: value.get("author")?,
-            created_at: value.get("created_at")?,
-            tags: value.get::<_, Value>("tags").map(|e| match e {
-                Value::Text(text) => Some(serde_json::from_str(&text).unwrap()),
-                _ => Some(Vec::new()),
-            })?,
-        }))
+impl From<BookmarkSelect> for colette_core::Bookmark {
+    fn from(value: BookmarkSelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            created_at: value.created_at,
+            tags: value.tags.map(|e| e.0.into_iter().collect()),
+        }
     }
 }
 
-pub(crate) fn find(
-    conn: &Connection,
+pub(crate) async fn find(
+    executor: impl SqliteExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<BookmarkFindManyFilters>,
-) -> rusqlite::Result<Vec<Bookmark>> {
+) -> Result<Vec<Bookmark>, Error> {
     let mut tags: Option<Vec<String>> = None;
 
     if let Some(filters) = filters {
@@ -264,40 +228,47 @@ pub(crate) fn find(
         jsonb_agg,
         tags_subquery,
     )
-    .build_rusqlite(SqliteQueryBuilder);
+    .build_sqlx(SqliteQueryBuilder);
 
-    let mut stmt = conn.prepare_cached(&sql)?;
-    let mut rows = stmt.query(&*values.as_params())?;
-
-    let mut bookmarks: Vec<Bookmark> = Vec::new();
-    while let Some(row) = rows.next()? {
-        bookmarks.push(BookmarkSelect::try_from(row).map(|e| e.0)?);
-    }
-
-    Ok(bookmarks)
+    sqlx::query_as_with::<_, BookmarkSelect, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(Bookmark::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
-fn find_by_id(conn: &Connection, id: Uuid, profile_id: Uuid) -> rusqlite::Result<Bookmark> {
-    let mut bookmarks = find(conn, Some(id), profile_id, None, None, None)?;
+pub async fn find_by_id(
+    executor: impl SqliteExecutor<'_>,
+    params: IdParams,
+) -> Result<Bookmark, Error> {
+    let mut bookmarks = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
     if bookmarks.is_empty() {
-        return Err(rusqlite::Error::QueryReturnedNoRows);
+        return Err(Error::NotFound(params.id));
     }
 
     Ok(bookmarks.swap_remove(0))
 }
 
-pub(crate) fn link_tags(
-    conn: &Connection,
+pub(crate) async fn link_tags(
+    conn: &mut SqliteConnection,
     profile_bookmark_id: Uuid,
     tags: TagsLinkData,
     profile_id: Uuid,
-) -> rusqlite::Result<()> {
+) -> sqlx::Result<()> {
     if let TagsLinkAction::Remove = tags.action {
         let (sql, values) =
             colette_sql::profile_bookmark_tag::delete_many_in_titles(&tags.data, profile_id)
-                .build_rusqlite(SqliteQueryBuilder);
+                .build_sqlx(SqliteQueryBuilder);
 
-        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
 
         return Ok(());
     }
@@ -305,9 +276,9 @@ pub(crate) fn link_tags(
     if let TagsLinkAction::Set = tags.action {
         let (sql, values) =
             colette_sql::profile_bookmark_tag::delete_many_not_in_titles(&tags.data, profile_id)
-                .build_rusqlite(SqliteQueryBuilder);
+                .build_sqlx(SqliteQueryBuilder);
 
-        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     {
@@ -321,40 +292,33 @@ pub(crate) fn link_tags(
                 .collect(),
             profile_id,
         )
-        .build_rusqlite(SqliteQueryBuilder);
+        .build_sqlx(SqliteQueryBuilder);
 
-        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     let tag_ids = {
         let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags.data, profile_id)
-            .build_rusqlite(SqliteQueryBuilder);
+            .build_sqlx(SqliteQueryBuilder);
 
-        let mut ids: Vec<Uuid> = Vec::new();
-
-        let mut stmt = conn.prepare_cached(&sql)?;
-        let mut rows = stmt.query(&*values.as_params())?;
-
-        while let Some(row) = rows.next()? {
-            ids.push(row.get("id")?);
-        }
-
-        ids
+        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_all(&mut *conn)
+            .await?
     };
 
-    let insert_many = tag_ids
-        .into_iter()
-        .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
-            profile_bookmark_id,
-            tag_id: e,
-        })
-        .collect::<Vec<_>>();
-
     {
-        let (sql, values) = colette_sql::profile_bookmark_tag::insert_many(insert_many, profile_id)
-            .build_rusqlite(SqliteQueryBuilder);
+        let insert_many = tag_ids
+            .into_iter()
+            .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
+                profile_bookmark_id,
+                tag_id: e,
+            })
+            .collect::<Vec<_>>();
 
-        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+        let (sql, values) = colette_sql::profile_bookmark_tag::insert_many(insert_many, profile_id)
+            .build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     Ok(())

@@ -16,11 +16,13 @@ futures.workspace = true
 refinery = { workspace = true, features = ["rusqlite"] }
 rusqlite.workspace = true
 sea-query = { workspace = true, features = ["backend-sqlite"] }
-sea-query-rusqlite = { version = "=0.7.0-rc.1", default-features = false, features = [
+sea-query-binder = { version = "0.7.0-rc.1", features = [
+  "sqlx-sqlite",
   "with-chrono",
   "with-json",
   "with-uuid",
 ] }
+sqlx = { workspace = true, features = ["sqlite"] }
 serde_json.workspace = true
 tower-sessions-core.workspace = true
 uuid.workspace = true

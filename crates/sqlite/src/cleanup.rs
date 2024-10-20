@@ -1,14 +1,14 @@
 use colette_core::cleanup::{CleanupRepository, Error, FeedCleanupInfo};
-use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
-use sea_query_rusqlite::RusqliteBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::SqlitePool;
 
 pub struct SqliteCleanupRepository {
-    pool: Pool,
+    pool: SqlitePool,
 }
 
 impl SqliteCleanupRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
@@ -16,36 +16,38 @@ impl SqliteCleanupRepository {
 #[async_trait::async_trait]
 impl CleanupRepository for SqliteCleanupRepository {
     async fn cleanup_feeds(&self) -> Result<FeedCleanupInfo, Error> {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        let feed_count = {
+            let (sql, values) =
+                colette_sql::feed_entry::delete_many().build_sqlx(SqliteQueryBuilder);
 
-            let feed_count = {
-                let (sql, values) =
-                    colette_sql::feed_entry::delete_many().build_rusqlite(SqliteQueryBuilder);
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map(|e| e.rows_affected())
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
-                tx.execute(&sql, &*values.as_params())?
-            };
+        let feed_entry_count = {
+            let (sql, values) = colette_sql::feed::delete_many().build_sqlx(SqliteQueryBuilder);
 
-            let feed_entry_count = {
-                let (sql, values) =
-                    colette_sql::feed::delete_many().build_rusqlite(SqliteQueryBuilder);
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map(|e| e.rows_affected())
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
-                tx.execute(&sql, &*values.as_params())?
-            };
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-            Ok::<_, rusqlite::Error>(FeedCleanupInfo {
-                feed_count: feed_count as u64,
-                feed_entry_count: feed_entry_count as u64,
-            })
+        Ok(FeedCleanupInfo {
+            feed_count,
+            feed_entry_count,
         })
-        .await
-        .unwrap()
-        .map_err(|e| Error::Unknown(e.into()))
     }
 }

@@ -38,10 +38,12 @@ pub fn run() {
                 }
                 path = path.join("sqlite.db");
 
-                let config = deadpool_sqlite::Config::new(path);
+                let config = deadpool_sqlite::Config::new(path.clone());
                 let mut pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
 
                 colette_sqlite::migrate(&mut pool).await?;
+
+                let pool = sqlx::SqlitePool::connect(&path.to_string_lossy()).await?;
 
                 let backup_repository = Arc::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Arc::new(SqliteBookmarkRepository::new(pool.clone()));

@@ -7,18 +7,17 @@ use colette_core::{
     },
     Profile,
 };
-use deadpool_sqlite::Pool;
-use rusqlite::{Connection, Row};
 use sea_query::SqliteQueryBuilder;
-use sea_query_rusqlite::RusqliteBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{SqliteExecutor, SqlitePool};
 use uuid::Uuid;
 
 pub struct SqliteProfileRepository {
-    pool: Pool,
+    pool: SqlitePool,
 }
 
 impl SqliteProfileRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
@@ -29,39 +28,26 @@ impl Findable for SqliteProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let is_default = params.id.map_or_else(|| Some(true), |_| None);
 
-        match params.id {
-            Some(id) => conn
-                .interact(move |conn| find_by_id(conn, id, params.user_id))
-                .await
-                .unwrap()
-                .map_err(|e| match e {
-                    rusqlite::Error::QueryReturnedNoRows => Error::NotFound(id),
-                    _ => Error::Unknown(e.into()),
-                }),
-            None => {
-                let mut profiles = conn
-                    .interact(move |conn| find(conn, None, params.user_id, Some(true), None, None))
-                    .await
-                    .unwrap()
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                if profiles.is_empty() {
-                    if let Some(id) = params.id {
-                        return Err(Error::NotFound(id));
-                    } else {
-                        return Err(Error::Unknown(anyhow!("couldn't find default profile")));
-                    }
-                }
-
-                Ok(profiles.swap_remove(0))
+        let mut profiles = find(
+            &self.pool,
+            params.id,
+            params.user_id,
+            is_default,
+            None,
+            None,
+        )
+        .await?;
+        if profiles.is_empty() {
+            if let Some(id) = params.id {
+                return Err(Error::NotFound(id));
+            } else {
+                return Err(Error::Unknown(anyhow!("couldn't find default profile")));
             }
         }
+
+        Ok(profiles.swap_remove(0))
     }
 }
 
@@ -71,48 +57,43 @@ impl Creatable for SqliteProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let title = data.title.clone();
+        let id = Uuid::new_v4();
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        let (sql, values) = colette_sql::profile::insert(
+            id,
+            data.title.clone(),
+            data.image_url,
+            None,
+            data.user_id,
+        )
+        .build_sqlx(SqliteQueryBuilder);
 
-            let id = Uuid::new_v4();
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })?;
 
-            {
-                let (sql, values) = colette_sql::profile::insert(
-                    id,
-                    data.title,
-                    data.image_url,
-                    None,
-                    data.user_id,
-                )
-                .build_rusqlite(SqliteQueryBuilder);
+        let profile = find_by_id(
+            &mut *tx,
+            ProfileIdParams {
+                id,
+                user_id: data.user_id,
+            },
+        )
+        .await?;
 
-                tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
-            }
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-            let profile = find_by_id(&tx, id, data.user_id)?;
-
-            tx.commit()?;
-
-            Ok(profile)
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::SqliteFailure(e, _)
-                if e.code == rusqlite::ErrorCode::ConstraintViolation =>
-            {
-                Error::Conflict(title)
-            }
-            _ => Error::Unknown(e.into()),
-        })
+        Ok(profile)
     }
 }
 
@@ -123,42 +104,40 @@ impl Updatable for SqliteProfileRepository {
     type Output = Result<Profile, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
-
-            if data.title.is_some() || data.image_url.is_some() {
+        if data.title.is_some() || data.image_url.is_some() {
+            let count = {
                 let (sql, values) = colette_sql::profile::update(
                     params.id,
                     params.user_id,
                     data.title,
                     data.image_url,
                 )
-                .build_rusqlite(SqliteQueryBuilder);
+                .build_sqlx(SqliteQueryBuilder);
 
-                let count = tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
-                if count == 0 {
-                    return Err(rusqlite::Error::QueryReturnedNoRows);
-                }
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map(|e| e.rows_affected())
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if count == 0 {
+                return Err(Error::NotFound(params.id));
             }
+        }
 
-            let profile = find_by_id(&tx, params.id, params.user_id)?;
+        let profile = find_by_id(&mut *tx, params)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            tx.commit()?;
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-            Ok(profile)
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        Ok(profile)
     }
 }
 
@@ -168,46 +147,28 @@ impl Deletable for SqliteProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        let profile = find_by_id(&mut *tx, params.clone()).await?;
+        if profile.is_default {
+            return Err(Error::DeletingDefault);
+        }
 
-            let profile = find_by_id(&tx, params.id, params.user_id)?;
-            if profile.is_default {
-                return Err(rusqlite::Error::SqliteFailure(
-                    rusqlite::ffi::Error {
-                        code: rusqlite::ErrorCode::ConstraintViolation,
-                        extended_code: rusqlite::ffi::SQLITE_CONSTRAINT,
-                    },
-                    None,
-                ));
-            }
-
+        {
             let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
-                .build_rusqlite(SqliteQueryBuilder);
+                .build_sqlx(SqliteQueryBuilder);
 
-            tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
-            tx.commit()?;
-
-            Ok(())
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-            rusqlite::Error::SqliteFailure(e, _)
-                if e.code == rusqlite::ErrorCode::ConstraintViolation =>
-            {
-                Error::DeletingDefault
-            }
-            _ => Error::Unknown(e.into()),
-        })
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -219,62 +180,56 @@ impl ProfileRepository for SqliteProfileRepository {
         limit: Option<u64>,
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error> {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| find(conn, None, user_id, None, limit, cursor))
-            .await
-            .unwrap()
-            .map_err(|e| Error::Unknown(e.into()))
+        find(&self.pool, None, user_id, None, limit, cursor).await
     }
 }
 
-#[derive(Debug, Clone)]
-pub(crate) struct ProfileSelect(Profile);
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub(crate) struct ProfileSelect {
+    id: Uuid,
+    title: String,
+    image_url: Option<String>,
+    is_default: bool,
+    user_id: Uuid,
+}
 
-impl TryFrom<&Row<'_>> for ProfileSelect {
-    type Error = rusqlite::Error;
-
-    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
-        Ok(Self(Profile {
-            id: value.get("id")?,
-            title: value.get("title")?,
-            image_url: value.get("image_url")?,
-            is_default: value.get("is_default")?,
-            user_id: value.get("user_id")?,
-        }))
+impl From<ProfileSelect> for colette_core::Profile {
+    fn from(value: ProfileSelect) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            image_url: value.image_url,
+            is_default: value.is_default,
+            user_id: value.user_id,
+        }
     }
 }
 
-fn find(
-    conn: &Connection,
+async fn find(
+    executor: impl SqliteExecutor<'_>,
     id: Option<Uuid>,
     user_id: Uuid,
     is_default: Option<bool>,
     limit: Option<u64>,
     cursor: Option<Cursor>,
-) -> rusqlite::Result<Vec<Profile>> {
+) -> Result<Vec<Profile>, Error> {
     let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
-        .build_rusqlite(SqliteQueryBuilder);
+        .build_sqlx(SqliteQueryBuilder);
 
-    let mut stmt = conn.prepare_cached(&sql)?;
-    let mut rows = stmt.query(&*values.as_params())?;
-
-    let mut profiles: Vec<Profile> = Vec::new();
-    while let Some(row) = rows.next()? {
-        profiles.push(ProfileSelect::try_from(row).map(|e| e.0)?);
-    }
-
-    Ok(profiles)
+    sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
-fn find_by_id(conn: &Connection, id: Uuid, user_id: Uuid) -> rusqlite::Result<Profile> {
-    let mut profiles = find(conn, Some(id), user_id, None, None, None)?;
+async fn find_by_id(
+    executor: impl SqliteExecutor<'_>,
+    params: ProfileIdParams,
+) -> Result<Profile, Error> {
+    let mut profiles = find(executor, Some(params.id), params.user_id, None, None, None).await?;
     if profiles.is_empty() {
-        return Err(rusqlite::Error::QueryReturnedNoRows);
+        return Err(Error::NotFound(params.id));
     }
 
     Ok(profiles.swap_remove(0))

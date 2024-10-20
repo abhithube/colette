@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     common::{Findable, IdParams, Updatable},
     feed_entry::{
@@ -5,20 +6,19 @@ use colette_core::{
     },
     FeedEntry,
 };
-use deadpool_sqlite::Pool;
-use rusqlite::{Connection, Row};
 use sea_query::SqliteQueryBuilder;
-use sea_query_rusqlite::RusqliteBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{SqliteExecutor, SqlitePool};
 use uuid::Uuid;
 
 use crate::smart_feed::build_case_statement;
 
 pub struct SqliteFeedEntryRepository {
-    pool: Pool,
+    pool: SqlitePool,
 }
 
 impl SqliteFeedEntryRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
@@ -29,19 +29,7 @@ impl Findable for SqliteFeedEntryRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| find_by_id(conn, params.id, params.profile_id))
-            .await
-            .unwrap()
-            .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })
+        find_by_id(&self.pool, params).await
     }
 }
 
@@ -52,43 +40,37 @@ impl Updatable for SqliteFeedEntryRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        if data.has_read.is_some() {
+            let count = {
+                let (sql, values) = colette_sql::profile_feed_entry::update(
+                    params.id,
+                    params.profile_id,
+                    data.has_read,
+                )
+                .build_sqlx(SqliteQueryBuilder);
 
-            if data.has_read.is_some() {
-                let count = {
-                    let (sql, values) = colette_sql::profile_feed_entry::update(
-                        params.id,
-                        params.profile_id,
-                        data.has_read,
-                    )
-                    .build_rusqlite(SqliteQueryBuilder);
-
-                    tx.prepare_cached(&sql)?.execute(&*values.as_params())?
-                };
-                if count == 0 {
-                    return Err(rusqlite::Error::QueryReturnedNoRows);
-                }
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map(|e| e.rows_affected())
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+            if count == 0 {
+                return Err(Error::NotFound(params.id));
             }
+        }
 
-            let entry = find_by_id(&tx, params.id, params.profile_id)?;
+        let entry = find_by_id(&mut *tx, params).await?;
 
-            tx.commit()?;
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-            Ok(entry)
-        })
-        .await
-        .unwrap()
-        .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })
+        Ok(entry)
     }
 }
 
@@ -101,48 +83,47 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         cursor: Option<Cursor>,
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Vec<FeedEntry>, Error> {
-        let conn = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        conn.interact(move |conn| find(conn, None, profile_id, limit, cursor, filters))
-            .await
-            .unwrap()
-            .map_err(|e| Error::Unknown(e.into()))
+        find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 }
 
-#[derive(Debug, Clone)]
-struct EntrySelect(FeedEntry);
+#[derive(Debug, Clone, sqlx::FromRow)]
+struct EntrySelect {
+    id: Uuid,
+    link: String,
+    title: String,
+    published_at: DateTime<Utc>,
+    description: Option<String>,
+    author: Option<String>,
+    thumbnail_url: Option<String>,
+    has_read: bool,
+    profile_feed_id: Uuid,
+}
 
-impl TryFrom<&Row<'_>> for EntrySelect {
-    type Error = rusqlite::Error;
-
-    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
-        Ok(Self(FeedEntry {
-            id: value.get("id")?,
-            link: value.get("link")?,
-            title: value.get("title")?,
-            published_at: value.get("published_at")?,
-            description: value.get("description")?,
-            author: value.get("author")?,
-            thumbnail_url: value.get("thumbnail_url")?,
-            has_read: value.get("has_read")?,
-            feed_id: value.get("profile_feed_id")?,
-        }))
+impl From<EntrySelect> for colette_core::FeedEntry {
+    fn from(value: EntrySelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            published_at: value.published_at,
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url,
+            has_read: value.has_read,
+            feed_id: value.profile_feed_id,
+        }
     }
 }
 
-fn find(
-    conn: &Connection,
+async fn find(
+    executor: impl SqliteExecutor<'_>,
     id: Option<Uuid>,
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     filters: Option<FeedEntryFindManyFilters>,
-) -> rusqlite::Result<Vec<FeedEntry>> {
+) -> Result<Vec<FeedEntry>, Error> {
     let mut feed_id: Option<Uuid> = None;
     let mut smart_feed_id: Option<Uuid> = None;
     let mut has_read: Option<bool> = None;
@@ -166,24 +147,31 @@ fn find(
         limit,
         build_case_statement(),
     )
-    .build_rusqlite(SqliteQueryBuilder);
+    .build_sqlx(SqliteQueryBuilder);
 
-    let mut stmt = conn.prepare_cached(&sql)?;
-    let mut rows = stmt.query(&*values.as_params())?;
-
-    let mut entries: Vec<FeedEntry> = Vec::new();
-    while let Some(row) = rows.next()? {
-        entries.push(EntrySelect::try_from(row).map(|e| e.0)?);
-    }
-
-    Ok(entries)
+    sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
+        .fetch_all(executor)
+        .await
+        .map(|e| e.into_iter().map(FeedEntry::from).collect::<Vec<_>>())
+        .map_err(|e| Error::Unknown(e.into()))
 }
 
-fn find_by_id(conn: &Connection, id: Uuid, profile_id: Uuid) -> rusqlite::Result<FeedEntry> {
-    let mut entries = find(conn, Some(id), profile_id, None, None, None)?;
-    if entries.is_empty() {
-        return Err(rusqlite::Error::QueryReturnedNoRows);
+async fn find_by_id(
+    executor: impl SqliteExecutor<'_>,
+    params: IdParams,
+) -> Result<FeedEntry, Error> {
+    let mut feed_entries = find(
+        executor,
+        Some(params.id),
+        params.profile_id,
+        None,
+        None,
+        None,
+    )
+    .await?;
+    if feed_entries.is_empty() {
+        return Err(Error::NotFound(params.id));
     }
 
-    Ok(entries.swap_remove(0))
+    Ok(feed_entries.swap_remove(0))
 }

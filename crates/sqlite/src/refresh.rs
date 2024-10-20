@@ -1,17 +1,17 @@
 use colette_core::refresh::{Error, FeedRefreshData, RefreshRepository};
-use deadpool_sqlite::Pool;
 use sea_query::SqliteQueryBuilder;
-use sea_query_rusqlite::RusqliteBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::SqlitePool;
 use uuid::Uuid;
 
 use crate::feed::create_feed_with_entries;
 
 pub struct SqliteRefreshRepository {
-    pool: Pool,
+    pool: SqlitePool,
 }
 
 impl SqliteRefreshRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }
 }
@@ -19,33 +19,27 @@ impl SqliteRefreshRepository {
 #[async_trait::async_trait]
 impl RefreshRepository for SqliteRefreshRepository {
     async fn refresh_feed(&self, data: FeedRefreshData) -> Result<(), Error> {
-        let conn = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        conn.interact(move |conn| {
-            let tx = conn.transaction()?;
+        let feed_id = create_feed_with_entries(&mut tx, data.url, data.feed)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            let feed_id = create_feed_with_entries(&tx, data.url, data.feed)?;
+        let fe_ids = {
+            let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
+                .build_sqlx(SqliteQueryBuilder);
 
-            let fe_ids = {
-                let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
-                    .build_rusqlite(SqliteQueryBuilder);
+            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                .fetch_all(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+        };
 
-                let mut ids: Vec<i32> = Vec::new();
-
-                let mut stmt = tx.prepare_cached(&sql)?;
-                let mut rows = stmt.query(&*values.as_params())?;
-
-                while let Some(row) = rows.next()? {
-                    ids.push(row.get("id")?);
-                }
-
-                ids
-            };
-
+        {
             let insert_many = fe_ids
                 .into_iter()
                 .map(
@@ -56,20 +50,16 @@ impl RefreshRepository for SqliteRefreshRepository {
                 )
                 .collect::<Vec<_>>();
 
-            {
-                let (sql, values) = colette_sql::profile_feed_entry::insert_many_for_all_profiles(
-                    insert_many,
-                    feed_id,
-                )
-                .build_rusqlite(SqliteQueryBuilder);
+            let (sql, values) =
+                colette_sql::profile_feed_entry::insert_many_for_all_profiles(insert_many, feed_id)
+                    .build_sqlx(SqliteQueryBuilder);
 
-                tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
-            }
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
 
-            tx.commit()
-        })
-        .await
-        .unwrap()
-        .map_err(|e| Error::Unknown(e.into()))
+        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 }

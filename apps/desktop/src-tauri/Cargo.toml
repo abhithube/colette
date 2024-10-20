@@ -23,6 +23,7 @@ deadpool-sqlite.workspace = true
 email_address.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+sqlx = { workspace = true, features = ["sqlite"] }
 tauri = { version = "2", default-features = false, features = [
   "wry",
   "compression",

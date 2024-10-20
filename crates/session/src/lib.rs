@@ -1,21 +1,21 @@
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enabled");
 
-#[cfg(feature = "sqlite")]
-pub use colette_sqlite::SqliteSessionRepository;
 use tower_sessions_core::{
     session::{Id, Record},
     session_store, ExpiredDeletion, SessionStore,
 };
 #[cfg(feature = "postgres")]
 pub use tower_sessions_sqlx_store::PostgresStore;
+#[cfg(feature = "sqlite")]
+pub use tower_sessions_sqlx_store::SqliteStore;
 
 #[derive(Clone, Debug)]
 pub enum SessionBackend {
     #[cfg(feature = "postgres")]
     Postgres(PostgresStore),
     #[cfg(feature = "sqlite")]
-    Sqlite(colette_sqlite::SqliteSessionRepository),
+    Sqlite(SqliteStore),
 }
 
 #[async_trait::async_trait]

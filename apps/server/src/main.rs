@@ -142,6 +142,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             colette_sqlite::migrate(&mut pool).await?;
 
+            let pool = sqlx::SqlitePool::connect(url).await?;
+
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));
             let bookmark_repository =
@@ -160,6 +162,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
             let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
+            let store = colette_session::SqliteStore::new(pool);
+            store.migrate().await?;
+
             (
                 backup_repository,
                 bookmark_repository,
@@ -171,7 +176,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
-                SessionBackend::Sqlite(colette_sqlite::SqliteSessionRepository::new(pool)),
+                SessionBackend::Sqlite(store),
             )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),
