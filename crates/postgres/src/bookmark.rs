@@ -49,7 +49,7 @@ impl Creatable for PostgresBookmarkRepository {
                 data.url,
                 data.bookmark.title,
                 data.bookmark.thumbnail.map(String::from),
-                data.bookmark.published.map(DateTime::<Utc>::from),
+                data.bookmark.published,
                 data.bookmark.author,
             )
             .build_sqlx(PostgresQueryBuilder);
