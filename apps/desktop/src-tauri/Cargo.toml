@@ -23,9 +23,9 @@ deadpool-sqlite.workspace = true
 email_address.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-tauri = { version = "2.0.0-rc", default-features = false, features = [
+tauri = { version = "2", default-features = false, features = [
   "wry",
   "compression",
 ] }
-tauri-plugin-shell = { version = "2.0.0-rc", default-features = false }
+tauri-plugin-shell = { version = "2", default-features = false }
 uuid.workspace = true
