@@ -284,11 +284,8 @@ pub(crate) async fn find(
         tags = filters.tags;
     }
 
-    // let jsonb_agg = Expr::cust(
-    //     r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tag"."id"), 'title', "tag"."title") ORDER BY "tag"."title") FILTER (WHERE "tag"."id" IS NOT NULL)"#,
-    // );
     let jsonb_agg = Expr::cust(
-        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tag"."id"), 'title', "tag"."title")) FILTER (WHERE "tag"."id" IS NOT NULL)"#,
+        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tag"."id"), 'title', "tag"."title") ORDER BY "tag"."title") FILTER (WHERE "tag"."id" IS NOT NULL)"#,
     );
 
     let tags_subquery = tags.map(|e| {
