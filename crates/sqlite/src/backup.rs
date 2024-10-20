@@ -56,10 +56,12 @@ impl BackupRepository for SqliteBackupRepository {
                         (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
                             .build_sqlx(SqliteQueryBuilder);
 
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        sqlx::query_with(&sql, values)
+                            .execute(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        id
                     }
                 };
 
@@ -103,10 +105,12 @@ impl BackupRepository for SqliteBackupRepository {
                             colette_sql::profile_feed::insert(id, None, feed_id, profile_id)
                                 .build_sqlx(SqliteQueryBuilder);
 
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        sqlx::query_with(&sql, values)
+                            .execute(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        id
                     }
                 };
 
@@ -166,10 +170,12 @@ impl BackupRepository for SqliteBackupRepository {
                         (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
                             .build_sqlx(SqliteQueryBuilder);
 
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        sqlx::query_with(&sql, values)
+                            .execute(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        id
                     }
                 };
 
@@ -217,10 +223,12 @@ impl BackupRepository for SqliteBackupRepository {
                             colette_sql::profile_bookmark::insert(id, bookmark_id, profile_id)
                                 .build_sqlx(SqliteQueryBuilder);
 
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        sqlx::query_with(&sql, values)
+                            .execute(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                            .map_err(|e| Error::Unknown(e.into()))?;
+
+                        id
                     }
                 };
 

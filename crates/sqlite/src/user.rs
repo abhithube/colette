@@ -8,8 +8,6 @@ use sea_query_binder::SqlxBinder;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-use crate::profile::ProfileSelect;
-
 pub struct SqliteUserRepository {
     pool: SqlitePool,
 }
@@ -96,8 +94,8 @@ impl Creatable for SqliteUserRepository {
             )
             .build_sqlx(SqliteQueryBuilder);
 
-            sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
-                .fetch_one(&mut *tx)
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }

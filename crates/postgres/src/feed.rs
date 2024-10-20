@@ -79,10 +79,12 @@ impl Creatable for PostgresFeedRepository {
                     colette_sql::profile_feed::insert(id, None, feed_id, data.profile_id)
                         .build_sqlx(PostgresQueryBuilder);
 
-                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                    .fetch_one(&mut *tx)
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                id
             }
         };
 
@@ -265,6 +267,7 @@ impl From<FeedSelect> for colette_core::Feed {
         }
     }
 }
+
 pub(crate) async fn find(
     executor: impl PgExecutor<'_>,
     id: Option<Uuid>,

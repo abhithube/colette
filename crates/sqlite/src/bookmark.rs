@@ -78,10 +78,12 @@ impl Creatable for SqliteBookmarkRepository {
                     colette_sql::profile_bookmark::insert(id, bookmark_id, data.profile_id)
                         .build_sqlx(SqliteQueryBuilder);
 
-                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                    .fetch_one(&mut *tx)
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                id
             }
         };
 
