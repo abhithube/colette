@@ -5513,9 +5513,9 @@ checksum = "09cc8ee72d2a9becf2f2febe0205bbed8fc6615b7cb429ad062dc7b7ddd036a9"
 
 [[package]]
 name = "utoipa"
-version = "5.0.0-rc.0"
+version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3cf66139459b75afa33caddb62bb2afee3838923b630b9e0ef38c369e543382f"
+checksum = "8861811f7213bb866cd02319acb69a15b0ef8ca46874e805bd92d488c779036a"
 dependencies = [
  "indexmap 2.6.0",
  "serde",
@@ -5525,9 +5525,9 @@ dependencies = [
 
 [[package]]
 name = "utoipa-axum"
-version = "0.1.0-rc.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "847b08679adce1ddd46cc35db8bcf04585c0bb48a136ce085811da150243a15a"
+checksum = "437ecfd6bbcdadb45dab6a63462ec9034fd9d3a926f471298f03aea749028419"
 dependencies = [
  "axum",
  "paste",
@@ -5538,9 +5538,9 @@ dependencies = [
 
 [[package]]
 name = "utoipa-gen"
-version = "5.0.0-rc.0"
+version = "5.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c136da726bb82a527afa1fdf3f4619eaf104e2982f071f25239cef1c67c79eb"
+checksum = "5fadf94f07d67df4b15e6490dd9a9d59d7374849413e7f137eafe52fdcbd0db5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -5551,9 +5551,9 @@ dependencies = [
 
 [[package]]
 name = "utoipa-scalar"
-version = "0.2.0-rc.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7dc122c11f9642b20b3be88b60c1a3672319811f139698ac6999e72992ac7c7e"
+checksum = "c1291aa7a2223c2f8399d1c6627ca0ba57ca0d7ecac762a2094a9dfd6376445a"
 dependencies = [
  "axum",
  "serde",
