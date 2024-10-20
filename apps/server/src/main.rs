@@ -78,17 +78,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
         url if url.starts_with("postgres") => {
-            let mut config = deadpool_postgres::Config::new();
-            config.url = Some(url.to_owned());
-
-            let mut pool = config.create_pool(
-                Some(deadpool_postgres::Runtime::Tokio1),
-                tokio_postgres::NoTls,
-            )?;
-
-            colette_postgres::migrate(&mut pool).await?;
-
             let pool = sqlx::PgPool::connect(url).await?;
+
+            colette_postgres::migrate(&pool).await?;
 
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
@@ -137,12 +129,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         #[cfg(feature = "sqlite")]
         url if url.starts_with("sqlite") => {
-            let config = deadpool_sqlite::Config::new(url.replace("sqlite://", ""));
-            let mut pool = config.create_pool(deadpool_sqlite::Runtime::Tokio1)?;
-
-            colette_sqlite::migrate(&mut pool).await?;
-
             let pool = sqlx::SqlitePool::connect(url).await?;
+
+            colette_sqlite::migrate(&pool).await?;
 
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));

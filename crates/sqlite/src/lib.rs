@@ -3,13 +3,17 @@ pub use bookmark::SqliteBookmarkRepository;
 pub use cleanup::SqliteCleanupRepository;
 pub use feed::SqliteFeedRepository;
 pub use feed_entry::SqliteFeedEntryRepository;
+use futures::{future::BoxFuture, FutureExt};
 pub use profile::SqliteProfileRepository;
 pub use refresh::SqliteRefreshRepository;
 pub use smart_feed::SqliteSmartFeedRepository;
+use sqlx::{
+    error::BoxDynError,
+    migrate::{Migration, MigrationSource, Migrator},
+    SqlitePool,
+};
 pub use tag::SqliteTagRepository;
 pub use user::SqliteUserRepository;
-
-refinery::embed_migrations!("src/migration");
 
 mod backup;
 mod bookmark;
@@ -25,11 +29,19 @@ mod smart_feed;
 mod tag;
 mod user;
 
-pub async fn migrate(pool: &mut deadpool_sqlite::Pool) -> Result<(), Box<dyn std::error::Error>> {
-    let conn = pool.get().await?;
+#[derive(Debug)]
+struct MigrationList(Vec<Migration>);
 
-    conn.interact(move |conn| migrations::runner().run(conn))
-        .await??;
+impl MigrationSource<'static> for MigrationList {
+    fn resolve(self) -> BoxFuture<'static, Result<Vec<Migration>, BoxDynError>> {
+        async { Ok(self.0) }.boxed()
+    }
+}
+
+pub async fn migrate(pool: &SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
+    let migrator = Migrator::new(MigrationList(migration::migrations())).await?;
+
+    migrator.run(pool).await?;
 
     Ok(())
 }

@@ -1,17 +1,19 @@
-use std::ops::DerefMut;
-
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
 pub use cleanup::PostgresCleanupRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
+use futures::{future::BoxFuture, FutureExt};
 pub use profile::PostgresProfileRepository;
 pub use refresh::PostgresRefreshRepository;
 pub use smart_feed::PostgresSmartFeedRepository;
+use sqlx::{
+    error::BoxDynError,
+    migrate::{Migration, MigrationSource, Migrator},
+    PgPool,
+};
 pub use tag::PostgresTagRepository;
 pub use user::PostgresUserRepository;
-
-refinery::embed_migrations!("src/migration");
 
 mod backup;
 mod bookmark;
@@ -27,11 +29,19 @@ mod smart_feed;
 mod tag;
 mod user;
 
-pub async fn migrate(pool: &mut deadpool_postgres::Pool) -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = pool.get().await?;
-    let client = conn.deref_mut().deref_mut();
+#[derive(Debug)]
+struct MigrationList(Vec<Migration>);
 
-    migrations::runner().run_async(client).await?;
+impl MigrationSource<'static> for MigrationList {
+    fn resolve(self) -> BoxFuture<'static, Result<Vec<Migration>, BoxDynError>> {
+        async { Ok(self.0) }.boxed()
+    }
+}
+
+pub async fn migrate(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    let migrator = Migrator::new(MigrationList(migration::migrations())).await?;
+
+    migrator.run(pool).await?;
 
     Ok(())
 }

@@ -11,9 +11,7 @@ colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-sql.workspace = true
-deadpool-postgres.workspace = true
 futures.workspace = true
-refinery = { workspace = true, features = ["tokio-postgres"] }
 sea-query = { workspace = true, features = ["backend-postgres"] }
 sea-query-binder = { workspace = true, features = ["sqlx-postgres"] }
 sqlx = { workspace = true, features = ["postgres"] }
