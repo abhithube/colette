@@ -76,8 +76,13 @@ rusqlite = { version = "0.31", default-features = false, features = [
   "bundled",
 ] }
 scraper = { version = "0.20", default-features = false }
-sea-query = { version = "=0.32.0-rc.2", default-features = false, features = [
+sea-query = { version = "0.32", default-features = false, features = [
   "derive",
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
+sea-query-binder = { version = "0.7", features = [
   "with-chrono",
   "with-json",
   "with-uuid",
