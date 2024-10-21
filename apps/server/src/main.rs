@@ -67,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tag_repository,
         user_repository,
         session_backend,
-        scrape_worker_storage,
+        scrape_feed_worker_storage,
     ): (
         Arc<dyn BackupRepository>,
         Arc<dyn BookmarkRepository>,
@@ -124,9 +124,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let store = colette_session::PostgresStore::new(pool.clone());
             store.migrate().await?;
 
-            let storage =
-                colette_task::PostgresStorage::<colette_task::scrape_feed::Args>::new(pool);
-
             (
                 backup_repository,
                 bookmark_repository,
@@ -140,7 +137,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Postgres(store),
-                WorkerStorage::Postgres(storage),
+                WorkerStorage::Postgres(colette_task::PostgresStorage::<
+                    colette_task::scrape_feed::Args,
+                >::new(pool)),
             )
         }
         #[cfg(feature = "sqlite")]
@@ -169,10 +168,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
             let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
-            let storage =
-                colette_task::SqliteStorage::<colette_task::scrape_feed::Args>::new(pool.clone());
-
-            let store = colette_session::SqliteStore::new(pool);
+            let store = colette_session::SqliteStore::new(pool.clone());
             store.migrate().await?;
 
             (
@@ -188,7 +184,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Sqlite(store),
-                WorkerStorage::Sqlite(storage),
+                WorkerStorage::Sqlite(
+                    colette_task::SqliteStorage::<colette_task::scrape_feed::Args>::new(pool),
+                ),
             )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),
@@ -253,7 +251,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)
-        .layer(Extension(scrape_worker_storage.clone()))
+        .layer(Extension(scrape_feed_worker_storage.clone()))
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
@@ -264,40 +262,34 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server = async { axum::serve(listener, api).await };
 
-    let scraper_worker = async {
-        let worker = WorkerBuilder::new("scrape-feed")
-            .data(scraper_service)
-            .with_storage(scrape_worker_storage)
-            .build_fn(colette_task::scrape_feed::run);
+    let mut monitor = Monitor::<TokioExecutor>::new()
+        .register(
+            WorkerBuilder::new("scrape-feed")
+                .data(scraper_service)
+                .with_storage(scrape_feed_worker_storage.clone())
+                .build_fn(colette_task::scrape_feed::run),
+        )
+        .register({
+            let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
 
-        Monitor::<TokioExecutor>::new().register(worker).run().await
-    };
-    let refresh_worker = async {
-        if app_config.refresh_enabled {
-            let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
+            WorkerBuilder::new("cleanup")
+                .data(cleanup_service)
+                .stream(CronStream::new(schedule).into_stream())
+                .build_fn(colette_task::cleanup)
+        });
 
-            let worker = WorkerBuilder::new("refresh-feeds")
+    if app_config.refresh_enabled {
+        let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
+
+        monitor = monitor.register(
+            WorkerBuilder::new("refresh-feeds")
                 .data(refresh_service)
                 .stream(CronStream::new(schedule).into_stream())
-                .build_fn(colette_task::refresh_feeds);
+                .build_fn(colette_task::refresh_feeds),
+        );
+    }
 
-            Monitor::<TokioExecutor>::new().register(worker).run().await
-        } else {
-            Ok(())
-        }
-    };
-    let cleanup_worker = async {
-        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
-
-        let worker = WorkerBuilder::new("cleanup")
-            .data(cleanup_service)
-            .stream(CronStream::new(schedule).into_stream())
-            .build_fn(colette_task::cleanup);
-
-        Monitor::<TokioExecutor>::new().register(worker).run().await
-    };
-
-    let _ = tokio::join!(server, scraper_worker, refresh_worker, cleanup_worker);
+    let _ = tokio::join!(server, monitor.run());
 
     deletion_task.await??;
 
