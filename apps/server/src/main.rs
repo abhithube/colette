@@ -8,6 +8,7 @@ use apalis::{
     prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
     utils::TokioExecutor,
 };
+use axum::Extension;
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
@@ -66,7 +67,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tag_repository,
         user_repository,
         session_backend,
-        _scrape_worker_storage,
+        scrape_worker_storage,
     ): (
         Arc<dyn BackupRepository>,
         Arc<dyn BookmarkRepository>,
@@ -232,7 +233,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         refresh_repository,
     ));
-    let _scraper_service = Arc::new(ScraperService::new(
+    let scraper_service = Arc::new(ScraperService::new(
         scraper_repository,
         feed_plugin_registry,
     ));
@@ -252,6 +253,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)
+        .layer(Extension(scrape_worker_storage.clone()))
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
@@ -262,6 +264,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server = async { axum::serve(listener, api).await };
 
+    let scraper_worker = async {
+        let worker = WorkerBuilder::new("scrape-feed")
+            .data(scraper_service)
+            .with_storage(scrape_worker_storage)
+            .build_fn(colette_task::scrape_feed::run);
+
+        Monitor::<TokioExecutor>::new().register(worker).run().await
+    };
     let refresh_worker = async {
         if app_config.refresh_enabled {
             let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
@@ -287,7 +297,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Monitor::<TokioExecutor>::new().register(worker).run().await
     };
 
-    let _ = tokio::join!(server, refresh_worker, cleanup_worker);
+    let _ = tokio::join!(server, scraper_worker, refresh_worker, cleanup_worker);
 
     deletion_task.await??;
 
