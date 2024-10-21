@@ -16,9 +16,6 @@ mod bookmark;
 mod cleanup;
 mod feed;
 mod feed_entry;
-#[allow(dead_code)]
-#[allow(non_snake_case)]
-mod migration;
 mod profile;
 mod refresh;
 mod scraper;
