@@ -87,8 +87,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         url if url.starts_with("postgres") => {
             let pool = sqlx::PgPool::connect(url).await?;
 
-            colette_postgres::migrate(&pool, Some(colette_task::PostgresStorage::migrations()))
-                .await?;
+            colette_postgres::migrate(&pool).await?;
 
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
@@ -146,7 +145,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         url if url.starts_with("sqlite") => {
             let pool = sqlx::SqlitePool::connect(url).await?;
 
-            colette_sqlite::migrate(&pool, Some(colette_task::SqliteStorage::migrations())).await?;
+            colette_sqlite::migrate(&pool).await?;
 
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));

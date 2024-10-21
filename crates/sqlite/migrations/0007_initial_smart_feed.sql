@@ -1,0 +1,19 @@
+CREATE TABLE smart_feeds (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT NOT NULL,
+  profile_id TEXT NOT NULL REFERENCES profiles (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (profile_id, title)
+);
+
+CREATE TABLE smart_feed_filters (
+  id TEXT NOT NULL PRIMARY KEY,
+  field TEXT NOT NULL,
+  operation TEXT NOT NULL,
+  value TEXT NOT NULL,
+  smart_feed_id TEXT NOT NULL REFERENCES smart_feeds (id) ON DELETE CASCADE,
+  profile_id TEXT NOT NULL REFERENCES profiles (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

@@ -40,7 +40,7 @@ pub fn run() {
 
                 let pool = sqlx::SqlitePool::connect(&path.to_string_lossy()).await?;
 
-                colette_sqlite::migrate(&pool, None).await?;
+                colette_sqlite::migrate(&pool).await?;
 
                 let backup_repository = Arc::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Arc::new(SqliteBookmarkRepository::new(pool.clone()));

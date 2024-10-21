@@ -3,16 +3,11 @@ pub use bookmark::PostgresBookmarkRepository;
 pub use cleanup::PostgresCleanupRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
-use futures::{future::BoxFuture, FutureExt};
 pub use profile::PostgresProfileRepository;
 pub use refresh::PostgresRefreshRepository;
 pub use scraper::PostgresScraperRepository;
 pub use smart_feed::PostgresSmartFeedRepository;
-use sqlx::{
-    error::BoxDynError,
-    migrate::{Migration, MigrationSource, Migrator},
-    PgPool,
-};
+use sqlx::PgPool;
 pub use tag::PostgresTagRepository;
 pub use user::PostgresUserRepository;
 
@@ -31,27 +26,8 @@ mod smart_feed;
 mod tag;
 mod user;
 
-#[derive(Debug)]
-struct MigrationList(Vec<Migration>);
-
-impl MigrationSource<'static> for MigrationList {
-    fn resolve(self) -> BoxFuture<'static, Result<Vec<Migration>, BoxDynError>> {
-        async { Ok(self.0) }.boxed()
-    }
-}
-
-pub async fn migrate(
-    pool: &PgPool,
-    extra: Option<Migrator>,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let mut migrations = migration::migrations();
-    if let Some(extra) = extra {
-        migrations.extend(extra.iter().cloned().collect::<Vec<_>>());
-    }
-
-    let migrator = Migrator::new(MigrationList(migrations)).await?;
-
-    migrator.run(pool).await?;
+pub async fn migrate(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
+    sqlx::migrate!("./migrations").run(pool).await?;
 
     Ok(())
 }

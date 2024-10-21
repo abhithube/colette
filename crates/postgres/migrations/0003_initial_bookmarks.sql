@@ -1,0 +1,10 @@
+CREATE TABLE bookmarks (
+  id INTEGER NOT NULL PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+  link TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  thumbnail_url TEXT,
+  published_at TIMESTAMPTZ NOT NULL,
+  author TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
