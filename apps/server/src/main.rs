@@ -24,6 +24,7 @@ use colette_core::{
     feed_entry::{FeedEntryRepository, FeedEntryService},
     profile::{ProfileRepository, ProfileService},
     refresh::{RefreshRepository, RefreshService},
+    scraper::{ScraperRepository, ScraperService},
     smart_feed::{SmartFeedRepository, SmartFeedService},
     tag::{TagRepository, TagService},
     user::UserRepository,
@@ -59,6 +60,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_entry_repository,
         profile_repository,
         refresh_repository,
+        scraper_repository,
         smart_feed_repository,
         tag_repository,
         user_repository,
@@ -71,6 +73,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc<dyn FeedEntryRepository>,
         Arc<dyn ProfileRepository>,
         Arc<dyn RefreshRepository>,
+        Arc<dyn ScraperRepository>,
         Arc<dyn SmartFeedRepository>,
         Arc<dyn TagRepository>,
         Arc<dyn UserRepository>,
@@ -102,6 +105,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let refresh_repository = Arc::new(colette_postgres::PostgresRefreshRepository::new(
                 pool.clone(),
             ));
+            let scraper_repository = Arc::new(colette_postgres::PostgresScraperRepository::new(
+                pool.clone(),
+            ));
             let smart_feed_repository = Arc::new(
                 colette_postgres::PostgresSmartFeedRepository::new(pool.clone()),
             );
@@ -121,6 +127,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 feed_entry_repository,
                 profile_repository,
                 refresh_repository,
+                scraper_repository,
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
@@ -146,6 +153,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 Arc::new(colette_sqlite::SqliteProfileRepository::new(pool.clone()));
             let refresh_repository =
                 Arc::new(colette_sqlite::SqliteRefreshRepository::new(pool.clone()));
+            let scraper_repository =
+                Arc::new(colette_sqlite::SqliteScraperRepository::new(pool.clone()));
             let smart_feed_repository =
                 Arc::new(colette_sqlite::SqliteSmartFeedRepository::new(pool.clone()));
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
@@ -162,6 +171,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 feed_entry_repository,
                 profile_repository,
                 refresh_repository,
+                scraper_repository,
                 smart_feed_repository,
                 tag_repository,
                 user_repository,
@@ -206,9 +216,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_entry_service = Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
     let refresh_service = Arc::new(RefreshService::new(
-        feed_plugin_registry,
+        feed_plugin_registry.clone(),
         feed_repository.clone(),
         refresh_repository,
+    ));
+    let _scraper_service = Arc::new(ScraperService::new(
+        scraper_repository,
+        feed_plugin_registry,
     ));
     let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
     let tag_service = Arc::new(TagService::new(tag_repository));

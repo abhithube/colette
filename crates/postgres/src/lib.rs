@@ -6,6 +6,7 @@ pub use feed_entry::PostgresFeedEntryRepository;
 use futures::{future::BoxFuture, FutureExt};
 pub use profile::PostgresProfileRepository;
 pub use refresh::PostgresRefreshRepository;
+pub use scraper::PostgresScraperRepository;
 pub use smart_feed::PostgresSmartFeedRepository;
 use sqlx::{
     error::BoxDynError,
@@ -25,6 +26,7 @@ mod feed_entry;
 mod migration;
 mod profile;
 mod refresh;
+mod scraper;
 mod smart_feed;
 mod tag;
 mod user;

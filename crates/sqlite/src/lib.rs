@@ -6,6 +6,7 @@ pub use feed_entry::SqliteFeedEntryRepository;
 use futures::{future::BoxFuture, FutureExt};
 pub use profile::SqliteProfileRepository;
 pub use refresh::SqliteRefreshRepository;
+pub use scraper::SqliteScraperRepository;
 pub use smart_feed::SqliteSmartFeedRepository;
 use sqlx::{
     error::BoxDynError,
@@ -25,6 +26,7 @@ mod feed_entry;
 mod migration;
 mod profile;
 mod refresh;
+mod scraper;
 mod smart_feed;
 mod tag;
 mod user;
