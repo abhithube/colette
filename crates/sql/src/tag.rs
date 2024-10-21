@@ -1,13 +1,14 @@
+use std::fmt::Write;
+
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{
-    Alias, DeleteStatement, Expr, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
     UpdateStatement,
 };
 use uuid::Uuid;
 
 use crate::{profile_bookmark_tag::ProfileBookmarkTag, profile_feed_tag::ProfileFeedTag};
 
-#[derive(sea_query::Iden)]
 pub enum Tag {
     Table,
     Id,
@@ -15,6 +16,24 @@ pub enum Tag {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for Tag {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "tags",
+                Self::Id => "id",
+                Self::Title => "title",
+                Self::ProfileId => "profile_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub struct InsertMany {

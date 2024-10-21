@@ -1,7 +1,8 @@
-use chrono::{DateTime, Utc};
-use sea_query::{Expr, InsertStatement, OnConflict, Query};
+use std::fmt::Write;
 
-#[derive(sea_query::Iden)]
+use chrono::{DateTime, Utc};
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query};
+
 pub enum Bookmark {
     Table,
     Id,
@@ -12,6 +13,27 @@ pub enum Bookmark {
     Author,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for Bookmark {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "bookmarks",
+                Self::Id => "id",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::ThumbnailUrl => "thumbnail_url",
+                Self::PublishedAt => "published_at",
+                Self::Author => "author",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn insert(

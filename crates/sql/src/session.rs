@@ -1,12 +1,29 @@
-use chrono::{DateTime, Utc};
-use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query, SelectStatement};
+use std::fmt::Write;
 
-#[derive(sea_query::Iden)]
+use chrono::{DateTime, Utc};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+
 pub enum Session {
     Table,
     Id,
     Data,
     ExpiresAt,
+}
+
+impl Iden for Session {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "sessions",
+                Self::Id => "id",
+                Self::Data => "data",
+                Self::ExpiresAt => "expires_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select_by_id(id: String) -> SelectStatement {

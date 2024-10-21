@@ -1,7 +1,8 @@
-use sea_query::{Expr, InsertStatement, Order, Query, SelectStatement};
+use std::fmt::Write;
+
+use sea_query::{Expr, Iden, InsertStatement, Order, Query, SelectStatement};
 use uuid::Uuid;
 
-#[derive(sea_query::Iden)]
 pub enum User {
     Table,
     Id,
@@ -9,6 +10,24 @@ pub enum User {
     Password,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for User {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "users",
+                Self::Id => "id",
+                Self::Email => "email",
+                Self::Password => "password",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select(id: Option<Uuid>, email: Option<String>) -> SelectStatement {

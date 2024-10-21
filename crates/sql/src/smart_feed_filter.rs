@@ -1,7 +1,8 @@
+use std::fmt::Write;
+
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query};
 use uuid::Uuid;
 
-#[derive(sea_query::Iden)]
 pub enum SmartFeedFilter {
     Table,
     Id,
@@ -14,51 +15,25 @@ pub enum SmartFeedFilter {
     UpdatedAt,
 }
 
-#[derive(Debug, Clone)]
-pub struct InsertMany {
-    pub id: Uuid,
-    pub field: Field,
-    pub operation: Operation,
-    pub value: String,
-}
-
-pub fn insert_many(
-    data: Vec<InsertMany>,
-    smart_feed_id: Uuid,
-    profile_id: Uuid,
-) -> InsertStatement {
-    let mut query = Query::insert()
-        .into_table(SmartFeedFilter::Table)
-        .columns([
-            SmartFeedFilter::Id,
-            SmartFeedFilter::Field,
-            SmartFeedFilter::Operation,
-            SmartFeedFilter::Value,
-            SmartFeedFilter::SmartFeedId,
-            SmartFeedFilter::ProfileId,
-        ])
-        .to_owned();
-
-    for t in data {
-        query.values_panic([
-            t.id.into(),
-            t.field.to_string().into(),
-            t.operation.to_string().into(),
-            t.value.into(),
-            smart_feed_id.into(),
-            profile_id.into(),
-        ]);
+impl Iden for SmartFeedFilter {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "smart_feed_filters",
+                Self::Id => "id",
+                Self::Field => "field",
+                Self::Operation => "operation",
+                Self::Value => "value",
+                Self::SmartFeedId => "smart_feed_id",
+                Self::ProfileId => "profile_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
     }
-
-    query
-}
-
-pub fn delete_many(profile_id: Uuid, smart_feed_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(SmartFeedFilter::Table)
-        .and_where(Expr::col(SmartFeedFilter::ProfileId).eq(profile_id))
-        .and_where(Expr::col(SmartFeedFilter::SmartFeedId).eq(smart_feed_id))
-        .to_owned()
 }
 
 #[derive(Debug, Clone)]
@@ -121,4 +96,51 @@ impl Iden for Operation {
         )
         .unwrap();
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct InsertMany {
+    pub id: Uuid,
+    pub field: Field,
+    pub operation: Operation,
+    pub value: String,
+}
+
+pub fn insert_many(
+    data: Vec<InsertMany>,
+    smart_feed_id: Uuid,
+    profile_id: Uuid,
+) -> InsertStatement {
+    let mut query = Query::insert()
+        .into_table(SmartFeedFilter::Table)
+        .columns([
+            SmartFeedFilter::Id,
+            SmartFeedFilter::Field,
+            SmartFeedFilter::Operation,
+            SmartFeedFilter::Value,
+            SmartFeedFilter::SmartFeedId,
+            SmartFeedFilter::ProfileId,
+        ])
+        .to_owned();
+
+    for t in data {
+        query.values_panic([
+            t.id.into(),
+            t.field.to_string().into(),
+            t.operation.to_string().into(),
+            t.value.into(),
+            smart_feed_id.into(),
+            profile_id.into(),
+        ]);
+    }
+
+    query
+}
+
+pub fn delete_many(profile_id: Uuid, smart_feed_id: Uuid) -> DeleteStatement {
+    Query::delete()
+        .from_table(SmartFeedFilter::Table)
+        .and_where(Expr::col(SmartFeedFilter::ProfileId).eq(profile_id))
+        .and_where(Expr::col(SmartFeedFilter::SmartFeedId).eq(smart_feed_id))
+        .to_owned()
 }

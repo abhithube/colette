@@ -1,6 +1,8 @@
+use std::fmt::Write;
+
 use colette_core::feed::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement, JoinType,
+    Alias, CommonTableExpression, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType,
     OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
@@ -9,7 +11,6 @@ use crate::{
     feed::Feed, profile_feed_entry::ProfileFeedEntry, profile_feed_tag::ProfileFeedTag, tag::Tag,
 };
 
-#[derive(sea_query::Iden)]
 pub enum ProfileFeed {
     Table,
     Id,
@@ -19,6 +20,26 @@ pub enum ProfileFeed {
     FeedId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for ProfileFeed {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "profile_feeds",
+                Self::Id => "id",
+                Self::Title => "title",
+                Self::Pinned => "pinned",
+                Self::ProfileId => "profile_id",
+                Self::FeedId => "feed_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -1,7 +1,9 @@
+use std::fmt::Write;
+
 use colette_core::smart_feed::Cursor;
 use sea_query::{
-    Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, InsertStatement,
-    JoinType, Order, Query, UpdateStatement, WithClause, WithQuery,
+    Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, Iden,
+    InsertStatement, JoinType, Order, Query, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
@@ -9,7 +11,6 @@ use crate::{
     feed_entry::FeedEntry, profile_feed_entry::ProfileFeedEntry, smart_feed_filter::SmartFeedFilter,
 };
 
-#[derive(sea_query::Iden)]
 pub enum SmartFeed {
     Table,
     Id,
@@ -17,6 +18,24 @@ pub enum SmartFeed {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for SmartFeed {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "smart_feeds",
+                Self::Id => "id",
+                Self::Title => "title",
+                Self::ProfileId => "profile_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select(

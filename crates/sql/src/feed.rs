@@ -1,8 +1,9 @@
-use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query, SelectStatement};
+use std::fmt::Write;
+
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
 use crate::profile_feed::ProfileFeed;
 
-#[derive(sea_query::Iden)]
 pub enum Feed {
     Table,
     Id,
@@ -11,6 +12,25 @@ pub enum Feed {
     Url,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for Feed {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "feeds",
+                Self::Id => "id",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::Url => "url",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select_by_url(url: String) -> SelectStatement {

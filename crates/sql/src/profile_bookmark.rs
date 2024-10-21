@@ -1,13 +1,14 @@
+use std::fmt::Write;
+
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, InsertStatement, JoinType, OnConflict,
-    Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
+    Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType,
+    OnConflict, Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
 use crate::{bookmark::Bookmark, profile_bookmark_tag::ProfileBookmarkTag, tag::Tag};
 
-#[derive(sea_query::Iden)]
 pub enum ProfileBookmark {
     Table,
     Id,
@@ -15,6 +16,24 @@ pub enum ProfileBookmark {
     BookmarkId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for ProfileBookmark {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "profile_bookmarks",
+                Self::Id => "id",
+                Self::ProfileId => "profile_id",
+                Self::BookmarkId => "bookmark_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select(

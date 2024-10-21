@@ -1,6 +1,8 @@
+use std::fmt::Write;
+
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, InsertStatement, JoinType,
+    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, InsertStatement, JoinType,
     OnConflict, Order, Query, SelectStatement, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
@@ -10,7 +12,6 @@ use crate::{
     smart_feed_filter::SmartFeedFilter, tag::Tag,
 };
 
-#[derive(sea_query::Iden)]
 pub enum ProfileFeedEntry {
     Table,
     Id,
@@ -20,6 +21,26 @@ pub enum ProfileFeedEntry {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for ProfileFeedEntry {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "profile_feed_entries",
+                Self::Id => "id",
+                Self::HasRead => "has_read",
+                Self::ProfileFeedId => "profile_feed_id",
+                Self::FeedEntryId => "feed_entry_id",
+                Self::ProfileId => "profile_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub struct InsertMany {

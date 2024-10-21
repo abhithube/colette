@@ -1,10 +1,12 @@
+use std::fmt::Write;
+
 use colette_core::profile::Cursor;
 use sea_query::{
-    DeleteStatement, Expr, Func, InsertStatement, Order, Query, SelectStatement, UpdateStatement,
+    DeleteStatement, Expr, Func, Iden, InsertStatement, Order, Query, SelectStatement,
+    UpdateStatement,
 };
 use uuid::Uuid;
 
-#[derive(sea_query::Iden)]
 pub enum Profile {
     Table,
     Id,
@@ -14,6 +16,26 @@ pub enum Profile {
     UserId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for Profile {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "profiles",
+                Self::Id => "id",
+                Self::Title => "title",
+                Self::ImageUrl => "image_url",
+                Self::IsDefault => "is_default",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub fn select(

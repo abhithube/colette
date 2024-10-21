@@ -1,9 +1,10 @@
-use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query};
+use std::fmt::Write;
+
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
 use crate::tag::build_titles_subquery;
 
-#[derive(sea_query::Iden)]
 pub enum ProfileBookmarkTag {
     Table,
     ProfileBookmarkId,
@@ -11,6 +12,24 @@ pub enum ProfileBookmarkTag {
     ProfileId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for ProfileBookmarkTag {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "profile_bookmark_tags",
+                Self::ProfileBookmarkId => "profile_bookmark_id",
+                Self::TagId => "tag_id",
+                Self::ProfileId => "profile_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub struct InsertMany {

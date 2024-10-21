@@ -1,9 +1,10 @@
+use std::fmt::Write;
+
 use chrono::{DateTime, Utc};
-use sea_query::{DeleteStatement, Expr, InsertStatement, OnConflict, Query, SelectStatement};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
 use crate::profile_feed_entry::ProfileFeedEntry;
 
-#[derive(sea_query::Iden)]
 pub enum FeedEntry {
     Table,
     Id,
@@ -16,6 +17,29 @@ pub enum FeedEntry {
     FeedId,
     CreatedAt,
     UpdatedAt,
+}
+
+impl Iden for FeedEntry {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "feed_entries",
+                Self::Id => "id",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::PublishedAt => "published_at",
+                Self::Description => "description",
+                Self::Author => "author",
+                Self::ThumbnailUrl => "thumbnail_url",
+                Self::FeedId => "feed_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
 }
 
 pub struct InsertMany {
