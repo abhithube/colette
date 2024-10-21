@@ -40,8 +40,16 @@ impl MigrationSource<'static> for MigrationList {
     }
 }
 
-pub async fn migrate(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    let migrator = Migrator::new(MigrationList(migration::migrations())).await?;
+pub async fn migrate(
+    pool: &PgPool,
+    extra: Option<Migrator>,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let mut migrations = migration::migrations();
+    if let Some(extra) = extra {
+        migrations.extend(extra.iter().cloned().collect::<Vec<_>>());
+    }
+
+    let migrator = Migrator::new(MigrationList(migrations)).await?;
 
     migrator.run(pool).await?;
 

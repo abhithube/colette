@@ -31,6 +31,7 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
+use colette_task::WorkerStorage;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower_sessions_core::ExpiredDeletion;
@@ -65,6 +66,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tag_repository,
         user_repository,
         session_backend,
+        _scrape_worker_storage,
     ): (
         Arc<dyn BackupRepository>,
         Arc<dyn BookmarkRepository>,
@@ -78,12 +80,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc<dyn TagRepository>,
         Arc<dyn UserRepository>,
         SessionBackend,
+        WorkerStorage<colette_task::scrape_feed::Args>,
     ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
         url if url.starts_with("postgres") => {
             let pool = sqlx::PgPool::connect(url).await?;
 
-            colette_postgres::migrate(&pool).await?;
+            colette_postgres::migrate(&pool, Some(colette_task::PostgresStorage::migrations()))
+                .await?;
 
             let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
                 pool.clone(),
@@ -116,8 +120,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let user_repository =
                 Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
-            let store = colette_session::PostgresStore::new(pool);
+            let store = colette_session::PostgresStore::new(pool.clone());
             store.migrate().await?;
+
+            let storage =
+                colette_task::PostgresStorage::<colette_task::scrape_feed::Args>::new(pool);
 
             (
                 backup_repository,
@@ -132,13 +139,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Postgres(store),
+                WorkerStorage::Postgres(storage),
             )
         }
         #[cfg(feature = "sqlite")]
         url if url.starts_with("sqlite") => {
             let pool = sqlx::SqlitePool::connect(url).await?;
 
-            colette_sqlite::migrate(&pool).await?;
+            colette_sqlite::migrate(&pool, Some(colette_task::SqliteStorage::migrations())).await?;
 
             let backup_repository =
                 Arc::new(colette_sqlite::SqliteBackupRepository::new(pool.clone()));
@@ -160,6 +168,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let tag_repository = Arc::new(colette_sqlite::SqliteTagRepository::new(pool.clone()));
             let user_repository = Arc::new(colette_sqlite::SqliteUserRepository::new(pool.clone()));
 
+            let storage =
+                colette_task::SqliteStorage::<colette_task::scrape_feed::Args>::new(pool.clone());
+
             let store = colette_session::SqliteStore::new(pool);
             store.migrate().await?;
 
@@ -176,6 +187,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Sqlite(store),
+                WorkerStorage::Sqlite(storage),
             )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),
