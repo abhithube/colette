@@ -209,7 +209,7 @@ pub(crate) async fn find(
     }
 
     let jsonb_agg = Expr::cust(
-        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tag"."id", 'title', "tag"."title") ORDER BY "tag"."title") FILTER (WHERE "tag"."id" IS NOT NULL)"#,
+        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
     );
 
     let tags_subquery = tags.map(|e| {
