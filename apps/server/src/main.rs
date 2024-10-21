@@ -242,7 +242,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let worker = WorkerBuilder::new("refresh-feeds")
                 .data(refresh_service)
-                .backend(CronStream::new(schedule))
+                .stream(CronStream::new(schedule).into_stream())
                 .build_fn(colette_task::refresh_feeds);
 
             Monitor::<TokioExecutor>::new().register(worker).run().await
@@ -255,7 +255,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         let worker = WorkerBuilder::new("cleanup")
             .data(cleanup_service)
-            .backend(CronStream::new(schedule))
+            .stream(CronStream::new(schedule).into_stream())
             .build_fn(colette_task::cleanup);
 
         Monitor::<TokioExecutor>::new().register(worker).run().await

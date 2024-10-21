@@ -83,48 +83,92 @@ checksum = "37bf3594c4c988a53154954629820791dde498571819ae4ca50ca811e060cc95"
 
 [[package]]
 name = "apalis"
-version = "0.6.0-rc.7"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fe9f6044555ce7984b4dff510f869c25ee8258d13277eadcfee11efa0a827a0"
+checksum = "3da210662fee6932c2d8b291c4b33a573b5eafe09e23c6bf01295285a7d86e03"
 dependencies = [
  "apalis-core",
+ "apalis-cron",
+ "apalis-redis",
+ "apalis-sql",
  "futures",
  "pin-project-lite",
  "serde",
  "thiserror",
  "tokio",
- "tower 0.4.13",
+ "tower",
 ]
 
 [[package]]
 name = "apalis-core"
-version = "0.6.0-rc.8"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e1edf35c07053f8cf197b26e912798007ee56a204042cd51b3be5b26e96cbc2"
+checksum = "91befa475b114da630f0781fc48a577932a54790adf0a47edac00d4f058282d9"
 dependencies = [
  "async-oneshot",
  "futures",
  "futures-timer",
  "pin-project-lite",
  "serde",
+ "serde_json",
  "thiserror",
- "tower 0.4.13",
+ "tower",
  "ulid",
 ]
 
 [[package]]
 name = "apalis-cron"
-version = "0.6.0-rc.7"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "821d4b219ed2fa48e6ff722f23a97db3a70dcb0beeb96d3cf9391d88d23050c2"
+checksum = "344799ff16579e1ae362143682d7bc29527adfbb9f421913ec8d8629276f7386"
 dependencies = [
  "apalis-core",
  "async-stream",
  "chrono",
  "cron",
  "futures",
- "tower 0.4.13",
+ "tower",
 ]
+
+[[package]]
+name = "apalis-redis"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a77c9038106f6fa16e66fac08bc0a04edaf50b48d5a4328a98806d3f2f52c06d"
+dependencies = [
+ "apalis-core",
+ "async-stream",
+ "async-trait",
+ "chrono",
+ "futures",
+ "log",
+ "redis",
+ "serde",
+ "tokio",
+]
+
+[[package]]
+name = "apalis-sql"
+version = "0.5.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77f5a576d1d6df3de40ab8bf66bd33912718fc9c51d98f63cfb71f60996410bc"
+dependencies = [
+ "apalis-core",
+ "async-stream",
+ "futures",
+ "futures-lite",
+ "log",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "arc-swap"
+version = "1.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69f7f8c3906b62b754cd5326047894316021dcfe5a194c8ea52bdd94934a3457"
 
 [[package]]
 name = "argon2"
@@ -247,7 +291,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 1.0.1",
  "tokio",
- "tower 0.5.1",
+ "tower",
  "tower-layer",
  "tower-service",
 ]
@@ -303,7 +347,7 @@ dependencies = [
  "pin-project-lite",
  "serde",
  "serde_html_form",
- "tower 0.5.1",
+ "tower",
  "tower-layer",
  "tower-service",
 ]
@@ -624,6 +668,7 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "apalis-core",
  "async-trait",
  "axum",
  "axum-extra",
@@ -632,6 +677,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-task",
  "email_address",
  "http",
  "serde",
@@ -867,12 +913,16 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "apalis",
+ "apalis-core",
+ "apalis-sql",
  "async-trait",
  "chrono",
  "colette-core",
  "colette-scraper",
  "cron",
  "futures",
+ "serde",
+ "sqlx",
  "tokio",
  "tracing",
  "url",
@@ -896,7 +946,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba5a308b75df32fe02788e748662718f03fde005016435c444eea572398219fd"
 dependencies = [
  "bytes",
+ "futures-core",
  "memchr",
+ "pin-project-lite",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]
@@ -1547,6 +1601,19 @@ name = "futures-io"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9e5c1b78ca4aae1ac06c48a526a655760685149f0d465d21f37abfe57ce075c6"
+
+[[package]]
+name = "futures-lite"
+version = "2.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52527eb5074e35e9339c6b4e8d12600c7128b68fb25dcb9fa9dec18f7c25f3a5"
+dependencies = [
+ "fastrand",
+ "futures-core",
+ "futures-io",
+ "parking",
+ "pin-project-lite",
+]
 
 [[package]]
 name = "futures-macro"
@@ -3534,6 +3601,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20675572f6f24e9e76ef639bc5552774ed45f1c30e2951e1e99c59888861c539"
 
 [[package]]
+name = "redis"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0d7a6955c7511f60f3ba9e86c6d02b3c3f144f8c24b288d1f4e18074ab8bbec"
+dependencies = [
+ "arc-swap",
+ "async-trait",
+ "bytes",
+ "combine",
+ "futures",
+ "futures-util",
+ "itoa 1.0.11",
+ "percent-encoding",
+ "pin-project-lite",
+ "ryu",
+ "sha1_smol",
+ "tokio",
+ "tokio-retry",
+ "tokio-util",
+ "url",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3773,6 +3863,15 @@ dependencies = [
  "rustls-webpki",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dce314e5fee3f39953d46bb63bb8a46d40c2f8fb7cc5a3b6cab2bde9721d6e50"
+dependencies = [
+ "rustls-pki-types",
 ]
 
 [[package]]
@@ -4141,6 +4240,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "sha1_smol"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbfa15b3dddfee50a0fff136974b3e1bde555604ba463834a7eb7deb6417705d"
+
+[[package]]
 name = "sha2"
 version = "0.10.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4353,6 +4458,8 @@ dependencies = [
  "once_cell",
  "paste",
  "percent-encoding",
+ "rustls",
+ "rustls-pemfile",
  "serde",
  "serde_json",
  "sha2",
@@ -4365,6 +4472,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -5065,6 +5173,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-retry"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f57eb36ecbe0fc510036adff84824dd3c24bb781e21bfa67b69d556aa85214f"
+dependencies = [
+ "pin-project",
+ "rand 0.8.5",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-stream"
 version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5145,21 +5264,6 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
  "winnow",
-]
-
-[[package]]
-name = "tower"
-version = "0.4.13"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b8fa9be0de6cf49e536ce1851f987bd21a43b771b09473c3549a6c853db37c1c"
-dependencies = [
- "futures-core",
- "futures-util",
- "pin-project",
- "pin-project-lite",
- "tower-layer",
- "tower-service",
- "tracing",
 ]
 
 [[package]]
