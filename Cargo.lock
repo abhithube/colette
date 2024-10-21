@@ -668,7 +668,7 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "apalis-core",
+ "apalis",
  "async-trait",
  "axum",
  "axum-extra",
@@ -846,7 +846,6 @@ name = "colette-server"
 version = "0.1.0"
 dependencies = [
  "apalis",
- "apalis-cron",
  "async-trait",
  "axum",
  "axum-embed",
@@ -914,7 +913,6 @@ dependencies = [
  "anyhow",
  "apalis",
  "apalis-core",
- "apalis-sql",
  "async-trait",
  "chrono",
  "colette-core",

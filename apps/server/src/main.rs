@@ -4,10 +4,10 @@ compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enable
 use std::{error::Error, str::FromStr, sync::Arc};
 
 use apalis::{
+    cron::{CronStream, Schedule},
     prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
     utils::TokioExecutor,
 };
-use apalis_cron::{CronStream, Schedule};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,

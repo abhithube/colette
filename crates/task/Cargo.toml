@@ -7,7 +7,6 @@ edition = "2021"
 anyhow.workspace = true
 apalis.workspace = true
 apalis-core.workspace = true
-apalis-sql.workspace = true
 async-trait.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
@@ -22,5 +21,5 @@ url.workspace = true
 
 [features]
 default = []
-postgres = ["apalis-sql/postgres"]
-sqlite = ["apalis-sql/sqlite"]
+postgres = ["apalis/postgres"]
+sqlite = ["apalis/sqlite"]

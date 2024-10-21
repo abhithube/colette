@@ -1,22 +1,20 @@
 use std::time::Duration;
 
-use apalis::prelude::{
-    BackendStream, Job, Poller, Request, RequestStream, Storage, TaskId, WorkerId,
-};
-use apalis_core::{
-    layers::{Ack, AckLayer},
-    Backend,
-};
 #[cfg(feature = "postgres")]
-use apalis_sql::postgres::PostgresStorage;
+pub use apalis::postgres::PostgresStorage;
+use apalis::prelude::{
+    Backend, BackendStream, Job, Poller, Request, RequestStream, Storage, TaskId, WorkerId,
+};
 #[cfg(feature = "sqlite")]
-use apalis_sql::sqlite::SqliteStorage;
+pub use apalis::sqlite::SqliteStorage;
+use apalis_core::layers::{Ack, AckLayer};
 pub use cleanup::cleanup;
 pub use refresh::refresh_feeds;
 use serde::{de::DeserializeOwned, Serialize};
 
 mod cleanup;
 mod refresh;
+pub mod scrape_feed;
 
 #[derive(Clone)]
 pub enum WorkerStorage<T: Clone> {
