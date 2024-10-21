@@ -11,7 +11,9 @@ pub async fn import_opml(
     service
         .import_opml(data.into(), session.profile_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]

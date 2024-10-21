@@ -4,6 +4,7 @@ use bytes::Bytes;
 use colette_backup::BackupManager;
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
+use url::Url;
 use uuid::Uuid;
 
 use crate::{bookmark::BookmarkRepository, feed::FeedRepository};
@@ -33,15 +34,24 @@ impl BackupService {
         }
     }
 
-    pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
+    pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<Vec<Url>, Error> {
         let opml = self
             .opml_manager
             .import(raw)
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
+        let urls = opml
+            .body
+            .outlines
+            .iter()
+            .filter_map(|e| e.xml_url.as_deref().and_then(|e| Url::parse(e).ok()))
+            .collect::<Vec<Url>>();
+
         self.backup_repository
             .import_opml(opml.body.outlines, profile_id)
-            .await
+            .await?;
+
+        Ok(urls)
     }
 
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
