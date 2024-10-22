@@ -2,8 +2,9 @@ use std::fmt::Write;
 
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, InsertStatement, JoinType,
-    OnConflict, Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
+    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, InsertStatement,
+    IntoValueTuple, JoinType, OnConflict, Order, Query, SelectStatement, SimpleExpr,
+    UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
@@ -184,11 +185,30 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
 pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> WithQuery {
     let input = Alias::new("input");
 
+    let mut cte_columns = vec![ProfileFeedEntry::FeedEntryId];
+    let mut from_columns = vec![(input.clone(), ProfileFeedEntry::FeedEntryId)];
+    let mut columns = vec![
+        ProfileFeedEntry::FeedEntryId,
+        ProfileFeedEntry::ProfileFeedId,
+        ProfileFeedEntry::ProfileId,
+    ];
+    if data.iter().any(|e| e.id.is_some()) {
+        cte_columns.push(ProfileFeedEntry::Id);
+        from_columns.push((input.clone(), ProfileFeedEntry::Id));
+        columns.push(ProfileFeedEntry::Id);
+    }
+
     let input_cte = Query::select()
         .expr(Expr::col(Asterisk))
         .from_values(
             data.into_iter()
-                .map(|e| (e.id, e.feed_entry_id, feed_id))
+                .map(|e| {
+                    if let Some(id) = e.id {
+                        (id, e.feed_entry_id, feed_id).into_value_tuple()
+                    } else {
+                        (e.feed_entry_id, feed_id).into_value_tuple()
+                    }
+                })
                 .collect::<Vec<_>>(),
             Alias::new("row"),
         )
@@ -198,7 +218,7 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
         .cte(
             CommonTableExpression::new()
                 .query(input_cte)
-                .columns([ProfileFeedEntry::Id, ProfileFeedEntry::FeedEntryId])
+                .columns(cte_columns)
                 .column(ProfileFeed::FeedId)
                 .table_name(input.clone())
                 .to_owned(),
@@ -207,18 +227,10 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
 
     let insert = Query::insert()
         .into_table(ProfileFeedEntry::Table)
-        .columns([
-            ProfileFeedEntry::Id,
-            ProfileFeedEntry::FeedEntryId,
-            ProfileFeedEntry::ProfileFeedId,
-            ProfileFeedEntry::ProfileId,
-        ])
+        .columns(columns)
         .select_from(
             Query::select()
-                .columns([
-                    (input.clone(), ProfileFeedEntry::Id),
-                    (input.clone(), ProfileFeedEntry::FeedEntryId),
-                ])
+                .columns(from_columns)
                 .columns([
                     (ProfileFeed::Table, ProfileFeed::Id),
                     (ProfileFeed::Table, ProfileFeed::ProfileId),
