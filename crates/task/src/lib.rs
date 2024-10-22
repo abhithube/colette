@@ -1,5 +1,6 @@
 use std::{
     fmt::{Debug, Display},
+    str::FromStr,
     time::Duration,
 };
 
@@ -11,7 +12,9 @@ use apalis::prelude::{
 #[cfg(feature = "sqlite")]
 pub use apalis::sqlite::SqliteStorage;
 use apalis_core::layers::{Ack, AckLayer};
+use chrono::Utc;
 pub use cleanup::cleanup;
+use cron::Schedule;
 pub use refresh::refresh_feeds;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
@@ -54,6 +57,25 @@ pub async fn run_task_worker<Data: Send + 'static, S: Service<Data> + Clone + Se
                 error!("{}", e);
             }
         });
+    }
+}
+
+pub async fn run_cron_worker<S: Service<()> + Clone + Send + 'static>(cron: &str, mut task: S)
+where
+    S::Error: Debug + Display,
+    S::Future: Send,
+{
+    let schedule = Schedule::from_str(cron).unwrap();
+
+    loop {
+        let upcoming = schedule.upcoming(Utc).take(1).next().unwrap();
+        let duration = (upcoming - Utc::now()).to_std().unwrap();
+
+        tokio::time::sleep(duration).await;
+
+        if let Err(e) = task.ready().await.unwrap().call(()).await {
+            error!("{}", e);
+        }
     }
 }
 
