@@ -226,7 +226,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
     let scrape_feed_queue = Arc::new(scrape_feed_queue);
 
-    let scrape_feed_task = ServiceBuilder::new().service(scrape_feed::Task::new(scraper_service));
+    let scrape_feed_task = ServiceBuilder::new()
+        .concurrency_limit(5)
+        .service(scrape_feed::Task::new(scraper_service));
 
     let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
     let import_feeds_queue = Arc::new(import_feeds_queue);
