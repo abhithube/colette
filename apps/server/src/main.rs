@@ -1,13 +1,8 @@
 #[cfg(not(any(feature = "postgres", feature = "sqlite")))]
 compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enabled");
 
-use std::{error::Error, str::FromStr, sync::Arc};
+use std::{error::Error, future::Future, pin::Pin, sync::Arc};
 
-use apalis::{
-    cron::{CronStream, Schedule},
-    prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
-    utils::TokioExecutor,
-};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
@@ -31,14 +26,15 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
-use colette_task::{import_feeds, run_task_worker, scrape_feed, TaskQueue};
+use colette_task::{
+    cleanup_feeds, import_feeds, refresh_feeds, run_cron_worker, run_task_worker, scrape_feed,
+    TaskQueue,
+};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_sessions_core::ExpiredDeletion;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
-const CRON_CLEANUP: &str = "0 0 0 * * *";
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist"]
@@ -211,7 +207,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
     let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
-    let refresh_service = Arc::new(RefreshService::new(
+    let _refresh_service = Arc::new(RefreshService::new(
         feed_plugin_registry.clone(),
         feed_repository.clone(),
         refresh_repository,
@@ -226,15 +222,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
     let scrape_feed_queue = Arc::new(scrape_feed_queue);
 
-    let scrape_feed_task = ServiceBuilder::new()
-        .concurrency_limit(5)
-        .service(scrape_feed::Task::new(scraper_service));
-
     let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
     let import_feeds_queue = Arc::new(import_feeds_queue);
 
-    let import_feeds_task =
-        ServiceBuilder::new().service(import_feeds::Task::new(scrape_feed_queue));
+    let scrape_feed_task = ServiceBuilder::new()
+        .concurrency_limit(5)
+        .service(scrape_feed::Task::new(scraper_service));
+    let refresh_feeds_task =
+        refresh_feeds::Task::new(feed_service.clone(), scrape_feed_queue.clone());
+    let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
+    let cleanup_feeds_task = cleanup_feeds::Task::new(cleanup_service);
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
@@ -259,31 +256,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server = async { axum::serve(listener, api).await };
 
-    let mut monitor = Monitor::<TokioExecutor>::new().register({
-        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
-
-        WorkerBuilder::new("cleanup")
-            .data(cleanup_service)
-            .stream(CronStream::new(schedule).into_stream())
-            .build_fn(colette_task::cleanup)
-    });
-
-    if app_config.refresh_enabled {
-        let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
-
-        monitor = monitor.register(
-            WorkerBuilder::new("refresh-feeds")
-                .data(refresh_service)
-                .stream(CronStream::new(schedule).into_stream())
-                .build_fn(colette_task::refresh_feeds),
-        );
-    }
+    let refresh_task_worker = if app_config.refresh_enabled {
+        Box::pin(run_cron_worker(
+            &app_config.cron_refresh,
+            refresh_feeds_task,
+        ))
+    } else {
+        Box::pin(std::future::ready(())) as Pin<Box<dyn Future<Output = ()> + Send>>
+    };
 
     let _ = tokio::join!(
         server,
-        monitor.run(),
         run_task_worker(scrape_feed_receiver, scrape_feed_task),
         run_task_worker(import_feeds_receiver, import_feeds_task),
+        refresh_task_worker,
+        run_cron_worker("0 0 0 * * *", cleanup_feeds_task),
         session_backend.continuously_delete_expired(tokio::time::Duration::from_secs(60))
     );
 

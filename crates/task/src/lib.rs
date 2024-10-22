@@ -13,17 +13,15 @@ use apalis::prelude::{
 pub use apalis::sqlite::SqliteStorage;
 use apalis_core::layers::{Ack, AckLayer};
 use chrono::Utc;
-pub use cleanup::cleanup;
 use cron::Schedule;
-pub use refresh::refresh_feeds;
 use serde::{de::DeserializeOwned, Serialize};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tower::{Service, ServiceExt};
 use tracing::error;
 
-mod cleanup;
+pub mod cleanup_feeds;
 pub mod import_feeds;
-mod refresh;
+pub mod refresh_feeds;
 pub mod scrape_feed;
 
 #[derive(Clone)]
