@@ -181,12 +181,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         _ => panic!("only PostgreSQL and SQLite are supported"),
     };
 
-    let deletion_task = tokio::task::spawn(
-        session_backend
-            .clone()
-            .continuously_delete_expired(tokio::time::Duration::from_secs(60)),
-    );
-
     let feed_plugin_registry = Arc::new(register_feed_plugins());
 
     let base64_decoder = Arc::new(Base64Encoder);
@@ -237,7 +231,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );
-    let api = Api::new(&api_state, &app_config, session_backend)
+    let api = Api::new(&api_state, &app_config, session_backend.clone())
         .build()
         .with_state(api_state)
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
@@ -270,9 +264,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         );
     }
 
-    let _ = tokio::join!(server, monitor.run());
-
-    deletion_task.await??;
+    let _ = tokio::join!(
+        server,
+        monitor.run(),
+        session_backend.continuously_delete_expired(tokio::time::Duration::from_secs(60))
+    );
 
     Ok(())
 }
