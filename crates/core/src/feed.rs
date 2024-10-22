@@ -173,6 +173,10 @@ impl FeedService {
             cursor: None,
         })
     }
+
+    pub async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
+        self.repository.stream().await
+    }
 }
 
 #[async_trait::async_trait]
