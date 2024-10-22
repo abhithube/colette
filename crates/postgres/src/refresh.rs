@@ -2,7 +2,6 @@ use colette_core::refresh::{Error, FeedRefreshData, RefreshRepository};
 use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::PgPool;
-use uuid::Uuid;
 
 use crate::feed::create_feed_with_entries;
 
@@ -44,7 +43,7 @@ impl RefreshRepository for PostgresRefreshRepository {
                 .into_iter()
                 .map(
                     |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Uuid::new_v4(),
+                        id: None,
                         feed_entry_id,
                     },
                 )

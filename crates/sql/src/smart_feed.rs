@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::smart_feed::Cursor;
 use sea_query::{
     Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, Iden,
-    InsertStatement, JoinType, Order, Query, UpdateStatement, WithClause, WithQuery,
+    InsertStatement, JoinType, Order, Query, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
@@ -125,11 +125,20 @@ pub fn select(
     )
 }
 
-pub fn insert(id: Uuid, title: String, profile_id: Uuid) -> InsertStatement {
+pub fn insert(id: Option<Uuid>, title: String, profile_id: Uuid) -> InsertStatement {
+    let mut columns = vec![SmartFeed::Title, SmartFeed::ProfileId];
+    let mut values: Vec<SimpleExpr> = vec![title.into(), profile_id.into()];
+
+    if let Some(id) = id {
+        columns.push(SmartFeed::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(SmartFeed::Table)
-        .columns([SmartFeed::Id, SmartFeed::Title, SmartFeed::ProfileId])
-        .values_panic([id.into(), title.into(), profile_id.into()])
+        .columns(columns)
+        .values_panic(values)
+        .returning_col(SmartFeed::Id)
         .to_owned()
 }
 

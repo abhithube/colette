@@ -73,18 +73,18 @@ impl Creatable for SqliteFeedRepository {
             {
                 id
             } else {
-                let id = Uuid::new_v4();
+                (sql, values) = colette_sql::profile_feed::insert(
+                    Some(Uuid::new_v4()),
+                    None,
+                    feed_id,
+                    data.profile_id,
+                )
+                .build_sqlx(SqliteQueryBuilder);
 
-                (sql, values) =
-                    colette_sql::profile_feed::insert(id, None, feed_id, data.profile_id)
-                        .build_sqlx(SqliteQueryBuilder);
-
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                sqlx::query_scalar_with(&sql, values)
+                    .fetch_one(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                id
+                    .map_err(|e| Error::Unknown(e.into()))?
             }
         };
 
@@ -103,7 +103,7 @@ impl Creatable for SqliteFeedRepository {
                 .into_iter()
                 .map(
                     |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Uuid::new_v4(),
+                        id: Some(Uuid::new_v4()),
                         feed_entry_id,
                     },
                 )
@@ -399,7 +399,7 @@ pub(crate) async fn link_tags(
             tags.data
                 .iter()
                 .map(|e| colette_sql::tag::InsertMany {
-                    id: Uuid::new_v4(),
+                    id: Some(Uuid::new_v4()),
                     title: e.to_owned(),
                 })
                 .collect(),

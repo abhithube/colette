@@ -53,8 +53,9 @@ impl BackupRepository for SqliteBackupRepository {
                     } else {
                         let id = Uuid::new_v4();
 
-                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
-                            .build_sqlx(SqliteQueryBuilder);
+                        (sql, values) =
+                            colette_sql::tag::insert(Some(id), title.clone(), profile_id)
+                                .build_sqlx(SqliteQueryBuilder);
 
                         sqlx::query_with(&sql, values)
                             .execute(&mut *tx)
@@ -102,7 +103,7 @@ impl BackupRepository for SqliteBackupRepository {
                         let id = Uuid::new_v4();
 
                         (sql, values) =
-                            colette_sql::profile_feed::insert(id, None, feed_id, profile_id)
+                            colette_sql::profile_feed::insert(Some(id), None, feed_id, profile_id)
                                 .build_sqlx(SqliteQueryBuilder);
 
                         sqlx::query_with(&sql, values)
@@ -167,8 +168,9 @@ impl BackupRepository for SqliteBackupRepository {
                     } else {
                         let id = Uuid::new_v4();
 
-                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
-                            .build_sqlx(SqliteQueryBuilder);
+                        (sql, values) =
+                            colette_sql::tag::insert(Some(id), title.clone(), profile_id)
+                                .build_sqlx(SqliteQueryBuilder);
 
                         sqlx::query_with(&sql, values)
                             .execute(&mut *tx)
@@ -219,9 +221,12 @@ impl BackupRepository for SqliteBackupRepository {
                     } else {
                         let id = Uuid::new_v4();
 
-                        (sql, values) =
-                            colette_sql::profile_bookmark::insert(id, bookmark_id, profile_id)
-                                .build_sqlx(SqliteQueryBuilder);
+                        (sql, values) = colette_sql::profile_bookmark::insert(
+                            Some(id),
+                            bookmark_id,
+                            profile_id,
+                        )
+                        .build_sqlx(SqliteQueryBuilder);
 
                         sqlx::query_with(&sql, values)
                             .execute(&mut *tx)

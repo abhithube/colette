@@ -69,7 +69,7 @@ impl Creatable for SqliteUserRepository {
 
         let user = {
             let (sql, values) =
-                colette_sql::user::insert(Uuid::new_v4(), data.email.clone(), data.password)
+                colette_sql::user::insert(Some(Uuid::new_v4()), data.email.clone(), data.password)
                     .build_sqlx(SqliteQueryBuilder);
 
             sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
@@ -86,7 +86,7 @@ impl Creatable for SqliteUserRepository {
 
         {
             let (sql, values) = colette_sql::profile::insert(
-                Uuid::new_v4(),
+                Some(Uuid::new_v4()),
                 "Default".to_owned(),
                 None,
                 Some(true),

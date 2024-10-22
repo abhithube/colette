@@ -73,18 +73,14 @@ impl Creatable for PostgresFeedRepository {
             {
                 id
             } else {
-                let id = Uuid::new_v4();
-
                 (sql, values) =
-                    colette_sql::profile_feed::insert(id, None, feed_id, data.profile_id)
+                    colette_sql::profile_feed::insert(None, None, feed_id, data.profile_id)
                         .build_sqlx(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                    .fetch_one(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                id
+                    .map_err(|e| Error::Unknown(e.into()))?
             }
         };
 
@@ -103,7 +99,7 @@ impl Creatable for PostgresFeedRepository {
                 .into_iter()
                 .map(
                     |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Uuid::new_v4(),
+                        id: None,
                         feed_entry_id,
                     },
                 )
@@ -399,7 +395,7 @@ pub(crate) async fn link_tags(
             tags.data
                 .iter()
                 .map(|e| colette_sql::tag::InsertMany {
-                    id: Uuid::new_v4(),
+                    id: None,
                     title: e.to_owned(),
                 })
                 .collect(),

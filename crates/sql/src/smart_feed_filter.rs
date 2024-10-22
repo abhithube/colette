@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query, SimpleExpr};
 use uuid::Uuid;
 
 pub enum SmartFeedFilter {
@@ -100,7 +100,7 @@ impl Iden for Operation {
 
 #[derive(Debug, Clone)]
 pub struct InsertMany {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
     pub field: Field,
     pub operation: Operation,
     pub value: String,
@@ -111,6 +111,17 @@ pub fn insert_many(
     smart_feed_id: Uuid,
     profile_id: Uuid,
 ) -> InsertStatement {
+    let mut columns = vec![
+        SmartFeedFilter::Field,
+        SmartFeedFilter::Operation,
+        SmartFeedFilter::Value,
+        SmartFeedFilter::SmartFeedId,
+        SmartFeedFilter::ProfileId,
+    ];
+    if data.iter().any(|e| e.id.is_some()) {
+        columns.push(SmartFeedFilter::Id);
+    }
+
     let mut query = Query::insert()
         .into_table(SmartFeedFilter::Table)
         .columns([
@@ -123,15 +134,19 @@ pub fn insert_many(
         ])
         .to_owned();
 
-    for t in data {
-        query.values_panic([
-            t.id.into(),
-            t.field.to_string().into(),
-            t.operation.to_string().into(),
-            t.value.into(),
+    for sff in data {
+        let mut values: Vec<SimpleExpr> = vec![
+            sff.field.to_string().into(),
+            sff.operation.to_string().into(),
+            sff.value.into(),
             smart_feed_id.into(),
             profile_id.into(),
-        ]);
+        ];
+        if let Some(id) = sff.id {
+            values.push(id.into());
+        }
+
+        query.values_panic(values);
     }
 
     query

@@ -63,10 +63,8 @@ impl Creatable for SqliteProfileRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = Uuid::new_v4();
-
         let (sql, values) = colette_sql::profile::insert(
-            id,
+            Some(Uuid::new_v4()),
             data.title.clone(),
             data.image_url,
             None,
@@ -74,8 +72,8 @@ impl Creatable for SqliteProfileRepository {
         )
         .build_sqlx(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        let id = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),

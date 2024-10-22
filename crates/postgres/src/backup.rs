@@ -51,17 +51,13 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         id
                     } else {
-                        let id = Uuid::new_v4();
-
-                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
+                        (sql, values) = colette_sql::tag::insert(None, title.clone(), profile_id)
                             .build_sqlx(PostgresQueryBuilder);
 
-                        sqlx::query_with(&sql, values)
-                            .execute(&mut *tx)
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        id
+                            .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 
@@ -99,18 +95,14 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         id
                     } else {
-                        let id = Uuid::new_v4();
-
                         (sql, values) =
-                            colette_sql::profile_feed::insert(id, None, feed_id, profile_id)
+                            colette_sql::profile_feed::insert(None, None, feed_id, profile_id)
                                 .build_sqlx(PostgresQueryBuilder);
 
-                        sqlx::query_with(&sql, values)
-                            .execute(&mut *tx)
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        id
+                            .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 
@@ -165,17 +157,13 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         id
                     } else {
-                        let id = Uuid::new_v4();
-
-                        (sql, values) = colette_sql::tag::insert(id, title.clone(), profile_id)
+                        (sql, values) = colette_sql::tag::insert(None, title.clone(), profile_id)
                             .build_sqlx(PostgresQueryBuilder);
 
-                        sqlx::query_with(&sql, values)
-                            .execute(&mut *tx)
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        id
+                            .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 
@@ -217,18 +205,14 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         id
                     } else {
-                        let id = Uuid::new_v4();
-
                         (sql, values) =
-                            colette_sql::profile_bookmark::insert(id, bookmark_id, profile_id)
+                            colette_sql::profile_bookmark::insert(None, bookmark_id, profile_id)
                                 .build_sqlx(PostgresQueryBuilder);
 
-                        sqlx::query_with(&sql, values)
-                            .execute(&mut *tx)
+                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                            .fetch_one(&mut *tx)
                             .await
-                            .map_err(|e| Error::Unknown(e.into()))?;
-
-                        id
+                            .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 

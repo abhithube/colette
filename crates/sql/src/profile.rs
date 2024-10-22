@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use colette_core::profile::Cursor;
 use sea_query::{
-    DeleteStatement, Expr, Func, Iden, InsertStatement, Order, Query, SelectStatement,
+    DeleteStatement, Expr, Func, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr,
     UpdateStatement,
 };
 use uuid::Uuid;
@@ -69,28 +69,35 @@ pub fn select(
 }
 
 pub fn insert(
-    id: Uuid,
+    id: Option<Uuid>,
     title: String,
     image_url: Option<String>,
     is_default: Option<bool>,
     user_id: Uuid,
 ) -> InsertStatement {
+    let mut columns = vec![
+        Profile::Title,
+        Profile::ImageUrl,
+        Profile::IsDefault,
+        Profile::UserId,
+    ];
+    let mut values: Vec<SimpleExpr> = vec![
+        title.into(),
+        image_url.into(),
+        is_default.unwrap_or_default().into(),
+        user_id.into(),
+    ];
+
+    if let Some(id) = id {
+        columns.push(Profile::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(Profile::Table)
-        .columns([
-            Profile::Id,
-            Profile::Title,
-            Profile::ImageUrl,
-            Profile::IsDefault,
-            Profile::UserId,
-        ])
-        .values_panic([
-            id.into(),
-            title.into(),
-            image_url.into(),
-            is_default.unwrap_or_default().into(),
-            user_id.into(),
-        ])
+        .columns(columns)
+        .values_panic(values)
+        .returning_col(Profile::Id)
         .to_owned()
 }
 

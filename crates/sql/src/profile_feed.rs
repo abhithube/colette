@@ -192,26 +192,38 @@ pub fn select_by_unique_index(profile_id: Uuid, feed_id: i32) -> SelectStatement
         .to_owned()
 }
 
-pub fn insert(id: Uuid, pinned: Option<bool>, feed_id: i32, profile_id: Uuid) -> InsertStatement {
+pub fn insert(
+    id: Option<Uuid>,
+    pinned: Option<bool>,
+    feed_id: i32,
+    profile_id: Uuid,
+) -> InsertStatement {
+    let mut columns = vec![
+        ProfileFeed::Pinned,
+        ProfileFeed::FeedId,
+        ProfileFeed::ProfileId,
+    ];
+    let mut values: Vec<SimpleExpr> = vec![
+        pinned.unwrap_or_default().into(),
+        feed_id.into(),
+        profile_id.into(),
+    ];
+
+    if let Some(id) = id {
+        columns.push(ProfileFeed::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(ProfileFeed::Table)
-        .columns([
-            ProfileFeed::Id,
-            ProfileFeed::Pinned,
-            ProfileFeed::FeedId,
-            ProfileFeed::ProfileId,
-        ])
-        .values_panic([
-            id.into(),
-            pinned.unwrap_or_default().into(),
-            feed_id.into(),
-            profile_id.into(),
-        ])
+        .columns(columns)
+        .values_panic(values)
         .on_conflict(
             OnConflict::columns([ProfileFeed::ProfileId, ProfileFeed::FeedId])
                 .do_nothing()
                 .to_owned(),
         )
+        .returning_col(ProfileFeed::Id)
         .to_owned()
 }
 

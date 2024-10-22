@@ -79,7 +79,7 @@ impl ScraperRepository for SqliteScraperRepository {
                 .into_iter()
                 .map(
                     |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Uuid::new_v4(),
+                        id: Some(Uuid::new_v4()),
                         feed_entry_id,
                     },
                 )

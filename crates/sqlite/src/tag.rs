@@ -40,14 +40,13 @@ impl Creatable for SqliteTagRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = Uuid::new_v4();
+        let id = {
+            let (sql, values) =
+                colette_sql::tag::insert(Some(Uuid::new_v4()), data.title.clone(), data.profile_id)
+                    .build_sqlx(SqliteQueryBuilder);
 
-        {
-            let (sql, values) = colette_sql::tag::insert(id, data.title.clone(), data.profile_id)
-                .build_sqlx(SqliteQueryBuilder);
-
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_one(&mut *tx)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::Database(e) if e.is_unique_violation() => {

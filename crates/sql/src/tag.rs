@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
 use sea_query::{
     Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    UpdateStatement,
+    SimpleExpr, UpdateStatement,
 };
 use uuid::Uuid;
 
@@ -37,7 +37,7 @@ impl Iden for Tag {
 }
 
 pub struct InsertMany {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
     pub title: String,
 }
 
@@ -127,18 +127,32 @@ pub fn select_ids_by_titles(titles: &[String], profile_id: Uuid) -> SelectStatem
         .to_owned()
 }
 
-pub fn insert(id: Uuid, title: String, profile_id: Uuid) -> InsertStatement {
+pub fn insert(id: Option<Uuid>, title: String, profile_id: Uuid) -> InsertStatement {
+    let mut columns = vec![Tag::Title, Tag::ProfileId];
+    let mut values: Vec<SimpleExpr> = vec![title.into(), profile_id.into()];
+
+    if let Some(id) = id {
+        columns.push(Tag::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(Tag::Table)
-        .columns([Tag::Id, Tag::Title, Tag::ProfileId])
-        .values_panic([id.into(), title.into(), profile_id.into()])
+        .columns(columns)
+        .values_panic(values)
+        .returning_col(Tag::Id)
         .to_owned()
 }
 
 pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
+    let mut columns = vec![Tag::Title, Tag::ProfileId];
+    if data.iter().any(|e| e.id.is_some()) {
+        columns.push(Tag::Id);
+    }
+
     let mut query = Query::insert()
         .into_table(Tag::Table)
-        .columns([Tag::Id, Tag::Title, Tag::ProfileId])
+        .columns(columns)
         .on_conflict(
             OnConflict::columns([Tag::ProfileId, Tag::Title])
                 .do_nothing()
@@ -147,7 +161,12 @@ pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
         .to_owned();
 
     for t in data {
-        query.values_panic([t.id.into(), t.title.into(), profile_id.into()]);
+        let mut values: Vec<SimpleExpr> = vec![t.title.into(), profile_id.into()];
+        if let Some(id) = t.id {
+            values.push(id.into());
+        }
+
+        query.values_panic(values);
     }
 
     query

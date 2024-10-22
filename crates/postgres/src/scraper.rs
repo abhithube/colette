@@ -2,7 +2,6 @@ use colette_core::scraper::{Error, SaveFeedData, ScraperRepository};
 use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::PgPool;
-use uuid::Uuid;
 
 pub struct PostgresScraperRepository {
     pool: PgPool,
@@ -79,7 +78,7 @@ impl ScraperRepository for PostgresScraperRepository {
                 .into_iter()
                 .map(
                     |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Uuid::new_v4(),
+                        id: None,
                         feed_entry_id,
                     },
                 )

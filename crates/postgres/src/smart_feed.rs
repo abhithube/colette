@@ -48,22 +48,20 @@ impl Creatable for PostgresSmartFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = Uuid::new_v4();
-
-        {
+        let id = {
             let (sql, values) =
-                colette_sql::smart_feed::insert(id, data.title.clone(), data.profile_id)
+                colette_sql::smart_feed::insert(None, data.title.clone(), data.profile_id)
                     .build_sqlx(PostgresQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_one(&mut *tx)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::Database(e) if e.is_unique_violation() => {
                         Error::Conflict(data.title)
                     }
                     _ => Error::Unknown(e.into()),
-                })?;
+                })?
         };
 
         if let Some(filters) = data.filters {
@@ -292,7 +290,7 @@ async fn insert_filters(
             };
 
             colette_sql::smart_feed_filter::InsertMany {
-                id: Uuid::new_v4(),
+                id: None,
                 field,
                 operation: op.r#type,
                 value: op.value,

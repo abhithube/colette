@@ -141,20 +141,25 @@ pub fn select_by_unique_index(profile_id: Uuid, bookmark_id: i32) -> SelectState
         .to_owned()
 }
 
-pub fn insert(id: Uuid, bookmark_id: i32, profile_id: Uuid) -> InsertStatement {
+pub fn insert(id: Option<Uuid>, bookmark_id: i32, profile_id: Uuid) -> InsertStatement {
+    let mut columns = vec![ProfileBookmark::BookmarkId, ProfileBookmark::ProfileId];
+    let mut values: Vec<SimpleExpr> = vec![bookmark_id.into(), profile_id.into()];
+
+    if let Some(id) = id {
+        columns.push(ProfileBookmark::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(ProfileBookmark::Table)
-        .columns([
-            ProfileBookmark::Id,
-            ProfileBookmark::BookmarkId,
-            ProfileBookmark::ProfileId,
-        ])
-        .values_panic([id.into(), bookmark_id.into(), profile_id.into()])
+        .columns(columns)
+        .values_panic(values)
         .on_conflict(
             OnConflict::columns([ProfileBookmark::ProfileId, ProfileBookmark::BookmarkId])
                 .do_nothing()
                 .to_owned(),
         )
+        .returning_col(ProfileBookmark::Id)
         .to_owned()
 }
 

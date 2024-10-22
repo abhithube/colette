@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::feed_entry::Cursor;
 use sea_query::{
     Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, InsertStatement, JoinType,
-    OnConflict, Order, Query, SelectStatement, UpdateStatement, WithClause, WithQuery,
+    OnConflict, Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
@@ -44,7 +44,7 @@ impl Iden for ProfileFeedEntry {
 }
 
 pub struct InsertMany {
-    pub id: Uuid,
+    pub id: Option<Uuid>,
     pub feed_entry_id: i32,
 }
 
@@ -146,14 +146,18 @@ pub fn select(
 }
 
 pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> InsertStatement {
+    let mut columns = vec![
+        ProfileFeedEntry::FeedEntryId,
+        ProfileFeedEntry::ProfileFeedId,
+        ProfileFeedEntry::ProfileId,
+    ];
+    if data.iter().any(|e| e.id.is_some()) {
+        columns.push(ProfileFeedEntry::Id);
+    }
+
     let mut query = Query::insert()
         .into_table(ProfileFeedEntry::Table)
-        .columns([
-            ProfileFeedEntry::Id,
-            ProfileFeedEntry::FeedEntryId,
-            ProfileFeedEntry::ProfileFeedId,
-            ProfileFeedEntry::ProfileId,
-        ])
+        .columns(columns)
         .on_conflict(
             OnConflict::columns([
                 ProfileFeedEntry::ProfileFeedId,
@@ -165,12 +169,13 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
         .to_owned();
 
     for pfe in data {
-        query.values_panic([
-            pfe.id.into(),
-            pfe.feed_entry_id.into(),
-            pf_id.into(),
-            profile_id.into(),
-        ]);
+        let mut values: Vec<SimpleExpr> =
+            vec![pfe.feed_entry_id.into(), pf_id.into(), profile_id.into()];
+        if let Some(id) = pfe.id {
+            values.push(id.into());
+        }
+
+        query.values_panic(values);
     }
 
     query

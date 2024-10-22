@@ -63,24 +63,26 @@ impl Creatable for PostgresProfileRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = Uuid::new_v4();
+        let id = {
+            let (sql, values) = colette_sql::profile::insert(
+                None,
+                data.title.clone(),
+                data.image_url,
+                None,
+                data.user_id,
+            )
+            .build_sqlx(PostgresQueryBuilder);
 
-        let (sql, values) = colette_sql::profile::insert(
-            id,
-            data.title.clone(),
-            data.image_url,
-            None,
-            data.user_id,
-        )
-        .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-                _ => Error::Unknown(e.into()),
-            })?;
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_one(&self.pool)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.title)
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?
+        };
 
         let profile = find_by_id(
             &mut *tx,

@@ -68,9 +68,8 @@ impl Creatable for PostgresUserRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let user = {
-            let (sql, values) =
-                colette_sql::user::insert(Uuid::new_v4(), data.email.clone(), data.password)
-                    .build_sqlx(PostgresQueryBuilder);
+            let (sql, values) = colette_sql::user::insert(None, data.email.clone(), data.password)
+                .build_sqlx(PostgresQueryBuilder);
 
             sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
                 .fetch_one(&mut *tx)
@@ -85,14 +84,9 @@ impl Creatable for PostgresUserRepository {
         };
 
         {
-            let (sql, values) = colette_sql::profile::insert(
-                Uuid::new_v4(),
-                "Default".to_owned(),
-                None,
-                Some(true),
-                user.id,
-            )
-            .build_sqlx(PostgresQueryBuilder);
+            let (sql, values) =
+                colette_sql::profile::insert(None, "Default".to_owned(), None, Some(true), user.id)
+                    .build_sqlx(PostgresQueryBuilder);
 
             sqlx::query_with(&sql, values)
                 .execute(&mut *tx)

@@ -72,18 +72,17 @@ impl Creatable for SqliteBookmarkRepository {
             {
                 id
             } else {
-                let id = Uuid::new_v4();
+                (sql, values) = colette_sql::profile_bookmark::insert(
+                    Some(Uuid::new_v4()),
+                    bookmark_id,
+                    data.profile_id,
+                )
+                .build_sqlx(SqliteQueryBuilder);
 
-                (sql, values) =
-                    colette_sql::profile_bookmark::insert(id, bookmark_id, data.profile_id)
-                        .build_sqlx(SqliteQueryBuilder);
-
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                    .fetch_one(&mut *tx)
                     .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                id
+                    .map_err(|e| Error::Unknown(e.into()))?
             }
         };
 
@@ -285,7 +284,7 @@ pub(crate) async fn link_tags(
             tags.data
                 .iter()
                 .map(|e| colette_sql::tag::InsertMany {
-                    id: Uuid::new_v4(),
+                    id: Some(Uuid::new_v4()),
                     title: e.to_owned(),
                 })
                 .collect(),

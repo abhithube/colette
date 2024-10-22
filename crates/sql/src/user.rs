@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use sea_query::{Expr, Iden, InsertStatement, Order, Query, SelectStatement};
+use sea_query::{Expr, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr};
 use uuid::Uuid;
 
 pub enum User {
@@ -40,11 +40,19 @@ pub fn select(id: Option<Uuid>, email: Option<String>) -> SelectStatement {
         .to_owned()
 }
 
-pub fn insert(id: Uuid, email: String, password: String) -> InsertStatement {
+pub fn insert(id: Option<Uuid>, email: String, password: String) -> InsertStatement {
+    let mut columns = vec![User::Email, User::Password];
+    let mut values: Vec<SimpleExpr> = vec![email.into(), password.into()];
+
+    if let Some(id) = id {
+        columns.push(User::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(User::Table)
-        .columns([User::Id, User::Email, User::Password])
-        .values_panic([id.into(), email.into(), password.into()])
+        .columns(columns)
+        .values_panic(values)
         .returning_all()
         .to_owned()
 }
