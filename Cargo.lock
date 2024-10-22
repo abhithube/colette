@@ -668,7 +668,6 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "apalis",
  "async-trait",
  "axum",
  "axum-extra",
@@ -677,7 +676,6 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
- "colette-task",
  "email_address",
  "http",
  "serde",
@@ -922,6 +920,7 @@ dependencies = [
  "serde",
  "sqlx",
  "tokio",
+ "tower",
  "tracing",
  "url",
 ]
@@ -5277,6 +5276,7 @@ dependencies = [
  "tokio",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]

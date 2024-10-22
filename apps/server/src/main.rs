@@ -8,7 +8,6 @@ use apalis::{
     prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
     utils::TokioExecutor,
 };
-use axum::Extension;
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
@@ -32,7 +31,6 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
-use colette_task::WorkerStorage;
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower_sessions_core::ExpiredDeletion;
@@ -67,7 +65,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         tag_repository,
         user_repository,
         session_backend,
-        scrape_feed_worker_storage,
     ): (
         Arc<dyn BackupRepository>,
         Arc<dyn BookmarkRepository>,
@@ -81,7 +78,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc<dyn TagRepository>,
         Arc<dyn UserRepository>,
         SessionBackend,
-        WorkerStorage<colette_task::scrape_feed::Args>,
     ) = match &app_config.database_url {
         #[cfg(feature = "postgres")]
         url if url.starts_with("postgres") => {
@@ -136,9 +132,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Postgres(store),
-                WorkerStorage::Postgres(colette_task::PostgresStorage::<
-                    colette_task::scrape_feed::Args,
-                >::new(pool)),
             )
         }
         #[cfg(feature = "sqlite")]
@@ -183,9 +176,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 tag_repository,
                 user_repository,
                 SessionBackend::Sqlite(store),
-                WorkerStorage::Sqlite(
-                    colette_task::SqliteStorage::<colette_task::scrape_feed::Args>::new(pool),
-                ),
             )
         }
         _ => panic!("only PostgreSQL and SQLite are supported"),
@@ -230,7 +220,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         refresh_repository,
     ));
-    let scraper_service = Arc::new(ScraperService::new(
+    let _scraper_service = Arc::new(ScraperService::new(
         scraper_repository,
         feed_plugin_registry,
     ));
@@ -250,7 +240,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api = Api::new(&api_state, &app_config, session_backend)
         .build()
         .with_state(api_state)
-        .layer(Extension(scrape_feed_worker_storage.clone()))
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
@@ -261,21 +250,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server = async { axum::serve(listener, api).await };
 
-    let mut monitor = Monitor::<TokioExecutor>::new()
-        .register(
-            WorkerBuilder::new("scrape-feed")
-                .data(scraper_service)
-                .with_storage(scrape_feed_worker_storage.clone())
-                .build_fn(colette_task::scrape_feed::run),
-        )
-        .register({
-            let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
+    let mut monitor = Monitor::<TokioExecutor>::new().register({
+        let schedule = Schedule::from_str(CRON_CLEANUP).unwrap();
 
-            WorkerBuilder::new("cleanup")
-                .data(cleanup_service)
-                .stream(CronStream::new(schedule).into_stream())
-                .build_fn(colette_task::cleanup)
-        });
+        WorkerBuilder::new("cleanup")
+            .data(cleanup_service)
+            .stream(CronStream::new(schedule).into_stream())
+            .build_fn(colette_task::cleanup)
+    });
 
     if app_config.refresh_enabled {
         let schedule = Schedule::from_str(&app_config.cron_refresh).unwrap();
