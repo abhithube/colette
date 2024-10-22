@@ -676,6 +676,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-task",
  "email_address",
  "http",
  "serde",

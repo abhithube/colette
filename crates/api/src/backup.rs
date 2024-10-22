@@ -6,6 +6,7 @@ use axum::{
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
+use colette_task::{import_feeds, TaskQueue};
 use http::{HeaderMap, HeaderValue, StatusCode};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -15,11 +16,18 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BackupState {
     backup_service: Arc<BackupService>,
+    import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
 }
 
 impl BackupState {
-    pub fn new(backup_service: Arc<BackupService>) -> Self {
-        Self { backup_service }
+    pub fn new(
+        backup_service: Arc<BackupService>,
+        import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
+    ) -> Self {
+        Self {
+            backup_service,
+            import_feeds_queue,
+        }
     }
 }
 
@@ -47,12 +55,24 @@ impl BackupApi {
 )]
 #[axum::debug_handler]
 pub async fn import_opml(
-    State(service): State<Arc<BackupService>>,
+    State(state): State<BackupState>,
     session: Session,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    match service.import_opml(bytes, session.profile_id).await {
-        Ok(_) => Ok(ImportResponse::NoContent),
+    match state
+        .backup_service
+        .import_opml(bytes, session.profile_id)
+        .await
+    {
+        Ok(urls) => {
+            state
+                .import_feeds_queue
+                .push(import_feeds::Data { urls })
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            Ok(ImportResponse::NoContent)
+        }
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }

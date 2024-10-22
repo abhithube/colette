@@ -238,7 +238,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
-        BackupState::new(backup_service),
+        BackupState::new(backup_service, import_feeds_queue),
         BookmarkState::new(bookmark_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
