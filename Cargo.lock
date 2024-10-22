@@ -861,6 +861,7 @@ dependencies = [
  "rust-embed",
  "sqlx",
  "tokio",
+ "tower",
  "tower-sessions-core",
  "tracing-subscriber",
 ]

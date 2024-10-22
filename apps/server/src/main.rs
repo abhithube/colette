@@ -31,8 +31,10 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
+use colette_task::{import_feeds, run_task_worker, scrape_feed, TaskQueue};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
 use tower_sessions_core::ExpiredDeletion;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -214,12 +216,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         refresh_repository,
     ));
-    let _scraper_service = Arc::new(ScraperService::new(
+    let scraper_service = Arc::new(ScraperService::new(
         scraper_repository,
         feed_plugin_registry,
     ));
     let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
     let tag_service = Arc::new(TagService::new(tag_repository));
+
+    let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
+    let scrape_feed_queue = Arc::new(scrape_feed_queue);
+
+    let scrape_feed_task = ServiceBuilder::new().service(scrape_feed::Task::new(scraper_service));
+
+    let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
+    let import_feeds_queue = Arc::new(import_feeds_queue);
+
+    let import_feeds_task =
+        ServiceBuilder::new().service(import_feeds::Task::new(scrape_feed_queue));
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
@@ -267,6 +280,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _ = tokio::join!(
         server,
         monitor.run(),
+        run_task_worker(scrape_feed_receiver, scrape_feed_task),
+        run_task_worker(import_feeds_receiver, import_feeds_task),
         session_backend.continuously_delete_expired(tokio::time::Duration::from_secs(60))
     );
 

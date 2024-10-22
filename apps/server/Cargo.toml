@@ -24,6 +24,7 @@ rust-embed = { version = "8", default-features = false, features = [
 ] }
 sqlx.workspace = true
 tokio.workspace = true
+tower.workspace = true
 tower-sessions-core.workspace = true
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
