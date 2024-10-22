@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    fmt::{Debug, Display},
+    time::Duration,
+};
 
 #[cfg(feature = "postgres")]
 pub use apalis::postgres::PostgresStorage;
@@ -11,10 +14,48 @@ use apalis_core::layers::{Ack, AckLayer};
 pub use cleanup::cleanup;
 pub use refresh::refresh_feeds;
 use serde::{de::DeserializeOwned, Serialize};
+use tokio::sync::mpsc::{self, Receiver, Sender};
+use tower::{Service, ServiceExt};
+use tracing::error;
 
 mod cleanup;
+pub mod import_feeds;
 mod refresh;
 pub mod scrape_feed;
+
+#[derive(Clone)]
+pub struct TaskQueue<Data> {
+    sender: Sender<Data>,
+}
+
+impl<Data> TaskQueue<Data> {
+    pub fn new() -> (Self, Receiver<Data>) {
+        let (sender, receiver) = mpsc::channel(100);
+        (Self { sender }, receiver)
+    }
+
+    pub async fn push(&self, data: Data) -> Result<(), mpsc::error::SendError<Data>> {
+        self.sender.send(data).await
+    }
+}
+
+pub async fn run_task_worker<Data: Send + 'static, S: Service<Data> + Clone + Send + 'static>(
+    mut receiver: Receiver<Data>,
+    task: S,
+) where
+    S::Error: Debug + Display,
+    S::Future: Send,
+{
+    while let Some(data) = receiver.recv().await {
+        let mut task = task.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = task.ready().await.unwrap().call(data).await {
+                error!("{}", e);
+            }
+        });
+    }
+}
 
 #[derive(Clone)]
 pub enum WorkerStorage<T: Clone> {
