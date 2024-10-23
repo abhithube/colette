@@ -316,18 +316,14 @@ pub trait FeedScraper: Downloader + Send + Sync {
     }
 
     #[allow(unused_variables)]
-    fn before_postprocess(
-        &self,
-        url: &Url,
-        feed: &mut ExtractedFeed,
-    ) -> Result<(), PostprocessorError> {
+    fn postprocess(&self, url: &Url, feed: &mut ExtractedFeed) -> Result<(), PostprocessorError> {
         Ok(())
     }
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
         let resp = self.download(url)?;
         let mut feed = self.extract(url, resp)?;
-        self.before_postprocess(url, &mut feed)?;
+        self.postprocess(url, &mut feed)?;
 
         Ok(feed.try_into()?)
     }
@@ -355,7 +351,7 @@ impl FeedScraper for FeedPluginRegistry {
             None => {
                 let resp = self.download(url)?;
                 let mut feed = self.extract(url, resp)?;
-                self.before_postprocess(url, &mut feed)?;
+                self.postprocess(url, &mut feed)?;
 
                 Ok(feed.try_into()?)
             }

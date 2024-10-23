@@ -197,7 +197,7 @@ pub trait BookmarkScraper: Downloader + Send + Sync {
     }
 
     #[allow(unused_variables)]
-    fn before_postprocess(
+    fn postprocess(
         &self,
         url: &Url,
         bookmark: &mut ExtractedBookmark,
@@ -208,7 +208,7 @@ pub trait BookmarkScraper: Downloader + Send + Sync {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let resp = self.download(url)?;
         let mut bookmark = self.extract(url, resp)?;
-        self.before_postprocess(url, &mut bookmark)?;
+        self.postprocess(url, &mut bookmark)?;
 
         Ok(bookmark.try_into()?)
     }
@@ -236,7 +236,7 @@ impl BookmarkScraper for BookmarkPluginRegistry {
             None => {
                 let resp = self.download(url)?;
                 let mut bookmark = self.extract(url, resp)?;
-                self.before_postprocess(url, &mut bookmark)?;
+                self.postprocess(url, &mut bookmark)?;
 
                 Ok(bookmark.try_into()?)
             }
