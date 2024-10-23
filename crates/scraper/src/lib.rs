@@ -1,3 +1,5 @@
+#![feature(bufreader_peek)]
+
 pub use bookmark::{
     BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkScraper, ExtractedBookmark,
     ProcessedBookmark,

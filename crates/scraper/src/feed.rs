@@ -1,3 +1,4 @@
+use core::str;
 use std::{
     collections::HashMap,
     io::{BufReader, Read},
@@ -331,19 +332,18 @@ pub trait FeedScraper: Downloader + Send + Sync {
 pub trait FeedDetector: FeedScraper + Send + Sync {
     fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
         let resp = self.download(&mut url)?;
-        let mut body = resp.into_body();
+        let body = resp.into_body();
 
-        let mut buffer = [0; 5];
-        body.read_exact(&mut buffer)
+        let mut reader = BufReader::new(body);
+        let buffer = reader
+            .peek(15)
             .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
 
-        match &buffer {
-            b"<html" => {
-                let metadata =
-                    colette_meta::parse_metadata(body).map_err(|e| Error::Extract(e.into()))?;
-                if metadata.feeds.is_empty() {
-                    return Err(Error::Extract(ExtractorError(anyhow!(""))));
-                }
+        let raw = str::from_utf8(buffer).map_err(|_| Error::Parse)?;
+
+        match raw {
+            raw if raw.contains("html>") => {
+                let metadata = colette_meta::parse_metadata(reader).map_err(|_| Error::Parse)?;
 
                 let mut feeds: Vec<(Url, ProcessedFeed)> = Vec::new();
                 for feed in metadata.feeds {
@@ -355,13 +355,13 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
 
                 Ok(feeds)
             }
-            b"<?xml" => {
-                let mut feed = self.extract(&url, body)?;
+            raw if raw.contains("<?xml") => {
+                let mut feed = self.extract(&url, Box::new(reader))?;
                 self.postprocess(&url, &mut feed)?;
 
                 Ok(vec![(url, feed.try_into()?)])
             }
-            _ => Err(Error::Extract(ExtractorError(anyhow!("")))),
+            _ => Err(Error::Parse),
         }
     }
 }
