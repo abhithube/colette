@@ -95,7 +95,7 @@ pub fn run() {
                 let scrape_feed_queue = Arc::new(scrape_feed_queue);
 
                 let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
-                let _import_feeds_queue = Arc::new(import_feeds_queue);
+                let import_feeds_queue = Arc::new(import_feeds_queue);
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)
@@ -136,6 +136,8 @@ pub fn run() {
                 app.manage(profile_service);
                 app.manage(smart_feed_service);
                 app.manage(tag_service);
+
+                app.manage(import_feeds_queue);
 
                 tokio::spawn(run_task_worker(scrape_feed_receiver, scrape_feed_task));
                 tokio::spawn(run_task_worker(import_feeds_receiver, import_feeds_task));
