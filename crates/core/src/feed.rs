@@ -96,14 +96,10 @@ impl FeedService {
         self.repository.find(IdParams::new(id, profile_id)).await
     }
 
-    pub async fn create_feed(&self, mut data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
-        let url = data.url.to_string();
-
-        let result = self
-            .repository
+    pub async fn create_feed(&self, data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
+        self.repository
             .create(FeedCreateData {
-                url: url.clone(),
-                feed: None,
+                url: data.url.to_string(),
                 pinned: data.pinned,
                 tags: data.tags.clone().map(|e| TagsLinkData {
                     data: e.data.into_iter().map(|e| e.into()).collect(),
@@ -111,28 +107,7 @@ impl FeedService {
                 }),
                 profile_id,
             })
-            .await;
-
-        match result {
-            Ok(data) => Ok(data),
-            Err(Error::Conflict(_)) => {
-                let scraped = self.detector.scrape(&mut data.url)?;
-
-                self.repository
-                    .create(FeedCreateData {
-                        url,
-                        feed: Some(scraped),
-                        pinned: data.pinned,
-                        tags: data.tags.map(|e| TagsLinkData {
-                            data: e.data.into_iter().map(|e| e.into()).collect(),
-                            action: e.action,
-                        }),
-                        profile_id,
-                    })
-                    .await
-            }
-            e => e,
-        }
+            .await
     }
 
     pub async fn update_feed(
@@ -217,7 +192,6 @@ impl From<FeedListQuery> for FeedFindManyFilters {
 #[derive(Clone, Debug, Default)]
 pub struct FeedCreateData {
     pub url: String,
-    pub feed: Option<ProcessedFeed>,
     pub pinned: bool,
     pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
