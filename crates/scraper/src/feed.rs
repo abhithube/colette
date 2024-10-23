@@ -10,13 +10,14 @@ use colette_feed::{
     rss::{RssFeed, RssItem},
     Feed,
 };
-use http::{request::Builder, Request, Response};
+use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
+    downloader::Downloader,
     utils::{ExtractorQuery, TextSelector},
-    DownloaderError, Error, ExtractorError, PostprocessorError,
+    Error, ExtractorError, PostprocessorError,
 };
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
@@ -251,24 +252,7 @@ impl From<RssItem> for ExtractedFeedEntry {
     }
 }
 
-pub trait FeedScraper: Send + Sync {
-    fn before_download(&self, url: &mut Url) -> Builder {
-        Request::get(url.as_str())
-    }
-
-    fn download(
-        &self,
-        builder: Builder,
-    ) -> Result<Response<Box<dyn Read + Send + Sync>>, DownloaderError> {
-        let req: ureq::Request = builder
-            .try_into()
-            .map_err(|e: http::Error| DownloaderError(e.into()))?;
-
-        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
-
-        Ok(resp.into())
-    }
-
+pub trait FeedScraper: Downloader + Send + Sync {
     fn before_extract(&self) -> Option<FeedExtractorOptions> {
         None
     }
@@ -360,6 +344,8 @@ impl FeedPluginRegistry {
         Self { plugins }
     }
 }
+
+impl Downloader for FeedPluginRegistry {}
 
 impl FeedScraper for FeedPluginRegistry {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {

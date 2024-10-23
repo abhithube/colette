@@ -2,12 +2,14 @@ pub use bookmark::{
     BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkScraper, ExtractedBookmark,
     ProcessedBookmark,
 };
+pub use downloader::Downloader;
 pub use feed::{
     ExtractedFeed, ExtractedFeedEntry, FeedExtractorOptions, FeedPluginRegistry, FeedScraper,
     ProcessedFeed, ProcessedFeedEntry,
 };
 
 mod bookmark;
+mod downloader;
 mod feed;
 pub mod utils;
 

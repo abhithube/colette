@@ -1,4 +1,4 @@
-use colette_scraper::FeedScraper;
+use colette_scraper::{Downloader, FeedScraper};
 use http::{request::Builder, Request};
 use lazy_regex::regex_captures;
 use url::Url;
@@ -9,7 +9,7 @@ pub fn create() -> Box<dyn FeedScraper> {
     Box::new(YouTubePlugin)
 }
 
-impl FeedScraper for YouTubePlugin {
+impl Downloader for YouTubePlugin {
     fn before_download(&self, url: &mut Url) -> Builder {
         if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.as_str()) {
             url.set_query(Some(&format!("channel_id={}", channel_id)));
@@ -19,3 +19,5 @@ impl FeedScraper for YouTubePlugin {
         Request::get(url.as_str())
     }
 }
+
+impl FeedScraper for YouTubePlugin {}

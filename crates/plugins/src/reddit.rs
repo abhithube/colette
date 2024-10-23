@@ -1,6 +1,6 @@
 use colette_scraper::{
     utils::{ExtractorQuery, Node},
-    BookmarkExtractorOptions, BookmarkScraper, FeedScraper,
+    BookmarkExtractorOptions, BookmarkScraper, Downloader, FeedScraper,
 };
 use http::{header, request::Builder, Request};
 use scraper::Selector;
@@ -12,7 +12,7 @@ pub fn feed() -> Box<dyn FeedScraper> {
     Box::new(RedditPlugin)
 }
 
-impl FeedScraper for RedditPlugin {
+impl Downloader for RedditPlugin {
     fn before_download(&self, url: &mut Url) -> Builder {
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
@@ -22,6 +22,8 @@ impl FeedScraper for RedditPlugin {
             .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
     }
 }
+
+impl FeedScraper for RedditPlugin {}
 
 pub fn bookmark() -> Box<dyn BookmarkScraper> {
     Box::new(RedditPlugin)

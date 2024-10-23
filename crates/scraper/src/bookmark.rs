@@ -6,13 +6,14 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
-use http::{request::Builder, Request, Response};
+use http::Response;
 use scraper::Html;
 use url::Url;
 
 use crate::{
+    downloader::Downloader,
     utils::{ExtractorQuery, TextSelector},
-    DownloaderError, Error, ExtractorError, PostprocessorError,
+    Error, ExtractorError, PostprocessorError,
 };
 
 const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
@@ -76,24 +77,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
     }
 }
 
-pub trait BookmarkScraper: Send + Sync {
-    fn before_download(&self, url: &mut Url) -> Builder {
-        Request::get(url.as_str())
-    }
-
-    fn download(
-        &self,
-        builder: Builder,
-    ) -> Result<Response<Box<dyn Read + Send + Sync>>, DownloaderError> {
-        let req: ureq::Request = builder
-            .try_into()
-            .map_err(|e: http::Error| DownloaderError(e.into()))?;
-
-        let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
-
-        Ok(resp.into())
-    }
-
+pub trait BookmarkScraper: Downloader + Send + Sync {
     fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
         None
     }
@@ -241,6 +225,8 @@ impl BookmarkPluginRegistry {
         Self { plugins }
     }
 }
+
+impl Downloader for BookmarkPluginRegistry {}
 
 impl BookmarkScraper for BookmarkPluginRegistry {
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
