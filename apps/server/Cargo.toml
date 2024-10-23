@@ -25,11 +25,7 @@ sqlx.workspace = true
 tokio.workspace = true
 tower.workspace = true
 tower-sessions-core.workspace = true
-tracing-subscriber = { version = "0.3", default-features = false, features = [
-  "ansi",
-  "env-filter",
-  "tracing-log",
-] }
+tracing-subscriber.workspace = true
 
 [features]
 default = ["postgres", "sqlite"]

@@ -31,4 +31,5 @@ tauri = { version = "2", default-features = false, features = [
 tauri-plugin-shell = { version = "2", default-features = false }
 tokio.workspace = true
 tower.workspace = true
+tracing-subscriber.workspace = true
 uuid.workspace = true

@@ -26,11 +26,17 @@ use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag
 use email_address::EmailAddress;
 use tauri::Manager;
 use tower::ServiceBuilder;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod command;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::EnvFilter::from_default_env())
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
