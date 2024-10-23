@@ -163,6 +163,8 @@ pub trait BookmarkRepository:
         cursor: Option<Cursor>,
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Vec<Bookmark>, Error>;
+
+    async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -192,6 +194,12 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             }),
         }
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct BookmarkCacheData {
+    pub url: String,
+    pub bookmark: ProcessedBookmark,
 }
 
 #[derive(Debug, thiserror::Error)]

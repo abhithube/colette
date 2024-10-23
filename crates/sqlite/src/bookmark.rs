@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark::{
-        BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository, BookmarkUpdateData,
-        Cursor, Error,
+        BookmarkCacheData, BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository,
+        BookmarkUpdateData, Cursor, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
@@ -163,6 +163,24 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         filters: Option<BookmarkFindManyFilters>,
     ) -> Result<Vec<Bookmark>, Error> {
         find(&self.pool, None, profile_id, limit, cursor, filters).await
+    }
+
+    async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
+        let (sql, values) = colette_sql::bookmark::insert(
+            data.url,
+            data.bookmark.title,
+            data.bookmark.thumbnail.map(String::from),
+            data.bookmark.published,
+            data.bookmark.author,
+        )
+        .build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(())
     }
 }
 
