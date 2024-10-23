@@ -10,7 +10,6 @@ use colette_feed::{
     rss::{RssFeed, RssItem},
     Feed,
 };
-use http::Response;
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -260,11 +259,10 @@ pub trait FeedScraper: Downloader + Send + Sync {
     fn extract(
         &self,
         url: &Url,
-        resp: Response<Box<dyn Read + Send + Sync>>,
+        mut body: Box<dyn Read + Send + Sync>,
     ) -> Result<ExtractedFeed, ExtractorError> {
         match self.before_extract() {
             Some(options) => {
-                let mut body = resp.into_body();
                 let mut raw = String::new();
                 body.read_to_string(&mut raw)
                     .map_err(|e| ExtractorError(e.into()))?;
@@ -309,7 +307,7 @@ pub trait FeedScraper: Downloader + Send + Sync {
 
                 Ok(feed)
             }
-            None => colette_feed::from_reader(BufReader::new(resp.into_body()))
+            None => colette_feed::from_reader(BufReader::new(body))
                 .map(ExtractedFeed::from)
                 .map_err(|e| e.into()),
         }
@@ -322,7 +320,8 @@ pub trait FeedScraper: Downloader + Send + Sync {
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
         let resp = self.download(url)?;
-        let mut feed = self.extract(url, resp)?;
+        let body = resp.into_body();
+        let mut feed = self.extract(url, body)?;
         self.postprocess(url, &mut feed)?;
 
         Ok(feed.try_into()?)
@@ -350,7 +349,8 @@ impl FeedScraper for FeedPluginRegistry {
             Some(plugin) => plugin.scrape(url),
             None => {
                 let resp = self.download(url)?;
-                let mut feed = self.extract(url, resp)?;
+                let body = resp.into_body();
+                let mut feed = self.extract(url, body)?;
                 self.postprocess(url, &mut feed)?;
 
                 Ok(feed.try_into()?)

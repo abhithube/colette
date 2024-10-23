@@ -6,7 +6,6 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
-use http::Response;
 use scraper::Html;
 use url::Url;
 
@@ -86,10 +85,8 @@ pub trait BookmarkScraper: Downloader + Send + Sync {
     fn extract(
         &self,
         url: &Url,
-        resp: Response<Box<dyn Read + Send + Sync>>,
+        mut body: Box<dyn Read + Send + Sync>,
     ) -> Result<ExtractedBookmark, ExtractorError> {
-        let mut body = resp.into_body();
-
         match self.before_extract() {
             Some(options) => {
                 let mut raw = String::new();
@@ -207,7 +204,8 @@ pub trait BookmarkScraper: Downloader + Send + Sync {
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let resp = self.download(url)?;
-        let mut bookmark = self.extract(url, resp)?;
+        let body = resp.into_body();
+        let mut bookmark = self.extract(url, body)?;
         self.postprocess(url, &mut bookmark)?;
 
         Ok(bookmark.try_into()?)
@@ -235,7 +233,8 @@ impl BookmarkScraper for BookmarkPluginRegistry {
             Some(plugin) => plugin.scrape(url),
             None => {
                 let resp = self.download(url)?;
-                let mut bookmark = self.extract(url, resp)?;
+                let body = resp.into_body();
+                let mut bookmark = self.extract(url, body)?;
                 self.postprocess(url, &mut bookmark)?;
 
                 Ok(bookmark.try_into()?)
