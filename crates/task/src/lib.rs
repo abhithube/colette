@@ -1,4 +1,5 @@
 use std::{
+    any::type_name,
     fmt::{Debug, Display},
     str::FromStr,
 };
@@ -7,7 +8,7 @@ use chrono::Utc;
 use cron::Schedule;
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use tower::{Service, ServiceExt};
-use tracing::error;
+use tracing::{error, info};
 
 pub mod cleanup_feeds;
 pub mod import_feeds;
@@ -37,12 +38,21 @@ pub async fn run_task_worker<Data: Send + 'static, S: Service<Data> + Clone + Se
     S::Error: Debug + Display,
     S::Future: Send,
 {
+    let name = type_name::<S>();
+
     while let Some(data) = receiver.recv().await {
         let mut task = task.clone();
 
         tokio::spawn(async move {
-            if let Err(e) = task.ready().await.unwrap().call(data).await {
-                error!("{}", e);
+            info!("Started task {}", name);
+
+            match task.ready().await.unwrap().call(data).await {
+                Ok(_) => {
+                    info!("Finished task {}", name);
+                }
+                Err(e) => {
+                    error!("{}", e);
+                }
             }
         });
     }
@@ -53,6 +63,8 @@ where
     S::Error: Debug + Display,
     S::Future: Send,
 {
+    let name = type_name::<S>();
+
     let schedule = Schedule::from_str(cron).unwrap();
 
     loop {
@@ -61,8 +73,15 @@ where
 
         tokio::time::sleep(duration).await;
 
-        if let Err(e) = task.ready().await.unwrap().call(()).await {
-            error!("{}", e);
+        info!("Started task {}", name);
+
+        match task.ready().await.unwrap().call(()).await {
+            Ok(_) => {
+                info!("Finished task {}", name);
+            }
+            Err(e) => {
+                error!("{}", e);
+            }
         }
     }
 }
