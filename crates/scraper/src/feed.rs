@@ -328,6 +328,44 @@ pub trait FeedScraper: Downloader + Send + Sync {
     }
 }
 
+pub trait FeedDetector: FeedScraper + Send + Sync {
+    fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
+        let resp = self.download(&mut url)?;
+        let mut body = resp.into_body();
+
+        let mut buffer = [0; 5];
+        body.read_exact(&mut buffer)
+            .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
+
+        match &buffer {
+            b"<html" => {
+                let metadata =
+                    colette_meta::parse_metadata(body).map_err(|e| Error::Extract(e.into()))?;
+                if metadata.feeds.is_empty() {
+                    return Err(Error::Extract(ExtractorError(anyhow!(""))));
+                }
+
+                let mut feeds: Vec<(Url, ProcessedFeed)> = Vec::new();
+                for feed in metadata.feeds {
+                    let mut url = Url::parse(&feed.href).unwrap();
+                    let feed = self.scrape(&mut url)?;
+
+                    feeds.push((url, feed));
+                }
+
+                Ok(feeds)
+            }
+            b"<?xml" => {
+                let mut feed = self.extract(&url, body)?;
+                self.postprocess(&url, &mut feed)?;
+
+                Ok(vec![(url, feed.try_into()?)])
+            }
+            _ => Err(Error::Extract(ExtractorError(anyhow!("")))),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct FeedPluginRegistry {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
@@ -358,3 +396,5 @@ impl FeedScraper for FeedPluginRegistry {
         }
     }
 }
+
+impl FeedDetector for FeedPluginRegistry {}
