@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-apalis.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 axum-embed = { version = "0.1", default-features = false }
@@ -34,9 +33,5 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
 
 [features]
 default = ["postgres", "sqlite"]
-postgres = [
-  "dep:colette-postgres",
-  "colette-session/postgres",
-  "colette-task/postgres",
-]
-sqlite = ["dep:colette-sqlite", "colette-session/sqlite", "colette-task/sqlite"]
+postgres = ["dep:colette-postgres", "colette-session/postgres"]
+sqlite = ["dep:colette-sqlite", "colette-session/sqlite"]

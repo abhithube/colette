@@ -24,11 +24,6 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false, features = ["std"] }
-apalis = { version = "0.5", default-features = false, features = [
-  "cron",
-  "tokio-comp",
-] }
-apalis-core = { version = "0.5", default-features = false }
 async-trait = { version = "0.1", default-features = false }
 axum = { version = "0.7", default-features = false, features = [
   "http1",
