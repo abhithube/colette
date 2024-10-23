@@ -14,7 +14,6 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod profile;
-pub mod refresh;
 pub mod scraper;
 pub mod smart_feed;
 pub mod tag;
