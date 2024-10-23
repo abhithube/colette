@@ -227,13 +227,11 @@ impl FeedRepository for PostgresFeedRepository {
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
-        Ok(
-            sqlx::query_scalar::<_, String>("SELECT COALESCE(url, link) FROM feeds")
-                .fetch(&self.pool)
-                .map_err(|e| Error::Unknown(e.into()))
-                .boxed(),
-        )
+    fn stream(&self) -> BoxStream<Result<String, Error>> {
+        sqlx::query_scalar::<_, String>("SELECT COALESCE(url, link) FROM feeds")
+            .fetch(&self.pool)
+            .map_err(|e| Error::Unknown(e.into()))
+            .boxed()
     }
 }
 

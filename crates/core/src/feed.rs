@@ -174,8 +174,8 @@ impl FeedService {
         })
     }
 
-    pub async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
-        self.repository.stream().await
+    pub fn stream(&self) -> BoxStream<Result<String, Error>> {
+        self.repository.stream()
     }
 }
 
@@ -198,7 +198,7 @@ pub trait FeedRepository:
 
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
 
-    async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error>;
+    fn stream(&self) -> BoxStream<Result<String, Error>>;
 }
 
 #[derive(Clone, Debug, Default)]

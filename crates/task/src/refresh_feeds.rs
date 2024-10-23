@@ -6,7 +6,7 @@ use std::{
 };
 
 use colette_core::feed::{self, FeedService};
-use futures::TryStreamExt;
+use futures::StreamExt;
 use tower::Service;
 use url::Url;
 
@@ -44,9 +44,9 @@ impl Service<()> for Task {
         let scrape_feed_queue = self.scrape_feed_queue.clone();
 
         Box::pin(async move {
-            let mut stream = service.stream().await?;
+            let mut stream = service.stream();
 
-            while let Ok(Some(raw)) = stream.try_next().await {
+            while let Some(Ok(raw)) = stream.next().await {
                 let url = Url::parse(&raw).unwrap();
 
                 scrape_feed_queue
