@@ -182,52 +182,54 @@ impl FeedRepository for SqliteFeedRepository {
         find(&self.pool, None, profile_id, limit, cursor, filters).await
     }
 
-    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
+    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
         let mut tx = self
             .pool
             .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = {
-            let link = data.feed.link.to_string();
-            let url = if data.url == link {
-                None
-            } else {
-                Some(data.url)
+        for data in data {
+            let feed_id = {
+                let link = data.feed.link.to_string();
+                let url = if data.url == link {
+                    None
+                } else {
+                    Some(data.url)
+                };
+
+                let (sql, values) = colette_sql::feed::insert(link, data.feed.title, url)
+                    .build_sqlx(SqliteQueryBuilder);
+
+                sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                    .fetch_one(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
             };
 
-            let (sql, values) = colette_sql::feed::insert(link, data.feed.title, url)
-                .build_sqlx(SqliteQueryBuilder);
+            if !data.feed.entries.is_empty() {
+                let insert_many = data
+                    .feed
+                    .entries
+                    .into_iter()
+                    .map(|e| colette_sql::feed_entry::InsertMany {
+                        link: e.link.to_string(),
+                        title: e.title,
+                        published_at: e.published,
+                        description: e.description,
+                        author: e.author,
+                        thumbnail_url: e.thumbnail.map(String::from),
+                    })
+                    .collect::<Vec<_>>();
 
-            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
+                let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
+                    .build_sqlx(SqliteQueryBuilder);
 
-        if !data.feed.entries.is_empty() {
-            let insert_many = data
-                .feed
-                .entries
-                .into_iter()
-                .map(|e| colette_sql::feed_entry::InsertMany {
-                    link: e.link.to_string(),
-                    title: e.title,
-                    published_at: e.published,
-                    description: e.description,
-                    author: e.author,
-                    thumbnail_url: e.thumbnail.map(String::from),
-                })
-                .collect::<Vec<_>>();
-
-            let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
-                .build_sqlx(SqliteQueryBuilder);
-
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+            }
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))

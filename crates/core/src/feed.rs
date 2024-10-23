@@ -129,6 +129,7 @@ impl FeedService {
         let detected = self.detector.detect(data.url)?;
 
         let mut feeds: Vec<FeedDetected> = Vec::new();
+        let mut data: Vec<FeedCacheData> = Vec::new();
 
         for (url, feed) in detected {
             let url = url.to_string();
@@ -137,9 +138,10 @@ impl FeedService {
                 url: url.clone(),
                 title: feed.title.clone(),
             });
-
-            self.repository.cache(FeedCacheData { url, feed }).await?;
+            data.push(FeedCacheData { url, feed });
         }
+
+        self.repository.cache(data).await?;
 
         Ok(Paginated::<FeedDetected> {
             data: feeds,
@@ -169,7 +171,7 @@ pub trait FeedRepository:
         filters: Option<FeedFindManyFilters>,
     ) -> Result<Vec<Feed>, Error>;
 
-    async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
+    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error>;
 
     fn stream(&self) -> BoxStream<Result<String, Error>>;
 }
