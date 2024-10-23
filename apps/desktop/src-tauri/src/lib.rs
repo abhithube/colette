@@ -10,6 +10,7 @@ use colette_core::{
     feed::FeedService,
     feed_entry::FeedEntryService,
     profile::{ProfileIdOrDefaultParams, ProfileService},
+    scraper::ScraperService,
     smart_feed::SmartFeedService,
     tag::TagService,
 };
@@ -17,12 +18,14 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteCleanupRepository,
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
-    SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
+    SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
+use colette_task::{import_feeds, run_task_worker, scrape_feed, TaskQueue};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
 use email_address::EmailAddress;
 use tauri::Manager;
+use tower::ServiceBuilder;
 
 mod command;
 
@@ -48,9 +51,12 @@ pub fn run() {
                 let feed_repository = Arc::new(SqliteFeedRepository::new(pool.clone()));
                 let feed_entry_repository = Arc::new(SqliteFeedEntryRepository::new(pool.clone()));
                 let profile_repository = Arc::new(SqliteProfileRepository::new(pool.clone()));
+                let scraper_repository = Arc::new(SqliteScraperRepository::new(pool.clone()));
                 let smart_feed_repository = Arc::new(SqliteSmartFeedRepository::new(pool.clone()));
                 let tag_repository = Arc::new(SqliteTagRepository::new(pool.clone()));
                 let user_repository = Arc::new(SqliteUserRepository::new(pool.clone()));
+
+                let feed_plugin_registry = Arc::new(register_feed_plugins());
 
                 let base64_decoder = Arc::new(Base64Encoder);
 
@@ -71,13 +77,24 @@ pub fn run() {
                     Arc::new(register_bookmark_plugins()),
                     base64_decoder.clone(),
                 );
-                let feed_service =
-                    FeedService::new(feed_repository, Arc::new(register_feed_plugins()));
+                let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
                 let feed_entry_service =
                     FeedEntryService::new(feed_entry_repository, base64_decoder);
                 let profile_service = ProfileService::new(profile_repository.clone());
+                let scraper_service = ScraperService::new(scraper_repository, feed_plugin_registry);
                 let smart_feed_service = SmartFeedService::new(smart_feed_repository.clone());
                 let tag_service = TagService::new(tag_repository);
+
+                let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
+                let scrape_feed_queue = Arc::new(scrape_feed_queue);
+
+                let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
+                let _import_feeds_queue = Arc::new(import_feeds_queue);
+
+                let scrape_feed_task = ServiceBuilder::new()
+                    .concurrency_limit(5)
+                    .service(scrape_feed::Task::new(Arc::new(scraper_service)));
+                let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
 
                 let email = EmailAddress::from_str("default@default.com")?;
                 let password = NonEmptyString::try_from("default".to_owned())?;
@@ -113,6 +130,9 @@ pub fn run() {
                 app.manage(profile_service);
                 app.manage(smart_feed_service);
                 app.manage(tag_service);
+
+                tokio::spawn(run_task_worker(scrape_feed_receiver, scrape_feed_task));
+                tokio::spawn(run_task_worker(import_feeds_receiver, import_feeds_task));
 
                 Ok(())
             })
