@@ -5,6 +5,7 @@ import type {
   FeedAPI,
   FeedEntryAPI,
   ProfileAPI,
+  SmartFeedAPI,
   TagAPI,
 } from '@colette/core'
 import {
@@ -14,6 +15,7 @@ import {
   FeedCommands,
   FeedEntryCommands,
   ProfileCommands,
+  SmartFeedCommands,
   TagCommands,
 } from './commands'
 
@@ -24,6 +26,7 @@ export interface API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   profiles: ProfileAPI
+  smartFeeds: SmartFeedAPI
   tags: TagAPI
 }
 
@@ -34,6 +37,7 @@ export class CommandsAPI implements API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   profiles: ProfileAPI
+  smartFeeds: SmartFeedAPI
   tags: TagAPI
 
   constructor() {
@@ -43,6 +47,7 @@ export class CommandsAPI implements API {
     this.feedEntries = new FeedEntryCommands()
     this.feeds = new FeedCommands()
     this.profiles = new ProfileCommands()
+    this.smartFeeds = new SmartFeedCommands()
     this.tags = new TagCommands()
   }
 }

@@ -20,7 +20,7 @@ use colette_sqlite::{
     SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
-use command::{auth, backup, bookmark, feed, feed_entry, profile, tag};
+use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
 use email_address::EmailAddress;
 use tauri::Manager;
 
@@ -145,6 +145,11 @@ pub fn run() {
             profile::get_active_profile,
             profile::update_profile,
             profile::delete_profile,
+            smart_feed::list_smart_feeds,
+            smart_feed::create_smart_feed,
+            smart_feed::get_smart_feed,
+            smart_feed::update_smart_feed,
+            smart_feed::delete_smart_feed,
             tag::list_tags,
             tag::create_tag,
             tag::get_tag,
