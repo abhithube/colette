@@ -202,7 +202,7 @@ impl FeedRepository for PostgresFeedRepository {
                 .map_err(|e| Error::Unknown(e.into()))?
         };
 
-        {
+        if !data.feed.entries.is_empty() {
             let insert_many = data
                 .feed
                 .entries

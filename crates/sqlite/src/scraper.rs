@@ -40,59 +40,63 @@ impl ScraperRepository for SqliteScraperRepository {
                 .map_err(|e| Error::Unknown(e.into()))?
         };
 
-        {
-            let insert_many = data
-                .feed
-                .entries
-                .into_iter()
-                .map(|e| colette_sql::feed_entry::InsertMany {
-                    link: e.link.to_string(),
-                    title: e.title,
-                    published_at: e.published,
-                    description: e.description,
-                    author: e.author,
-                    thumbnail_url: e.thumbnail.map(String::from),
-                })
-                .collect::<Vec<_>>();
+        if !data.feed.entries.is_empty() {
+            {
+                let insert_many = data
+                    .feed
+                    .entries
+                    .into_iter()
+                    .map(|e| colette_sql::feed_entry::InsertMany {
+                        link: e.link.to_string(),
+                        title: e.title,
+                        published_at: e.published,
+                        description: e.description,
+                        author: e.author,
+                        thumbnail_url: e.thumbnail.map(String::from),
+                    })
+                    .collect::<Vec<_>>();
 
-            let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
-                .build_sqlx(SqliteQueryBuilder);
-
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        let fe_ids = {
-            let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
-                .build_sqlx(SqliteQueryBuilder);
-
-            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                .fetch_all(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-
-        {
-            let insert_many = fe_ids
-                .into_iter()
-                .map(
-                    |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
-                        id: Some(Uuid::new_v4()),
-                        feed_entry_id,
-                    },
-                )
-                .collect::<Vec<_>>();
-
-            let (sql, values) =
-                colette_sql::profile_feed_entry::insert_many_for_all_profiles(insert_many, feed_id)
+                let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
                     .build_sqlx(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+            }
+
+            let fe_ids = {
+                let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
+                    .build_sqlx(SqliteQueryBuilder);
+
+                sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+                    .fetch_all(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+            };
+
+            {
+                let insert_many = fe_ids
+                    .into_iter()
+                    .map(
+                        |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
+                            id: Some(Uuid::new_v4()),
+                            feed_entry_id,
+                        },
+                    )
+                    .collect::<Vec<_>>();
+
+                let (sql, values) = colette_sql::profile_feed_entry::insert_many_for_all_profiles(
+                    insert_many,
+                    feed_id,
+                )
+                .build_sqlx(SqliteQueryBuilder);
+
+                sqlx::query_with(&sql, values)
+                    .execute(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+            }
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
