@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use colette_scraper::FeedScraper;
+use colette_scraper::FeedDetector;
 pub use colette_scraper::ProcessedFeed;
 use futures::stream::BoxStream;
 use url::Url;
@@ -65,14 +65,14 @@ pub struct Cursor {
 
 pub struct FeedService {
     repository: Arc<dyn FeedRepository>,
-    scraper: Arc<dyn FeedScraper>,
+    detector: Arc<dyn FeedDetector>,
 }
 
 impl FeedService {
-    pub fn new(repository: Arc<dyn FeedRepository>, scraper: Arc<dyn FeedScraper>) -> Self {
+    pub fn new(repository: Arc<dyn FeedRepository>, detector: Arc<dyn FeedDetector>) -> Self {
         Self {
             repository,
-            scraper,
+            detector,
         }
     }
 
@@ -116,7 +116,7 @@ impl FeedService {
         match result {
             Ok(data) => Ok(data),
             Err(Error::Conflict(_)) => {
-                let scraped = self.scraper.scrape(&mut data.url)?;
+                let scraped = self.detector.scrape(&mut data.url)?;
 
                 self.repository
                     .create(FeedCreateData {
@@ -150,14 +150,12 @@ impl FeedService {
         self.repository.delete(IdParams::new(id, profile_id)).await
     }
 
-    pub async fn detect_feeds(&self, _data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
-        // let urls = self.scraper.detect(&mut data.url)?;
-        let urls: Vec<Url> = Vec::new();
+    pub async fn detect_feeds(&self, data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
+        let detected = self.detector.detect(data.url)?;
 
         let mut feeds: Vec<FeedDetected> = Vec::new();
 
-        for mut url in urls.into_iter() {
-            let feed = self.scraper.scrape(&mut url)?;
+        for (url, feed) in detected {
             let url = url.to_string();
 
             feeds.push(FeedDetected {
