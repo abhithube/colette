@@ -65,25 +65,31 @@ pub fn run() {
                     profile_repository.clone(),
                     Arc::new(ArgonHasher),
                 );
-                let backup_service = BackupService::new(
+                let backup_service = Arc::new(BackupService::new(
                     backup_repository,
                     feed_repository.clone(),
                     bookmark_repository.clone(),
                     Arc::new(OpmlManager),
                     Arc::new(NetscapeManager),
-                );
-                let bookmark_service = BookmarkService::new(
+                ));
+                let bookmark_service = Arc::new(BookmarkService::new(
                     bookmark_repository,
                     Arc::new(register_bookmark_plugins()),
                     base64_decoder.clone(),
-                );
-                let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
+                ));
+                let feed_service = Arc::new(FeedService::new(
+                    feed_repository,
+                    feed_plugin_registry.clone(),
+                ));
                 let feed_entry_service =
-                    FeedEntryService::new(feed_entry_repository, base64_decoder);
-                let profile_service = ProfileService::new(profile_repository.clone());
-                let scraper_service = ScraperService::new(scraper_repository, feed_plugin_registry);
-                let smart_feed_service = SmartFeedService::new(smart_feed_repository.clone());
-                let tag_service = TagService::new(tag_repository);
+                    Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
+                let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
+                let scraper_service = Arc::new(ScraperService::new(
+                    scraper_repository,
+                    feed_plugin_registry,
+                ));
+                let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
+                let tag_service = Arc::new(TagService::new(tag_repository));
 
                 let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
                 let scrape_feed_queue = Arc::new(scrape_feed_queue);
@@ -93,7 +99,7 @@ pub fn run() {
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)
-                    .service(scrape_feed::Task::new(Arc::new(scraper_service)));
+                    .service(scrape_feed::Task::new(scraper_service));
                 let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
 
                 let email = EmailAddress::from_str("default@default.com")?;

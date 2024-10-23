@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use colette_api::{
     auth::{Login, Register, SwitchProfile, User},
     profile::Profile,
@@ -7,7 +9,10 @@ use colette_core::auth::AuthService;
 use tauri::State;
 
 #[tauri::command]
-pub async fn register(service: State<'_, AuthService>, data: Register) -> Result<User, String> {
+pub async fn register(
+    service: State<'_, Arc<AuthService>>,
+    data: Register,
+) -> Result<User, String> {
     let user = service
         .register(data.into())
         .await
@@ -17,7 +22,7 @@ pub async fn register(service: State<'_, AuthService>, data: Register) -> Result
 }
 
 #[tauri::command]
-pub async fn login(service: State<'_, AuthService>, data: Login) -> Result<Profile, String> {
+pub async fn login(service: State<'_, Arc<AuthService>>, data: Login) -> Result<Profile, String> {
     let profile = service
         .login(data.into())
         .await
@@ -28,7 +33,7 @@ pub async fn login(service: State<'_, AuthService>, data: Login) -> Result<Profi
 
 #[tauri::command]
 pub async fn get_active_user(
-    service: State<'_, AuthService>,
+    service: State<'_, Arc<AuthService>>,
     session: State<'_, Session>,
 ) -> Result<User, String> {
     let user = service
@@ -41,7 +46,7 @@ pub async fn get_active_user(
 
 #[tauri::command]
 pub async fn switch_profile(
-    service: State<'_, AuthService>,
+    service: State<'_, Arc<AuthService>>,
     session: State<'_, Session>,
     data: SwitchProfile,
 ) -> Result<Profile, String> {

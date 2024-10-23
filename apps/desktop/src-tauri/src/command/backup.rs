@@ -1,10 +1,12 @@
+use std::sync::Arc;
+
 use colette_api::Session;
 use colette_core::backup::BackupService;
 use tauri::State;
 
 #[tauri::command]
 pub async fn import_opml(
-    service: State<'_, BackupService>,
+    service: State<'_, Arc<BackupService>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
@@ -18,7 +20,7 @@ pub async fn import_opml(
 
 #[tauri::command]
 pub async fn export_opml(
-    service: State<'_, BackupService>,
+    service: State<'_, Arc<BackupService>>,
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service
@@ -31,7 +33,7 @@ pub async fn export_opml(
 
 #[tauri::command]
 pub async fn import_netscape(
-    service: State<'_, BackupService>,
+    service: State<'_, Arc<BackupService>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
@@ -43,7 +45,7 @@ pub async fn import_netscape(
 
 #[tauri::command]
 pub async fn export_netscape(
-    service: State<'_, BackupService>,
+    service: State<'_, Arc<BackupService>>,
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service
