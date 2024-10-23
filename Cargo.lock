@@ -606,10 +606,8 @@ dependencies = [
  "colette-util",
  "email_address",
  "futures",
- "http",
  "serde",
  "thiserror",
- "tokio",
  "url",
  "uuid",
 ]
