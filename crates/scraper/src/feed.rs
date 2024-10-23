@@ -325,8 +325,7 @@ pub trait FeedScraper: Downloader + Send + Sync {
     }
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let builder = self.before_download(url);
-        let resp = self.download(builder)?;
+        let resp = self.download(url)?;
         let mut feed = self.extract(url, resp)?;
         self.before_postprocess(url, &mut feed)?;
 
@@ -354,8 +353,7 @@ impl FeedScraper for FeedPluginRegistry {
         match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(url),
             None => {
-                let builder = self.before_download(url);
-                let resp = self.download(builder)?;
+                let resp = self.download(url)?;
                 let mut feed = self.extract(url, resp)?;
                 self.before_postprocess(url, &mut feed)?;
 

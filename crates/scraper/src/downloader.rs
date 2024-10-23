@@ -12,9 +12,10 @@ pub trait Downloader: Send + Sync {
 
     fn download(
         &self,
-        builder: Builder,
+        url: &mut Url,
     ) -> Result<Response<Box<dyn Read + Send + Sync>>, DownloaderError> {
-        let req: ureq::Request = builder
+        let req: ureq::Request = self
+            .before_download(url)
             .try_into()
             .map_err(|e: http::Error| DownloaderError(e.into()))?;
 
