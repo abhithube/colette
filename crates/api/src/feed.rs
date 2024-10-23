@@ -258,7 +258,12 @@ pub async fn create_feed(
         Err(feed::Error::Scraper(e)) => Ok(CreateResponse::BadGateway(BaseError {
             message: e.to_string(),
         })),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Err(e) => match e {
+            feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown(e.into())),
+        },
     }
 }
 
@@ -379,6 +384,9 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]
     Created(Feed),
 
+    #[response(status = 409, description = "Feed not cached")]
+    Conflict(BaseError),
+
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 
@@ -390,6 +398,7 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
+            Self::Conflict(data) => (StatusCode::CONFLICT, Json(data)).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
