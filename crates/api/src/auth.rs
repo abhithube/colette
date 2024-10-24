@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
@@ -11,7 +12,6 @@ use colette_core::{
     user,
 };
 use email_address::EmailAddress;
-use http::StatusCode;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;

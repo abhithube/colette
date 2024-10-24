@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::feed_entry::{self, FeedEntryService};
-use http::StatusCode;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;

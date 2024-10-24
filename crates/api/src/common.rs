@@ -3,6 +3,7 @@ use axum::{
         rejection::{JsonRejection, QueryRejection},
         FromRequestParts,
     },
+    http::{request::Parts, StatusCode},
     response::{IntoResponse, Response},
     Json,
 };
@@ -10,7 +11,6 @@ use colette_core::{
     auth,
     common::{self, NonEmptyString},
 };
-use http::{request::Parts, StatusCode};
 use tower_sessions::session;
 use tracing::error;
 use uuid::Uuid;

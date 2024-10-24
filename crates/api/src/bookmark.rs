@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::{self, BookmarkService};
-use http::StatusCode;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::{IntoResponse, Response},
     Json,
 };
@@ -9,7 +10,6 @@ use colette_core::{
     common::NonEmptyString,
     profile::{self, ProfileService},
 };
-use http::StatusCode;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
