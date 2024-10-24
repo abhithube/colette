@@ -45,19 +45,16 @@ impl Creatable for PostgresBookmarkRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let bookmark_id = {
-            let (sql, values) = colette_sql::bookmark::insert(
-                data.url,
-                data.bookmark.title,
-                data.bookmark.thumbnail.map(String::from),
-                data.bookmark.published,
-                data.bookmark.author,
-            )
-            .build_sqlx(PostgresQueryBuilder);
+            let (sql, values) = colette_sql::bookmark::select_by_link(data.url.clone())
+                .build_sqlx(PostgresQueryBuilder);
 
             sqlx::query_scalar_with::<_, i32, _>(&sql, values)
                 .fetch_one(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::Conflict(data.url),
+                    _ => Error::Unknown(e.into()),
+                })?
         };
 
         let pb_id = {

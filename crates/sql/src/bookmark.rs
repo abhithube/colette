@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query};
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
 pub enum Bookmark {
     Table,
@@ -34,6 +34,14 @@ impl Iden for Bookmark {
         )
         .unwrap();
     }
+}
+
+pub fn select_by_link(link: String) -> SelectStatement {
+    Query::select()
+        .column(Bookmark::Id)
+        .from(Bookmark::Table)
+        .and_where(Expr::col(Bookmark::Link).eq(link))
+        .to_owned()
 }
 
 pub fn insert(

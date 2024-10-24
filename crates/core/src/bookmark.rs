@@ -127,15 +127,12 @@ impl BookmarkService {
 
     pub async fn create_bookmark(
         &self,
-        mut data: BookmarkCreate,
+        data: BookmarkCreate,
         profile_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let scraped = self.scraper.scrape(&mut data.url)?;
-
         self.repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
-                bookmark: scraped,
                 tags: data.tags.map(|e| TagsLinkData {
                     data: e.data.into_iter().map(|e| e.into()).collect(),
                     action: e.action,
@@ -212,7 +209,6 @@ pub struct BookmarkFindManyFilters {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
-    pub bookmark: ProcessedBookmark,
     pub tags: Option<TagsLinkData>,
     pub profile_id: Uuid,
 }
@@ -243,6 +239,9 @@ pub struct BookmarkCacheData {
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
     NotFound(Uuid),
+
+    #[error("bookmark not cached with URL: {0}")]
+    Conflict(String),
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::Error),
