@@ -20,7 +20,9 @@ use colette_sqlite::{
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
     SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
-use colette_task::{import_feeds, run_task_worker, scrape_feed, TaskQueue};
+use colette_task::{
+    import_bookmarks, import_feeds, run_task_worker, scrape_bookmark, scrape_feed, TaskQueue,
+};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
 use email_address::EmailAddress;
@@ -102,13 +104,23 @@ pub fn run() {
                 let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
                 let scrape_feed_queue = Arc::new(scrape_feed_queue);
 
+                let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
+                let scrape_bookmark_queue = Arc::new(scrape_bookmark_queue);
+
                 let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
                 let import_feeds_queue = Arc::new(import_feeds_queue);
 
+                let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
+                let _import_bookmarks_queue = Arc::new(import_bookmarks_queue);
+
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)
-                    .service(scrape_feed::Task::new(scraper_service));
+                    .service(scrape_feed::Task::new(scraper_service.clone()));
+                let scrape_bookmark_task = ServiceBuilder::new()
+                    .concurrency_limit(5)
+                    .service(scrape_bookmark::Task::new(scraper_service));
                 let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
+                let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
 
                 let email = EmailAddress::from_str("default@default.com")?;
                 let password = NonEmptyString::try_from("default".to_owned())?;
@@ -148,7 +160,15 @@ pub fn run() {
                 app.manage(import_feeds_queue);
 
                 tokio::spawn(run_task_worker(scrape_feed_receiver, scrape_feed_task));
+                tokio::spawn(run_task_worker(
+                    scrape_bookmark_receiver,
+                    scrape_bookmark_task,
+                ));
                 tokio::spawn(run_task_worker(import_feeds_receiver, import_feeds_task));
+                tokio::spawn(run_task_worker(
+                    import_bookmarks_receiver,
+                    import_bookmarks_task,
+                ));
 
                 Ok(())
             })

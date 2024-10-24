@@ -26,8 +26,8 @@ use colette_core::{
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::SessionBackend;
 use colette_task::{
-    cleanup_feeds, import_feeds, refresh_feeds, run_cron_worker, run_task_worker, scrape_feed,
-    TaskQueue,
+    cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, run_cron_worker, run_task_worker,
+    scrape_bookmark, scrape_feed, TaskQueue,
 };
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
@@ -209,15 +209,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
     let scrape_feed_queue = Arc::new(scrape_feed_queue);
 
+    let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
+    let scrape_bookmark_queue = Arc::new(scrape_bookmark_queue);
+
     let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
     let import_feeds_queue = Arc::new(import_feeds_queue);
 
+    let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
+    let _import_bookmarks_queue = Arc::new(import_bookmarks_queue);
+
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)
-        .service(scrape_feed::Task::new(scraper_service));
+        .service(scrape_feed::Task::new(scraper_service.clone()));
+    let scrape_bookmark_task = ServiceBuilder::new()
+        .concurrency_limit(5)
+        .service(scrape_bookmark::Task::new(scraper_service));
     let refresh_feeds_task =
         refresh_feeds::Task::new(feed_service.clone(), scrape_feed_queue.clone());
     let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
+    let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
     let cleanup_feeds_task = cleanup_feeds::Task::new(cleanup_service);
 
     let api_state = ApiState::new(
@@ -255,7 +265,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _ = tokio::join!(
         server,
         run_task_worker(scrape_feed_receiver, scrape_feed_task),
+        run_task_worker(scrape_bookmark_receiver, scrape_bookmark_task),
         run_task_worker(import_feeds_receiver, import_feeds_task),
+        run_task_worker(import_bookmarks_receiver, import_bookmarks_task),
         refresh_task_worker,
         run_cron_worker("0 0 0 * * *", cleanup_feeds_task),
         session_backend.continuously_delete_expired(tokio::time::Duration::from_secs(60))
