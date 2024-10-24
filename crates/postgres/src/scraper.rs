@@ -3,6 +3,8 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::PgPool;
 
+use crate::feed::create_feed_with_entries;
+
 pub struct PostgresScraperRepository {
     pool: PgPool,
 }
@@ -22,48 +24,13 @@ impl ScraperRepository for PostgresScraperRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = {
-            let link = data.feed.link.to_string();
-            let url = if data.url == link {
-                None
-            } else {
-                Some(data.url)
-            };
+        let empty = data.feed.entries.is_empty();
 
-            let (sql, values) = colette_sql::feed::insert(link, data.feed.title, url)
-                .build_sqlx(PostgresQueryBuilder);
+        let feed_id = create_feed_with_entries(&mut tx, data.url, data.feed)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-
-        if !data.feed.entries.is_empty() {
-            {
-                let insert_many = data
-                    .feed
-                    .entries
-                    .into_iter()
-                    .map(|e| colette_sql::feed_entry::InsertMany {
-                        link: e.link.to_string(),
-                        title: e.title,
-                        published_at: e.published,
-                        description: e.description,
-                        author: e.author,
-                        thumbnail_url: e.thumbnail.map(String::from),
-                    })
-                    .collect::<Vec<_>>();
-
-                let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
-                    .build_sqlx(PostgresQueryBuilder);
-
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-            }
-
+        if !empty {
             let fe_ids = {
                 let (sql, values) = colette_sql::feed_entry::select_many_by_feed_id(feed_id)
                     .build_sqlx(PostgresQueryBuilder);

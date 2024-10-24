@@ -2,7 +2,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     feed::{
         Cursor, Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository,
-        FeedUpdateData,
+        FeedUpdateData, ProcessedFeed,
     },
     Feed,
 };
@@ -186,46 +186,9 @@ impl FeedRepository for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         for data in data {
-            let feed_id = {
-                let link = data.feed.link.to_string();
-                let url = if data.url == link {
-                    None
-                } else {
-                    Some(data.url)
-                };
-
-                let (sql, values) = colette_sql::feed::insert(link, data.feed.title, url)
-                    .build_sqlx(PostgresQueryBuilder);
-
-                sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
-
-            if !data.feed.entries.is_empty() {
-                let insert_many = data
-                    .feed
-                    .entries
-                    .into_iter()
-                    .map(|e| colette_sql::feed_entry::InsertMany {
-                        link: e.link.to_string(),
-                        title: e.title,
-                        published_at: e.published,
-                        description: e.description,
-                        author: e.author,
-                        thumbnail_url: e.thumbnail.map(String::from),
-                    })
-                    .collect::<Vec<_>>();
-
-                let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
-                    .build_sqlx(PostgresQueryBuilder);
-
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-            }
+            create_feed_with_entries(&mut tx, data.url, data.feed)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
@@ -393,4 +356,44 @@ pub(crate) async fn link_tags(
     }
 
     Ok(())
+}
+
+pub(crate) async fn create_feed_with_entries(
+    conn: &mut PgConnection,
+    url: String,
+    feed: ProcessedFeed,
+) -> Result<i32, sqlx::Error> {
+    let feed_id = {
+        let link = feed.link.to_string();
+        let url = if url == link { None } else { Some(url) };
+
+        let (sql, values) =
+            colette_sql::feed::insert(link, feed.title, url).build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+            .fetch_one(&mut *conn)
+            .await?
+    };
+
+    if !feed.entries.is_empty() {
+        let insert_many = feed
+            .entries
+            .into_iter()
+            .map(|e| colette_sql::feed_entry::InsertMany {
+                link: e.link.to_string(),
+                title: e.title,
+                published_at: e.published,
+                description: e.description,
+                author: e.author,
+                thumbnail_url: e.thumbnail.map(String::from),
+            })
+            .collect::<Vec<_>>();
+
+        let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
+            .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+    }
+
+    Ok(feed_id)
 }
