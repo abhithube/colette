@@ -3,6 +3,7 @@ compile_error!("either feature \"postgres\" or feature \"sqlite\" must be enable
 
 use std::{error::Error, future::Future, pin::Pin, sync::Arc};
 
+use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
@@ -32,7 +33,9 @@ use colette_task::{
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
-use tower_sessions_core::ExpiredDeletion;
+use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_sessions::{cookie::time::Duration, SessionManagerLayer};
+use tower_sessions_core::{ExpiredDeletion, Expiry};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, rust_embed::Embed)]
@@ -240,14 +243,36 @@ async fn main() -> Result<(), Box<dyn Error>> {
         SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );
-    let api = Api::new(&api_state, &app_config, session_backend.clone())
+    let mut api = Api::new(&api_state)
         .build()
         .with_state(api_state)
+        .layer(
+            SessionManagerLayer::new(session_backend.clone())
+                .with_secure(false)
+                .with_expiry(Expiry::OnInactivity(Duration::days(1))),
+        )
+        .layer(TraceLayer::new_for_http())
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
             None,
         ));
+
+    if !app_config.origin_urls.is_empty() {
+        let origins = app_config
+            .origin_urls
+            .iter()
+            .filter_map(|e| e.parse::<HeaderValue>().ok())
+            .collect::<Vec<_>>();
+
+        api = api.layer(
+            CorsLayer::new()
+                .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
+                .allow_origin(origins)
+                .allow_headers([header::CONTENT_TYPE])
+                .allow_credentials(true),
+        )
+    }
 
     let listener = TcpListener::bind(format!("{}:{}", app_config.host, app_config.port)).await?;
 

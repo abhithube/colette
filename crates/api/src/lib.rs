@@ -4,17 +4,13 @@ use auth::AuthState;
 use axum::{extract::FromRef, routing, Router};
 use backup::BackupState;
 use bookmark::BookmarkState;
-use colette_config::AppConfig;
 use common::TagsLink;
 pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
-use http::{header, HeaderValue, Method};
 use profile::ProfileState;
 use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer, SessionStore};
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
@@ -80,23 +76,17 @@ impl ApiState {
 )]
 struct ApiDoc;
 
-pub struct Api<'a, Store: SessionStore + Clone> {
+pub struct Api<'a> {
     api_state: &'a ApiState,
-    app_config: &'a AppConfig,
-    session_store: Store,
 }
 
-impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
-    pub fn new(api_state: &'a ApiState, app_config: &'a AppConfig, session_store: Store) -> Self {
-        Self {
-            api_state,
-            app_config,
-            session_store,
-        }
+impl<'a> Api<'a> {
+    pub fn new(api_state: &'a ApiState) -> Self {
+        Self { api_state }
     }
 
     pub fn build(self) -> Router<ApiState> {
-        let (mut api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
             .nest(
                 "/api/v1",
                 OpenApiRouter::new()
@@ -117,12 +107,6 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
                     .nest("/tags", TagApi::router())
                     .with_state(TagState::from_ref(self.api_state)),
             )
-            .layer(
-                SessionManagerLayer::new(self.session_store)
-                    .with_secure(false)
-                    .with_expiry(Expiry::OnInactivity(Duration::days(1))),
-            )
-            .layer(TraceLayer::new_for_http())
             .split_for_parts();
 
         openapi.paths.paths = openapi
@@ -132,30 +116,10 @@ impl<'a, Store: SessionStore + Clone> Api<'a, Store> {
             .map(|(k, v)| (k.replace("/api/v1", ""), v))
             .collect();
 
-        api = api
-            .merge(Scalar::with_url("/api/v1/doc", openapi.clone()))
+        api.merge(Scalar::with_url("/api/v1/doc", openapi.clone()))
             .route(
                 "/api/v1/openapi.json",
                 routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
-            );
-
-        if !self.app_config.origin_urls.is_empty() {
-            let origins = self
-                .app_config
-                .origin_urls
-                .iter()
-                .filter_map(|e| e.parse::<HeaderValue>().ok())
-                .collect::<Vec<_>>();
-
-            api = api.layer(
-                CorsLayer::new()
-                    .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
-                    .allow_origin(origins)
-                    .allow_headers([header::CONTENT_TYPE])
-                    .allow_credentials(true),
             )
-        }
-
-        api
     }
 }

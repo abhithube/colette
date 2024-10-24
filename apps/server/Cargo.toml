@@ -24,6 +24,12 @@ rust-embed = { version = "8", default-features = false, features = [
 sqlx.workspace = true
 tokio.workspace = true
 tower.workspace = true
+tower-http = { version = "0.6", default-features = false, features = [
+  "cors",
+  "fs",
+  "trace",
+] }
+tower-sessions.workspace = true
 tower-sessions-core.workspace = true
 tracing-subscriber.workspace = true
 

@@ -90,6 +90,9 @@ tower = { version = "0.5", default-features = false, features = [
   "limit",
   "tracing",
 ] }
+tower-sessions = { version = "0.13", default-features = false, features = [
+  "axum-core",
+] }
 tracing-subscriber = { version = "0.3", default-features = false, features = [
   "ansi",
   "env-filter",
