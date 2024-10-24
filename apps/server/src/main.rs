@@ -170,6 +170,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let feed_plugin_registry = Arc::new(register_feed_plugins());
+    let bookmark_plugin_registry = Arc::new(register_bookmark_plugins());
 
     let base64_decoder = Arc::new(Base64Encoder);
 
@@ -187,7 +188,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
-        Arc::new(register_bookmark_plugins()),
+        bookmark_plugin_registry.clone(),
         base64_decoder.clone(),
     ));
     let cleanup_service = Arc::new(CleanupService::new(cleanup_repository));
@@ -200,6 +201,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let scraper_service = Arc::new(ScraperService::new(
         scraper_repository,
         feed_plugin_registry,
+        bookmark_plugin_registry,
     ));
     let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
     let tag_service = Arc::new(TagService::new(tag_repository));

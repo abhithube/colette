@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use colette_scraper::FeedScraper;
 pub use colette_scraper::ProcessedFeed;
+use colette_scraper::{BookmarkScraper, FeedScraper, ProcessedBookmark};
 use url::Url;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -9,21 +9,32 @@ pub struct FeedCreate {
     pub url: Url,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkCreate {
+    pub url: Url,
+}
+
 pub struct ScraperService {
     repository: Arc<dyn ScraperRepository>,
-    scraper: Arc<dyn FeedScraper>,
+    feed_scraper: Arc<dyn FeedScraper>,
+    bookmark_scraper: Arc<dyn BookmarkScraper>,
 }
 
 impl ScraperService {
-    pub fn new(repository: Arc<dyn ScraperRepository>, scraper: Arc<dyn FeedScraper>) -> Self {
+    pub fn new(
+        repository: Arc<dyn ScraperRepository>,
+        feed_scraper: Arc<dyn FeedScraper>,
+        bookmark_scraper: Arc<dyn BookmarkScraper>,
+    ) -> Self {
         Self {
             repository,
-            scraper,
+            feed_scraper,
+            bookmark_scraper,
         }
     }
 
     pub async fn scrape_feed(&self, mut data: FeedCreate) -> Result<(), Error> {
-        let feed = self.scraper.scrape(&mut data.url)?;
+        let feed = self.feed_scraper.scrape(&mut data.url)?;
 
         self.repository
             .save_feed(SaveFeedData {
@@ -32,17 +43,36 @@ impl ScraperService {
             })
             .await
     }
+
+    pub async fn scrape_bookmark(&self, mut data: BookmarkCreate) -> Result<(), Error> {
+        let bookmark = self.bookmark_scraper.scrape(&mut data.url)?;
+
+        self.repository
+            .save_bookmark(SaveBookmarkData {
+                url: data.url.to_string(),
+                bookmark,
+            })
+            .await
+    }
 }
 
 #[async_trait::async_trait]
 pub trait ScraperRepository: Send + Sync {
     async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error>;
+
+    async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug)]
 pub struct SaveFeedData {
     pub url: String,
     pub feed: ProcessedFeed,
+}
+
+#[derive(Clone, Debug)]
+pub struct SaveBookmarkData {
+    pub url: String,
+    pub bookmark: ProcessedBookmark,
 }
 
 #[derive(Debug, thiserror::Error)]
