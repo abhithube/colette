@@ -255,9 +255,6 @@ pub async fn create_feed(
 ) -> Result<impl IntoResponse, Error> {
     match service.create_feed(body.into(), session.profile_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
-        Err(feed::Error::Scraper(e)) => Ok(CreateResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
         Err(e) => match e {
             feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -389,9 +386,6 @@ pub enum CreateResponse {
 
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(BaseError),
 }
 
 impl IntoResponse for CreateResponse {
@@ -400,7 +394,6 @@ impl IntoResponse for CreateResponse {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::Conflict(data) => (StatusCode::CONFLICT, Json(data)).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
-            Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
         }
     }
 }
