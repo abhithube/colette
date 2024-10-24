@@ -105,15 +105,23 @@ impl BackupService {
             .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 
-    pub async fn import_netscape(&self, raw: Bytes, profile_id: Uuid) -> Result<(), Error> {
+    pub async fn import_netscape(&self, raw: Bytes, profile_id: Uuid) -> Result<Vec<Url>, Error> {
         let netscape = self
             .netscape_manager
             .import(raw)
             .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 
+        let urls = netscape
+            .items
+            .iter()
+            .filter_map(|e| e.href.as_deref().and_then(|e| Url::parse(e).ok()))
+            .collect::<Vec<Url>>();
+
         self.backup_repository
             .import_netscape(netscape.items, profile_id)
-            .await
+            .await?;
+
+        Ok(urls)
     }
 
     pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {

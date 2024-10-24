@@ -216,7 +216,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_queue = Arc::new(import_feeds_queue);
 
     let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
-    let _import_bookmarks_queue = Arc::new(import_bookmarks_queue);
+    let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
 
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)
@@ -232,7 +232,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
-        BackupState::new(backup_service, import_feeds_queue),
+        BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
         BookmarkState::new(bookmark_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),

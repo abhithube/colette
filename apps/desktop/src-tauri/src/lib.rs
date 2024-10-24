@@ -111,7 +111,7 @@ pub fn run() {
                 let import_feeds_queue = Arc::new(import_feeds_queue);
 
                 let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
-                let _import_bookmarks_queue = Arc::new(import_bookmarks_queue);
+                let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)
@@ -158,6 +158,7 @@ pub fn run() {
                 app.manage(tag_service);
 
                 app.manage(import_feeds_queue);
+                app.manage(import_bookmarks_queue);
 
                 tokio::spawn(run_task_worker(scrape_feed_receiver, scrape_feed_task));
                 tokio::spawn(run_task_worker(

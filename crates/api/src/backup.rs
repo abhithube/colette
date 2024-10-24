@@ -6,7 +6,7 @@ use axum::{
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
-use colette_task::{import_feeds, TaskQueue};
+use colette_task::{import_bookmarks, import_feeds, TaskQueue};
 use http::{HeaderMap, HeaderValue, StatusCode};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -17,16 +17,19 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 pub struct BackupState {
     backup_service: Arc<BackupService>,
     import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
+    import_bookmarks_queue: Arc<TaskQueue<import_bookmarks::Data>>,
 }
 
 impl BackupState {
     pub fn new(
         backup_service: Arc<BackupService>,
         import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
+        import_bookmarks_queue: Arc<TaskQueue<import_bookmarks::Data>>,
     ) -> Self {
         Self {
             backup_service,
             import_feeds_queue,
+            import_bookmarks_queue,
         }
     }
 }
@@ -107,12 +110,24 @@ pub async fn export_opml(
 )]
 #[axum::debug_handler]
 pub async fn import_netscape(
-    State(service): State<Arc<BackupService>>,
+    State(state): State<BackupState>,
     session: Session,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    match service.import_netscape(bytes, session.profile_id).await {
-        Ok(_) => Ok(ImportResponse::NoContent),
+    match state
+        .backup_service
+        .import_netscape(bytes, session.profile_id)
+        .await
+    {
+        Ok(urls) => {
+            state
+                .import_bookmarks_queue
+                .push(import_bookmarks::Data { urls })
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            Ok(ImportResponse::NoContent)
+        }
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }

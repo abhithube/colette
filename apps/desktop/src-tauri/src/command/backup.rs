@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use colette_api::Session;
 use colette_core::backup::BackupService;
-use colette_task::{import_feeds, TaskQueue};
+use colette_task::{import_bookmarks, import_feeds, TaskQueue};
 use tauri::State;
 
 #[tauri::command]
@@ -41,13 +41,21 @@ pub async fn export_opml(
 #[tauri::command]
 pub async fn import_netscape(
     service: State<'_, Arc<BackupService>>,
+    import_bookmarks_queue: State<'_, Arc<TaskQueue<import_bookmarks::Data>>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
-    service
+    let urls = service
         .import_netscape(data.into(), session.profile_id)
         .await
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+
+    import_bookmarks_queue
+        .push(import_bookmarks::Data { urls })
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 #[tauri::command]
