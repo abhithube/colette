@@ -44,10 +44,23 @@ struct Asset;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::from_default_env())
-        .with(tracing_subscriber::fmt::layer())
-        .init();
+    #[cfg(debug_assertions)]
+    {
+        tracing_subscriber::registry()
+            .with(tracing_subscriber::EnvFilter::from_default_env())
+            .with(tracing_subscriber::fmt::layer())
+            .init();
+    }
+    #[cfg(not(debug_assertions))]
+    {
+        use tracing_subscriber::Layer;
+        tracing_subscriber::registry()
+            .with(
+                tracing_subscriber::fmt::layer()
+                    .with_filter(tracing_subscriber::filter::LevelFilter::INFO),
+            )
+            .init();
+    }
 
     let app_config = colette_config::load_config()?;
 
