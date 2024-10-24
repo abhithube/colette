@@ -43,6 +43,20 @@ pub struct BookmarkListQuery {
     pub cursor: Option<String>,
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkScrape {
+    pub url: Url,
+}
+
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+pub struct BookmarkScraped {
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
     pub created_at: DateTime<Utc>,
@@ -144,6 +158,29 @@ impl BookmarkService {
 
     pub async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         self.repository.delete(IdParams::new(id, profile_id)).await
+    }
+
+    pub async fn scrape_bookmark(
+        &self,
+        mut data: BookmarkScrape,
+    ) -> Result<BookmarkScraped, Error> {
+        let bookmark = self.scraper.scrape(&mut data.url)?;
+
+        let url = data.url.to_string();
+
+        let scraped = BookmarkScraped {
+            link: url.clone(),
+            title: bookmark.title.clone(),
+            thumbnail_url: bookmark.thumbnail.clone().map(String::from),
+            published_at: bookmark.published,
+            author: bookmark.author.clone(),
+        };
+
+        self.repository
+            .cache(BookmarkCacheData { url, bookmark })
+            .await?;
+
+        Ok(scraped)
     }
 }
 
