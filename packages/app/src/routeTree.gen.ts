@@ -26,6 +26,7 @@ import { Route as PrivateFeedsSmartFeedsIdImport } from './routes/_private/feeds
 // Create/Update Routes
 
 const LoginRoute = LoginImport.update({
+  id: '/login',
   path: '/login',
   getParentRoute: () => rootRoute,
 } as any)
@@ -36,46 +37,55 @@ const PrivateRoute = PrivateImport.update({
 } as any)
 
 const PrivateIndexRoute = PrivateIndexImport.update({
+  id: '/',
   path: '/',
   getParentRoute: () => PrivateRoute,
 } as any)
 
 const PrivateFeedsRoute = PrivateFeedsImport.update({
+  id: '/feeds',
   path: '/feeds',
   getParentRoute: () => PrivateRoute,
 } as any)
 
 const PrivateBookmarksRoute = PrivateBookmarksImport.update({
+  id: '/bookmarks',
   path: '/bookmarks',
   getParentRoute: () => PrivateRoute,
 } as any)
 
 const PrivateFeedsIndexRoute = PrivateFeedsIndexImport.update({
+  id: '/',
   path: '/',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 const PrivateBookmarksIndexRoute = PrivateBookmarksIndexImport.update({
+  id: '/',
   path: '/',
   getParentRoute: () => PrivateBookmarksRoute,
 } as any)
 
 const PrivateFeedsManageRoute = PrivateFeedsManageImport.update({
+  id: '/manage',
   path: '/manage',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 const PrivateFeedsArchivedRoute = PrivateFeedsArchivedImport.update({
+  id: '/archived',
   path: '/archived',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 const PrivateFeedsIdRoute = PrivateFeedsIdImport.update({
+  id: '/$id',
   path: '/$id',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
 
 const PrivateFeedsSmartFeedsIdRoute = PrivateFeedsSmartFeedsIdImport.update({
+  id: '/smartFeeds/$id',
   path: '/smartFeeds/$id',
   getParentRoute: () => PrivateFeedsRoute,
 } as any)
