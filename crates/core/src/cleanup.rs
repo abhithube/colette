@@ -1,16 +1,5 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
-
-#[derive(Clone, Debug, Default)]
-#[allow(dead_code)]
-pub struct CleanupJob(DateTime<Utc>);
-impl From<DateTime<Utc>> for CleanupJob {
-    fn from(value: DateTime<Utc>) -> Self {
-        CleanupJob(value)
-    }
-}
-
 pub struct CleanupInfo {
     pub feed_count: u64,
     pub feed_entry_count: u64,
