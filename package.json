@@ -14,9 +14,9 @@
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^1",
-		"@types/bun": "latest"
-	},
-	"peerDependencies": {
+		"@tsconfig/node-lts": "^22",
+		"@tsconfig/strictest": "^2",
+		"@tsconfig/vite-react": "^3",
 		"typescript": "^5"
 	}
 }
