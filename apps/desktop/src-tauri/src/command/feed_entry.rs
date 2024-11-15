@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::{
     feed_entry::{FeedEntry, FeedEntryListQuery, FeedEntryUpdate},
     Paginated, Session,
@@ -10,7 +8,7 @@ use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_feed_entries(
-    service: State<'_, Arc<FeedEntryService>>,
+    service: State<'_, FeedEntryService>,
     session: State<'_, Session>,
     query: FeedEntryListQuery,
 ) -> Result<Paginated<FeedEntry>, String> {
@@ -24,7 +22,7 @@ pub async fn list_feed_entries(
 
 #[tauri::command]
 pub async fn get_feed_entry(
-    service: State<'_, Arc<FeedEntryService>>,
+    service: State<'_, FeedEntryService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<FeedEntry, String> {
@@ -38,7 +36,7 @@ pub async fn get_feed_entry(
 
 #[tauri::command]
 pub async fn update_feed_entry(
-    service: State<'_, Arc<FeedEntryService>>,
+    service: State<'_, FeedEntryService>,
     session: State<'_, Session>,
     id: Uuid,
     data: FeedEntryUpdate,

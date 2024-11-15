@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::{
     profile::{Profile, ProfileCreate, ProfileUpdate},
     Paginated, Session,
@@ -10,7 +8,7 @@ use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_profiles(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
 ) -> Result<Paginated<Profile>, String> {
     let profiles = service
@@ -23,7 +21,7 @@ pub async fn list_profiles(
 
 #[tauri::command]
 pub async fn create_profile(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
     data: ProfileCreate,
 ) -> Result<Profile, String> {
@@ -37,7 +35,7 @@ pub async fn create_profile(
 
 #[tauri::command]
 pub async fn get_profile(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<Profile, String> {
@@ -51,7 +49,7 @@ pub async fn get_profile(
 
 #[tauri::command]
 pub async fn get_active_profile(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
 ) -> Result<Profile, String> {
     let profile = service
@@ -64,7 +62,7 @@ pub async fn get_active_profile(
 
 #[tauri::command]
 pub async fn update_profile(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
     id: Uuid,
     data: ProfileUpdate,
@@ -79,7 +77,7 @@ pub async fn update_profile(
 
 #[tauri::command]
 pub async fn delete_profile(
-    service: State<'_, Arc<ProfileService>>,
+    service: State<'_, ProfileService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<(), String> {

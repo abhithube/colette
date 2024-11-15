@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::Session;
 use colette_core::backup::BackupService;
 use colette_task::{import_bookmarks, import_feeds, TaskQueue};
@@ -7,8 +5,8 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn import_opml(
-    service: State<'_, Arc<BackupService>>,
-    import_feeds_queue: State<'_, Arc<TaskQueue<import_feeds::Data>>>,
+    service: State<'_, BackupService>,
+    import_feeds_queue: State<'_, TaskQueue<import_feeds::Data>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
@@ -27,7 +25,7 @@ pub async fn import_opml(
 
 #[tauri::command]
 pub async fn export_opml(
-    service: State<'_, Arc<BackupService>>,
+    service: State<'_, BackupService>,
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service
@@ -40,8 +38,8 @@ pub async fn export_opml(
 
 #[tauri::command]
 pub async fn import_netscape(
-    service: State<'_, Arc<BackupService>>,
-    import_bookmarks_queue: State<'_, Arc<TaskQueue<import_bookmarks::Data>>>,
+    service: State<'_, BackupService>,
+    import_bookmarks_queue: State<'_, TaskQueue<import_bookmarks::Data>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
@@ -60,7 +58,7 @@ pub async fn import_netscape(
 
 #[tauri::command]
 pub async fn export_netscape(
-    service: State<'_, Arc<BackupService>>,
+    service: State<'_, BackupService>,
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service

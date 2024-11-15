@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::{
     feed::{Feed, FeedCreate, FeedListQuery, FeedUpdate},
     Paginated, Session,
@@ -10,7 +8,7 @@ use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_feeds(
-    service: State<'_, Arc<FeedService>>,
+    service: State<'_, FeedService>,
     session: State<'_, Session>,
     query: FeedListQuery,
 ) -> Result<Paginated<Feed>, String> {
@@ -24,7 +22,7 @@ pub async fn list_feeds(
 
 #[tauri::command]
 pub async fn create_feed(
-    service: State<'_, Arc<FeedService>>,
+    service: State<'_, FeedService>,
     session: State<'_, Session>,
     data: FeedCreate,
 ) -> Result<Feed, String> {
@@ -38,7 +36,7 @@ pub async fn create_feed(
 
 #[tauri::command]
 pub async fn get_feed(
-    service: State<'_, Arc<FeedService>>,
+    service: State<'_, FeedService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<Feed, String> {
@@ -52,7 +50,7 @@ pub async fn get_feed(
 
 #[tauri::command]
 pub async fn update_feed(
-    service: State<'_, Arc<FeedService>>,
+    service: State<'_, FeedService>,
     session: State<'_, Session>,
     id: Uuid,
     data: FeedUpdate,
@@ -67,7 +65,7 @@ pub async fn update_feed(
 
 #[tauri::command]
 pub async fn delete_feed(
-    service: State<'_, Arc<FeedService>>,
+    service: State<'_, FeedService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<(), String> {

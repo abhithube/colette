@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::{
     bookmark::{Bookmark, BookmarkCreate, BookmarkListQuery, BookmarkUpdate},
     Paginated, Session,
@@ -10,7 +8,7 @@ use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_bookmarks(
-    service: State<'_, Arc<BookmarkService>>,
+    service: State<'_, BookmarkService>,
     session: State<'_, Session>,
     query: BookmarkListQuery,
 ) -> Result<Paginated<Bookmark>, String> {
@@ -24,7 +22,7 @@ pub async fn list_bookmarks(
 
 #[tauri::command]
 pub async fn create_bookmark(
-    service: State<'_, Arc<BookmarkService>>,
+    service: State<'_, BookmarkService>,
     session: State<'_, Session>,
     data: BookmarkCreate,
 ) -> Result<Bookmark, String> {
@@ -38,7 +36,7 @@ pub async fn create_bookmark(
 
 #[tauri::command]
 pub async fn get_bookmark(
-    service: State<'_, Arc<BookmarkService>>,
+    service: State<'_, BookmarkService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<Bookmark, String> {
@@ -52,7 +50,7 @@ pub async fn get_bookmark(
 
 #[tauri::command]
 pub async fn update_bookmark(
-    service: State<'_, Arc<BookmarkService>>,
+    service: State<'_, BookmarkService>,
     session: State<'_, Session>,
     id: Uuid,
     data: BookmarkUpdate,
@@ -67,7 +65,7 @@ pub async fn update_bookmark(
 
 #[tauri::command]
 pub async fn delete_bookmark(
-    service: State<'_, Arc<BookmarkService>>,
+    service: State<'_, BookmarkService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<(), String> {

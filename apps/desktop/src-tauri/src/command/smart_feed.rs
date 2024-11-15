@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_api::{
     smart_feed::{SmartFeed, SmartFeedCreate, SmartFeedUpdate},
     Paginated, Session,
@@ -10,7 +8,7 @@ use uuid::Uuid;
 
 #[tauri::command]
 pub async fn list_smart_feeds(
-    service: State<'_, Arc<SmartFeedService>>,
+    service: State<'_, SmartFeedService>,
     session: State<'_, Session>,
 ) -> Result<Paginated<SmartFeed>, String> {
     let smart_feeds = service
@@ -23,7 +21,7 @@ pub async fn list_smart_feeds(
 
 #[tauri::command]
 pub async fn create_smart_feed(
-    service: State<'_, Arc<SmartFeedService>>,
+    service: State<'_, SmartFeedService>,
     session: State<'_, Session>,
     data: SmartFeedCreate,
 ) -> Result<SmartFeed, String> {
@@ -37,7 +35,7 @@ pub async fn create_smart_feed(
 
 #[tauri::command]
 pub async fn get_smart_feed(
-    service: State<'_, Arc<SmartFeedService>>,
+    service: State<'_, SmartFeedService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<SmartFeed, String> {
@@ -51,7 +49,7 @@ pub async fn get_smart_feed(
 
 #[tauri::command]
 pub async fn update_smart_feed(
-    service: State<'_, Arc<SmartFeedService>>,
+    service: State<'_, SmartFeedService>,
     session: State<'_, Session>,
     id: Uuid,
     data: SmartFeedUpdate,
@@ -66,7 +64,7 @@ pub async fn update_smart_feed(
 
 #[tauri::command]
 pub async fn delete_smart_feed(
-    service: State<'_, Arc<SmartFeedService>>,
+    service: State<'_, SmartFeedService>,
     session: State<'_, Session>,
     id: Uuid,
 ) -> Result<(), String> {

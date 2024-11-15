@@ -74,44 +74,34 @@ pub fn run() {
                     profile_repository.clone(),
                     Box::new(ArgonHasher),
                 );
-                let backup_service = Arc::new(BackupService::new(
+                let backup_service = BackupService::new(
                     backup_repository,
                     feed_repository.clone(),
                     bookmark_repository.clone(),
                     Box::new(OpmlManager),
                     Box::new(NetscapeManager),
-                ));
-                let bookmark_service = Arc::new(BookmarkService::new(
+                );
+                let bookmark_service = BookmarkService::new(
                     bookmark_repository,
                     bookmark_plugin_registry.clone(),
                     base64_decoder.clone(),
-                ));
-                let feed_service = Arc::new(FeedService::new(
-                    feed_repository,
-                    feed_plugin_registry.clone(),
-                ));
+                );
+                let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
                 let feed_entry_service =
-                    Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
-                let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
+                    FeedEntryService::new(feed_entry_repository, base64_decoder);
+                let profile_service = ProfileService::new(profile_repository.clone());
                 let scraper_service = Arc::new(ScraperService::new(
                     scraper_repository,
                     feed_plugin_registry,
                     bookmark_plugin_registry,
                 ));
-                let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
-                let tag_service = Arc::new(TagService::new(tag_repository));
+                let smart_feed_service = SmartFeedService::new(smart_feed_repository);
+                let tag_service = TagService::new(tag_repository);
 
                 let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
-                let scrape_feed_queue = Arc::new(scrape_feed_queue);
-
                 let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
-                let scrape_bookmark_queue = Arc::new(scrape_bookmark_queue);
-
                 let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
-                let import_feeds_queue = Arc::new(import_feeds_queue);
-
                 let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
-                let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)
@@ -119,8 +109,9 @@ pub fn run() {
                 let scrape_bookmark_task = ServiceBuilder::new()
                     .concurrency_limit(5)
                     .service(scrape_bookmark::Task::new(scraper_service));
-                let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
-                let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
+                let import_feeds_task = import_feeds::Task::new(Arc::new(scrape_feed_queue));
+                let import_bookmarks_task =
+                    import_bookmarks::Task::new(Arc::new(scrape_bookmark_queue));
 
                 let email = EmailAddress::from_str("default@default.com")?;
                 let password = NonEmptyString::try_from("default".to_owned())?;
