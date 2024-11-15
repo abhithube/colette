@@ -1,7 +1,6 @@
 use std::{
     future::Future,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -11,11 +10,11 @@ use tracing::info;
 
 #[derive(Clone)]
 pub struct Task {
-    service: Arc<CleanupService>,
+    service: CleanupService,
 }
 
 impl Task {
-    pub fn new(service: Arc<CleanupService>) -> Self {
+    pub fn new(service: CleanupService) -> Self {
         Self { service }
     }
 }

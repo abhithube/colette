@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::State,
     http::StatusCode,
@@ -23,11 +21,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    auth_service: Arc<AuthService>,
+    auth_service: AuthService,
 }
 
 impl AuthState {
-    pub fn new(auth_service: Arc<AuthService>) -> Self {
+    pub fn new(auth_service: AuthService) -> Self {
         Self { auth_service }
     }
 }
@@ -123,7 +121,7 @@ impl From<SwitchProfile> for auth::SwitchProfile {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(service): State<Arc<AuthService>>,
+    State(service): State<AuthService>,
     Json(body): Json<Register>,
 ) -> Result<impl IntoResponse, Error> {
     match service.register(body.into()).await {
@@ -150,7 +148,7 @@ pub async fn register(
 )]
 #[axum::debug_handler]
 pub async fn login(
-    State(service): State<Arc<AuthService>>,
+    State(service): State<AuthService>,
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
 ) -> Result<impl IntoResponse, Error> {
@@ -183,7 +181,7 @@ pub async fn login(
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(
-    State(service): State<Arc<AuthService>>,
+    State(service): State<AuthService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.get_active(session.user_id).await {
@@ -203,7 +201,7 @@ pub async fn get_active_user(
 )]
 #[axum::debug_handler]
 pub async fn switch_profile(
-    State(service): State<Arc<AuthService>>,
+    State(service): State<AuthService>,
     session_store: tower_sessions::Session,
     session: Session,
     Json(body): Json<SwitchProfile>,

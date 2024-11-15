@@ -1,7 +1,6 @@
 use std::{
     future::Future,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -18,11 +17,11 @@ pub struct Data {
 
 #[derive(Clone)]
 pub struct Task {
-    scrape_feed_queue: Arc<TaskQueue<scrape_feed::Data>>,
+    scrape_feed_queue: TaskQueue<scrape_feed::Data>,
 }
 
 impl Task {
-    pub fn new(scrape_feed_queue: Arc<TaskQueue<scrape_feed::Data>>) -> Self {
+    pub fn new(scrape_feed_queue: TaskQueue<scrape_feed::Data>) -> Self {
         Self { scrape_feed_queue }
     }
 }

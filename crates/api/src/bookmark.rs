@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -22,11 +20,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BookmarkState {
-    service: Arc<BookmarkService>,
+    service: BookmarkService,
 }
 
 impl BookmarkState {
-    pub fn new(service: Arc<BookmarkService>) -> Self {
+    pub fn new(service: BookmarkService) -> Self {
         Self { service }
     }
 }
@@ -186,7 +184,7 @@ impl From<bookmark::BookmarkScraped> for BookmarkScraped {
 )]
 #[axum::debug_handler]
 pub async fn list_bookmarks(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     Query(query): Query<BookmarkListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -210,7 +208,7 @@ pub async fn list_bookmarks(
 )]
 #[axum::debug_handler]
 pub async fn get_bookmark(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -236,7 +234,7 @@ pub async fn get_bookmark(
   )]
 #[axum::debug_handler]
 pub async fn create_bookmark(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     session: Session,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<impl IntoResponse, Error> {
@@ -266,7 +264,7 @@ pub async fn create_bookmark(
 )]
 #[axum::debug_handler]
 pub async fn update_bookmark(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<BookmarkUpdate>,
@@ -296,7 +294,7 @@ pub async fn update_bookmark(
 )]
 #[axum::debug_handler]
 pub async fn delete_bookmark(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -322,7 +320,7 @@ pub async fn delete_bookmark(
   )]
 #[axum::debug_handler]
 pub async fn scrape_bookmark(
-    State(service): State<Arc<BookmarkService>>,
+    State(service): State<BookmarkService>,
     Json(body): Json<BookmarkScrape>,
 ) -> Result<impl IntoResponse, Error> {
     match service.scrape_bookmark(body.into()).await {

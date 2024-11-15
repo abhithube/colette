@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -21,11 +19,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct TagState {
-    service: Arc<TagService>,
+    service: TagService,
 }
 
 impl TagState {
-    pub fn new(service: Arc<TagService>) -> Self {
+    pub fn new(service: TagService) -> Self {
         Self { service }
     }
 }
@@ -139,7 +137,7 @@ impl From<TagType> for tag::TagType {
 )]
 #[axum::debug_handler]
 pub async fn list_tags(
-    State(service): State<Arc<TagService>>,
+    State(service): State<TagService>,
     Query(query): Query<TagListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -160,7 +158,7 @@ pub async fn list_tags(
 )]
 #[axum::debug_handler]
 pub async fn get_tag(
-    State(service): State<Arc<TagService>>,
+    State(service): State<TagService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -186,7 +184,7 @@ pub async fn get_tag(
 )]
 #[axum::debug_handler]
 pub async fn create_tag(
-    State(service): State<Arc<TagService>>,
+    State(service): State<TagService>,
     session: Session,
     Json(body): Json<TagCreate>,
 ) -> Result<impl IntoResponse, Error> {
@@ -213,7 +211,7 @@ pub async fn create_tag(
 )]
 #[axum::debug_handler]
 pub async fn update_tag(
-    State(service): State<Arc<TagService>>,
+    State(service): State<TagService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<TagUpdate>,
@@ -240,7 +238,7 @@ pub async fn update_tag(
 )]
 #[axum::debug_handler]
 pub async fn delete_tag(
-    State(service): State<Arc<TagService>>,
+    State(service): State<TagService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {

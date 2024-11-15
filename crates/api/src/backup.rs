@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode},
@@ -15,16 +13,16 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BackupState {
-    backup_service: Arc<BackupService>,
-    import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
-    import_bookmarks_queue: Arc<TaskQueue<import_bookmarks::Data>>,
+    backup_service: BackupService,
+    import_feeds_queue: TaskQueue<import_feeds::Data>,
+    import_bookmarks_queue: TaskQueue<import_bookmarks::Data>,
 }
 
 impl BackupState {
     pub fn new(
-        backup_service: Arc<BackupService>,
-        import_feeds_queue: Arc<TaskQueue<import_feeds::Data>>,
-        import_bookmarks_queue: Arc<TaskQueue<import_bookmarks::Data>>,
+        backup_service: BackupService,
+        import_feeds_queue: TaskQueue<import_feeds::Data>,
+        import_bookmarks_queue: TaskQueue<import_bookmarks::Data>,
     ) -> Self {
         Self {
             backup_service,
@@ -90,7 +88,7 @@ pub async fn import_opml(
 )]
 #[axum::debug_handler]
 pub async fn export_opml(
-    State(service): State<Arc<BackupService>>,
+    State(service): State<BackupService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.export_opml(session.profile_id).await {
@@ -142,7 +140,7 @@ pub async fn import_netscape(
 )]
 #[axum::debug_handler]
 pub async fn export_netscape(
-    State(service): State<Arc<BackupService>>,
+    State(service): State<BackupService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.export_netscape(session.profile_id).await {

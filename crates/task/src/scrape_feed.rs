@@ -1,7 +1,6 @@
 use std::{
     future::Future,
     pin::Pin,
-    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -16,11 +15,11 @@ pub struct Data {
 
 #[derive(Clone)]
 pub struct Task {
-    service: Arc<ScraperService>,
+    service: ScraperService,
 }
 
 impl Task {
-    pub fn new(service: Arc<ScraperService>) -> Self {
+    pub fn new(service: ScraperService) -> Self {
         Self { service }
     }
 }

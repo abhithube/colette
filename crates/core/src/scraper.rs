@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 pub use colette_scraper::ProcessedFeed;
 use colette_scraper::{BookmarkScraper, FeedScraper, ProcessedBookmark};
 use dyn_clone::DynClone;
@@ -18,15 +16,15 @@ pub struct BookmarkCreate {
 #[derive(Clone)]
 pub struct ScraperService {
     repository: Box<dyn ScraperRepository>,
-    feed_scraper: Arc<dyn FeedScraper>,
-    bookmark_scraper: Arc<dyn BookmarkScraper>,
+    feed_scraper: Box<dyn FeedScraper>,
+    bookmark_scraper: Box<dyn BookmarkScraper>,
 }
 
 impl ScraperService {
     pub fn new(
         repository: Box<dyn ScraperRepository>,
-        feed_scraper: Arc<dyn FeedScraper>,
-        bookmark_scraper: Arc<dyn BookmarkScraper>,
+        feed_scraper: Box<dyn FeedScraper>,
+        bookmark_scraper: Box<dyn BookmarkScraper>,
     ) -> Self {
         Self {
             repository,

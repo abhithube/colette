@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -20,11 +18,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedEntryState {
-    service: Arc<FeedEntryService>,
+    service: FeedEntryService,
 }
 
 impl FeedEntryState {
-    pub fn new(service: Arc<FeedEntryService>) -> Self {
+    pub fn new(service: FeedEntryService) -> Self {
         Self { service }
     }
 }
@@ -129,7 +127,7 @@ impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
 )]
 #[axum::debug_handler]
 pub async fn list_feed_entries(
-    State(service): State<Arc<FeedEntryService>>,
+    State(service): State<FeedEntryService>,
     Query(query): Query<FeedEntryListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -153,7 +151,7 @@ pub async fn list_feed_entries(
 )]
 #[axum::debug_handler]
 pub async fn get_feed_entry(
-    State(service): State<Arc<FeedEntryService>>,
+    State(service): State<FeedEntryService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -180,7 +178,7 @@ pub async fn get_feed_entry(
 )]
 #[axum::debug_handler]
 pub async fn update_feed_entry(
-    State(service): State<Arc<FeedEntryService>>,
+    State(service): State<FeedEntryService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FeedEntryUpdate>,

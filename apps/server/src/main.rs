@@ -1,4 +1,4 @@
-use std::{error::Error, future::Future, pin::Pin, sync::Arc};
+use std::{error::Error, future::Future, pin::Pin};
 
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -82,54 +82,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let tag_repository = Box::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
     let user_repository = Box::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
-    let feed_plugin_registry = Arc::new(register_feed_plugins());
-    let bookmark_plugin_registry = Arc::new(register_bookmark_plugins());
+    let feed_plugin_registry = Box::new(register_feed_plugins());
+    let bookmark_plugin_registry = Box::new(register_bookmark_plugins());
 
     let base64_decoder = Box::new(Base64Encoder);
 
-    let auth_service = Arc::new(AuthService::new(
-        user_repository,
-        profile_repository.clone(),
-        Box::new(ArgonHasher),
-    ));
-    let backup_service = Arc::new(BackupService::new(
-        backup_repository,
-        feed_repository.clone(),
-        bookmark_repository.clone(),
-        Box::new(OpmlManager),
-        Box::new(NetscapeManager),
-    ));
-    let bookmark_service = Arc::new(BookmarkService::new(
-        bookmark_repository,
-        bookmark_plugin_registry.clone(),
-        base64_decoder.clone(),
-    ));
-    let cleanup_service = Arc::new(CleanupService::new(cleanup_repository));
-    let feed_service = Arc::new(FeedService::new(
-        feed_repository.clone(),
-        feed_plugin_registry.clone(),
-    ));
-    let feed_entry_service = Arc::new(FeedEntryService::new(feed_entry_repository, base64_decoder));
-    let profile_service = Arc::new(ProfileService::new(profile_repository.clone()));
-    let scraper_service = Arc::new(ScraperService::new(
+    let feed_service = FeedService::new(feed_repository.clone(), feed_plugin_registry.clone());
+    let scraper_service = ScraperService::new(
         scraper_repository,
         feed_plugin_registry,
-        bookmark_plugin_registry,
-    ));
-    let smart_feed_service = Arc::new(SmartFeedService::new(smart_feed_repository));
-    let tag_service = Arc::new(TagService::new(tag_repository));
+        bookmark_plugin_registry.clone(),
+    );
 
     let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
-    let scrape_feed_queue = Arc::new(scrape_feed_queue);
-
     let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
-    let scrape_bookmark_queue = Arc::new(scrape_bookmark_queue);
-
     let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
-    let import_feeds_queue = Arc::new(import_feeds_queue);
-
     let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
-    let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
 
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)
@@ -141,17 +109,35 @@ async fn main() -> Result<(), Box<dyn Error>> {
         refresh_feeds::Task::new(feed_service.clone(), scrape_feed_queue.clone());
     let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
     let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
-    let cleanup_feeds_task = cleanup_feeds::Task::new(cleanup_service);
+    let cleanup_feeds_task = cleanup_feeds::Task::new(CleanupService::new(cleanup_repository));
 
     let api_state = ApiState::new(
-        AuthState::new(auth_service),
-        BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
-        BookmarkState::new(bookmark_service),
+        AuthState::new(AuthService::new(
+            user_repository,
+            profile_repository.clone(),
+            Box::new(ArgonHasher),
+        )),
+        BackupState::new(
+            BackupService::new(
+                backup_repository,
+                feed_repository.clone(),
+                bookmark_repository.clone(),
+                Box::new(OpmlManager),
+                Box::new(NetscapeManager),
+            ),
+            import_feeds_queue,
+            import_bookmarks_queue,
+        ),
+        BookmarkState::new(BookmarkService::new(
+            bookmark_repository,
+            bookmark_plugin_registry,
+            base64_decoder.clone(),
+        )),
         FeedState::new(feed_service),
-        FeedEntryState::new(feed_entry_service),
-        ProfileState::new(profile_service),
-        SmartFeedState::new(smart_feed_service),
-        TagState::new(tag_service),
+        FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_decoder)),
+        ProfileState::new(ProfileService::new(profile_repository)),
+        SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
+        TagState::new(TagService::new(tag_repository)),
     );
     let mut api = Api::new(&api_state)
         .build()

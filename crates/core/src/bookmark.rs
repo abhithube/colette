@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
 use colette_scraper::{BookmarkScraper, ProcessedBookmark};
 use colette_util::DataEncoder;
@@ -66,14 +64,14 @@ pub struct Cursor {
 #[derive(Clone)]
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
-    scraper: Arc<dyn BookmarkScraper>,
+    scraper: Box<dyn BookmarkScraper>,
     base64_encoder: Box<dyn DataEncoder<Cursor>>,
 }
 
 impl BookmarkService {
     pub fn new(
         repository: Box<dyn BookmarkRepository>,
-        scraper: Arc<dyn BookmarkScraper>,
+        scraper: Box<dyn BookmarkScraper>,
         base64_encoder: Box<dyn DataEncoder<Cursor>>,
     ) -> Self {
         Self {

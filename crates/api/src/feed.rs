@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -24,11 +22,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct FeedState {
-    service: Arc<FeedService>,
+    service: FeedService,
 }
 
 impl FeedState {
-    pub fn new(service: Arc<FeedService>) -> Self {
+    pub fn new(service: FeedService) -> Self {
         Self { service }
     }
 }
@@ -202,7 +200,7 @@ impl From<feed::FeedDetected> for FeedDetected {
 )]
 #[axum::debug_handler]
 pub async fn list_feeds(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     Query(query): Query<FeedListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -223,7 +221,7 @@ pub async fn list_feeds(
 )]
 #[axum::debug_handler]
 pub async fn get_feed(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -249,7 +247,7 @@ pub async fn get_feed(
   )]
 #[axum::debug_handler]
 pub async fn create_feed(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     session: Session,
     Json(body): Json<FeedCreate>,
 ) -> Result<impl IntoResponse, Error> {
@@ -276,7 +274,7 @@ pub async fn create_feed(
 )]
 #[axum::debug_handler]
 pub async fn update_feed(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FeedUpdate>,
@@ -306,7 +304,7 @@ pub async fn update_feed(
 )]
 #[axum::debug_handler]
 pub async fn delete_feed(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -332,7 +330,7 @@ pub async fn delete_feed(
   )]
 #[axum::debug_handler]
 pub async fn detect_feeds(
-    State(service): State<Arc<FeedService>>,
+    State(service): State<FeedService>,
     Json(body): Json<FeedDetect>,
 ) -> Result<impl IntoResponse, Error> {
     match service.detect_feeds(body.into()).await {

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_scraper::FeedDetector;
 pub use colette_scraper::ProcessedFeed;
 use dyn_clone::DynClone;
@@ -67,11 +65,11 @@ pub struct Cursor {
 #[derive(Clone)]
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
-    detector: Arc<dyn FeedDetector>,
+    detector: Box<dyn FeedDetector>,
 }
 
 impl FeedService {
-    pub fn new(repository: Box<dyn FeedRepository>, detector: Arc<dyn FeedDetector>) -> Self {
+    pub fn new(repository: Box<dyn FeedRepository>, detector: Box<dyn FeedDetector>) -> Self {
         Self {
             repository,
             detector,

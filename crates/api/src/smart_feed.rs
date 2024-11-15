@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -22,11 +20,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct SmartFeedState {
-    service: Arc<SmartFeedService>,
+    service: SmartFeedService,
 }
 
 impl SmartFeedState {
-    pub fn new(service: Arc<SmartFeedService>) -> Self {
+    pub fn new(service: SmartFeedService) -> Self {
         Self { service }
     }
 }
@@ -201,7 +199,7 @@ impl From<DateOperation> for smart_feed::DateOperation {
 )]
 #[axum::debug_handler]
 pub async fn list_smart_feeds(
-    State(service): State<Arc<SmartFeedService>>,
+    State(service): State<SmartFeedService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.list_smart_feeds(session.profile_id).await {
@@ -221,7 +219,7 @@ pub async fn list_smart_feeds(
 )]
 #[axum::debug_handler]
 pub async fn get_smart_feed(
-    State(service): State<Arc<SmartFeedService>>,
+    State(service): State<SmartFeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -247,7 +245,7 @@ pub async fn get_smart_feed(
   )]
 #[axum::debug_handler]
 pub async fn create_smart_feed(
-    State(service): State<Arc<SmartFeedService>>,
+    State(service): State<SmartFeedService>,
     session: Session,
     Json(body): Json<SmartFeedCreate>,
 ) -> Result<impl IntoResponse, Error> {
@@ -272,7 +270,7 @@ pub async fn create_smart_feed(
 )]
 #[axum::debug_handler]
 pub async fn update_smart_feed(
-    State(service): State<Arc<SmartFeedService>>,
+    State(service): State<SmartFeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<SmartFeedUpdate>,
@@ -302,7 +300,7 @@ pub async fn update_smart_feed(
 )]
 #[axum::debug_handler]
 pub async fn delete_smart_feed(
-    State(service): State<Arc<SmartFeedService>>,
+    State(service): State<SmartFeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {

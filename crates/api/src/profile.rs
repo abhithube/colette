@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -22,11 +20,11 @@ use crate::{
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ProfileState {
-    service: Arc<ProfileService>,
+    service: ProfileService,
 }
 
 impl ProfileState {
-    pub fn new(service: Arc<ProfileService>) -> Self {
+    pub fn new(service: ProfileService) -> Self {
         Self { service }
     }
 }
@@ -116,7 +114,7 @@ impl From<ProfileUpdate> for profile::ProfileUpdate {
 )]
 #[axum::debug_handler]
 pub async fn list_profiles(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service.list_profiles(session.user_id).await {
@@ -136,7 +134,7 @@ pub async fn list_profiles(
 )]
 #[axum::debug_handler]
 pub async fn get_profile(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
@@ -161,7 +159,7 @@ pub async fn get_profile(
 )]
 #[axum::debug_handler]
 pub async fn get_active_profile(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
     match service
@@ -184,7 +182,7 @@ pub async fn get_active_profile(
 )]
 #[axum::debug_handler]
 pub async fn create_profile(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     session: Session,
     Json(body): Json<ProfileCreate>,
 ) -> Result<impl IntoResponse, Error> {
@@ -211,7 +209,7 @@ pub async fn create_profile(
 )]
 #[axum::debug_handler]
 pub async fn update_profile(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<ProfileUpdate>,
@@ -241,7 +239,7 @@ pub async fn update_profile(
 )]
 #[axum::debug_handler]
 pub async fn delete_profile(
-    State(service): State<Arc<ProfileService>>,
+    State(service): State<ProfileService>,
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
