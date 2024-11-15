@@ -14,6 +14,7 @@ colette-sql.workspace = true
 futures.workspace = true
 sea-query = { workspace = true, features = ["backend-postgres"] }
 sea-query-binder = { workspace = true, features = ["sqlx-postgres"] }
+serde_json.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
 thiserror.workspace = true
 tokio.workspace = true
