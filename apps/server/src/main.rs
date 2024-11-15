@@ -85,19 +85,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_plugin_registry = Arc::new(register_feed_plugins());
     let bookmark_plugin_registry = Arc::new(register_bookmark_plugins());
 
-    let base64_decoder = Arc::new(Base64Encoder);
+    let base64_decoder = Box::new(Base64Encoder);
 
     let auth_service = Arc::new(AuthService::new(
         user_repository,
         profile_repository.clone(),
-        Arc::new(ArgonHasher),
+        Box::new(ArgonHasher),
     ));
     let backup_service = Arc::new(BackupService::new(
         backup_repository,
         feed_repository.clone(),
         bookmark_repository.clone(),
-        Arc::new(OpmlManager),
-        Arc::new(NetscapeManager),
+        Box::new(OpmlManager),
+        Box::new(NetscapeManager),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,

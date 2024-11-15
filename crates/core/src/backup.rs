@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use bytes::Bytes;
 use colette_backup::BackupManager;
@@ -13,8 +13,8 @@ pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
-    opml_manager: Arc<dyn BackupManager<T = Opml>>,
-    netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
+    opml_manager: Box<dyn BackupManager<T = Opml>>,
+    netscape_manager: Box<dyn BackupManager<T = Netscape>>,
 }
 
 impl BackupService {
@@ -22,8 +22,8 @@ impl BackupService {
         backup_repository: Box<dyn BackupRepository>,
         feed_repository: Box<dyn FeedRepository>,
         bookmark_repository: Box<dyn BookmarkRepository>,
-        opml_manager: Arc<dyn BackupManager<T = Opml>>,
-        netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
+        opml_manager: Box<dyn BackupManager<T = Opml>>,
+        netscape_manager: Box<dyn BackupManager<T = Netscape>>,
     ) -> Self {
         Self {
             backup_repository,

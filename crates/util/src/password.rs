@@ -3,6 +3,7 @@ use password_auth::{verify_password, VerifyError};
 
 use crate::PasswordHasher;
 
+#[derive(Debug, Clone)]
 pub struct ArgonHasher;
 
 impl PasswordHasher for ArgonHasher {

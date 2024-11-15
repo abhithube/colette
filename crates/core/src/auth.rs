@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use colette_util::PasswordHasher;
 use email_address::EmailAddress;
 use uuid::Uuid;
@@ -31,14 +29,14 @@ pub struct SwitchProfile {
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
     profile_repository: Box<dyn ProfileRepository>,
-    password_hasher: Arc<dyn PasswordHasher>,
+    password_hasher: Box<dyn PasswordHasher>,
 }
 
 impl AuthService {
     pub fn new(
         user_repository: Box<dyn UserRepository>,
         profile_repository: Box<dyn ProfileRepository>,
-        password_hasher: Arc<dyn PasswordHasher>,
+        password_hasher: Box<dyn PasswordHasher>,
     ) -> Self {
         Self {
             user_repository,

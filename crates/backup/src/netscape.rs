@@ -3,7 +3,7 @@ use colette_netscape::Netscape;
 
 use crate::BackupManager;
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct NetscapeManager;
 
 impl BackupManager for NetscapeManager {

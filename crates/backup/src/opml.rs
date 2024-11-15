@@ -3,7 +3,7 @@ use colette_opml::Opml;
 
 use crate::BackupManager;
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct OpmlManager;
 
 impl BackupManager for OpmlManager {

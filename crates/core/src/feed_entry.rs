@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
 use colette_util::DataEncoder;
 use uuid::Uuid;
@@ -41,13 +39,13 @@ pub struct Cursor {
 
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,
-    base64_encoder: Arc<dyn DataEncoder<Cursor>>,
+    base64_encoder: Box<dyn DataEncoder<Cursor>>,
 }
 
 impl FeedEntryService {
     pub fn new(
         repository: Box<dyn FeedEntryRepository>,
-        base64_encoder: Arc<dyn DataEncoder<Cursor>>,
+        base64_encoder: Box<dyn DataEncoder<Cursor>>,
     ) -> Self {
         Self {
             repository,

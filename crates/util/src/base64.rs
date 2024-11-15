@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::DataEncoder;
 
+#[derive(Debug, Clone)]
 pub struct Base64Encoder;
 
 impl<T: Serialize + for<'a> Deserialize<'a>> DataEncoder<T> for Base64Encoder {
