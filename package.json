@@ -17,6 +17,8 @@
 		"@tsconfig/node-lts": "^22",
 		"@tsconfig/strictest": "^2",
 		"@tsconfig/vite-react": "^3",
-		"typescript": "^5"
+		"@vitejs/plugin-react-swc": "^3",
+		"typescript": "^5",
+		"vite": "^5"
 	}
 }

@@ -19,9 +19,9 @@
 		"@tanstack/router-plugin": "^1",
 		"@types/react": "^18",
 		"@types/react-dom": "^18",
-		"@vitejs/plugin-react-swc": "^3",
+		"@vitejs/plugin-react-swc": "*",
 		"postcss": "^8",
-		"typescript": "^5",
-		"vite": "^5"
+		"typescript": "*",
+		"vite": "*"
 	}
 }

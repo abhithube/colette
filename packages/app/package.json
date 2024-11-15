@@ -1,5 +1,6 @@
 {
 	"name": "@colette/app",
+	"type": "module",
 	"exports": ["./src/index.ts"],
 	"dependencies": {
 		"@colette/ui": "*",
@@ -22,8 +23,8 @@
 	"devDependencies": {
 		"@types/react": "^18",
 		"@types/react-dom": "^18",
-		"@vitejs/plugin-react-swc": "^3",
-		"typescript": "^5",
-		"vite": "^5"
+		"@vitejs/plugin-react-swc": "*",
+		"typescript": "*",
+		"vite": "*"
 	}
 }

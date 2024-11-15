@@ -1,7 +1,5 @@
 {
 	"name": "@colette/core",
-	"version": "0.0.0",
-	"type": "module",
 	"module": "./lib/index.ts",
 	"exports": ["./lib/index.ts"],
 	"scripts": {
@@ -10,12 +8,12 @@
 		"preview": "vite preview",
 		"generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
 	},
-	"devDependencies": {
-		"typed-openapi": "^0.9",
-		"typescript": "^5",
-		"vite": "^5"
-	},
 	"dependencies": {
 		"zod": "^3"
+	},
+	"devDependencies": {
+		"typed-openapi": "^0.9",
+		"typescript": "*",
+		"vite": "*"
 	}
 }
