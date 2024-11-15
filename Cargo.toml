@@ -14,7 +14,6 @@ members = [
   "crates/plugins",
   "crates/postgres",
   "crates/scraper",
-  "crates/session",
   "crates/sql",
   "crates/sqlite",
   "crates/task",
@@ -50,7 +49,6 @@ colette-opml.path = "crates/opml"
 colette-postgres.path = "crates/postgres"
 colette-plugins.path = "crates/plugins"
 colette-scraper.path = "crates/scraper"
-colette-session.path = "crates/session"
 colette-sql.path = "crates/sql"
 colette-sqlite.path = "crates/sqlite"
 colette-task.path = "crates/task"

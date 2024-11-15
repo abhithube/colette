@@ -12,10 +12,8 @@ colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
-colette-postgres = { workspace = true, optional = true }
+colette-postgres.workspace = true
 colette-scraper.workspace = true
-colette-session.workspace = true
-colette-sqlite = { workspace = true, optional = true }
 colette-task.workspace = true
 colette-util.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
@@ -32,8 +30,3 @@ tower-http = { version = "0.6", default-features = false, features = [
 tower-sessions.workspace = true
 tower-sessions-core.workspace = true
 tracing-subscriber.workspace = true
-
-[features]
-default = ["postgres", "sqlite"]
-postgres = ["dep:colette-postgres", "colette-session/postgres"]
-sqlite = ["dep:colette-sqlite", "colette-session/sqlite"]
