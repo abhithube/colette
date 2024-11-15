@@ -1,0 +1,5 @@
+CREATE TABLE sessions (
+  id TEXT NOT NULL PRIMARY KEY,
+  data BYTEA NOT NULL,
+  expiry_date TIMESTAMPTZ NOT NULL
+);
