@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use url::Url;
 use uuid::Uuid;
 
@@ -32,11 +30,11 @@ pub struct Cursor {
 }
 
 pub struct ProfileService {
-    repository: Arc<dyn ProfileRepository>,
+    repository: Box<dyn ProfileRepository>,
 }
 
 impl ProfileService {
-    pub fn new(repository: Arc<dyn ProfileRepository>) -> Self {
+    pub fn new(repository: Box<dyn ProfileRepository>) -> Self {
         Self { repository }
     }
 

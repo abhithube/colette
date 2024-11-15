@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::feed::create_feed_with_entries;
 
+#[derive(Debug, Clone)]
 pub struct SqliteScraperRepository {
     pool: SqlitePool,
 }

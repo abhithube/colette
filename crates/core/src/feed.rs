@@ -64,12 +64,12 @@ pub struct Cursor {
 }
 
 pub struct FeedService {
-    repository: Arc<dyn FeedRepository>,
+    repository: Box<dyn FeedRepository>,
     detector: Arc<dyn FeedDetector>,
 }
 
 impl FeedService {
-    pub fn new(repository: Arc<dyn FeedRepository>, detector: Arc<dyn FeedDetector>) -> Self {
+    pub fn new(repository: Box<dyn FeedRepository>, detector: Arc<dyn FeedDetector>) -> Self {
         Self {
             repository,
             detector,

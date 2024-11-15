@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use uuid::Uuid;
 
 use crate::common::{
@@ -43,11 +41,11 @@ pub struct Cursor {
 }
 
 pub struct TagService {
-    repository: Arc<dyn TagRepository>,
+    repository: Box<dyn TagRepository>,
 }
 
 impl TagService {
-    pub fn new(repository: Arc<dyn TagRepository>) -> Self {
+    pub fn new(repository: Box<dyn TagRepository>) -> Self {
         Self { repository }
     }
 

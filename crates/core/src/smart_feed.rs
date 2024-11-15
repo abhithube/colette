@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
@@ -63,11 +61,11 @@ pub struct Cursor {
 }
 
 pub struct SmartFeedService {
-    repository: Arc<dyn SmartFeedRepository>,
+    repository: Box<dyn SmartFeedRepository>,
 }
 
 impl SmartFeedService {
-    pub fn new(repository: Arc<dyn SmartFeedRepository>) -> Self {
+    pub fn new(repository: Box<dyn SmartFeedRepository>) -> Self {
         Self { repository }
     }
 

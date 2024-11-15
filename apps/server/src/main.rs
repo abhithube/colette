@@ -56,31 +56,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_postgres::migrate(&pool).await?;
 
-    let backup_repository = Arc::new(colette_postgres::PostgresBackupRepository::new(
+    let backup_repository = Box::new(colette_postgres::PostgresBackupRepository::new(
         pool.clone(),
     ));
-    let bookmark_repository = Arc::new(colette_postgres::PostgresBookmarkRepository::new(
+    let bookmark_repository = Box::new(colette_postgres::PostgresBookmarkRepository::new(
         pool.clone(),
     ));
-    let cleanup_repository = Arc::new(colette_postgres::PostgresCleanupRepository::new(
+    let cleanup_repository = Box::new(colette_postgres::PostgresCleanupRepository::new(
         pool.clone(),
     ));
-    let feed_repository = Arc::new(colette_postgres::PostgresFeedRepository::new(pool.clone()));
-    let feed_entry_repository = Arc::new(colette_postgres::PostgresFeedEntryRepository::new(
+    let feed_repository = Box::new(colette_postgres::PostgresFeedRepository::new(pool.clone()));
+    let feed_entry_repository = Box::new(colette_postgres::PostgresFeedEntryRepository::new(
         pool.clone(),
     ));
-    let profile_repository = Arc::new(colette_postgres::PostgresProfileRepository::new(
+    let profile_repository = Box::new(colette_postgres::PostgresProfileRepository::new(
         pool.clone(),
     ));
-    let scraper_repository = Arc::new(colette_postgres::PostgresScraperRepository::new(
+    let scraper_repository = Box::new(colette_postgres::PostgresScraperRepository::new(
         pool.clone(),
     ));
     let session_repository = colette_postgres::PostgresSessionRepository::new(pool.clone());
-    let smart_feed_repository = Arc::new(colette_postgres::PostgresSmartFeedRepository::new(
+    let smart_feed_repository = Box::new(colette_postgres::PostgresSmartFeedRepository::new(
         pool.clone(),
     ));
-    let tag_repository = Arc::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
-    let user_repository = Arc::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
+    let tag_repository = Box::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
+    let user_repository = Box::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
 
     let feed_plugin_registry = Arc::new(register_feed_plugins());
     let bookmark_plugin_registry = Arc::new(register_bookmark_plugins());

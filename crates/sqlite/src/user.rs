@@ -8,6 +8,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct SqliteUserRepository {
     pool: SqlitePool,
 }

@@ -6,6 +6,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct PostgresBackupRepository {
     pool: PgPool,
 }

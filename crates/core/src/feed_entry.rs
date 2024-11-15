@@ -40,13 +40,13 @@ pub struct Cursor {
 }
 
 pub struct FeedEntryService {
-    repository: Arc<dyn FeedEntryRepository>,
+    repository: Box<dyn FeedEntryRepository>,
     base64_encoder: Arc<dyn DataEncoder<Cursor>>,
 }
 
 impl FeedEntryService {
     pub fn new(
-        repository: Arc<dyn FeedEntryRepository>,
+        repository: Box<dyn FeedEntryRepository>,
         base64_encoder: Arc<dyn DataEncoder<Cursor>>,
     ) -> Self {
         Self {

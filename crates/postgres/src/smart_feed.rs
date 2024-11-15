@@ -16,6 +16,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::{PgExecutor, PgPool};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct PostgresSmartFeedRepository {
     pool: PgPool,
 }

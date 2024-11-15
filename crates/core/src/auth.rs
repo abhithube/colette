@@ -29,15 +29,15 @@ pub struct SwitchProfile {
 }
 
 pub struct AuthService {
-    user_repository: Arc<dyn UserRepository>,
-    profile_repository: Arc<dyn ProfileRepository>,
+    user_repository: Box<dyn UserRepository>,
+    profile_repository: Box<dyn ProfileRepository>,
     password_hasher: Arc<dyn PasswordHasher>,
 }
 
 impl AuthService {
     pub fn new(
-        user_repository: Arc<dyn UserRepository>,
-        profile_repository: Arc<dyn ProfileRepository>,
+        user_repository: Box<dyn UserRepository>,
+        profile_repository: Box<dyn ProfileRepository>,
         password_hasher: Arc<dyn PasswordHasher>,
     ) -> Self {
         Self {

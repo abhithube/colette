@@ -12,6 +12,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::{types::Json, PgConnection, PgExecutor, PgPool};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
     pool: PgPool,
 }

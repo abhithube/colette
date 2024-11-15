@@ -16,6 +16,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::{SqliteExecutor, SqlitePool};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct SqliteSmartFeedRepository {
     pool: SqlitePool,
 }

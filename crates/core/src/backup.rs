@@ -10,18 +10,18 @@ use uuid::Uuid;
 use crate::{bookmark::BookmarkRepository, feed::FeedRepository};
 
 pub struct BackupService {
-    backup_repository: Arc<dyn BackupRepository>,
-    feed_repository: Arc<dyn FeedRepository>,
-    bookmark_repository: Arc<dyn BookmarkRepository>,
+    backup_repository: Box<dyn BackupRepository>,
+    feed_repository: Box<dyn FeedRepository>,
+    bookmark_repository: Box<dyn BookmarkRepository>,
     opml_manager: Arc<dyn BackupManager<T = Opml>>,
     netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
 }
 
 impl BackupService {
     pub fn new(
-        backup_repository: Arc<dyn BackupRepository>,
-        feed_repository: Arc<dyn FeedRepository>,
-        bookmark_repository: Arc<dyn BookmarkRepository>,
+        backup_repository: Box<dyn BackupRepository>,
+        feed_repository: Box<dyn FeedRepository>,
+        bookmark_repository: Box<dyn BookmarkRepository>,
         opml_manager: Arc<dyn BackupManager<T = Opml>>,
         netscape_manager: Arc<dyn BackupManager<T = Netscape>>,
     ) -> Self {

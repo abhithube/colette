@@ -3,6 +3,7 @@ use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::SqlitePool;
 
+#[derive(Debug, Clone)]
 pub struct SqliteCleanupRepository {
     pool: SqlitePool,
 }

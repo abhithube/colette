@@ -63,14 +63,14 @@ pub struct Cursor {
 }
 
 pub struct BookmarkService {
-    repository: Arc<dyn BookmarkRepository>,
+    repository: Box<dyn BookmarkRepository>,
     scraper: Arc<dyn BookmarkScraper>,
     base64_encoder: Arc<dyn DataEncoder<Cursor>>,
 }
 
 impl BookmarkService {
     pub fn new(
-        repository: Arc<dyn BookmarkRepository>,
+        repository: Box<dyn BookmarkRepository>,
         scraper: Arc<dyn BookmarkScraper>,
         base64_encoder: Arc<dyn DataEncoder<Cursor>>,
     ) -> Self {

@@ -15,14 +15,14 @@ pub struct BookmarkCreate {
 }
 
 pub struct ScraperService {
-    repository: Arc<dyn ScraperRepository>,
+    repository: Box<dyn ScraperRepository>,
     feed_scraper: Arc<dyn FeedScraper>,
     bookmark_scraper: Arc<dyn BookmarkScraper>,
 }
 
 impl ScraperService {
     pub fn new(
-        repository: Arc<dyn ScraperRepository>,
+        repository: Box<dyn ScraperRepository>,
         feed_scraper: Arc<dyn FeedScraper>,
         bookmark_scraper: Arc<dyn BookmarkScraper>,
     ) -> Self {

@@ -53,16 +53,16 @@ pub fn run() {
 
                 colette_sqlite::migrate(&pool).await?;
 
-                let backup_repository = Arc::new(SqliteBackupRepository::new(pool.clone()));
-                let bookmark_repository = Arc::new(SqliteBookmarkRepository::new(pool.clone()));
-                let _cleanup_repository = Arc::new(SqliteCleanupRepository::new(pool.clone()));
-                let feed_repository = Arc::new(SqliteFeedRepository::new(pool.clone()));
-                let feed_entry_repository = Arc::new(SqliteFeedEntryRepository::new(pool.clone()));
-                let profile_repository = Arc::new(SqliteProfileRepository::new(pool.clone()));
-                let scraper_repository = Arc::new(SqliteScraperRepository::new(pool.clone()));
-                let smart_feed_repository = Arc::new(SqliteSmartFeedRepository::new(pool.clone()));
-                let tag_repository = Arc::new(SqliteTagRepository::new(pool.clone()));
-                let user_repository = Arc::new(SqliteUserRepository::new(pool.clone()));
+                let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
+                let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
+                let _cleanup_repository = Box::new(SqliteCleanupRepository::new(pool.clone()));
+                let feed_repository = Box::new(SqliteFeedRepository::new(pool.clone()));
+                let feed_entry_repository = Box::new(SqliteFeedEntryRepository::new(pool.clone()));
+                let profile_repository = Box::new(SqliteProfileRepository::new(pool.clone()));
+                let scraper_repository = Box::new(SqliteScraperRepository::new(pool.clone()));
+                let smart_feed_repository = Box::new(SqliteSmartFeedRepository::new(pool.clone()));
+                let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
+                let user_repository = Box::new(SqliteUserRepository::new(pool.clone()));
 
                 let feed_plugin_registry = Arc::new(register_feed_plugins());
                 let bookmark_plugin_registry = Arc::new(register_bookmark_plugins());

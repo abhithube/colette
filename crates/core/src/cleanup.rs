@@ -1,16 +1,14 @@
-use std::sync::Arc;
-
 pub struct CleanupInfo {
     pub feed_count: u64,
     pub feed_entry_count: u64,
 }
 
 pub struct CleanupService {
-    cleanup_repository: Arc<dyn CleanupRepository>,
+    cleanup_repository: Box<dyn CleanupRepository>,
 }
 
 impl CleanupService {
-    pub fn new(cleanup_repository: Arc<dyn CleanupRepository>) -> Self {
+    pub fn new(cleanup_repository: Box<dyn CleanupRepository>) -> Self {
         Self { cleanup_repository }
     }
 

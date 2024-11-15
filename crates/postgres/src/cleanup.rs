@@ -3,6 +3,7 @@ use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::PgPool;
 
+#[derive(Debug, Clone)]
 pub struct PostgresCleanupRepository {
     pool: PgPool,
 }

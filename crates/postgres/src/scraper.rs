@@ -5,6 +5,7 @@ use sqlx::PgPool;
 
 use crate::feed::create_feed_with_entries;
 
+#[derive(Debug, Clone)]
 pub struct PostgresScraperRepository {
     pool: PgPool,
 }

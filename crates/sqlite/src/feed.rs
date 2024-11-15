@@ -12,6 +12,7 @@ use sea_query_binder::SqlxBinder;
 use sqlx::{types::Json, SqliteConnection, SqliteExecutor, SqlitePool};
 use uuid::Uuid;
 
+#[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
     pool: SqlitePool,
 }
