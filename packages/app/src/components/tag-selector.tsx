@@ -31,11 +31,11 @@ export function TagSelector({ tags, state, handleChange }: Props) {
       allowCustomValue
       openOnClick
       value={state.value}
-      onValueChange={(details) => handleChange(details.value.toSorted())}
+      onValueChange={(details) => handleChange(details.value.sort())}
     >
       <TagsInput.Root
         value={state.value}
-        onValueChange={(details) => handleChange(details.value.toSorted())}
+        onValueChange={(details) => handleChange(details.value.sort())}
       >
         <Combobox.Label>Tags</Combobox.Label>
         <TagsInput.Context>

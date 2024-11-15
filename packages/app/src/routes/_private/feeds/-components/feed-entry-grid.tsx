@@ -1,5 +1,6 @@
 import type { FeedEntry } from '@colette/core'
 import { Box, Container, Divider, HStack, Text } from '@colette/ui'
+import groupBy from 'object.groupby'
 import { useInView } from 'react-intersection-observer'
 import { FeedEntryCard } from './feed-entry-card'
 
@@ -18,7 +19,7 @@ export function FeedEntryGrid({ feedEntries, hasMore, loadMore }: Props) {
   const lastYear = date - day * 365
 
   const list = Object.entries(
-    Object.groupBy(feedEntries, (item: FeedEntry) => {
+    groupBy(feedEntries, (item: FeedEntry) => {
       const publishedAt = Date.parse(item.publishedAt)
       return publishedAt > today
         ? 'Today'
