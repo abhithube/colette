@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::feed::Cursor;
 use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
+    OnConflict, Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithClause, WithQuery,
 };
 use uuid::Uuid;
 
@@ -159,6 +159,14 @@ pub fn select(
                 Expr::val(e.id).into(),
             ]))
         }))
+        .order_by_expr(
+            Func::coalesce([
+                Expr::col((ProfileFeed::Table, ProfileFeed::Title)).into(),
+                Expr::col((Feed::Table, Feed::Title)).into(),
+            ])
+            .into(),
+            Order::Asc,
+        )
         .to_owned();
 
     if let Some(limit) = limit {
