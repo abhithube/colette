@@ -3,9 +3,6 @@
 	"module": "./lib/index.ts",
 	"exports": ["./lib/index.ts"],
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build",
-		"preview": "vite preview",
 		"generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
 	},
 	"dependencies": {
@@ -13,7 +10,6 @@
 	},
 	"devDependencies": {
 		"typed-openapi": "^0.9",
-		"typescript": "*",
-		"vite": "*"
+		"typescript": "*"
 	}
 }

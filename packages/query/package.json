@@ -2,17 +2,11 @@
 	"name": "@colette/query",
 	"module": "./lib/index.ts",
 	"exports": ["./lib/index.ts"],
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc && vite build",
-		"preview": "vite preview"
-	},
 	"dependencies": {
 		"@colette/core": "*",
 		"@tanstack/react-query": "^5"
 	},
 	"devDependencies": {
-		"typescript": "*",
-		"vite": "*"
+		"typescript": "*"
 	}
 }
