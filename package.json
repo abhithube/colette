@@ -14,8 +14,6 @@
 	],
 	"devDependencies": {
 		"@biomejs/biome": "^1",
-		"@tsconfig/node-lts": "^22",
-		"@tsconfig/strictest": "^2",
 		"@tsconfig/vite-react": "^3",
 		"@vitejs/plugin-react-swc": "^3",
 		"typescript": "^5",
