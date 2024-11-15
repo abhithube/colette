@@ -11,6 +11,7 @@ use colette_feed::{
     rss::{RssFeed, RssItem},
     Feed,
 };
+use dyn_clone::DynClone;
 use scraper::{Html, Selector};
 use url::Url;
 
@@ -252,7 +253,7 @@ impl From<RssItem> for ExtractedFeedEntry {
     }
 }
 
-pub trait FeedScraper: Downloader + Send + Sync {
+pub trait FeedScraper: Downloader + Send + Sync + DynClone {
     fn before_extract(&self) -> Option<FeedExtractorOptions> {
         None
     }
@@ -329,6 +330,8 @@ pub trait FeedScraper: Downloader + Send + Sync {
     }
 }
 
+dyn_clone::clone_trait_object!(FeedScraper);
+
 pub trait FeedDetector: FeedScraper + Send + Sync {
     fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
         let resp = self.download(&mut url)?;
@@ -366,7 +369,9 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
     }
 }
 
-#[derive(Default)]
+dyn_clone::clone_trait_object!(FeedDetector);
+
+#[derive(Clone, Default)]
 pub struct FeedPluginRegistry {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
 }

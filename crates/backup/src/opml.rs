@@ -21,3 +21,5 @@ impl BackupManager for OpmlManager {
         Ok(buffer.into())
     }
 }
+
+dyn_clone::clone_trait_object!(BackupManager<T = Opml>);

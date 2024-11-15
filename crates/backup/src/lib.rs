@@ -1,9 +1,10 @@
 use bytes::Bytes;
+use dyn_clone::DynClone;
 
 pub mod netscape;
 pub mod opml;
 
-pub trait BackupManager: Send + Sync {
+pub trait BackupManager: Send + Sync + DynClone {
     type T;
 
     fn import(&self, raw: Bytes) -> Result<Self::T, Error>;

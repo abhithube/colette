@@ -1,3 +1,4 @@
+use dyn_clone::DynClone;
 use uuid::Uuid;
 
 use crate::common::{Creatable, Findable};
@@ -16,8 +17,11 @@ pub trait UserRepository:
     + Creatable<Data = UserCreateData, Output = Result<User, Error>>
     + Send
     + Sync
+    + DynClone
 {
 }
+
+dyn_clone::clone_trait_object!(UserRepository);
 
 #[derive(Clone, Debug)]
 pub enum UserIdParams {

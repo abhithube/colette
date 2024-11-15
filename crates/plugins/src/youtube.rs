@@ -3,6 +3,7 @@ use http::{request::Builder, Request};
 use lazy_regex::regex_captures;
 use url::Url;
 
+#[derive(Clone)]
 pub struct YouTubePlugin;
 
 pub fn create() -> Box<dyn FeedScraper> {

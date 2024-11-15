@@ -1,8 +1,11 @@
+use dyn_clone::DynClone;
+
 pub struct CleanupInfo {
     pub feed_count: u64,
     pub feed_entry_count: u64,
 }
 
+#[derive(Clone)]
 pub struct CleanupService {
     cleanup_repository: Box<dyn CleanupRepository>,
 }
@@ -23,9 +26,11 @@ impl CleanupService {
 }
 
 #[async_trait::async_trait]
-pub trait CleanupRepository: Send + Sync {
+pub trait CleanupRepository: Send + Sync + DynClone {
     async fn cleanup_feeds(&self) -> Result<FeedCleanupInfo, Error>;
 }
+
+dyn_clone::clone_trait_object!(CleanupRepository);
 
 pub struct FeedCleanupInfo {
     pub feed_count: u64,

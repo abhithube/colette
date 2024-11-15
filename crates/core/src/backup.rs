@@ -4,11 +4,13 @@ use bytes::Bytes;
 use colette_backup::BackupManager;
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
+use dyn_clone::DynClone;
 use url::Url;
 use uuid::Uuid;
 
 use crate::{bookmark::BookmarkRepository, feed::FeedRepository};
 
+#[derive(Clone)]
 pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
@@ -174,11 +176,13 @@ impl BackupService {
 }
 
 #[async_trait::async_trait]
-pub trait BackupRepository: Send + Sync {
+pub trait BackupRepository: Send + Sync + DynClone {
     async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
 
     async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
 }
+
+dyn_clone::clone_trait_object!(BackupRepository);
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

@@ -7,4 +7,5 @@ edition = "2021"
 bytes.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
+dyn-clone.workspace = true
 thiserror.workspace = true

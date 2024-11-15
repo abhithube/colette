@@ -9,6 +9,7 @@ anyhow.workspace = true
 chrono.workspace = true
 colette-feed.workspace = true
 colette-meta.workspace = true
+dyn-clone.workspace = true
 http.workspace = true
 scraper.workspace = true
 thiserror.workspace = true

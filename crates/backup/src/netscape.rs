@@ -21,3 +21,5 @@ impl BackupManager for NetscapeManager {
         Ok(buffer.into())
     }
 }
+
+dyn_clone::clone_trait_object!(BackupManager<T = Netscape>);

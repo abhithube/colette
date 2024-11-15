@@ -1,3 +1,4 @@
+use dyn_clone::DynClone;
 use url::Url;
 use uuid::Uuid;
 
@@ -29,6 +30,7 @@ pub struct Cursor {
     pub title: String,
 }
 
+#[derive(Clone)]
 pub struct ProfileService {
     repository: Box<dyn ProfileRepository>,
 }
@@ -96,6 +98,7 @@ pub trait ProfileRepository:
     + Deletable<Params = ProfileIdParams, Output = Result<(), Error>>
     + Send
     + Sync
+    + DynClone
 {
     async fn list(
         &self,
@@ -104,6 +107,8 @@ pub trait ProfileRepository:
         cursor: Option<Cursor>,
     ) -> Result<Vec<Profile>, Error>;
 }
+
+dyn_clone::clone_trait_object!(ProfileRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct ProfileIdParams {

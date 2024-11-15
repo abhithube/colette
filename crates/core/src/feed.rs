@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use colette_scraper::FeedDetector;
 pub use colette_scraper::ProcessedFeed;
+use dyn_clone::DynClone;
 use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
@@ -63,6 +64,7 @@ pub struct Cursor {
     pub title: String,
 }
 
+#[derive(Clone)]
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
     detector: Arc<dyn FeedDetector>,
@@ -162,6 +164,7 @@ pub trait FeedRepository:
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
+    + DynClone
 {
     async fn list(
         &self,
@@ -175,6 +178,8 @@ pub trait FeedRepository:
 
     fn stream(&self) -> BoxStream<Result<String, Error>>;
 }
+
+dyn_clone::clone_trait_object!(FeedRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedFindManyFilters {

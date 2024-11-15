@@ -6,6 +6,7 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
+use dyn_clone::DynClone;
 use scraper::Html;
 use url::Url;
 
@@ -76,7 +77,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
     }
 }
 
-pub trait BookmarkScraper: Downloader + Send + Sync {
+pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
     fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
         None
     }
@@ -212,7 +213,9 @@ pub trait BookmarkScraper: Downloader + Send + Sync {
     }
 }
 
-#[derive(Default)]
+dyn_clone::clone_trait_object!(BookmarkScraper);
+
+#[derive(Clone, Default)]
 pub struct BookmarkPluginRegistry {
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }

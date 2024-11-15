@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_util::DataEncoder;
+use dyn_clone::DynClone;
 use uuid::Uuid;
 
 use crate::common::{Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT};
@@ -37,6 +38,7 @@ pub struct Cursor {
     pub published_at: DateTime<Utc>,
 }
 
+#[derive(Clone)]
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,
     base64_encoder: Box<dyn DataEncoder<Cursor>>,
@@ -121,6 +123,7 @@ pub trait FeedEntryRepository:
     + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<FeedEntry, Error>>
     + Send
     + Sync
+    + DynClone
 {
     async fn list(
         &self,
@@ -130,6 +133,8 @@ pub trait FeedEntryRepository:
         filters: Option<FeedEntryFindManyFilters>,
     ) -> Result<Vec<FeedEntry>, Error>;
 }
+
+dyn_clone::clone_trait_object!(FeedEntryRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedEntryFindManyFilters {

@@ -6,6 +6,7 @@ use http::{header, request::Builder, Request};
 use scraper::Selector;
 use url::Url;
 
+#[derive(Clone)]
 pub struct RedditPlugin;
 
 pub fn feed() -> Box<dyn FeedScraper> {

@@ -26,6 +26,7 @@ pub struct SwitchProfile {
     pub id: Uuid,
 }
 
+#[derive(Clone)]
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
     profile_repository: Box<dyn ProfileRepository>,

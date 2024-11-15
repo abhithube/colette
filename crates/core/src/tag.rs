@@ -1,3 +1,4 @@
+use dyn_clone::DynClone;
 use uuid::Uuid;
 
 use crate::common::{
@@ -40,6 +41,7 @@ pub struct Cursor {
     pub title: String,
 }
 
+#[derive(Clone)]
 pub struct TagService {
     repository: Box<dyn TagRepository>,
 }
@@ -97,6 +99,7 @@ pub trait TagRepository:
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
+    + DynClone
 {
     async fn list(
         &self,
@@ -106,6 +109,8 @@ pub trait TagRepository:
         filters: Option<TagFindManyFilters>,
     ) -> Result<Vec<Tag>, Error>;
 }
+
+dyn_clone::clone_trait_object!(TagRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct TagFindManyFilters {
