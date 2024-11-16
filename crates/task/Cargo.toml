@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 chrono.workspace = true
 colette-core.workspace = true
-cron = { version = "0.12", default-features = false }
+cron = { version = "0.13", default-features = false }
 futures.workspace = true
 tokio.workspace = true
 tower.workspace = true

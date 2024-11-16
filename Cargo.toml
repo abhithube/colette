@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "apps/server",
   "apps/desktop/src-tauri",
+  "apps/server",
 
   "crates/api",
   "crates/backup",
@@ -60,7 +60,7 @@ email_address = { version = "0.2", default-features = false, features = [
 futures = { version = "0.3", default-features = false }
 html5gum = { version = "0.5", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
-quick-xml = { version = "0.36", default-features = false }
+quick-xml = { version = "0.37", default-features = false }
 scraper = { version = "0.20", default-features = false }
 sea-query = { version = "0.32", default-features = false, features = [
   "derive",
@@ -68,7 +68,7 @@ sea-query = { version = "0.32", default-features = false, features = [
   "with-json",
   "with-uuid",
 ] }
-sea-query-binder = { version = "0.7", features = [
+sea-query-binder = { version = "0.7", default-features = false, features = [
   "with-chrono",
   "with-json",
   "with-uuid",
