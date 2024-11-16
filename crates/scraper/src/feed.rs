@@ -1,7 +1,7 @@
 use core::str;
 use std::{
     collections::HashMap,
-    io::{BufReader, Read},
+    io::{BufRead, BufReader, Read},
 };
 
 use anyhow::anyhow;
@@ -339,13 +339,13 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
 
         let mut reader = BufReader::new(body);
         let buffer = reader
-            .peek(15)
+            .fill_buf()
             .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
 
         let raw = str::from_utf8(buffer).map_err(|_| Error::Parse)?;
 
         match raw {
-            raw if raw.contains("html>") => {
+            raw if raw.contains("<!DOCTYPE html") => {
                 let metadata = colette_meta::parse_metadata(reader).map_err(|_| Error::Parse)?;
 
                 let mut feeds: Vec<(Url, ProcessedFeed)> = Vec::new();
