@@ -204,8 +204,7 @@ pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
     }
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let resp = self.download(url)?;
-        let body = resp.into_body();
+        let body = self.download(url)?;
         let mut bookmark = self.extract(url, body)?;
         self.postprocess(url, &mut bookmark)?;
 
@@ -235,8 +234,7 @@ impl BookmarkScraper for BookmarkPluginRegistry {
         match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(url),
             None => {
-                let resp = self.download(url)?;
-                let body = resp.into_body();
+                let body = self.download(url)?;
                 let mut bookmark = self.extract(url, body)?;
                 self.postprocess(url, &mut bookmark)?;
 

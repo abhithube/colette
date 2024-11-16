@@ -321,8 +321,7 @@ pub trait FeedScraper: Downloader + Send + Sync + DynClone {
     }
 
     fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let resp = self.download(url)?;
-        let body = resp.into_body();
+        let body = self.download(url)?;
         let mut feed = self.extract(url, body)?;
         self.postprocess(url, &mut feed)?;
 
@@ -334,8 +333,7 @@ dyn_clone::clone_trait_object!(FeedScraper);
 
 pub trait FeedDetector: FeedScraper + Send + Sync {
     fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
-        let resp = self.download(&mut url)?;
-        let body = resp.into_body();
+        let body = self.download(&mut url)?;
 
         let mut reader = BufReader::new(body);
         let buffer = reader
@@ -391,8 +389,7 @@ impl FeedScraper for FeedPluginRegistry {
         match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(url),
             None => {
-                let resp = self.download(url)?;
-                let body = resp.into_body();
+                let body = self.download(url)?;
                 let mut feed = self.extract(url, body)?;
                 self.postprocess(url, &mut feed)?;
 

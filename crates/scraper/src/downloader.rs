@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use http::{request::Builder, Request, Response};
+use http::{request::Builder, Request};
 use url::Url;
 
 use crate::DownloaderError;
@@ -10,10 +10,7 @@ pub trait Downloader: Send + Sync {
         Request::get(url.as_str())
     }
 
-    fn download(
-        &self,
-        url: &mut Url,
-    ) -> Result<Response<Box<dyn Read + Send + Sync>>, DownloaderError> {
+    fn download(&self, url: &mut Url) -> Result<Box<dyn Read + Send + Sync>, DownloaderError> {
         let req: ureq::Request = self
             .before_download(url)
             .try_into()
@@ -21,6 +18,6 @@ pub trait Downloader: Send + Sync {
 
         let resp = req.call().map_err(|e| DownloaderError(e.into()))?;
 
-        Ok(resp.into())
+        Ok(resp.into_reader())
     }
 }
