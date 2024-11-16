@@ -30,7 +30,20 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<FeedEntry, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let mut feed_entries = find(
+            &self.pool,
+            Some(params.id),
+            params.profile_id,
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if feed_entries.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(feed_entries.swap_remove(0))
     }
 }
 
@@ -145,21 +158,4 @@ async fn find(
         .await
         .map(|e| e.into_iter().map(FeedEntry::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<FeedEntry, Error> {
-    let mut feed_entries = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
-    if feed_entries.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(feed_entries.swap_remove(0))
 }

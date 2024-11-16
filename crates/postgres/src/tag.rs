@@ -25,7 +25,20 @@ impl Findable for PostgresTagRepository {
     type Output = Result<Tag, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let mut tags = find(
+            &self.pool,
+            Some(params.id),
+            params.profile_id,
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if tags.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(tags.swap_remove(0))
     }
 }
 
@@ -148,21 +161,4 @@ pub(crate) async fn find(
         .await
         .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-async fn find_by_id(executor: impl PgExecutor<'_>, params: IdParams) -> Result<Tag, Error> {
-    let mut tags = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
-    if tags.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(tags.swap_remove(0))
 }

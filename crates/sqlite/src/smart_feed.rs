@@ -33,7 +33,12 @@ impl Findable for SqliteSmartFeedRepository {
     type Output = Result<SmartFeed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let mut feeds = find(&self.pool, Some(params.id), params.profile_id, None, None).await?;
+        if feeds.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(feeds.swap_remove(0))
     }
 }
 
@@ -201,18 +206,6 @@ pub(crate) async fn find(
         .await
         .map(|e| e.into_iter().map(SmartFeed::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-async fn find_by_id(
-    executor: impl SqliteExecutor<'_>,
-    params: IdParams,
-) -> Result<SmartFeed, Error> {
-    let mut feeds = find(executor, Some(params.id), params.profile_id, None, None).await?;
-    if feeds.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(feeds.swap_remove(0))
 }
 
 struct Op {

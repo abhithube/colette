@@ -29,7 +29,20 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Bookmark, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let mut bookmarks = find(
+            &self.pool,
+            Some(params.id),
+            params.profile_id,
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if bookmarks.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(bookmarks.swap_remove(0))
     }
 }
 
@@ -240,26 +253,6 @@ pub(crate) async fn find(
         .await
         .map(|e| e.into_iter().map(Bookmark::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-pub async fn find_by_id(
-    executor: impl PgExecutor<'_>,
-    params: IdParams,
-) -> Result<Bookmark, Error> {
-    let mut bookmarks = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
-    if bookmarks.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(bookmarks.swap_remove(0))
 }
 
 pub(crate) async fn link_tags(

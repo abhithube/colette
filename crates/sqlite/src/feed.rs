@@ -29,7 +29,20 @@ impl Findable for SqliteFeedRepository {
     type Output = Result<Feed, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        find_by_id(&self.pool, params).await
+        let mut feeds = find(
+            &self.pool,
+            Some(params.id),
+            params.profile_id,
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if feeds.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(feeds.swap_remove(0))
     }
 }
 
@@ -273,23 +286,6 @@ pub(crate) async fn find(
         .await
         .map(|e| e.into_iter().map(Feed::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-async fn find_by_id(executor: impl SqliteExecutor<'_>, params: IdParams) -> Result<Feed, Error> {
-    let mut feeds = find(
-        executor,
-        Some(params.id),
-        params.profile_id,
-        None,
-        None,
-        None,
-    )
-    .await?;
-    if feeds.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(feeds.swap_remove(0))
 }
 
 pub(crate) async fn link_tags(

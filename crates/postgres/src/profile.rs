@@ -115,7 +115,20 @@ impl Deletable for PostgresProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let profile = find_by_id(&self.pool, params.clone()).await?;
+        let mut profiles = find(
+            &self.pool,
+            Some(params.id),
+            params.user_id,
+            None,
+            None,
+            None,
+        )
+        .await?;
+        if profiles.is_empty() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        let profile = profiles.swap_remove(0);
         if profile.is_default {
             return Err(Error::DeletingDefault);
         }
@@ -181,16 +194,4 @@ async fn find(
         .await
         .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))
-}
-
-async fn find_by_id(
-    executor: impl PgExecutor<'_>,
-    params: ProfileIdParams,
-) -> Result<Profile, Error> {
-    let mut profiles = find(executor, Some(params.id), params.user_id, None, None, None).await?;
-    if profiles.is_empty() {
-        return Err(Error::NotFound(params.id));
-    }
-
-    Ok(profiles.swap_remove(0))
 }
