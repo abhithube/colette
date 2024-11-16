@@ -4,3 +4,8 @@ compatibility_date = "2024-11-16"
 
 [build]
 command = "cargo install -q worker-build && worker-build --release"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "colette"
+database_id = "5ad3b676-f857-4fd2-a23c-7920104e6470"
