@@ -51,7 +51,7 @@ impl TagService {
         Self { repository }
     }
 
-    pub async fn list(
+    pub async fn list_tags(
         &self,
         query: TagListQuery,
         profile_id: Uuid,
@@ -67,11 +67,11 @@ impl TagService {
         })
     }
 
-    pub async fn get(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+    pub async fn get_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
         self.repository.find(IdParams::new(id, profile_id)).await
     }
 
-    pub async fn create(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
+    pub async fn create_tag(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
         self.repository
             .create(TagCreateData {
                 title: data.title.into(),
@@ -80,13 +80,18 @@ impl TagService {
             .await
     }
 
-    pub async fn update(&self, id: Uuid, data: TagUpdate, profile_id: Uuid) -> Result<Tag, Error> {
+    pub async fn update_tag(
+        &self,
+        id: Uuid,
+        data: TagUpdate,
+        profile_id: Uuid,
+    ) -> Result<Tag, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
             .await
     }
 
-    pub async fn delete(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
+    pub async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
         self.repository.delete(IdParams::new(id, profile_id)).await
     }
 }
