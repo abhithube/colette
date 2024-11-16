@@ -63,13 +63,16 @@ impl ProfileService {
         data: ProfileCreate,
         user_id: Uuid,
     ) -> Result<Profile, Error> {
-        self.repository
+        let id = self
+            .repository
             .create(ProfileCreateData {
                 title: data.title.into(),
                 image_url: data.image_url.map(String::from),
                 user_id,
             })
-            .await
+            .await?;
+
+        self.get_profile(id, user_id).await
     }
 
     pub async fn update_profile(
@@ -80,7 +83,9 @@ impl ProfileService {
     ) -> Result<Profile, Error> {
         self.repository
             .update(ProfileIdParams::new(id, user_id), data.into())
-            .await
+            .await?;
+
+        self.get_profile(id, user_id).await
     }
 
     pub async fn delete_profile(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
@@ -93,8 +98,8 @@ impl ProfileService {
 #[async_trait::async_trait]
 pub trait ProfileRepository:
     Findable<Params = ProfileIdOrDefaultParams, Output = Result<Profile, Error>>
-    + Creatable<Data = ProfileCreateData, Output = Result<Profile, Error>>
-    + Updatable<Params = ProfileIdParams, Data = ProfileUpdateData, Output = Result<Profile, Error>>
+    + Creatable<Data = ProfileCreateData, Output = Result<Uuid, Error>>
+    + Updatable<Params = ProfileIdParams, Data = ProfileUpdateData, Output = Result<(), Error>>
     + Deletable<Params = ProfileIdParams, Output = Result<(), Error>>
     + Send
     + Sync

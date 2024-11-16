@@ -33,7 +33,7 @@ impl Findable for SqliteUserRepository {
                 sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
                     .fetch_one(&self.pool)
                     .await
-                    .map(|e| e.into())
+                    .map(User::from)
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
                         _ => Error::Unknown(e.into()),
@@ -46,7 +46,7 @@ impl Findable for SqliteUserRepository {
                 sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
                     .fetch_one(&self.pool)
                     .await
-                    .map(|e| e.into())
+                    .map(User::from)
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
                         _ => Error::Unknown(e.into()),
@@ -59,7 +59,7 @@ impl Findable for SqliteUserRepository {
 #[async_trait::async_trait]
 impl Creatable for SqliteUserRepository {
     type Data = UserCreateData;
-    type Output = Result<User, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -68,15 +68,14 @@ impl Creatable for SqliteUserRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let user = {
+        let id = {
             let (sql, values) =
                 colette_sql::user::insert(Some(Uuid::new_v4()), data.email.clone(), data.password)
                     .build_sqlx(SqliteQueryBuilder);
 
-            sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
                 .fetch_one(&mut *tx)
                 .await
-                .map(User::from)
                 .map_err(|e| match e {
                     sqlx::Error::Database(e) if e.is_unique_violation() => {
                         Error::Conflict(data.email)
@@ -91,7 +90,7 @@ impl Creatable for SqliteUserRepository {
                 "Default".to_owned(),
                 None,
                 Some(true),
-                user.id,
+                id,
             )
             .build_sqlx(SqliteQueryBuilder);
 
@@ -103,7 +102,7 @@ impl Creatable for SqliteUserRepository {
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(user)
+        Ok(id)
     }
 }
 

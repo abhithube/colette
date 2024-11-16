@@ -53,6 +53,6 @@ pub fn insert(id: Option<Uuid>, email: String, password: String) -> InsertStatem
         .into_table(User::Table)
         .columns(columns)
         .values_panic(values)
-        .returning_all()
+        .returning_col(User::Id)
         .to_owned()
 }

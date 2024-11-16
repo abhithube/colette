@@ -89,13 +89,16 @@ impl SmartFeedService {
         data: SmartFeedCreate,
         profile_id: Uuid,
     ) -> Result<SmartFeed, Error> {
-        self.repository
+        let id = self
+            .repository
             .create(SmartFeedCreateData {
                 title: data.title.into(),
                 filters: data.filters,
                 profile_id,
             })
-            .await
+            .await?;
+
+        self.get_smart_feed(id, profile_id).await
     }
 
     pub async fn update_smart_feed(
@@ -106,7 +109,9 @@ impl SmartFeedService {
     ) -> Result<SmartFeed, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
-            .await
+            .await?;
+
+        self.get_smart_feed(id, profile_id).await
     }
 
     pub async fn delete_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
@@ -117,8 +122,8 @@ impl SmartFeedService {
 #[async_trait::async_trait]
 pub trait SmartFeedRepository:
     Findable<Params = IdParams, Output = Result<SmartFeed, Error>>
-    + Creatable<Data = SmartFeedCreateData, Output = Result<SmartFeed, Error>>
-    + Updatable<Params = IdParams, Data = SmartFeedUpdateData, Output = Result<SmartFeed, Error>>
+    + Creatable<Data = SmartFeedCreateData, Output = Result<Uuid, Error>>
+    + Updatable<Params = IdParams, Data = SmartFeedUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
@@ -150,7 +155,7 @@ pub struct SmartFeedUpdateData {
 impl From<SmartFeedUpdate> for SmartFeedUpdateData {
     fn from(value: SmartFeedUpdate) -> Self {
         Self {
-            title: value.title.map(|e| e.into()),
+            title: value.title.map(String::from),
             filters: value.filters,
         }
     }

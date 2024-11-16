@@ -27,18 +27,12 @@ impl SessionStore for PostgresSessionRepository {
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
         let expiry = SystemTime::from(record.expiry_date);
 
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
         loop {
             let (sql, values) =
                 colette_sql::session::insert(record.id.to_string(), &payload, expiry.into())
                     .build_sqlx(PostgresQueryBuilder);
 
-            match sqlx::query_with(&sql, values).execute(&mut *tx).await {
+            match sqlx::query_with(&sql, values).execute(&self.pool).await {
                 Ok(_) => break,
                 Err(e) => match e {
                     sqlx::Error::Database(e) if e.is_unique_violation() => {
@@ -50,10 +44,6 @@ impl SessionStore for PostgresSessionRepository {
                 },
             }
         }
-
-        tx.commit()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
         Ok(())
     }

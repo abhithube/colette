@@ -17,18 +17,12 @@ impl PostgresCleanupRepository {
 #[async_trait::async_trait]
 impl CleanupRepository for PostgresCleanupRepository {
     async fn cleanup_feeds(&self) -> Result<FeedCleanupInfo, Error> {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let feed_count = {
             let (sql, values) =
                 colette_sql::feed_entry::delete_many().build_sqlx(PostgresQueryBuilder);
 
             sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+                .execute(&self.pool)
                 .await
                 .map(|e| e.rows_affected())
                 .map_err(|e| Error::Unknown(e.into()))?
@@ -38,13 +32,11 @@ impl CleanupRepository for PostgresCleanupRepository {
             let (sql, values) = colette_sql::feed::delete_many().build_sqlx(PostgresQueryBuilder);
 
             sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+                .execute(&self.pool)
                 .await
                 .map(|e| e.rows_affected())
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(FeedCleanupInfo {
             feed_count,

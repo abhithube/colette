@@ -36,7 +36,7 @@ impl Findable for PostgresFeedRepository {
 #[async_trait::async_trait]
 impl Creatable for PostgresFeedRepository {
     type Data = FeedCreateData;
-    type Output = Result<Feed, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -87,11 +87,9 @@ impl Creatable for PostgresFeedRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = find_by_id(&mut *tx, IdParams::new(pf_id, data.profile_id)).await?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(feed)
+        Ok(pf_id)
     }
 }
 
@@ -99,7 +97,7 @@ impl Creatable for PostgresFeedRepository {
 impl Updatable for PostgresFeedRepository {
     type Params = IdParams;
     type Data = FeedUpdateData;
-    type Output = Result<Feed, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -135,11 +133,9 @@ impl Updatable for PostgresFeedRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = find_by_id(&mut *tx, params).await?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(feed)
+        Ok(())
     }
 }
 

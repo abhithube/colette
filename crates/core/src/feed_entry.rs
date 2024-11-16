@@ -113,14 +113,16 @@ impl FeedEntryService {
     ) -> Result<FeedEntry, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
-            .await
+            .await?;
+
+        self.get_feed_entry(id, profile_id).await
     }
 }
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository:
     Findable<Params = IdParams, Output = Result<FeedEntry, Error>>
-    + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<FeedEntry, Error>>
+    + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<(), Error>>
     + Send
     + Sync
     + DynClone

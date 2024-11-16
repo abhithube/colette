@@ -55,48 +55,25 @@ impl Findable for PostgresProfileRepository {
 #[async_trait::async_trait]
 impl Creatable for PostgresProfileRepository {
     type Data = ProfileCreateData;
-    type Output = Result<Profile, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let id = {
-            let (sql, values) = colette_sql::profile::insert(
-                None,
-                data.title.clone(),
-                data.image_url,
-                None,
-                data.user_id,
-            )
-            .build_sqlx(PostgresQueryBuilder);
-
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&self.pool)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.title)
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
-
-        let profile = find_by_id(
-            &mut *tx,
-            ProfileIdParams {
-                id,
-                user_id: data.user_id,
-            },
+        let (sql, values) = colette_sql::profile::insert(
+            None,
+            data.title.clone(),
+            data.image_url,
+            None,
+            data.user_id,
         )
-        .await?;
+        .build_sqlx(PostgresQueryBuilder);
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(profile)
+        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -104,15 +81,9 @@ impl Creatable for PostgresProfileRepository {
 impl Updatable for PostgresProfileRepository {
     type Params = ProfileIdParams;
     type Data = ProfileUpdateData;
-    type Output = Result<Profile, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         if data.title.is_some() || data.image_url.is_some() {
             let count = {
                 let (sql, values) = colette_sql::profile::update(
@@ -124,7 +95,7 @@ impl Updatable for PostgresProfileRepository {
                 .build_sqlx(PostgresQueryBuilder);
 
                 sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                    .execute(&self.pool)
                     .await
                     .map(|e| e.rows_affected())
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -134,13 +105,7 @@ impl Updatable for PostgresProfileRepository {
             }
         }
 
-        let profile = find_by_id(&mut *tx, params)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(profile)
+        Ok(())
     }
 }
 
@@ -150,28 +115,20 @@ impl Deletable for PostgresProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let profile = find_by_id(&mut *tx, params.clone()).await?;
+        let profile = find_by_id(&self.pool, params.clone()).await?;
         if profile.is_default {
             return Err(Error::DeletingDefault);
         }
 
-        {
-            let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
-                .build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = colette_sql::profile::delete(params.id, params.user_id)
+            .build_sqlx(PostgresQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+        Ok(())
     }
 }
 

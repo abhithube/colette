@@ -130,16 +130,19 @@ impl BookmarkService {
         data: BookmarkCreate,
         profile_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        self.repository
+        let id = self
+            .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
                 tags: data.tags.map(|e| TagsLinkData {
-                    data: e.data.into_iter().map(|e| e.into()).collect(),
+                    data: e.data.into_iter().map(String::from).collect(),
                     action: e.action,
                 }),
                 profile_id,
             })
-            .await
+            .await?;
+
+        self.get_bookmark(id, profile_id).await
     }
 
     pub async fn update_bookmark(
@@ -150,7 +153,9 @@ impl BookmarkService {
     ) -> Result<Bookmark, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
-            .await
+            .await?;
+
+        self.get_bookmark(id, profile_id).await
     }
 
     pub async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
@@ -184,8 +189,8 @@ impl BookmarkService {
 #[async_trait::async_trait]
 pub trait BookmarkRepository:
     Findable<Params = IdParams, Output = Result<Bookmark, Error>>
-    + Creatable<Data = BookmarkCreateData, Output = Result<Bookmark, Error>>
-    + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<Bookmark, Error>>
+    + Creatable<Data = BookmarkCreateData, Output = Result<Uuid, Error>>
+    + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
@@ -225,7 +230,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
             tags: value.tags.map(|e| TagsLinkData {
-                data: e.data.into_iter().map(|e| e.into()).collect(),
+                data: e.data.into_iter().map(String::from).collect(),
                 action: e.action,
             }),
         }

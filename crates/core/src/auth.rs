@@ -49,11 +49,17 @@ impl AuthService {
     pub async fn register(&self, data: Register) -> Result<User, Error> {
         let hashed = self.password_hasher.hash(&String::from(data.password))?;
 
-        self.user_repository
+        let id = self
+            .user_repository
             .create(UserCreateData {
                 email: data.email.into(),
                 password: hashed,
             })
+            .await
+            .map_err(Error::Users)?;
+
+        self.user_repository
+            .find(UserIdParams::Id(id))
             .await
             .map_err(Error::Users)
     }

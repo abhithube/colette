@@ -40,7 +40,7 @@ impl Findable for PostgresSmartFeedRepository {
 #[async_trait::async_trait]
 impl Creatable for PostgresSmartFeedRepository {
     type Data = SmartFeedCreateData;
-    type Output = Result<SmartFeed, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -71,11 +71,9 @@ impl Creatable for PostgresSmartFeedRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = find_by_id(&mut *tx, IdParams::new(id, data.profile_id)).await?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(feed)
+        Ok(id)
     }
 }
 
@@ -83,7 +81,7 @@ impl Creatable for PostgresSmartFeedRepository {
 impl Updatable for PostgresSmartFeedRepository {
     type Params = IdParams;
     type Data = SmartFeedUpdateData;
-    type Output = Result<SmartFeed, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -126,13 +124,9 @@ impl Updatable for PostgresSmartFeedRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let feed = find_by_id(&mut *tx, params)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(feed)
+        Ok(())
     }
 }
 

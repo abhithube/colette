@@ -36,7 +36,7 @@ impl Findable for SqliteBookmarkRepository {
 #[async_trait::async_trait]
 impl Creatable for SqliteBookmarkRepository {
     type Data = BookmarkCreateData;
-    type Output = Result<Bookmark, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -90,13 +90,9 @@ impl Creatable for SqliteBookmarkRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let bookmark = find_by_id(&mut *tx, IdParams::new(pb_id, data.profile_id))
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(bookmark)
+        Ok(pb_id)
     }
 }
 
@@ -104,7 +100,7 @@ impl Creatable for SqliteBookmarkRepository {
 impl Updatable for SqliteBookmarkRepository {
     type Params = IdParams;
     type Data = BookmarkUpdateData;
-    type Output = Result<Bookmark, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self
@@ -119,11 +115,9 @@ impl Updatable for SqliteBookmarkRepository {
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
 
-        let bookmark = find_by_id(&mut *tx, params).await?;
-
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(bookmark)
+        Ok(())
     }
 }
 

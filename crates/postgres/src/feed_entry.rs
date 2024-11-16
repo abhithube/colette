@@ -38,15 +38,9 @@ impl Findable for PostgresFeedEntryRepository {
 impl Updatable for PostgresFeedEntryRepository {
     type Params = IdParams;
     type Data = FeedEntryUpdateData;
-    type Output = Result<FeedEntry, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         if data.has_read.is_some() {
             let count = {
                 let (sql, values) = colette_sql::profile_feed_entry::update(
@@ -57,7 +51,7 @@ impl Updatable for PostgresFeedEntryRepository {
                 .build_sqlx(PostgresQueryBuilder);
 
                 sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                    .execute(&self.pool)
                     .await
                     .map(|e| e.rows_affected())
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -67,11 +61,7 @@ impl Updatable for PostgresFeedEntryRepository {
             }
         }
 
-        let entry = find_by_id(&mut *tx, params).await?;
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(entry)
+        Ok(())
     }
 }
 

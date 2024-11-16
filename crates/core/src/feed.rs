@@ -97,17 +97,20 @@ impl FeedService {
     }
 
     pub async fn create_feed(&self, data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
-        self.repository
+        let id = self
+            .repository
             .create(FeedCreateData {
                 url: data.url.to_string(),
                 pinned: data.pinned,
                 tags: data.tags.clone().map(|e| TagsLinkData {
-                    data: e.data.into_iter().map(|e| e.into()).collect(),
+                    data: e.data.into_iter().map(String::from).collect(),
                     action: e.action,
                 }),
                 profile_id,
             })
-            .await
+            .await?;
+
+        self.get_feed(id, profile_id).await
     }
 
     pub async fn update_feed(
@@ -118,7 +121,9 @@ impl FeedService {
     ) -> Result<Feed, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
-            .await
+            .await?;
+
+        self.get_feed(id, profile_id).await
     }
 
     pub async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
@@ -157,8 +162,8 @@ impl FeedService {
 #[async_trait::async_trait]
 pub trait FeedRepository:
     Findable<Params = IdParams, Output = Result<Feed, Error>>
-    + Creatable<Data = FeedCreateData, Output = Result<Feed, Error>>
-    + Updatable<Params = IdParams, Data = FeedUpdateData, Output = Result<Feed, Error>>
+    + Creatable<Data = FeedCreateData, Output = Result<Uuid, Error>>
+    + Updatable<Params = IdParams, Data = FeedUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
@@ -221,7 +226,7 @@ impl From<FeedUpdate> for FeedUpdateData {
             title: value.title.map(|e| e.map(String::from)),
             pinned: value.pinned,
             tags: value.tags.map(|e| TagsLinkData {
-                data: e.data.into_iter().map(|e| e.into()).collect(),
+                data: e.data.into_iter().map(String::from).collect(),
                 action: e.action,
             }),
         }

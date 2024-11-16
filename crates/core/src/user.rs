@@ -14,7 +14,7 @@ pub struct User {
 #[async_trait::async_trait]
 pub trait UserRepository:
     Findable<Params = UserIdParams, Output = Result<User, Error>>
-    + Creatable<Data = UserCreateData, Output = Result<User, Error>>
+    + Creatable<Data = UserCreateData, Output = Result<Uuid, Error>>
     + Send
     + Sync
     + DynClone

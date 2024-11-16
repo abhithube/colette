@@ -32,37 +32,19 @@ impl Findable for PostgresTagRepository {
 #[async_trait::async_trait]
 impl Creatable for PostgresTagRepository {
     type Data = TagCreateData;
-    type Output = Result<Tag, Error>;
+    type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
+        let (sql, values) = colette_sql::tag::insert(None, data.title.clone(), data.profile_id)
+            .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+            .fetch_one(&self.pool)
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let id = {
-            let (sql, values) = colette_sql::tag::insert(None, data.title.clone(), data.profile_id)
-                .build_sqlx(PostgresQueryBuilder);
-
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.title)
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
-
-        let tag = find_by_id(&mut *tx, IdParams::new(id, data.profile_id))
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(tag)
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+                _ => Error::Unknown(e.into()),
+            })
     }
 }
 
@@ -70,15 +52,9 @@ impl Creatable for PostgresTagRepository {
 impl Updatable for PostgresTagRepository {
     type Params = IdParams;
     type Data = TagUpdateData;
-    type Output = Result<Tag, Error>;
+    type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         if data.title.is_some() {
             let count = {
                 let (sql, values) =
@@ -86,7 +62,7 @@ impl Updatable for PostgresTagRepository {
                         .build_sqlx(PostgresQueryBuilder);
 
                 sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                    .execute(&self.pool)
                     .await
                     .map(|e| e.rows_affected())
                     .map_err(|e| Error::Unknown(e.into()))?
@@ -96,13 +72,7 @@ impl Updatable for PostgresTagRepository {
             }
         }
 
-        let tag = find_by_id(&mut *tx, params)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(tag)
+        Ok(())
     }
 }
 

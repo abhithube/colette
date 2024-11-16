@@ -72,12 +72,15 @@ impl TagService {
     }
 
     pub async fn create_tag(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
-        self.repository
+        let id = self
+            .repository
             .create(TagCreateData {
                 title: data.title.into(),
                 profile_id,
             })
-            .await
+            .await?;
+
+        self.get_tag(id, profile_id).await
     }
 
     pub async fn update_tag(
@@ -88,7 +91,9 @@ impl TagService {
     ) -> Result<Tag, Error> {
         self.repository
             .update(IdParams::new(id, profile_id), data.into())
-            .await
+            .await?;
+
+        self.get_tag(id, profile_id).await
     }
 
     pub async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
@@ -99,8 +104,8 @@ impl TagService {
 #[async_trait::async_trait]
 pub trait TagRepository:
     Findable<Params = IdParams, Output = Result<Tag, Error>>
-    + Creatable<Data = TagCreateData, Output = Result<Tag, Error>>
-    + Updatable<Params = IdParams, Data = TagUpdateData, Output = Result<Tag, Error>>
+    + Creatable<Data = TagCreateData, Output = Result<Uuid, Error>>
+    + Updatable<Params = IdParams, Data = TagUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
