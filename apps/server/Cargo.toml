@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
-axum.workspace = true
+axum = { workspace = true, features = ["tokio"] }
 axum-embed = { version = "0.1", default-features = false }
 colette-api.workspace = true
 colette-backup.workspace = true
