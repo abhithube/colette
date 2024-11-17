@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::anyhow;
+use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
 use colette_feed::{
     atom::{AtomEntry, AtomFeed, AtomLink, AtomRel},
@@ -253,21 +254,16 @@ impl From<RssItem> for ExtractedFeedEntry {
     }
 }
 
+#[async_trait::async_trait]
 pub trait FeedScraper: Downloader + Send + Sync + DynClone {
     fn before_extract(&self) -> Option<FeedExtractorOptions> {
         None
     }
 
-    fn extract(
-        &self,
-        url: &Url,
-        mut body: Box<dyn Read + Send + Sync>,
-    ) -> Result<ExtractedFeed, ExtractorError> {
+    fn extract(&self, url: &Url, body: Bytes) -> Result<ExtractedFeed, ExtractorError> {
         match self.before_extract() {
             Some(options) => {
-                let mut raw = String::new();
-                body.read_to_string(&mut raw)
-                    .map_err(|e| ExtractorError(e.into()))?;
+                let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
 
                 let html = Html::parse_document(&raw);
 
@@ -309,7 +305,7 @@ pub trait FeedScraper: Downloader + Send + Sync + DynClone {
 
                 Ok(feed)
             }
-            None => colette_feed::from_reader(BufReader::new(body))
+            None => colette_feed::from_reader(BufReader::new(body.reader()))
                 .map(ExtractedFeed::from)
                 .map_err(|e| e.into()),
         }
@@ -320,8 +316,8 @@ pub trait FeedScraper: Downloader + Send + Sync + DynClone {
         Ok(())
     }
 
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let body = self.download(url)?;
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
+        let body = self.download(url).await?;
         let mut feed = self.extract(url, body)?;
         self.postprocess(url, &mut feed)?;
 
@@ -331,11 +327,12 @@ pub trait FeedScraper: Downloader + Send + Sync + DynClone {
 
 dyn_clone::clone_trait_object!(FeedScraper);
 
+#[async_trait::async_trait]
 pub trait FeedDetector: FeedScraper + Send + Sync {
-    fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
-        let body = self.download(&mut url)?;
+    async fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
+        let body = self.download(&mut url).await?;
 
-        let mut reader = BufReader::new(body);
+        let mut reader = BufReader::new(body.reader());
         let buffer = reader
             .fill_buf()
             .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
@@ -349,7 +346,7 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
                 let mut feeds: Vec<(Url, ProcessedFeed)> = Vec::new();
                 for feed in metadata.feeds {
                     let mut url = Url::parse(&feed.href).unwrap();
-                    let feed = self.scrape(&mut url)?;
+                    let feed = self.scrape(&mut url).await?;
 
                     feeds.push((url, feed));
                 }
@@ -357,7 +354,12 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
                 Ok(feeds)
             }
             raw if raw.contains("<?xml") => {
-                let mut feed = self.extract(&url, Box::new(reader))?;
+                let mut data: Vec<u8> = Vec::new();
+                reader
+                    .read_to_end(&mut data)
+                    .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
+
+                let mut feed = self.extract(&url, data.into())?;
                 self.postprocess(&url, &mut feed)?;
 
                 Ok(vec![(url, feed.try_into()?)])
@@ -382,14 +384,15 @@ impl FeedPluginRegistry {
 
 impl Downloader for FeedPluginRegistry {}
 
+#[async_trait::async_trait]
 impl FeedScraper for FeedPluginRegistry {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
         let host = url.host_str().ok_or(Error::Parse)?;
 
         match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(url),
+            Some(plugin) => plugin.scrape(url).await,
             None => {
-                let body = self.download(url)?;
+                let body = self.download(url).await?;
                 let mut feed = self.extract(url, body)?;
                 self.postprocess(url, &mut feed)?;
 

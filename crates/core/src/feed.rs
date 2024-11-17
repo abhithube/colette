@@ -131,7 +131,7 @@ impl FeedService {
     }
 
     pub async fn detect_feeds(&self, data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
-        let detected = self.detector.detect(data.url)?;
+        let detected = self.detector.detect(data.url).await?;
 
         let mut feeds: Vec<FeedDetected> = Vec::new();
         let mut data: Vec<FeedCacheData> = Vec::new();

@@ -1,6 +1,7 @@
-use std::{collections::HashMap, io::Read};
+use std::collections::HashMap;
 
 use anyhow::anyhow;
+use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
 use colette_meta::{
     open_graph,
@@ -77,22 +78,17 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
     }
 }
 
+#[async_trait::async_trait]
 pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
     fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
         None
     }
 
     #[allow(unused_variables)]
-    fn extract(
-        &self,
-        url: &Url,
-        mut body: Box<dyn Read + Send + Sync>,
-    ) -> Result<ExtractedBookmark, ExtractorError> {
+    fn extract(&self, url: &Url, body: Bytes) -> Result<ExtractedBookmark, ExtractorError> {
         match self.before_extract() {
             Some(options) => {
-                let mut raw = String::new();
-                body.read_to_string(&mut raw)
-                    .map_err(|e| ExtractorError(e.into()))?;
+                let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
 
                 let html = Html::parse_document(&raw);
 
@@ -106,7 +102,7 @@ pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
                 Ok(bookmark)
             }
             None => {
-                let metadata = colette_meta::parse_metadata(body)?;
+                let metadata = colette_meta::parse_metadata(body.reader())?;
 
                 let mut bookmark = ExtractedBookmark {
                     title: metadata.basic.title,
@@ -203,8 +199,8 @@ pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
         Ok(())
     }
 
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let body = self.download(url)?;
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+        let body = self.download(url).await?;
         let mut bookmark = self.extract(url, body)?;
         self.postprocess(url, &mut bookmark)?;
 
@@ -227,14 +223,15 @@ impl BookmarkPluginRegistry {
 
 impl Downloader for BookmarkPluginRegistry {}
 
+#[async_trait::async_trait]
 impl BookmarkScraper for BookmarkPluginRegistry {
-    fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let host = url.host_str().ok_or(Error::Parse)?;
 
         match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(url),
+            Some(plugin) => plugin.scrape(url).await,
             None => {
-                let body = self.download(url)?;
+                let body = self.download(url).await?;
                 let mut bookmark = self.extract(url, body)?;
                 self.postprocess(url, &mut bookmark)?;
 

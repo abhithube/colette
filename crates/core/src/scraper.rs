@@ -34,7 +34,7 @@ impl ScraperService {
     }
 
     pub async fn scrape_feed(&self, mut data: FeedCreate) -> Result<(), Error> {
-        let feed = self.feed_scraper.scrape(&mut data.url)?;
+        let feed = self.feed_scraper.scrape(&mut data.url).await?;
 
         self.repository
             .save_feed(SaveFeedData {
@@ -45,7 +45,7 @@ impl ScraperService {
     }
 
     pub async fn scrape_bookmark(&self, mut data: BookmarkCreate) -> Result<(), Error> {
-        let bookmark = self.bookmark_scraper.scrape(&mut data.url)?;
+        let bookmark = self.bookmark_scraper.scrape(&mut data.url).await?;
 
         self.repository
             .save_bookmark(SaveBookmarkData {

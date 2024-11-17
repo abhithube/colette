@@ -166,7 +166,7 @@ impl BookmarkService {
         &self,
         mut data: BookmarkScrape,
     ) -> Result<BookmarkScraped, Error> {
-        let bookmark = self.scraper.scrape(&mut data.url)?;
+        let bookmark = self.scraper.scrape(&mut data.url).await?;
 
         let url = data.url.to_string();
 
