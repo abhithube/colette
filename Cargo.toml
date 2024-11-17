@@ -19,6 +19,7 @@ members = [
   "crates/sqlite",
   "crates/task",
   "crates/util",
+  "crates/worker",
 ]
 resolver = "2"
 
@@ -53,6 +54,7 @@ colette-sql.path = "crates/sql"
 colette-sqlite.path = "crates/sqlite"
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
+colette-worker.path = "crates/worker"
 dyn-clone = { version = "1", default-features = false }
 email_address = { version = "0.2", default-features = false, features = [
   "serde_support",

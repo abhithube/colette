@@ -21,6 +21,7 @@ colette-scraper.workspace = true
 colette-sqlite.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true
+colette-worker.workspace = true
 email_address.workspace = true
 reqwest.workspace = true
 serde.workspace = true

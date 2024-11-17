@@ -23,10 +23,9 @@ use colette_sqlite::{
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
     SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
-use colette_task::{
-    import_bookmarks, import_feeds, run_task_worker, scrape_bookmark, scrape_feed, TaskQueue,
-};
+use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed, TaskQueue};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
+use colette_worker::run_task_worker;
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
 use email_address::EmailAddress;
 use tauri::Manager;

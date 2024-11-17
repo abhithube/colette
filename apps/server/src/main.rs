@@ -18,10 +18,11 @@ use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
 use colette_task::{
-    cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, run_cron_worker, run_task_worker,
-    scrape_bookmark, scrape_feed, TaskQueue,
+    cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
+    TaskQueue,
 };
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
+use colette_worker::{run_cron_worker, run_task_worker};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};

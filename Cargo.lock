@@ -622,6 +622,7 @@ dependencies = [
  "colette-sqlite",
  "colette-task",
  "colette-util",
+ "colette-worker",
  "email_address",
  "reqwest",
  "serde",
@@ -743,6 +744,7 @@ dependencies = [
  "colette-scraper",
  "colette-task",
  "colette-util",
+ "colette-worker",
  "reqwest",
  "rust-embed",
  "sqlx",
@@ -788,9 +790,7 @@ dependencies = [
 name = "colette-task"
 version = "0.1.0"
 dependencies = [
- "chrono",
  "colette-core",
- "cron",
  "futures",
  "tokio",
  "tower",
@@ -808,6 +808,17 @@ dependencies = [
  "password-auth",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "colette-worker"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "cron",
+ "tokio",
+ "tower",
+ "tracing",
 ]
 
 [[package]]

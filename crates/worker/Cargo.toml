@@ -1,12 +1,11 @@
 [package]
-name = "colette-task"
+name = "colette-worker"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-colette-core.workspace = true
-futures.workspace = true
+chrono.workspace = true
+cron = { version = "0.13", default-features = false }
 tokio.workspace = true
 tower.workspace = true
 tracing.workspace = true
-url.workspace = true
