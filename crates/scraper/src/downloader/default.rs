@@ -1,16 +1,8 @@
 use bytes::Bytes;
-use dyn_clone::DynClone;
 use reqwest::Client;
 use url::Url;
 
-use crate::DownloaderError;
-
-#[async_trait::async_trait]
-pub trait Downloader: Send + Sync + DynClone {
-    async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError>;
-}
-
-dyn_clone::clone_trait_object!(Downloader);
+use crate::{Downloader, DownloaderError};
 
 #[derive(Clone)]
 pub struct DefaultDownloader {

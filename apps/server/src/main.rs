@@ -14,7 +14,7 @@ use colette_core::{
     scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{DefaultBookmarkScraper, DefaultDownloader, DefaultFeedScraper};
+use colette_scraper::{downloader::DefaultDownloader, DefaultBookmarkScraper, DefaultFeedScraper};
 use colette_task::{
     cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, run_cron_worker, run_task_worker,
     scrape_bookmark, scrape_feed, TaskQueue,
