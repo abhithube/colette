@@ -1,31 +1,22 @@
-use std::collections::HashMap;
-
 use anyhow::anyhow;
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
 use dyn_clone::DynClone;
-use scraper::Html;
 use url::Url;
 
-use crate::{
-    utils::{ExtractorQuery, TextSelector},
-    Downloader, Error, ExtractorError, PostprocessorError,
-};
+use crate::{Downloader, Error, ExtractorError, PostprocessorError};
+pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
+pub use registry::BookmarkPluginRegistry;
+
+mod extractor;
+mod registry;
 
 const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
 const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkExtractorOptions<'a> {
-    pub title_queries: Vec<ExtractorQuery<'a>>,
-    pub published_queries: Vec<ExtractorQuery<'a>>,
-    pub author_queries: Vec<ExtractorQuery<'a>>,
-    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
-}
 
 #[derive(Clone, Debug, Default)]
 pub struct ExtractedBookmark {
@@ -179,61 +170,5 @@ impl BookmarkScraper for DefaultBookmarkScraper {
         }
 
         Ok(bookmark.try_into()?)
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BookmarkExtractor<'a> {
-    options: BookmarkExtractorOptions<'a>,
-}
-
-impl<'a> BookmarkExtractor<'a> {
-    pub fn new(options: BookmarkExtractorOptions<'a>) -> Self {
-        Self { options }
-    }
-
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, ExtractorError> {
-        let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
-
-        let html = Html::parse_document(&raw);
-
-        let bookmark = ExtractedBookmark {
-            title: html.select_text(&self.options.title_queries),
-            thumbnail: html.select_text(&self.options.thumbnail_queries),
-            published: html.select_text(&self.options.published_queries),
-            author: html.select_text(&self.options.author_queries),
-        };
-
-        Ok(bookmark)
-    }
-}
-
-#[derive(Clone)]
-pub struct BookmarkPluginRegistry {
-    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-    default_scraper: Box<dyn BookmarkScraper>,
-}
-
-impl BookmarkPluginRegistry {
-    pub fn new(
-        plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-        default_scraper: Box<dyn BookmarkScraper>,
-    ) -> Self {
-        Self {
-            plugins,
-            default_scraper,
-        }
-    }
-}
-
-#[async_trait::async_trait]
-impl BookmarkScraper for BookmarkPluginRegistry {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
-
-        match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(url).await,
-            None => self.default_scraper.scrape(url).await,
-        }
     }
 }
