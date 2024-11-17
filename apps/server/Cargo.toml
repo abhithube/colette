@@ -22,7 +22,7 @@ rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 sqlx.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
 tower-http = { version = "0.6", default-features = false, features = [
   "cors",
