@@ -12,9 +12,8 @@ use scraper::Html;
 use url::Url;
 
 use crate::{
-    downloader::Downloader,
     utils::{ExtractorQuery, TextSelector},
-    Error, ExtractorError, PostprocessorError,
+    Downloader, Error, ExtractorError, PostprocessorError,
 };
 
 const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
@@ -79,30 +78,68 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
-    fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
-        None
+pub trait BookmarkScraper: Send + Sync + DynClone {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error>;
+}
+
+dyn_clone::clone_trait_object!(BookmarkScraper);
+
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkExtractor<'a> {
+    options: BookmarkExtractorOptions<'a>,
+}
+
+impl<'a> BookmarkExtractor<'a> {
+    pub fn new(options: BookmarkExtractorOptions<'a>) -> Self {
+        Self { options }
     }
 
-    #[allow(unused_variables)]
-    fn extract(&self, url: &Url, body: Bytes) -> Result<ExtractedBookmark, ExtractorError> {
-        match self.before_extract() {
-            Some(options) => {
-                let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, ExtractorError> {
+        let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
 
-                let html = Html::parse_document(&raw);
+        let html = Html::parse_document(&raw);
 
-                let bookmark = ExtractedBookmark {
-                    title: html.select_text(&options.title_queries),
-                    thumbnail: html.select_text(&options.thumbnail_queries),
-                    published: html.select_text(&options.published_queries),
-                    author: html.select_text(&options.author_queries),
-                };
+        let bookmark = ExtractedBookmark {
+            title: html.select_text(&self.options.title_queries),
+            thumbnail: html.select_text(&self.options.thumbnail_queries),
+            published: html.select_text(&self.options.published_queries),
+            author: html.select_text(&self.options.author_queries),
+        };
 
-                Ok(bookmark)
-            }
+        Ok(bookmark)
+    }
+}
+
+#[derive(Clone)]
+pub struct BookmarkPluginRegistry {
+    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
+    downloader: Box<dyn Downloader>,
+}
+
+impl BookmarkPluginRegistry {
+    pub fn new(
+        plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
+        downloader: Box<dyn Downloader>,
+    ) -> Self {
+        Self {
+            plugins,
+            downloader,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl BookmarkScraper for BookmarkPluginRegistry {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+        let host = url.host_str().ok_or(Error::Parse)?;
+
+        match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(url).await,
             None => {
-                let metadata = colette_meta::parse_metadata(body.reader())?;
+                let body = self.downloader.download(url).await?;
+
+                let metadata =
+                    colette_meta::parse_metadata(body.reader()).map_err(ExtractorError)?;
 
                 let mut bookmark = ExtractedBookmark {
                     title: metadata.basic.title,
@@ -184,56 +221,6 @@ pub trait BookmarkScraper: Downloader + Send + Sync + DynClone {
                         }
                     }
                 }
-
-                Ok(bookmark)
-            }
-        }
-    }
-
-    #[allow(unused_variables)]
-    fn postprocess(
-        &self,
-        url: &Url,
-        bookmark: &mut ExtractedBookmark,
-    ) -> Result<(), PostprocessorError> {
-        Ok(())
-    }
-
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let body = self.download(url).await?;
-        let mut bookmark = self.extract(url, body)?;
-        self.postprocess(url, &mut bookmark)?;
-
-        Ok(bookmark.try_into()?)
-    }
-}
-
-dyn_clone::clone_trait_object!(BookmarkScraper);
-
-#[derive(Clone, Default)]
-pub struct BookmarkPluginRegistry {
-    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-}
-
-impl BookmarkPluginRegistry {
-    pub fn new(plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>) -> Self {
-        Self { plugins }
-    }
-}
-
-impl Downloader for BookmarkPluginRegistry {}
-
-#[async_trait::async_trait]
-impl BookmarkScraper for BookmarkPluginRegistry {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
-
-        match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(url).await,
-            None => {
-                let body = self.download(url).await?;
-                let mut bookmark = self.extract(url, body)?;
-                self.postprocess(url, &mut bookmark)?;
 
                 Ok(bookmark.try_into()?)
             }

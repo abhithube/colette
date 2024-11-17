@@ -17,10 +17,12 @@ colette-api.workspace = true
 colette-backup.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
+colette-scraper.workspace = true
 colette-sqlite.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true
 email_address.workspace = true
+reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx = { workspace = true, features = ["sqlite"] }

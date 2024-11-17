@@ -1,54 +1,66 @@
 use colette_scraper::{
     utils::{ExtractorQuery, Node},
-    BookmarkExtractorOptions, BookmarkScraper, Downloader, FeedScraper,
+    BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, DownloaderError,
+    ProcessedBookmark,
 };
-use http::{header, request::Builder, Request};
+use http::{header, Method};
+use reqwest::Client;
 use scraper::Selector;
 use url::Url;
 
 #[derive(Clone)]
-pub struct RedditPlugin;
-
-pub fn feed() -> Box<dyn FeedScraper> {
-    Box::new(RedditPlugin)
+pub struct RedditBookmarkPlugin<'a> {
+    client: Client,
+    extractor: BookmarkExtractor<'a>,
 }
 
-impl Downloader for RedditPlugin {
-    fn before_download(&self, url: &mut Url) -> Builder {
+pub fn bookmark(client: Client) -> Box<dyn BookmarkScraper> {
+    let options = BookmarkExtractorOptions {
+        title_queries: vec![ExtractorQuery {
+            selector: Selector::parse("shreddit-post").unwrap(),
+            node: Node::Attr("post-title"),
+        }],
+        thumbnail_queries: vec![ExtractorQuery {
+            selector: Selector::parse(".preview-img").unwrap(),
+            node: Node::Attr("src"),
+        }],
+        published_queries: vec![ExtractorQuery {
+            selector: Selector::parse("shreddit-post").unwrap(),
+            node: Node::Attr("created-timestamp"),
+        }],
+        author_queries: vec![ExtractorQuery {
+            selector: Selector::parse("shreddit-post").unwrap(),
+            node: Node::Attr("author"),
+        }],
+    };
+
+    Box::new(RedditBookmarkPlugin {
+        client,
+        extractor: BookmarkExtractor::new(options),
+    })
+}
+
+#[async_trait::async_trait]
+impl<'a> BookmarkScraper for RedditBookmarkPlugin<'a> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, colette_scraper::Error> {
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }
 
-        Request::get(url.as_ref())
+        let resp = self.client
+            .request(Method::GET, url.as_str())
             .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-    }
-}
+            .send()
+            .await
+            .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
 
-impl FeedScraper for RedditPlugin {}
+        let body = resp
+            .bytes()
+            .await
+            .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
 
-pub fn bookmark() -> Box<dyn BookmarkScraper> {
-    Box::new(RedditPlugin)
-}
+        let bookmark = self.extractor.extract(body)?;
 
-impl BookmarkScraper for RedditPlugin {
-    fn before_extract(&self) -> Option<BookmarkExtractorOptions> {
-        Some(BookmarkExtractorOptions {
-            title_queries: vec![ExtractorQuery {
-                selector: Selector::parse("shreddit-post").unwrap(),
-                node: Node::Attr("post-title"),
-            }],
-            thumbnail_queries: vec![ExtractorQuery {
-                selector: Selector::parse(".preview-img").unwrap(),
-                node: Node::Attr("src"),
-            }],
-            published_queries: vec![ExtractorQuery {
-                selector: Selector::parse("shreddit-post").unwrap(),
-                node: Node::Attr("created-timestamp"),
-            }],
-            author_queries: vec![ExtractorQuery {
-                selector: Selector::parse("shreddit-post").unwrap(),
-                node: Node::Attr("author"),
-            }],
-        })
+        Ok(bookmark.try_into()?)
     }
 }

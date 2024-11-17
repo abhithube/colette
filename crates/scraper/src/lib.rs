@@ -1,8 +1,8 @@
 pub use bookmark::{
-    BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkScraper, ExtractedBookmark,
-    ProcessedBookmark,
+    BookmarkExtractor, BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkScraper,
+    ExtractedBookmark, ProcessedBookmark,
 };
-pub use downloader::Downloader;
+pub use downloader::{DefaultDownloader, Downloader};
 pub use feed::{
     ExtractedFeed, ExtractedFeedEntry, FeedDetector, FeedExtractorOptions, FeedPluginRegistry,
     FeedScraper, ProcessedFeed, ProcessedFeedEntry,

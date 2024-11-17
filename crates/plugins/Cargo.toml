@@ -10,6 +10,7 @@ chrono.workspace = true
 colette-meta.workspace = true
 colette-scraper.workspace = true
 http.workspace = true
+reqwest.workspace = true
 scraper.workspace = true
 url.workspace = true
 lazy-regex = { version = "3", default-features = false, features = ["lite"] }

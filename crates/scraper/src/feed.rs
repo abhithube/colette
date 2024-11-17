@@ -17,9 +17,8 @@ use scraper::{Html, Selector};
 use url::Url;
 
 use crate::{
-    downloader::Downloader,
     utils::{ExtractorQuery, TextSelector},
-    Error, ExtractorError, PostprocessorError,
+    Downloader, DownloaderError, Error, ExtractorError, PostprocessorError,
 };
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
@@ -371,18 +370,30 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
 
 dyn_clone::clone_trait_object!(FeedDetector);
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct FeedPluginRegistry {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
+    downloader: Box<dyn Downloader>,
 }
 
 impl FeedPluginRegistry {
-    pub fn new(plugins: HashMap<&'static str, Box<dyn FeedScraper>>) -> Self {
-        Self { plugins }
+    pub fn new(
+        plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
+        downloader: Box<dyn Downloader>,
+    ) -> Self {
+        Self {
+            plugins,
+            downloader,
+        }
     }
 }
 
-impl Downloader for FeedPluginRegistry {}
+#[async_trait::async_trait]
+impl Downloader for FeedPluginRegistry {
+    async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError> {
+        self.downloader.download(url).await
+    }
+}
 
 #[async_trait::async_trait]
 impl FeedScraper for FeedPluginRegistry {

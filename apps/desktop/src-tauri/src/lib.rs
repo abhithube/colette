@@ -15,6 +15,7 @@ use colette_core::{
     tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_scraper::DefaultDownloader;
 use colette_sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteCleanupRepository,
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
@@ -64,8 +65,12 @@ pub fn run() {
                 let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
                 let user_repository = Box::new(SqliteUserRepository::new(pool.clone()));
 
-                let feed_plugin_registry = Box::new(register_feed_plugins());
-                let bookmark_plugin_registry = Box::new(register_bookmark_plugins());
+                let client = reqwest::Client::new();
+                let downloader = Box::new(DefaultDownloader::new(client.clone()));
+                let feed_plugin_registry =
+                    Box::new(register_feed_plugins(client.clone(), downloader.clone()));
+                let bookmark_plugin_registry =
+                    Box::new(register_bookmark_plugins(client, downloader));
 
                 let base64_decoder = Box::new(Base64Encoder);
 
