@@ -1,37 +1,24 @@
-use bytes::Bytes;
-use colette_scraper::{Downloader, DownloaderError, FeedScraper};
+use colette_scraper::{FeedScraper, ProcessedFeed};
 use lazy_regex::regex_captures;
-use reqwest::Client;
 use url::Url;
 
 #[derive(Clone)]
-pub struct YouTubePlugin {
-    client: Client,
+pub struct YouTubeFeedPlugin {
+    default_scraper: Box<dyn FeedScraper>,
 }
 
-pub fn create(client: Client) -> Box<dyn FeedScraper> {
-    Box::new(YouTubePlugin { client })
+pub fn create(default_scraper: Box<dyn FeedScraper>) -> Box<dyn FeedScraper> {
+    Box::new(YouTubeFeedPlugin { default_scraper })
 }
 
 #[async_trait::async_trait]
-impl Downloader for YouTubePlugin {
-    async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError> {
+impl FeedScraper for YouTubeFeedPlugin {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, colette_scraper::Error> {
         if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.as_str()) {
             url.set_query(Some(&format!("channel_id={}", channel_id)));
             url.set_path("feeds/videos.xml");
         }
 
-        let resp = self
-            .client
-            .get(url.as_str())
-            .send()
-            .await
-            .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
-
-        resp.bytes()
-            .await
-            .map_err(|e: reqwest::Error| DownloaderError(e.into()))
+        self.default_scraper.scrape(url).await
     }
 }
-
-impl FeedScraper for YouTubePlugin {}

@@ -4,8 +4,8 @@ pub use bookmark::{
 };
 pub use downloader::{DefaultDownloader, Downloader};
 pub use feed::{
-    ExtractedFeed, ExtractedFeedEntry, FeedDetector, FeedExtractorOptions, FeedPluginRegistry,
-    FeedScraper, ProcessedFeed, ProcessedFeedEntry,
+    DefaultFeedScraper, ExtractedFeed, ExtractedFeedEntry, FeedDetector, FeedExtractor,
+    FeedExtractorOptions, FeedPluginRegistry, FeedScraper, ProcessedFeed, ProcessedFeedEntry,
 };
 
 mod bookmark;

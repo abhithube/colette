@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use colette_scraper::{BookmarkPluginRegistry, Downloader, FeedPluginRegistry};
+use colette_scraper::{BookmarkPluginRegistry, Downloader, FeedPluginRegistry, FeedScraper};
 #[allow(unused_imports)]
 use custom::*;
 use reqwest::Client;
@@ -10,12 +10,13 @@ mod reddit;
 mod youtube;
 
 pub fn register_feed_plugins(
-    client: Client,
     downloader: Box<dyn Downloader>,
+    default_scraper: Box<dyn FeedScraper>,
 ) -> FeedPluginRegistry {
     FeedPluginRegistry::new(
-        HashMap::from([("www.youtube.com", youtube::create(client.clone()))]),
+        HashMap::from([("www.youtube.com", youtube::create(default_scraper.clone()))]),
         downloader,
+        default_scraper,
     )
 }
 
