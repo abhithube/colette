@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_scraper::{BookmarkScraper, ProcessedBookmark};
+use colette_scraper::bookmark::{BookmarkScraper, ProcessedBookmark};
 use colette_util::DataEncoder;
 use dyn_clone::DynClone;
 use url::Url;

@@ -1,7 +1,7 @@
 use colette_scraper::{
+    bookmark::{BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark},
     utils::{ExtractorQuery, Node},
-    BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, DownloaderError,
-    ProcessedBookmark,
+    DownloaderError,
 };
 use http::{header, Method};
 use reqwest::Client;

@@ -1,4 +1,4 @@
-use colette_scraper::{FeedScraper, ProcessedFeed};
+use colette_scraper::feed::{FeedScraper, ProcessedFeed};
 use lazy_regex::regex_captures;
 use url::Url;
 

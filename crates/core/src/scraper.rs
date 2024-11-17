@@ -1,5 +1,8 @@
-pub use colette_scraper::ProcessedFeed;
-use colette_scraper::{BookmarkScraper, FeedScraper, ProcessedBookmark};
+pub use colette_scraper::feed::ProcessedFeed;
+use colette_scraper::{
+    bookmark::{BookmarkScraper, ProcessedBookmark},
+    feed::FeedScraper,
+};
 use dyn_clone::DynClone;
 use url::Url;
 

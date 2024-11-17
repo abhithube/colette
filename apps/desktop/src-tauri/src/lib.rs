@@ -15,7 +15,9 @@ use colette_core::{
     tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{downloader::DefaultDownloader, DefaultBookmarkScraper, DefaultFeedScraper};
+use colette_scraper::{
+    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
+};
 use colette_sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteCleanupRepository,
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,

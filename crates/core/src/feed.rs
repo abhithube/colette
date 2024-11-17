@@ -1,5 +1,5 @@
-use colette_scraper::FeedDetector;
-pub use colette_scraper::ProcessedFeed;
+use colette_scraper::feed::FeedDetector;
+pub use colette_scraper::feed::ProcessedFeed;
 use dyn_clone::DynClone;
 use futures::stream::BoxStream;
 use url::Url;
