@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use colette_scraper::{BookmarkPluginRegistry, Downloader, FeedPluginRegistry, FeedScraper};
+use colette_scraper::{
+    BookmarkPluginRegistry, BookmarkScraper, Downloader, FeedPluginRegistry, FeedScraper,
+};
 #[allow(unused_imports)]
 use custom::*;
 use reqwest::Client;
@@ -22,10 +24,10 @@ pub fn register_feed_plugins(
 
 pub fn register_bookmark_plugins(
     client: Client,
-    downloader: Box<dyn Downloader>,
+    default_scraper: Box<dyn BookmarkScraper>,
 ) -> BookmarkPluginRegistry {
     BookmarkPluginRegistry::new(
         HashMap::from([("www.reddit.com", reddit::bookmark(client.clone()))]),
-        downloader,
+        default_scraper,
     )
 }

@@ -14,7 +14,7 @@ use colette_core::{
     scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_scraper::{DefaultDownloader, DefaultFeedScraper};
+use colette_scraper::{DefaultBookmarkScraper, DefaultDownloader, DefaultFeedScraper};
 use colette_task::{
     cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, run_cron_worker, run_task_worker,
     scrape_bookmark, scrape_feed, TaskQueue,
@@ -85,9 +85,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let client = reqwest::Client::new();
     let downloader = Box::new(DefaultDownloader::new(client.clone()));
-    let scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
-    let feed_plugin_registry = Box::new(register_feed_plugins(downloader.clone(), scraper));
-    let bookmark_plugin_registry = Box::new(register_bookmark_plugins(client, downloader));
+    let feed_scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
+    let bookmark_scraper = Box::new(DefaultBookmarkScraper::new(downloader.clone()));
+    let feed_plugin_registry = Box::new(register_feed_plugins(downloader.clone(), feed_scraper));
+    let bookmark_plugin_registry = Box::new(register_bookmark_plugins(client, bookmark_scraper));
 
     let base64_decoder = Box::new(Base64Encoder);
 

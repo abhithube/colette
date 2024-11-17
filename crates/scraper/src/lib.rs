@@ -1,6 +1,6 @@
 pub use bookmark::{
     BookmarkExtractor, BookmarkExtractorOptions, BookmarkPluginRegistry, BookmarkScraper,
-    ExtractedBookmark, ProcessedBookmark,
+    DefaultBookmarkScraper, ExtractedBookmark, ProcessedBookmark,
 };
 pub use downloader::{DefaultDownloader, Downloader};
 pub use feed::{
