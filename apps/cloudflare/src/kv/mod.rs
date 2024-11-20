@@ -1,6 +1,6 @@
 use worker::kv::{KvError, KvStore};
 
-mod store;
+pub mod store;
 
 #[worker::send]
 pub(crate) async fn get(kv: &KvStore, key: &str) -> Result<Option<Vec<u8>>, KvError> {
