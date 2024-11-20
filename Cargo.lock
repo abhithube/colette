@@ -574,15 +574,19 @@ dependencies = [
 name = "colette-cloudflare"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "axum",
  "chrono",
+ "colette-core",
+ "colette-sql",
  "console_error_panic_hook",
  "sea-query",
  "serde",
  "serde_json",
  "tower",
  "tower-sessions-core",
+ "uuid",
  "worker",
 ]
 

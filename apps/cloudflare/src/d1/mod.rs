@@ -6,6 +6,9 @@ use sea_query::{
 use serde::Deserialize;
 use worker::{wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
 
+pub mod profile;
+pub mod user;
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct D1Value(pub sea_query::Value);
 #[derive(Clone, Debug, PartialEq)]
