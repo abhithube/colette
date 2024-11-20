@@ -9,3 +9,7 @@ command = "cargo install -q worker-build && worker-build --release"
 binding = "DB"
 database_name = "colette"
 database_id = "5ad3b676-f857-4fd2-a23c-7920104e6470"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "bb3ea6e79a3f46f9a18f4ee2f0f3930d"

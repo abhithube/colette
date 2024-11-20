@@ -3,6 +3,7 @@ use tower::Service;
 use worker::{Context, Env, HttpRequest};
 
 mod d1;
+mod kv;
 
 #[worker::event(fetch)]
 async fn fetch(req: HttpRequest, _env: Env, _ctx: Context) -> worker::Result<Response<Body>> {
