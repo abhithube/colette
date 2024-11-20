@@ -122,7 +122,7 @@ pub fn select(
             )
             .join(
                 JoinType::InnerJoin,
-                ProfileFeed::Table,
+                Tag::Table,
                 Expr::col((Tag::Table, Tag::Id))
                     .eq(Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId))),
             )
