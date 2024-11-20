@@ -3,7 +3,8 @@ use sea_query::{
     DeleteStatement, InsertStatement, QueryBuilder, SelectStatement, UpdateStatement, Value,
     WithQuery,
 };
-use worker::{wasm_bindgen::JsValue, D1Argument};
+use serde::Deserialize;
+use worker::{wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct D1Value(pub sea_query::Value);
@@ -91,4 +92,52 @@ impl D1Argument for D1Value {
             Value::Json(v) => v.as_ref().map(|e| e.to_string()).into(),
         }
     }
+}
+
+#[worker::send]
+pub(crate) async fn run(
+    db: &D1Database,
+    sql: String,
+    values: D1Values,
+) -> worker::Result<D1Result> {
+    db.prepare(sql).bind_refs(&values.0).unwrap().run().await
+}
+
+#[worker::send]
+pub(crate) async fn all(
+    db: &D1Database,
+    sql: String,
+    values: D1Values,
+) -> worker::Result<D1Result> {
+    db.prepare(sql).bind_refs(&values.0).unwrap().all().await
+}
+
+#[worker::send]
+pub(crate) async fn first<T>(
+    db: &D1Database,
+    sql: String,
+    values: D1Values,
+    col_name: Option<&str>,
+) -> worker::Result<Option<T>>
+where
+    T: for<'a> Deserialize<'a>,
+{
+    db.prepare(sql)
+        .bind_refs(&values.0)
+        .unwrap()
+        .first(col_name)
+        .await
+}
+
+#[worker::send]
+pub(crate) async fn batch(
+    db: &D1Database,
+    queries: Vec<(String, D1Values)>,
+) -> worker::Result<Vec<D1Result>> {
+    let stmts = queries
+        .into_iter()
+        .map(|(sql, values)| db.prepare(sql).bind_refs(&values.0).unwrap())
+        .collect::<Vec<_>>();
+
+    db.batch(stmts).await
 }

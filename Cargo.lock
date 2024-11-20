@@ -578,6 +578,7 @@ dependencies = [
  "chrono",
  "console_error_panic_hook",
  "sea-query",
+ "serde",
  "tower",
  "worker",
 ]
