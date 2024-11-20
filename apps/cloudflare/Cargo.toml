@@ -14,9 +14,12 @@ crate-type = ["cdylib"]
 
 [dependencies]
 axum.workspace = true
+chrono.workspace = true
 console_error_panic_hook = { version = "0.1", default-features = false }
+sea-query = { workspace = true, features = ["backend-sqlite"] }
 tower.workspace = true
 worker = { version = "0.4", default-features = false, features = [
   "axum",
+  "d1",
   "http",
 ] }
