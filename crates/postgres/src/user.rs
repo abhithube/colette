@@ -1,6 +1,6 @@
 use colette_core::{
     common::{Creatable, Findable},
-    user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
+    user::{Error, NotFoundError, UserCreateData, UserFindParams, UserRepository},
     User,
 };
 use sea_query::PostgresQueryBuilder;
@@ -21,12 +21,12 @@ impl PostgresUserRepository {
 
 #[async_trait::async_trait]
 impl Findable for PostgresUserRepository {
-    type Params = UserIdParams;
+    type Params = UserFindParams;
     type Output = Result<User, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         match params {
-            UserIdParams::Id(id) => {
+            UserFindParams::Id(id) => {
                 let (sql, values) =
                     colette_sql::user::select(Some(id), None).build_sqlx(PostgresQueryBuilder);
 
@@ -39,7 +39,7 @@ impl Findable for PostgresUserRepository {
                         _ => Error::Unknown(e.into()),
                     })
             }
-            UserIdParams::Email(email) => {
+            UserFindParams::Email(email) => {
                 let (sql, values) = colette_sql::user::select(None, Some(email.clone()))
                     .build_sqlx(PostgresQueryBuilder);
 
@@ -100,7 +100,6 @@ impl Creatable for PostgresUserRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl UserRepository for PostgresUserRepository {}
 
 #[derive(Debug, Clone, sqlx::FromRow)]

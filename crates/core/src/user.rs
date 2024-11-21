@@ -11,9 +11,8 @@ pub struct User {
     pub password: String,
 }
 
-#[async_trait::async_trait]
 pub trait UserRepository:
-    Findable<Params = UserIdParams, Output = Result<User, Error>>
+    Findable<Params = UserFindParams, Output = Result<User, Error>>
     + Creatable<Data = UserCreateData, Output = Result<Uuid, Error>>
     + Send
     + Sync
@@ -24,7 +23,7 @@ pub trait UserRepository:
 dyn_clone::clone_trait_object!(UserRepository);
 
 #[derive(Clone, Debug)]
-pub enum UserIdParams {
+pub enum UserFindParams {
     Id(Uuid),
     Email(String),
 }

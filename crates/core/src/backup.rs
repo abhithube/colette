@@ -8,7 +8,10 @@ use dyn_clone::DynClone;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{bookmark::BookmarkRepository, feed::FeedRepository};
+use crate::{
+    bookmark::{BookmarkFindParams, BookmarkRepository},
+    feed::{FeedFindParams, FeedRepository},
+};
 
 #[derive(Clone)]
 pub struct BackupService {
@@ -59,7 +62,10 @@ impl BackupService {
     pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let feeds = self
             .feed_repository
-            .list(profile_id, None, None, None)
+            .find(FeedFindParams {
+                profile_id,
+                ..Default::default()
+            })
             .await
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
@@ -129,7 +135,10 @@ impl BackupService {
     pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
         let bookmarks = self
             .bookmark_repository
-            .list(profile_id, None, None, None)
+            .find(BookmarkFindParams {
+                profile_id,
+                ..Default::default()
+            })
             .await
             .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 

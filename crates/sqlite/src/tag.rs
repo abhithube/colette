@@ -1,11 +1,11 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
-    tag::{Cursor, Error, TagCreateData, TagFindManyFilters, TagRepository, TagUpdateData},
+    tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
     Tag,
 };
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
-use sqlx::{SqliteExecutor, SqlitePool};
+use sqlx::SqlitePool;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -21,24 +21,24 @@ impl SqliteTagRepository {
 
 #[async_trait::async_trait]
 impl Findable for SqliteTagRepository {
-    type Params = IdParams;
-    type Output = Result<Tag, Error>;
+    type Params = TagFindParams;
+    type Output = Result<Vec<Tag>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut tags = find(
-            &self.pool,
-            Some(params.id),
+        let (sql, values) = colette_sql::tag::select(
+            params.id,
             params.profile_id,
-            None,
-            None,
-            None,
+            params.limit,
+            params.cursor,
+            params.tag_type,
         )
-        .await?;
-        if tags.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        .build_sqlx(SqliteQueryBuilder);
 
-        Ok(tags.swap_remove(0))
+        sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -114,18 +114,7 @@ impl Deletable for SqliteTagRepository {
     }
 }
 
-#[async_trait::async_trait]
-impl TagRepository for SqliteTagRepository {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<TagFindManyFilters>,
-    ) -> Result<Vec<Tag>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
-    }
-}
+impl TagRepository for SqliteTagRepository {}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct TagSelect {
@@ -144,22 +133,4 @@ impl From<TagSelect> for colette_core::Tag {
             feed_count: Some(value.feed_count),
         }
     }
-}
-
-pub(crate) async fn find(
-    executor: impl SqliteExecutor<'_>,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<TagFindManyFilters>,
-) -> Result<Vec<Tag>, Error> {
-    let (sql, values) = colette_sql::tag::select(id, profile_id, limit, cursor, filters)
-        .build_sqlx(SqliteQueryBuilder);
-
-    sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }

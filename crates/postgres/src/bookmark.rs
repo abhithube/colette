@@ -1,15 +1,15 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark::{
-        BookmarkCacheData, BookmarkCreateData, BookmarkFindManyFilters, BookmarkRepository,
-        BookmarkUpdateData, Cursor, Error,
+        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
+        BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     Bookmark,
 };
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
 use sea_query_binder::SqlxBinder;
-use sqlx::{types::Json, PgConnection, PgExecutor, PgPool};
+use sqlx::{types::Json, PgConnection, PgPool};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -25,24 +25,36 @@ impl PostgresBookmarkRepository {
 
 #[async_trait::async_trait]
 impl Findable for PostgresBookmarkRepository {
-    type Params = IdParams;
-    type Output = Result<Bookmark, Error>;
+    type Params = BookmarkFindParams;
+    type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut bookmarks = find(
-            &self.pool,
-            Some(params.id),
-            params.profile_id,
-            None,
-            None,
-            None,
-        )
-        .await?;
-        if bookmarks.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        let jsonb_agg = Expr::cust(
+            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+        );
 
-        Ok(bookmarks.swap_remove(0))
+        let tags_subquery = params.tags.map(|e| {
+            Expr::cust_with_expr(
+                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+            )
+        });
+
+        let (sql, values) = colette_sql::profile_bookmark::select(
+            params.id,
+            params.profile_id,
+            params.cursor,
+            params.limit,
+            jsonb_agg,
+            tags_subquery,
+        )
+        .build_sqlx(PostgresQueryBuilder);
+
+        sqlx::query_as_with::<_, BookmarkSelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(Bookmark::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -157,16 +169,6 @@ impl Deletable for PostgresBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Vec<Bookmark>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
-    }
-
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
         let (sql, values) = colette_sql::bookmark::insert(
             data.url,
@@ -211,48 +213,6 @@ impl From<BookmarkSelect> for colette_core::Bookmark {
             tags: value.tags.map(|e| e.0.into_iter().collect()),
         }
     }
-}
-
-pub(crate) async fn find(
-    executor: impl PgExecutor<'_>,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<BookmarkFindManyFilters>,
-) -> Result<Vec<Bookmark>, Error> {
-    let mut tags: Option<Vec<String>> = None;
-
-    if let Some(filters) = filters {
-        tags = filters.tags;
-    }
-
-    let jsonb_agg = Expr::cust(
-        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-    );
-
-    let tags_subquery = tags.map(|e| {
-        Expr::cust_with_expr(
-            r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
-            Expr::cust(r#""t" ->> 'title'"#).is_in(e),
-        )
-    });
-
-    let (sql, values) = colette_sql::profile_bookmark::select(
-        id,
-        profile_id,
-        cursor,
-        limit,
-        jsonb_agg,
-        tags_subquery,
-    )
-    .build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_as_with::<_, BookmarkSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(Bookmark::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }
 
 pub(crate) async fn link_tags(

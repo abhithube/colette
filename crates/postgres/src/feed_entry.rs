@@ -1,14 +1,12 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     common::{Findable, IdParams, Updatable},
-    feed_entry::{
-        Cursor, Error, FeedEntryFindManyFilters, FeedEntryRepository, FeedEntryUpdateData,
-    },
+    feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
 use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
-use sqlx::{PgExecutor, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::smart_feed::build_case_statement;
@@ -26,24 +24,28 @@ impl PostgresFeedEntryRepository {
 
 #[async_trait::async_trait]
 impl Findable for PostgresFeedEntryRepository {
-    type Params = IdParams;
-    type Output = Result<FeedEntry, Error>;
+    type Params = FeedEntryFindParams;
+    type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut feed_entries = find(
-            &self.pool,
-            Some(params.id),
+        let (sql, values) = colette_sql::profile_feed_entry::select(
+            params.id,
             params.profile_id,
-            None,
-            None,
-            None,
+            params.feed_id,
+            params.has_read,
+            params.tags.as_deref(),
+            params.smart_feed_id,
+            params.cursor,
+            params.limit,
+            build_case_statement(),
         )
-        .await?;
-        if feed_entries.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        .build_sqlx(PostgresQueryBuilder);
 
-        Ok(feed_entries.swap_remove(0))
+        sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(FeedEntry::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -78,18 +80,7 @@ impl Updatable for PostgresFeedEntryRepository {
     }
 }
 
-#[async_trait::async_trait]
-impl FeedEntryRepository for PostgresFeedEntryRepository {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<FeedEntryFindManyFilters>,
-    ) -> Result<Vec<FeedEntry>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
-    }
-}
+impl FeedEntryRepository for PostgresFeedEntryRepository {}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct EntrySelect {
@@ -118,44 +109,4 @@ impl From<EntrySelect> for colette_core::FeedEntry {
             feed_id: value.profile_feed_id,
         }
     }
-}
-
-async fn find(
-    executor: impl PgExecutor<'_>,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<FeedEntryFindManyFilters>,
-) -> Result<Vec<FeedEntry>, Error> {
-    let mut feed_id: Option<Uuid> = None;
-    let mut smart_feed_id: Option<Uuid> = None;
-    let mut has_read: Option<bool> = None;
-    let mut tags: Option<Vec<String>> = None;
-
-    if let Some(filters) = filters {
-        feed_id = filters.feed_id;
-        smart_feed_id = filters.smart_feed_id;
-        has_read = filters.has_read;
-        tags = filters.tags;
-    }
-
-    let (sql, values) = colette_sql::profile_feed_entry::select(
-        id,
-        profile_id,
-        feed_id,
-        has_read,
-        tags.as_deref(),
-        smart_feed_id,
-        cursor,
-        limit,
-        build_case_statement(),
-    )
-    .build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(FeedEntry::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }

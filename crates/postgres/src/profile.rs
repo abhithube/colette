@@ -1,15 +1,14 @@
-use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, Updatable},
     profile::{
-        Cursor, Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams,
-        ProfileRepository, ProfileUpdateData,
+        Error, ProfileCreateData, ProfileFindParams, ProfileIdParams, ProfileRepository,
+        ProfileUpdateData,
     },
     Profile,
 };
 use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
-use sqlx::{PgExecutor, PgPool};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -25,30 +24,24 @@ impl PostgresProfileRepository {
 
 #[async_trait::async_trait]
 impl Findable for PostgresProfileRepository {
-    type Params = ProfileIdOrDefaultParams;
-    type Output = Result<Profile, Error>;
+    type Params = ProfileFindParams;
+    type Output = Result<Vec<Profile>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let is_default = params.id.map_or_else(|| Some(true), |_| None);
-
-        let mut profiles = find(
-            &self.pool,
+        let (sql, values) = colette_sql::profile::select(
             params.id,
             params.user_id,
-            is_default,
-            None,
-            None,
+            params.is_default,
+            params.cursor,
+            params.limit,
         )
-        .await?;
-        if profiles.is_empty() {
-            if let Some(id) = params.id {
-                return Err(Error::NotFound(id));
-            } else {
-                return Err(Error::Unknown(anyhow!("couldn't find default profile")));
-            }
-        }
+        .build_sqlx(PostgresQueryBuilder);
 
-        Ok(profiles.swap_remove(0))
+        sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -115,15 +108,13 @@ impl Deletable for PostgresProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let mut profiles = find(
-            &self.pool,
-            Some(params.id),
-            params.user_id,
-            None,
-            None,
-            None,
-        )
-        .await?;
+        let mut profiles = self
+            .find(ProfileFindParams {
+                id: Some(params.id),
+                user_id: params.user_id,
+                ..Default::default()
+            })
+            .await?;
         if profiles.is_empty() {
             return Err(Error::NotFound(params.id));
         }
@@ -145,17 +136,7 @@ impl Deletable for PostgresProfileRepository {
     }
 }
 
-#[async_trait::async_trait]
-impl ProfileRepository for PostgresProfileRepository {
-    async fn list(
-        &self,
-        user_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-    ) -> Result<Vec<Profile>, Error> {
-        find(&self.pool, None, user_id, None, limit, cursor).await
-    }
-}
+impl ProfileRepository for PostgresProfileRepository {}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub(crate) struct ProfileSelect {
@@ -176,22 +157,4 @@ impl From<ProfileSelect> for colette_core::Profile {
             user_id: value.user_id,
         }
     }
-}
-
-async fn find(
-    executor: impl PgExecutor<'_>,
-    id: Option<Uuid>,
-    user_id: Uuid,
-    is_default: Option<bool>,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-) -> Result<Vec<Profile>, Error> {
-    let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
-        .build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }

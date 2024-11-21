@@ -66,17 +66,16 @@ impl FeedEntryService {
 
         let mut feed_entries = self
             .repository
-            .list(
+            .find(FeedEntryFindParams {
+                feed_id: query.feed_id,
+                smart_feed_id: query.smart_feed_id,
+                has_read: query.has_read,
+                tags: query.tags,
                 profile_id,
-                Some(PAGINATION_LIMIT + 1),
+                limit: Some(PAGINATION_LIMIT + 1),
                 cursor,
-                Some(FeedEntryFindManyFilters {
-                    feed_id: query.feed_id,
-                    smart_feed_id: query.smart_feed_id,
-                    has_read: query.has_read,
-                    tags: query.tags,
-                }),
-            )
+                ..Default::default()
+            })
             .await?;
         let mut cursor: Option<String> = None;
 
@@ -102,7 +101,19 @@ impl FeedEntryService {
     }
 
     pub async fn get_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error> {
-        self.repository.find(IdParams::new(id, profile_id)).await
+        let mut feed_entries = self
+            .repository
+            .find(FeedEntryFindParams {
+                id: Some(id),
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
+        if feed_entries.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(feed_entries.swap_remove(0))
     }
 
     pub async fn update_feed_entry(
@@ -119,31 +130,27 @@ impl FeedEntryService {
     }
 }
 
-#[async_trait::async_trait]
 pub trait FeedEntryRepository:
-    Findable<Params = IdParams, Output = Result<FeedEntry, Error>>
+    Findable<Params = FeedEntryFindParams, Output = Result<Vec<FeedEntry>, Error>>
     + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<(), Error>>
     + Send
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<FeedEntryFindManyFilters>,
-    ) -> Result<Vec<FeedEntry>, Error>;
 }
 
 dyn_clone::clone_trait_object!(FeedEntryRepository);
 
 #[derive(Clone, Debug, Default)]
-pub struct FeedEntryFindManyFilters {
+pub struct FeedEntryFindParams {
+    pub id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
+    pub profile_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Debug, Default)]

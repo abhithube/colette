@@ -4,8 +4,8 @@ use uuid::Uuid;
 
 use crate::{
     common::NonEmptyString,
-    profile::{self, ProfileIdOrDefaultParams, ProfileRepository},
-    user::{self, UserCreateData, UserIdParams, UserRepository},
+    profile::{self, ProfileFindParams, ProfileRepository},
+    user::{self, UserCreateData, UserFindParams, UserRepository},
     Profile, User,
 };
 
@@ -59,7 +59,7 @@ impl AuthService {
             .map_err(Error::Users)?;
 
         self.user_repository
-            .find(UserIdParams::Id(id))
+            .find(UserFindParams::Id(id))
             .await
             .map_err(Error::Users)
     }
@@ -67,7 +67,7 @@ impl AuthService {
     pub async fn login(&self, data: Login) -> Result<Profile, Error> {
         let user = self
             .user_repository
-            .find(UserIdParams::Email(String::from(data.email)))
+            .find(UserFindParams::Email(String::from(data.email)))
             .await
             .map_err(|e| match e {
                 user::Error::NotFound(_) => Error::NotAuthenticated,
@@ -81,18 +81,24 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        self.profile_repository
-            .find(ProfileIdOrDefaultParams {
-                id: None,
+        let mut profiles = self
+            .profile_repository
+            .find(ProfileFindParams {
+                is_default: Some(true),
                 user_id: user.id,
+                ..Default::default()
             })
-            .await
-            .map_err(|e| e.into())
+            .await?;
+        if profiles.is_empty() {
+            return Err(Error::NotAuthenticated);
+        }
+
+        Ok(profiles.swap_remove(0))
     }
 
     pub async fn get_active(&self, user_id: Uuid) -> Result<User, Error> {
         self.user_repository
-            .find(UserIdParams::Id(user_id))
+            .find(UserFindParams::Id(user_id))
             .await
             .map_err(|e| e.into())
     }
@@ -102,16 +108,19 @@ impl AuthService {
         data: SwitchProfile,
         user_id: Uuid,
     ) -> Result<Profile, Error> {
-        self.profile_repository
-            .find(ProfileIdOrDefaultParams {
+        let mut profiles = self
+            .profile_repository
+            .find(ProfileFindParams {
                 id: Some(data.id),
                 user_id,
+                ..Default::default()
             })
-            .await
-            .map_err(|e| match e {
-                profile::Error::NotFound(_) => Error::NotAuthenticated,
-                _ => e.into(),
-            })
+            .await?;
+        if profiles.is_empty() {
+            return Err(Error::NotAuthenticated);
+        }
+
+        Ok(profiles.swap_remove(0))
     }
 }
 

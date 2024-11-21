@@ -83,7 +83,12 @@ impl FeedService {
     ) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repository
-            .list(profile_id, None, None, Some(query.into()))
+            .find(FeedFindParams {
+                pinned: query.pinned,
+                tags: query.tags,
+                profile_id,
+                ..Default::default()
+            })
             .await?;
 
         Ok(Paginated {
@@ -93,7 +98,19 @@ impl FeedService {
     }
 
     pub async fn get_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
-        self.repository.find(IdParams::new(id, profile_id)).await
+        let mut feeds = self
+            .repository
+            .find(FeedFindParams {
+                id: Some(id),
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
+        if feeds.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(feeds.swap_remove(0))
     }
 
     pub async fn create_feed(&self, data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
@@ -161,7 +178,7 @@ impl FeedService {
 
 #[async_trait::async_trait]
 pub trait FeedRepository:
-    Findable<Params = IdParams, Output = Result<Feed, Error>>
+    Findable<Params = FeedFindParams, Output = Result<Vec<Feed>, Error>>
     + Creatable<Data = FeedCreateData, Output = Result<Uuid, Error>>
     + Updatable<Params = IdParams, Data = FeedUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
@@ -169,14 +186,6 @@ pub trait FeedRepository:
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<FeedFindManyFilters>,
-    ) -> Result<Vec<Feed>, Error>;
-
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error>;
 
     fn stream(&self) -> BoxStream<Result<String, Error>>;
@@ -185,18 +194,13 @@ pub trait FeedRepository:
 dyn_clone::clone_trait_object!(FeedRepository);
 
 #[derive(Clone, Debug, Default)]
-pub struct FeedFindManyFilters {
+pub struct FeedFindParams {
+    pub id: Option<Uuid>,
     pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
-}
-
-impl From<FeedListQuery> for FeedFindManyFilters {
-    fn from(value: FeedListQuery) -> Self {
-        Self {
-            pinned: value.pinned,
-            tags: value.tags,
-        }
-    }
+    pub profile_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Debug, Default)]

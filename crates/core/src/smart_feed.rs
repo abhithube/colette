@@ -72,7 +72,13 @@ impl SmartFeedService {
     }
 
     pub async fn list_smart_feeds(&self, profile_id: Uuid) -> Result<Paginated<SmartFeed>, Error> {
-        let feeds = self.repository.list(profile_id, None, None).await?;
+        let feeds = self
+            .repository
+            .find(SmartFeedFindParams {
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
 
         Ok(Paginated {
             data: feeds,
@@ -81,7 +87,19 @@ impl SmartFeedService {
     }
 
     pub async fn get_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<SmartFeed, Error> {
-        self.repository.find(IdParams::new(id, profile_id)).await
+        let mut smart_feeds = self
+            .repository
+            .find(SmartFeedFindParams {
+                id: Some(id),
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
+        if smart_feeds.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(smart_feeds.swap_remove(0))
     }
 
     pub async fn create_smart_feed(
@@ -119,9 +137,8 @@ impl SmartFeedService {
     }
 }
 
-#[async_trait::async_trait]
 pub trait SmartFeedRepository:
-    Findable<Params = IdParams, Output = Result<SmartFeed, Error>>
+    Findable<Params = SmartFeedFindParams, Output = Result<Vec<SmartFeed>, Error>>
     + Creatable<Data = SmartFeedCreateData, Output = Result<Uuid, Error>>
     + Updatable<Params = IdParams, Data = SmartFeedUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
@@ -129,15 +146,17 @@ pub trait SmartFeedRepository:
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-    ) -> Result<Vec<SmartFeed>, Error>;
 }
 
 dyn_clone::clone_trait_object!(SmartFeedRepository);
+
+#[derive(Clone, Debug, Default)]
+pub struct SmartFeedFindParams {
+    pub id: Option<Uuid>,
+    pub profile_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
+}
 
 #[derive(Clone, Debug, Default)]
 pub struct SmartFeedCreateData {

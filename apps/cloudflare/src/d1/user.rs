@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use colette_core::{
     common::{Creatable, Findable},
-    user::{Error, NotFoundError, UserCreateData, UserIdParams, UserRepository},
+    user::{Error, NotFoundError, UserCreateData, UserFindParams, UserRepository},
     User,
 };
 use sea_query::SqliteQueryBuilder;
@@ -24,12 +24,12 @@ impl D1UserRepository {
 
 #[async_trait::async_trait]
 impl Findable for D1UserRepository {
-    type Params = UserIdParams;
+    type Params = UserFindParams;
     type Output = Result<User, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         match params {
-            UserIdParams::Id(id) => {
+            UserFindParams::Id(id) => {
                 let (sql, values) =
                     colette_sql::user::select(Some(id), None).build_d1(SqliteQueryBuilder);
 
@@ -46,7 +46,7 @@ impl Findable for D1UserRepository {
 
                 Ok(user)
             }
-            UserIdParams::Email(email) => {
+            UserFindParams::Email(email) => {
                 let (sql, values) = colette_sql::user::select(None, Some(email.clone()))
                     .build_d1(SqliteQueryBuilder);
 
@@ -96,5 +96,4 @@ impl Creatable for D1UserRepository {
     }
 }
 
-#[async_trait::async_trait]
 impl UserRepository for D1UserRepository {}

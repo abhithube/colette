@@ -92,12 +92,13 @@ impl BookmarkService {
 
         let mut bookmarks = self
             .repository
-            .list(
+            .find(BookmarkFindParams {
+                tags: query.tags,
                 profile_id,
-                Some(PAGINATION_LIMIT + 1),
+                limit: Some(PAGINATION_LIMIT + 1),
                 cursor,
-                Some(BookmarkFindManyFilters { tags: query.tags }),
-            )
+                ..Default::default()
+            })
             .await?;
         let mut cursor: Option<String> = None;
 
@@ -122,7 +123,19 @@ impl BookmarkService {
     }
 
     pub async fn get_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
-        self.repository.find(IdParams::new(id, profile_id)).await
+        let mut bookmarks = self
+            .repository
+            .find(BookmarkFindParams {
+                id: Some(id),
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
+        if bookmarks.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(bookmarks.swap_remove(0))
     }
 
     pub async fn create_bookmark(
@@ -188,7 +201,7 @@ impl BookmarkService {
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository:
-    Findable<Params = IdParams, Output = Result<Bookmark, Error>>
+    Findable<Params = BookmarkFindParams, Output = Result<Vec<Bookmark>, Error>>
     + Creatable<Data = BookmarkCreateData, Output = Result<Uuid, Error>>
     + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
@@ -196,22 +209,18 @@ pub trait BookmarkRepository:
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<BookmarkFindManyFilters>,
-    ) -> Result<Vec<Bookmark>, Error>;
-
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error>;
 }
 
 dyn_clone::clone_trait_object!(BookmarkRepository);
 
 #[derive(Clone, Debug, Default)]
-pub struct BookmarkFindManyFilters {
+pub struct BookmarkFindParams {
+    pub id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
+    pub profile_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Debug, Default)]

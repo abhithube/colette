@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use anyhow::anyhow;
 use colette_core::{
     common::{Creatable, Deletable, Findable, Updatable},
     profile::{
-        Cursor, Error, ProfileCreateData, ProfileIdOrDefaultParams, ProfileIdParams,
-        ProfileRepository, ProfileUpdateData,
+        Error, ProfileCreateData, ProfileFindParams, ProfileIdParams, ProfileRepository,
+        ProfileUpdateData,
     },
     Profile,
 };
@@ -28,23 +27,27 @@ impl D1ProfileRepository {
 
 #[async_trait::async_trait]
 impl Findable for D1ProfileRepository {
-    type Params = ProfileIdOrDefaultParams;
-    type Output = Result<Profile, Error>;
+    type Params = ProfileFindParams;
+    type Output = Result<Vec<Profile>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let is_default = params.id.map_or_else(|| Some(true), |_| None);
+        let (sql, values) = colette_sql::profile::select(
+            params.id,
+            params.user_id,
+            params.is_default,
+            params.cursor,
+            params.limit,
+        )
+        .build_d1(SqliteQueryBuilder);
 
-        let mut profiles =
-            find(&self.db, params.id, params.user_id, is_default, None, None).await?;
-        if profiles.is_empty() {
-            if let Some(id) = params.id {
-                return Err(Error::NotFound(id));
-            } else {
-                return Err(Error::Unknown(anyhow!("couldn't find default profile")));
-            }
-        }
+        let result = super::all(&self.db, sql, values)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(profiles.swap_remove(0))
+        result
+            .results::<ProfileSelect>()
+            .map(|e| e.into_iter().map(Profile::from).collect())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -114,8 +117,13 @@ impl Deletable for D1ProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let mut profiles =
-            find(&self.db, Some(params.id), params.user_id, None, None, None).await?;
+        let mut profiles = self
+            .find(ProfileFindParams {
+                id: Some(params.id),
+                user_id: params.user_id,
+                ..Default::default()
+            })
+            .await?;
         if profiles.is_empty() {
             return Err(Error::NotFound(params.id));
         }
@@ -138,17 +146,7 @@ impl Deletable for D1ProfileRepository {
     }
 }
 
-#[async_trait::async_trait]
-impl ProfileRepository for D1ProfileRepository {
-    async fn list(
-        &self,
-        user_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-    ) -> Result<Vec<Profile>, Error> {
-        find(&self.db, None, user_id, None, limit, cursor).await
-    }
-}
+impl ProfileRepository for D1ProfileRepository {}
 
 #[derive(Debug, serde::Deserialize)]
 pub struct ProfileSelect {
@@ -169,25 +167,4 @@ impl From<ProfileSelect> for Profile {
             user_id: value.user_id,
         }
     }
-}
-
-async fn find(
-    db: &D1Database,
-    id: Option<Uuid>,
-    user_id: Uuid,
-    is_default: Option<bool>,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-) -> Result<Vec<Profile>, Error> {
-    let (sql, values) = colette_sql::profile::select(id, user_id, is_default, cursor, limit)
-        .build_d1(SqliteQueryBuilder);
-
-    let result = super::all(db, sql, values)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-    result
-        .results::<ProfileSelect>()
-        .map(|e| e.into_iter().map(Profile::from).collect())
-        .map_err(|e| Error::Unknown(e.into()))
 }

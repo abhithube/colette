@@ -9,7 +9,7 @@ use colette_core::{
     common::{Findable, NonEmptyString},
     feed::FeedService,
     feed_entry::FeedEntryService,
-    profile::{ProfileIdOrDefaultParams, ProfileService},
+    profile::{ProfileFindParams, ProfileService},
     scraper::ScraperService,
     smart_feed::SmartFeedService,
     tag::TagService,
@@ -132,12 +132,13 @@ pub fn run() {
                     Ok(profile) => profile,
                     _ => {
                         let user = auth_service.register(Register { email, password }).await?;
-                        profile_repository
-                            .find(ProfileIdOrDefaultParams {
+                        let mut profiles = profile_repository
+                            .find(ProfileFindParams {
                                 user_id: user.id,
                                 ..Default::default()
                             })
-                            .await?
+                            .await?;
+                        profiles.swap_remove(0)
                     }
                 };
 

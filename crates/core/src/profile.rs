@@ -41,7 +41,13 @@ impl ProfileService {
     }
 
     pub async fn list_profiles(&self, user_id: Uuid) -> Result<Paginated<Profile>, Error> {
-        let profiles = self.repository.list(user_id, None, None).await?;
+        let profiles = self
+            .repository
+            .find(ProfileFindParams {
+                user_id,
+                ..Default::default()
+            })
+            .await?;
 
         Ok(Paginated {
             data: profiles,
@@ -50,12 +56,19 @@ impl ProfileService {
     }
 
     pub async fn get_profile(&self, id: Uuid, user_id: Uuid) -> Result<Profile, Error> {
-        self.repository
-            .find(ProfileIdOrDefaultParams {
+        let mut profiles = self
+            .repository
+            .find(ProfileFindParams {
                 id: Some(id),
                 user_id,
+                ..Default::default()
             })
-            .await
+            .await?;
+        if profiles.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(profiles.swap_remove(0))
     }
 
     pub async fn create_profile(
@@ -95,9 +108,8 @@ impl ProfileService {
     }
 }
 
-#[async_trait::async_trait]
 pub trait ProfileRepository:
-    Findable<Params = ProfileIdOrDefaultParams, Output = Result<Profile, Error>>
+    Findable<Params = ProfileFindParams, Output = Result<Vec<Profile>, Error>>
     + Creatable<Data = ProfileCreateData, Output = Result<Uuid, Error>>
     + Updatable<Params = ProfileIdParams, Data = ProfileUpdateData, Output = Result<(), Error>>
     + Deletable<Params = ProfileIdParams, Output = Result<(), Error>>
@@ -105,12 +117,6 @@ pub trait ProfileRepository:
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        user_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-    ) -> Result<Vec<Profile>, Error>;
 }
 
 dyn_clone::clone_trait_object!(ProfileRepository);
@@ -128,9 +134,12 @@ impl ProfileIdParams {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct ProfileIdOrDefaultParams {
+pub struct ProfileFindParams {
     pub id: Option<Uuid>,
+    pub is_default: Option<bool>,
     pub user_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Debug, Default)]

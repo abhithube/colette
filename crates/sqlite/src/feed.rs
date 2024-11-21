@@ -1,15 +1,15 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
     feed::{
-        Cursor, Error, FeedCacheData, FeedCreateData, FeedFindManyFilters, FeedRepository,
-        FeedUpdateData, ProcessedFeed,
+        Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
+        ProcessedFeed,
     },
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
 use sea_query_binder::SqlxBinder;
-use sqlx::{types::Json, SqliteConnection, SqliteExecutor, SqlitePool};
+use sqlx::{types::Json, SqliteConnection, SqlitePool};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -25,24 +25,37 @@ impl SqliteFeedRepository {
 
 #[async_trait::async_trait]
 impl Findable for SqliteFeedRepository {
-    type Params = IdParams;
-    type Output = Result<Feed, Error>;
+    type Params = FeedFindParams;
+    type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut feeds = find(
-            &self.pool,
-            Some(params.id),
-            params.profile_id,
-            None,
-            None,
-            None,
-        )
-        .await?;
-        if feeds.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        let jsonb_agg = Expr::cust(
+            r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+        );
 
-        Ok(feeds.swap_remove(0))
+        let tags_subquery = params.tags.map(|e| {
+            Expr::cust_with_expr(
+                r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+                Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+            )
+        });
+
+        let (sql, values) = colette_sql::profile_feed::select(
+            params.id,
+            params.profile_id,
+            params.pinned,
+            params.cursor,
+            params.limit,
+            jsonb_agg,
+            tags_subquery,
+        )
+        .build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_as_with::<_, FeedSelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(Feed::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -182,16 +195,6 @@ impl Deletable for SqliteFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<FeedFindManyFilters>,
-    ) -> Result<Vec<Feed>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor, filters).await
-    }
-
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
         let mut tx = self
             .pool
@@ -241,51 +244,6 @@ impl From<FeedSelect> for colette_core::Feed {
             unread_count: Some(value.unread_count),
         }
     }
-}
-
-pub(crate) async fn find(
-    executor: impl SqliteExecutor<'_>,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-    filters: Option<FeedFindManyFilters>,
-) -> Result<Vec<Feed>, Error> {
-    let mut pinned: Option<bool> = None;
-    let mut tags: Option<Vec<String>> = None;
-
-    if let Some(filters) = filters {
-        pinned = filters.pinned;
-        tags = filters.tags;
-    }
-
-    let jsonb_agg = Expr::cust(
-        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-    );
-
-    let tags_subquery = tags.map(|e| {
-        Expr::cust_with_expr(
-            r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
-            Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
-        )
-    });
-
-    let (sql, values) = colette_sql::profile_feed::select(
-        id,
-        profile_id,
-        pinned,
-        cursor,
-        limit,
-        jsonb_agg,
-        tags_subquery,
-    )
-    .build_sqlx(SqliteQueryBuilder);
-
-    sqlx::query_as_with::<_, FeedSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(Feed::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }
 
 pub(crate) async fn link_tags(

@@ -58,7 +58,11 @@ impl TagService {
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
-            .list(profile_id, None, None, Some(query.into()))
+            .find(TagFindParams {
+                tag_type: query.tag_type,
+                profile_id,
+                ..Default::default()
+            })
             .await?;
 
         Ok(Paginated {
@@ -68,7 +72,19 @@ impl TagService {
     }
 
     pub async fn get_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
-        self.repository.find(IdParams::new(id, profile_id)).await
+        let mut tags = self
+            .repository
+            .find(TagFindParams {
+                id: Some(id),
+                profile_id,
+                ..Default::default()
+            })
+            .await?;
+        if tags.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        Ok(tags.swap_remove(0))
     }
 
     pub async fn create_tag(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
@@ -101,9 +117,8 @@ impl TagService {
     }
 }
 
-#[async_trait::async_trait]
 pub trait TagRepository:
-    Findable<Params = IdParams, Output = Result<Tag, Error>>
+    Findable<Params = TagFindParams, Output = Result<Vec<Tag>, Error>>
     + Creatable<Data = TagCreateData, Output = Result<Uuid, Error>>
     + Updatable<Params = IdParams, Data = TagUpdateData, Output = Result<(), Error>>
     + Deletable<Params = IdParams, Output = Result<(), Error>>
@@ -111,32 +126,19 @@ pub trait TagRepository:
     + Sync
     + DynClone
 {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-        filters: Option<TagFindManyFilters>,
-    ) -> Result<Vec<Tag>, Error>;
 }
 
 dyn_clone::clone_trait_object!(TagRepository);
 
 #[derive(Clone, Debug, Default)]
-pub struct TagFindManyFilters {
+pub struct TagFindParams {
+    pub id: Option<Uuid>,
     pub tag_type: TagType,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
-}
-
-impl From<TagListQuery> for TagFindManyFilters {
-    fn from(value: TagListQuery) -> Self {
-        Self {
-            tag_type: value.tag_type,
-            feed_id: None,
-            bookmark_id: None,
-        }
-    }
+    pub profile_id: Uuid,
+    pub limit: Option<u64>,
+    pub cursor: Option<Cursor>,
 }
 
 #[derive(Clone, Debug, Default)]

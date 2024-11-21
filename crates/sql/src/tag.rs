@@ -1,6 +1,6 @@
 use std::fmt::Write;
 
-use colette_core::tag::{Cursor, TagFindManyFilters, TagType};
+use colette_core::tag::{Cursor, TagType};
 use sea_query::{
     Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
     SimpleExpr, UpdateStatement,
@@ -46,7 +46,7 @@ pub fn select(
     profile_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
-    filters: Option<TagFindManyFilters>,
+    tag_type: TagType,
 ) -> SelectStatement {
     let mut query = Query::select()
         .column((Tag::Table, Tag::Id))
@@ -77,31 +77,18 @@ pub fn select(
         .order_by((Tag::Table, Tag::Title), Order::Asc)
         .to_owned();
 
-    if let Some(filters) = filters {
-        match filters.tag_type {
-            TagType::Bookmarks => {
-                query.and_having(
-                    Expr::expr(Expr::col(ProfileBookmarkTag::ProfileBookmarkId).count()).gt(0),
-                );
-            }
-            TagType::Feeds => {
-                query
-                    .and_having(Expr::expr(Expr::col(ProfileFeedTag::ProfileFeedId).count()).gt(0));
-            }
-            _ => {}
-        };
+    match tag_type {
+        TagType::Bookmarks => {
+            query.and_having(
+                Expr::expr(Expr::col(ProfileBookmarkTag::ProfileBookmarkId).count()).gt(0),
+            );
+        }
+        TagType::Feeds => {
+            query.and_having(Expr::expr(Expr::col(ProfileFeedTag::ProfileFeedId).count()).gt(0));
+        }
+        _ => {}
+    };
 
-        query.and_where_option(
-            filters
-                .feed_id
-                .map(|e| Expr::col(ProfileFeedTag::ProfileFeedId).eq(e)),
-        );
-        query.and_where_option(
-            filters
-                .bookmark_id
-                .map(|e| Expr::col(ProfileBookmarkTag::ProfileBookmarkId).eq(e)),
-        );
-    }
     if let Some(limit) = limit {
         query.limit(limit);
     }

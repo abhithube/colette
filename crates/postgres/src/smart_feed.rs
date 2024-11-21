@@ -1,7 +1,7 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     smart_feed::{
-        Cursor, DateOperation, Error, SmartFeedCreateData, SmartFeedFilter as Filter,
+        DateOperation, Error, SmartFeedCreateData, SmartFeedFilter as Filter, SmartFeedFindParams,
         SmartFeedRepository, SmartFeedUpdateData, TextOperation,
     },
     SmartFeed,
@@ -29,16 +29,24 @@ impl PostgresSmartFeedRepository {
 
 #[async_trait::async_trait]
 impl Findable for PostgresSmartFeedRepository {
-    type Params = IdParams;
-    type Output = Result<SmartFeed, Error>;
+    type Params = SmartFeedFindParams;
+    type Output = Result<Vec<SmartFeed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut feeds = find(&self.pool, Some(params.id), params.profile_id, None, None).await?;
-        if feeds.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        let (sql, values) = colette_sql::smart_feed::select(
+            params.id,
+            params.profile_id,
+            params.cursor,
+            params.limit,
+            build_case_statement(),
+        )
+        .build_sqlx(PostgresQueryBuilder);
 
-        Ok(feeds.swap_remove(0))
+        sqlx::query_as_with::<_, SmartFeedSelect, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await
+            .map(|e| e.into_iter().map(SmartFeed::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -159,17 +167,7 @@ impl Deletable for PostgresSmartFeedRepository {
     }
 }
 
-#[async_trait::async_trait]
-impl SmartFeedRepository for PostgresSmartFeedRepository {
-    async fn list(
-        &self,
-        profile_id: Uuid,
-        limit: Option<u64>,
-        cursor: Option<Cursor>,
-    ) -> Result<Vec<SmartFeed>, Error> {
-        find(&self.pool, None, profile_id, limit, cursor).await
-    }
-}
+impl SmartFeedRepository for PostgresSmartFeedRepository {}
 
 #[derive(Debug, Clone, sqlx::FromRow)]
 struct SmartFeedSelect {
@@ -186,23 +184,6 @@ impl From<SmartFeedSelect> for colette_core::SmartFeed {
             unread_count: Some(value.unread_count),
         }
     }
-}
-pub(crate) async fn find(
-    executor: impl PgExecutor<'_>,
-    id: Option<Uuid>,
-    profile_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-) -> Result<Vec<SmartFeed>, Error> {
-    let (sql, values) =
-        colette_sql::smart_feed::select(id, profile_id, cursor, limit, build_case_statement())
-            .build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_as_with::<_, SmartFeedSelect, _>(&sql, values)
-        .fetch_all(executor)
-        .await
-        .map(|e| e.into_iter().map(SmartFeed::from).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))
 }
 
 struct Op {
