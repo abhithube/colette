@@ -165,7 +165,7 @@ impl From<ProfileSelect> for Profile {
             id: value.id,
             title: value.title,
             image_url: value.image_url,
-            is_default: value.is_default.eq(&0),
+            is_default: value.is_default.eq(&1),
             user_id: value.user_id,
         }
     }
