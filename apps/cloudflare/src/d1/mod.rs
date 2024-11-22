@@ -1,4 +1,3 @@
-use chrono::{NaiveDate, NaiveTime};
 use sea_query::{
     DeleteStatement, InsertStatement, QueryBuilder, SelectStatement, UpdateStatement, Value,
     WithQuery,
@@ -56,43 +55,27 @@ impl D1Binder for WithQuery {
 impl D1Argument for D1Value {
     fn js_value(&self) -> impl AsRef<JsValue> {
         match &self.0 {
-            Value::Bool(v) => JsValue::from(*v),
-            Value::TinyInt(v) => (*v).into(),
-            Value::SmallInt(v) => (*v).into(),
-            Value::Int(v) => (*v).into(),
-            Value::BigInt(v) => (*v).into(),
-            Value::TinyUnsigned(v) => (*v).into(),
-            Value::SmallUnsigned(v) => (*v).into(),
-            Value::Unsigned(v) => (*v).into(),
-            Value::BigUnsigned(v) => (*v).into(),
-            Value::Float(v) => (*v).into(),
-            Value::Double(v) => (*v).into(),
-            Value::String(v) => v.as_deref().into(),
-            Value::Char(v) => v.as_ref().map(|e| e.to_string()).into(),
-            Value::Bytes(v) => v.to_owned().map(|e| e.into_boxed_slice()).into(),
-            Value::ChronoDate(v) => v
-                .as_ref()
-                .map(|e| {
-                    e.and_time(NaiveTime::default())
-                        .and_utc()
-                        .timestamp_millis()
-                })
-                .into(),
-            Value::ChronoTime(v) => v
-                .as_ref()
-                .map(|e| {
-                    NaiveDate::default()
-                        .and_time(**e)
-                        .and_utc()
-                        .timestamp_millis()
-                })
-                .into(),
-            Value::ChronoDateTime(v) => v.as_ref().map(|e| e.and_utc().timestamp_millis()).into(),
-            Value::ChronoDateTimeUtc(v) => v.as_ref().map(|e| e.timestamp_millis()).into(),
-            Value::ChronoDateTimeLocal(v) => v.as_ref().map(|e| e.timestamp_millis()).into(),
-            Value::ChronoDateTimeWithTimeZone(v) => v.as_ref().map(|e| e.timestamp_millis()).into(),
-            Value::Uuid(v) => v.as_ref().map(|e| e.to_string()).into(),
-            Value::Json(v) => v.as_ref().map(|e| e.to_string()).into(),
+            Value::Bool(v) => match v {
+                Some(v) => JsValue::from_bool(*v),
+                None => JsValue::null(),
+            },
+            Value::BigUnsigned(v) => match v {
+                Some(v) => JsValue::from_f64(*v as f64),
+                None => JsValue::null(),
+            },
+            Value::String(v) => match v {
+                Some(v) => JsValue::from_str(v),
+                None => JsValue::null(),
+            },
+            Value::ChronoDateTimeUtc(v) => match v {
+                Some(v) => JsValue::from_f64(v.timestamp_millis() as f64),
+                None => JsValue::null(),
+            },
+            Value::Uuid(v) => match v {
+                Some(v) => JsValue::from_str(&v.to_string()),
+                None => JsValue::null(),
+            },
+            _ => unimplemented!(),
         }
     }
 }
