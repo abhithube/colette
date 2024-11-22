@@ -15,7 +15,7 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, Id, Session, TagsLink, FEEDS_TAG},
+    common::{BaseError, Error, Id, Session, FEEDS_TAG},
     tag::Tag,
     Paginated,
 };
@@ -93,8 +93,8 @@ pub struct FeedCreate {
     pub url: Url,
     #[schema(required = false, default = false)]
     pub pinned: bool,
-    #[schema(nullable = false)]
-    pub tags: Option<TagsLink>,
+    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
@@ -102,7 +102,7 @@ impl From<FeedCreate> for feed::FeedCreate {
         Self {
             url: value.url,
             pinned: value.pinned,
-            tags: value.tags.map(|e| e.into()),
+            tags: value.tags,
         }
     }
 }
@@ -119,8 +119,8 @@ pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]
     pub pinned: Option<bool>,
-    #[schema(nullable = false)]
-    pub tags: Option<TagsLink>,
+    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<FeedUpdate> for feed::FeedUpdate {
@@ -128,7 +128,7 @@ impl From<FeedUpdate> for feed::FeedUpdate {
         Self {
             title: value.title,
             pinned: value.pinned,
-            tags: value.tags.map(|e| e.into()),
+            tags: value.tags,
         }
     }
 }

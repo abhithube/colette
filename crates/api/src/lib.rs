@@ -4,7 +4,6 @@ use auth::AuthState;
 use axum::{extract::FromRef, routing, Router};
 use backup::BackupState;
 use bookmark::BookmarkState;
-use common::TagsLink;
 pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
@@ -72,7 +71,7 @@ impl ApiState {
   servers(
       (url = "http://localhost:8000/api/v1"),
   ),
-  components(schemas(BaseError, TagsLink))
+  components(schemas(BaseError))
 )]
 struct ApiDoc;
 

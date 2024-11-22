@@ -6,10 +6,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{
-        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, TagsLink,
-        TagsLinkData, Updatable,
-    },
+    common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
     Tag,
 };
 
@@ -29,14 +26,14 @@ pub struct Feed {
 pub struct FeedCreate {
     pub url: Url,
     pub pinned: bool,
-    pub tags: Option<TagsLink>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     pub pinned: Option<bool>,
-    pub tags: Option<TagsLink>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -119,10 +116,10 @@ impl FeedService {
             .create(FeedCreateData {
                 url: data.url.to_string(),
                 pinned: data.pinned,
-                tags: data.tags.clone().map(|e| TagsLinkData {
-                    data: e.data.into_iter().map(String::from).collect(),
-                    action: e.action,
-                }),
+                tags: data
+                    .tags
+                    .clone()
+                    .map(|e| e.into_iter().map(String::from).collect()),
                 profile_id,
             })
             .await?;
@@ -207,7 +204,7 @@ pub struct FeedFindParams {
 pub struct FeedCreateData {
     pub url: String,
     pub pinned: bool,
-    pub tags: Option<TagsLinkData>,
+    pub tags: Option<Vec<String>>,
     pub profile_id: Uuid,
 }
 
@@ -221,7 +218,7 @@ pub struct FeedCacheData {
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
     pub pinned: Option<bool>,
-    pub tags: Option<TagsLinkData>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<FeedUpdate> for FeedUpdateData {
@@ -229,10 +226,9 @@ impl From<FeedUpdate> for FeedUpdateData {
         Self {
             title: value.title.map(|e| e.map(String::from)),
             pinned: value.pinned,
-            tags: value.tags.map(|e| TagsLinkData {
-                data: e.data.into_iter().map(String::from).collect(),
-                action: e.action,
-            }),
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(String::from).collect()),
         }
     }
 }

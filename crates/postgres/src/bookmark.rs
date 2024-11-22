@@ -4,7 +4,7 @@ use colette_core::{
         BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
         BookmarkUpdateData, Error,
     },
-    common::{Creatable, Deletable, Findable, IdParams, TagsLinkAction, TagsLinkData, Updatable},
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
@@ -218,22 +218,12 @@ impl From<BookmarkSelect> for colette_core::Bookmark {
 pub(crate) async fn link_tags(
     conn: &mut PgConnection,
     profile_bookmark_id: Uuid,
-    tags: TagsLinkData,
+    tags: Vec<String>,
     profile_id: Uuid,
 ) -> sqlx::Result<()> {
-    if let TagsLinkAction::Remove = tags.action {
+    {
         let (sql, values) =
-            colette_sql::profile_bookmark_tag::delete_many_in_titles(&tags.data, profile_id)
-                .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-
-        return Ok(());
-    }
-
-    if let TagsLinkAction::Set = tags.action {
-        let (sql, values) =
-            colette_sql::profile_bookmark_tag::delete_many_not_in_titles(&tags.data, profile_id)
+            colette_sql::profile_bookmark_tag::delete_many_not_in_titles(&tags, profile_id)
                 .build_sqlx(PostgresQueryBuilder);
 
         sqlx::query_with(&sql, values).execute(&mut *conn).await?;
@@ -241,8 +231,7 @@ pub(crate) async fn link_tags(
 
     {
         let (sql, values) = colette_sql::tag::insert_many(
-            tags.data
-                .iter()
+            tags.iter()
                 .map(|e| colette_sql::tag::InsertMany {
                     id: None,
                     title: e.to_owned(),
@@ -255,16 +244,14 @@ pub(crate) async fn link_tags(
         sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
-    let tag_ids = {
-        let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags.data, profile_id)
+    {
+        let (sql, values) = colette_sql::tag::select_ids_by_titles(&tags, profile_id)
             .build_sqlx(PostgresQueryBuilder);
 
-        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+        let tag_ids = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
             .fetch_all(&mut *conn)
-            .await?
-    };
+            .await?;
 
-    {
         let insert_many = tag_ids
             .into_iter()
             .map(|e| colette_sql::profile_bookmark_tag::InsertMany {

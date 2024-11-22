@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     common::{
-        Creatable, Deletable, Findable, IdParams, Paginated, TagsLink, TagsLinkData, Updatable,
+        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
         PAGINATION_LIMIT,
     },
     Tag,
@@ -28,12 +28,12 @@ pub struct Bookmark {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub tags: Option<TagsLink>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkUpdate {
-    pub tags: Option<TagsLink>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -147,10 +147,7 @@ impl BookmarkService {
             .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
-                tags: data.tags.map(|e| TagsLinkData {
-                    data: e.data.into_iter().map(String::from).collect(),
-                    action: e.action,
-                }),
+                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
                 profile_id,
             })
             .await?;
@@ -226,22 +223,21 @@ pub struct BookmarkFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
-    pub tags: Option<TagsLinkData>,
+    pub tags: Option<Vec<String>>,
     pub profile_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
-    pub tags: Option<TagsLinkData>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            tags: value.tags.map(|e| TagsLinkData {
-                data: e.data.into_iter().map(String::from).collect(),
-                action: e.action,
-            }),
+            tags: value
+                .tags
+                .map(|e| e.into_iter().map(String::from).collect()),
         }
     }
 }

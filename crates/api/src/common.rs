@@ -7,10 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use colette_core::{
-    auth,
-    common::{self, NonEmptyString},
-};
+use colette_core::{auth, common};
 use tower_sessions::session;
 use tracing::error;
 use uuid::Uuid;
@@ -45,42 +42,6 @@ where
         Self {
             data: value.data.into_iter().map(T::from).collect(),
             cursor: value.cursor,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub enum TagsLinkAction {
-    Add,
-    Set,
-    Remove,
-}
-
-impl From<TagsLinkAction> for common::TagsLinkAction {
-    fn from(value: TagsLinkAction) -> Self {
-        match value {
-            TagsLinkAction::Add => Self::Add,
-            TagsLinkAction::Set => Self::Set,
-            TagsLinkAction::Remove => Self::Remove,
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TagsLink {
-    #[schema(value_type = Vec<String>, min_length = 1)]
-    pub data: Vec<NonEmptyString>,
-    #[schema(inline)]
-    pub action: TagsLinkAction,
-}
-
-impl From<TagsLink> for common::TagsLink {
-    fn from(value: TagsLink) -> Self {
-        Self {
-            data: value.data,
-            action: value.action.into(),
         }
     }
 }

@@ -6,14 +6,17 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{self, BookmarkService};
+use colette_core::{
+    bookmark::{self, BookmarkService},
+    common::NonEmptyString,
+};
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, Id, Session, TagsLink, BOOKMARKS_TAG},
+    common::{BaseError, Error, Id, Session, BOOKMARKS_TAG},
     tag::Tag,
     Paginated,
 };
@@ -80,15 +83,15 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(nullable = false)]
-    pub tags: Option<TagsLink>,
+    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     fn from(value: BookmarkCreate) -> Self {
         Self {
             url: value.url,
-            tags: value.tags.map(|e| e.into()),
+            tags: value.tags,
         }
     }
 }
@@ -96,15 +99,13 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(nullable = false)]
-    pub tags: Option<TagsLink>,
+    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
-        Self {
-            tags: value.tags.map(|e| e.into()),
-        }
+        Self { tags: value.tags }
     }
 }
 

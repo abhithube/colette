@@ -48,27 +48,6 @@ impl IdParams {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum TagsLinkAction {
-    Add,
-    Set,
-    Remove,
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TagsLink {
-    pub data: Vec<NonEmptyString>,
-    pub action: TagsLinkAction,
-}
-
-#[derive(Clone, Debug)]
-pub struct TagsLinkData {
-    pub data: Vec<String>,
-    pub action: TagsLinkAction,
-}
-
 #[async_trait::async_trait]
 pub trait Findable: Send + Sync {
     type Params;
