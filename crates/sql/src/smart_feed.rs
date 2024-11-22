@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::smart_feed::Cursor;
 use sea_query::{
     Alias, CaseStatement, CommonTableExpression, DeleteStatement, Expr, Func, Iden,
-    InsertStatement, JoinType, Order, Query, SimpleExpr, UpdateStatement, WithClause, WithQuery,
+    InsertStatement, JoinType, Order, Query, SimpleExpr, UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
@@ -114,7 +114,7 @@ pub fn select(
     }
 
     select.with(
-        WithClause::new()
+        Query::with()
             .cte(
                 CommonTableExpression::new()
                     .query(unread_counts_cte)

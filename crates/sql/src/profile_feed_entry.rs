@@ -4,7 +4,7 @@ use colette_core::feed_entry::Cursor;
 use sea_query::{
     Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, InsertStatement,
     IntoValueTuple, JoinType, OnConflict, Order, Query, SelectStatement, SimpleExpr,
-    UpdateStatement, WithClause, WithQuery,
+    UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
@@ -214,7 +214,7 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
         )
         .to_owned();
 
-    let with_clause = WithClause::new()
+    let with_clause = Query::with()
         .cte(
             CommonTableExpression::new()
                 .query(input_cte)

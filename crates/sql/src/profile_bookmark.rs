@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::bookmark::Cursor;
 use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, WithClause, WithQuery,
+    OnConflict, Query, SelectStatement, SimpleExpr, WithQuery,
 };
 use uuid::Uuid;
 
@@ -121,7 +121,7 @@ pub fn select(
     }
 
     select.with(
-        WithClause::new()
+        Query::with()
             .cte(
                 CommonTableExpression::new()
                     .query(json_tags_cte)
