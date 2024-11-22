@@ -12,7 +12,7 @@ use sea_query::SqliteQueryBuilder;
 use uuid::Uuid;
 use worker::D1Database;
 
-use super::D1Binder;
+use super::{D1Binder, D1Error};
 
 #[derive(Clone)]
 pub struct D1ProfileRepository {
@@ -57,8 +57,10 @@ impl Creatable for D1ProfileRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
+        let id = Uuid::new_v4();
+
         let (sql, values) = colette_sql::profile::insert(
-            Some(Uuid::new_v4()),
+            Some(id),
             data.title.clone(),
             data.image_url,
             None,
@@ -66,14 +68,12 @@ impl Creatable for D1ProfileRepository {
         )
         .build_d1(SqliteQueryBuilder);
 
-        let id = super::first(&self.db, sql, values, Some("id"))
+        super::run(&self.db, sql, values)
             .await
-            .map_err(|e| {
-                println!("{:?}", e);
-
-                Error::Unknown(e.into())
-            })?
-            .unwrap();
+            .map_err(|e| match e.into() {
+                D1Error::UniqueConstraint => Error::Conflict(data.title),
+                e => Error::Unknown(e.into()),
+            })?;
 
         Ok(id)
     }
@@ -87,22 +87,16 @@ impl Updatable for D1ProfileRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() || data.image_url.is_some() {
-            let count = {
-                let (sql, values) = colette_sql::profile::update(
-                    params.id,
-                    params.user_id,
-                    data.title,
-                    data.image_url,
-                )
-                .build_d1(SqliteQueryBuilder);
+            let (sql, values) =
+                colette_sql::profile::update(params.id, params.user_id, data.title, data.image_url)
+                    .build_d1(SqliteQueryBuilder);
 
-                super::run(&self.db, sql, values)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+            let result = super::run(&self.db, sql, values)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            let meta = result.meta().unwrap().unwrap();
 
-                1
-            };
-            if count == 0 {
+            if meta.changes.is_none_or(|e| e == 0) {
                 return Err(Error::NotFound(params.id));
             }
         }
@@ -117,20 +111,22 @@ impl Deletable for D1ProfileRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let mut profiles = self
-            .find(ProfileFindParams {
-                id: Some(params.id),
-                user_id: params.user_id,
-                ..Default::default()
-            })
-            .await?;
-        if profiles.is_empty() {
-            return Err(Error::NotFound(params.id));
-        }
+        {
+            let mut profiles = self
+                .find(ProfileFindParams {
+                    id: Some(params.id),
+                    user_id: params.user_id,
+                    ..Default::default()
+                })
+                .await?;
+            if profiles.is_empty() {
+                return Err(Error::NotFound(params.id));
+            }
 
-        let profile = profiles.swap_remove(0);
-        if profile.is_default {
-            return Err(Error::DeletingDefault);
+            let profile = profiles.swap_remove(0);
+            if profile.is_default {
+                return Err(Error::DeletingDefault);
+            }
         }
 
         {

@@ -586,6 +586,7 @@ dependencies = [
  "sea-query",
  "serde",
  "serde_json",
+ "thiserror 1.0.69",
  "time",
  "tower",
  "tower-sessions",

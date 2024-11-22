@@ -127,3 +127,25 @@ pub(crate) async fn batch(
 
     db.batch(stmts).await
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum D1Error {
+    #[error("unique constraint failed")]
+    UniqueConstraint,
+    #[error("{0}")]
+    Other(String),
+    #[error(transparent)]
+    Unknown(worker::Error),
+}
+
+impl From<worker::Error> for D1Error {
+    fn from(value: worker::Error) -> Self {
+        match value {
+            worker::Error::D1(d1) => match d1.cause() {
+                e if e.starts_with("UNIQUE constraint failed") => Self::UniqueConstraint,
+                e => Self::Other(e),
+            },
+            _ => Self::Unknown(value),
+        }
+    }
+}

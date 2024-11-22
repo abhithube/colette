@@ -9,7 +9,7 @@ use sea_query::SqliteQueryBuilder;
 use uuid::Uuid;
 use worker::D1Database;
 
-use super::D1Binder;
+use super::{D1Binder, D1Error};
 
 #[derive(Clone)]
 pub struct D1UserRepository {
@@ -35,11 +35,7 @@ impl Findable for D1UserRepository {
 
                 let Some(user) = super::first::<User>(&self.db, sql, values, None)
                     .await
-                    .map_err(|e| {
-                        println!("{:?}", e);
-
-                        Error::Unknown(e.into())
-                    })?
+                    .map_err(|e| Error::Unknown(e.into()))?
                 else {
                     return Err(Error::NotFound(NotFoundError::Id(id)));
                 };
@@ -52,11 +48,7 @@ impl Findable for D1UserRepository {
 
                 let Some(user) = super::first::<User>(&self.db, sql, values, None)
                     .await
-                    .map_err(|e| {
-                        println!("{:?}", e);
-
-                        Error::Unknown(e.into())
-                    })?
+                    .map_err(|e| Error::Unknown(e.into()))?
                 else {
                     return Err(Error::NotFound(NotFoundError::Email(email)));
                 };
@@ -90,7 +82,10 @@ impl Creatable for D1UserRepository {
 
         super::batch(&self.db, queries)
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| match e.into() {
+                D1Error::UniqueConstraint => Error::Conflict(data.email),
+                e => Error::Unknown(e.into()),
+            })?;
 
         Ok(id)
     }
