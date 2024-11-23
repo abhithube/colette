@@ -83,7 +83,7 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
 
@@ -99,7 +99,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
 

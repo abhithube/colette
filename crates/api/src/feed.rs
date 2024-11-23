@@ -93,7 +93,7 @@ pub struct FeedCreate {
     pub url: Url,
     #[schema(required = false, default = false)]
     pub pinned: bool,
-    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
 
@@ -119,7 +119,7 @@ pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]
     pub pinned: Option<bool>,
-    #[schema(value_type = Vec<String>, nullable = false, min_length = 1)]
+    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
 
