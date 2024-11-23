@@ -9,6 +9,8 @@ export {
   BaseError,
   Bookmark,
   BookmarkCreate,
+  BookmarkScrape,
+  BookmarkScraped,
   BookmarkUpdate,
   Feed,
   FeedCreate,
@@ -29,7 +31,7 @@ export {
   Tag,
   TagCreate,
   TagUpdate,
-  User,
+  User
 } from './openapi.gen'
 export * from './profile'
 export * from './smart-feed'

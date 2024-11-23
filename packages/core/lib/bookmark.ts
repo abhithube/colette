@@ -3,6 +3,8 @@ import {
   type ApiClient,
   Bookmark,
   BookmarkCreate,
+  BookmarkScrape,
+  BookmarkScraped,
   BookmarkUpdate,
   Paginated_Bookmark,
   get_ListBookmarks,
@@ -24,6 +26,8 @@ export interface BookmarkAPI {
   update(id: string, data: BookmarkUpdate): Promise<Bookmark>
 
   delete(id: string): Promise<void>
+
+  scrape(data: BookmarkScrape): Promise<BookmarkScraped>
 }
 
 export class HTTPBookmarkAPI implements BookmarkAPI {
@@ -74,5 +78,13 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
         },
       })
       .then()
+  }
+
+  scrape(data: BookmarkScrape): Promise<BookmarkScraped> {
+    return this.client
+      .post('/bookmarks/scrape', {
+        body: BookmarkScrape.parse(data),
+      })
+      .then(BookmarkScraped.parse)
   }
 }

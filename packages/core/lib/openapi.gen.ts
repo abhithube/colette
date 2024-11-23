@@ -24,21 +24,29 @@ export const Bookmark = z.object({
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
-export type TagsLink = z.infer<typeof TagsLink>;
-export const TagsLink = z.object({
-  data: z.array(z.string()),
-  action: z.union([z.literal("add"), z.literal("set"), z.literal("remove")]),
-});
-
 export type BookmarkCreate = z.infer<typeof BookmarkCreate>;
 export const BookmarkCreate = z.object({
   url: z.string(),
-  tags: z.union([TagsLink, z.undefined()]).optional(),
+  tags: z.union([z.array(z.string()), z.undefined()]).optional(),
+});
+
+export type BookmarkScrape = z.infer<typeof BookmarkScrape>;
+export const BookmarkScrape = z.object({
+  url: z.string(),
+});
+
+export type BookmarkScraped = z.infer<typeof BookmarkScraped>;
+export const BookmarkScraped = z.object({
+  link: z.string(),
+  title: z.string(),
+  thumbnailUrl: z.union([z.string(), z.null()]),
+  publishedAt: z.union([z.string(), z.null()]),
+  author: z.union([z.string(), z.null()]),
 });
 
 export type BookmarkUpdate = z.infer<typeof BookmarkUpdate>;
 export const BookmarkUpdate = z.object({
-  tags: TagsLink.optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export type BooleanOperation = z.infer<typeof BooleanOperation>;
@@ -82,7 +90,7 @@ export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
   pinned: z.union([z.boolean(), z.undefined()]).optional(),
-  tags: z.union([TagsLink, z.undefined()]).optional(),
+  tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
 export type FeedDetect = z.infer<typeof FeedDetect>;
@@ -118,7 +126,7 @@ export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
   pinned: z.boolean().optional(),
-  tags: TagsLink.optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export type Login = z.infer<typeof Login>;
@@ -337,9 +345,6 @@ export const TagUpdate = z.object({
   title: z.string().optional(),
 });
 
-export type TagsLinkAction = z.infer<typeof TagsLinkAction>;
-export const TagsLinkAction = z.union([z.literal("add"), z.literal("set"), z.literal("remove")]);
-
 export type User = z.infer<typeof User>;
 export const User = z.object({
   id: z.string(),
@@ -501,6 +506,17 @@ export const patch_UpdateBookmark = {
     body: BookmarkUpdate,
   }),
   response: Bookmark,
+};
+
+export type post_ScrapeBookmark = typeof post_ScrapeBookmark;
+export const post_ScrapeBookmark = {
+  method: z.literal("POST"),
+  path: z.literal("/bookmarks/scrape"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: BookmarkScrape,
+  }),
+  response: BookmarkScraped,
 };
 
 export type get_ListFeedEntries = typeof get_ListFeedEntries;
@@ -829,6 +845,7 @@ export const EndpointByMethod = {
     "/backups/netscape/import": post_ImportNetscape,
     "/backups/netscape/export": post_ExportNetscape,
     "/bookmarks": post_CreateBookmark,
+    "/bookmarks/scrape": post_ScrapeBookmark,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
     "/profiles": post_CreateProfile,
@@ -887,7 +904,7 @@ export type EndpointParameters = {
 };
 
 export type MutationMethod = "post" | "put" | "patch" | "delete";
-export type Method = "get" | "head" | MutationMethod;
+export type Method = "get" | "head" | "options" | MutationMethod;
 
 type RequestFormat = "json" | "form-data" | "form-url" | "binary" | "text";
 
