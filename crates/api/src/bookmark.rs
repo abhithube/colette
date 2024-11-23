@@ -33,7 +33,7 @@ impl BookmarkState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Bookmark, Paginated<Bookmark>, BookmarkCreate, BookmarkUpdate)))]
+#[openapi(components(schemas(Bookmark, Paginated<Bookmark>, BookmarkCreate, BookmarkUpdate, BookmarkScrape, BookmarkScraped)))]
 pub struct BookmarkApi;
 
 impl BookmarkApi {
