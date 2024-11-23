@@ -3,7 +3,7 @@ CREATE TABLE bookmarks (
   link TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
-  published_at TEXT NOT NULL,
+  published_at TEXT,
   author TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
