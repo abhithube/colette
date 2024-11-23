@@ -4,6 +4,8 @@ import {
   BookmarkCreate,
   BookmarkList,
   BookmarkListQuery,
+  BookmarkScrape,
+  BookmarkScraped,
   BookmarkUpdate,
 } from '@colette/core'
 import { invoke } from '@tauri-apps/api/core'
@@ -34,5 +36,11 @@ export class BookmarkCommands implements BookmarkAPI {
 
   delete(id: string): Promise<void> {
     return invoke('delete_bookmark', { id }).then()
+  }
+
+  scrape(data: BookmarkScrape): Promise<BookmarkScraped> {
+    return invoke('scrape_bookmark', { data: BookmarkScrape.parse(data) }).then(
+      BookmarkScraped.parse,
+    )
   }
 }

@@ -1,5 +1,5 @@
 use colette_api::{
-    feed::{Feed, FeedCreate, FeedListQuery, FeedUpdate},
+    feed::{Feed, FeedCreate, FeedDetect, FeedDetected, FeedListQuery, FeedUpdate},
     Paginated, Session,
 };
 use colette_core::feed::FeedService;
@@ -73,4 +73,17 @@ pub async fn delete_feed(
         .delete_feed(id, session.profile_id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn detect_feeds(
+    service: State<'_, FeedService>,
+    data: FeedDetect,
+) -> Result<Paginated<FeedDetected>, String> {
+    let feeds = service
+        .detect_feeds(data.into())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(feeds.into())
 }

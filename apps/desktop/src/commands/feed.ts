@@ -2,6 +2,8 @@ import {
   Feed,
   type FeedAPI,
   FeedCreate,
+  FeedDetect,
+  FeedDetectedList,
   FeedList,
   FeedListQuery,
   FeedUpdate,
@@ -34,5 +36,11 @@ export class FeedCommands implements FeedAPI {
 
   delete(id: string): Promise<void> {
     return invoke('delete_feed', { id }).then()
+  }
+
+  detect(data: FeedDetect): Promise<FeedDetectedList> {
+    return invoke('detect_feeds', { data: FeedDetect.parse(data) }).then(
+      FeedDetectedList.parse,
+    )
   }
 }

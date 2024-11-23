@@ -1,5 +1,8 @@
 use colette_api::{
-    bookmark::{Bookmark, BookmarkCreate, BookmarkListQuery, BookmarkUpdate},
+    bookmark::{
+        Bookmark, BookmarkCreate, BookmarkListQuery, BookmarkScrape, BookmarkScraped,
+        BookmarkUpdate,
+    },
     Paginated, Session,
 };
 use colette_core::bookmark::BookmarkService;
@@ -73,4 +76,17 @@ pub async fn delete_bookmark(
         .delete_bookmark(id, session.profile_id)
         .await
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn scrape_bookmark(
+    service: State<'_, BookmarkService>,
+    data: BookmarkScrape,
+) -> Result<BookmarkScraped, String> {
+    let scraped = service
+        .scrape_bookmark(data.into())
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(scraped.into())
 }
