@@ -80,7 +80,6 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
                     FeedEntry::Description,
                     FeedEntry::Author,
                     FeedEntry::ThumbnailUrl,
-                    FeedEntry::FeedId,
                     FeedEntry::UpdatedAt,
                 ])
                 .to_owned(),
