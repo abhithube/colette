@@ -131,7 +131,7 @@ pub fn insert(id: Option<Uuid>, title: String, profile_id: Uuid) -> InsertStatem
         .to_owned()
 }
 
-pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], profile_id: Uuid) -> InsertStatement {
     let mut columns = vec![Tag::Title, Tag::ProfileId];
     if data.iter().any(|e| e.id.is_some()) {
         columns.push(Tag::Id);
@@ -148,7 +148,7 @@ pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
         .to_owned();
 
     for t in data {
-        let mut values: Vec<SimpleExpr> = vec![t.title.into(), profile_id.into()];
+        let mut values: Vec<SimpleExpr> = vec![(*t.title).into(), profile_id.into()];
         if let Some(id) = t.id {
             values.push(id.into());
         }

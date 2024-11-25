@@ -106,11 +106,7 @@ pub struct InsertMany {
     pub value: String,
 }
 
-pub fn insert_many(
-    data: Vec<InsertMany>,
-    smart_feed_id: Uuid,
-    profile_id: Uuid,
-) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, profile_id: Uuid) -> InsertStatement {
     let mut columns = vec![
         SmartFeedFilter::Field,
         SmartFeedFilter::Operation,
@@ -138,7 +134,7 @@ pub fn insert_many(
         let mut values: Vec<SimpleExpr> = vec![
             sff.field.to_string().into(),
             sff.operation.to_string().into(),
-            sff.value.into(),
+            (*sff.value).into(),
             smart_feed_id.into(),
             profile_id.into(),
         ];

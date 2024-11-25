@@ -37,7 +37,7 @@ pub struct InsertMany {
     pub tag_id: Uuid,
 }
 
-pub fn insert_many(data: Vec<InsertMany>, profile_id: Uuid) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], profile_id: Uuid) -> InsertStatement {
     let mut query = Query::insert()
         .into_table(ProfileFeedTag::Table)
         .columns([

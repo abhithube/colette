@@ -146,7 +146,7 @@ pub fn select(
     query
 }
 
-pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], pf_id: Uuid, profile_id: Uuid) -> InsertStatement {
     let mut columns = vec![
         ProfileFeedEntry::FeedEntryId,
         ProfileFeedEntry::ProfileFeedId,
@@ -182,7 +182,7 @@ pub fn insert_many(data: Vec<InsertMany>, pf_id: Uuid, profile_id: Uuid) -> Inse
     query
 }
 
-pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> WithQuery {
+pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQuery {
     let input = Alias::new("input");
 
     let mut cte_columns = vec![ProfileFeedEntry::FeedEntryId];
@@ -201,7 +201,7 @@ pub fn insert_many_for_all_profiles(data: Vec<InsertMany>, feed_id: i32) -> With
     let input_cte = Query::select()
         .expr(Expr::col(Asterisk))
         .from_values(
-            data.into_iter()
+            data.iter()
                 .map(|e| {
                     if let Some(id) = e.id {
                         (id, e.feed_entry_id, feed_id).into_value_tuple()

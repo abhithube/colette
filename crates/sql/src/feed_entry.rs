@@ -59,7 +59,7 @@ pub fn select_many_by_feed_id(feed_id: i32) -> SelectStatement {
         .to_owned()
 }
 
-pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], feed_id: i32) -> InsertStatement {
     let mut query = Query::insert()
         .into_table(FeedEntry::Table)
         .columns([
@@ -88,12 +88,12 @@ pub fn insert_many(data: Vec<InsertMany>, feed_id: i32) -> InsertStatement {
 
     for fe in data {
         query.values_panic([
-            fe.link.into(),
-            fe.title.into(),
+            (*fe.link).into(),
+            (*fe.title).into(),
             fe.published_at.into(),
-            fe.description.into(),
-            fe.author.into(),
-            fe.thumbnail_url.into(),
+            fe.description.as_deref().into(),
+            fe.author.as_deref().into(),
+            fe.thumbnail_url.as_deref().into(),
             feed_id.into(),
             Expr::current_timestamp().into(),
         ]);

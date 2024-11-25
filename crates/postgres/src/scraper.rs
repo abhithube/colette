@@ -54,7 +54,7 @@ impl ScraperRepository for PostgresScraperRepository {
                     .collect::<Vec<_>>();
 
                 let (sql, values) = colette_sql::profile_feed_entry::insert_many_for_all_profiles(
-                    insert_many,
+                    &insert_many,
                     feed_id,
                 )
                 .build_sqlx(PostgresQueryBuilder);

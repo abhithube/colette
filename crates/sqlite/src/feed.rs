@@ -261,16 +261,16 @@ pub(crate) async fn link_tags(
     }
 
     {
-        let (sql, values) = colette_sql::tag::insert_many(
-            tags.iter()
-                .map(|e| colette_sql::tag::InsertMany {
-                    id: Some(Uuid::new_v4()),
-                    title: e.to_owned(),
-                })
-                .collect(),
-            profile_id,
-        )
-        .build_sqlx(SqliteQueryBuilder);
+        let insert_many = tags
+            .iter()
+            .map(|e| colette_sql::tag::InsertMany {
+                id: Some(Uuid::new_v4()),
+                title: e.to_owned(),
+            })
+            .collect::<Vec<_>>();
+
+        let (sql, values) =
+            colette_sql::tag::insert_many(&insert_many, profile_id).build_sqlx(SqliteQueryBuilder);
 
         sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
@@ -291,7 +291,7 @@ pub(crate) async fn link_tags(
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) = colette_sql::profile_feed_tag::insert_many(insert_many, profile_id)
+        let (sql, values) = colette_sql::profile_feed_tag::insert_many(&insert_many, profile_id)
             .build_sqlx(SqliteQueryBuilder);
 
         sqlx::query_with(&sql, values).execute(&mut *conn).await?;
@@ -331,7 +331,7 @@ pub(crate) async fn create_feed_with_entries(
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) = colette_sql::feed_entry::insert_many(insert_many, feed_id)
+        let (sql, values) = colette_sql::feed_entry::insert_many(&insert_many, feed_id)
             .build_sqlx(SqliteQueryBuilder);
 
         sqlx::query_with(&sql, values).execute(&mut *conn).await?;

@@ -272,7 +272,7 @@ async fn insert_filters(
 
     {
         let (sql, values) =
-            colette_sql::smart_feed_filter::insert_many(insert_data, smart_feed_id, profile_id)
+            colette_sql::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
                 .build_sqlx(PostgresQueryBuilder);
 
         sqlx::query_with(&sql, values).execute(executor).await?;
