@@ -75,7 +75,7 @@ pub fn run() {
                 let bookmark_plugin_registry =
                     Box::new(register_bookmark_plugins(client, bookmark_scraper));
 
-                let base64_decoder = Box::new(Base64Encoder);
+                let base64_encoder = Box::new(Base64Encoder);
 
                 let auth_service = AuthService::new(
                     user_repository,
@@ -92,11 +92,11 @@ pub fn run() {
                 let bookmark_service = BookmarkService::new(
                     bookmark_repository,
                     bookmark_plugin_registry.clone(),
-                    base64_decoder.clone(),
+                    base64_encoder.clone(),
                 );
                 let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
                 let feed_entry_service =
-                    FeedEntryService::new(feed_entry_repository, base64_decoder);
+                    FeedEntryService::new(feed_entry_repository, base64_encoder);
                 let profile_service = ProfileService::new(profile_repository.clone());
                 let scraper_service = ScraperService::new(
                     scraper_repository,

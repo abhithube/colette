@@ -14,6 +14,12 @@ use colette_core::{
     scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_postgres::{
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCleanupRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresProfileRepository,
+    PostgresScraperRepository, PostgresSessionRepository, PostgresSmartFeedRepository,
+    PostgresTagRepository, PostgresUserRepository,
+};
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
@@ -60,31 +66,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     colette_postgres::migrate(&pool).await?;
 
-    let backup_repository = Box::new(colette_postgres::PostgresBackupRepository::new(
-        pool.clone(),
-    ));
-    let bookmark_repository = Box::new(colette_postgres::PostgresBookmarkRepository::new(
-        pool.clone(),
-    ));
-    let cleanup_repository = Box::new(colette_postgres::PostgresCleanupRepository::new(
-        pool.clone(),
-    ));
-    let feed_repository = Box::new(colette_postgres::PostgresFeedRepository::new(pool.clone()));
-    let feed_entry_repository = Box::new(colette_postgres::PostgresFeedEntryRepository::new(
-        pool.clone(),
-    ));
-    let profile_repository = Box::new(colette_postgres::PostgresProfileRepository::new(
-        pool.clone(),
-    ));
-    let scraper_repository = Box::new(colette_postgres::PostgresScraperRepository::new(
-        pool.clone(),
-    ));
-    let session_repository = colette_postgres::PostgresSessionRepository::new(pool.clone());
-    let smart_feed_repository = Box::new(colette_postgres::PostgresSmartFeedRepository::new(
-        pool.clone(),
-    ));
-    let tag_repository = Box::new(colette_postgres::PostgresTagRepository::new(pool.clone()));
-    let user_repository = Box::new(colette_postgres::PostgresUserRepository::new(pool.clone()));
+    let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
+    let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
+    let cleanup_repository = Box::new(PostgresCleanupRepository::new(pool.clone()));
+    let feed_repository = Box::new(PostgresFeedRepository::new(pool.clone()));
+    let feed_entry_repository = Box::new(PostgresFeedEntryRepository::new(pool.clone()));
+    let profile_repository = Box::new(PostgresProfileRepository::new(pool.clone()));
+    let scraper_repository = Box::new(PostgresScraperRepository::new(pool.clone()));
+    let session_repository = PostgresSessionRepository::new(pool.clone());
+    let smart_feed_repository = Box::new(PostgresSmartFeedRepository::new(pool.clone()));
+    let tag_repository = Box::new(PostgresTagRepository::new(pool.clone()));
+    let user_repository = Box::new(PostgresUserRepository::new(pool.clone()));
 
     let client = reqwest::Client::new();
     let downloader = Box::new(DefaultDownloader::new(client.clone()));
@@ -93,7 +85,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_plugin_registry = Box::new(register_feed_plugins(downloader.clone(), feed_scraper));
     let bookmark_plugin_registry = Box::new(register_bookmark_plugins(client, bookmark_scraper));
 
-    let base64_decoder = Box::new(Base64Encoder);
+    let base64_encoder = Box::new(Base64Encoder);
 
     let feed_service = FeedService::new(feed_repository.clone(), feed_plugin_registry.clone());
     let scraper_service = ScraperService::new(
@@ -139,10 +131,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         BookmarkState::new(BookmarkService::new(
             bookmark_repository,
             bookmark_plugin_registry,
-            base64_decoder.clone(),
+            base64_encoder.clone(),
         )),
         FeedState::new(feed_service),
-        FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_decoder)),
+        FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_encoder)),
         ProfileState::new(ProfileService::new(profile_repository)),
         SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
         TagState::new(TagService::new(tag_repository)),
