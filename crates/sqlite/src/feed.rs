@@ -111,6 +111,10 @@ impl Creatable for SqliteFeedRepository {
             }
         };
 
+        link_entries_to_profiles(&mut tx, feed_id)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         if let Some(tags) = data.tags {
             link_tags(&mut tx, pf_id, tags, data.profile_id)
                 .await
@@ -338,4 +342,38 @@ pub(crate) async fn create_feed_with_entries(
     }
 
     Ok(feed_id)
+}
+
+pub(crate) async fn link_entries_to_profiles(
+    conn: &mut SqliteConnection,
+    feed_id: i32,
+) -> Result<(), sqlx::Error> {
+    let fe_ids = {
+        let (sql, values) =
+            colette_sql::feed_entry::select_many_by_feed_id(feed_id).build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
+            .fetch_all(&mut *conn)
+            .await?
+    };
+
+    if !fe_ids.is_empty() {
+        let insert_many = fe_ids
+            .into_iter()
+            .map(
+                |feed_entry_id| colette_sql::profile_feed_entry::InsertMany {
+                    id: Some(Uuid::new_v4()),
+                    feed_entry_id,
+                },
+            )
+            .collect::<Vec<_>>();
+
+        let (sql, values) =
+            colette_sql::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
+                .build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+    }
+
+    Ok(())
 }
