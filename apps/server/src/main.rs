@@ -139,7 +139,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
         TagState::new(TagService::new(tag_repository)),
     );
-    let mut api = Api::new(&api_state)
+    let mut api = Api::new(&api_state, &app_config.api_prefix)
         .build()
         .with_state(api_state)
         .layer(

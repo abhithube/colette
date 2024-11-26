@@ -13,10 +13,12 @@ pub struct AppConfig {
     pub refresh_enabled: bool,
     #[serde(default = "default_cron_refresh")]
     pub cron_refresh: String,
+    #[serde(default = "default_api_prefix")]
+    pub api_prefix: String,
 }
 
 fn default_host() -> String {
-    String::from("0.0.0.0")
+    "0.0.0.0".to_owned()
 }
 
 fn default_port() -> u16 {
@@ -42,7 +44,11 @@ fn default_refresh_enabled() -> bool {
 }
 
 fn default_cron_refresh() -> String {
-    String::from("0 */15 * * * *")
+    "0 */15 * * * *".to_owned()
+}
+
+fn default_api_prefix() -> String {
+    "/api/v1".to_owned()
 }
 
 pub fn load_config() -> Result<AppConfig, envy::Error> {

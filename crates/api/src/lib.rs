@@ -10,7 +10,7 @@ use feed_entry::FeedEntryState;
 use profile::ProfileState;
 use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
-use utoipa::OpenApi;
+use utoipa::{openapi::Server, OpenApi};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -67,27 +67,26 @@ impl ApiState {
 }
 
 #[derive(utoipa::OpenApi)]
-#[openapi(
-  servers(
-      (url = "/api/v1"),
-  ),
-  components(schemas(BaseError))
-)]
+#[openapi(components(schemas(BaseError)))]
 struct ApiDoc;
 
 pub struct Api<'a> {
     api_state: &'a ApiState,
+    api_prefix: &'a str,
 }
 
 impl<'a> Api<'a> {
-    pub fn new(api_state: &'a ApiState) -> Self {
-        Self { api_state }
+    pub fn new(api_state: &'a ApiState, api_prefix: &'a str) -> Self {
+        Self {
+            api_state,
+            api_prefix,
+        }
     }
 
     pub fn build(self) -> Router<ApiState> {
         let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
             .nest(
-                "/api/v1",
+                self.api_prefix,
                 OpenApiRouter::new()
                     .nest("/auth", AuthApi::router())
                     .with_state(AuthState::from_ref(self.api_state))
@@ -108,17 +107,23 @@ impl<'a> Api<'a> {
             )
             .split_for_parts();
 
+        openapi.info.title = "Colette API".to_owned();
+        openapi.servers = Some(vec![Server::new(self.api_prefix)]);
+
         openapi.paths.paths = openapi
             .paths
             .paths
             .drain(RangeFull)
-            .map(|(k, v)| (k.replace("/api/v1", ""), v))
+            .map(|(k, v)| (k.replace(self.api_prefix, ""), v))
             .collect();
 
-        api.merge(Scalar::with_url("/api/v1/doc", openapi.clone()))
-            .route(
-                "/api/v1/openapi.json",
-                routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
-            )
+        api.merge(Scalar::with_url(
+            format!("{}/doc", self.api_prefix),
+            openapi.clone(),
+        ))
+        .route(
+            &format!("{}/openapi.json", self.api_prefix),
+            routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
+        )
     }
 }
