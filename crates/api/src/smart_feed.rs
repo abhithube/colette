@@ -6,7 +6,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use colette_core::{
-    common::NonEmptyString,
+    common::{NonEmptyString, NonEmptyVec},
     smart_feed::{self, SmartFeedService},
 };
 use utoipa::OpenApi;
@@ -78,8 +78,8 @@ impl From<colette_core::SmartFeed> for SmartFeed {
 pub struct SmartFeedCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    #[schema(nullable = false)]
-    pub filters: Option<Vec<SmartFeedFilter>>,
+    #[schema(value_type = Option<Vec<SmartFeedFilter>>, nullable = false, min_length = 1)]
+    pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
 impl From<SmartFeedCreate> for smart_feed::SmartFeedCreate {
@@ -98,8 +98,8 @@ impl From<SmartFeedCreate> for smart_feed::SmartFeedCreate {
 pub struct SmartFeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
-    #[schema(nullable = false)]
-    pub filters: Option<Vec<SmartFeedFilter>>,
+    #[schema(value_type = Option<Vec<SmartFeedFilter>>, nullable = false, min_length = 1)]
+    pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
 impl From<SmartFeedUpdate> for smart_feed::SmartFeedUpdate {

@@ -3,7 +3,7 @@ use dyn_clone::DynClone;
 use uuid::Uuid;
 
 use crate::common::{
-    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+    Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated, Updatable,
 };
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -16,13 +16,13 @@ pub struct SmartFeed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct SmartFeedCreate {
     pub title: NonEmptyString,
-    pub filters: Option<Vec<SmartFeedFilter>>,
+    pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct SmartFeedUpdate {
     pub title: Option<NonEmptyString>,
-    pub filters: Option<Vec<SmartFeedFilter>>,
+    pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -111,7 +111,7 @@ impl SmartFeedService {
             .repository
             .create(SmartFeedCreateData {
                 title: data.title.into(),
-                filters: data.filters,
+                filters: data.filters.map(Vec::from),
                 profile_id,
             })
             .await?;
@@ -175,7 +175,7 @@ impl From<SmartFeedUpdate> for SmartFeedUpdateData {
     fn from(value: SmartFeedUpdate) -> Self {
         Self {
             title: value.title.map(String::from),
-            filters: value.filters,
+            filters: value.filters.map(Vec::from),
         }
     }
 }

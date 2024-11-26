@@ -6,7 +6,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use colette_core::{
-    common::NonEmptyString,
+    common::{NonEmptyString, NonEmptyVec},
     feed::{self, FeedService},
 };
 use url::Url;
@@ -94,7 +94,7 @@ pub struct FeedCreate {
     #[schema(required = false, default = false)]
     pub pinned: bool,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
@@ -120,7 +120,7 @@ pub struct FeedUpdate {
     #[schema(nullable = false)]
     pub pinned: Option<bool>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 impl From<FeedUpdate> for feed::FeedUpdate {

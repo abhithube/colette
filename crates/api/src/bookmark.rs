@@ -8,7 +8,7 @@ use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark::{self, BookmarkService},
-    common::NonEmptyString,
+    common::{NonEmptyString, NonEmptyVec},
 };
 use url::Url;
 use utoipa::OpenApi;
@@ -84,7 +84,7 @@ pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {
@@ -100,7 +100,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {

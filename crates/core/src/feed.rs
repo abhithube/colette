@@ -6,7 +6,9 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
+    common::{
+        Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated, Updatable,
+    },
     Tag,
 };
 
@@ -26,14 +28,14 @@ pub struct Feed {
 pub struct FeedCreate {
     pub url: Url,
     pub pinned: bool,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     pub pinned: Option<bool>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -119,7 +121,7 @@ impl FeedService {
                 tags: data
                     .tags
                     .clone()
-                    .map(|e| e.into_iter().map(String::from).collect()),
+                    .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
                 profile_id,
             })
             .await?;
@@ -228,7 +230,7 @@ impl From<FeedUpdate> for FeedUpdateData {
             pinned: value.pinned,
             tags: value
                 .tags
-                .map(|e| e.into_iter().map(String::from).collect()),
+                .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
         }
     }
 }

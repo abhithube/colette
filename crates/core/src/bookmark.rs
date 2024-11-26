@@ -7,8 +7,8 @@ use uuid::Uuid;
 
 use crate::{
     common::{
-        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
-        PAGINATION_LIMIT,
+        Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated,
+        Updatable, PAGINATION_LIMIT,
     },
     Tag,
 };
@@ -28,12 +28,12 @@ pub struct Bookmark {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct BookmarkUpdate {
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -147,7 +147,9 @@ impl BookmarkService {
             .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
-                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
+                tags: data
+                    .tags
+                    .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
                 profile_id,
             })
             .await?;
@@ -237,7 +239,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
         Self {
             tags: value
                 .tags
-                .map(|e| e.into_iter().map(String::from).collect()),
+                .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
         }
     }
 }
