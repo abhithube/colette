@@ -11,6 +11,7 @@ use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use worker::{Context, Env, HttpRequest};
 
 mod d1;
+mod downloader;
 mod kv;
 
 #[worker::event(fetch)]
