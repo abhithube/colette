@@ -185,26 +185,13 @@ pub fn insert_many(data: &[InsertMany], pf_id: Uuid, profile_id: Uuid) -> Insert
 pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQuery {
     let input = Alias::new("input");
 
-    let mut cte_columns = vec![ProfileFeedEntry::FeedEntryId];
-    let mut from_columns = vec![(input.clone(), ProfileFeedEntry::FeedEntryId)];
-    let mut columns = vec![
-        ProfileFeedEntry::FeedEntryId,
-        ProfileFeedEntry::ProfileFeedId,
-        ProfileFeedEntry::ProfileId,
-    ];
-    if data.iter().any(|e| e.id.is_some()) {
-        cte_columns.push(ProfileFeedEntry::Id);
-        from_columns.push((input.clone(), ProfileFeedEntry::Id));
-        columns.push(ProfileFeedEntry::Id);
-    }
-
     let input_cte = Query::select()
         .expr(Expr::col(Asterisk))
         .from_values(
             data.iter()
                 .map(|e| {
                     if let Some(id) = e.id {
-                        (id, e.feed_entry_id, feed_id).into_value_tuple()
+                        (e.feed_entry_id, feed_id, id).into_value_tuple()
                     } else {
                         (e.feed_entry_id, feed_id).into_value_tuple()
                     }
@@ -214,36 +201,44 @@ pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQu
         )
         .to_owned();
 
-    let with_clause = Query::with()
-        .cte(
-            CommonTableExpression::new()
-                .query(input_cte)
-                .columns(cte_columns)
-                .column(ProfileFeed::FeedId)
-                .table_name(input.clone())
-                .to_owned(),
+    let mut cte = CommonTableExpression::new()
+        .query(input_cte)
+        .column(ProfileFeedEntry::FeedEntryId)
+        .column(ProfileFeed::FeedId)
+        .table_name(input.clone())
+        .to_owned();
+
+    let mut select_from = Query::select()
+        .column((input.clone(), ProfileFeedEntry::FeedEntryId))
+        .columns([
+            (ProfileFeed::Table, ProfileFeed::Id),
+            (ProfileFeed::Table, ProfileFeed::ProfileId),
+        ])
+        .from(ProfileFeed::Table)
+        .join(
+            JoinType::InnerJoin,
+            input.clone(),
+            Expr::col((input.clone(), ProfileFeed::FeedId))
+                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
         )
         .to_owned();
+
+    let mut columns = vec![
+        ProfileFeedEntry::FeedEntryId,
+        ProfileFeedEntry::ProfileFeedId,
+        ProfileFeedEntry::ProfileId,
+    ];
+
+    if data.iter().any(|e| e.id.is_some()) {
+        cte.column(ProfileFeedEntry::Id);
+        select_from.column((input, ProfileFeedEntry::Id));
+        columns.push(ProfileFeedEntry::Id);
+    }
 
     let insert = Query::insert()
         .into_table(ProfileFeedEntry::Table)
         .columns(columns)
-        .select_from(
-            Query::select()
-                .columns(from_columns)
-                .columns([
-                    (ProfileFeed::Table, ProfileFeed::Id),
-                    (ProfileFeed::Table, ProfileFeed::ProfileId),
-                ])
-                .from(ProfileFeed::Table)
-                .join(
-                    JoinType::InnerJoin,
-                    input.clone(),
-                    Expr::col((input, ProfileFeed::FeedId))
-                        .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
-                )
-                .to_owned(),
-        )
+        .select_from(select_from)
         .unwrap()
         .on_conflict(
             OnConflict::columns([
@@ -255,7 +250,7 @@ pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQu
         )
         .to_owned();
 
-    insert.with(with_clause)
+    insert.with(Query::with().cte(cte.to_owned()).to_owned())
 }
 
 pub fn update(id: Uuid, profile_id: Uuid, has_read: Option<bool>) -> UpdateStatement {
