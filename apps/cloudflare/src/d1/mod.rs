@@ -3,9 +3,15 @@ use sea_query::{
     WithQuery,
 };
 use serde::Deserialize;
-use worker::{wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
+use worker::{console_error, wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
 
+pub mod backup;
+pub mod bookmark;
+pub mod feed;
+pub mod feed_entry;
 pub mod profile;
+pub mod smart_feed;
+pub mod tag;
 pub mod user;
 
 #[derive(Clone, Debug, PartialEq)]
@@ -59,6 +65,14 @@ impl D1Argument for D1Value {
                 Some(v) => JsValue::from_bool(*v),
                 None => JsValue::null(),
             },
+            Value::Int(v) => match v {
+                Some(v) => JsValue::from_f64(*v as f64),
+                None => JsValue::null(),
+            },
+            Value::BigInt(v) => match v {
+                Some(v) => JsValue::from_f64(*v as f64),
+                None => JsValue::null(),
+            },
             Value::BigUnsigned(v) => match v {
                 Some(v) => JsValue::from_f64(*v as f64),
                 None => JsValue::null(),
@@ -68,14 +82,17 @@ impl D1Argument for D1Value {
                 None => JsValue::null(),
             },
             Value::ChronoDateTimeUtc(v) => match v {
-                Some(v) => JsValue::from_f64(v.timestamp_millis() as f64),
+                Some(v) => JsValue::from_str(&v.to_string()),
                 None => JsValue::null(),
             },
             Value::Uuid(v) => match v {
                 Some(v) => JsValue::from_str(&v.to_string()),
                 None => JsValue::null(),
             },
-            _ => unimplemented!(),
+            v => {
+                console_error!("{:?}", v);
+                unimplemented!()
+            }
         }
     }
 }

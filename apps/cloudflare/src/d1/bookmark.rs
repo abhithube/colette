@@ -1,0 +1,268 @@
+use std::sync::Arc;
+
+use chrono::{DateTime, NaiveDateTime, Utc};
+use colette_core::{
+    bookmark::{
+        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
+        BookmarkUpdateData, Error,
+    },
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    Bookmark,
+};
+use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
+use uuid::Uuid;
+use worker::D1Database;
+
+use super::{D1Binder, D1Values};
+
+#[derive(Clone)]
+pub struct D1BookmarkRepository {
+    db: Arc<D1Database>,
+}
+
+impl D1BookmarkRepository {
+    pub fn new(db: Arc<D1Database>) -> Self {
+        Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for D1BookmarkRepository {
+    type Params = BookmarkFindParams;
+    type Output = Result<Vec<Bookmark>, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        let jsonb_agg = Expr::cust(
+            r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+        );
+
+        let tags_subquery = params.tags.map(|e| {
+            Expr::cust_with_expr(
+                r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+                Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+            )
+        });
+
+        let (sql, values) = colette_sql::profile_bookmark::select(
+            params.id,
+            params.profile_id,
+            params.cursor,
+            params.limit,
+            jsonb_agg,
+            tags_subquery,
+        )
+        .build_d1(SqliteQueryBuilder);
+
+        let result = super::all(&self.db, sql, values)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        result
+            .results::<BookmarkSelect>()
+            .map(|e| e.into_iter().map(Bookmark::from).collect())
+            .map_err(|e| Error::Unknown(e.into()))
+    }
+}
+
+#[async_trait::async_trait]
+impl Creatable for D1BookmarkRepository {
+    type Data = BookmarkCreateData;
+    type Output = Result<Uuid, Error>;
+
+    async fn create(&self, data: Self::Data) -> Self::Output {
+        let bookmark_id = {
+            let (sql, values) = colette_sql::bookmark::select_by_link(data.url.clone())
+                .build_d1(SqliteQueryBuilder);
+
+            let Some(id) = super::first::<i32>(&self.db, sql, values, Some("id"))
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            else {
+                return Err(Error::Conflict(data.url));
+            };
+
+            id
+        };
+
+        let pb_id = {
+            let (mut sql, mut values) =
+                colette_sql::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
+                    .build_d1(SqliteQueryBuilder);
+
+            if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            {
+                id
+            } else {
+                let id = Uuid::new_v4();
+
+                (sql, values) =
+                    colette_sql::profile_bookmark::insert(Some(id), bookmark_id, data.profile_id)
+                        .build_d1(SqliteQueryBuilder);
+
+                super::run(&self.db, sql, values)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                id
+            }
+        };
+
+        if let Some(tags) = data.tags {
+            link_tags(&self.db, pb_id, tags, data.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
+
+        Ok(pb_id)
+    }
+}
+
+#[async_trait::async_trait]
+impl Updatable for D1BookmarkRepository {
+    type Params = IdParams;
+    type Data = BookmarkUpdateData;
+    type Output = Result<(), Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        if let Some(tags) = data.tags {
+            link_tags(&self.db, params.id, tags, params.profile_id)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for D1BookmarkRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let (sql, values) = colette_sql::profile_bookmark::delete(params.id, params.profile_id)
+            .build_d1(SqliteQueryBuilder);
+
+        let result = super::run(&self.db, sql, values)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let meta = result.meta().unwrap().unwrap();
+
+        if meta.changes.is_none_or(|e| e == 0) {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl BookmarkRepository for D1BookmarkRepository {
+    async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
+        let (sql, values) = colette_sql::bookmark::insert(
+            data.url,
+            data.bookmark.title,
+            data.bookmark.thumbnail.map(String::from),
+            data.bookmark.published,
+            data.bookmark.author,
+        )
+        .build_d1(SqliteQueryBuilder);
+
+        super::run(&self.db, sql, values)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(())
+    }
+}
+
+#[worker::send]
+pub(crate) async fn link_tags(
+    db: &D1Database,
+    profile_bookmark_id: Uuid,
+    tags: Vec<String>,
+    profile_id: Uuid,
+) -> worker::Result<()> {
+    let insert_many = tags
+        .iter()
+        .map(|e| colette_sql::tag::InsertMany {
+            id: Some(Uuid::new_v4()),
+            title: e.to_owned(),
+        })
+        .collect::<Vec<_>>();
+
+    let queries: Vec<(String, D1Values)> = vec![
+        colette_sql::tag::insert_many(&insert_many, profile_id).build_d1(SqliteQueryBuilder),
+        colette_sql::tag::select_ids_by_titles(&tags, profile_id).build_d1(SqliteQueryBuilder),
+    ];
+
+    let results = super::batch(db, queries).await?;
+    let tag_ids = {
+        #[derive(serde::Deserialize)]
+        struct Tag {
+            id: Uuid,
+        }
+
+        results
+            .last()
+            .unwrap()
+            .results::<Tag>()
+            .unwrap()
+            .into_iter()
+            .map(|e| e.id)
+            .collect::<Vec<_>>()
+    };
+
+    let insert_many = tag_ids
+        .into_iter()
+        .map(|e| colette_sql::profile_bookmark_tag::InsertMany {
+            profile_bookmark_id,
+            tag_id: e,
+        })
+        .collect::<Vec<_>>();
+
+    let queries: Vec<(String, D1Values)> = vec![
+        colette_sql::profile_bookmark_tag::delete_many_not_in_titles(&tags, profile_id)
+            .build_d1(SqliteQueryBuilder),
+        colette_sql::profile_bookmark_tag::insert_many(&insert_many, profile_id)
+            .build_d1(SqliteQueryBuilder),
+    ];
+
+    super::batch(db, queries).await?;
+
+    Ok(())
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct BookmarkSelect {
+    pub id: Uuid,
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub created_at: String,
+    pub tags: Option<String>,
+}
+
+impl From<BookmarkSelect> for colette_core::Bookmark {
+    fn from(value: BookmarkSelect) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            created_at: NaiveDateTime::parse_from_str(&value.created_at, "%Y-%m-%d %H:%M:%S")
+                .unwrap()
+                .and_utc(),
+            tags: value
+                .tags
+                .as_ref()
+                .and_then(|e| serde_json::de::from_str(e).ok()),
+        }
+    }
+}
