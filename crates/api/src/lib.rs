@@ -69,7 +69,7 @@ impl ApiState {
 #[derive(utoipa::OpenApi)]
 #[openapi(
   servers(
-      (url = "http://localhost:8000/api/v1"),
+      (url = "/api/v1"),
   ),
   components(schemas(BaseError))
 )]
