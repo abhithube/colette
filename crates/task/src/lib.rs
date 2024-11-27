@@ -1,4 +1,3 @@
-pub mod cleanup_feeds;
 pub mod import_bookmarks;
 pub mod import_feeds;
 pub mod refresh_feeds;

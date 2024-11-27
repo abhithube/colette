@@ -9,24 +9,22 @@ use colette_api::{
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService, cleanup::CleanupService,
-    feed::FeedService, feed_entry::FeedEntryService, profile::ProfileService,
-    scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
+    feed_entry::FeedEntryService, profile::ProfileService, scraper::ScraperService,
+    smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_postgres::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCleanupRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresProfileRepository,
-    PostgresScraperRepository, PostgresSessionRepository, PostgresSmartFeedRepository,
-    PostgresTagRepository, PostgresUserRepository,
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
+    PostgresFeedRepository, PostgresProfileRepository, PostgresScraperRepository,
+    PostgresSessionRepository, PostgresSmartFeedRepository, PostgresTagRepository,
+    PostgresUserRepository,
 };
 use colette_queue::memory::InMemoryQueue;
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
-use colette_task::{
-    cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
-};
+use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
 use tokio::net::TcpListener;
@@ -68,7 +66,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
     let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
-    let cleanup_repository = Box::new(PostgresCleanupRepository::new(pool.clone()));
     let feed_repository = Box::new(PostgresFeedRepository::new(pool.clone()));
     let feed_entry_repository = Box::new(PostgresFeedEntryRepository::new(pool.clone()));
     let profile_repository = Box::new(PostgresProfileRepository::new(pool.clone()));
@@ -114,7 +111,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         refresh_feeds::Task::new(feed_service.clone(), scrape_feed_queue.clone());
     let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
     let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
-    let cleanup_feeds_task = cleanup_feeds::Task::new(CleanupService::new(cleanup_repository));
 
     let api_state = ApiState::new(
         AuthState::new(AuthService::new(
@@ -195,7 +191,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         run_task_worker(import_feeds_receiver, import_feeds_task),
         run_task_worker(import_bookmarks_receiver, import_bookmarks_task),
         refresh_task_worker,
-        run_cron_worker("0 0 0 * * *", cleanup_feeds_task),
         session_repository.continuously_delete_expired(tokio::time::Duration::from_secs(60))
     );
 

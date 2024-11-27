@@ -1,8 +1,6 @@
 use std::fmt::Write;
 
-use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
-
-use crate::profile_feed::ProfileFeed;
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
 pub enum Feed {
     Table,
@@ -61,19 +59,5 @@ pub fn insert(link: String, title: String, url: Option<String>) -> InsertStateme
                 .to_owned(),
         )
         .returning_col(Feed::Id)
-        .to_owned()
-}
-
-pub fn delete_many() -> DeleteStatement {
-    let subquery = Query::select()
-        .from(ProfileFeed::Table)
-        .and_where(
-            Expr::col((ProfileFeed::Table, ProfileFeed::FeedId)).equals((Feed::Table, Feed::Id)),
-        )
-        .to_owned();
-
-    Query::delete()
-        .from_table(Feed::Table)
-        .and_where(Expr::exists(subquery).not())
         .to_owned()
 }

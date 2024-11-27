@@ -20,9 +20,9 @@ use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
 use colette_sqlite::{
-    SqliteBackupRepository, SqliteBookmarkRepository, SqliteCleanupRepository,
-    SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
-    SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
+    SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
+    SqliteFeedRepository, SqliteProfileRepository, SqliteScraperRepository,
+    SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
 use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
@@ -58,7 +58,6 @@ pub fn run() {
 
                 let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
-                let _cleanup_repository = Box::new(SqliteCleanupRepository::new(pool.clone()));
                 let feed_repository = Box::new(SqliteFeedRepository::new(pool.clone()));
                 let feed_entry_repository = Box::new(SqliteFeedEntryRepository::new(pool.clone()));
                 let profile_repository = Box::new(SqliteProfileRepository::new(pool.clone()));

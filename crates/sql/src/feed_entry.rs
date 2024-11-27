@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
-
-use crate::profile_feed_entry::ProfileFeedEntry;
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
 pub enum FeedEntry {
     Table,
@@ -100,19 +98,4 @@ pub fn insert_many(data: &[InsertMany], feed_id: i32) -> InsertStatement {
     }
 
     query
-}
-
-pub fn delete_many() -> DeleteStatement {
-    let subquery = Query::select()
-        .from(ProfileFeedEntry::Table)
-        .and_where(
-            Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::FeedEntryId))
-                .equals((FeedEntry::Table, FeedEntry::Id)),
-        )
-        .to_owned();
-
-    Query::delete()
-        .from_table(FeedEntry::Table)
-        .and_where(Expr::exists(subquery).not())
-        .to_owned()
 }
