@@ -20,12 +20,12 @@ use colette_postgres::{
     PostgresScraperRepository, PostgresSessionRepository, PostgresSmartFeedRepository,
     PostgresTagRepository, PostgresUserRepository,
 };
+use colette_queue::memory::InMemoryQueue;
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
 use colette_task::{
     cleanup_feeds, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
-    TaskQueue,
 };
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
@@ -94,10 +94,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_plugin_registry.clone(),
     );
 
-    let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
-    let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
-    let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
-    let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
+    let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
+    let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
+    let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
+    let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
+
+    let scrape_feed_queue = Box::new(scrape_feed_queue);
+    let scrape_bookmark_queue = Box::new(scrape_bookmark_queue);
+    let import_feeds_queue = Box::new(import_feeds_queue);
+    let import_bookmarks_queue = Box::new(import_bookmarks_queue);
 
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)

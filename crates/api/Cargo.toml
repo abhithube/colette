@@ -12,6 +12,7 @@ bytes.workspace = true
 chrono.workspace = true
 colette-backup.workspace = true
 colette-core.workspace = true
+colette-queue.workspace = true
 colette-task.workspace = true
 email_address.workspace = true
 serde.workspace = true

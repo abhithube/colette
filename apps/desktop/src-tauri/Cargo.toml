@@ -17,6 +17,7 @@ colette-api.workspace = true
 colette-backup.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
+colette-queue = { workspace = true, features = ["in-memory"] }
 colette-scraper.workspace = true
 colette-sqlite.workspace = true
 colette-task.workspace = true

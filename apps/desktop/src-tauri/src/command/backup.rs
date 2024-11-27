@@ -1,12 +1,13 @@
 use colette_api::Session;
 use colette_core::backup::BackupService;
-use colette_task::{import_bookmarks, import_feeds, TaskQueue};
+use colette_queue::Queue;
+use colette_task::{import_bookmarks, import_feeds};
 use tauri::State;
 
 #[tauri::command]
 pub async fn import_opml(
     service: State<'_, BackupService>,
-    import_feeds_queue: State<'_, TaskQueue<import_feeds::Data>>,
+    import_feeds_queue: State<'_, Box<dyn Queue<Data = import_feeds::Data>>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {
@@ -39,7 +40,7 @@ pub async fn export_opml(
 #[tauri::command]
 pub async fn import_netscape(
     service: State<'_, BackupService>,
-    import_bookmarks_queue: State<'_, TaskQueue<import_bookmarks::Data>>,
+    import_bookmarks_queue: State<'_, Box<dyn Queue<Data = import_bookmarks::Data>>>,
     session: State<'_, Session>,
     data: Vec<u8>,
 ) -> Result<(), String> {

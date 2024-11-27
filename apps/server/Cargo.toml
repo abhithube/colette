@@ -13,6 +13,7 @@ colette-config.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
 colette-postgres.workspace = true
+colette-queue = { workspace = true, features = ["in-memory"] }
 colette-scraper.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true

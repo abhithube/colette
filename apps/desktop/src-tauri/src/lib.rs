@@ -15,6 +15,7 @@ use colette_core::{
     tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_queue::memory::InMemoryQueue;
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
@@ -23,7 +24,7 @@ use colette_sqlite::{
     SqliteFeedEntryRepository, SqliteFeedRepository, SqliteProfileRepository,
     SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
 };
-use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed, TaskQueue};
+use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::run_task_worker;
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
@@ -106,10 +107,15 @@ pub fn run() {
                 let smart_feed_service = SmartFeedService::new(smart_feed_repository);
                 let tag_service = TagService::new(tag_repository);
 
-                let (scrape_feed_queue, scrape_feed_receiver) = TaskQueue::new();
-                let (scrape_bookmark_queue, scrape_bookmark_receiver) = TaskQueue::new();
-                let (import_feeds_queue, import_feeds_receiver) = TaskQueue::new();
-                let (import_bookmarks_queue, import_bookmarks_receiver) = TaskQueue::new();
+                let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
+                let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
+                let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
+                let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
+
+                let scrape_feed_queue = Box::new(scrape_feed_queue);
+                let scrape_bookmark_queue = Box::new(scrape_bookmark_queue);
+                let import_feeds_queue = Box::new(import_feeds_queue);
+                let import_bookmarks_queue = Box::new(import_bookmarks_queue);
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)

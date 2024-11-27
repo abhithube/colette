@@ -5,23 +5,24 @@ use std::{
 };
 
 use colette_core::scraper;
+use colette_queue::Queue;
 use tower::Service;
 use url::Url;
 
-use crate::{scrape_bookmark, TaskQueue};
+use crate::scrape_bookmark;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Data {
     pub urls: Vec<Url>,
 }
 
 #[derive(Clone)]
 pub struct Task {
-    scrape_bookmark_queue: TaskQueue<scrape_bookmark::Data>,
+    scrape_bookmark_queue: Box<dyn Queue<Data = scrape_bookmark::Data>>,
 }
 
 impl Task {
-    pub fn new(scrape_bookmark_queue: TaskQueue<scrape_bookmark::Data>) -> Self {
+    pub fn new(scrape_bookmark_queue: Box<dyn Queue<Data = scrape_bookmark::Data>>) -> Self {
         Self {
             scrape_bookmark_queue,
         }

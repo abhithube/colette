@@ -5,20 +5,24 @@ use std::{
 };
 
 use colette_core::feed::{self, FeedService};
+use colette_queue::Queue;
 use futures::StreamExt;
 use tower::Service;
 use url::Url;
 
-use crate::{scrape_feed, TaskQueue};
+use crate::scrape_feed;
 
 #[derive(Clone)]
 pub struct Task {
     service: FeedService,
-    scrape_feed_queue: TaskQueue<scrape_feed::Data>,
+    scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>,
 }
 
 impl Task {
-    pub fn new(service: FeedService, scrape_feed_queue: TaskQueue<scrape_feed::Data>) -> Self {
+    pub fn new(
+        service: FeedService,
+        scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>,
+    ) -> Self {
         Self {
             service,
             scrape_feed_queue,

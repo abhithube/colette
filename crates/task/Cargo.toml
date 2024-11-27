@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 colette-core.workspace = true
+colette-queue.workspace = true
 futures.workspace = true
-tokio.workspace = true
+serde.workspace = true
 tower.workspace = true
 tracing.workspace = true
 url.workspace = true

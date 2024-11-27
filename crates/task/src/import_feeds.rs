@@ -5,23 +5,24 @@ use std::{
 };
 
 use colette_core::scraper;
+use colette_queue::Queue;
 use tower::Service;
 use url::Url;
 
-use crate::{scrape_feed, TaskQueue};
+use crate::scrape_feed;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Data {
     pub urls: Vec<Url>,
 }
 
 #[derive(Clone)]
 pub struct Task {
-    scrape_feed_queue: TaskQueue<scrape_feed::Data>,
+    scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>,
 }
 
 impl Task {
-    pub fn new(scrape_feed_queue: TaskQueue<scrape_feed::Data>) -> Self {
+    pub fn new(scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>) -> Self {
         Self { scrape_feed_queue }
     }
 }

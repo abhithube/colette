@@ -8,7 +8,7 @@ use colette_core::scraper::{self, BookmarkCreate, ScraperService};
 use tower::Service;
 use url::Url;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct Data {
     pub url: Url,
 }

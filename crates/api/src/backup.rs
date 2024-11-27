@@ -5,7 +5,8 @@ use axum::{
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
-use colette_task::{import_bookmarks, import_feeds, TaskQueue};
+use colette_queue::Queue;
+use colette_task::{import_bookmarks, import_feeds};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -14,15 +15,15 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BackupState {
     backup_service: BackupService,
-    import_feeds_queue: TaskQueue<import_feeds::Data>,
-    import_bookmarks_queue: TaskQueue<import_bookmarks::Data>,
+    import_feeds_queue: Box<dyn Queue<Data = import_feeds::Data>>,
+    import_bookmarks_queue: Box<dyn Queue<Data = import_bookmarks::Data>>,
 }
 
 impl BackupState {
     pub fn new(
         backup_service: BackupService,
-        import_feeds_queue: TaskQueue<import_feeds::Data>,
-        import_bookmarks_queue: TaskQueue<import_bookmarks::Data>,
+        import_feeds_queue: Box<dyn Queue<Data = import_feeds::Data>>,
+        import_bookmarks_queue: Box<dyn Queue<Data = import_bookmarks::Data>>,
     ) -> Self {
         Self {
             backup_service,
@@ -70,7 +71,7 @@ pub async fn import_opml(
                 .import_feeds_queue
                 .push(import_feeds::Data { urls })
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .map_err(Error::Unknown)?;
 
             Ok(ImportResponse::NoContent)
         }
@@ -122,7 +123,7 @@ pub async fn import_netscape(
                 .import_bookmarks_queue
                 .push(import_bookmarks::Data { urls })
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .map_err(Error::Unknown)?;
 
             Ok(ImportResponse::NoContent)
         }
