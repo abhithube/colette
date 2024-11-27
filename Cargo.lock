@@ -575,23 +575,20 @@ dependencies = [
 name = "colette-cloudflare"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "axum",
  "bytes",
- "chrono",
  "colette-api",
+ "colette-backup",
  "colette-core",
- "colette-netscape",
- "colette-opml",
+ "colette-plugins",
+ "colette-queue",
  "colette-scraper",
  "colette-sql",
+ "colette-task",
  "colette-util",
  "console_error_panic_hook",
- "futures",
  "reqwest",
- "sea-query",
- "serde",
  "serde_json",
  "thiserror 1.0.69",
  "time",
@@ -599,7 +596,6 @@ dependencies = [
  "tower-sessions",
  "tower-sessions-core",
  "url",
- "uuid",
  "worker",
 ]
 

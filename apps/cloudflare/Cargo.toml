@@ -13,23 +13,20 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 bytes.workspace = true
-chrono.workspace = true
 colette-api.workspace = true
+colette-backup.workspace = true
 colette-core.workspace = true
-colette-netscape.workspace = true
-colette-opml.workspace = true
+colette-plugins.workspace = true
+colette-queue = { workspace = true, features = ["cloudflare"] }
 colette-scraper.workspace = true
 colette-sql = { workspace = true, features = ["cloudflare"] }
+colette-task.workspace = true
 colette-util.workspace = true
 console_error_panic_hook = { version = "0.1", default-features = false }
-futures.workspace = true
 reqwest.workspace = true
-sea-query = { workspace = true, features = ["backend-sqlite"] }
-serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 time = { version = "0.3", default-features = false, features = [
@@ -39,9 +36,9 @@ tower.workspace = true
 tower-sessions.workspace = true
 tower-sessions-core.workspace = true
 url.workspace = true
-uuid.workspace = true
 worker = { version = "0.4", default-features = false, features = [
   "axum",
   "d1",
   "http",
+  "queue",
 ] }
