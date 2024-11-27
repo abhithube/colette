@@ -16,13 +16,13 @@ use colette_core::{
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_postgres::PostgresSessionRepository;
 use colette_queue::memory::InMemoryQueue;
-use colette_scraper::{
-    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
-};
-use colette_sql::postgres::{
+use colette_repository::postgres::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
     PostgresFeedRepository, PostgresProfileRepository, PostgresScraperRepository,
     PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
+};
+use colette_scraper::{
+    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};

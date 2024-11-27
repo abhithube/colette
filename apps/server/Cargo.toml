@@ -14,8 +14,8 @@ colette-core.workspace = true
 colette-plugins.workspace = true
 colette-postgres.workspace = true
 colette-queue = { workspace = true, features = ["in-memory"] }
+colette-repository = { workspace = true, features = ["postgres"] }
 colette-scraper.workspace = true
-colette-sql = { workspace = true, features = ["postgres"] }
 colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true

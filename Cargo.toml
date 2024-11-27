@@ -15,8 +15,8 @@ members = [
   "crates/plugins",
   "crates/postgres",
   "crates/queue",
+  "crates/repository",
   "crates/scraper",
-  "crates/sql",
   "crates/task",
   "crates/util",
   "crates/worker",
@@ -50,8 +50,8 @@ colette-opml.path = "crates/opml"
 colette-postgres.path = "crates/postgres"
 colette-plugins.path = "crates/plugins"
 colette-queue = { path = "crates/queue", default-features = false }
+colette-repository = { path = "crates/repository", default-features = false }
 colette-scraper.path = "crates/scraper"
-colette-sql = { path = "crates/sql", default-features = false }
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"

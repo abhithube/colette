@@ -16,13 +16,13 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
-use colette_scraper::{
-    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
-};
-use colette_sql::sqlite::{
+use colette_repository::sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
     SqliteFeedRepository, SqliteProfileRepository, SqliteScraperRepository,
     SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
+};
+use colette_scraper::{
+    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
 use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};

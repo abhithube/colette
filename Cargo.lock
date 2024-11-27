@@ -583,8 +583,8 @@ dependencies = [
  "colette-core",
  "colette-plugins",
  "colette-queue",
+ "colette-repository",
  "colette-scraper",
- "colette-sql",
  "colette-task",
  "colette-util",
  "console_error_panic_hook",
@@ -638,8 +638,8 @@ dependencies = [
  "colette-core",
  "colette-plugins",
  "colette-queue",
+ "colette-repository",
  "colette-scraper",
- "colette-sql",
  "colette-task",
  "colette-util",
  "colette-worker",
@@ -718,7 +718,7 @@ dependencies = [
  "colette-core",
  "colette-netscape",
  "colette-opml",
- "colette-sql",
+ "colette-repository",
  "futures",
  "sea-query",
  "sea-query-binder",
@@ -739,6 +739,26 @@ dependencies = [
  "dyn-clone",
  "serde",
  "tokio",
+ "worker",
+]
+
+[[package]]
+name = "colette-repository"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-core",
+ "colette-netscape",
+ "colette-opml",
+ "futures",
+ "sea-query",
+ "sea-query-binder",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror 1.0.69",
+ "uuid",
  "worker",
 ]
 
@@ -774,8 +794,8 @@ dependencies = [
  "colette-plugins",
  "colette-postgres",
  "colette-queue",
+ "colette-repository",
  "colette-scraper",
- "colette-sql",
  "colette-task",
  "colette-util",
  "colette-worker",
@@ -788,26 +808,6 @@ dependencies = [
  "tower-sessions",
  "tower-sessions-core",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "colette-sql"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "colette-core",
- "colette-netscape",
- "colette-opml",
- "futures",
- "sea-query",
- "sea-query-binder",
- "serde",
- "serde_json",
- "sqlx",
- "thiserror 1.0.69",
- "uuid",
- "worker",
 ]
 
 [[package]]

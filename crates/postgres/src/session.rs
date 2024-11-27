@@ -29,7 +29,7 @@ impl SessionStore for PostgresSessionRepository {
 
         loop {
             let (sql, values) =
-                colette_sql::session::insert(record.id.to_string(), &payload, expiry.into())
+                colette_repository::session::insert(record.id.to_string(), &payload, expiry.into())
                     .build_sqlx(PostgresQueryBuilder);
 
             match sqlx::query_with(&sql, values).execute(&self.pool).await {
@@ -54,7 +54,7 @@ impl SessionStore for PostgresSessionRepository {
         let expiry: SystemTime = record.expiry_date.into();
 
         let (sql, values) =
-            colette_sql::session::upsert(record.id.to_string(), &payload, expiry.into())
+            colette_repository::session::upsert(record.id.to_string(), &payload, expiry.into())
                 .build_sqlx(PostgresQueryBuilder);
 
         sqlx::query_with(&sql, values)
@@ -66,7 +66,7 @@ impl SessionStore for PostgresSessionRepository {
     }
 
     async fn load(&self, session_id: &Id) -> session_store::Result<Option<Record>> {
-        let (sql, values) = colette_sql::session::select_by_id(session_id.to_string())
+        let (sql, values) = colette_repository::session::select_by_id(session_id.to_string())
             .build_sqlx(PostgresQueryBuilder);
 
         let row = sqlx::query_with(&sql, values)
@@ -86,7 +86,7 @@ impl SessionStore for PostgresSessionRepository {
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
-        let (sql, values) = colette_sql::session::delete_by_id(session_id.to_string())
+        let (sql, values) = colette_repository::session::delete_by_id(session_id.to_string())
             .build_sqlx(PostgresQueryBuilder);
 
         sqlx::query_with(&sql, values)
@@ -101,7 +101,8 @@ impl SessionStore for PostgresSessionRepository {
 #[async_trait]
 impl ExpiredDeletion for PostgresSessionRepository {
     async fn delete_expired(&self) -> session_store::Result<()> {
-        let (sql, values) = colette_sql::session::delete_many().build_sqlx(PostgresQueryBuilder);
+        let (sql, values) =
+            colette_repository::session::delete_many().build_sqlx(PostgresQueryBuilder);
 
         sqlx::query_with(&sql, values)
             .execute(&self.pool)

@@ -21,8 +21,8 @@ colette-backup.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["cloudflare"] }
+colette-repository = { workspace = true, features = ["cloudflare"] }
 colette-scraper.workspace = true
-colette-sql = { workspace = true, features = ["cloudflare"] }
 colette-task.workspace = true
 colette-util.workspace = true
 console_error_panic_hook = { version = "0.1", default-features = false }
