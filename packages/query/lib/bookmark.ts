@@ -3,6 +3,8 @@ import type {
   Bookmark,
   BookmarkCreate,
   BookmarkListQuery,
+  BookmarkScrape,
+  BookmarkScraped,
   BookmarkUpdate,
 } from '@colette/core'
 import {
@@ -56,4 +58,20 @@ export const updateBookmarkOptions = (
     ...options,
     mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
   } as UpdateBookmarkOptions
+}
+
+export type ScrapeBookmarkOptions = UseMutationOptions<
+  BookmarkScraped,
+  Error,
+  BookmarkScrape
+>
+
+export const scrapeBookmarkOptions = (
+  options: Omit<ScrapeBookmarkOptions, 'mutationFn'>,
+  api: API,
+) => {
+  return {
+    ...options,
+    mutationFn: (body) => api.bookmarks.scrape(body),
+  } as ScrapeBookmarkOptions
 }

@@ -1,4 +1,4 @@
-import { createBookmarkOptions } from '@colette/query'
+import { createBookmarkOptions, scrapeBookmarkOptions } from '@colette/query'
 import { Button, Dialog, Field, Flex, IconButton, VStack } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
@@ -19,13 +19,34 @@ export function AddBookmarkModal({ close }: Props) {
     defaultValues: {
       url: '',
     },
-    onSubmit: ({ value }) => createBookmark(value),
+    onSubmit: async ({ value }) => {
+      const scraped = await scrapeBookmark(value)
+      await createBookmark({
+        url: scraped.link
+      })
+    },
   })
 
   const navigate = useNavigate()
 
-  const { mutateAsync: createBookmark, isPending } = useMutation(
+  const { mutateAsync: createBookmark, isPending: isPending1 } = useMutation(
     createBookmarkOptions(
+      {
+        onSuccess: async () => {
+          form.reset()
+          close()
+
+          await navigate({
+            to: '/bookmarks',
+          })
+        },
+      },
+      context.api,
+    ),
+  )
+
+  const { mutateAsync: scrapeBookmark, isPending: isPending2 } = useMutation(
+    scrapeBookmarkOptions(
       {
         onSuccess: async () => {
           form.reset()
@@ -77,7 +98,7 @@ export function AddBookmarkModal({ close }: Props) {
             )}
           </form.Field>
           <Flex justify="end">
-            <Button loading={isPending}>Submit</Button>
+            <Button loading={isPending1 || isPending2}>Submit</Button>
           </Flex>
         </VStack>
       </form>
