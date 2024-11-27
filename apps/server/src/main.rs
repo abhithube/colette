@@ -14,15 +14,15 @@ use colette_core::{
     smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_postgres::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresProfileRepository, PostgresScraperRepository,
-    PostgresSessionRepository, PostgresSmartFeedRepository, PostgresTagRepository,
-    PostgresUserRepository,
-};
+use colette_postgres::PostgresSessionRepository;
 use colette_queue::memory::InMemoryQueue;
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
+};
+use colette_sql::postgres::{
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
+    PostgresFeedRepository, PostgresProfileRepository, PostgresScraperRepository,
+    PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
 };
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};

@@ -19,7 +19,7 @@ colette-core.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["in-memory"] }
 colette-scraper.workspace = true
-colette-sqlite.workspace = true
+colette-sql = { workspace = true, features = ["sqlite"] }
 colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true

@@ -353,9 +353,9 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytemuck"
-version = "1.19.0"
+version = "1.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8334215b81e418a0a7bdb8ef0849474f40bb10c8b71f1c4ed315cff49f32494d"
+checksum = "8b37c88a63ffd85d15b406896cc343916d7cf57838a847b3a6f2ca5d39a5695a"
 
 [[package]]
 name = "byteorder"
@@ -643,7 +643,7 @@ dependencies = [
  "colette-plugins",
  "colette-queue",
  "colette-scraper",
- "colette-sqlite",
+ "colette-sql",
  "colette-task",
  "colette-util",
  "colette-worker",
@@ -779,6 +779,7 @@ dependencies = [
  "colette-postgres",
  "colette-queue",
  "colette-scraper",
+ "colette-sql",
  "colette-task",
  "colette-util",
  "colette-worker",
@@ -797,30 +798,20 @@ dependencies = [
 name = "colette-sql"
 version = "0.1.0"
 dependencies = [
- "chrono",
- "colette-core",
- "sea-query",
- "uuid",
-]
-
-[[package]]
-name = "colette-sqlite"
-version = "0.1.0"
-dependencies = [
- "anyhow",
  "async-trait",
  "chrono",
  "colette-core",
  "colette-netscape",
  "colette-opml",
- "colette-sql",
  "futures",
  "sea-query",
  "sea-query-binder",
+ "serde",
  "serde_json",
  "sqlx",
- "tower-sessions-core",
+ "thiserror 1.0.69",
  "uuid",
+ "worker",
 ]
 
 [[package]]
@@ -1071,9 +1062,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.2.8"
+version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edb49164822f3ee45b17acd4a208cfc1251410cf0cad9a833234c9890774dd9f"
+checksum = "32a2785755761f3ddc1492979ce1e48d2c00d09311c39e4466429188f3dd6501"
 dependencies = [
  "quote",
  "syn 2.0.87",
@@ -3208,9 +3199,9 @@ checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
 
 [[package]]
 name = "pathdiff"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d61c5ce1153ab5b689d0c074c4e7fc613e942dfb7dd9eea5ab202d2ad91fe361"
+checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
 
 [[package]]
 name = "pem-rfc7468"
@@ -6495,9 +6486,9 @@ checksum = "1e9df38ee2d2c3c5948ea468a8406ff0db0b29ae1ffde1bcf20ef305bcc95c51"
 
 [[package]]
 name = "wry"
-version = "0.47.0"
+version = "0.47.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "553ca1ce149982123962fac2506aa75b8b76288779a77e72b12fa2fc34938647"
+checksum = "61ce51277d65170f6379d8cda935c80e3c2d1f0ff712a123c8bddb11b31a4b73"
 dependencies = [
  "base64 0.22.1",
  "block2",

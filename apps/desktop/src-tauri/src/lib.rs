@@ -19,7 +19,7 @@ use colette_queue::memory::InMemoryQueue;
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
 };
-use colette_sqlite::{
+use colette_sql::sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
     SqliteFeedRepository, SqliteProfileRepository, SqliteScraperRepository,
     SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,

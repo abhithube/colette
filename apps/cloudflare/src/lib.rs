@@ -3,14 +3,13 @@ use std::sync::Arc;
 use axum::{body::Body, http::Response, Router};
 use colette_api::auth::{AuthApi, AuthState};
 use colette_core::auth::AuthService;
+use colette_sql::d1::{D1ProfileRepository, D1UserRepository};
 use colette_util::password::ArgonHasher;
-use d1::{profile::D1ProfileRepository, user::D1UserRepository};
 use kv::store::KvSessionStore;
 use tower::Service;
 use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use worker::{Context, Env, HttpRequest};
 
-mod d1;
 mod downloader;
 mod kv;
 

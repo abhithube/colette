@@ -23,7 +23,7 @@ colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-scraper.workspace = true
-colette-sql.workspace = true
+colette-sql = { workspace = true, features = ["cloudflare"] }
 colette-util.workspace = true
 console_error_panic_hook = { version = "0.1", default-features = false }
 futures.workspace = true
