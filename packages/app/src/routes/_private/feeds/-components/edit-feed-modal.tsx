@@ -75,12 +75,7 @@ export function EditFeedModal({ feed, close }: Props) {
         body: {
           title,
           pinned,
-          tags: tags
-            ? {
-                data: tags,
-                action: 'set',
-              }
-            : undefined,
+          tags,
         },
       })
     },

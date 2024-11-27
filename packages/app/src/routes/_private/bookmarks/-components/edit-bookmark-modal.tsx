@@ -47,12 +47,7 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
       updateBookmark({
         id: bookmark.id,
         body: {
-          tags: tags
-            ? {
-                data: tags,
-                action: 'set',
-              }
-            : undefined,
+          tags,
         },
       })
     },
