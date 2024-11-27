@@ -30,11 +30,14 @@ use colette_worker::run_task_worker;
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
 use deadpool_sqlite::{Config, Runtime};
 use email_address::EmailAddress;
+use refinery::embed_migrations;
 use tauri::Manager;
 use tower::ServiceBuilder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod command;
+
+embed_migrations!("../migrations");
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -53,11 +56,12 @@ pub fn run() {
                 }
                 path = path.join("sqlite.db");
 
-                let pool = sqlx::SqlitePool::connect(&path.to_string_lossy()).await?;
-
-                sqlx::migrate!("../migrations").run(&pool).await?;
-
                 let pool = Config::new(path).create_pool(Runtime::Tokio1)?;
+
+                let conn = pool.get().await?;
+                conn.interact(move |conn| migrations::runner().run(conn))
+                    .await
+                    .unwrap()?;
 
                 let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
