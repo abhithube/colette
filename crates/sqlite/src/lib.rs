@@ -6,7 +6,6 @@ pub use feed_entry::SqliteFeedEntryRepository;
 pub use profile::SqliteProfileRepository;
 pub use scraper::SqliteScraperRepository;
 pub use smart_feed::SqliteSmartFeedRepository;
-use sqlx::SqlitePool;
 pub use tag::SqliteTagRepository;
 pub use user::SqliteUserRepository;
 
@@ -20,9 +19,3 @@ mod scraper;
 mod smart_feed;
 mod tag;
 mod user;
-
-pub async fn migrate(pool: &SqlitePool) -> Result<(), Box<dyn std::error::Error>> {
-    sqlx::migrate!("./migrations").run(pool).await?;
-
-    Ok(())
-}

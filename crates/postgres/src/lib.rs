@@ -7,7 +7,6 @@ pub use profile::PostgresProfileRepository;
 pub use scraper::PostgresScraperRepository;
 pub use session::PostgresSessionRepository;
 pub use smart_feed::PostgresSmartFeedRepository;
-use sqlx::PgPool;
 pub use tag::PostgresTagRepository;
 pub use user::PostgresUserRepository;
 
@@ -22,9 +21,3 @@ mod session;
 mod smart_feed;
 mod tag;
 mod user;
-
-pub async fn migrate(pool: &PgPool) -> Result<(), Box<dyn std::error::Error>> {
-    sqlx::migrate!("./migrations").run(pool).await?;
-
-    Ok(())
-}

@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = sqlx::PgPool::connect(&app_config.database_url).await?;
 
-    colette_postgres::migrate(&pool).await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
     let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));

@@ -53,7 +53,7 @@ pub fn run() {
 
                 let pool = sqlx::SqlitePool::connect(&path.to_string_lossy()).await?;
 
-                colette_sqlite::migrate(&pool).await?;
+                sqlx::migrate!("../migrations").run(&pool).await?;
 
                 let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
