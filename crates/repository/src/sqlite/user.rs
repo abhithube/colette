@@ -110,7 +110,8 @@ impl Creatable for SqliteUserRepository {
                 )
                 .build_rusqlite(SqliteQueryBuilder);
 
-                tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+                tx.prepare_cached(&sql)?
+                    .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
             }
 
             tx.commit()?;

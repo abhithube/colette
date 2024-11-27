@@ -223,7 +223,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             )
             .build_rusqlite(SqliteQueryBuilder);
 
-            conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+            conn.prepare_cached(&sql)?.query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?;
 
             Ok(())
         })
