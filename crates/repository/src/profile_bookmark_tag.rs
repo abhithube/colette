@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::tag::build_titles_subquery;
 
+#[allow(dead_code)]
 pub enum ProfileBookmarkTag {
     Table,
     ProfileBookmarkId,
@@ -64,16 +65,6 @@ pub fn insert_many(data: &[InsertMany], profile_id: Uuid) -> InsertStatement {
     }
 
     query
-}
-
-pub fn delete_many_in_titles(titles: &[String], profile_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(ProfileBookmarkTag::Table)
-        .and_where(
-            Expr::col(ProfileBookmarkTag::TagId)
-                .in_subquery(build_titles_subquery(titles, profile_id)),
-        )
-        .to_owned()
 }
 
 pub fn delete_many_not_in_titles(titles: &[String], profile_id: Uuid) -> DeleteStatement {

@@ -3,6 +3,7 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
+#[allow(dead_code)]
 pub enum FeedEntry {
     Table,
     Id,

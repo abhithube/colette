@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
+#[allow(dead_code)]
 pub enum Feed {
     Table,
     Id,

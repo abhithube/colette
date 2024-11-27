@@ -11,6 +11,7 @@ use crate::{
     feed::Feed, profile_feed_entry::ProfileFeedEntry, profile_feed_tag::ProfileFeedTag, tag::Tag,
 };
 
+#[allow(dead_code)]
 pub enum ProfileFeed {
     Table,
     Id,

@@ -12,6 +12,7 @@ use crate::{
     smart_feed_filter::SmartFeedFilter, tag::Tag,
 };
 
+#[allow(dead_code)]
 pub enum ProfileFeedEntry {
     Table,
     Id,

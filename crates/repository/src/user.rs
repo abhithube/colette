@@ -3,6 +3,7 @@ use std::fmt::Write;
 use sea_query::{Expr, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr};
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub enum User {
     Table,
     Id,

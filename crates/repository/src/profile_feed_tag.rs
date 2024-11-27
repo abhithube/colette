@@ -5,6 +5,7 @@ use uuid::Uuid;
 
 use crate::tag::build_titles_subquery;
 
+#[allow(dead_code)]
 pub enum ProfileFeedTag {
     Table,
     ProfileFeedId,

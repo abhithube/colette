@@ -3,6 +3,7 @@ use std::fmt::Write;
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, Query, SimpleExpr};
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub enum SmartFeedFilter {
     Table,
     Id,
@@ -36,6 +37,7 @@ impl Iden for SmartFeedFilter {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Field {
     Type,
@@ -66,6 +68,7 @@ impl Iden for Field {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Operation {
     Type,

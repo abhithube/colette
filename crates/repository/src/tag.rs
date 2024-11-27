@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::{profile_bookmark_tag::ProfileBookmarkTag, profile_feed_tag::ProfileFeedTag};
 
+#[allow(dead_code)]
 pub enum Tag {
     Table,
     Id,

@@ -7,6 +7,7 @@ use sea_query::{
 };
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub enum Profile {
     Table,
     Id,
