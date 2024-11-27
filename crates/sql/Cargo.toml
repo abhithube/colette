@@ -21,7 +21,13 @@ worker = { workspace = true, optional = true }
 
 [features]
 default = ["postgres"]
-postgres = ["sqlx", "sqlx/postgres"]
-sqlite = ["sqlx", "sqlx/sqlite"]
-cloudflare = ["dep:serde", "dep:serde_json", "dep:worker", "worker/d1"]
+postgres = ["sea-query/backend-postgres", "sqlx", "sqlx/postgres"]
+sqlite = ["sea-query/backend-sqlite", "sqlx", "sqlx/sqlite"]
+cloudflare = [
+  "sea-query/backend-sqlite",
+  "dep:serde",
+  "dep:serde_json",
+  "dep:worker",
+  "worker/d1",
+]
 sqlx = ["dep:sqlx", "dep:sea-query-binder"]
