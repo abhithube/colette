@@ -28,6 +28,7 @@ use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed}
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::run_task_worker;
 use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
+use deadpool_sqlite::{Config, Runtime};
 use email_address::EmailAddress;
 use tauri::Manager;
 use tower::ServiceBuilder;
@@ -55,6 +56,8 @@ pub fn run() {
                 let pool = sqlx::SqlitePool::connect(&path.to_string_lossy()).await?;
 
                 sqlx::migrate!("../migrations").run(&pool).await?;
+
+                let pool = Config::new(path).create_pool(Runtime::Tokio1)?;
 
                 let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
                 let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));

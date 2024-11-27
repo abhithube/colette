@@ -1,3 +1,8 @@
+use crate::{
+    feed_entry::FeedEntry,
+    profile_feed_entry::ProfileFeedEntry,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter},
+};
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     smart_feed::{
@@ -6,23 +11,23 @@ use colette_core::{
     },
     SmartFeed,
 };
-use crate::{
-    feed_entry::FeedEntry,
-    profile_feed_entry::ProfileFeedEntry,
-    smart_feed_filter::{Field, Operation, SmartFeedFilter},
+use deadpool_sqlite::{
+    rusqlite::{self, Connection, Row},
+    Pool,
 };
 use sea_query::{Alias, CaseStatement, Expr, Func, Iden, SimpleExpr, SqliteQueryBuilder};
-use sea_query_binder::SqlxBinder;
-use sqlx::{SqliteExecutor, SqlitePool};
+
+use sea_query_rusqlite::RusqliteBinder;
+
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteSmartFeedRepository {
-    pool: SqlitePool,
+    pool: Pool,
 }
 
 impl SqliteSmartFeedRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -33,20 +38,35 @@ impl Findable for SqliteSmartFeedRepository {
     type Output = Result<Vec<SmartFeed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::smart_feed::select(
-            params.id,
-            params.profile_id,
-            params.cursor,
-            params.limit,
-            build_case_statement(),
-        )
-        .build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_as_with::<_, SmartFeedSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let conn = self
+            .pool
+            .get()
             .await
-            .map(|e| e.into_iter().map(SmartFeed::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| {
+            let (sql, values) = crate::smart_feed::select(
+                params.id,
+                params.profile_id,
+                params.cursor,
+                params.limit,
+                build_case_statement(),
+            )
+            .build_rusqlite(SqliteQueryBuilder);
+
+            let mut stmt = conn.prepare_cached(&sql)?;
+            let mut rows = stmt.query(&*values.as_params())?;
+
+            let mut feeds: Vec<SmartFeed> = Vec::new();
+            while let Some(row) = rows.next()? {
+                feeds.push(SmartFeedSelect::try_from(row).map(|e| e.0)?);
+            }
+
+            Ok(feeds)
+        })
+        .await
+        .unwrap()
+        .map_err(|e: rusqlite::Error| Error::Unknown(e.into()))
     }
 }
 
@@ -56,40 +76,46 @@ impl Creatable for SqliteSmartFeedRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let id = {
+        let title = data.title.clone();
+
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
+
             let (sql, values) = crate::smart_feed::insert(
                 Some(Uuid::new_v4()),
                 data.title.clone(),
                 data.profile_id,
             )
-            .build_sqlx(SqliteQueryBuilder);
+            .build_rusqlite(SqliteQueryBuilder);
 
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.title)
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
+            let id = tx
+                .prepare_cached(&sql)?
+                .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
-        if let Some(filters) = data.filters {
-            insert_filters(&mut *tx, filters, id, data.profile_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
+            if let Some(filters) = data.filters {
+                insert_filters(&tx, filters, id, data.profile_id)?;
+            }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+            tx.commit()?;
 
-        Ok(id)
+            Ok(id)
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::SqliteFailure(e, _)
+                if e.code == rusqlite::ErrorCode::ConstraintViolation =>
+            {
+                Error::Conflict(title)
+            }
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -100,49 +126,48 @@ impl Updatable for SqliteSmartFeedRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        if data.title.is_none() && data.filters.is_none() {
+            return Ok(());
+        }
+
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.title.is_some() {
-            let count = {
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
+
+            if data.title.is_some() {
                 let (sql, values) =
                     crate::smart_feed::update(params.id, params.profile_id, data.title)
-                        .build_sqlx(SqliteQueryBuilder);
+                        .build_rusqlite(SqliteQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
-            if count == 0 {
-                return Err(Error::NotFound(params.id));
+                let count = tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+                if count == 0 {
+                    return Err(rusqlite::Error::QueryReturnedNoRows);
+                }
             }
-        }
 
-        if let Some(filters) = data.filters {
-            {
+            if let Some(filters) = data.filters {
                 let (sql, values) =
                     crate::smart_feed_filter::delete_many(params.profile_id, params.id)
-                        .build_sqlx(SqliteQueryBuilder);
+                        .build_rusqlite(SqliteQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+
+                insert_filters(&tx, filters, params.id, params.profile_id)?;
             }
 
-            insert_filters(&mut *tx, filters, params.id, params.profile_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(())
+            tx.commit()
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -152,40 +177,46 @@ impl Deletable for SqliteSmartFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let count = {
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| {
             let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
-                .build_sqlx(SqliteQueryBuilder);
+                .build_rusqlite(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map(|e| e.rows_affected())
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if count == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+            let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+            if count == 0 {
+                return Err(rusqlite::Error::QueryReturnedNoRows);
+            }
 
-        Ok(())
+            Ok(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
 impl SmartFeedRepository for SqliteSmartFeedRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct SmartFeedSelect {
-    id: Uuid,
-    title: String,
-    unread_count: i64,
-}
+#[derive(Debug, Clone)]
+struct SmartFeedSelect(SmartFeed);
 
-impl From<SmartFeedSelect> for colette_core::SmartFeed {
-    fn from(value: SmartFeedSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            unread_count: Some(value.unread_count),
-        }
+impl TryFrom<&Row<'_>> for SmartFeedSelect {
+    type Error = rusqlite::Error;
+
+    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
+        Ok(Self(SmartFeed {
+            id: value.get("id")?,
+            title: value.get("title")?,
+            unread_count: Some(value.get("unread_count")?),
+        }))
     }
 }
 
@@ -240,12 +271,12 @@ impl From<DateOperation> for Op {
     }
 }
 
-async fn insert_filters(
-    executor: impl SqliteExecutor<'_>,
+fn insert_filters(
+    conn: &Connection,
     filters: Vec<Filter>,
     smart_feed_id: Uuid,
     profile_id: Uuid,
-) -> sqlx::Result<()> {
+) -> rusqlite::Result<()> {
     let insert_data = filters
         .into_iter()
         .map(|e| {
@@ -273,13 +304,11 @@ async fn insert_filters(
         })
         .collect::<Vec<_>>();
 
-    {
-        let (sql, values) =
-            crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
-                .build_sqlx(SqliteQueryBuilder);
+    let (sql, values) =
+        crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
+            .build_rusqlite(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(executor).await?;
-    }
+    conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
     Ok(())
 }

@@ -6,19 +6,22 @@ use colette_core::{
     },
     Feed,
 };
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use deadpool_sqlite::{
+    rusqlite::{self, types::Value, Connection, OptionalExtension, Row},
+    Pool,
+};
+use futures::stream::BoxStream;
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
-use sea_query_binder::SqlxBinder;
-use sqlx::{types::Json, SqliteConnection, SqlitePool};
+use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
-    pool: SqlitePool,
+    pool: Pool,
 }
 
 impl SqliteFeedRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -29,33 +32,49 @@ impl Findable for SqliteFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let jsonb_agg = Expr::cust(
-            r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-        );
-
-        let tags_subquery = params.tags.map(|e| {
-            Expr::cust_with_expr(
-                r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
-                Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+        
+        let conn = self
+        .pool
+        .get()
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
+    
+    conn.interact(move |conn| {
+            let jsonb_agg = Expr::cust(
+                r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+            );
+        
+            let tags_subquery = params.tags.map(|e| {
+                Expr::cust_with_expr(
+                    r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+                    Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+                )
+            });
+            
+            let (sql, values) = crate::profile_feed::select(
+                params.id,
+                params.profile_id,
+                params.pinned,
+                params.cursor,
+                params.limit,
+                jsonb_agg,
+                tags_subquery,
             )
-        });
+            .build_rusqlite(SqliteQueryBuilder);
 
-        let (sql, values) = crate::profile_feed::select(
-            params.id,
-            params.profile_id,
-            params.pinned,
-            params.cursor,
-            params.limit,
-            jsonb_agg,
-            tags_subquery,
-        )
-        .build_sqlx(SqliteQueryBuilder);
+            let mut stmt = conn.prepare_cached(&sql)?;
+            let mut rows = stmt.query(&*values.as_params())?;
 
-        sqlx::query_as_with::<_, FeedSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await
-            .map(|e| e.into_iter().map(Feed::from).collect::<Vec<_>>())
-            .map_err(|e| Error::Unknown(e.into()))
+            let mut feeds: Vec<Feed> = Vec::new();
+            while let Some(row) = rows.next()? {
+                feeds.push(FeedSelect::try_from(row).map(|e| e.0)?);
+            }
+
+            Ok(feeds)
+        })
+        .await
+        .unwrap()
+        .map_err(|e: rusqlite::Error| Error::Unknown(e.into()))
     }
 }
 
@@ -65,65 +84,65 @@ impl Creatable for SqliteFeedRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = {
+        let url = data.url.clone();
+
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
+
             let (sql, values) =
-                crate::feed::select_by_url(data.url.clone()).build_sqlx(SqliteQueryBuilder);
+                crate::feed::select_by_url(data.url.clone()).build_rusqlite(SqliteQueryBuilder);
 
-            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::Conflict(data.url),
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
+            let feed_id = tx
+                .prepare_cached(&sql)?
+                .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?;
 
-        let pf_id = {
-            let (mut sql, mut values) =
-                crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
-                    .build_sqlx(SqliteQueryBuilder);
+            let pf_id = {
+                let (mut sql, mut values) =
+                    crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
+                        .build_rusqlite(SqliteQueryBuilder);
 
-            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-            {
-                id
-            } else {
-                (sql, values) = crate::profile_feed::insert(
-                    Some(Uuid::new_v4()),
-                    None,
-                    feed_id,
-                    data.profile_id,
-                )
-                .build_sqlx(SqliteQueryBuilder);
+                if let Some(id) = tx
+                    .prepare_cached(&sql)?
+                    .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))
+                    .optional()?
+                {
+                    id
+                } else {
+                    (sql, values) = crate::profile_feed::insert(
+                        Some(Uuid::new_v4()),
+                        None,
+                        feed_id,
+                        data.profile_id,
+                    )
+                    .build_rusqlite(SqliteQueryBuilder);
 
-                sqlx::query_scalar_with(&sql, values)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
+                    tx.prepare_cached(&sql)?
+                        .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
+                }
+            };
+
+            link_entries_to_profiles(&tx, feed_id)?;
+
+            if let Some(tags) = data.tags {
+                link_tags(&tx, pf_id, tags, data.profile_id)?;
             }
-        };
 
-        link_entries_to_profiles(&mut tx, feed_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            tx.commit()?;
 
-        if let Some(tags) = data.tags {
-            link_tags(&mut tx, pf_id, tags, data.profile_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(pf_id)
+            Ok(pf_id)
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::Conflict(url),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -134,42 +153,44 @@ impl Updatable for SqliteFeedRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.title.is_some() || data.pinned.is_some() {
-            let count = {
-                let (sql, values) = crate::profile_feed::update(
-                    params.id,
-                    params.profile_id,
-                    data.title,
-                    data.pinned,
-                )
-                .build_sqlx(SqliteQueryBuilder);
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
-            if count == 0 {
-                return Err(Error::NotFound(params.id));
+            if data.title.is_some() || data.pinned.is_some() {
+                let count = {
+                    let (sql, values) = crate::profile_feed::update(
+                        params.id,
+                        params.profile_id,
+                        data.title,
+                        data.pinned,
+                    )
+                    .build_rusqlite(SqliteQueryBuilder);
+
+                    tx.prepare_cached(&sql)?.execute(&*values.as_params())?
+                };
+                if count == 0 {
+                    return Err(rusqlite::Error::QueryReturnedNoRows);
+                }
             }
-        }
 
-        if let Some(tags) = data.tags {
-            link_tags(&mut tx, params.id, tags, params.profile_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
+            if let Some(tags) = data.tags {
+                link_tags(&tx, params.id, tags, params.profile_id)?;
+            }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(())
+            tx.commit()
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
@@ -179,201 +200,211 @@ impl Deletable for SqliteFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let count = {
-            let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
-                .build_sqlx(SqliteQueryBuilder);
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map(|e| e.rows_affected())
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
-        if count == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+        conn.interact(move |conn| {
+            let count = {
+                let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
+                    .build_rusqlite(SqliteQueryBuilder);
 
-        Ok(())
+                conn.execute(&sql, &*values.as_params())?
+            };
+            if count == 0 {
+                return Err(rusqlite::Error::QueryReturnedNoRows);
+            }
+
+            Ok(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e| match e {
+            rusqlite::Error::QueryReturnedNoRows => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })
     }
 }
 
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        for data in data {
-            create_feed_with_entries(&mut tx, data.url, data.feed)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+            for data in data {
+                create_feed_with_entries(&tx, data.url, data.feed)?;
+            }
+
+            tx.commit()
+        })
+        .await
+        .unwrap()
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     fn stream(&self) -> BoxStream<Result<String, Error>> {
-        sqlx::query_scalar::<_, String>("SELECT COALESCE(url, link) FROM feeds")
-            .fetch(&self.pool)
-            .map_err(|e| Error::Unknown(e.into()))
-            .boxed()
+        todo!()
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct FeedSelect {
-    pub id: Uuid,
-    pub link: String,
-    pub title: Option<String>,
-    pub pinned: bool,
-    pub original_title: String,
-    pub url: Option<String>,
-    pub tags: Option<Json<Vec<colette_core::Tag>>>,
-    pub unread_count: i64,
-}
+#[derive(Debug, Clone)]
+struct FeedSelect(Feed);
 
-impl From<FeedSelect> for colette_core::Feed {
-    fn from(value: FeedSelect) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            pinned: value.pinned,
-            original_title: value.original_title,
-            url: value.url,
-            tags: value.tags.map(|e| e.0.into_iter().collect()),
-            unread_count: Some(value.unread_count),
-        }
+impl TryFrom<&Row<'_>> for FeedSelect {
+    type Error = rusqlite::Error;
+
+    fn try_from(value: &Row<'_>) -> Result<Self, Self::Error> {
+        Ok(Self(Feed {
+            id: value.get("id")?,
+            link: value.get("link")?,
+            title: value.get("title")?,
+            pinned: value.get("pinned")?,
+            original_title: value.get("original_title")?,
+            url: value.get("url")?,
+            tags: value.get::<_, Value>("tags").map(|e| match e {
+                Value::Text(text) => serde_json::from_str(&text).ok(),
+                _ => None,
+            })?,
+            unread_count: Some(value.get("unread_count")?),
+        }))
     }
 }
 
-pub(crate) async fn link_tags(
-    conn: &mut SqliteConnection,
-    profile_feed_id: Uuid,
-    tags: Vec<String>,
-    profile_id: Uuid,
-) -> sqlx::Result<()> {
-    {
-        let (sql, values) =
-            crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
-                .build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    {
-        let insert_many = tags
-            .iter()
-            .map(|e| crate::tag::InsertMany {
-                id: Some(Uuid::new_v4()),
-                title: e.to_owned(),
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) =
-            crate::tag::insert_many(&insert_many, profile_id).build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    {
-        let (sql, values) = crate::tag::select_ids_by_titles(&tags, profile_id)
-            .build_sqlx(SqliteQueryBuilder);
-
-        let tag_ids = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-            .fetch_all(&mut *conn)
-            .await?;
-
-        let insert_many = tag_ids
-            .into_iter()
-            .map(|e| crate::profile_feed_tag::InsertMany {
-                profile_feed_id,
-                tag_id: e,
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
-            .build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    Ok(())
-}
-
-pub(crate) async fn create_feed_with_entries(
-    conn: &mut SqliteConnection,
+pub(crate) fn create_feed_with_entries(
+    conn: &Connection,
     url: String,
     feed: ProcessedFeed,
-) -> Result<i32, sqlx::Error> {
+) -> rusqlite::Result<i32> {
+    let link = feed.link.to_string();
+    let url = if url == link { None } else { Some(url) };
+
     let feed_id = {
-        let link = feed.link.to_string();
-        let url = if url == link { None } else { Some(url) };
-
         let (sql, values) =
-            crate::feed::insert(link, feed.title, url).build_sqlx(SqliteQueryBuilder);
+            crate::feed::insert(link, feed.title, url).build_rusqlite(SqliteQueryBuilder);
 
-        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-            .fetch_one(&mut *conn)
-            .await?
+        conn.prepare_cached(&sql)?
+            .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?
     };
 
-    if !feed.entries.is_empty() {
-        let insert_many = feed
-            .entries
-            .into_iter()
-            .map(|e| crate::feed_entry::InsertMany {
-                link: e.link.to_string(),
-                title: e.title,
-                published_at: e.published,
-                description: e.description,
-                author: e.author,
-                thumbnail_url: e.thumbnail.map(String::from),
-            })
-            .collect::<Vec<_>>();
+    let insert_many = feed
+        .entries
+        .into_iter()
+        .map(|e| crate::feed_entry::InsertMany {
+            link: e.link.to_string(),
+            title: e.title,
+            published_at: e.published,
+            description: e.description,
+            author: e.author,
+            thumbnail_url: e.thumbnail.map(String::from),
+        })
+        .collect::<Vec<_>>();
 
-        let (sql, values) = crate::feed_entry::insert_many(&insert_many, feed_id)
-            .build_sqlx(SqliteQueryBuilder);
+    let (sql, values) =
+        crate::feed_entry::insert_many(&insert_many, feed_id).build_rusqlite(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
+    conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
     Ok(feed_id)
 }
 
-pub(crate) async fn link_entries_to_profiles(
-    conn: &mut SqliteConnection,
-    feed_id: i32,
-) -> Result<(), sqlx::Error> {
+pub(crate) fn link_entries_to_profiles(conn: &Connection, feed_id: i32) -> rusqlite::Result<()> {
     let fe_ids = {
         let (sql, values) =
-            crate::feed_entry::select_many_by_feed_id(feed_id).build_sqlx(SqliteQueryBuilder);
+            crate::feed_entry::select_many_by_feed_id(feed_id).build_rusqlite(SqliteQueryBuilder);
 
-        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-            .fetch_all(&mut *conn)
-            .await?
+        let mut ids: Vec<i32> = Vec::new();
+
+        let mut stmt = conn.prepare_cached(&sql)?;
+        let mut rows = stmt.query(&*values.as_params())?;
+
+        while let Some(row) = rows.next()? {
+            ids.push(row.get("id")?);
+        }
+
+        ids
     };
 
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
             .into_iter()
-            .map(
-                |feed_entry_id| crate::profile_feed_entry::InsertMany {
-                    id: Some(Uuid::new_v4()),
-                    feed_entry_id,
-                },
-            )
+            .map(|feed_entry_id| crate::profile_feed_entry::InsertMany {
+                id: Some(Uuid::new_v4()),
+                feed_entry_id,
+            })
             .collect::<Vec<_>>();
 
         let (sql, values) =
             crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
-                .build_sqlx(SqliteQueryBuilder);
+                .build_rusqlite(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
     }
+
+    Ok(())
+}
+
+pub(crate) fn link_tags(
+    conn: &Connection,
+    profile_feed_id: Uuid,
+    tags: Vec<String>,
+    profile_id: Uuid,
+) -> rusqlite::Result<()> {
+    let (sql, values) = crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
+        .build_rusqlite(SqliteQueryBuilder);
+
+    conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+
+    let tag_ids = {
+        let (sql, values) = crate::tag::insert_many(
+            &tags
+                .iter()
+                .map(|e| crate::tag::InsertMany {
+                    id: Some(Uuid::new_v4()),
+                    title: e.to_owned(),
+                })
+                .collect::<Vec<_>>(),
+            profile_id,
+        )
+        .build_rusqlite(SqliteQueryBuilder);
+
+        conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+
+        let (sql, values) =
+            crate::tag::select_ids_by_titles(&tags, profile_id).build_rusqlite(SqliteQueryBuilder);
+
+        let mut ids: Vec<Uuid> = Vec::new();
+
+        let mut stmt = conn.prepare_cached(&sql)?;
+        let mut rows = stmt.query(&*values.as_params())?;
+
+        while let Some(row) = rows.next()? {
+            ids.push(row.get("id")?);
+        }
+
+        ids
+    };
+
+    let insert_many = tag_ids
+        .into_iter()
+        .map(|e| crate::profile_feed_tag::InsertMany {
+            profile_feed_id,
+            tag_id: e,
+        })
+        .collect::<Vec<_>>();
+
+    let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
+        .build_rusqlite(SqliteQueryBuilder);
+
+    conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
     Ok(())
 }

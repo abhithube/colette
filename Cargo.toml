@@ -55,6 +55,9 @@ colette-scraper.path = "crates/scraper"
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
+deadpool-sqlite = { version = "0.9", default-features = false, features = [
+  "rt_tokio_1",
+] }
 dyn-clone = { version = "1", default-features = false }
 email_address = { version = "0.2", default-features = false, features = [
   "serde_support",

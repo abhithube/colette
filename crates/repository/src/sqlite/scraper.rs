@@ -1,17 +1,17 @@
 use colette_core::scraper::{Error, SaveBookmarkData, SaveFeedData, ScraperRepository};
+use deadpool_sqlite::{rusqlite, Pool};
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::SqlitePool;
+use sea_query_rusqlite::RusqliteBinder;
 
 use super::feed::{create_feed_with_entries, link_entries_to_profiles};
 
 #[derive(Debug, Clone)]
 pub struct SqliteScraperRepository {
-    pool: SqlitePool,
+    pool: Pool,
 }
 
 impl SqliteScraperRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -19,38 +19,49 @@ impl SqliteScraperRepository {
 #[async_trait::async_trait]
 impl ScraperRepository for SqliteScraperRepository {
     async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error> {
-        let mut tx = self
+        let conn = self
             .pool
-            .begin()
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = create_feed_with_entries(&mut tx, data.url, data.feed)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        conn.interact(move |conn| {
+            let tx = conn.transaction()?;
 
-        link_entries_to_profiles(&mut tx, feed_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            let feed_id = create_feed_with_entries(&tx, data.url, data.feed)?;
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+            link_entries_to_profiles(&tx, feed_id)?;
+
+            tx.commit()
+        })
+        .await
+        .unwrap()
+        .map_err(|e| Error::Unknown(e.into()))
     }
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error> {
-        let (sql, values) = crate::bookmark::insert(
-            data.url,
-            data.bookmark.title,
-            data.bookmark.thumbnail.map(String::from),
-            data.bookmark.published,
-            data.bookmark.author,
-        )
-        .build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        let conn = self
+            .pool
+            .get()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(())
+        conn.interact(move |conn| {
+            let (sql, values) = crate::bookmark::insert(
+                data.url,
+                data.bookmark.title,
+                data.bookmark.thumbnail.map(String::from),
+                data.bookmark.published,
+                data.bookmark.author,
+            )
+            .build_rusqlite(SqliteQueryBuilder);
+
+            conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
+
+            Ok(())
+        })
+        .await
+        .unwrap()
+        .map_err(|e: rusqlite::Error| Error::Unknown(e.into()))
     }
 }
