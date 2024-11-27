@@ -63,15 +63,6 @@ pub fn insert_many(data: &[InsertMany], profile_id: Uuid) -> InsertStatement {
     query
 }
 
-pub fn delete_many_in_titles(titles: &[String], profile_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(ProfileFeedTag::Table)
-        .and_where(
-            Expr::col(ProfileFeedTag::TagId).in_subquery(build_titles_subquery(titles, profile_id)),
-        )
-        .to_owned()
-}
-
 pub fn delete_many_not_in_titles(titles: &[String], profile_id: Uuid) -> DeleteStatement {
     Query::delete()
         .from_table(ProfileFeedTag::Table)
