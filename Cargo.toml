@@ -14,6 +14,7 @@ members = [
   "crates/opml",
   "crates/plugins",
   "crates/postgres",
+  "crates/queue",
   "crates/scraper",
   "crates/sql",
   "crates/sqlite",
@@ -49,6 +50,7 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-postgres.path = "crates/postgres"
 colette-plugins.path = "crates/plugins"
+colette-queue = { path = "crates/queue", default-features = false }
 colette-scraper.path = "crates/scraper"
 colette-sql.path = "crates/sql"
 colette-sqlite.path = "crates/sqlite"
@@ -105,6 +107,7 @@ tower-sessions-core = { version = "0.13", default-features = false, features = [
 tracing = { version = "0.1", default-features = false }
 url = { version = "2", default-features = false, features = ["serde"] }
 uuid = { version = "1", default-features = false, features = ["serde", "v4"] }
+worker = { version = "0.4", default-features = false }
 
 [profile.release]
 codegen-units = 1

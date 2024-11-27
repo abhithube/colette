@@ -733,6 +733,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-queue"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-trait",
+ "dyn-clone",
+ "serde",
+ "tokio",
+ "worker",
+]
+
+[[package]]
 name = "colette-scraper"
 version = "0.1.0"
 dependencies = [

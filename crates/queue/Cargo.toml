@@ -1,0 +1,17 @@
+[package]
+name = "colette-queue"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+dyn-clone.workspace = true
+serde = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+worker = { workspace = true, optional = true }
+
+[features]
+default = ["in-memory"]
+in-memory = ["dep:tokio"]
+cloudflare = ["dep:serde", "dep:worker", "worker/queue"]
