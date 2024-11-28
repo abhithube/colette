@@ -71,7 +71,7 @@ pub fn run() {
                 let scraper_repository = Box::new(SqliteScraperRepository::new(pool.clone()));
                 let smart_feed_repository = Box::new(SqliteSmartFeedRepository::new(pool.clone()));
                 let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
-                let user_repository = Box::new(SqliteUserRepository::new(pool.clone()));
+                let user_repository = Box::new(SqliteUserRepository::new(pool));
 
                 let client = reqwest::Client::new();
                 let downloader = Box::new(DefaultDownloader::new(client.clone()));
