@@ -19,6 +19,7 @@ colette-scraper.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true
+deadpool-postgres.workspace = true
 reqwest.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",

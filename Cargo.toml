@@ -44,7 +44,6 @@ colette-config.path = "crates/config"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-meta.path = "crates/meta"
-colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-postgres.path = "crates/postgres"
@@ -55,6 +54,9 @@ colette-scraper.path = "crates/scraper"
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
+deadpool-postgres = { version = "0.14", default-features = false, features = [
+  "rt_tokio_1",
+] }
 deadpool-sqlite = { version = "0.9", default-features = false, features = [
   "rt_tokio_1",
 ] }

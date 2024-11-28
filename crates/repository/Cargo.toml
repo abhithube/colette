@@ -9,10 +9,16 @@ chrono.workspace = true
 colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
+deadpool-postgres = { workspace = true, optional = true }
 deadpool-sqlite = { workspace = true, optional = true }
 futures.workspace = true
 sea-query.workspace = true
 sea-query-binder = { workspace = true, optional = true }
+sea-query-postgres = { version = "0.5", default-features = false, features = [
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+], optional = true }
 sea-query-rusqlite = { version = "0.7", default-features = false, features = [
   "with-chrono",
   "with-json",
@@ -20,18 +26,20 @@ sea-query-rusqlite = { version = "0.7", default-features = false, features = [
 ], optional = true }
 serde.workspace = true
 serde_json.workspace = true
-sqlx = { workspace = true, optional = true }
 thiserror.workspace = true
 uuid.workspace = true
 worker = { workspace = true, optional = true }
 
 [features]
 default = ["postgres"]
-postgres = ["sea-query/backend-postgres", "sqlx", "sqlx/postgres"]
+postgres = [
+  "dep:deadpool-postgres",
+  "sea-query/backend-postgres",
+  "dep:sea-query-postgres",
+]
 sqlite = [
   "dep:deadpool-sqlite",
   "sea-query/backend-sqlite",
   "dep:sea-query-rusqlite",
 ]
 cloudflare = ["sea-query/backend-sqlite", "dep:worker", "worker/d1"]
-sqlx = ["dep:sqlx", "dep:sea-query-binder"]

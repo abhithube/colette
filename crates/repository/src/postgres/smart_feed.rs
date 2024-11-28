@@ -11,18 +11,21 @@ use colette_core::{
     },
     SmartFeed,
 };
+use deadpool_postgres::{
+    tokio_postgres::{self, error::SqlState, Row},
+    GenericClient, Pool,
+};
 use sea_query::{Alias, CaseStatement, Expr, Func, Iden, PostgresQueryBuilder, SimpleExpr};
-use sea_query_binder::SqlxBinder;
-use sqlx::{PgExecutor, PgPool};
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresSmartFeedRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresSmartFeedRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -33,6 +36,12 @@ impl Findable for PostgresSmartFeedRepository {
     type Output = Result<Vec<SmartFeed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let (sql, values) = crate::smart_feed::select(
             params.id,
             params.profile_id,
@@ -40,12 +49,21 @@ impl Findable for PostgresSmartFeedRepository {
             params.limit,
             build_case_statement(),
         )
-        .build_sqlx(PostgresQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_as_with::<_, SmartFeedSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map(|e| e.into_iter().map(SmartFeed::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| SmartFeedSelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
             .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -56,30 +74,38 @@ impl Creatable for PostgresSmartFeedRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let id = {
             let (sql, values) =
                 crate::smart_feed::insert(None, data.title.clone(), data.profile_id)
-                    .build_sqlx(PostgresQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&mut *tx)
+            let stmt = tx
+                .prepare_cached(&sql)
                 .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.title)
-                    }
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.query_one(&stmt, &values.as_params())
+                .await
+                .map(|e| e.get::<_, Uuid>("id"))
+                .map_err(|e| match e.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
                     _ => Error::Unknown(e.into()),
                 })?
         };
 
         if let Some(filters) = data.filters {
-            insert_filters(&mut *tx, filters, id, data.profile_id)
+            insert_filters(&tx, filters, id, data.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -97,24 +123,30 @@ impl Updatable for PostgresSmartFeedRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            let count = {
-                let (sql, values) =
-                    crate::smart_feed::update(params.id, params.profile_id, data.title)
-                        .build_sqlx(PostgresQueryBuilder);
+            let (sql, values) = crate::smart_feed::update(params.id, params.profile_id, data.title)
+                .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = tx
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             if count == 0 {
                 return Err(Error::NotFound(params.id));
             }
@@ -124,15 +156,19 @@ impl Updatable for PostgresSmartFeedRepository {
             {
                 let (sql, values) =
                     crate::smart_feed_filter::delete_many(params.profile_id, params.id)
-                        .build_sqlx(PostgresQueryBuilder);
+                        .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
+                let stmt = tx
+                    .prepare_cached(&sql)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.execute(&stmt, &values.as_params())
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
             }
 
-            insert_filters(&mut *tx, filters, params.id, params.profile_id)
+            insert_filters(&tx, filters, params.id, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -149,16 +185,24 @@ impl Deletable for PostgresSmartFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let count = {
-            let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
-                .build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map(|e| e.rows_affected())
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
+        let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let count = client
+            .execute(&stmt, &values.as_params())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         if count == 0 {
             return Err(Error::NotFound(params.id));
         }
@@ -169,20 +213,16 @@ impl Deletable for PostgresSmartFeedRepository {
 
 impl SmartFeedRepository for PostgresSmartFeedRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct SmartFeedSelect {
-    id: Uuid,
-    title: String,
-    unread_count: i64,
-}
+#[derive(Debug, Clone)]
+struct SmartFeedSelect(SmartFeed);
 
-impl From<SmartFeedSelect> for colette_core::SmartFeed {
-    fn from(value: SmartFeedSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            unread_count: Some(value.unread_count),
-        }
+impl From<Row> for SmartFeedSelect {
+    fn from(value: Row) -> Self {
+        Self(SmartFeed {
+            id: value.get("id"),
+            title: value.get("title"),
+            unread_count: Some(value.get("unread_count")),
+        })
     }
 }
 
@@ -237,12 +277,12 @@ impl From<DateOperation> for Op {
     }
 }
 
-async fn insert_filters(
-    executor: impl PgExecutor<'_>,
+async fn insert_filters<C: GenericClient>(
+    client: &C,
     filters: Vec<Filter>,
     smart_feed_id: Uuid,
     profile_id: Uuid,
-) -> sqlx::Result<()> {
+) -> Result<(), tokio_postgres::Error> {
     let insert_data = filters
         .into_iter()
         .map(|e| {
@@ -270,13 +310,13 @@ async fn insert_filters(
         })
         .collect::<Vec<_>>();
 
-    {
-        let (sql, values) =
-            crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
-                .build_sqlx(PostgresQueryBuilder);
+    let (sql, values) =
+        crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
+            .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(executor).await?;
-    }
+    let stmt = client.prepare_cached(&sql).await?;
+
+    client.execute(&stmt, &values.as_params()).await?;
 
     Ok(())
 }

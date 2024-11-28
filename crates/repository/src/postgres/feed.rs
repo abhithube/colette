@@ -6,19 +6,22 @@ use colette_core::{
     },
     Feed,
 };
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use deadpool_postgres::{
+    tokio_postgres::{self, types::Json, Row},
+    GenericClient, Pool,
+};
+use futures::stream::BoxStream;
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
-use sea_query_binder::SqlxBinder;
-use sqlx::{types::Json, PgConnection, PgPool};
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresFeedRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -29,6 +32,12 @@ impl Findable for PostgresFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let jsonb_agg = Expr::cust(
             r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
         );
@@ -49,12 +58,21 @@ impl Findable for PostgresFeedRepository {
             jsonb_agg,
             tags_subquery,
         )
-        .build_sqlx(PostgresQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_as_with::<_, FeedSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map(|e| e.into_iter().map(Feed::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| FeedSelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
             .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -65,53 +83,75 @@ impl Creatable for PostgresFeedRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let feed_id = {
             let (sql, values) =
-                crate::feed::select_by_url(data.url.clone()).build_sqlx(PostgresQueryBuilder);
+                crate::feed::select_by_url(data.url.clone()).build_postgres(PostgresQueryBuilder);
 
-            sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-                .fetch_one(&mut *tx)
+            let stmt = tx
+                .prepare_cached(&sql)
                 .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::Conflict(data.url),
-                    _ => Error::Unknown(e.into()),
-                })?
-        };
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            if let Some(row) = tx
+                .query_opt(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?
+            {
+                Ok(row.get::<_, i32>("id"))
+            } else {
+                Err(Error::Conflict(data.url))
+            }
+        }?;
 
         let pf_id = {
             let (mut sql, mut values) =
                 crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
-                    .build_sqlx(PostgresQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_optional(&mut *tx)
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            if let Some(row) = tx
+                .query_opt(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
-                id
+                row.get::<_, Uuid>("id")
             } else {
                 (sql, values) = crate::profile_feed::insert(None, None, feed_id, data.profile_id)
-                    .build_sqlx(PostgresQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                    .fetch_one(&mut *tx)
+                let stmt = tx
+                    .prepare_cached(&sql)
                     .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                tx.query_one(&stmt, &values.as_params())
+                    .await
+                    .map(|e| e.get::<_, Uuid>("id"))
                     .map_err(|e| Error::Unknown(e.into()))?
             }
         };
 
-        link_entries_to_profiles(&mut tx, feed_id)
+        link_entries_to_profiles(&tx, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, pf_id, tags, data.profile_id)
+            link_tags(&tx, pf_id, tags, data.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -129,35 +169,38 @@ impl Updatable for PostgresFeedRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() || data.pinned.is_some() {
-            let count = {
-                let (sql, values) = crate::profile_feed::update(
-                    params.id,
-                    params.profile_id,
-                    data.title,
-                    data.pinned,
-                )
-                .build_sqlx(PostgresQueryBuilder);
+            let (sql, values) =
+                crate::profile_feed::update(params.id, params.profile_id, data.title, data.pinned)
+                    .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&mut *tx)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = tx
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             if count == 0 {
                 return Err(Error::NotFound(params.id));
             }
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, params.id, tags, params.profile_id)
+            link_tags(&tx, params.id, tags, params.profile_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -174,16 +217,24 @@ impl Deletable for PostgresFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let count = {
-            let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
-                .build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map(|e| e.rows_affected())
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
+        let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let count = client
+            .execute(&stmt, &values.as_params())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         if count == 0 {
             return Err(Error::NotFound(params.id));
         }
@@ -195,14 +246,19 @@ impl Deletable for PostgresFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         for data in data {
-            create_feed_with_entries(&mut tx, data.url, data.feed)
+            create_feed_with_entries(&tx, data.url, data.feed)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -211,108 +267,48 @@ impl FeedRepository for PostgresFeedRepository {
     }
 
     fn stream(&self) -> BoxStream<Result<String, Error>> {
-        sqlx::query_scalar::<_, String>("SELECT COALESCE(url, link) FROM feeds")
-            .fetch(&self.pool)
-            .map_err(|e| Error::Unknown(e.into()))
-            .boxed()
+        todo!()
     }
 }
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct FeedSelect {
-    pub id: Uuid,
-    pub link: String,
-    pub title: Option<String>,
-    pub pinned: bool,
-    pub original_title: String,
-    pub url: Option<String>,
-    pub tags: Option<Json<Vec<colette_core::Tag>>>,
-    pub unread_count: i64,
-}
+#[derive(Debug, Clone)]
+struct FeedSelect(Feed);
 
-impl From<FeedSelect> for colette_core::Feed {
-    fn from(value: FeedSelect) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            pinned: value.pinned,
-            original_title: value.original_title,
-            url: value.url,
-            tags: value.tags.map(|e| e.0.into_iter().collect()),
-            unread_count: Some(value.unread_count),
-        }
+impl From<Row> for FeedSelect {
+    fn from(value: Row) -> Self {
+        Self(Feed {
+            id: value.get("id"),
+            link: value.get("link"),
+            title: value.get("title"),
+            pinned: value.get("pinned"),
+            original_title: value.get("original_title"),
+            url: value.get("url"),
+            tags: value
+                .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")
+                .map(|e| e.0),
+            unread_count: Some(value.get("unread_count")),
+        })
     }
 }
 
-pub(crate) async fn link_tags(
-    conn: &mut PgConnection,
-    profile_feed_id: Uuid,
-    tags: Vec<String>,
-    profile_id: Uuid,
-) -> sqlx::Result<()> {
-    {
-        let (sql, values) = crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
-            .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    {
-        let insert_many = tags
-            .iter()
-            .map(|e| crate::tag::InsertMany {
-                id: Some(Uuid::new_v4()),
-                title: e.to_owned(),
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) =
-            crate::tag::insert_many(&insert_many, profile_id).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    {
-        let (sql, values) =
-            crate::tag::select_ids_by_titles(&tags, profile_id).build_sqlx(PostgresQueryBuilder);
-
-        let tag_ids = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-            .fetch_all(&mut *conn)
-            .await?;
-
-        let insert_many = tag_ids
-            .into_iter()
-            .map(|e| crate::profile_feed_tag::InsertMany {
-                profile_feed_id,
-                tag_id: e,
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
-            .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    Ok(())
-}
-
-pub(crate) async fn create_feed_with_entries(
-    conn: &mut PgConnection,
+pub(crate) async fn create_feed_with_entries<C: GenericClient>(
+    client: &C,
     url: String,
     feed: ProcessedFeed,
-) -> Result<i32, sqlx::Error> {
+) -> Result<i32, tokio_postgres::Error> {
     let feed_id = {
         let link = feed.link.to_string();
         let url = if url == link { None } else { Some(url) };
 
         let (sql, values) =
-            crate::feed::insert(link, feed.title, url).build_sqlx(PostgresQueryBuilder);
+            crate::feed::insert(link, feed.title, url).build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-            .fetch_one(&mut *conn)
-            .await?
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client
+            .query_one(&stmt, &values.as_params())
+            .await
+            .map(|e| e.get::<_, i32>("id"))?
     };
 
     if !feed.entries.is_empty() {
@@ -329,26 +325,32 @@ pub(crate) async fn create_feed_with_entries(
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) =
-            crate::feed_entry::insert_many(&insert_many, feed_id).build_sqlx(PostgresQueryBuilder);
+        let (sql, values) = crate::feed_entry::insert_many(&insert_many, feed_id)
+            .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     Ok(feed_id)
 }
 
-pub(crate) async fn link_entries_to_profiles(
-    conn: &mut PgConnection,
+pub(crate) async fn link_entries_to_profiles<C: GenericClient>(
+    client: &C,
     feed_id: i32,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), tokio_postgres::Error> {
     let fe_ids = {
         let (sql, values) =
-            crate::feed_entry::select_many_by_feed_id(feed_id).build_sqlx(PostgresQueryBuilder);
+            crate::feed_entry::select_many_by_feed_id(feed_id).build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_scalar_with::<_, i32, _>(&sql, values)
-            .fetch_all(&mut *conn)
-            .await?
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.query(&stmt, &values.as_params()).await.map(|e| {
+            e.into_iter()
+                .map(|e| e.get::<_, i32>("id"))
+                .collect::<Vec<_>>()
+        })?
     };
 
     if !fe_ids.is_empty() {
@@ -362,9 +364,74 @@ pub(crate) async fn link_entries_to_profiles(
 
         let (sql, values) =
             crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
-                .build_sqlx(PostgresQueryBuilder);
+                .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
+    }
+
+    Ok(())
+}
+
+pub(crate) async fn link_tags<C: GenericClient>(
+    client: &C,
+    profile_feed_id: Uuid,
+    tags: Vec<String>,
+    profile_id: Uuid,
+) -> Result<(), tokio_postgres::Error> {
+    {
+        let (sql, values) = crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
+    }
+
+    {
+        let insert_many = tags
+            .iter()
+            .map(|e| crate::tag::InsertMany {
+                id: Some(Uuid::new_v4()),
+                title: e.to_owned(),
+            })
+            .collect::<Vec<_>>();
+
+        let (sql, values) =
+            crate::tag::insert_many(&insert_many, profile_id).build_postgres(PostgresQueryBuilder);
+
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
+    }
+
+    {
+        let (sql, values) = crate::tag::select_ids_by_titles(&tags, profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client.prepare_cached(&sql).await?;
+
+        let tag_ids = client.query(&stmt, &values.as_params()).await.map(|e| {
+            e.into_iter()
+                .map(|e| e.get::<_, Uuid>("id"))
+                .collect::<Vec<_>>()
+        })?;
+
+        let insert_many = tag_ids
+            .into_iter()
+            .map(|e| crate::profile_feed_tag::InsertMany {
+                profile_feed_id,
+                tag_id: e,
+            })
+            .collect::<Vec<_>>();
+
+        let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client.prepare_cached(&sql).await?;
+
+        client.execute(&stmt, &values.as_params()).await?;
     }
 
     Ok(())

@@ -1,23 +1,21 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     common::{Findable, IdParams, Updatable},
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
+use deadpool_postgres::{tokio_postgres::Row, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgPool;
-use uuid::Uuid;
+use sea_query_postgres::PostgresBinder;
 
 use super::smart_feed::build_case_statement;
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresFeedEntryRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -28,6 +26,12 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let (sql, values) = crate::profile_feed_entry::select(
             params.id,
             params.profile_id,
@@ -39,12 +43,21 @@ impl Findable for PostgresFeedEntryRepository {
             params.limit,
             build_case_statement(),
         )
-        .build_sqlx(PostgresQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_as_with::<_, EntrySelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map(|e| e.into_iter().map(FeedEntry::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| FeedEntrySelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
             .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -56,16 +69,26 @@ impl Updatable for PostgresFeedEntryRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         if data.has_read.is_some() {
             let count = {
                 let (sql, values) =
                     crate::profile_feed_entry::update(params.id, params.profile_id, data.has_read)
-                        .build_sqlx(PostgresQueryBuilder);
+                        .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_with(&sql, values)
-                    .execute(&self.pool)
+                let stmt = client
+                    .prepare_cached(&sql)
                     .await
-                    .map(|e| e.rows_affected())
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                client
+                    .execute(&stmt, &values.as_params())
+                    .await
                     .map_err(|e| Error::Unknown(e.into()))?
             };
             if count == 0 {
@@ -79,31 +102,21 @@ impl Updatable for PostgresFeedEntryRepository {
 
 impl FeedEntryRepository for PostgresFeedEntryRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct EntrySelect {
-    id: Uuid,
-    link: String,
-    title: String,
-    published_at: DateTime<Utc>,
-    description: Option<String>,
-    author: Option<String>,
-    thumbnail_url: Option<String>,
-    has_read: bool,
-    profile_feed_id: Uuid,
-}
+#[derive(Debug, Clone)]
+struct FeedEntrySelect(FeedEntry);
 
-impl From<EntrySelect> for colette_core::FeedEntry {
-    fn from(value: EntrySelect) -> Self {
-        Self {
-            id: value.id,
-            link: value.link,
-            title: value.title,
-            published_at: value.published_at,
-            description: value.description,
-            author: value.author,
-            thumbnail_url: value.thumbnail_url,
-            has_read: value.has_read,
-            feed_id: value.profile_feed_id,
-        }
+impl From<Row> for FeedEntrySelect {
+    fn from(value: Row) -> Self {
+        Self(FeedEntry {
+            id: value.get("id"),
+            link: value.get("link"),
+            title: value.get("title"),
+            published_at: value.get("published_at"),
+            description: value.get("description"),
+            author: value.get("author"),
+            thumbnail_url: value.get("thumbnail_url"),
+            has_read: value.get("has_read"),
+            feed_id: value.get("profile_feed_id"),
+        })
     }
 }

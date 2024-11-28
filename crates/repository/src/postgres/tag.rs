@@ -3,18 +3,21 @@ use colette_core::{
     tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
     Tag,
 };
+use deadpool_postgres::{
+    tokio_postgres::{error::SqlState, Row},
+    Pool,
+};
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgPool;
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresTagRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresTagRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -25,6 +28,12 @@ impl Findable for PostgresTagRepository {
     type Output = Result<Vec<Tag>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let (sql, values) = crate::tag::select(
             params.id,
             params.profile_id,
@@ -32,12 +41,21 @@ impl Findable for PostgresTagRepository {
             params.cursor,
             params.tag_type,
         )
-        .build_sqlx(PostgresQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_as_with::<_, TagSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map(|e| e.into_iter().map(Tag::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| TagSelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
             .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -48,16 +66,30 @@ impl Creatable for PostgresTagRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let (sql, values) = crate::tag::insert(None, data.title.clone(), data.profile_id)
-            .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-            .fetch_one(&self.pool)
+        let client = self
+            .pool
+            .get()
             .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let (sql, values) = crate::tag::insert(None, data.title.clone(), data.profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = client
+            .query_one(&stmt, &values.as_params())
+            .await
+            .map(|e| e.get::<_, Uuid>("id"))
+            .map_err(|e| match e.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        Ok(id)
     }
 }
 
@@ -68,17 +100,25 @@ impl Updatable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() {
-            let count = {
-                let (sql, values) = crate::tag::update(params.id, params.profile_id, data.title)
-                    .build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-                sqlx::query_with(&sql, values)
-                    .execute(&self.pool)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
+        if data.title.is_some() {
+            let (sql, values) = crate::tag::update(params.id, params.profile_id, data.title)
+                .build_postgres(PostgresQueryBuilder);
+
+            let stmt = client
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = client
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             if count == 0 {
                 return Err(Error::NotFound(params.id));
             }
@@ -94,16 +134,24 @@ impl Deletable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let count = {
-            let (sql, values) = crate::tag::delete_by_id(params.id, params.profile_id)
-                .build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
-                .await
-                .map(|e| e.rows_affected())
-                .map_err(|e| Error::Unknown(e.into()))?
-        };
+        let (sql, values) = crate::tag::delete_by_id(params.id, params.profile_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let count = client
+            .execute(&stmt, &values.as_params())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         if count == 0 {
             return Err(Error::NotFound(params.id));
         }
@@ -114,21 +162,16 @@ impl Deletable for PostgresTagRepository {
 
 impl TagRepository for PostgresTagRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct TagSelect {
-    id: Uuid,
-    title: String,
-    bookmark_count: i64,
-    feed_count: i64,
-}
+#[derive(Debug, Clone)]
+struct TagSelect(Tag);
 
-impl From<TagSelect> for colette_core::Tag {
-    fn from(value: TagSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            bookmark_count: Some(value.bookmark_count),
-            feed_count: Some(value.feed_count),
-        }
+impl From<Row> for TagSelect {
+    fn from(value: Row) -> Self {
+        Self(Tag {
+            id: value.get("id"),
+            title: value.get("title"),
+            bookmark_count: Some(value.get("bookmark_count")),
+            feed_count: Some(value.get("feed_count")),
+        })
     }
 }

@@ -27,6 +27,7 @@ use colette_scraper::{
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
+use deadpool_postgres::{tokio_postgres::NoTls, Config, Runtime};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -64,16 +65,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     sqlx::migrate!("./migrations").run(&pool).await?;
 
+    let session_repository = PostgresSessionRepository::new(pool);
+
+    let mut config = Config::new();
+    config.url = Some(app_config.database_url);
+    let pool = config.create_pool(Some(Runtime::Tokio1), NoTls)?;
+
     let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
     let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
     let feed_repository = Box::new(PostgresFeedRepository::new(pool.clone()));
     let feed_entry_repository = Box::new(PostgresFeedEntryRepository::new(pool.clone()));
     let profile_repository = Box::new(PostgresProfileRepository::new(pool.clone()));
     let scraper_repository = Box::new(PostgresScraperRepository::new(pool.clone()));
-    let session_repository = PostgresSessionRepository::new(pool.clone());
     let smart_feed_repository = Box::new(PostgresSmartFeedRepository::new(pool.clone()));
     let tag_repository = Box::new(PostgresTagRepository::new(pool.clone()));
-    let user_repository = Box::new(PostgresUserRepository::new(pool.clone()));
+    let user_repository = Box::new(PostgresUserRepository::new(pool));
 
     let client = reqwest::Client::new();
     let downloader = Box::new(DefaultDownloader::new(client.clone()));

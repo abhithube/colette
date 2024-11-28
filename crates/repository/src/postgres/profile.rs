@@ -6,18 +6,21 @@ use colette_core::{
     },
     Profile,
 };
+use deadpool_postgres::{
+    tokio_postgres::{error::SqlState, Row},
+    Pool,
+};
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgPool;
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresProfileRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresProfileRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -28,6 +31,12 @@ impl Findable for PostgresProfileRepository {
     type Output = Result<Vec<Profile>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let (sql, values) = crate::profile::select(
             params.id,
             params.user_id,
@@ -35,12 +44,21 @@ impl Findable for PostgresProfileRepository {
             params.cursor,
             params.limit,
         )
-        .build_sqlx(PostgresQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_as_with::<_, ProfileSelect, _>(&sql, values)
-            .fetch_all(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map(|e| e.into_iter().map(Profile::from).collect::<Vec<_>>())
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| ProfileSelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
             .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -51,17 +69,31 @@ impl Creatable for PostgresProfileRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         let (sql, values) =
             crate::profile::insert(None, data.title.clone(), data.image_url, None, data.user_id)
-                .build_sqlx(PostgresQueryBuilder);
+                .build_postgres(PostgresQueryBuilder);
 
-        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-            .fetch_one(&self.pool)
+        let stmt = client
+            .prepare_cached(&sql)
             .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = client
+            .query_one(&stmt, &values.as_params())
+            .await
+            .map(|e| e.get::<_, Uuid>("id"))
+            .map_err(|e| match e.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.title),
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        Ok(id)
     }
 }
 
@@ -72,18 +104,26 @@ impl Updatable for PostgresProfileRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() || data.image_url.is_some() {
-            let count = {
-                let (sql, values) =
-                    crate::profile::update(params.id, params.user_id, data.title, data.image_url)
-                        .build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-                sqlx::query_with(&sql, values)
-                    .execute(&self.pool)
-                    .await
-                    .map(|e| e.rows_affected())
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
+        if data.title.is_some() || data.image_url.is_some() {
+            let (sql, values) =
+                crate::profile::update(params.id, params.user_id, data.title, data.image_url)
+                    .build_postgres(PostgresQueryBuilder);
+
+            let stmt = client
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = client
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             if count == 0 {
                 return Err(Error::NotFound(params.id));
             }
@@ -115,11 +155,22 @@ impl Deletable for PostgresProfileRepository {
             return Err(Error::DeletingDefault);
         }
 
-        let (sql, values) =
-            crate::profile::delete(params.id, params.user_id).build_sqlx(PostgresQueryBuilder);
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        let (sql, values) =
+            crate::profile::delete(params.id, params.user_id).build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .execute(&stmt, &values.as_params())
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -129,23 +180,17 @@ impl Deletable for PostgresProfileRepository {
 
 impl ProfileRepository for PostgresProfileRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-pub(crate) struct ProfileSelect {
-    id: Uuid,
-    title: String,
-    image_url: Option<String>,
-    is_default: bool,
-    user_id: Uuid,
-}
+#[derive(Debug, Clone)]
+pub(crate) struct ProfileSelect(Profile);
 
-impl From<ProfileSelect> for colette_core::Profile {
-    fn from(value: ProfileSelect) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            image_url: value.image_url,
-            is_default: value.is_default,
-            user_id: value.user_id,
-        }
+impl From<Row> for ProfileSelect {
+    fn from(value: Row) -> Self {
+        Self(Profile {
+            id: value.get("id"),
+            title: value.get("title"),
+            image_url: value.get("image_url"),
+            is_default: value.get("is_default"),
+            user_id: value.get("user_id"),
+        })
     }
 }

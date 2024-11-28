@@ -3,18 +3,21 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserFindParams, UserRepository},
     User,
 };
+use deadpool_postgres::{
+    tokio_postgres::{error::SqlState, Row},
+    Pool,
+};
 use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::PgPool;
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresUserRepository {
-    pool: PgPool,
+    pool: Pool,
 }
 
 impl PostgresUserRepository {
-    pub fn new(pool: PgPool) -> Self {
+    pub fn new(pool: Pool) -> Self {
         Self { pool }
     }
 }
@@ -25,32 +28,50 @@ impl Findable for PostgresUserRepository {
     type Output = Result<User, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
         match params {
             UserFindParams::Id(id) => {
                 let (sql, values) =
-                    crate::user::select(Some(id), None).build_sqlx(PostgresQueryBuilder);
+                    crate::user::select(Some(id), None).build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
-                    .fetch_one(&self.pool)
+                let stmt = client
+                    .prepare_cached(&sql)
                     .await
-                    .map(User::from)
-                    .map_err(|e| match e {
-                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
-                        _ => Error::Unknown(e.into()),
-                    })
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                if let Some(row) = client
+                    .query_opt(&stmt, &values.as_params())
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                {
+                    Ok(UserSelect::from(row).0)
+                } else {
+                    Err(Error::NotFound(NotFoundError::Id(id)))
+                }
             }
             UserFindParams::Email(email) => {
-                let (sql, values) =
-                    crate::user::select(None, Some(email.clone())).build_sqlx(PostgresQueryBuilder);
+                let (sql, values) = crate::user::select(None, Some(email.clone()))
+                    .build_postgres(PostgresQueryBuilder);
 
-                sqlx::query_as_with::<_, UserSelect, _>(&sql, values)
-                    .fetch_one(&self.pool)
+                let stmt = client
+                    .prepare_cached(&sql)
                     .await
-                    .map(User::from)
-                    .map_err(|e| match e {
-                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
-                        _ => Error::Unknown(e.into()),
-                    })
+                    .map_err(|e| Error::Unknown(e.into()))?;
+
+                if let Some(row) = client
+                    .query_opt(&stmt, &values.as_params())
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
+                {
+                    Ok(UserSelect::from(row).0)
+                } else {
+                    Err(Error::NotFound(NotFoundError::Email(email)))
+                }
             }
         }
     }
@@ -62,34 +83,49 @@ impl Creatable for PostgresUserRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
+        let mut client = self
             .pool
-            .begin()
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let tx = client
+            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let id = {
             let (sql, values) = crate::user::insert(None, data.email.clone(), data.password)
-                .build_sqlx(PostgresQueryBuilder);
+                .build_postgres(PostgresQueryBuilder);
 
-            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_one(&mut *tx)
+            let stmt = tx
+                .prepare_cached(&sql)
                 .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(data.email)
-                    }
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let row = tx
+                .query_one(&stmt, &values.as_params())
+                .await
+                .map_err(|e| match e.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.email),
                     _ => Error::Unknown(e.into()),
-                })?
+                })?;
+
+            row.try_get::<_, Uuid>("id")
+                .map_err(|e| Error::Unknown(e.into()))?
         };
 
         {
             let (sql, values) =
                 crate::profile::insert(None, "Default".to_owned(), None, Some(true), id)
-                    .build_sqlx(PostgresQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            tx.execute(&stmt, &values.as_params())
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -102,19 +138,15 @@ impl Creatable for PostgresUserRepository {
 
 impl UserRepository for PostgresUserRepository {}
 
-#[derive(Debug, Clone, sqlx::FromRow)]
-struct UserSelect {
-    id: Uuid,
-    email: String,
-    password: String,
-}
+#[derive(Debug, Clone)]
+struct UserSelect(User);
 
-impl From<UserSelect> for colette_core::User {
-    fn from(value: UserSelect) -> Self {
-        Self {
-            id: value.id,
-            email: value.email,
-            password: value.password,
-        }
+impl From<Row> for UserSelect {
+    fn from(value: Row) -> Self {
+        Self(User {
+            id: value.get("id"),
+            email: value.get("email"),
+            password: value.get("password"),
+        })
     }
 }
