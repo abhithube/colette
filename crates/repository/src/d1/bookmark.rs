@@ -71,8 +71,8 @@ impl Creatable for D1BookmarkRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let bookmark_id = {
-            let (sql, values) = crate::bookmark::select_by_link(data.url.clone())
-                .build_d1(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::bookmark::select_by_link(data.url.clone()).build_d1(SqliteQueryBuilder);
 
             let Some(id) = super::first::<i32>(&self.db, sql, values, Some("id"))
                 .await
@@ -247,7 +247,7 @@ struct BookmarkSelect {
     pub tags: Option<String>,
 }
 
-impl From<BookmarkSelect> for colette_core::Bookmark {
+impl From<BookmarkSelect> for Bookmark {
     fn from(value: BookmarkSelect) -> Self {
         Self {
             id: value.id,

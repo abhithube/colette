@@ -136,13 +136,9 @@ impl Updatable for D1FeedRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() || data.pinned.is_some() {
-            let (sql, values) = crate::profile_feed::update(
-                params.id,
-                params.profile_id,
-                data.title,
-                data.pinned,
-            )
-            .build_d1(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::profile_feed::update(params.id, params.profile_id, data.title, data.pinned)
+                    .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
                 .await
@@ -170,8 +166,8 @@ impl Deletable for D1FeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
-            .build_d1(SqliteQueryBuilder);
+        let (sql, values) =
+            crate::profile_feed::delete(params.id, params.profile_id).build_d1(SqliteQueryBuilder);
 
         let result = super::run(&self.db, sql, values)
             .await
@@ -214,8 +210,7 @@ pub(crate) async fn create_feed_with_entries(
         let link = feed.link.to_string();
         let url = if url == link { None } else { Some(url) };
 
-        let (sql, values) =
-            crate::feed::insert(link, feed.title, url).build_d1(SqliteQueryBuilder);
+        let (sql, values) = crate::feed::insert(link, feed.title, url).build_d1(SqliteQueryBuilder);
 
         super::first::<i32>(db, sql, values, Some("id"))
             .await?
@@ -270,12 +265,10 @@ pub(crate) async fn link_entries_to_profiles(db: &D1Database, feed_id: i32) -> w
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
             .into_iter()
-            .map(
-                |feed_entry_id| crate::profile_feed_entry::InsertMany {
-                    id: Some(Uuid::new_v4()),
-                    feed_entry_id,
-                },
-            )
+            .map(|feed_entry_id| crate::profile_feed_entry::InsertMany {
+                id: Some(Uuid::new_v4()),
+                feed_entry_id,
+            })
             .collect::<Vec<_>>();
 
         let (sql, values) =
@@ -337,8 +330,7 @@ pub(crate) async fn link_tags(
     let queries: Vec<(String, D1Values)> = vec![
         crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
             .build_d1(SqliteQueryBuilder),
-        crate::profile_feed_tag::insert_many(&insert_many, profile_id)
-            .build_d1(SqliteQueryBuilder),
+        crate::profile_feed_tag::insert_many(&insert_many, profile_id).build_d1(SqliteQueryBuilder),
     ];
 
     super::batch(db, queries).await?;
@@ -358,7 +350,7 @@ struct FeedSelect {
     pub unread_count: i64,
 }
 
-impl From<FeedSelect> for colette_core::Feed {
+impl From<FeedSelect> for Feed {
     fn from(value: FeedSelect) -> Self {
         Self {
             id: value.id,

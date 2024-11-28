@@ -134,7 +134,7 @@ impl Creatable for SqliteUserRepository {
 impl UserRepository for SqliteUserRepository {}
 
 #[derive(Debug, Clone)]
-struct UserSelect(colette_core::User);
+struct UserSelect(User);
 
 impl TryFrom<&Row<'_>> for UserSelect {
     type Error = rusqlite::Error;

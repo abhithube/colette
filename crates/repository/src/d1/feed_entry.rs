@@ -47,7 +47,7 @@ impl Findable for D1FeedEntryRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         result
-            .results::<EntrySelect>()
+            .results::<FeedEntrySelect>()
             .map(|e| e.into_iter().map(FeedEntry::from).collect())
             .map_err(|e| Error::Unknown(e.into()))
     }
@@ -61,12 +61,9 @@ impl Updatable for D1FeedEntryRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.has_read.is_some() {
-            let (sql, values) = crate::profile_feed_entry::update(
-                params.id,
-                params.profile_id,
-                data.has_read,
-            )
-            .build_d1(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::profile_feed_entry::update(params.id, params.profile_id, data.has_read)
+                    .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
                 .await
@@ -86,7 +83,7 @@ impl Updatable for D1FeedEntryRepository {
 impl FeedEntryRepository for D1FeedEntryRepository {}
 
 #[derive(Debug, Clone, serde::Deserialize)]
-struct EntrySelect {
+struct FeedEntrySelect {
     id: Uuid,
     link: String,
     title: String,
@@ -98,8 +95,8 @@ struct EntrySelect {
     profile_feed_id: Uuid,
 }
 
-impl From<EntrySelect> for colette_core::FeedEntry {
-    fn from(value: EntrySelect) -> Self {
+impl From<FeedEntrySelect> for FeedEntry {
+    fn from(value: FeedEntrySelect) -> Self {
         Self {
             id: value.id,
             link: value.link,
