@@ -1,0 +1,21 @@
+[package]
+name = "colette-session"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+deadpool-postgres = { workspace = true, optional = true }
+sea-query = { workspace = true, features = [
+  "backend-postgres",
+], optional = true }
+sea-query-postgres = { workspace = true, optional = true }
+serde_json.workspace = true
+tower-sessions-core.workspace = true
+worker = { workspace = true, optional = true }
+
+[features]
+default = ["postgres"]
+postgres = ["dep:deadpool-postgres", "dep:sea-query", "dep:sea-query-postgres"]
+cloudflare = ["dep:worker"]

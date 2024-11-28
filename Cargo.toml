@@ -17,6 +17,7 @@ members = [
   "crates/queue",
   "crates/repository",
   "crates/scraper",
+  "crates/session",
   "crates/task",
   "crates/util",
   "crates/worker",
@@ -51,6 +52,7 @@ colette-plugins.path = "crates/plugins"
 colette-queue = { path = "crates/queue", default-features = false }
 colette-repository = { path = "crates/repository", default-features = false }
 colette-scraper.path = "crates/scraper"
+colette-session.path = "crates/session"
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
@@ -80,6 +82,11 @@ sea-query = { version = "0.32", default-features = false, features = [
   "with-uuid",
 ] }
 sea-query-binder = { version = "0.7", default-features = false, features = [
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
+sea-query-postgres = { version = "0.5", default-features = false, features = [
   "with-chrono",
   "with-json",
   "with-uuid",
