@@ -804,6 +804,7 @@ dependencies = [
  "colette-util",
  "colette-worker",
  "deadpool-postgres",
+ "refinery",
  "reqwest",
  "rust-embed",
  "sqlx",
@@ -3846,6 +3847,8 @@ dependencies = [
  "siphasher 1.0.1",
  "thiserror 1.0.69",
  "time",
+ "tokio",
+ "tokio-postgres",
  "url",
  "walkdir",
 ]

@@ -20,6 +20,7 @@ colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true
 deadpool-postgres.workspace = true
+refinery = { workspace = true, features = ["tokio-postgres"] }
 reqwest.workspace = true
 rust-embed = { version = "8", default-features = false, features = [
   "interpolate-folder-path",

@@ -68,6 +68,7 @@ futures = { version = "0.3", default-features = false }
 html5gum = { version = "0.5", default-features = false }
 http = { version = "1", default-features = false, features = ["std"] }
 quick-xml = { version = "0.37", default-features = false }
+refinery = { git = "https://github.com/rust-db/refinery.git", default-features = false }
 reqwest = { version = "0.12", default-features = false, features = [
   "rustls-tls",
 ] }
@@ -86,8 +87,6 @@ sea-query-binder = { version = "0.7", default-features = false, features = [
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
 sqlx = { version = "0.8", default-features = false, features = [
-  "macros",
-  "migrate",
   "runtime-tokio",
 ] }
 thiserror = { version = "1", default-features = false }

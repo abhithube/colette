@@ -25,9 +25,7 @@ colette-util.workspace = true
 colette-worker.workspace = true
 deadpool-sqlite.workspace = true
 email_address.workspace = true
-refinery = { git = "https://github.com/rust-db/refinery.git", default-features = false, features = [
-  "rusqlite",
-] }
+refinery = { workspace = true, features = ["rusqlite"] }
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true

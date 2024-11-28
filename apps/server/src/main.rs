@@ -1,4 +1,4 @@
-use std::{error::Error, future::Future, pin::Pin};
+use std::{error::Error, future::Future, ops::DerefMut, pin::Pin};
 
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -28,6 +28,7 @@ use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmar
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
 use deadpool_postgres::{tokio_postgres::NoTls, Config, Runtime};
+use refinery::embed_migrations;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -38,6 +39,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist"]
 struct Asset;
+
+embed_migrations!("./migrations");
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -63,13 +66,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let pool = sqlx::PgPool::connect(&app_config.database_url).await?;
 
-    sqlx::migrate!("./migrations").run(&pool).await?;
-
     let session_repository = PostgresSessionRepository::new(pool);
 
     let mut config = Config::new();
     config.url = Some(app_config.database_url);
     let pool = config.create_pool(Some(Runtime::Tokio1), NoTls)?;
+
+    let mut client = pool.get().await?;
+    let client = client.deref_mut().deref_mut();
+    migrations::runner().run_async(client).await?;
 
     let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
     let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
