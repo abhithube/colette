@@ -13,7 +13,6 @@ deadpool-postgres = { workspace = true, optional = true }
 deadpool-sqlite = { workspace = true, optional = true }
 futures.workspace = true
 sea-query.workspace = true
-sea-query-binder = { workspace = true, optional = true }
 sea-query-postgres = { workspace = true, optional = true }
 sea-query-rusqlite = { version = "0.7", default-features = false, features = [
   "with-chrono",

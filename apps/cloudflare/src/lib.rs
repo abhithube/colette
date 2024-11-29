@@ -19,17 +19,16 @@ use colette_repository::d1::{
     D1ProfileRepository, D1SmartFeedRepository, D1TagRepository, D1UserRepository,
 };
 use colette_scraper::{bookmark::DefaultBookmarkScraper, feed::DefaultFeedScraper};
+use colette_session::kv::KvSessionStore;
 use colette_task::{import_bookmarks, import_feeds};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use downloader::DefaultDownloader;
-use kv::store::KvSessionStore;
 use time::Duration;
 use tower::Service;
 use tower_sessions::{Expiry, SessionManagerLayer};
 use worker::{Context, Env, HttpRequest};
 
 mod downloader;
-mod kv;
 
 #[worker::event(fetch)]
 async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Response<Body>> {

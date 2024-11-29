@@ -13,7 +13,6 @@ members = [
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
-  "crates/postgres",
   "crates/queue",
   "crates/repository",
   "crates/scraper",
@@ -47,12 +46,11 @@ colette-feed.path = "crates/feed"
 colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
-colette-postgres.path = "crates/postgres"
 colette-plugins.path = "crates/plugins"
 colette-queue = { path = "crates/queue", default-features = false }
 colette-repository = { path = "crates/repository", default-features = false }
 colette-scraper.path = "crates/scraper"
-colette-session.path = "crates/session"
+colette-session = { path = "crates/session", default-features = false }
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
@@ -81,11 +79,6 @@ sea-query = { version = "0.32", default-features = false, features = [
   "with-json",
   "with-uuid",
 ] }
-sea-query-binder = { version = "0.7", default-features = false, features = [
-  "with-chrono",
-  "with-json",
-  "with-uuid",
-] }
 sea-query-postgres = { version = "0.5", default-features = false, features = [
   "with-chrono",
   "with-json",
@@ -93,9 +86,6 @@ sea-query-postgres = { version = "0.5", default-features = false, features = [
 ] }
 serde = { version = "1", default-features = false }
 serde_json = { version = "1", default-features = false }
-sqlx = { version = "0.8", default-features = false, features = [
-  "runtime-tokio",
-] }
 thiserror = { version = "1", default-features = false }
 tokio = { version = "1", default-features = false, features = ["macros"] }
 tower = { version = "0.5", default-features = false, features = [
