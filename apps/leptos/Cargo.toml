@@ -8,32 +8,72 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, features = ["tokio"], optional = true }
+colette-api = { workspace = true, optional = true }
+colette-backup = { workspace = true, optional = true }
+colette-config = { workspace = true, optional = true }
+colette-core = { workspace = true, optional = true }
+colette-plugins = { workspace = true, optional = true }
+colette-queue = { workspace = true, features = ["in-memory"], optional = true }
+colette-repository = { workspace = true, features = [
+  "postgres",
+], optional = true }
+colette-scraper = { workspace = true, optional = true }
+colette-session = { workspace = true, features = ["postgres"], optional = true }
+colette-task = { workspace = true, optional = true }
+colette-util = { workspace = true, optional = true }
+colette-worker = { workspace = true, optional = true }
 console_error_panic_hook = "0.1"
+deadpool-postgres = { workspace = true, optional = true }
 http.workspace = true
 leptos = { version = "0.7" }
 leptos_axum = { version = "0.7", optional = true }
 leptos_meta = { version = "0.7" }
 leptos_router = { version = "0.7" }
+reqwest = { workspace = true, optional = true }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower = { workspace = true, optional = true }
-tower-http = { version = "0.6", features = ["fs"], optional = true }
+tower-http = { version = "0.6", features = [
+  "cors",
+  "fs",
+  "trace",
+], optional = true }
+tower-sessions = { workspace = true, optional = true }
+tower-sessions-core = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
+tracing-subscriber = { workspace = true, optional = true }
 wasm-bindgen = "=0.2.96"
 
 [features]
-hydrate = ["leptos/hydrate"]
 ssr = [
   "dep:axum",
+  "dep:colette-api",
+  "dep:colette-backup",
+  "dep:colette-config",
+  "dep:colette-core",
+  "dep:colette-plugins",
+  "dep:colette-queue",
+  "dep:colette-repository",
+  "dep:colette-scraper",
+  "dep:colette-session",
+  "dep:colette-task",
+  "dep:colette-util",
+  "dep:colette-worker",
+  "dep:deadpool-postgres",
   "leptos/ssr",
   "dep:leptos_axum",
   "leptos_meta/ssr",
   "leptos_router/ssr",
+  "dep:reqwest",
   "dep:tokio",
   "dep:tower",
   "dep:tower-http",
+  "dep:tower-sessions",
+  "dep:tower-sessions-core",
   "dep:tracing",
+  "dep:tracing-subscriber",
 ]
+hydrate = ["leptos/hydrate"]
 
 [package.metadata.leptos]
 # The name used by wasm-bindgen/cargo-leptos for the JS/WASM bundle. Defaults to the crate name
