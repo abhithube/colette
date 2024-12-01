@@ -6,6 +6,11 @@ config.default_to_workspace = false
 command = "cargo"
 args = ["run", "-p", "colette-server"]
 
+[tasks.watch]
+install_crate = "cargo-leptos"
+command = "cargo"
+args = ["leptos", "watch", "-p", "colette-leptos"]
+
 [tasks.tauri-dev]
 command = "npm"
 args = ["run", "tauri", "dev", "--workspace=@colette/desktop"]
