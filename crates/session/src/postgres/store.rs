@@ -28,27 +28,22 @@ impl SessionStore for PostgresSessionStore {
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
         let expires_at = SystemTime::from(record.expiry_date);
 
-        let mut client = self
+        let client = self
             .pool
             .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        let tx = client
-            .transaction()
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
         let (sql, _) = query::insert(record.id.to_string(), &payload, expires_at.into())
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = tx
+        let stmt = client
             .prepare_cached(&sql)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
         loop {
-            match tx
+            match client
                 .execute(&stmt, &[&record.id.to_string(), &payload, &expires_at])
                 .await
             {
