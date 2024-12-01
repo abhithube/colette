@@ -10,7 +10,7 @@ use deadpool_sqlite::{
     rusqlite::{self, types::Value, Connection, OptionalExtension, Row},
     Pool,
 };
-use futures::stream::BoxStream;
+use futures::{stream::{self, BoxStream}, StreamExt};
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
 use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
@@ -251,8 +251,31 @@ impl FeedRepository for SqliteFeedRepository {
         .map_err(|e| Error::Unknown(e.into()))
     }
 
-    fn stream(&self) -> BoxStream<Result<String, Error>> {
-        todo!()
+    async fn stream(&self) -> Result<BoxStream<String>, Error> {
+        let conn = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+         conn.interact(move |conn| {
+            let (sql, values) = crate::feed::iterate().build_rusqlite(SqliteQueryBuilder);
+
+            let mut stmt = conn.prepare_cached(&sql)?;
+            let mut rows = stmt.query(&*values.as_params())?;
+
+            let mut urls: Vec<String> = Vec::new();
+            while let Some(row) = rows.next()? {
+                urls.push(row.get::<_, String>("url")?);
+            }
+
+            Ok(stream::iter(urls).boxed())
+        })
+        .await
+        .unwrap()
+        .map_err(|e: rusqlite::Error| Error::Unknown(e.into()))
+        
+        
     }
 }
 

@@ -1,6 +1,8 @@
 use std::fmt::Write;
 
-use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use sea_query::{Alias, Expr, Func, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+
+use crate::profile_feed::ProfileFeed;
 
 #[allow(dead_code)]
 pub enum Feed {
@@ -60,5 +62,23 @@ pub fn insert(link: String, title: String, url: Option<String>) -> InsertStateme
                 .to_owned(),
         )
         .returning_col(Feed::Id)
+        .to_owned()
+}
+
+pub fn iterate() -> SelectStatement {
+    Query::select()
+        .expr_as(
+            Func::coalesce([
+                Expr::col((Feed::Table, Feed::Url)).into(),
+                Expr::col((Feed::Table, Feed::Link)).into(),
+            ]),
+            Alias::new("url"),
+        )
+        .from(Feed::Table)
+        .inner_join(
+            ProfileFeed::Table,
+            Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))
+                .eq(Expr::col((Feed::Table, Feed::Id))),
+        )
         .to_owned()
 }

@@ -8,7 +8,10 @@ use colette_core::{
     },
     Feed,
 };
-use futures::stream::BoxStream;
+use futures::{
+    stream::{self, BoxStream},
+    StreamExt,
+};
 use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
 use uuid::Uuid;
 use worker::D1Database;
@@ -194,8 +197,27 @@ impl FeedRepository for D1FeedRepository {
         Ok(())
     }
 
-    fn stream(&self) -> BoxStream<Result<String, Error>> {
-        todo!()
+    async fn stream(&self) -> Result<BoxStream<String>, Error> {
+        let (sql, values) = crate::feed::iterate().build_d1(SqliteQueryBuilder);
+
+        let rows = super::all(&self.db, sql, values)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let urls = {
+            #[derive(serde::Deserialize)]
+            struct Feed {
+                url: String,
+            }
+
+            rows.results::<Feed>()
+                .unwrap()
+                .into_iter()
+                .map(|e| e.url)
+                .collect::<Vec<_>>()
+        };
+
+        Ok(stream::iter(urls).boxed())
     }
 }
 

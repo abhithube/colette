@@ -170,8 +170,8 @@ impl FeedService {
         })
     }
 
-    pub fn stream(&self) -> BoxStream<Result<String, Error>> {
-        self.repository.stream()
+    pub async fn stream(&self) -> Result<BoxStream<String>, Error> {
+        self.repository.stream().await
     }
 }
 
@@ -187,7 +187,7 @@ pub trait FeedRepository:
 {
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error>;
 
-    fn stream(&self) -> BoxStream<Result<String, Error>>;
+    async fn stream(&self) -> Result<BoxStream<String>, Error>;
 }
 
 dyn_clone::clone_trait_object!(FeedRepository);

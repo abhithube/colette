@@ -10,7 +10,10 @@ use deadpool_postgres::{
     tokio_postgres::{self, types::Json, Row},
     GenericClient, Pool,
 };
-use futures::stream::BoxStream;
+use futures::{
+    stream::{self, BoxStream},
+    StreamExt,
+};
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
 use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
@@ -266,8 +269,29 @@ impl FeedRepository for PostgresFeedRepository {
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
-    fn stream(&self) -> BoxStream<Result<String, Error>> {
-        todo!()
+    async fn stream(&self) -> Result<BoxStream<String>, Error> {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let (sql, values) = crate::feed::iterate().build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let rows = client
+            .query(&stmt, &values.as_params())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        let urls = stream::iter(rows)
+            .map(|row| row.get::<_, String>("url"))
+            .boxed();
+
+        Ok(urls)
     }
 }
 
