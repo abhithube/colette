@@ -1,0 +1,6 @@
+{
+	"name": "@colette/leptos",
+	"devDependencies": {
+		"tailwindcss": "^3"
+	}
+}
