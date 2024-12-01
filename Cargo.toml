@@ -2,6 +2,7 @@
 members = [
   "apps/cloudflare",
   "apps/desktop/src-tauri",
+  "apps/leptos",
   "apps/server",
 
   "crates/api",
