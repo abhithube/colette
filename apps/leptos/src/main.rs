@@ -14,7 +14,7 @@ async fn main() {
         feed_entry::FeedEntryService, profile::ProfileService, scraper::ScraperService,
         smart_feed::SmartFeedService, tag::TagService,
     };
-    use colette_leptos::app::*;
+    use colette_leptos::{app::*, AppState};
     use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
     use colette_queue::memory::InMemoryQueue;
     use colette_repository::postgres::{
@@ -148,23 +148,36 @@ async fn main() {
     let addr = conf.leptos_options.site_addr;
     let leptos_options = conf.leptos_options;
 
+    let app_state = AppState {
+        api_state: api_state.clone(),
+        leptos_options,
+    };
+
     let routes = generate_route_list(App);
 
     let mut app = Api::new(&api_state, &app_config.api_prefix)
         .build()
         .with_state(api_state)
+        .leptos_routes_with_context(
+            &app_state,
+            routes,
+            {
+                let api_state = app_state.api_state.clone();
+                move || provide_context(api_state.clone())
+            },
+            {
+                let leptos_options = app_state.leptos_options.clone();
+                move || shell(leptos_options.clone())
+            },
+        )
         .layer(
             SessionManagerLayer::new(session_store.clone())
                 .with_secure(false)
                 .with_expiry(Expiry::OnInactivity(Duration::days(1))),
         )
         .layer(TraceLayer::new_for_http())
-        .leptos_routes(&leptos_options, routes, {
-            let leptos_options = leptos_options.clone();
-            move || shell(leptos_options.clone())
-        })
-        .fallback(leptos_axum::file_and_error_handler(shell))
-        .with_state(leptos_options);
+        .fallback(leptos_axum::file_and_error_handler::<AppState, _>(shell))
+        .with_state(app_state);
 
     if !app_config.origin_urls.is_empty() {
         let origins = app_config
