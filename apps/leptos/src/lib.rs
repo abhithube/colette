@@ -1,4 +1,5 @@
 pub mod app;
+mod common;
 mod login;
 
 #[cfg(feature = "ssr")]

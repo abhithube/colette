@@ -31,6 +31,9 @@ leptos_meta = { version = "0.7" }
 leptos_router = { version = "0.7" }
 reqwest = { workspace = true, optional = true }
 serde.workspace = true
+tailwind_fuse = { version = "0.3", default-features = false, features = [
+  "variant",
+] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower = { workspace = true, optional = true }
