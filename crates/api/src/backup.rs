@@ -91,7 +91,7 @@ pub async fn import_opml(
 pub async fn export_opml(
     State(service): State<BackupService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ExportOpmlResponse, Error> {
     match service.export_opml(session.profile_id).await {
         Ok(data) => Ok(ExportOpmlResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -143,14 +143,14 @@ pub async fn import_netscape(
 pub async fn export_netscape(
     State(service): State<BackupService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ExportNetscapeResponse, Error> {
     match service.export_netscape(session.profile_id).await {
         Ok(data) => Ok(ExportNetscapeResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ImportResponse {
     #[response(status = 204, description = "Successfully started import")]
     NoContent,
@@ -164,7 +164,7 @@ impl IntoResponse for ImportResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ExportOpmlResponse {
     #[response(
         status = 200,
@@ -187,7 +187,7 @@ impl IntoResponse for ExportOpmlResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ExportNetscapeResponse {
     #[response(
         status = 200,

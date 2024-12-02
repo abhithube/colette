@@ -52,7 +52,7 @@ impl FeedApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Feed {
     pub id: Uuid,
@@ -86,7 +86,7 @@ impl From<colette_core::Feed> for Feed {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
     #[schema(format = "uri")]
@@ -107,7 +107,7 @@ impl From<FeedCreate> for feed::FeedCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
@@ -133,7 +133,7 @@ impl From<FeedUpdate> for feed::FeedUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct FeedListQuery {
@@ -159,7 +159,7 @@ impl From<FeedListQuery> for feed::FeedListQuery {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetect {
     #[schema(format = "uri")]
@@ -172,7 +172,7 @@ impl From<FeedDetect> for feed::FeedDetect {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetected {
     #[schema(format = "uri")]
@@ -203,7 +203,7 @@ pub async fn list_feeds(
     State(service): State<FeedService>,
     Query(query): Query<FeedListQuery>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service.list_feeds(query.into(), session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -224,7 +224,7 @@ pub async fn get_feed(
     State(service): State<FeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_feed(id, session.profile_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -250,7 +250,7 @@ pub async fn create_feed(
     State(service): State<FeedService>,
     session: Session,
     Json(body): Json<FeedCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<CreateResponse, Error> {
     match service.create_feed(body.into(), session.profile_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
@@ -278,7 +278,7 @@ pub async fn update_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FeedUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_feed(id, body.into(), session.profile_id)
         .await
@@ -307,7 +307,7 @@ pub async fn delete_feed(
     State(service): State<FeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DeleteResponse, Error> {
     match service.delete_feed(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
@@ -332,7 +332,7 @@ pub async fn delete_feed(
 pub async fn detect_feeds(
     State(service): State<FeedService>,
     Json(body): Json<FeedDetect>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DetectResponse, Error> {
     match service.detect_feeds(body.into()).await {
         Ok(data) => Ok(DetectResponse::Ok(data.into())),
         Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
@@ -342,7 +342,7 @@ pub async fn detect_feeds(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
     Ok(Paginated<Feed>),
@@ -356,7 +356,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Feed by ID")]
     Ok(Feed),
@@ -374,7 +374,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]
     Created(Feed),
@@ -396,7 +396,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated feed")]
     Ok(Feed),
@@ -418,7 +418,7 @@ impl IntoResponse for UpdateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted feed")]
     NoContent,
@@ -436,7 +436,7 @@ impl IntoResponse for DeleteResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DetectResponse {
     #[response(status = 201, description = "Detected feeds")]
     Ok(Paginated<FeedDetected>),

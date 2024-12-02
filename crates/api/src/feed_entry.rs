@@ -39,7 +39,7 @@ impl FeedEntryApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedEntry {
     pub id: Uuid,
@@ -73,7 +73,7 @@ impl From<colette_core::FeedEntry> for FeedEntry {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
@@ -87,7 +87,7 @@ impl From<FeedEntryUpdate> for feed_entry::FeedEntryUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct FeedEntryListQuery {
@@ -130,7 +130,7 @@ pub async fn list_feed_entries(
     State(service): State<FeedEntryService>,
     Query(query): Query<FeedEntryListQuery>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service
         .list_feed_entries(query.into(), session.profile_id)
         .await
@@ -154,7 +154,7 @@ pub async fn get_feed_entry(
     State(service): State<FeedEntryService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_feed_entry(id, session.profile_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -182,7 +182,7 @@ pub async fn update_feed_entry(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<FeedEntryUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_feed_entry(id, body.into(), session.profile_id)
         .await
@@ -197,7 +197,7 @@ pub async fn update_feed_entry(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of feed entries")]
     Ok(Paginated<FeedEntry>),
@@ -211,7 +211,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Feed entry by ID")]
     Ok(FeedEntry),
@@ -229,7 +229,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated feed entry")]
     Ok(FeedEntry),

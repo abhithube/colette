@@ -40,7 +40,7 @@ impl TagApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Tag {
     pub id: Uuid,
@@ -64,7 +64,7 @@ impl From<colette_core::Tag> for Tag {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagCreate {
     #[schema(value_type = String, min_length = 1)]
@@ -77,7 +77,7 @@ impl From<TagCreate> for tag::TagCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
@@ -90,7 +90,7 @@ impl From<TagUpdate> for tag::TagUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct TagListQuery {
@@ -107,7 +107,7 @@ impl From<TagListQuery> for tag::TagListQuery {
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum TagType {
     #[default]
@@ -140,7 +140,7 @@ pub async fn list_tags(
     State(service): State<TagService>,
     Query(query): Query<TagListQuery>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service.list_tags(query.into(), session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -161,7 +161,7 @@ pub async fn get_tag(
     State(service): State<TagService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_tag(id, session.profile_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -187,7 +187,7 @@ pub async fn create_tag(
     State(service): State<TagService>,
     session: Session,
     Json(body): Json<TagCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<CreateResponse, Error> {
     match service.create_tag(body.into(), session.profile_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
@@ -215,7 +215,7 @@ pub async fn update_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<TagUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_tag(id, body.into(), session.profile_id)
         .await
@@ -244,7 +244,7 @@ pub async fn delete_tag(
     State(service): State<TagService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DeleteResponse, Error> {
     match service.delete_tag(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
@@ -256,7 +256,7 @@ pub async fn delete_tag(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of tags")]
     Ok(Paginated<Tag>),
@@ -270,7 +270,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Tag by ID")]
     Ok(Tag),
@@ -288,7 +288,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created tag")]
     Created(Tag),
@@ -310,7 +310,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated tag")]
     Ok(Tag),
@@ -332,7 +332,7 @@ impl IntoResponse for UpdateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted tag")]
     NoContent,

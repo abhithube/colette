@@ -45,7 +45,7 @@ impl AuthApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct User {
     pub id: Uuid,
@@ -62,7 +62,7 @@ impl From<colette_core::User> for User {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(value_type = String, format = "email")]
@@ -80,7 +80,7 @@ impl From<Register> for auth::Register {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
     #[schema(value_type = String, format = "email")]
@@ -98,7 +98,7 @@ impl From<Login> for auth::Login {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SwitchProfile {
     pub id: Uuid,
@@ -123,7 +123,7 @@ impl From<SwitchProfile> for auth::SwitchProfile {
 pub async fn register(
     State(service): State<AuthService>,
     Json(body): Json<Register>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<RegisterResponse, Error> {
     match service.register(body.into()).await {
         Ok(data) => Ok(RegisterResponse::Created(data.into())),
         Err(e) => match e {
@@ -151,7 +151,7 @@ pub async fn login(
     State(service): State<AuthService>,
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<LoginResponse, Error> {
     match service.login(body.into()).await {
         Ok(data) => {
             let session = Session {
@@ -183,7 +183,7 @@ pub async fn login(
 pub async fn get_active_user(
     State(service): State<AuthService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetActiveResponse, Error> {
     match service.get_active(session.user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -205,7 +205,7 @@ pub async fn switch_profile(
     session_store: tower_sessions::Session,
     session: Session,
     Json(body): Json<SwitchProfile>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<SwitchProfileResponse, Error> {
     match service.switch_profile(body.into(), session.user_id).await {
         Ok(data) => {
             let session = Session {
@@ -234,13 +234,13 @@ pub async fn switch_profile(
     tag = AUTH_TAG
 )]
 #[axum::debug_handler]
-pub async fn logout(session_store: tower_sessions::Session) -> Result<impl IntoResponse, Error> {
+pub async fn logout(session_store: tower_sessions::Session) -> Result<LogoutResponse, Error> {
     session_store.delete().await?;
 
     Ok(LogoutResponse::NoContent)
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]
     Created(User),
@@ -262,7 +262,7 @@ impl IntoResponse for RegisterResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum LoginResponse {
     #[response(status = 200, description = "Default profile")]
     Ok(Profile),
@@ -284,7 +284,7 @@ impl IntoResponse for LoginResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetActiveResponse {
     #[response(status = 200, description = "Active user")]
     Ok(User),
@@ -298,7 +298,7 @@ impl IntoResponse for GetActiveResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum SwitchProfileResponse {
     #[response(status = 200, description = "Selected profile")]
     Ok(Profile),
@@ -320,7 +320,7 @@ impl IntoResponse for SwitchProfileResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum LogoutResponse {
     #[response(status = 204, description = "Successfully logged out")]
     NoContent,

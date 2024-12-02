@@ -54,7 +54,7 @@ impl SmartFeedApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeed {
     pub id: Uuid,
@@ -73,7 +73,7 @@ impl From<colette_core::SmartFeed> for SmartFeed {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeedCreate {
     #[schema(value_type = String, min_length = 1)]
@@ -93,7 +93,7 @@ impl From<SmartFeedCreate> for smart_feed::SmartFeedCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
@@ -113,7 +113,7 @@ impl From<SmartFeedUpdate> for smart_feed::SmartFeedUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "field", content = "operation")]
 pub enum SmartFeedFilter {
     Link(TextOperation),
@@ -137,7 +137,7 @@ impl From<SmartFeedFilter> for smart_feed::SmartFeedFilter {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum TextOperation {
     Equals(String),
@@ -157,7 +157,7 @@ impl From<TextOperation> for smart_feed::TextOperation {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BooleanOperation {
     pub value: bool,
@@ -169,7 +169,7 @@ impl From<BooleanOperation> for smart_feed::BooleanOperation {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum DateOperation {
     Equals(DateTime<Utc>),
@@ -201,7 +201,7 @@ impl From<DateOperation> for smart_feed::DateOperation {
 pub async fn list_smart_feeds(
     State(service): State<SmartFeedService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service.list_smart_feeds(session.profile_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -222,7 +222,7 @@ pub async fn get_smart_feed(
     State(service): State<SmartFeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_smart_feed(id, session.profile_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -248,7 +248,7 @@ pub async fn create_smart_feed(
     State(service): State<SmartFeedService>,
     session: Session,
     Json(body): Json<SmartFeedCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<CreateResponse, Error> {
     match service
         .create_smart_feed(body.into(), session.profile_id)
         .await
@@ -274,7 +274,7 @@ pub async fn update_smart_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<SmartFeedUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_smart_feed(id, body.into(), session.profile_id)
         .await
@@ -303,7 +303,7 @@ pub async fn delete_smart_feed(
     State(service): State<SmartFeedService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DeleteResponse, Error> {
     match service.delete_smart_feed(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
@@ -315,7 +315,7 @@ pub async fn delete_smart_feed(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of smart feeds")]
     Ok(Paginated<SmartFeed>),
@@ -329,7 +329,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Smart feed by ID")]
     Ok(SmartFeed),
@@ -347,7 +347,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created smart feed")]
     Created(SmartFeed),
@@ -365,7 +365,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated smart feed")]
     Ok(SmartFeed),
@@ -387,7 +387,7 @@ impl IntoResponse for UpdateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted smart feed")]
     NoContent,

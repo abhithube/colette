@@ -45,7 +45,7 @@ impl BookmarkApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
     pub id: Uuid,
@@ -78,7 +78,7 @@ impl From<colette_core::Bookmark> for Bookmark {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
@@ -96,7 +96,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
@@ -109,7 +109,7 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {
@@ -135,7 +135,7 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkScrape {
     #[schema(format = "uri")]
@@ -148,7 +148,7 @@ impl From<BookmarkScrape> for bookmark::BookmarkScrape {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkScraped {
     #[schema(format = "uri")]
@@ -188,7 +188,7 @@ pub async fn list_bookmarks(
     State(service): State<BookmarkService>,
     Query(query): Query<BookmarkListQuery>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service
         .list_bookmarks(query.into(), session.profile_id)
         .await
@@ -212,7 +212,7 @@ pub async fn get_bookmark(
     State(service): State<BookmarkService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_bookmark(id, session.profile_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -238,7 +238,7 @@ pub async fn create_bookmark(
     State(service): State<BookmarkService>,
     session: Session,
     Json(body): Json<BookmarkCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<CreateResponse, Error> {
     match service
         .create_bookmark(body.into(), session.profile_id)
         .await
@@ -269,7 +269,7 @@ pub async fn update_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<BookmarkUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_bookmark(id, body.into(), session.profile_id)
         .await
@@ -298,7 +298,7 @@ pub async fn delete_bookmark(
     State(service): State<BookmarkService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DeleteResponse, Error> {
     match service.delete_bookmark(id, session.profile_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
@@ -323,7 +323,7 @@ pub async fn delete_bookmark(
 pub async fn scrape_bookmark(
     State(service): State<BookmarkService>,
     Json(body): Json<BookmarkScrape>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ScrapeResponse, Error> {
     match service.scrape_bookmark(body.into()).await {
         Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
         Err(bookmark::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
@@ -333,7 +333,7 @@ pub async fn scrape_bookmark(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of bookmarks")]
     Ok(Paginated<Bookmark>),
@@ -347,7 +347,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Bookmark by ID")]
     Ok(Bookmark),
@@ -365,7 +365,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
     Created(Box<Bookmark>),
@@ -387,7 +387,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated bookmark")]
     Ok(Box<Bookmark>),
@@ -409,7 +409,7 @@ impl IntoResponse for UpdateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted bookmark")]
     NoContent,
@@ -427,7 +427,7 @@ impl IntoResponse for DeleteResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ScrapeResponse {
     #[response(status = 201, description = "Scraped bookmark")]
     Ok(BookmarkScraped),

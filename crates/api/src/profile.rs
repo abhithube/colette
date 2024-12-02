@@ -42,7 +42,7 @@ impl ProfileApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
     pub id: Uuid,
@@ -65,7 +65,7 @@ impl From<colette_core::Profile> for Profile {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileCreate {
     #[schema(value_type = String, min_length = 1)]
@@ -82,7 +82,7 @@ impl From<ProfileCreate> for profile::ProfileCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct ProfileUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
@@ -116,7 +116,7 @@ impl From<ProfileUpdate> for profile::ProfileUpdate {
 pub async fn list_profiles(
     State(service): State<ProfileService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<ListResponse, Error> {
     match service.list_profiles(session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -137,7 +137,7 @@ pub async fn get_profile(
     State(service): State<ProfileService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetResponse, Error> {
     match service.get_profile(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
@@ -161,7 +161,7 @@ pub async fn get_profile(
 pub async fn get_active_profile(
     State(service): State<ProfileService>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<GetActiveResponse, Error> {
     match service
         .get_profile(session.profile_id, session.user_id)
         .await
@@ -185,7 +185,7 @@ pub async fn create_profile(
     State(service): State<ProfileService>,
     session: Session,
     Json(body): Json<ProfileCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<CreateResponse, Error> {
     match service.create_profile(body.into(), session.user_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
@@ -213,7 +213,7 @@ pub async fn update_profile(
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<ProfileUpdate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<UpdateResponse, Error> {
     match service
         .update_profile(id, body.into(), session.user_id)
         .await
@@ -242,7 +242,7 @@ pub async fn delete_profile(
     State(service): State<ProfileService>,
     Path(Id(id)): Path<Id>,
     session: Session,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<DeleteResponse, Error> {
     match service.delete_profile(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
@@ -257,7 +257,7 @@ pub async fn delete_profile(
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of profiles")]
     Ok(Paginated<Profile>),
@@ -271,7 +271,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Profile by ID")]
     Ok(Profile),
@@ -289,7 +289,7 @@ impl IntoResponse for GetResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetActiveResponse {
     #[response(status = 200, description = "Active profile")]
     Ok(Profile),
@@ -303,7 +303,7 @@ impl IntoResponse for GetActiveResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created profile")]
     Created(Profile),
@@ -325,7 +325,7 @@ impl IntoResponse for CreateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated profile")]
     Ok(Profile),
@@ -347,7 +347,7 @@ impl IntoResponse for UpdateResponse {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted profile")]
     NoContent,
