@@ -8,7 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, features = ["tokio"], optional = true }
-colette-api = { workspace = true, optional = true }
+colette-api.workspace = true
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true, optional = true }
@@ -30,6 +30,7 @@ leptos_axum = { version = "0.7", optional = true }
 leptos_meta = { version = "0.7" }
 leptos_router = { version = "0.7" }
 reqwest = { workspace = true, optional = true }
+serde.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower = { workspace = true, optional = true }
@@ -47,7 +48,6 @@ wasm-bindgen = "=0.2.96"
 [features]
 ssr = [
   "dep:axum",
-  "dep:colette-api",
   "dep:colette-backup",
   "dep:colette-config",
   "dep:colette-core",

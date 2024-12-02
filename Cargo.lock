@@ -742,6 +742,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "reqwest",
+ "serde",
  "thiserror 1.0.69",
  "tokio",
  "tower",
