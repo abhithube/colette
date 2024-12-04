@@ -33,6 +33,10 @@ axum = { version = "0.7", default-features = false, features = [
   "query",
   "macros",
 ] }
+axum-extra = { version = "0.9", default-features = false, features = [
+  "query",
+  "tracing",
+] }
 bytes = { version = "1", default-features = false }
 chrono = { version = "0.4", default-features = false, features = [
   "clock",

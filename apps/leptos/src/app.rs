@@ -6,7 +6,7 @@ use leptos_router::{
     StaticSegment,
 };
 
-use crate::{common::auth, login::LoginPage};
+use crate::{common::auth, login::LoginPage, sidebar::Sidebar};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -39,7 +39,9 @@ pub fn App() -> impl IntoView {
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
                     <ParentRoute path=StaticSegment("") view=RootLayout>
-                        <Route path=StaticSegment("/") view=HomePage />
+                        <ParentRoute path=StaticSegment("") view=Sidebar>
+                            <Route path=StaticSegment("/") view=HomePage />
+                        </ParentRoute>
                         <Route path=StaticSegment("/login") view=LoginPage />
                     </ParentRoute>
                 </Routes>
@@ -73,5 +75,5 @@ fn RootLayout() -> impl IntoView {
 fn HomePage() -> impl IntoView {
     let profile = expect_context::<RwSignal<Option<Profile>>>();
 
-    view! { <h1>{move|| profile.get().map(|e| e.title)}</h1> }
+    view! { <h1>{move || profile.get().map(|e| e.title)}</h1> }
 }

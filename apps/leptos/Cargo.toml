@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, features = ["tokio"], optional = true }
+axum-extra = { workspace = true, optional = true }
 colette-api.workspace = true
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
@@ -56,6 +57,7 @@ wasm-bindgen = "=0.2.96"
 default = ["ssr"]
 ssr = [
   "dep:axum",
+  "dep:axum-extra",
   "dep:colette-backup",
   "dep:colette-config",
   "dep:colette-core",

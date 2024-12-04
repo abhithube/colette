@@ -1,6 +1,7 @@
 pub mod app;
 mod common;
 mod login;
+mod sidebar;
 
 #[cfg(feature = "ssr")]
 #[derive(Clone, axum::extract::FromRef)]
