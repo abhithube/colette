@@ -1,11 +1,12 @@
+use colette_api::profile::{GetActiveResponse, Profile};
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
-    components::{Route, Router, Routes},
+    components::{Outlet, ParentRoute, Route, Router, Routes},
     StaticSegment,
 };
 
-use crate::login::LoginPage;
+use crate::{common::auth, login::LoginPage};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -37,8 +38,10 @@ pub fn App() -> impl IntoView {
         <Router>
             <main>
                 <Routes fallback=|| "Page not found.".into_view()>
-                    <Route path=StaticSegment("/") view=HomePage />
-                    <Route path=StaticSegment("/login") view=LoginPage />
+                    <ParentRoute path=StaticSegment("") view=RootLayout>
+                        <Route path=StaticSegment("/") view=HomePage />
+                        <Route path=StaticSegment("/login") view=LoginPage />
+                    </ParentRoute>
                 </Routes>
             </main>
         </Router>
@@ -46,6 +49,29 @@ pub fn App() -> impl IntoView {
 }
 
 #[component]
+fn RootLayout() -> impl IntoView {
+    let profile_res = Resource::new_blocking(
+        || (),
+        move |_| async move {
+            auth::get_active_profile().await.ok().map(|e| match e {
+                GetActiveResponse::Ok(profile) => profile,
+            })
+        },
+    );
+
+    let inner_view = Suspend::new(async move {
+        let profile = profile_res.await;
+        provide_context(RwSignal::new(profile));
+
+        Outlet()
+    });
+
+    view! { <Suspense>{inner_view}</Suspense> }
+}
+
+#[component]
 fn HomePage() -> impl IntoView {
-    view! { <h1>Home</h1> }
+    let profile = expect_context::<RwSignal<Option<Profile>>>();
+
+    view! { <h1>{move|| profile.get().map(|e| e.title)}</h1> }
 }
