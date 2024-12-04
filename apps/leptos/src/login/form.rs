@@ -1,4 +1,4 @@
-use colette_api::auth;
+use colette_api::auth::{self, LoginResponse};
 use leptos::prelude::*;
 
 use crate::common::ui::{button::Button, card, input::Input, label::Label};
@@ -11,22 +11,27 @@ pub fn LoginForm() -> impl IntoView {
         <ActionForm action=submit>
             <card::Root>
                 <card::Header class="space-y-2">
-                    <card::Title>Login</card::Title>
-                    <card::Description>Login to your account</card::Description>
+                    <card::Title>"Login"</card::Title>
+                    <card::Description>"Login to your account"</card::Description>
                 </card::Header>
                 <card::Content class="space-y-4">
                     <div class="space-y-2">
-                        <Label>Email</Label>
+                        <Label>"Email"</Label>
                         <Input {..} type="text" name="data[email]" placeholder="user@email.com" />
                     </div>
                     <div class="space-y-2">
-                        <Label>Password</Label>
+                        <Label>"Password"</Label>
                         <Input {..} type="password" name="data[password]" placeholder="********" />
                     </div>
                 </card::Content>
                 <card::Footer>
-                    <Button class="flex-1" {..} type="submit">
-                        Submit
+                    <Button
+                        class="flex-1"
+                        {..}
+                        type="submit"
+                        disabled=move || submit.pending().get()
+                    >
+                        "Submit"
                     </Button>
                 </card::Footer>
             </card::Root>
@@ -35,15 +40,16 @@ pub fn LoginForm() -> impl IntoView {
 }
 
 #[server]
-async fn login(data: auth::Login) -> Result<auth::LoginResponse, ServerFnError> {
-    use crate::AppState;
+async fn login(data: auth::Login) -> Result<LoginResponse, ServerFnError> {
     use axum::{extract::State, Json};
+    use colette_api::ApiState;
     use colette_core::auth::AuthService;
     use leptos_axum::extract_with_state;
+    use tower_sessions::Session;
 
-    let state = expect_context::<AppState>();
-    let session: tower_sessions::Session = extract_with_state(&state.api_state).await?;
-    let State(state): State<auth::AuthState> = extract_with_state(&state.api_state).await?;
+    let state = expect_context::<ApiState>();
+    let session: Session = extract_with_state(&state).await?;
+    let State(state): State<auth::AuthState> = extract_with_state(&state).await?;
     let state: State<AuthService> = extract_with_state(&state).await?;
 
     let resp = auth::login(state, session, Json(data)).await?;
