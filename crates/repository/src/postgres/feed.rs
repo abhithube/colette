@@ -7,7 +7,11 @@ use colette_core::{
     Feed,
 };
 use deadpool_postgres::{
-    tokio_postgres::{self, types::Json, Row},
+    tokio_postgres::{
+        self,
+        types::{Json, Type},
+        Row,
+    },
     GenericClient, Pool,
 };
 use futures::{
@@ -391,7 +395,12 @@ pub(crate) async fn link_entries_to_profiles<C: GenericClient>(
             crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
                 .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
+        let mut types: Vec<Type> = Vec::new();
+        for _ in insert_many.iter() {
+            types.push(Type::INT4);
+        }
+
+        let stmt = client.prepare_typed_cached(&sql, &types).await?;
 
         client.execute(&stmt, &values.as_params()).await?;
     }
