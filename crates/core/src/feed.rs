@@ -27,7 +27,7 @@ pub struct Feed {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct FeedCreate {
     pub url: Url,
-    pub pinned: bool,
+    pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
@@ -205,7 +205,7 @@ pub struct FeedFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct FeedCreateData {
     pub url: String,
-    pub pinned: bool,
+    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub profile_id: Uuid,
 }

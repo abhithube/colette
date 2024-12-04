@@ -101,13 +101,9 @@ impl Creatable for D1FeedRepository {
             } else {
                 let id = Uuid::new_v4();
 
-                (sql, values) = crate::profile_feed::insert(
-                    Some(id),
-                    Some(data.pinned),
-                    feed_id,
-                    data.profile_id,
-                )
-                .build_d1(SqliteQueryBuilder);
+                (sql, values) =
+                    crate::profile_feed::insert(Some(id), data.pinned, feed_id, data.profile_id)
+                        .build_d1(SqliteQueryBuilder);
 
                 super::run(&self.db, sql, values)
                     .await

@@ -91,8 +91,8 @@ impl From<colette_core::Feed> for Feed {
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(required = false, default = false)]
-    pub pinned: bool,
+    #[schema(nullable = false, default = false)]
+    pub pinned: Option<bool>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }

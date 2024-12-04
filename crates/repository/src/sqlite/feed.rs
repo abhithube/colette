@@ -116,7 +116,7 @@ impl Creatable for SqliteFeedRepository {
                 } else {
                     (sql, values) = crate::profile_feed::insert(
                         Some(Uuid::new_v4()),
-                        None,
+                        data.pinned,
                         feed_id,
                         data.profile_id,
                     )

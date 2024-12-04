@@ -134,8 +134,9 @@ impl Creatable for PostgresFeedRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) = crate::profile_feed::insert(None, None, feed_id, data.profile_id)
-                    .build_postgres(PostgresQueryBuilder);
+                (sql, values) =
+                    crate::profile_feed::insert(None, data.pinned, feed_id, data.profile_id)
+                        .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
                     .prepare_cached(&sql)
