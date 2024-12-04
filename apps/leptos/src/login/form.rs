@@ -1,11 +1,22 @@
-use colette_api::auth::{self, LoginResponse};
+use colette_api::{
+    auth::{self, LoginResponse},
+    profile::Profile,
+};
 use leptos::prelude::*;
 
 use crate::common::ui::{button::Button, card, input::Input, label::Label};
 
 #[component]
 pub fn LoginForm() -> impl IntoView {
+    let profile = expect_context::<RwSignal<Option<Profile>>>();
+
     let submit = ServerAction::<Login>::new();
+
+    Effect::new(move || {
+        if let Some(Ok(LoginResponse::Ok(resp))) = submit.value().read().as_ref() {
+            profile.set(Some(resp.clone()));
+        }
+    });
 
     view! {
         <ActionForm action=submit>
@@ -44,7 +55,7 @@ async fn login(data: auth::Login) -> Result<LoginResponse, ServerFnError> {
     use axum::{extract::State, Json};
     use colette_api::ApiState;
     use colette_core::auth::AuthService;
-    use leptos_axum::extract_with_state;
+    use leptos_axum::{extract_with_state, redirect};
     use tower_sessions::Session;
 
     let state = expect_context::<ApiState>();
@@ -53,6 +64,8 @@ async fn login(data: auth::Login) -> Result<LoginResponse, ServerFnError> {
     let state: State<AuthService> = extract_with_state(&state).await?;
 
     let resp = auth::login(state, session, Json(data)).await?;
+
+    redirect("/");
 
     Ok(resp)
 }
