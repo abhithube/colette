@@ -155,9 +155,9 @@ pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQu
             data.iter()
                 .map(|e| {
                     if let Some(id) = e.id {
-                        (e.feed_entry_id, feed_id, id).into_value_tuple()
+                        (e.feed_entry_id, id).into_value_tuple()
                     } else {
-                        (e.feed_entry_id, feed_id).into_value_tuple()
+                        (e.feed_entry_id).into_value_tuple()
                     }
                 })
                 .collect::<Vec<_>>(),
@@ -168,7 +168,6 @@ pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQu
     let mut cte = CommonTableExpression::new()
         .query(input_cte)
         .column(ProfileFeedEntry::FeedEntryId)
-        .column(ProfileFeed::FeedId)
         .table_name(input.clone())
         .to_owned();
 
@@ -178,12 +177,10 @@ pub fn insert_many_for_all_profiles(data: &[InsertMany], feed_id: i32) -> WithQu
             (ProfileFeed::Table, ProfileFeed::Id),
             (ProfileFeed::Table, ProfileFeed::ProfileId),
         ])
-        .from(ProfileFeed::Table)
-        .join(
-            JoinType::InnerJoin,
-            input.clone(),
-            Expr::col((input.clone(), ProfileFeed::FeedId))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
+        .from(input.clone())
+        .inner_join(
+            ProfileFeed::Table,
+            Expr::col((ProfileFeed::Table, ProfileFeed::FeedId)).eq(feed_id),
         )
         .to_owned();
 
