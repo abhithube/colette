@@ -629,6 +629,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "axum",
+ "axum-embed",
  "bytes",
  "colette-api",
  "colette-backup",
@@ -642,6 +643,7 @@ dependencies = [
  "colette-task",
  "colette-util",
  "console_error_panic_hook",
+ "rust-embed",
  "serde_json",
  "thiserror 1.0.69",
  "time",

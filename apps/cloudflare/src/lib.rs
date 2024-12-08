@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::{body::Body, http::Response};
+use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
     feed_entry::FeedEntryState, profile::ProfileState, smart_feed::SmartFeedState, tag::TagState,
@@ -28,6 +29,10 @@ use time::Duration;
 use tower::Service;
 use tower_sessions::{Expiry, SessionManagerLayer};
 use worker::{Context, Env, HttpRequest};
+
+#[derive(Clone, rust_embed::Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/../web/dist"]
+struct Asset;
 
 #[worker::event(fetch)]
 async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Response<Body>> {
@@ -97,7 +102,12 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
             SessionManagerLayer::new(KvSessionStore::new(kv))
                 .with_secure(false)
                 .with_expiry(Expiry::OnInactivity(Duration::days(1))),
-        );
+        )
+        .fallback_service(ServeEmbed::<Asset>::with_parameters(
+            Some(String::from("index.html")),
+            FallbackBehavior::Ok,
+            None,
+        ));
 
     let resp = router.call(req).await?;
 

@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 async-trait.workspace = true
 axum = { workspace = true, features = ["tokio"] }
-axum-embed = { version = "0.1", default-features = false }
+axum-embed.workspace = true
 colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
@@ -22,9 +22,7 @@ colette-util.workspace = true
 colette-worker.workspace = true
 deadpool-postgres.workspace = true
 refinery = { workspace = true, features = ["tokio-postgres"] }
-rust-embed = { version = "8", default-features = false, features = [
-  "interpolate-folder-path",
-] }
+rust-embed.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
 tower-http = { version = "0.6", default-features = false, features = [
