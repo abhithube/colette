@@ -7,7 +7,7 @@ use std::{
 use bytes::Buf;
 use url::Url;
 
-use crate::{Downloader, Error, ExtractorError};
+use crate::{downloader::Downloader, Error, ExtractorError};
 
 use super::{ExtractedFeed, FeedDetector, FeedScraper, ProcessedFeed};
 

@@ -28,7 +28,6 @@ colette-session = { workspace = true, features = ["cloudflare"] }
 colette-task.workspace = true
 colette-util.workspace = true
 console_error_panic_hook = { version = "0.1", default-features = false }
-reqwest.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 time = { version = "0.3", default-features = false, features = [

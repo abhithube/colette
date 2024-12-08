@@ -1,5 +1,3 @@
-pub(crate) use downloader::Downloader;
-
 pub mod bookmark;
 pub mod downloader;
 pub mod feed;

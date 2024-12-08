@@ -1,8 +1,15 @@
+use crate::DownloaderError;
 use bytes::Bytes;
 use colette_http::Client;
+use dyn_clone::DynClone;
 use url::Url;
 
-use crate::{Downloader, DownloaderError};
+#[async_trait::async_trait]
+pub trait Downloader: Send + Sync + DynClone {
+    async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError>;
+}
+
+dyn_clone::clone_trait_object!(Downloader);
 
 #[derive(Clone)]
 pub struct DefaultDownloader {

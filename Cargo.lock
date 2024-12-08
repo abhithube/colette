@@ -642,7 +642,6 @@ dependencies = [
  "colette-task",
  "colette-util",
  "console_error_panic_hook",
- "reqwest",
  "serde_json",
  "thiserror 1.0.69",
  "time",

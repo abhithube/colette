@@ -8,7 +8,7 @@ use colette_meta::{
 use dyn_clone::DynClone;
 use url::Url;
 
-use crate::{Downloader, Error, ExtractorError, PostprocessorError};
+use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
 pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
 pub use registry::BookmarkPluginRegistry;
 

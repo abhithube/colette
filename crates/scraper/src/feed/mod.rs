@@ -7,7 +7,7 @@ use colette_feed::Feed;
 use dyn_clone::DynClone;
 use url::Url;
 
-use crate::{Downloader, Error, ExtractorError, PostprocessorError};
+use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
 pub use extractor::{FeedExtractor, FeedExtractorOptions};
 pub use registry::FeedPluginRegistry;
 
