@@ -9,6 +9,7 @@ anyhow.workspace = true
 bytes.workspace = true
 chrono.workspace = true
 colette-feed.workspace = true
+colette-http.workspace = true
 colette-meta.workspace = true
 dyn-clone.workspace = true
 http.workspace = true

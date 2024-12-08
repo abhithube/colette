@@ -633,6 +633,7 @@ dependencies = [
  "colette-api",
  "colette-backup",
  "colette-core",
+ "colette-http",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -689,6 +690,7 @@ dependencies = [
  "colette-api",
  "colette-backup",
  "colette-core",
+ "colette-http",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -699,7 +701,6 @@ dependencies = [
  "deadpool-sqlite",
  "email_address",
  "refinery",
- "reqwest",
  "serde",
  "serde_json",
  "tauri",
@@ -720,6 +721,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-http"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "reqwest",
+ "worker",
+]
+
+[[package]]
 name = "colette-leptos"
 version = "0.1.0"
 dependencies = [
@@ -729,6 +739,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-http",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -744,7 +755,6 @@ dependencies = [
  "leptos_axum",
  "leptos_meta",
  "leptos_router",
- "reqwest",
  "serde",
  "tailwind_fuse",
  "thiserror 1.0.69",
@@ -792,6 +802,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
+ "colette-http",
  "colette-meta",
  "colette-scraper",
  "http",
@@ -844,6 +855,7 @@ dependencies = [
  "bytes",
  "chrono",
  "colette-feed",
+ "colette-http",
  "colette-meta",
  "dyn-clone",
  "http",
@@ -864,6 +876,7 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
+ "colette-http",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -874,7 +887,6 @@ dependencies = [
  "colette-worker",
  "deadpool-postgres",
  "refinery",
- "reqwest",
  "rust-embed",
  "tokio",
  "tower",

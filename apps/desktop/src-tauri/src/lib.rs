@@ -73,7 +73,7 @@ pub fn run() {
                 let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
                 let user_repository = Box::new(SqliteUserRepository::new(pool));
 
-                let client = reqwest::Client::new();
+                let client = colette_http::Client::build(None, None)?;
                 let downloader = Box::new(DefaultDownloader::new(client.clone()));
                 let feed_scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
                 let bookmark_scraper = Box::new(DefaultBookmarkScraper::new(downloader.clone()));

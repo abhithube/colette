@@ -1,12 +1,9 @@
+use crate::DownloaderError;
 use bytes::Bytes;
+pub use default::DefaultDownloader;
 use dyn_clone::DynClone;
 use url::Url;
 
-use crate::DownloaderError;
-#[cfg(not(target_arch = "wasm32"))]
-pub use default::DefaultDownloader;
-
-#[cfg(not(target_arch = "wasm32"))]
 mod default;
 
 #[async_trait::async_trait]

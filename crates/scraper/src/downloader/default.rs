@@ -1,5 +1,5 @@
 use bytes::Bytes;
-use reqwest::Client;
+use colette_http::Client;
 use url::Url;
 
 use crate::{Downloader, DownloaderError};
@@ -18,15 +18,12 @@ impl DefaultDownloader {
 #[async_trait::async_trait]
 impl Downloader for DefaultDownloader {
     async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError> {
-        let resp = self
+        let body = self
             .client
-            .get(url.as_str())
-            .send()
+            .get(url.as_str(), None)
             .await
             .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
 
-        resp.bytes()
-            .await
-            .map_err(|e: reqwest::Error| DownloaderError(e.into()))
+        Ok(body)
     }
 }

@@ -13,6 +13,7 @@ colette-api.workspace = true
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
 colette-core = { workspace = true, optional = true }
+colette-http = { workspace = true, optional = true }
 colette-plugins = { workspace = true, optional = true }
 colette-queue = { workspace = true, features = ["in-memory"], optional = true }
 colette-repository = { workspace = true, features = [
@@ -34,7 +35,6 @@ leptos_meta = { version = "0.7", default-features = false, features = [
 leptos_router = { version = "0.7", default-features = false, features = [
   "tracing",
 ] }
-reqwest = { workspace = true, optional = true }
 serde.workspace = true
 tailwind_fuse = { version = "0.3", default-features = false, features = [
   "variant",
@@ -61,6 +61,7 @@ ssr = [
   "dep:colette-backup",
   "dep:colette-config",
   "dep:colette-core",
+  "dep:colette-http",
   "dep:colette-plugins",
   "dep:colette-queue",
   "dep:colette-repository",
@@ -74,7 +75,6 @@ ssr = [
   "dep:leptos_axum",
   "leptos_meta/ssr",
   "leptos_router/ssr",
-  "dep:reqwest",
   "dep:tokio",
   "dep:tower",
   "dep:tower-http",

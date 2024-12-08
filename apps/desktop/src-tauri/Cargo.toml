@@ -16,6 +16,7 @@ tauri-build = { version = "2", default-features = false, features = [
 colette-api.workspace = true
 colette-backup.workspace = true
 colette-core.workspace = true
+colette-http.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["in-memory"] }
 colette-repository = { workspace = true, features = ["sqlite"] }
@@ -26,7 +27,6 @@ colette-worker.workspace = true
 deadpool-sqlite.workspace = true
 email_address.workspace = true
 refinery = { workspace = true, features = ["rusqlite"] }
-reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", default-features = false, features = [

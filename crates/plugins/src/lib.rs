@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use colette_http::Client;
 use colette_scraper::{
     bookmark::{BookmarkPluginRegistry, BookmarkScraper},
     downloader::Downloader,
@@ -7,7 +8,6 @@ use colette_scraper::{
 };
 #[allow(unused_imports)]
 use custom::*;
-use reqwest::Client;
 
 mod custom;
 mod reddit;

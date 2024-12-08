@@ -1,10 +1,10 @@
+use colette_http::Client;
 use colette_scraper::{
     bookmark::{BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark},
     utils::{ExtractorQuery, Node},
     DownloaderError,
 };
-use http::{header, Method};
-use reqwest::Client;
+use http::{header, HeaderMap, HeaderValue};
 use scraper::Selector;
 use url::Url;
 
@@ -47,15 +47,12 @@ impl<'a> BookmarkScraper for RedditBookmarkPlugin<'a> {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }
 
-        let resp = self.client
-            .request(Method::GET, url.as_str())
-            .header(header::USER_AGENT, "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36")
-            .send()
-            .await
-            .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
+        let mut headers = HeaderMap::new();
+        headers.insert(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"));
 
-        let body = resp
-            .bytes()
+        let body = self
+            .client
+            .get(url.as_str(), Some(headers))
             .await
             .map_err(|e: reqwest::Error| DownloaderError(e.into()))?;
 
