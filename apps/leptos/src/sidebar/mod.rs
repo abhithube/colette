@@ -1,69 +1,62 @@
-use colette_api::feed::{self, ListResponse};
+use feed_list::FeedList;
 use leptos::prelude::*;
-use leptos_router::components::Outlet;
+use leptos_router::components::{Outlet, A};
+
+use crate::common::icons::{Clock, Cog, Home, Wrench};
+
+mod feed_item;
+mod feed_list;
 
 #[component]
 pub fn Sidebar() -> impl IntoView {
-    let feeds_res = Resource::new(
-        || (),
-        move |_| async move {
-            list_feeds().await.map(|e| match e {
-                ListResponse::Ok(feeds) => feeds,
-            })
-        },
-    );
-
     view! {
-        <ErrorBoundary fallback=|_| ()>
-            <Suspense>
-                <div>
-                    {move || {
-                        feeds_res
-                            .get()
-                            .map(|e| {
-                                e.map(|feeds| {
-                                    view! {
-                                        <ul>
-                                            {feeds
-                                                .data
-                                                .into_iter()
-                                                .map(|feed| view! { <li>{feed.original_title}</li> })
-                                                .collect_view()}
-                                        </ul>
-                                    }
-                                })
-                            })
-                    }}
-                </div>
+        <div class="flex">
+            <nav class="flex flex-col w-[300px] h-screen px-2">
+                <ul class="flex grow flex-col">
+                    <li class="mb-4">
+                        <ul class="menu">
+                            <li>
+                                <A href="/">
+                                    <Home {..} class="size-5" />
+                                    "Home"
+                                </A>
+                            </li>
+                            <li>
+                                <A href="/feeds/manage">
+                                    <Clock {..} class="size-5" />
+                                    "Archived"
+                                </A>
+                            </li>
+                            <li>
+                                <A href="/feeds/manage">
+                                    <Wrench {..} class="size-5" />
+                                    "Manage Feeds"
+                                </A>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="grow">
+                        <ul class="menu">
+                            <li class="menu-title">"Feeds"</li>
+                            <FeedList />
+                        </ul>
+                    </li>
+                    <li>
+                        <ul class="menu">
+                            <li>
+                                <button>
+                                    <Cog {..} class="size-5" />
+                                    "Settings"
+                                </button>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+            </nav>
+            <div class="divider divider-horizontal w-0 mx-0" />
+            <div class="grow">
                 <Outlet />
-            </Suspense>
-        </ErrorBoundary>
+            </div>
+        </div>
     }
-}
-
-#[server]
-pub async fn list_feeds() -> Result<feed::ListResponse, ServerFnError> {
-    use crate::common::auth::validate_session;
-    use axum::extract::State;
-    use axum_extra::extract::Query;
-    use colette_api::ApiState;
-    use colette_api::{
-        feed::{FeedListQuery, FeedState},
-        Session,
-    };
-    use colette_core::feed::FeedService;
-    use leptos_axum::{extract, extract_with_state};
-
-    let query = extract::<Query<FeedListQuery>>().await?;
-
-    let state = expect_context::<ApiState>();
-
-    let session: Session = validate_session().await?;
-
-    let State(state): State<FeedState> = extract_with_state(&state).await?;
-    let state: State<FeedService> = extract_with_state(&state).await?;
-
-    let resp = feed::list_feeds(state, query, session).await?;
-
-    Ok(resp)
 }

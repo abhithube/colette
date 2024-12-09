@@ -766,6 +766,7 @@ dependencies = [
  "tower-sessions-core",
  "tracing",
  "tracing-subscriber",
+ "url",
  "wasm-bindgen",
 ]
 
