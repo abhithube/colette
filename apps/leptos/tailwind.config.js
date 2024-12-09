@@ -1,5 +1,7 @@
+import daisyui from "daisyui";
+
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: {
     relative: true,
     files: ["*.html", "./src/**/*.rs"],
@@ -49,5 +51,5 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [daisyui],
 };

@@ -1,0 +1,7 @@
+{
+  "name": "@colette/leptos",
+  "devDependencies": {
+    "daisyui": "^4",
+    "tailwindcss": "^3"
+  }
+}
