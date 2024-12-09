@@ -91,7 +91,7 @@ struct FeedEntrySelect {
     description: Option<String>,
     author: Option<String>,
     thumbnail_url: Option<String>,
-    has_read: bool,
+    has_read: i32,
     profile_feed_id: Uuid,
 }
 
@@ -105,7 +105,7 @@ impl From<FeedEntrySelect> for FeedEntry {
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url,
-            has_read: value.has_read,
+            has_read: value.has_read == 1,
             feed_id: value.profile_feed_id,
         }
     }

@@ -149,7 +149,7 @@ pub struct ProfileSelect {
     pub id: Uuid,
     pub title: String,
     pub image_url: Option<String>,
-    pub is_default: u32,
+    pub is_default: i32,
     pub user_id: Uuid,
 }
 
@@ -159,7 +159,7 @@ impl From<ProfileSelect> for Profile {
             id: value.id,
             title: value.title,
             image_url: value.image_url,
-            is_default: value.is_default.eq(&1),
+            is_default: value.is_default == 1,
             user_id: value.user_id,
         }
     }
