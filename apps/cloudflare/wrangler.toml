@@ -15,9 +15,12 @@ database_id = "5ad3b676-f857-4fd2-a23c-7920104e6470"
 binding = "KV"
 id = "bb3ea6e79a3f46f9a18f4ee2f0f3930d"
 
-[[queues.producers]]
-binding = "QUEUE"
-queue = "colette"
+[observability]
+enabled = true
 
 [[queues.consumers]]
+queue = "colette"
+
+[[queues.producers]]
+binding = "QUEUE"
 queue = "colette"
