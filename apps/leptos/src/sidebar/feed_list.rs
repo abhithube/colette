@@ -15,23 +15,21 @@ pub fn FeedList() -> impl IntoView {
 );
 
   view! {
-      <ErrorBoundary fallback=|_| ()>
-          <Suspense>
-              {move || {
-                  feeds_res
-                      .get()
-                      .map(|e| {
-                          e.map(|feeds| {
-                              feeds
-                                  .data
-                                  .into_iter()
-                                  .map(|feed| view! { <FeedItem feed=feed /> })
-                                  .collect_view()
-                          })
+      <Suspense>
+          {move || {
+              feeds_res
+                  .get()
+                  .map(|e| {
+                      e.map(|feeds| {
+                          feeds
+                              .data
+                              .into_iter()
+                              .map(|feed| view! { <FeedItem feed=feed /> })
+                              .collect_view()
                       })
-              }}
-          </Suspense>
-      </ErrorBoundary>
+                  })
+          }}
+      </Suspense>
   }
 }
 
