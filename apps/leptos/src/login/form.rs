@@ -4,6 +4,8 @@ use colette_api::{
 };
 use leptos::prelude::*;
 
+use crate::common::ui::{button::Button, card, input::Input, label::Label};
+
 #[component]
 pub fn LoginForm() -> impl IntoView {
     let profile = expect_context::<RwSignal<Option<Profile>>>();
@@ -18,43 +20,32 @@ pub fn LoginForm() -> impl IntoView {
 
     view! {
         <ActionForm action=submit>
-            <div class="card card-bordered">
-                <div class="card-body">
-                    <h3 class="card-title">"Login"</h3>
-                    <p class="text-sm text-neutral">"Login to your account"</p>
-                    <div class="form-control">
-                        <div class="label">
-                            <span class="label-text">"Email"</span>
-                        </div>
-                        <input
-                            class="input input-bordered"
-                            type="text"
-                            name="data[email]"
-                            placeholder="user@email.com"
-                        />
+            <card::Root>
+                <card::Header class="space-y-2">
+                    <card::Title>"Login"</card::Title>
+                    <card::Description>"Login to your account"</card::Description>
+                </card::Header>
+                <card::Content class="space-y-4">
+                    <div class="space-y-2">
+                        <Label>"Email"</Label>
+                        <Input {..} type="text" name="data[email]" placeholder="user@email.com" />
                     </div>
-                    <div class="form-control">
-                        <div class="label">
-                            <span class="label-text">"Password"</span>
-                        </div>
-                        <input
-                            class="input input-bordered"
-                            type="password"
-                            name="data[password]"
-                            placeholder="********"
-                        />
+                    <div class="space-y-2">
+                        <Label>"Password"</Label>
+                        <Input {..} type="password" name="data[password]" placeholder="********" />
                     </div>
-                    <div class="card-actions">
-                        <button
-                            class="btn btn-primary flex-1"
-                            type="submit"
-                            disabled=move || submit.pending().get()
-                        >
-                            "Submit"
-                        </button>
-                    </div>
-                </div>
-            </div>
+                </card::Content>
+                <card::Footer>
+                    <Button
+                        class="flex-1"
+                        {..}
+                        type="submit"
+                        disabled=move || submit.pending().get()
+                    >
+                        "Submit"
+                    </Button>
+                </card::Footer>
+            </card::Root>
         </ActionForm>
     }
 }
