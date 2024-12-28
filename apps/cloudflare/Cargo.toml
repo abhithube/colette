@@ -39,9 +39,4 @@ tower.workspace = true
 tower-sessions.workspace = true
 tower-sessions-core.workspace = true
 url.workspace = true
-worker = { version = "0.4", default-features = false, features = [
-  "axum",
-  "d1",
-  "http",
-  "queue",
-] }
+worker = { workspace = true, features = ["axum", "d1", "http", "queue"] }
