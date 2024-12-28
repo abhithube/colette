@@ -9,6 +9,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 axum = { workspace = true, features = ["tokio"], optional = true }
 axum-extra = { workspace = true, optional = true }
+chrono.workspace = true
 colette-api.workspace = true
 colette-backup = { workspace = true, optional = true }
 colette-config = { workspace = true, optional = true }
@@ -40,6 +41,7 @@ tailwind_fuse = { version = "0.3", default-features = false, features = [
   "variant",
 ] }
 thiserror.workspace = true
+timeago = { version = "0.4", default-features = false, features = ["chrono"] }
 tokio = { workspace = true, features = ["rt-multi-thread"], optional = true }
 tower = { workspace = true, optional = true }
 tower-http = { version = "0.6", features = [

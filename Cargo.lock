@@ -736,6 +736,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "axum-extra",
+ "chrono",
  "colette-api",
  "colette-backup",
  "colette-config",
@@ -759,6 +760,7 @@ dependencies = [
  "serde",
  "tailwind_fuse",
  "thiserror 1.0.69",
+ "timeago",
  "tokio",
  "tower",
  "tower-http",
@@ -5812,6 +5814,15 @@ checksum = "2834e6017e3e5e4b9834939793b282bc03b37a3336245fa820e35e233e2a85de"
 dependencies = [
  "num-conv",
  "time-core",
+]
+
+[[package]]
+name = "timeago"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1710e589de0a76aaf295cd47a6699f6405737dbfd3cf2b75c92d000b548d0e6"
+dependencies = [
+ "chrono",
 ]
 
 [[package]]

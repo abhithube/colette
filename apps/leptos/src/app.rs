@@ -1,4 +1,4 @@
-use colette_api::profile::{GetActiveResponse, Profile};
+use colette_api::profile::GetActiveResponse;
 use leptos::prelude::*;
 use leptos_meta::{provide_meta_context, MetaTags, Stylesheet, Title};
 use leptos_router::{
@@ -6,7 +6,7 @@ use leptos_router::{
     StaticSegment,
 };
 
-use crate::{common::auth, login::LoginPage, sidebar::Sidebar};
+use crate::{common::auth, home::HomePage, login::LoginPage, sidebar::Sidebar};
 
 pub fn shell(options: LeptosOptions) -> impl IntoView {
     view! {
@@ -69,11 +69,4 @@ fn RootLayout() -> impl IntoView {
     });
 
     view! { <Suspense>{inner_view}</Suspense> }
-}
-
-#[component]
-fn HomePage() -> impl IntoView {
-    let profile = expect_context::<RwSignal<Option<Profile>>>();
-
-    view! { <h1>{move || profile.get().map(|e| e.title)}</h1> }
 }
