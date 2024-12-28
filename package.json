@@ -4,6 +4,7 @@
 	"workspaces": [
 		"apps/desktop",
 		"apps/leptos",
+		"apps/solid",
 		"apps/web",
 
 		"packages/app",
