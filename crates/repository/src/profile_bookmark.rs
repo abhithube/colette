@@ -90,7 +90,7 @@ pub fn select(
             (Bookmark::Table, Bookmark::PublishedAt),
             (Bookmark::Table, Bookmark::Author),
         ])
-        .column((json_tags.clone(), tags.clone()))
+        .column((json_tags.clone(), tags))
         .from(ProfileBookmark::Table)
         .join(
             JoinType::InnerJoin,
@@ -103,7 +103,7 @@ pub fn select(
         .join(
             JoinType::LeftJoin,
             json_tags.clone(),
-            Expr::col((json_tags.clone(), pf_id.clone()))
+            Expr::col((json_tags.clone(), pf_id))
                 .eq(Expr::col((ProfileBookmark::Table, ProfileBookmark::Id))),
         )
         .and_where(Expr::col((ProfileBookmark::Table, ProfileBookmark::ProfileId)).eq(profile_id))

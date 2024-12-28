@@ -76,7 +76,7 @@ impl Creatable for SqliteTagRepository {
 
         conn.interact(move |conn| {
             let (sql, values) =
-                crate::tag::insert(Some(Uuid::new_v4()), data.title.clone(), data.profile_id)
+                crate::tag::insert(Some(Uuid::new_v4()), data.title, data.profile_id)
                     .build_rusqlite(SqliteQueryBuilder);
 
             conn.prepare_cached(&sql)?

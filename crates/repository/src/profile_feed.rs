@@ -113,7 +113,7 @@ pub fn select(
             Expr::col((Feed::Table, Feed::Title)),
             Alias::new("original_title"),
         )
-        .column((json_tags.clone(), tags.clone()))
+        .column((json_tags.clone(), tags))
         .expr_as(
             Func::coalesce([
                 Expr::col((unread_counts.clone(), unread_count.clone())).into(),
@@ -137,7 +137,7 @@ pub fn select(
         .join(
             JoinType::LeftJoin,
             unread_counts.clone(),
-            Expr::col((unread_counts.clone(), pf_id.clone()))
+            Expr::col((unread_counts.clone(), pf_id))
                 .eq(Expr::col((ProfileFeed::Table, ProfileFeed::Id))),
         )
         .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))

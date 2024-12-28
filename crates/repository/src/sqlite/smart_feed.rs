@@ -89,7 +89,7 @@ impl Creatable for SqliteSmartFeedRepository {
 
             let (sql, values) = crate::smart_feed::insert(
                 Some(Uuid::new_v4()),
-                data.title.clone(),
+                data.title,
                 data.profile_id,
             )
             .build_rusqlite(SqliteQueryBuilder);

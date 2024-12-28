@@ -120,7 +120,6 @@ impl FeedService {
                 pinned: data.pinned,
                 tags: data
                     .tags
-                    .clone()
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
                 profile_id,
             })

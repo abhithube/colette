@@ -93,7 +93,7 @@ impl Creatable for SqliteBookmarkRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            let (sql, values) = crate::bookmark::select_by_link(data.url.clone())
+            let (sql, values) = crate::bookmark::select_by_link(data.url)
                 .build_rusqlite(SqliteQueryBuilder);
 
             let bookmark_id = tx

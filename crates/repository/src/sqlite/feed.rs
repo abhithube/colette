@@ -96,7 +96,7 @@ impl Creatable for SqliteFeedRepository {
             let tx = conn.transaction()?;
 
             let (sql, values) =
-                crate::feed::select_by_url(data.url.clone()).build_rusqlite(SqliteQueryBuilder);
+                crate::feed::select_by_url(data.url).build_rusqlite(SqliteQueryBuilder);
 
             let feed_id = tx
                 .prepare_cached(&sql)?
