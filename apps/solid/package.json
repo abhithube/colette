@@ -8,7 +8,12 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "solid-js": "^1"
+    "@ark-ui/solid": "^4",
+    "class-variance-authority": "^0.7",
+    "clsx": "^2",
+    "lucide-solid": "^0.469",
+    "solid-js": "^1",
+    "tailwind-merge": "^2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0-beta.8",
