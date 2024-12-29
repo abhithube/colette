@@ -1,14 +1,12 @@
 import { loginOptions } from '@colette/solid-query'
 import { createForm } from '@tanstack/solid-form'
-import { createMutation } from '@tanstack/solid-query'
+import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'
 import { z } from 'zod'
 import { useAPI } from '../lib/api-context'
 import { Button, Card, Field } from '../lib/components'
 
 export const LoginForm: Component = () => {
-  const api = useAPI()
-
   const form = createForm(() => ({
     defaultValues: {
       email: '',
@@ -26,7 +24,8 @@ export const LoginForm: Component = () => {
           form.reset()
         },
       },
-      api,
+      useAPI(),
+      useQueryClient(),
     ),
   )
 
