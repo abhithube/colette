@@ -17,7 +17,6 @@ pub const BACKUPS_TAG: &str = "Backups";
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 pub const FEEDS_TAG: &str = "Feeds";
-pub const PROFILES_TAG: &str = "Profiles";
 pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
 pub const TAGS_TAG: &str = "Tags";
 
@@ -51,7 +50,6 @@ pub const SESSION_KEY: &str = "session";
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Session {
     pub user_id: Uuid,
-    pub profile_id: Uuid,
 }
 
 #[async_trait::async_trait]

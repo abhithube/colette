@@ -12,7 +12,7 @@ pub async fn list_smart_feeds(
     session: State<'_, Session>,
 ) -> Result<Paginated<SmartFeed>, String> {
     let smart_feeds = service
-        .list_smart_feeds(session.profile_id)
+        .list_smart_feeds(session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -26,7 +26,7 @@ pub async fn create_smart_feed(
     data: SmartFeedCreate,
 ) -> Result<SmartFeed, String> {
     let smart_feed = service
-        .create_smart_feed(data.into(), session.profile_id)
+        .create_smart_feed(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -40,7 +40,7 @@ pub async fn get_smart_feed(
     id: Uuid,
 ) -> Result<SmartFeed, String> {
     let smart_feed = service
-        .get_smart_feed(id, session.profile_id)
+        .get_smart_feed(id, session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -55,7 +55,7 @@ pub async fn update_smart_feed(
     data: SmartFeedUpdate,
 ) -> Result<SmartFeed, String> {
     let smart_feed = service
-        .update_smart_feed(id, data.into(), session.profile_id)
+        .update_smart_feed(id, data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -69,7 +69,7 @@ pub async fn delete_smart_feed(
     id: Uuid,
 ) -> Result<(), String> {
     service
-        .delete_smart_feed(id, session.profile_id)
+        .delete_smart_feed(id, session.user_id)
         .await
         .map_err(|e| e.to_string())
 }

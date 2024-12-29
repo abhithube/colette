@@ -10,13 +10,9 @@ import type {
 import type { MutationOptions } from '@tanstack/query-core'
 import { queryOptions } from '@tanstack/solid-query'
 
-export const listFeedsOptions = (
-  query: FeedListQuery,
-  profileId: string,
-  api: API,
-) =>
+export const listFeedsOptions = (query: FeedListQuery, api: API) =>
   queryOptions({
-    queryKey: ['profiles', profileId, 'feeds', query],
+    queryKey: ['feeds', query],
     queryFn: () => api.feeds.list(query),
   })
 

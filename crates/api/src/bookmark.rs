@@ -180,7 +180,7 @@ impl From<bookmark::BookmarkScraped> for BookmarkScraped {
     params(BookmarkListQuery),
     responses(ListResponse),
     operation_id = "listBookmarks",
-    description = "List the active profile bookmarks",
+    description = "List user bookmarks",
     tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
@@ -189,10 +189,7 @@ pub async fn list_bookmarks(
     Query(query): Query<BookmarkListQuery>,
     session: Session,
 ) -> Result<ListResponse, Error> {
-    match service
-        .list_bookmarks(query.into(), session.profile_id)
-        .await
-    {
+    match service.list_bookmarks(query.into(), session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -213,7 +210,7 @@ pub async fn get_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<GetResponse, Error> {
-    match service.get_bookmark(id, session.profile_id).await {
+    match service.get_bookmark(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -230,7 +227,7 @@ pub async fn get_bookmark(
     request_body = BookmarkCreate,
     responses(CreateResponse),
     operation_id = "createBookmark",
-    description = "Add a bookmark to a profile",
+    description = "Add a bookmark",
     tag = BOOKMARKS_TAG
   )]
 #[axum::debug_handler]
@@ -239,10 +236,7 @@ pub async fn create_bookmark(
     session: Session,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service
-        .create_bookmark(body.into(), session.profile_id)
-        .await
-    {
+    match service.create_bookmark(body.into(), session.user_id).await {
         Ok(data) => Ok(CreateResponse::Created(Box::new(data.into()))),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -271,7 +265,7 @@ pub async fn update_bookmark(
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<UpdateResponse, Error> {
     match service
-        .update_bookmark(id, body.into(), session.profile_id)
+        .update_bookmark(id, body.into(), session.user_id)
         .await
     {
         Ok(data) => Ok(UpdateResponse::Ok(Box::new(data.into()))),
@@ -299,7 +293,7 @@ pub async fn delete_bookmark(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_bookmark(id, session.profile_id).await {
+    match service.delete_bookmark(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

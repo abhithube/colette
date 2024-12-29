@@ -27,7 +27,7 @@ struct Parent {
 
 #[async_trait::async_trait]
 impl BackupRepository for D1BackupRepository {
-    async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error> {
+    async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
         let mut stack: Vec<(Option<Parent>, Outline)> = outlines
             .into_iter()
             .map(|outline| (None, outline))
@@ -38,9 +38,8 @@ impl BackupRepository for D1BackupRepository {
 
             if outline.outline.is_some() {
                 let tag_id = {
-                    let (mut sql, mut values) =
-                        crate::tag::select_by_title(title.clone(), profile_id)
-                            .build_d1(SqliteQueryBuilder);
+                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
+                        .build_d1(SqliteQueryBuilder);
 
                     if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
                         .await
@@ -50,7 +49,7 @@ impl BackupRepository for D1BackupRepository {
                     } else {
                         let id = Uuid::new_v4();
 
-                        (sql, values) = crate::tag::insert(Some(id), title.clone(), profile_id)
+                        (sql, values) = crate::tag::insert(Some(id), title.clone(), user_id)
                             .build_d1(SqliteQueryBuilder);
 
                         super::run(&self.db, sql, values)
@@ -85,7 +84,7 @@ impl BackupRepository for D1BackupRepository {
 
                 let pf_id = {
                     let (mut sql, mut values) =
-                        crate::profile_feed::select_by_unique_index(profile_id, feed_id)
+                        crate::user_feed::select_by_unique_index(user_id, feed_id)
                             .build_d1(SqliteQueryBuilder);
 
                     if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
@@ -97,7 +96,7 @@ impl BackupRepository for D1BackupRepository {
                         let id = Uuid::new_v4();
 
                         (sql, values) =
-                            crate::profile_feed::insert(Some(id), None, feed_id, profile_id)
+                            crate::user_feed::insert(Some(id), None, feed_id, user_id)
                                 .build_d1(SqliteQueryBuilder);
 
                         super::run(&self.db, sql, values)
@@ -109,12 +108,12 @@ impl BackupRepository for D1BackupRepository {
                 };
 
                 if let Some(tag) = parent {
-                    let (sql, values) = crate::profile_feed_tag::insert_many(
-                        &[crate::profile_feed_tag::InsertMany {
-                            profile_feed_id: pf_id,
+                    let (sql, values) = crate::user_feed_tag::insert_many(
+                        &[crate::user_feed_tag::InsertMany {
+                            user_feed_id: pf_id,
                             tag_id: tag.id,
                         }],
-                        profile_id,
+                        user_id,
                     )
                     .build_d1(SqliteQueryBuilder);
 
@@ -128,7 +127,7 @@ impl BackupRepository for D1BackupRepository {
         Ok(())
     }
 
-    async fn import_netscape(&self, items: Vec<Item>, profile_id: Uuid) -> Result<(), Error> {
+    async fn import_netscape(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
         let mut stack: Vec<(Option<Parent>, Item)> =
             items.into_iter().map(|item| (None, item)).collect();
 
@@ -141,9 +140,8 @@ impl BackupRepository for D1BackupRepository {
                 };
 
                 let tag_id = {
-                    let (mut sql, mut values) =
-                        crate::tag::select_by_title(title.clone(), profile_id)
-                            .build_d1(SqliteQueryBuilder);
+                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
+                        .build_d1(SqliteQueryBuilder);
 
                     if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
                         .await
@@ -153,7 +151,7 @@ impl BackupRepository for D1BackupRepository {
                     } else {
                         let id = Uuid::new_v4();
 
-                        (sql, values) = crate::tag::insert(Some(id), title.clone(), profile_id)
+                        (sql, values) = crate::tag::insert(Some(id), title.clone(), user_id)
                             .build_d1(SqliteQueryBuilder);
 
                         super::run(&self.db, sql, values)
@@ -188,7 +186,7 @@ impl BackupRepository for D1BackupRepository {
 
                 let pb_id = {
                     let (mut sql, mut values) =
-                        crate::profile_bookmark::select_by_unique_index(profile_id, bookmark_id)
+                        crate::user_bookmark::select_by_unique_index(user_id, bookmark_id)
                             .build_d1(SqliteQueryBuilder);
 
                     if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
@@ -200,7 +198,7 @@ impl BackupRepository for D1BackupRepository {
                         let id = Uuid::new_v4();
 
                         (sql, values) =
-                            crate::profile_bookmark::insert(Some(id), bookmark_id, profile_id)
+                            crate::user_bookmark::insert(Some(id), bookmark_id, user_id)
                                 .build_d1(SqliteQueryBuilder);
 
                         super::run(&self.db, sql, values)
@@ -212,12 +210,12 @@ impl BackupRepository for D1BackupRepository {
                 };
 
                 if let Some(tag) = parent {
-                    let (sql, values) = crate::profile_bookmark_tag::insert_many(
-                        &[crate::profile_bookmark_tag::InsertMany {
-                            profile_bookmark_id: pb_id,
+                    let (sql, values) = crate::user_bookmark_tag::insert_many(
+                        &[crate::user_bookmark_tag::InsertMany {
+                            user_bookmark_id: pb_id,
                             tag_id: tag.id,
                         }],
-                        profile_id,
+                        user_id,
                     )
                     .build_d1(SqliteQueryBuilder);
 

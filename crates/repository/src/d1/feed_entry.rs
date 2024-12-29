@@ -29,9 +29,9 @@ impl Findable for D1FeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::profile_feed_entry::select(
+        let (sql, values) = crate::user_feed_entry::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.feed_id,
             params.has_read,
             params.tags.as_deref(),
@@ -62,7 +62,7 @@ impl Updatable for D1FeedEntryRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.has_read.is_some() {
             let (sql, values) =
-                crate::profile_feed_entry::update(params.id, params.profile_id, data.has_read)
+                crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
                     .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
@@ -92,7 +92,7 @@ struct FeedEntrySelect {
     author: Option<String>,
     thumbnail_url: Option<String>,
     has_read: i32,
-    profile_feed_id: Uuid,
+    user_feed_id: Uuid,
 }
 
 impl From<FeedEntrySelect> for FeedEntry {
@@ -106,7 +106,7 @@ impl From<FeedEntrySelect> for FeedEntry {
             author: value.author,
             thumbnail_url: value.thumbnail_url,
             has_read: value.has_read == 1,
-            feed_id: value.profile_feed_id,
+            feed_id: value.user_feed_id,
         }
     }
 }

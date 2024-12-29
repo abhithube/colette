@@ -50,9 +50,9 @@ impl Findable for SqliteBookmarkRepository {
                 )
             });
             
-            let (sql, values) = crate::profile_bookmark::select(
+            let (sql, values) = crate::user_bookmark::select(
                 params.id,
-                params.profile_id,
+                params.user_id,
                 params.cursor,
                 params.limit,
                 jsonb_agg,
@@ -102,7 +102,7 @@ impl Creatable for SqliteBookmarkRepository {
 
             let pb_id = {
                 let (mut sql, mut values) =
-                    crate::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
+                    crate::user_bookmark::select_by_unique_index(data.user_id, bookmark_id)
                         .build_rusqlite(SqliteQueryBuilder);
 
                 if let Some(id) = tx
@@ -112,10 +112,10 @@ impl Creatable for SqliteBookmarkRepository {
                 {
                     id
                 } else {
-                    (sql, values) = crate::profile_bookmark::insert(
+                    (sql, values) = crate::user_bookmark::insert(
                         Some(Uuid::new_v4()),
                         bookmark_id,
-                        data.profile_id,
+                        data.user_id,
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -125,7 +125,7 @@ impl Creatable for SqliteBookmarkRepository {
             };
 
             if let Some(tags) = data.tags {
-                link_tags(&tx, pb_id, tags, data.profile_id)?;
+                link_tags(&tx, pb_id, tags, data.user_id)?;
             }
 
             tx.commit()?;
@@ -158,7 +158,7 @@ impl Updatable for SqliteBookmarkRepository {
             let tx = conn.transaction()?;
 
             if let Some(tags) = data.tags {
-                link_tags(&tx, params.id, tags, params.profile_id)?;
+                link_tags(&tx, params.id, tags, params.user_id)?;
             }
 
             tx.commit()
@@ -185,7 +185,7 @@ impl Deletable for SqliteBookmarkRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let (sql, values) = crate::profile_bookmark::delete(params.id, params.profile_id)
+            let (sql, values) = crate::user_bookmark::delete(params.id, params.user_id)
                 .build_rusqlite(SqliteQueryBuilder);
 
             let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -258,11 +258,11 @@ impl TryFrom<&Row<'_>> for BookmarkSelect {
 
 pub(crate) fn link_tags(
     conn: &Connection,
-    profile_bookmark_id: Uuid,
+    user_bookmark_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> rusqlite::Result<()> {
-    let (sql, values) = crate::profile_bookmark_tag::delete_many_not_in_titles(&tags, profile_id)
+    let (sql, values) = crate::user_bookmark_tag::delete_many_not_in_titles(&tags, user_id)
         .build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -276,14 +276,14 @@ pub(crate) fn link_tags(
                     title: e.to_owned(),
                 })
                 .collect::<Vec<_>>(),
-            profile_id,
+            user_id,
         )
         .build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
         let (sql, values) =
-            crate::tag::select_ids_by_titles(&tags, profile_id).build_rusqlite(SqliteQueryBuilder);
+            crate::tag::select_ids_by_titles(&tags, user_id).build_rusqlite(SqliteQueryBuilder);
 
         let mut ids: Vec<Uuid> = Vec::new();
 
@@ -299,13 +299,13 @@ pub(crate) fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| crate::profile_bookmark_tag::InsertMany {
-            profile_bookmark_id,
+        .map(|e| crate::user_bookmark_tag::InsertMany {
+            user_bookmark_id,
             tag_id: e,
         })
         .collect::<Vec<_>>();
 
-    let (sql, values) = crate::profile_bookmark_tag::insert_many(&insert_many, profile_id)
+    let (sql, values) = crate::user_bookmark_tag::insert_many(&insert_many, user_id)
         .build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;

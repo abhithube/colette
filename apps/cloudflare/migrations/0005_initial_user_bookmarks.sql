@@ -1,8 +1,8 @@
-CREATE TABLE profile_bookmarks (
+CREATE TABLE user_bookmarks (
   id TEXT NOT NULL PRIMARY KEY,
-  profile_id TEXT NOT NULL REFERENCES profiles (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   bookmark_id INTEGER NOT NULL REFERENCES bookmarks (id) ON DELETE RESTRICT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (profile_id, bookmark_id)
+  UNIQUE (user_id, bookmark_id)
 );

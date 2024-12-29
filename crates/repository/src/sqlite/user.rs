@@ -90,31 +90,13 @@ impl Creatable for SqliteUserRepository {
         let email = data.email.clone();
 
         conn.interact(move |conn| {
-            let tx = conn.transaction()?;
-
             let (sql, values) =
                 crate::user::insert(Some(Uuid::new_v4()), data.email, data.password)
                     .build_rusqlite(SqliteQueryBuilder);
 
-            let id = tx
+            let id = conn
                 .prepare_cached(&sql)?
                 .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
-
-            {
-                let (sql, values) = crate::profile::insert(
-                    Some(Uuid::new_v4()),
-                    "Default".to_owned(),
-                    None,
-                    Some(true),
-                    id,
-                )
-                .build_rusqlite(SqliteQueryBuilder);
-
-                tx.prepare_cached(&sql)?
-                    .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
-            }
-
-            tx.commit()?;
 
             Ok(id)
         })

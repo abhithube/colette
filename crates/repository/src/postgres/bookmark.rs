@@ -48,9 +48,9 @@ impl Findable for PostgresBookmarkRepository {
             )
         });
 
-        let (sql, values) = crate::profile_bookmark::select(
+        let (sql, values) = crate::user_bookmark::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.cursor,
             params.limit,
             jsonb_agg,
@@ -114,7 +114,7 @@ impl Creatable for PostgresBookmarkRepository {
 
         let pb_id = {
             let (mut sql, mut values) =
-                crate::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
+                crate::user_bookmark::select_by_unique_index(data.user_id, bookmark_id)
                     .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
@@ -129,7 +129,7 @@ impl Creatable for PostgresBookmarkRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) = crate::profile_bookmark::insert(None, bookmark_id, data.profile_id)
+                (sql, values) = crate::user_bookmark::insert(None, bookmark_id, data.user_id)
                     .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
@@ -145,7 +145,7 @@ impl Creatable for PostgresBookmarkRepository {
         };
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pb_id, tags, data.profile_id)
+            link_tags(&tx, pb_id, tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -175,7 +175,7 @@ impl Updatable for PostgresBookmarkRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, tags, params.profile_id)
+            link_tags(&tx, params.id, tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -198,7 +198,7 @@ impl Deletable for PostgresBookmarkRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::profile_bookmark::delete(params.id, params.profile_id)
+        let (sql, values) = crate::user_bookmark::delete(params.id, params.user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client
@@ -272,14 +272,13 @@ impl From<Row> for BookmarkSelect {
 
 pub(crate) async fn link_tags<C: GenericClient>(
     client: &C,
-    profile_bookmark_id: Uuid,
+    user_bookmark_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     {
-        let (sql, values) =
-            crate::profile_bookmark_tag::delete_many_not_in_titles(&tags, profile_id)
-                .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = crate::user_bookmark_tag::delete_many_not_in_titles(&tags, user_id)
+            .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -296,7 +295,7 @@ pub(crate) async fn link_tags<C: GenericClient>(
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::tag::insert_many(&insert_many, profile_id).build_postgres(PostgresQueryBuilder);
+            crate::tag::insert_many(&insert_many, user_id).build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -304,8 +303,8 @@ pub(crate) async fn link_tags<C: GenericClient>(
     }
 
     {
-        let (sql, values) = crate::tag::select_ids_by_titles(&tags, profile_id)
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, values) =
+            crate::tag::select_ids_by_titles(&tags, user_id).build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -317,13 +316,13 @@ pub(crate) async fn link_tags<C: GenericClient>(
 
         let insert_many = tag_ids
             .into_iter()
-            .map(|e| crate::profile_bookmark_tag::InsertMany {
-                profile_bookmark_id,
+            .map(|e| crate::user_bookmark_tag::InsertMany {
+                user_bookmark_id,
                 tag_id: e,
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) = crate::profile_bookmark_tag::insert_many(&insert_many, profile_id)
+        let (sql, values) = crate::user_bookmark_tag::insert_many(&insert_many, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;

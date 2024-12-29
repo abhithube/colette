@@ -39,7 +39,7 @@ impl BackupService {
         }
     }
 
-    pub async fn import_opml(&self, raw: Bytes, profile_id: Uuid) -> Result<Vec<Url>, Error> {
+    pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
         let opml = self
             .opml_manager
             .import(raw)
@@ -53,17 +53,17 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_opml(opml.body.outlines, profile_id)
+            .import_opml(opml.body.outlines, user_id)
             .await?;
 
         Ok(urls)
     }
 
-    pub async fn export_opml(&self, profile_id: Uuid) -> Result<Bytes, Error> {
+    pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let feeds = self
             .feed_repository
             .find(FeedFindParams {
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await
@@ -113,7 +113,7 @@ impl BackupService {
             .map_err(|e| Error::Opml(OpmlError(e.into())))
     }
 
-    pub async fn import_netscape(&self, raw: Bytes, profile_id: Uuid) -> Result<Vec<Url>, Error> {
+    pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
         let netscape = self
             .netscape_manager
             .import(raw)
@@ -126,17 +126,17 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_netscape(netscape.items, profile_id)
+            .import_netscape(netscape.items, user_id)
             .await?;
 
         Ok(urls)
     }
 
-    pub async fn export_netscape(&self, profile_id: Uuid) -> Result<Bytes, Error> {
+    pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await
@@ -186,9 +186,9 @@ impl BackupService {
 
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync + DynClone {
-    async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error>;
+    async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error>;
 
-    async fn import_netscape(&self, outlines: Vec<Item>, profile_id: Uuid) -> Result<(), Error>;
+    async fn import_netscape(&self, outlines: Vec<Item>, user_id: Uuid) -> Result<(), Error>;
 }
 
 dyn_clone::clone_trait_object!(BackupRepository);

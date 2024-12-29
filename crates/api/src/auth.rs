@@ -14,10 +14,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::{
-    common::{BaseError, Error, Session, AUTH_TAG, SESSION_KEY},
-    profile::Profile,
-};
+use crate::common::{BaseError, Error, Session, AUTH_TAG, SESSION_KEY};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
@@ -31,7 +28,7 @@ impl AuthState {
 }
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Register, Login, User, SwitchProfile)))]
+#[openapi(components(schemas(Register, Login, User)))]
 pub struct AuthApi;
 
 impl AuthApi {
@@ -40,7 +37,6 @@ impl AuthApi {
             .routes(routes!(register))
             .routes(routes!(login))
             .routes(routes!(get_active_user))
-            .routes(routes!(switch_profile))
             .routes(routes!(logout))
     }
 }
@@ -98,18 +94,6 @@ impl From<Login> for auth::Login {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct SwitchProfile {
-    pub id: Uuid,
-}
-
-impl From<SwitchProfile> for auth::SwitchProfile {
-    fn from(value: SwitchProfile) -> Self {
-        Self { id: value.id }
-    }
-}
-
 #[utoipa::path(
     post,
     path = "/register",
@@ -154,10 +138,7 @@ pub async fn login(
 ) -> Result<LoginResponse, Error> {
     match service.login(body.into()).await {
         Ok(data) => {
-            let session = Session {
-                user_id: data.user_id,
-                profile_id: data.id,
-            };
+            let session = Session { user_id: data.id };
             session_store.insert(SESSION_KEY, session).await?;
 
             Ok(LoginResponse::Ok(data.into()))
@@ -187,41 +168,6 @@ pub async fn get_active_user(
     match service.get_active(session.user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/switchProfile",
-    request_body = SwitchProfile,
-    responses(SwitchProfileResponse),
-    operation_id = "switchProfile",
-    description = "Switch to a different profile",
-    tag = AUTH_TAG
-)]
-#[axum::debug_handler]
-pub async fn switch_profile(
-    State(service): State<AuthService>,
-    session_store: tower_sessions::Session,
-    session: Session,
-    Json(body): Json<SwitchProfile>,
-) -> Result<SwitchProfileResponse, Error> {
-    match service.switch_profile(body.into(), session.user_id).await {
-        Ok(data) => {
-            let session = Session {
-                user_id: data.user_id,
-                profile_id: data.id,
-            };
-            session_store.insert(SESSION_KEY, session).await?;
-
-            Ok(SwitchProfileResponse::Ok(data.into()))
-        }
-        Err(e) => match e {
-            auth::Error::NotAuthenticated => Ok(SwitchProfileResponse::Unauthorized(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
-        },
     }
 }
 
@@ -264,8 +210,8 @@ impl IntoResponse for RegisterResponse {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum LoginResponse {
-    #[response(status = 200, description = "Default profile")]
-    Ok(Profile),
+    #[response(status = 200, description = "Logged in user")]
+    Ok(User),
 
     #[response(status = 401, description = "Bad credentials")]
     Unauthorized(BaseError),
@@ -294,28 +240,6 @@ impl IntoResponse for GetActiveResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
-        }
-    }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
-pub enum SwitchProfileResponse {
-    #[response(status = 200, description = "Selected profile")]
-    Ok(Profile),
-
-    #[response(status = 401, description = "Bad credentials")]
-    Unauthorized(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-}
-
-impl IntoResponse for SwitchProfileResponse {
-    fn into_response(self) -> Response {
-        match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::Unauthorized(e) => (StatusCode::UNAUTHORIZED, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }
 }

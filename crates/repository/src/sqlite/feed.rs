@@ -51,9 +51,9 @@ impl Findable for SqliteFeedRepository {
                 )
             });
             
-            let (sql, values) = crate::profile_feed::select(
+            let (sql, values) = crate::user_feed::select(
                 params.id,
-                params.profile_id,
+                params.user_id,
                 params.pinned,
                 params.cursor,
                 params.limit,
@@ -104,7 +104,7 @@ impl Creatable for SqliteFeedRepository {
 
             let pf_id = {
                 let (mut sql, mut values) =
-                    crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
+                    crate::user_feed::select_by_unique_index(data.user_id, feed_id)
                         .build_rusqlite(SqliteQueryBuilder);
 
                 if let Some(id) = tx
@@ -114,11 +114,11 @@ impl Creatable for SqliteFeedRepository {
                 {
                     id
                 } else {
-                    (sql, values) = crate::profile_feed::insert(
+                    (sql, values) = crate::user_feed::insert(
                         Some(Uuid::new_v4()),
                         data.pinned,
                         feed_id,
-                        data.profile_id,
+                        data.user_id,
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -127,10 +127,10 @@ impl Creatable for SqliteFeedRepository {
                 }
             };
 
-            link_entries_to_profiles(&tx, feed_id)?;
+            link_entries_to_users(&tx, feed_id)?;
 
             if let Some(tags) = data.tags {
-                link_tags(&tx, pf_id, tags, data.profile_id)?;
+                link_tags(&tx, pf_id, tags, data.user_id)?;
             }
 
             tx.commit()?;
@@ -164,9 +164,9 @@ impl Updatable for SqliteFeedRepository {
 
             if data.title.is_some() || data.pinned.is_some() {
                 let count = {
-                    let (sql, values) = crate::profile_feed::update(
+                    let (sql, values) = crate::user_feed::update(
                         params.id,
-                        params.profile_id,
+                        params.user_id,
                         data.title,
                         data.pinned,
                     )
@@ -180,7 +180,7 @@ impl Updatable for SqliteFeedRepository {
             }
 
             if let Some(tags) = data.tags {
-                link_tags(&tx, params.id, tags, params.profile_id)?;
+                link_tags(&tx, params.id, tags, params.user_id)?;
             }
 
             tx.commit()
@@ -208,7 +208,7 @@ impl Deletable for SqliteFeedRepository {
 
         conn.interact(move |conn| {
             let count = {
-                let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
+                let (sql, values) = crate::user_feed::delete(params.id, params.user_id)
                     .build_rusqlite(SqliteQueryBuilder);
 
                 conn.execute(&sql, &*values.as_params())?
@@ -339,7 +339,7 @@ pub(crate) fn create_feed_with_entries(
     Ok(feed_id)
 }
 
-pub(crate) fn link_entries_to_profiles(conn: &Connection, feed_id: i32) -> rusqlite::Result<()> {
+pub(crate) fn link_entries_to_users(conn: &Connection, feed_id: i32) -> rusqlite::Result<()> {
     let fe_ids = {
         let (sql, values) =
             crate::feed_entry::select_many_by_feed_id(feed_id).build_rusqlite(SqliteQueryBuilder);
@@ -359,14 +359,14 @@ pub(crate) fn link_entries_to_profiles(conn: &Connection, feed_id: i32) -> rusql
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
             .into_iter()
-            .map(|feed_entry_id| crate::profile_feed_entry::InsertMany {
+            .map(|feed_entry_id| crate::user_feed_entry::InsertMany {
                 id: Some(Uuid::new_v4()),
                 feed_entry_id,
             })
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
+            crate::user_feed_entry::insert_many_for_all_users(&insert_many, feed_id)
                 .build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -377,11 +377,11 @@ pub(crate) fn link_entries_to_profiles(conn: &Connection, feed_id: i32) -> rusql
 
 pub(crate) fn link_tags(
     conn: &Connection,
-    profile_feed_id: Uuid,
+    user_feed_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> rusqlite::Result<()> {
-    let (sql, values) = crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
+    let (sql, values) = crate::user_feed_tag::delete_many_not_in_titles(&tags, user_id)
         .build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -395,14 +395,14 @@ pub(crate) fn link_tags(
                     title: e.to_owned(),
                 })
                 .collect::<Vec<_>>(),
-            profile_id,
+            user_id,
         )
         .build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
         let (sql, values) =
-            crate::tag::select_ids_by_titles(&tags, profile_id).build_rusqlite(SqliteQueryBuilder);
+            crate::tag::select_ids_by_titles(&tags, user_id).build_rusqlite(SqliteQueryBuilder);
 
         let mut ids: Vec<Uuid> = Vec::new();
 
@@ -418,13 +418,13 @@ pub(crate) fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| crate::profile_feed_tag::InsertMany {
-            profile_feed_id,
+        .map(|e| crate::user_feed_tag::InsertMany {
+            user_feed_id,
             tag_id: e,
         })
         .collect::<Vec<_>>();
 
-    let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
+    let (sql, values) = crate::user_feed_tag::insert_many(&insert_many, user_id)
         .build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;

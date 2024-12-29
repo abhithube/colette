@@ -6,10 +6,9 @@ use colette_core::{
     auth::{AuthService, Login, Register},
     backup::BackupService,
     bookmark::BookmarkService,
-    common::{Findable, NonEmptyString},
+    common::NonEmptyString,
     feed::FeedService,
     feed_entry::FeedEntryService,
-    profile::{ProfileFindParams, ProfileService},
     scraper::ScraperService,
     smart_feed::SmartFeedService,
     tag::TagService,
@@ -18,8 +17,8 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
-    SqliteFeedRepository, SqliteProfileRepository, SqliteScraperRepository,
-    SqliteSmartFeedRepository, SqliteTagRepository, SqliteUserRepository,
+    SqliteFeedRepository, SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository,
+    SqliteUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
@@ -27,7 +26,7 @@ use colette_scraper::{
 use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::run_task_worker;
-use command::{auth, backup, bookmark, feed, feed_entry, profile, smart_feed, tag};
+use command::{auth, backup, bookmark, feed, feed_entry, smart_feed, tag};
 use deadpool_sqlite::{Config, Runtime};
 use email_address::EmailAddress;
 use refinery::embed_migrations;
@@ -67,7 +66,6 @@ pub fn run() {
                 let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
                 let feed_repository = Box::new(SqliteFeedRepository::new(pool.clone()));
                 let feed_entry_repository = Box::new(SqliteFeedEntryRepository::new(pool.clone()));
-                let profile_repository = Box::new(SqliteProfileRepository::new(pool.clone()));
                 let scraper_repository = Box::new(SqliteScraperRepository::new(pool.clone()));
                 let smart_feed_repository = Box::new(SqliteSmartFeedRepository::new(pool.clone()));
                 let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
@@ -84,11 +82,7 @@ pub fn run() {
 
                 let base64_encoder = Box::new(Base64Encoder);
 
-                let auth_service = AuthService::new(
-                    user_repository,
-                    profile_repository.clone(),
-                    Box::new(ArgonHasher),
-                );
+                let auth_service = AuthService::new(user_repository, Box::new(ArgonHasher));
                 let backup_service = BackupService::new(
                     backup_repository,
                     feed_repository.clone(),
@@ -104,7 +98,6 @@ pub fn run() {
                 let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
                 let feed_entry_service =
                     FeedEntryService::new(feed_entry_repository, base64_encoder);
-                let profile_service = ProfileService::new(profile_repository.clone());
                 let scraper_service = ScraperService::new(
                     scraper_repository,
                     feed_plugin_registry,
@@ -134,37 +127,24 @@ pub fn run() {
 
                 let email = EmailAddress::from_str("default@default.com")?;
                 let password = NonEmptyString::try_from("default".to_owned())?;
-                let profile = match auth_service
+                let user = match auth_service
                     .login(Login {
                         email: email.clone(),
                         password: password.clone(),
                     })
                     .await
                 {
-                    Ok(profile) => profile,
-                    _ => {
-                        let user = auth_service.register(Register { email, password }).await?;
-                        let mut profiles = profile_repository
-                            .find(ProfileFindParams {
-                                user_id: user.id,
-                                ..Default::default()
-                            })
-                            .await?;
-                        profiles.swap_remove(0)
-                    }
-                };
+                    Ok(user) => Ok(user),
+                    _ => auth_service.register(Register { email, password }).await,
+                }?;
 
-                app.manage(Session {
-                    profile_id: profile.id,
-                    user_id: profile.user_id,
-                });
+                app.manage(Session { user_id: user.id });
 
                 app.manage(auth_service);
                 app.manage(backup_service);
                 app.manage(bookmark_service);
                 app.manage(feed_service);
                 app.manage(feed_entry_service);
-                app.manage(profile_service);
                 app.manage(smart_feed_service);
                 app.manage(tag_service);
 
@@ -189,7 +169,6 @@ pub fn run() {
             auth::register,
             auth::login,
             auth::get_active_user,
-            auth::switch_profile,
             backup::import_opml,
             backup::export_opml,
             backup::import_netscape,
@@ -209,12 +188,6 @@ pub fn run() {
             feed_entry::list_feed_entries,
             feed_entry::get_feed_entry,
             feed_entry::update_feed_entry,
-            profile::list_profiles,
-            profile::create_profile,
-            profile::get_profile,
-            profile::get_active_profile,
-            profile::update_profile,
-            profile::delete_profile,
             smart_feed::list_smart_feeds,
             smart_feed::create_smart_feed,
             smart_feed::get_smart_feed,

@@ -4,21 +4,20 @@ use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, profile::ProfileState, smart_feed::SmartFeedState, tag::TagState,
-    Api, ApiState,
+    feed_entry::FeedEntryState, smart_feed::SmartFeedState, tag::TagState, Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, profile::ProfileService, scraper::ScraperService,
-    smart_feed::SmartFeedService, tag::TagService,
+    feed_entry::FeedEntryService, scraper::ScraperService, smart_feed::SmartFeedService,
+    tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresProfileRepository, PostgresScraperRepository,
-    PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
+    PostgresFeedRepository, PostgresScraperRepository, PostgresSmartFeedRepository,
+    PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
@@ -76,7 +75,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
     let feed_repository = Box::new(PostgresFeedRepository::new(pool.clone()));
     let feed_entry_repository = Box::new(PostgresFeedEntryRepository::new(pool.clone()));
-    let profile_repository = Box::new(PostgresProfileRepository::new(pool.clone()));
     let scraper_repository = Box::new(PostgresScraperRepository::new(pool.clone()));
     let smart_feed_repository = Box::new(PostgresSmartFeedRepository::new(pool.clone()));
     let tag_repository = Box::new(PostgresTagRepository::new(pool.clone()));
@@ -121,11 +119,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
 
     let api_state = ApiState::new(
-        AuthState::new(AuthService::new(
-            user_repository,
-            profile_repository.clone(),
-            Box::new(ArgonHasher),
-        )),
+        AuthState::new(AuthService::new(user_repository, Box::new(ArgonHasher))),
         BackupState::new(
             BackupService::new(
                 backup_repository,
@@ -144,7 +138,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         FeedState::new(feed_service),
         FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_encoder)),
-        ProfileState::new(ProfileService::new(profile_repository)),
         SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
         TagState::new(TagService::new(tag_repository)),
     );

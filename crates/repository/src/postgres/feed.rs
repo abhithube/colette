@@ -56,9 +56,9 @@ impl Findable for PostgresFeedRepository {
             )
         });
 
-        let (sql, values) = crate::profile_feed::select(
+        let (sql, values) = crate::user_feed::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.pinned,
             params.cursor,
             params.limit,
@@ -123,7 +123,7 @@ impl Creatable for PostgresFeedRepository {
 
         let pf_id = {
             let (mut sql, mut values) =
-                crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
+                crate::user_feed::select_by_unique_index(data.user_id, feed_id)
                     .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
@@ -138,9 +138,8 @@ impl Creatable for PostgresFeedRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) =
-                    crate::profile_feed::insert(None, data.pinned, feed_id, data.profile_id)
-                        .build_postgres(PostgresQueryBuilder);
+                (sql, values) = crate::user_feed::insert(None, data.pinned, feed_id, data.user_id)
+                    .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
                     .prepare_cached(&sql)
@@ -154,12 +153,12 @@ impl Creatable for PostgresFeedRepository {
             }
         };
 
-        link_entries_to_profiles(&tx, feed_id)
+        link_entries_to_users(&tx, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pf_id, tags, data.profile_id)
+            link_tags(&tx, pf_id, tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -190,7 +189,7 @@ impl Updatable for PostgresFeedRepository {
 
         if data.title.is_some() || data.pinned.is_some() {
             let (sql, values) =
-                crate::profile_feed::update(params.id, params.profile_id, data.title, data.pinned)
+                crate::user_feed::update(params.id, params.user_id, data.title, data.pinned)
                     .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
@@ -208,7 +207,7 @@ impl Updatable for PostgresFeedRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, tags, params.profile_id)
+            link_tags(&tx, params.id, tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -231,7 +230,7 @@ impl Deletable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::profile_feed::delete(params.id, params.profile_id)
+        let (sql, values) = crate::user_feed::delete(params.id, params.user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client
@@ -365,7 +364,7 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
     Ok(feed_id)
 }
 
-pub(crate) async fn link_entries_to_profiles<C: GenericClient>(
+pub(crate) async fn link_entries_to_users<C: GenericClient>(
     client: &C,
     feed_id: i32,
 ) -> Result<(), tokio_postgres::Error> {
@@ -385,14 +384,14 @@ pub(crate) async fn link_entries_to_profiles<C: GenericClient>(
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
             .into_iter()
-            .map(|feed_entry_id| crate::profile_feed_entry::InsertMany {
+            .map(|feed_entry_id| crate::user_feed_entry::InsertMany {
                 id: None,
                 feed_entry_id,
             })
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
+            crate::user_feed_entry::insert_many_for_all_users(&insert_many, feed_id)
                 .build_postgres(PostgresQueryBuilder);
 
         let mut types: Vec<Type> = Vec::new();
@@ -410,12 +409,12 @@ pub(crate) async fn link_entries_to_profiles<C: GenericClient>(
 
 pub(crate) async fn link_tags<C: GenericClient>(
     client: &C,
-    profile_feed_id: Uuid,
+    user_feed_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     {
-        let (sql, values) = crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
+        let (sql, values) = crate::user_feed_tag::delete_many_not_in_titles(&tags, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
@@ -433,7 +432,7 @@ pub(crate) async fn link_tags<C: GenericClient>(
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::tag::insert_many(&insert_many, profile_id).build_postgres(PostgresQueryBuilder);
+            crate::tag::insert_many(&insert_many, user_id).build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -441,8 +440,8 @@ pub(crate) async fn link_tags<C: GenericClient>(
     }
 
     {
-        let (sql, values) = crate::tag::select_ids_by_titles(&tags, profile_id)
-            .build_postgres(PostgresQueryBuilder);
+        let (sql, values) =
+            crate::tag::select_ids_by_titles(&tags, user_id).build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -454,13 +453,13 @@ pub(crate) async fn link_tags<C: GenericClient>(
 
         let insert_many = tag_ids
             .into_iter()
-            .map(|e| crate::profile_feed_tag::InsertMany {
-                profile_feed_id,
+            .map(|e| crate::user_feed_tag::InsertMany {
+                user_feed_id,
                 tag_id: e,
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) = crate::profile_feed_tag::insert_many(&insert_many, profile_id)
+        let (sql, values) = crate::user_feed_tag::insert_many(&insert_many, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;

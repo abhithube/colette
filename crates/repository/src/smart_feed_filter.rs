@@ -11,7 +11,7 @@ pub enum SmartFeedFilter {
     Operation,
     Value,
     SmartFeedId,
-    ProfileId,
+    UserId,
     CreatedAt,
     UpdatedAt,
 }
@@ -28,7 +28,7 @@ impl Iden for SmartFeedFilter {
                 Self::Operation => "operation",
                 Self::Value => "value",
                 Self::SmartFeedId => "smart_feed_id",
-                Self::ProfileId => "profile_id",
+                Self::UserId => "user_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
             }
@@ -109,13 +109,13 @@ pub struct InsertMany {
     pub value: String,
 }
 
-pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, profile_id: Uuid) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, user_id: Uuid) -> InsertStatement {
     let mut columns = vec![
         SmartFeedFilter::Field,
         SmartFeedFilter::Operation,
         SmartFeedFilter::Value,
         SmartFeedFilter::SmartFeedId,
-        SmartFeedFilter::ProfileId,
+        SmartFeedFilter::UserId,
     ];
     if data.iter().any(|e| e.id.is_some()) {
         columns.push(SmartFeedFilter::Id);
@@ -129,7 +129,7 @@ pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, profile_id: Uuid) -
             SmartFeedFilter::Operation,
             SmartFeedFilter::Value,
             SmartFeedFilter::SmartFeedId,
-            SmartFeedFilter::ProfileId,
+            SmartFeedFilter::UserId,
         ])
         .to_owned();
 
@@ -139,7 +139,7 @@ pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, profile_id: Uuid) -
             sff.operation.to_string().into(),
             (*sff.value).into(),
             smart_feed_id.into(),
-            profile_id.into(),
+            user_id.into(),
         ];
         if let Some(id) = sff.id {
             values.push(id.into());
@@ -151,10 +151,10 @@ pub fn insert_many(data: &[InsertMany], smart_feed_id: Uuid, profile_id: Uuid) -
     query
 }
 
-pub fn delete_many(profile_id: Uuid, smart_feed_id: Uuid) -> DeleteStatement {
+pub fn delete_many(user_id: Uuid, smart_feed_id: Uuid) -> DeleteStatement {
     Query::delete()
         .from_table(SmartFeedFilter::Table)
-        .and_where(Expr::col(SmartFeedFilter::ProfileId).eq(profile_id))
+        .and_where(Expr::col(SmartFeedFilter::UserId).eq(user_id))
         .and_where(Expr::col(SmartFeedFilter::SmartFeedId).eq(smart_feed_id))
         .to_owned()
 }

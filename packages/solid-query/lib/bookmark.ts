@@ -10,13 +10,9 @@ import type {
 import type { MutationOptions } from '@tanstack/query-core'
 import { infiniteQueryOptions } from '@tanstack/solid-query'
 
-export const listBookmarksOptions = (
-  query: BookmarkListQuery,
-  profileId: string,
-  api: API,
-) =>
+export const listBookmarksOptions = (query: BookmarkListQuery, api: API) =>
   infiniteQueryOptions({
-    queryKey: ['profiles', profileId, 'bookmarks', query],
+    queryKey: ['bookmarks', query],
     queryFn: ({ pageParam }) =>
       api.bookmarks.list({
         ...query,

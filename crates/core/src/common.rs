@@ -79,12 +79,12 @@ pub struct Paginated<T> {
 #[derive(Clone, Debug, Default)]
 pub struct IdParams {
     pub id: Uuid,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
 }
 
 impl IdParams {
-    pub fn new(id: Uuid, profile_id: Uuid) -> Self {
-        Self { id, profile_id }
+    pub fn new(id: Uuid, user_id: Uuid) -> Self {
+        Self { id, user_id }
     }
 }
 

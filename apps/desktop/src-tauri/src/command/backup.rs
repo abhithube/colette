@@ -12,7 +12,7 @@ pub async fn import_opml(
     data: Vec<u8>,
 ) -> Result<(), String> {
     let urls = service
-        .import_opml(data.into(), session.profile_id)
+        .import_opml(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -30,7 +30,7 @@ pub async fn export_opml(
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service
-        .export_opml(session.profile_id)
+        .export_opml(session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -45,7 +45,7 @@ pub async fn import_netscape(
     data: Vec<u8>,
 ) -> Result<(), String> {
     let urls = service
-        .import_netscape(data.into(), session.profile_id)
+        .import_netscape(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -63,7 +63,7 @@ pub async fn export_netscape(
     session: State<'_, Session>,
 ) -> Result<Vec<u8>, String> {
     let bytes = service
-        .export_netscape(session.profile_id)
+        .export_netscape(session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 

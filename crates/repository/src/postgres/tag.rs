@@ -36,7 +36,7 @@ impl Findable for PostgresTagRepository {
 
         let (sql, values) = crate::tag::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.limit,
             params.cursor,
             params.tag_type,
@@ -72,7 +72,7 @@ impl Creatable for PostgresTagRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::tag::insert(None, data.title.clone(), data.profile_id)
+        let (sql, values) = crate::tag::insert(None, data.title.clone(), data.user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client
@@ -107,7 +107,7 @@ impl Updatable for PostgresTagRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            let (sql, values) = crate::tag::update(params.id, params.profile_id, data.title)
+            let (sql, values) = crate::tag::update(params.id, params.user_id, data.title)
                 .build_postgres(PostgresQueryBuilder);
 
             let stmt = client
@@ -140,7 +140,7 @@ impl Deletable for PostgresTagRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::tag::delete_by_id(params.id, params.profile_id)
+        let (sql, values) = crate::tag::delete_by_id(params.id, params.user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client

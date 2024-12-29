@@ -24,7 +24,7 @@ struct Parent {
 
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
-    async fn import_opml(&self, outlines: Vec<Outline>, profile_id: Uuid) -> Result<(), Error> {
+    async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
         let mut client = self
             .pool
             .get()
@@ -46,9 +46,8 @@ impl BackupRepository for PostgresBackupRepository {
 
             if outline.outline.is_some() {
                 let tag_id = {
-                    let (mut sql, mut values) =
-                        crate::tag::select_by_title(title.clone(), profile_id)
-                            .build_postgres(PostgresQueryBuilder);
+                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
+                        .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx
                         .prepare_cached(&sql)
@@ -62,7 +61,7 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) = crate::tag::insert(None, title.clone(), profile_id)
+                        (sql, values) = crate::tag::insert(None, title.clone(), user_id)
                             .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
@@ -106,7 +105,7 @@ impl BackupRepository for PostgresBackupRepository {
 
                 let pf_id = {
                     let (mut sql, mut values) =
-                        crate::profile_feed::select_by_unique_index(profile_id, feed_id)
+                        crate::user_feed::select_by_unique_index(user_id, feed_id)
                             .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx
@@ -121,9 +120,8 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) =
-                            crate::profile_feed::insert(None, None, feed_id, profile_id)
-                                .build_postgres(PostgresQueryBuilder);
+                        (sql, values) = crate::user_feed::insert(None, None, feed_id, user_id)
+                            .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
                             .prepare_cached(&sql)
@@ -138,12 +136,12 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 if let Some(tag) = parent {
-                    let (sql, values) = crate::profile_feed_tag::insert_many(
-                        &[crate::profile_feed_tag::InsertMany {
-                            profile_feed_id: pf_id,
+                    let (sql, values) = crate::user_feed_tag::insert_many(
+                        &[crate::user_feed_tag::InsertMany {
+                            user_feed_id: pf_id,
                             tag_id: tag.id,
                         }],
-                        profile_id,
+                        user_id,
                     )
                     .build_postgres(PostgresQueryBuilder);
 
@@ -162,7 +160,7 @@ impl BackupRepository for PostgresBackupRepository {
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }
 
-    async fn import_netscape(&self, items: Vec<Item>, profile_id: Uuid) -> Result<(), Error> {
+    async fn import_netscape(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
         let mut client = self
             .pool
             .get()
@@ -186,9 +184,8 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 let tag_id = {
-                    let (mut sql, mut values) =
-                        crate::tag::select_by_title(title.clone(), profile_id)
-                            .build_postgres(PostgresQueryBuilder);
+                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
+                        .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx
                         .prepare_cached(&sql)
@@ -202,7 +199,7 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) = crate::tag::insert(None, title.clone(), profile_id)
+                        (sql, values) = crate::tag::insert(None, title.clone(), user_id)
                             .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
@@ -246,7 +243,7 @@ impl BackupRepository for PostgresBackupRepository {
 
                 let pb_id = {
                     let (mut sql, mut values) =
-                        crate::profile_bookmark::select_by_unique_index(profile_id, bookmark_id)
+                        crate::user_bookmark::select_by_unique_index(user_id, bookmark_id)
                             .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx
@@ -261,9 +258,8 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) =
-                            crate::profile_bookmark::insert(None, bookmark_id, profile_id)
-                                .build_postgres(PostgresQueryBuilder);
+                        (sql, values) = crate::user_bookmark::insert(None, bookmark_id, user_id)
+                            .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
                             .prepare_cached(&sql)
@@ -278,12 +274,12 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 if let Some(tag) = parent {
-                    let (sql, values) = crate::profile_bookmark_tag::insert_many(
-                        &[crate::profile_bookmark_tag::InsertMany {
-                            profile_bookmark_id: pb_id,
+                    let (sql, values) = crate::user_bookmark_tag::insert_many(
+                        &[crate::user_bookmark_tag::InsertMany {
+                            user_bookmark_id: pb_id,
                             tag_id: tag.id,
                         }],
-                        profile_id,
+                        user_id,
                     )
                     .build_postgres(PostgresQueryBuilder);
 

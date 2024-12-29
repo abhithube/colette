@@ -32,9 +32,9 @@ impl Findable for PostgresFeedEntryRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::profile_feed_entry::select(
+        let (sql, values) = crate::user_feed_entry::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.feed_id,
             params.has_read,
             params.tags.as_deref(),
@@ -78,7 +78,7 @@ impl Updatable for PostgresFeedEntryRepository {
         if data.has_read.is_some() {
             let count = {
                 let (sql, values) =
-                    crate::profile_feed_entry::update(params.id, params.profile_id, data.has_read)
+                    crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
                         .build_postgres(PostgresQueryBuilder);
 
                 let stmt = client
@@ -116,7 +116,7 @@ impl From<Row> for FeedEntrySelect {
             author: value.get("author"),
             thumbnail_url: value.get("thumbnail_url"),
             has_read: value.get("has_read"),
-            feed_id: value.get("profile_feed_id"),
+            feed_id: value.get("user_feed_id"),
         })
     }
 }

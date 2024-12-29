@@ -43,8 +43,8 @@ impl Findable for D1UserRepository {
                 Ok(user)
             }
             UserFindParams::Email(email) => {
-                let (sql, values) = crate::user::select(None, Some(email.clone()))
-                    .build_d1(SqliteQueryBuilder);
+                let (sql, values) =
+                    crate::user::select(None, Some(email.clone())).build_d1(SqliteQueryBuilder);
 
                 let Some(user) = super::first::<User>(&self.db, sql, values, None)
                     .await
@@ -67,20 +67,10 @@ impl Creatable for D1UserRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
 
-        let queries = vec![
-            crate::user::insert(Some(id), data.email.clone(), data.password)
-                .build_d1(SqliteQueryBuilder),
-            crate::profile::insert(
-                Some(Uuid::new_v4()),
-                "Default".to_owned(),
-                None,
-                Some(true),
-                id,
-            )
-            .build_d1(SqliteQueryBuilder),
-        ];
+        let (sql, values) = crate::user::insert(Some(id), data.email.clone(), data.password)
+            .build_d1(SqliteQueryBuilder);
 
-        super::batch(&self.db, queries)
+        super::run(&self.db, sql, values)
             .await
             .map_err(|e| match e.into() {
                 D1Error::UniqueConstraint => Error::Conflict(data.email),

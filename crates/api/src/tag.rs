@@ -132,7 +132,7 @@ impl From<TagType> for tag::TagType {
     params(TagListQuery),
     responses(ListResponse),
     operation_id = "listTags",
-    description = "List the active profile tags",
+    description = "List user tags",
     tag = TAGS_TAG
 )]
 #[axum::debug_handler]
@@ -141,7 +141,7 @@ pub async fn list_tags(
     Query(query): Query<TagListQuery>,
     session: Session,
 ) -> Result<ListResponse, Error> {
-    match service.list_tags(query.into(), session.profile_id).await {
+    match service.list_tags(query.into(), session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -162,7 +162,7 @@ pub async fn get_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<GetResponse, Error> {
-    match service.get_tag(id, session.profile_id).await {
+    match service.get_tag(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -188,7 +188,7 @@ pub async fn create_tag(
     session: Session,
     Json(body): Json<TagCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service.create_tag(body.into(), session.profile_id).await {
+    match service.create_tag(body.into(), session.user_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -216,10 +216,7 @@ pub async fn update_tag(
     session: Session,
     Json(body): Json<TagUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service
-        .update_tag(id, body.into(), session.profile_id)
-        .await
-    {
+    match service.update_tag(id, body.into(), session.user_id).await {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -245,7 +242,7 @@ pub async fn delete_tag(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_tag(id, session.profile_id).await {
+    match service.delete_tag(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

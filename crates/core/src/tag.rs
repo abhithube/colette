@@ -54,13 +54,13 @@ impl TagService {
     pub async fn list_tags(
         &self,
         query: TagListQuery,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
             .find(TagFindParams {
                 tag_type: query.tag_type,
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -71,12 +71,12 @@ impl TagService {
         })
     }
 
-    pub async fn get_tag(&self, id: Uuid, profile_id: Uuid) -> Result<Tag, Error> {
+    pub async fn get_tag(&self, id: Uuid, user_id: Uuid) -> Result<Tag, Error> {
         let mut tags = self
             .repository
             .find(TagFindParams {
                 id: Some(id),
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -87,33 +87,33 @@ impl TagService {
         Ok(tags.swap_remove(0))
     }
 
-    pub async fn create_tag(&self, data: TagCreate, profile_id: Uuid) -> Result<Tag, Error> {
+    pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
         let id = self
             .repository
             .create(TagCreateData {
                 title: data.title.into(),
-                profile_id,
+                user_id,
             })
             .await?;
 
-        self.get_tag(id, profile_id).await
+        self.get_tag(id, user_id).await
     }
 
     pub async fn update_tag(
         &self,
         id: Uuid,
         data: TagUpdate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Tag, Error> {
         self.repository
-            .update(IdParams::new(id, profile_id), data.into())
+            .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_tag(id, profile_id).await
+        self.get_tag(id, user_id).await
     }
 
-    pub async fn delete_tag(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, profile_id)).await
+    pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, user_id)).await
     }
 }
 
@@ -136,7 +136,7 @@ pub struct TagFindParams {
     pub tag_type: TagType,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
 }
@@ -144,7 +144,7 @@ pub struct TagFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
     pub title: String,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]

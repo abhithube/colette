@@ -36,9 +36,9 @@ impl Findable for SqliteFeedEntryRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let (sql, values) = crate::profile_feed_entry::select(
+            let (sql, values) = crate::user_feed_entry::select(
                 params.id,
-                params.profile_id,
+                params.user_id,
                 params.feed_id,
                 params.has_read,
                 params.tags.as_deref(),
@@ -81,7 +81,7 @@ impl Updatable for SqliteFeedEntryRepository {
         conn.interact(move |conn| {
             if data.has_read.is_some() {
                 let (sql, values) =
-                    crate::profile_feed_entry::update(params.id, params.profile_id, data.has_read)
+                    crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
                         .build_rusqlite(SqliteQueryBuilder);
 
                 let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -119,7 +119,7 @@ impl TryFrom<&Row<'_>> for FeedEntrySelect {
             author: value.get("author")?,
             thumbnail_url: value.get("thumbnail_url")?,
             has_read: value.get("has_read")?,
-            feed_id: value.get("profile_feed_id")?,
+            feed_id: value.get("user_feed_id")?,
         }))
     }
 }

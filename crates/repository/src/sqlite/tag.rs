@@ -37,7 +37,7 @@ impl Findable for SqliteTagRepository {
         conn.interact(move |conn| {
             let (sql, values) = crate::tag::select(
                 params.id,
-                params.profile_id,
+                params.user_id,
                 params.limit,
                 params.cursor,
                 params.tag_type,
@@ -76,7 +76,7 @@ impl Creatable for SqliteTagRepository {
 
         conn.interact(move |conn| {
             let (sql, values) =
-                crate::tag::insert(Some(Uuid::new_v4()), data.title, data.profile_id)
+                crate::tag::insert(Some(Uuid::new_v4()), data.title, data.user_id)
                     .build_rusqlite(SqliteQueryBuilder);
 
             conn.prepare_cached(&sql)?
@@ -113,7 +113,7 @@ impl Updatable for SqliteTagRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let (sql, values) = crate::tag::update(params.id, params.profile_id, data.title)
+            let (sql, values) = crate::tag::update(params.id, params.user_id, data.title)
                 .build_rusqlite(SqliteQueryBuilder);
 
             let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -145,7 +145,7 @@ impl Deletable for SqliteTagRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let (sql, values) = crate::tag::delete_by_id(params.id, params.profile_id)
+            let (sql, values) = crate::tag::delete_by_id(params.id, params.user_id)
                 .build_rusqlite(SqliteQueryBuilder);
 
             let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;

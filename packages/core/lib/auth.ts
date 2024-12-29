@@ -1,20 +1,11 @@
-import {
-  type ApiClient,
-  Login,
-  Profile,
-  Register,
-  SwitchProfile,
-  User,
-} from './openapi.gen'
+import { type ApiClient, Login, Register, User } from './openapi.gen'
 
 export interface AuthAPI {
   register(data: Register): Promise<User>
 
-  login(data: Login): Promise<Profile>
+  login(data: Login): Promise<User>
 
   getActive(): Promise<User>
-
-  switchProfile(data: SwitchProfile): Promise<Profile>
 }
 
 export class HTTPAuthAPI implements AuthAPI {
@@ -28,23 +19,15 @@ export class HTTPAuthAPI implements AuthAPI {
       .then(User.parse)
   }
 
-  login(data: Login): Promise<Profile> {
+  login(data: Login): Promise<User> {
     return this.client
       .post('/auth/login', {
         body: Login.parse(data),
       })
-      .then(Profile.parse)
+      .then(User.parse)
   }
 
   getActive(): Promise<User> {
     return this.client.get('/auth/@me').then(User.parse)
-  }
-
-  switchProfile(data: SwitchProfile): Promise<Profile> {
-    return this.client
-      .post('/auth/switchProfile', {
-        body: SwitchProfile.parse(data),
-      })
-      .then(Profile.parse)
   }
 }

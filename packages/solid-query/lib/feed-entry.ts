@@ -7,13 +7,9 @@ import type {
 import type { MutationOptions } from '@tanstack/query-core'
 import { infiniteQueryOptions } from '@tanstack/solid-query'
 
-export const listFeedEntriesOptions = (
-  query: FeedEntryListQuery,
-  profileId: string,
-  api: API,
-) =>
+export const listFeedEntriesOptions = (query: FeedEntryListQuery, api: API) =>
   infiniteQueryOptions({
-    queryKey: ['profiles', profileId, 'feedEntries', query],
+    queryKey: ['feedEntries', query],
     queryFn: ({ pageParam }) =>
       api.feedEntries.list({
         ...query,

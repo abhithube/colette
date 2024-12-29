@@ -71,11 +71,11 @@ impl SmartFeedService {
         Self { repository }
     }
 
-    pub async fn list_smart_feeds(&self, profile_id: Uuid) -> Result<Paginated<SmartFeed>, Error> {
+    pub async fn list_smart_feeds(&self, user_id: Uuid) -> Result<Paginated<SmartFeed>, Error> {
         let feeds = self
             .repository
             .find(SmartFeedFindParams {
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -86,12 +86,12 @@ impl SmartFeedService {
         })
     }
 
-    pub async fn get_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<SmartFeed, Error> {
+    pub async fn get_smart_feed(&self, id: Uuid, user_id: Uuid) -> Result<SmartFeed, Error> {
         let mut smart_feeds = self
             .repository
             .find(SmartFeedFindParams {
                 id: Some(id),
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -105,35 +105,35 @@ impl SmartFeedService {
     pub async fn create_smart_feed(
         &self,
         data: SmartFeedCreate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<SmartFeed, Error> {
         let id = self
             .repository
             .create(SmartFeedCreateData {
                 title: data.title.into(),
                 filters: data.filters.map(Vec::from),
-                profile_id,
+                user_id,
             })
             .await?;
 
-        self.get_smart_feed(id, profile_id).await
+        self.get_smart_feed(id, user_id).await
     }
 
     pub async fn update_smart_feed(
         &self,
         id: Uuid,
         data: SmartFeedUpdate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<SmartFeed, Error> {
         self.repository
-            .update(IdParams::new(id, profile_id), data.into())
+            .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_smart_feed(id, profile_id).await
+        self.get_smart_feed(id, user_id).await
     }
 
-    pub async fn delete_smart_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, profile_id)).await
+    pub async fn delete_smart_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, user_id)).await
     }
 }
 
@@ -153,7 +153,7 @@ dyn_clone::clone_trait_object!(SmartFeedRepository);
 #[derive(Clone, Debug, Default)]
 pub struct SmartFeedFindParams {
     pub id: Option<Uuid>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
 }
@@ -162,7 +162,7 @@ pub struct SmartFeedFindParams {
 pub struct SmartFeedCreateData {
     pub title: String,
     pub filters: Option<Vec<SmartFeedFilter>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]

@@ -84,7 +84,7 @@ impl BookmarkService {
     pub async fn list_bookmarks(
         &self,
         query: BookmarkListQuery,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
         let cursor = query
             .cursor
@@ -94,7 +94,7 @@ impl BookmarkService {
             .repository
             .find(BookmarkFindParams {
                 tags: query.tags,
-                profile_id,
+                user_id,
                 limit: Some(PAGINATION_LIMIT + 1),
                 cursor,
                 ..Default::default()
@@ -122,12 +122,12 @@ impl BookmarkService {
         })
     }
 
-    pub async fn get_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<Bookmark, Error> {
+    pub async fn get_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .repository
             .find(BookmarkFindParams {
                 id: Some(id),
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -141,7 +141,7 @@ impl BookmarkService {
     pub async fn create_bookmark(
         &self,
         data: BookmarkCreate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         let id = self
             .repository
@@ -150,28 +150,28 @@ impl BookmarkService {
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
-                profile_id,
+                user_id,
             })
             .await?;
 
-        self.get_bookmark(id, profile_id).await
+        self.get_bookmark(id, user_id).await
     }
 
     pub async fn update_bookmark(
         &self,
         id: Uuid,
         data: BookmarkUpdate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         self.repository
-            .update(IdParams::new(id, profile_id), data.into())
+            .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_bookmark(id, profile_id).await
+        self.get_bookmark(id, user_id).await
     }
 
-    pub async fn delete_bookmark(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, profile_id)).await
+    pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, user_id)).await
     }
 
     pub async fn scrape_bookmark(
@@ -217,7 +217,7 @@ dyn_clone::clone_trait_object!(BookmarkRepository);
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
 }
@@ -226,7 +226,7 @@ pub struct BookmarkFindParams {
 pub struct BookmarkCreateData {
     pub url: String,
     pub tags: Option<Vec<String>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]

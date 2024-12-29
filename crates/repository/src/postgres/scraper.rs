@@ -3,7 +3,7 @@ use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 
-use super::feed::{create_feed_with_entries, link_entries_to_profiles};
+use super::feed::{create_feed_with_entries, link_entries_to_users};
 
 #[derive(Debug, Clone)]
 pub struct PostgresScraperRepository {
@@ -34,7 +34,7 @@ impl ScraperRepository for PostgresScraperRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        link_entries_to_profiles(&tx, feed_id)
+        link_entries_to_users(&tx, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

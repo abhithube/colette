@@ -13,7 +13,7 @@ pub async fn list_feeds(
     query: FeedListQuery,
 ) -> Result<Paginated<Feed>, String> {
     let feeds = service
-        .list_feeds(query.into(), session.profile_id)
+        .list_feeds(query.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -27,7 +27,7 @@ pub async fn create_feed(
     data: FeedCreate,
 ) -> Result<Feed, String> {
     let feed = service
-        .create_feed(data.into(), session.profile_id)
+        .create_feed(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -41,7 +41,7 @@ pub async fn get_feed(
     id: Uuid,
 ) -> Result<Feed, String> {
     let feed = service
-        .get_feed(id, session.profile_id)
+        .get_feed(id, session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -56,7 +56,7 @@ pub async fn update_feed(
     data: FeedUpdate,
 ) -> Result<Feed, String> {
     let feed = service
-        .update_feed(id, data.into(), session.profile_id)
+        .update_feed(id, data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -70,7 +70,7 @@ pub async fn delete_feed(
     id: Uuid,
 ) -> Result<(), String> {
     service
-        .delete_feed(id, session.profile_id)
+        .delete_feed(id, session.user_id)
         .await
         .map_err(|e| e.to_string())
 }

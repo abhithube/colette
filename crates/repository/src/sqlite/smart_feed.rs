@@ -1,7 +1,7 @@
 use crate::{
     feed_entry::FeedEntry,
-    profile_feed_entry::ProfileFeedEntry,
     smart_feed_filter::{Field, Operation, SmartFeedFilter},
+    user_feed_entry::UserFeedEntry,
 };
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
@@ -47,7 +47,7 @@ impl Findable for SqliteSmartFeedRepository {
         conn.interact(move |conn| {
             let (sql, values) = crate::smart_feed::select(
                 params.id,
-                params.profile_id,
+                params.user_id,
                 params.cursor,
                 params.limit,
                 build_case_statement(),
@@ -87,19 +87,16 @@ impl Creatable for SqliteSmartFeedRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            let (sql, values) = crate::smart_feed::insert(
-                Some(Uuid::new_v4()),
-                data.title,
-                data.profile_id,
-            )
-            .build_rusqlite(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::smart_feed::insert(Some(Uuid::new_v4()), data.title, data.user_id)
+                    .build_rusqlite(SqliteQueryBuilder);
 
             let id = tx
                 .prepare_cached(&sql)?
                 .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
             if let Some(filters) = data.filters {
-                insert_filters(&tx, filters, id, data.profile_id)?;
+                insert_filters(&tx, filters, id, data.user_id)?;
             }
 
             tx.commit()?;
@@ -141,7 +138,7 @@ impl Updatable for SqliteSmartFeedRepository {
 
             if data.title.is_some() {
                 let (sql, values) =
-                    crate::smart_feed::update(params.id, params.profile_id, data.title)
+                    crate::smart_feed::update(params.id, params.user_id, data.title)
                         .build_rusqlite(SqliteQueryBuilder);
 
                 let count = tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -152,12 +149,12 @@ impl Updatable for SqliteSmartFeedRepository {
 
             if let Some(filters) = data.filters {
                 let (sql, values) =
-                    crate::smart_feed_filter::delete_many(params.profile_id, params.id)
+                    crate::smart_feed_filter::delete_many(params.user_id, params.id)
                         .build_rusqlite(SqliteQueryBuilder);
 
                 tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
-                insert_filters(&tx, filters, params.id, params.profile_id)?;
+                insert_filters(&tx, filters, params.id, params.user_id)?;
             }
 
             tx.commit()
@@ -184,7 +181,7 @@ impl Deletable for SqliteSmartFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         conn.interact(move |conn| {
-            let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
+            let (sql, values) = crate::smart_feed::delete(params.id, params.user_id)
                 .build_rusqlite(SqliteQueryBuilder);
 
             let count = conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
@@ -275,7 +272,7 @@ fn insert_filters(
     conn: &Connection,
     filters: Vec<Filter>,
     smart_feed_id: Uuid,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> rusqlite::Result<()> {
     let insert_data = filters
         .into_iter()
@@ -304,9 +301,8 @@ fn insert_filters(
         })
         .collect::<Vec<_>>();
 
-    let (sql, values) =
-        crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
-            .build_rusqlite(SqliteQueryBuilder);
+    let (sql, values) = crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, user_id)
+        .build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 
@@ -328,7 +324,7 @@ impl SmartFilterCase for CaseStatement {
             Field::Description => Expr::col((FeedEntry::Table, FeedEntry::Description)).into(),
             Field::Author => Expr::col((FeedEntry::Table, FeedEntry::Author)).into(),
             Field::HasRead => Func::cast_as(
-                Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::HasRead)),
+                Expr::col((UserFeedEntry::Table, UserFeedEntry::HasRead)),
                 Alias::new("TEXT"),
             )
             .into(),

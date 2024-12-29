@@ -16,7 +16,7 @@ pub async fn list_bookmarks(
     query: BookmarkListQuery,
 ) -> Result<Paginated<Bookmark>, String> {
     let bookmarks = service
-        .list_bookmarks(query.into(), session.profile_id)
+        .list_bookmarks(query.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -30,7 +30,7 @@ pub async fn create_bookmark(
     data: BookmarkCreate,
 ) -> Result<Bookmark, String> {
     let bookmark = service
-        .create_bookmark(data.into(), session.profile_id)
+        .create_bookmark(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -44,7 +44,7 @@ pub async fn get_bookmark(
     id: Uuid,
 ) -> Result<Bookmark, String> {
     let bookmark = service
-        .get_bookmark(id, session.profile_id)
+        .get_bookmark(id, session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -59,7 +59,7 @@ pub async fn update_bookmark(
     data: BookmarkUpdate,
 ) -> Result<Bookmark, String> {
     let bookmark = service
-        .update_bookmark(id, data.into(), session.profile_id)
+        .update_bookmark(id, data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -73,7 +73,7 @@ pub async fn delete_bookmark(
     id: Uuid,
 ) -> Result<(), String> {
     service
-        .delete_bookmark(id, session.profile_id)
+        .delete_bookmark(id, session.user_id)
         .await
         .map_err(|e| e.to_string())
 }

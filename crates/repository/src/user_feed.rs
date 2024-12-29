@@ -7,33 +7,31 @@ use sea_query::{
 };
 use uuid::Uuid;
 
-use crate::{
-    feed::Feed, profile_feed_entry::ProfileFeedEntry, profile_feed_tag::ProfileFeedTag, tag::Tag,
-};
+use crate::{feed::Feed, tag::Tag, user_feed_entry::UserFeedEntry, user_feed_tag::UserFeedTag};
 
 #[allow(dead_code)]
-pub enum ProfileFeed {
+pub enum UserFeed {
     Table,
     Id,
     Title,
     Pinned,
-    ProfileId,
+    UserId,
     FeedId,
     CreatedAt,
     UpdatedAt,
 }
 
-impl Iden for ProfileFeed {
+impl Iden for UserFeed {
     fn unquoted(&self, s: &mut dyn Write) {
         write!(
             s,
             "{}",
             match self {
-                Self::Table => "profile_feeds",
+                Self::Table => "user_feeds",
                 Self::Id => "id",
                 Self::Title => "title",
                 Self::Pinned => "pinned",
-                Self::ProfileId => "profile_id",
+                Self::UserId => "user_id",
                 Self::FeedId => "feed_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
@@ -46,7 +44,7 @@ impl Iden for ProfileFeed {
 #[allow(clippy::too_many_arguments)]
 pub fn select(
     id: Option<Uuid>,
-    profile_id: Uuid,
+    user_id: Uuid,
     pinned: Option<bool>,
     cursor: Option<Cursor>,
     limit: Option<u64>,
@@ -58,45 +56,45 @@ pub fn select(
 
     let unread_count_cte = Query::select()
         .expr_as(
-            Expr::col((ProfileFeed::Table, ProfileFeed::Id)),
+            Expr::col((UserFeed::Table, UserFeed::Id)),
             pf_id.clone(),
         )
         .expr_as(
-            Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::Id)).count(),
+            Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).count(),
             unread_count.clone(),
         )
-        .from(ProfileFeed::Table)
+        .from(UserFeed::Table)
         .join(
             JoinType::InnerJoin,
-            ProfileFeedEntry::Table,
-            Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::ProfileFeedId))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::Id))),
+            UserFeedEntry::Table,
+            Expr::col((UserFeedEntry::Table, UserFeedEntry::UserFeedId))
+                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
         )
-        .group_by_col((ProfileFeed::Table, ProfileFeed::Id))
+        .group_by_col((UserFeed::Table, UserFeed::Id))
         .to_owned();
 
     let tags = Alias::new("tags");
 
     let json_tags_cte = Query::select()
         .expr_as(
-            Expr::col((ProfileFeed::Table, ProfileFeed::Id)),
+            Expr::col((UserFeed::Table, UserFeed::Id)),
             pf_id.clone(),
         )
         .expr_as(jsonb_agg, tags.clone())
-        .from(ProfileFeed::Table)
+        .from(UserFeed::Table)
         .join(
             JoinType::InnerJoin,
-            ProfileFeedTag::Table,
-            Expr::col((ProfileFeedTag::Table, ProfileFeedTag::ProfileFeedId))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::Id))),
+            UserFeedTag::Table,
+            Expr::col((UserFeedTag::Table, UserFeedTag::UserFeedId))
+                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
         )
         .join(
             JoinType::InnerJoin,
             Tag::Table,
             Expr::col((Tag::Table, Tag::Id))
-                .eq(Expr::col((ProfileFeedTag::Table, ProfileFeedTag::TagId))),
+                .eq(Expr::col((UserFeedTag::Table, UserFeedTag::TagId))),
         )
-        .group_by_col((ProfileFeed::Table, ProfileFeed::Id))
+        .group_by_col((UserFeed::Table, UserFeed::Id))
         .to_owned();
 
     let json_tags = Alias::new("json_tags");
@@ -104,9 +102,9 @@ pub fn select(
 
     let mut select = Query::select()
         .columns([
-            (ProfileFeed::Table, ProfileFeed::Id),
-            (ProfileFeed::Table, ProfileFeed::Title),
-            (ProfileFeed::Table, ProfileFeed::Pinned),
+            (UserFeed::Table, UserFeed::Id),
+            (UserFeed::Table, UserFeed::Title),
+            (UserFeed::Table, UserFeed::Pinned),
         ])
         .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::Url)])
         .expr_as(
@@ -121,39 +119,39 @@ pub fn select(
             ]),
             unread_count,
         )
-        .from(ProfileFeed::Table)
+        .from(UserFeed::Table)
         .join(
             JoinType::InnerJoin,
             Feed::Table,
             Expr::col((Feed::Table, Feed::Id))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))),
+                .eq(Expr::col((UserFeed::Table, UserFeed::FeedId))),
         )
         .join(
             JoinType::LeftJoin,
             json_tags.clone(),
             Expr::col((json_tags.clone(), pf_id.clone()))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::Id))),
+                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
         )
         .join(
             JoinType::LeftJoin,
             unread_counts.clone(),
             Expr::col((unread_counts.clone(), pf_id))
-                .eq(Expr::col((ProfileFeed::Table, ProfileFeed::Id))),
+                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
         )
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
-        .and_where_option(id.map(|e| Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(e)))
+        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
+        .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
         .and_where_option(
-            pinned.map(|e| Expr::col((ProfileFeed::Table, ProfileFeed::Pinned)).eq(e)),
+            pinned.map(|e| Expr::col((UserFeed::Table, UserFeed::Pinned)).eq(e)),
         )
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::tuple([
                 Func::coalesce([
-                    Expr::col((ProfileFeed::Table, ProfileFeed::Title)).into(),
+                    Expr::col((UserFeed::Table, UserFeed::Title)).into(),
                     Expr::col((Feed::Table, Feed::Title)).into(),
                 ])
                 .into(),
-                Expr::col((ProfileFeed::Table, ProfileFeed::Id)).into(),
+                Expr::col((UserFeed::Table, UserFeed::Id)).into(),
             ])
             .lt(Expr::tuple([
                 Expr::val(e.title).into(),
@@ -162,7 +160,7 @@ pub fn select(
         }))
         .order_by_expr(
             Func::coalesce([
-                Expr::col((ProfileFeed::Table, ProfileFeed::Title)).into(),
+                Expr::col((UserFeed::Table, UserFeed::Title)).into(),
                 Expr::col((Feed::Table, Feed::Title)).into(),
             ])
             .into(),
@@ -192,12 +190,12 @@ pub fn select(
     )
 }
 
-pub fn select_by_unique_index(profile_id: Uuid, feed_id: i32) -> SelectStatement {
+pub fn select_by_unique_index(user_id: Uuid, feed_id: i32) -> SelectStatement {
     Query::select()
-        .column(ProfileFeed::Id)
-        .from(ProfileFeed::Table)
-        .and_where(Expr::col(ProfileFeed::ProfileId).eq(profile_id))
-        .and_where(Expr::col(ProfileFeed::FeedId).eq(feed_id))
+        .column(UserFeed::Id)
+        .from(UserFeed::Table)
+        .and_where(Expr::col(UserFeed::UserId).eq(user_id))
+        .and_where(Expr::col(UserFeed::FeedId).eq(feed_id))
         .to_owned()
 }
 
@@ -205,64 +203,64 @@ pub fn insert(
     id: Option<Uuid>,
     pinned: Option<bool>,
     feed_id: i32,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> InsertStatement {
     let mut columns = vec![
-        ProfileFeed::Pinned,
-        ProfileFeed::FeedId,
-        ProfileFeed::ProfileId,
+        UserFeed::Pinned,
+        UserFeed::FeedId,
+        UserFeed::UserId,
     ];
     let mut values: Vec<SimpleExpr> = vec![
         pinned.unwrap_or_default().into(),
         feed_id.into(),
-        profile_id.into(),
+        user_id.into(),
     ];
 
     if let Some(id) = id {
-        columns.push(ProfileFeed::Id);
+        columns.push(UserFeed::Id);
         values.push(id.into());
     }
 
     Query::insert()
-        .into_table(ProfileFeed::Table)
+        .into_table(UserFeed::Table)
         .columns(columns)
         .values_panic(values)
         .on_conflict(
-            OnConflict::columns([ProfileFeed::ProfileId, ProfileFeed::FeedId])
+            OnConflict::columns([UserFeed::UserId, UserFeed::FeedId])
                 .do_nothing()
                 .to_owned(),
         )
-        .returning_col(ProfileFeed::Id)
+        .returning_col(UserFeed::Id)
         .to_owned()
 }
 
 pub fn update(
     id: Uuid,
-    profile_id: Uuid,
+    user_id: Uuid,
     title: Option<Option<String>>,
     pinned: Option<bool>,
 ) -> UpdateStatement {
     let mut query = Query::update()
-        .table(ProfileFeed::Table)
-        .value(ProfileFeed::UpdatedAt, Expr::current_timestamp())
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
+        .table(UserFeed::Table)
+        .value(UserFeed::UpdatedAt, Expr::current_timestamp())
+        .and_where(Expr::col((UserFeed::Table, UserFeed::Id)).eq(id))
+        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .to_owned();
 
     if let Some(title) = title {
-        query.value(ProfileFeed::Title, title);
+        query.value(UserFeed::Title, title);
     }
     if let Some(pinned) = pinned {
-        query.value(ProfileFeed::Pinned, pinned);
+        query.value(UserFeed::Pinned, pinned);
     }
 
     query
 }
 
-pub fn delete(id: Uuid, profile_id: Uuid) -> DeleteStatement {
+pub fn delete(id: Uuid, user_id: Uuid) -> DeleteStatement {
     Query::delete()
-        .from_table(ProfileFeed::Table)
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::Id)).eq(id))
-        .and_where(Expr::col((ProfileFeed::Table, ProfileFeed::ProfileId)).eq(profile_id))
+        .from_table(UserFeed::Table)
+        .and_where(Expr::col((UserFeed::Table, UserFeed::Id)).eq(id))
+        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .to_owned()
 }

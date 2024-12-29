@@ -195,7 +195,7 @@ impl From<feed::FeedDetected> for FeedDetected {
     params(FeedListQuery),
     responses(ListResponse),
     operation_id = "listFeeds",
-    description = "List the active profile feeds",
+    description = "List user feeds",
     tag = FEEDS_TAG
 )]
 #[axum::debug_handler]
@@ -204,7 +204,7 @@ pub async fn list_feeds(
     Query(query): Query<FeedListQuery>,
     session: Session,
 ) -> Result<ListResponse, Error> {
-    match service.list_feeds(query.into(), session.profile_id).await {
+    match service.list_feeds(query.into(), session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -225,7 +225,7 @@ pub async fn get_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<GetResponse, Error> {
-    match service.get_feed(id, session.profile_id).await {
+    match service.get_feed(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -251,7 +251,7 @@ pub async fn create_feed(
     session: Session,
     Json(body): Json<FeedCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service.create_feed(body.into(), session.profile_id).await {
+    match service.create_feed(body.into(), session.user_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -279,10 +279,7 @@ pub async fn update_feed(
     session: Session,
     Json(body): Json<FeedUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service
-        .update_feed(id, body.into(), session.profile_id)
-        .await
-    {
+    match service.update_feed(id, body.into(), session.user_id).await {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -308,7 +305,7 @@ pub async fn delete_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_feed(id, session.profile_id).await {
+    match service.delete_feed(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
@@ -344,7 +341,7 @@ pub async fn detect_feeds(
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of profiles")]
+    #[response(status = 200, description = "Paginated list of feeds")]
     Ok(Paginated<Feed>),
 }
 

@@ -13,7 +13,7 @@ pub async fn list_tags(
     query: TagListQuery,
 ) -> Result<Paginated<Tag>, String> {
     let tags = service
-        .list_tags(query.into(), session.profile_id)
+        .list_tags(query.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -27,7 +27,7 @@ pub async fn create_tag(
     data: TagCreate,
 ) -> Result<Tag, String> {
     let tag = service
-        .create_tag(data.into(), session.profile_id)
+        .create_tag(data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -41,7 +41,7 @@ pub async fn get_tag(
     id: Uuid,
 ) -> Result<Tag, String> {
     let tag = service
-        .get_tag(id, session.profile_id)
+        .get_tag(id, session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -56,7 +56,7 @@ pub async fn update_tag(
     data: TagUpdate,
 ) -> Result<Tag, String> {
     let tag = service
-        .update_tag(id, data.into(), session.profile_id)
+        .update_tag(id, data.into(), session.user_id)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -70,7 +70,7 @@ pub async fn delete_tag(
     id: Uuid,
 ) -> Result<(), String> {
     service
-        .delete_tag(id, session.profile_id)
+        .delete_tag(id, session.user_id)
         .await
         .map_err(|e| e.to_string())
 }

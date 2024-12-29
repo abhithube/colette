@@ -4,7 +4,6 @@ import type {
   BookmarkAPI,
   FeedAPI,
   FeedEntryAPI,
-  ProfileAPI,
   SmartFeedAPI,
   TagAPI,
 } from '@colette/core'
@@ -14,7 +13,6 @@ import {
   BookmarkCommands,
   FeedCommands,
   FeedEntryCommands,
-  ProfileCommands,
   SmartFeedCommands,
   TagCommands,
 } from './commands'
@@ -25,7 +23,6 @@ export interface API {
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  profiles: ProfileAPI
   smartFeeds: SmartFeedAPI
   tags: TagAPI
 }
@@ -36,7 +33,6 @@ export class CommandsAPI implements API {
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  profiles: ProfileAPI
   smartFeeds: SmartFeedAPI
   tags: TagAPI
 
@@ -46,7 +42,6 @@ export class CommandsAPI implements API {
     this.bookmarks = new BookmarkCommands()
     this.feedEntries = new FeedEntryCommands()
     this.feeds = new FeedCommands()
-    this.profiles = new ProfileCommands()
     this.smartFeeds = new SmartFeedCommands()
     this.tags = new TagCommands()
   }

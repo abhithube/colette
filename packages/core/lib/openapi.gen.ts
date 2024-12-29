@@ -197,20 +197,6 @@ export const Paginated_FeedEntry = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_Profile = z.infer<typeof Paginated_Profile>;
-export const Paginated_Profile = z.object({
-  data: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      imageUrl: z.union([z.string(), z.null()]),
-      isDefault: z.boolean(),
-      userId: z.string(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type Paginated_SmartFeed = z.infer<typeof Paginated_SmartFeed>;
 export const Paginated_SmartFeed = z.object({
   data: z.array(
@@ -234,27 +220,6 @@ export const Paginated_Tag = z.object({
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Profile = z.infer<typeof Profile>;
-export const Profile = z.object({
-  id: z.string(),
-  title: z.string(),
-  imageUrl: z.union([z.string(), z.null()]),
-  isDefault: z.boolean(),
-  userId: z.string(),
-});
-
-export type ProfileCreate = z.infer<typeof ProfileCreate>;
-export const ProfileCreate = z.object({
-  title: z.string(),
-  imageUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type ProfileUpdate = z.infer<typeof ProfileUpdate>;
-export const ProfileUpdate = z.object({
-  title: z.string().optional(),
-  imageUrl: z.union([z.string(), z.null()]).optional(),
 });
 
 export type Register = z.infer<typeof Register>;
@@ -330,11 +295,6 @@ export const SmartFeedUpdate = z.object({
   filters: z.array(SmartFeedFilter).optional(),
 });
 
-export type SwitchProfile = z.infer<typeof SwitchProfile>;
-export const SwitchProfile = z.object({
-  id: z.string(),
-});
-
 export type TagCreate = z.infer<typeof TagCreate>;
 export const TagCreate = z.object({
   title: z.string(),
@@ -370,7 +330,7 @@ export const post_Login = {
   parameters: z.object({
     body: Login,
   }),
-  response: Profile,
+  response: User,
 };
 
 export type get_GetActiveUser = typeof get_GetActiveUser;
@@ -380,17 +340,6 @@ export const get_GetActiveUser = {
   requestFormat: z.literal("json"),
   parameters: z.never(),
   response: User,
-};
-
-export type post_SwitchProfile = typeof post_SwitchProfile;
-export const post_SwitchProfile = {
-  method: z.literal("POST"),
-  path: z.literal("/auth/switchProfile"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: SwitchProfile,
-  }),
-  response: Profile,
 };
 
 export type post_Logout = typeof post_Logout;
@@ -640,75 +589,6 @@ export const post_DetectFeeds = {
   response: Paginated_FeedDetected,
 };
 
-export type get_ListProfiles = typeof get_ListProfiles;
-export const get_ListProfiles = {
-  method: z.literal("GET"),
-  path: z.literal("/profiles"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Paginated_Profile,
-};
-
-export type post_CreateProfile = typeof post_CreateProfile;
-export const post_CreateProfile = {
-  method: z.literal("POST"),
-  path: z.literal("/profiles"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: ProfileCreate,
-  }),
-  response: Profile,
-};
-
-export type get_GetProfile = typeof get_GetProfile;
-export const get_GetProfile = {
-  method: z.literal("GET"),
-  path: z.literal("/profiles/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: Profile,
-};
-
-export type delete_DeleteProfile = typeof delete_DeleteProfile;
-export const delete_DeleteProfile = {
-  method: z.literal("DELETE"),
-  path: z.literal("/profiles/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
-export type patch_UpdateProfile = typeof patch_UpdateProfile;
-export const patch_UpdateProfile = {
-  method: z.literal("PATCH"),
-  path: z.literal("/profiles/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: ProfileUpdate,
-  }),
-  response: Profile,
-};
-
-export type get_GetActiveProfile = typeof get_GetActiveProfile;
-export const get_GetActiveProfile = {
-  method: z.literal("GET"),
-  path: z.literal("/profiles/@me"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Profile,
-};
-
 export type get_ListSmartFeeds = typeof get_ListSmartFeeds;
 export const get_ListSmartFeeds = {
   method: z.literal("GET"),
@@ -838,7 +718,6 @@ export const EndpointByMethod = {
   post: {
     "/auth/register": post_Register,
     "/auth/login": post_Login,
-    "/auth/switchProfile": post_SwitchProfile,
     "/auth/logout": post_Logout,
     "/backups/opml/import": post_ImportOpml,
     "/backups/opml/export": post_ExportOpml,
@@ -848,7 +727,6 @@ export const EndpointByMethod = {
     "/bookmarks/scrape": post_ScrapeBookmark,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
-    "/profiles": post_CreateProfile,
     "/smartFeeds": post_CreateSmartFeed,
     "/tags": post_CreateTag,
   },
@@ -860,9 +738,6 @@ export const EndpointByMethod = {
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
     "/feeds/{id}": get_GetFeed,
-    "/profiles": get_ListProfiles,
-    "/profiles/{id}": get_GetProfile,
-    "/profiles/@me": get_GetActiveProfile,
     "/smartFeeds": get_ListSmartFeeds,
     "/smartFeeds/{id}": get_GetSmartFeed,
     "/tags": get_ListTags,
@@ -871,7 +746,6 @@ export const EndpointByMethod = {
   delete: {
     "/bookmarks/{id}": delete_DeleteBookmark,
     "/feeds/{id}": delete_DeleteFeed,
-    "/profiles/{id}": delete_DeleteProfile,
     "/smartFeeds/{id}": delete_DeleteSmartFeed,
     "/tags/{id}": delete_DeleteTag,
   },
@@ -879,7 +753,6 @@ export const EndpointByMethod = {
     "/bookmarks/{id}": patch_UpdateBookmark,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
-    "/profiles/{id}": patch_UpdateProfile,
     "/smartFeeds/{id}": patch_UpdateSmartFeed,
     "/tags/{id}": patch_UpdateTag,
   },

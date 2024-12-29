@@ -52,7 +52,7 @@ impl BackupApi {
     request_body = Vec<u8>,
     responses(ImportResponse),
     operation_id = "importOpml",
-    description = "Import OPML feeds into profile",
+    description = "Import OPML feeds",
     tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
@@ -63,7 +63,7 @@ pub async fn import_opml(
 ) -> Result<ImportResponse, Error> {
     match state
         .backup_service
-        .import_opml(bytes, session.profile_id)
+        .import_opml(bytes, session.user_id)
         .await
     {
         Ok(urls) => {
@@ -84,7 +84,7 @@ pub async fn import_opml(
     path = "/opml/export",
     responses(ExportOpmlResponse),
     operation_id = "exportOpml",
-    description = "Export OPML feeds from profile",
+    description = "Export OPML feeds",
     tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
@@ -92,7 +92,7 @@ pub async fn export_opml(
     State(service): State<BackupService>,
     session: Session,
 ) -> Result<ExportOpmlResponse, Error> {
-    match service.export_opml(session.profile_id).await {
+    match service.export_opml(session.user_id).await {
         Ok(data) => Ok(ExportOpmlResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -104,7 +104,7 @@ pub async fn export_opml(
     request_body = Vec<u8>,
     responses(ImportResponse),
     operation_id = "importNetscape",
-    description = "Import Netscape bookmarks into profile",
+    description = "Import Netscape bookmarks",
     tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
@@ -115,7 +115,7 @@ pub async fn import_netscape(
 ) -> Result<ImportResponse, Error> {
     match state
         .backup_service
-        .import_netscape(bytes, session.profile_id)
+        .import_netscape(bytes, session.user_id)
         .await
     {
         Ok(urls) => {
@@ -136,7 +136,7 @@ pub async fn import_netscape(
     path = "/netscape/export",
     responses(ExportNetscapeResponse),
     operation_id = "exportNetscape",
-    description = "Export Netscape bookmarks from profile",
+    description = "Export Netscape bookmarks",
     tag = BACKUPS_TAG
 )]
 #[axum::debug_handler]
@@ -144,7 +144,7 @@ pub async fn export_netscape(
     State(service): State<BackupService>,
     session: Session,
 ) -> Result<ExportNetscapeResponse, Error> {
-    match service.export_netscape(session.profile_id).await {
+    match service.export_netscape(session.user_id).await {
         Ok(data) => Ok(ExportNetscapeResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

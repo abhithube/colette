@@ -46,9 +46,9 @@ impl Findable for D1FeedRepository {
             )
         });
 
-        let (sql, values) = crate::profile_feed::select(
+        let (sql, values) = crate::user_feed::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.pinned,
             params.cursor,
             params.limit,
@@ -90,7 +90,7 @@ impl Creatable for D1FeedRepository {
 
         let pf_id = {
             let (mut sql, mut values) =
-                crate::profile_feed::select_by_unique_index(data.profile_id, feed_id)
+                crate::user_feed::select_by_unique_index(data.user_id, feed_id)
                     .build_d1(SqliteQueryBuilder);
 
             if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
@@ -102,7 +102,7 @@ impl Creatable for D1FeedRepository {
                 let id = Uuid::new_v4();
 
                 (sql, values) =
-                    crate::profile_feed::insert(Some(id), data.pinned, feed_id, data.profile_id)
+                    crate::user_feed::insert(Some(id), data.pinned, feed_id, data.user_id)
                         .build_d1(SqliteQueryBuilder);
 
                 super::run(&self.db, sql, values)
@@ -113,12 +113,12 @@ impl Creatable for D1FeedRepository {
             }
         };
 
-        link_entries_to_profiles(&self.db, feed_id)
+        link_entries_to_users(&self.db, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, pf_id, tags, data.profile_id)
+            link_tags(&self.db, pf_id, tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -136,7 +136,7 @@ impl Updatable for D1FeedRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() || data.pinned.is_some() {
             let (sql, values) =
-                crate::profile_feed::update(params.id, params.profile_id, data.title, data.pinned)
+                crate::user_feed::update(params.id, params.user_id, data.title, data.pinned)
                     .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
@@ -150,7 +150,7 @@ impl Updatable for D1FeedRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, params.id, tags, params.profile_id)
+            link_tags(&self.db, params.id, tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -166,7 +166,7 @@ impl Deletable for D1FeedRepository {
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let (sql, values) =
-            crate::profile_feed::delete(params.id, params.profile_id).build_d1(SqliteQueryBuilder);
+            crate::user_feed::delete(params.id, params.user_id).build_d1(SqliteQueryBuilder);
 
         let result = super::run(&self.db, sql, values)
             .await
@@ -260,7 +260,7 @@ pub(crate) async fn create_feed_with_entries(
     Ok(feed_id)
 }
 
-pub(crate) async fn link_entries_to_profiles(db: &D1Database, feed_id: i32) -> worker::Result<()> {
+pub(crate) async fn link_entries_to_users(db: &D1Database, feed_id: i32) -> worker::Result<()> {
     let fe_ids = {
         let (sql, values) =
             crate::feed_entry::select_many_by_feed_id(feed_id).build_d1(SqliteQueryBuilder);
@@ -283,14 +283,14 @@ pub(crate) async fn link_entries_to_profiles(db: &D1Database, feed_id: i32) -> w
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
             .into_iter()
-            .map(|feed_entry_id| crate::profile_feed_entry::InsertMany {
+            .map(|feed_entry_id| crate::user_feed_entry::InsertMany {
                 id: Some(Uuid::new_v4()),
                 feed_entry_id,
             })
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::profile_feed_entry::insert_many_for_all_profiles(&insert_many, feed_id)
+            crate::user_feed_entry::insert_many_for_all_users(&insert_many, feed_id)
                 .build_d1(SqliteQueryBuilder);
 
         super::run(db, sql, values).await?;
@@ -302,9 +302,9 @@ pub(crate) async fn link_entries_to_profiles(db: &D1Database, feed_id: i32) -> w
 #[worker::send]
 pub(crate) async fn link_tags(
     db: &D1Database,
-    profile_feed_id: Uuid,
+    user_feed_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> worker::Result<()> {
     let tag_ids = {
         let insert_many = tags
@@ -316,8 +316,8 @@ pub(crate) async fn link_tags(
             .collect::<Vec<_>>();
 
         let queries: Vec<(String, D1Values)> = vec![
-            crate::tag::insert_many(&insert_many, profile_id).build_d1(SqliteQueryBuilder),
-            crate::tag::select_ids_by_titles(&tags, profile_id).build_d1(SqliteQueryBuilder),
+            crate::tag::insert_many(&insert_many, user_id).build_d1(SqliteQueryBuilder),
+            crate::tag::select_ids_by_titles(&tags, user_id).build_d1(SqliteQueryBuilder),
         ];
 
         let results = super::batch(db, queries).await?;
@@ -339,16 +339,16 @@ pub(crate) async fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| crate::profile_feed_tag::InsertMany {
-            profile_feed_id,
+        .map(|e| crate::user_feed_tag::InsertMany {
+            user_feed_id,
             tag_id: e,
         })
         .collect::<Vec<_>>();
 
     let queries: Vec<(String, D1Values)> = vec![
-        crate::profile_feed_tag::delete_many_not_in_titles(&tags, profile_id)
+        crate::user_feed_tag::delete_many_not_in_titles(&tags, user_id)
             .build_d1(SqliteQueryBuilder),
-        crate::profile_feed_tag::insert_many(&insert_many, profile_id).build_d1(SqliteQueryBuilder),
+        crate::user_feed_tag::insert_many(&insert_many, user_id).build_d1(SqliteQueryBuilder),
     ];
 
     super::batch(db, queries).await?;

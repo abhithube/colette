@@ -4,9 +4,8 @@ use uuid::Uuid;
 
 use crate::{
     common::NonEmptyString,
-    profile::{self, ProfileFindParams, ProfileRepository},
     user::{self, UserCreateData, UserFindParams, UserRepository},
-    Profile, User,
+    User,
 };
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -21,27 +20,19 @@ pub struct Login {
     pub password: NonEmptyString,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
-pub struct SwitchProfile {
-    pub id: Uuid,
-}
-
 #[derive(Clone)]
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
-    profile_repository: Box<dyn ProfileRepository>,
     password_hasher: Box<dyn PasswordHasher>,
 }
 
 impl AuthService {
     pub fn new(
         user_repository: Box<dyn UserRepository>,
-        profile_repository: Box<dyn ProfileRepository>,
         password_hasher: Box<dyn PasswordHasher>,
     ) -> Self {
         Self {
             user_repository,
-            profile_repository,
             password_hasher,
         }
     }
@@ -64,7 +55,7 @@ impl AuthService {
             .map_err(Error::Users)
     }
 
-    pub async fn login(&self, data: Login) -> Result<Profile, Error> {
+    pub async fn login(&self, data: Login) -> Result<User, Error> {
         let user = self
             .user_repository
             .find(UserFindParams::Email(String::from(data.email)))
@@ -81,19 +72,7 @@ impl AuthService {
             return Err(Error::NotAuthenticated);
         }
 
-        let mut profiles = self
-            .profile_repository
-            .find(ProfileFindParams {
-                is_default: Some(true),
-                user_id: user.id,
-                ..Default::default()
-            })
-            .await?;
-        if profiles.is_empty() {
-            return Err(Error::NotAuthenticated);
-        }
-
-        Ok(profiles.swap_remove(0))
+        Ok(user)
     }
 
     pub async fn get_active(&self, user_id: Uuid) -> Result<User, Error> {
@@ -102,33 +81,10 @@ impl AuthService {
             .await
             .map_err(|e| e.into())
     }
-
-    pub async fn switch_profile(
-        &self,
-        data: SwitchProfile,
-        user_id: Uuid,
-    ) -> Result<Profile, Error> {
-        let mut profiles = self
-            .profile_repository
-            .find(ProfileFindParams {
-                id: Some(data.id),
-                user_id,
-                ..Default::default()
-            })
-            .await?;
-        if profiles.is_empty() {
-            return Err(Error::NotAuthenticated);
-        }
-
-        Ok(profiles.swap_remove(0))
-    }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    Profiles(#[from] profile::Error),
-
     #[error(transparent)]
     Users(#[from] user::Error),
 

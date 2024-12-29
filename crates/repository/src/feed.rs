@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use sea_query::{Alias, Expr, Func, Iden, InsertStatement, OnConflict, Query, SelectStatement};
 
-use crate::profile_feed::ProfileFeed;
+use crate::user_feed::UserFeed;
 
 #[allow(dead_code)]
 pub enum Feed {
@@ -76,8 +76,8 @@ pub fn iterate() -> SelectStatement {
         )
         .from(Feed::Table)
         .inner_join(
-            ProfileFeed::Table,
-            Expr::col((ProfileFeed::Table, ProfileFeed::FeedId))
+            UserFeed::Table,
+            Expr::col((UserFeed::Table, UserFeed::FeedId))
                 .eq(Expr::col((Feed::Table, Feed::Id))),
         )
         .to_owned()

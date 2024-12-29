@@ -1,6 +1,5 @@
 use colette_api::{
-    auth::{Login, Register, SwitchProfile, User},
-    profile::Profile,
+    auth::{Login, Register, User},
     Session,
 };
 use colette_core::auth::AuthService;
@@ -17,13 +16,13 @@ pub async fn register(service: State<'_, AuthService>, data: Register) -> Result
 }
 
 #[tauri::command]
-pub async fn login(service: State<'_, AuthService>, data: Login) -> Result<Profile, String> {
-    let profile = service
+pub async fn login(service: State<'_, AuthService>, data: Login) -> Result<User, String> {
+    let user = service
         .login(data.into())
         .await
         .map_err(|e| e.to_string())?;
 
-    Ok(profile.into())
+    Ok(user.into())
 }
 
 #[tauri::command]
@@ -37,18 +36,4 @@ pub async fn get_active_user(
         .map_err(|e| e.to_string())?;
 
     Ok(user.into())
-}
-
-#[tauri::command]
-pub async fn switch_profile(
-    service: State<'_, AuthService>,
-    session: State<'_, Session>,
-    data: SwitchProfile,
-) -> Result<Profile, String> {
-    let profile = service
-        .switch_profile(data.into(), session.user_id)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(profile.into())
 }

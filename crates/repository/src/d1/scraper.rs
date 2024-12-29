@@ -5,7 +5,7 @@ use sea_query::SqliteQueryBuilder;
 use worker::D1Database;
 
 use super::{
-    feed::{create_feed_with_entries, link_entries_to_profiles},
+    feed::{create_feed_with_entries, link_entries_to_users},
     D1Binder,
 };
 
@@ -27,7 +27,7 @@ impl ScraperRepository for D1ScraperRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        link_entries_to_profiles(&self.db, feed_id)
+        link_entries_to_users(&self.db, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

@@ -1,6 +1,6 @@
 use crate::{
     feed_entry::FeedEntry,
-    profile_feed_entry::ProfileFeedEntry,
+    user_feed_entry::UserFeedEntry,
     smart_feed_filter::{Field, Operation, SmartFeedFilter},
 };
 use colette_core::{
@@ -44,7 +44,7 @@ impl Findable for PostgresSmartFeedRepository {
 
         let (sql, values) = crate::smart_feed::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.cursor,
             params.limit,
             build_case_statement(),
@@ -87,7 +87,7 @@ impl Creatable for PostgresSmartFeedRepository {
 
         let id = {
             let (sql, values) =
-                crate::smart_feed::insert(None, data.title.clone(), data.profile_id)
+                crate::smart_feed::insert(None, data.title.clone(), data.user_id)
                     .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
@@ -105,7 +105,7 @@ impl Creatable for PostgresSmartFeedRepository {
         };
 
         if let Some(filters) = data.filters {
-            insert_filters(&tx, filters, id, data.profile_id)
+            insert_filters(&tx, filters, id, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -135,7 +135,7 @@ impl Updatable for PostgresSmartFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            let (sql, values) = crate::smart_feed::update(params.id, params.profile_id, data.title)
+            let (sql, values) = crate::smart_feed::update(params.id, params.user_id, data.title)
                 .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
@@ -155,7 +155,7 @@ impl Updatable for PostgresSmartFeedRepository {
         if let Some(filters) = data.filters {
             {
                 let (sql, values) =
-                    crate::smart_feed_filter::delete_many(params.profile_id, params.id)
+                    crate::smart_feed_filter::delete_many(params.user_id, params.id)
                         .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
@@ -168,7 +168,7 @@ impl Updatable for PostgresSmartFeedRepository {
                     .map_err(|e| Error::Unknown(e.into()))?;
             }
 
-            insert_filters(&tx, filters, params.id, params.profile_id)
+            insert_filters(&tx, filters, params.id, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -191,7 +191,7 @@ impl Deletable for PostgresSmartFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
+        let (sql, values) = crate::smart_feed::delete(params.id, params.user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client
@@ -281,7 +281,7 @@ async fn insert_filters<C: GenericClient>(
     client: &C,
     filters: Vec<Filter>,
     smart_feed_id: Uuid,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     let insert_data = filters
         .into_iter()
@@ -311,7 +311,7 @@ async fn insert_filters<C: GenericClient>(
         .collect::<Vec<_>>();
 
     let (sql, values) =
-        crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
+        crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, user_id)
             .build_postgres(PostgresQueryBuilder);
 
     let stmt = client.prepare_cached(&sql).await?;
@@ -340,7 +340,7 @@ impl SmartFilterCase for CaseStatement {
             Field::Description => Expr::col((FeedEntry::Table, FeedEntry::Description)).into(),
             Field::Author => Expr::col((FeedEntry::Table, FeedEntry::Author)).into(),
             Field::HasRead => Func::cast_as(
-                Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::HasRead)),
+                Expr::col((UserFeedEntry::Table, UserFeedEntry::HasRead)),
                 Alias::new("text"),
             )
             .into(),

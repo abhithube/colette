@@ -132,7 +132,7 @@ pub async fn list_feed_entries(
     session: Session,
 ) -> Result<ListResponse, Error> {
     match service
-        .list_feed_entries(query.into(), session.profile_id)
+        .list_feed_entries(query.into(), session.user_id)
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
@@ -155,7 +155,7 @@ pub async fn get_feed_entry(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<GetResponse, Error> {
-    match service.get_feed_entry(id, session.profile_id).await {
+    match service.get_feed_entry(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -184,7 +184,7 @@ pub async fn update_feed_entry(
     Json(body): Json<FeedEntryUpdate>,
 ) -> Result<UpdateResponse, Error> {
     match service
-        .update_feed_entry(id, body.into(), session.profile_id)
+        .update_feed_entry(id, body.into(), session.user_id)
         .await
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),

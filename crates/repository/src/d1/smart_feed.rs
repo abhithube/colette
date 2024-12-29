@@ -1,5 +1,10 @@
 use std::sync::Arc;
 
+use crate::{
+    feed_entry::FeedEntry,
+    smart_feed_filter::{Field, Operation, SmartFeedFilter},
+    user_feed_entry::UserFeedEntry,
+};
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     smart_feed::{
@@ -7,11 +12,6 @@ use colette_core::{
         SmartFeedRepository, SmartFeedUpdateData, TextOperation,
     },
     SmartFeed,
-};
-use crate::{
-    feed_entry::FeedEntry,
-    profile_feed_entry::ProfileFeedEntry,
-    smart_feed_filter::{Field, Operation, SmartFeedFilter},
 };
 use sea_query::{Alias, CaseStatement, Expr, Func, Iden, SimpleExpr, SqliteQueryBuilder};
 use uuid::Uuid;
@@ -38,7 +38,7 @@ impl Findable for D1SmartFeedRepository {
     async fn find(&self, params: Self::Params) -> Self::Output {
         let (sql, values) = crate::smart_feed::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.cursor,
             params.limit,
             build_case_statement(),
@@ -65,12 +65,12 @@ impl Creatable for D1SmartFeedRepository {
 
         let mut queries =
             vec![
-                crate::smart_feed::insert(Some(id), data.title.clone(), data.profile_id)
+                crate::smart_feed::insert(Some(id), data.title.clone(), data.user_id)
                     .build_d1(SqliteQueryBuilder),
             ];
 
         if let Some(filters) = data.filters {
-            queries.push(build_insert_filters_query(filters, id, data.profile_id))
+            queries.push(build_insert_filters_query(filters, id, data.user_id))
         }
 
         super::batch(&self.db, queries)
@@ -95,21 +95,21 @@ impl Updatable for D1SmartFeedRepository {
 
         if data.title.is_some() {
             queries.push(
-                crate::smart_feed::update(params.id, params.profile_id, data.title)
+                crate::smart_feed::update(params.id, params.user_id, data.title)
                     .build_d1(SqliteQueryBuilder),
             );
         }
 
         if let Some(filters) = data.filters {
             queries.push(
-                crate::smart_feed_filter::delete_many(params.profile_id, params.id)
+                crate::smart_feed_filter::delete_many(params.user_id, params.id)
                     .build_d1(SqliteQueryBuilder),
             );
 
             queries.push(build_insert_filters_query(
                 filters,
                 params.id,
-                params.profile_id,
+                params.user_id,
             ))
         }
 
@@ -137,8 +137,8 @@ impl Deletable for D1SmartFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::smart_feed::delete(params.id, params.profile_id)
-            .build_d1(SqliteQueryBuilder);
+        let (sql, values) =
+            crate::smart_feed::delete(params.id, params.user_id).build_d1(SqliteQueryBuilder);
 
         let result = super::run(&self.db, sql, values)
             .await
@@ -210,7 +210,7 @@ impl From<DateOperation> for Op {
 fn build_insert_filters_query(
     filters: Vec<Filter>,
     smart_feed_id: Uuid,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> (String, D1Values) {
     let insert_data = filters
         .into_iter()
@@ -239,7 +239,7 @@ fn build_insert_filters_query(
         })
         .collect::<Vec<_>>();
 
-    crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, profile_id)
+    crate::smart_feed_filter::insert_many(&insert_data, smart_feed_id, user_id)
         .build_d1(SqliteQueryBuilder)
 }
 
@@ -258,7 +258,7 @@ impl SmartFilterCase for CaseStatement {
             Field::Description => Expr::col((FeedEntry::Table, FeedEntry::Description)).into(),
             Field::Author => Expr::col((FeedEntry::Table, FeedEntry::Author)).into(),
             Field::HasRead => Func::cast_as(
-                Expr::col((ProfileFeedEntry::Table, ProfileFeedEntry::HasRead)),
+                Expr::col((UserFeedEntry::Table, UserFeedEntry::HasRead)),
                 Alias::new("TEXT"),
             )
             .into(),

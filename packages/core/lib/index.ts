@@ -20,19 +20,14 @@ export {
   FeedEntryUpdate,
   FeedUpdate,
   Login,
-  Profile,
-  ProfileCreate,
-  ProfileUpdate,
   Register,
   SmartFeed,
   SmartFeedCreate,
   SmartFeedUpdate,
-  SwitchProfile,
   Tag,
   TagCreate,
   TagUpdate,
-  User
+  User,
 } from './openapi.gen'
-export * from './profile'
 export * from './smart-feed'
 export * from './tag'

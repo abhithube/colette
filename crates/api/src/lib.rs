@@ -7,7 +7,6 @@ use bookmark::BookmarkState;
 pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
-use profile::ProfileState;
 use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
 use utoipa::{openapi::Server, OpenApi};
@@ -16,7 +15,7 @@ use utoipa_scalar::{Scalar, Servable};
 
 use crate::{
     auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi, common::BaseError, feed::FeedApi,
-    feed_entry::FeedEntryApi, profile::ProfileApi, tag::TagApi,
+    feed_entry::FeedEntryApi, tag::TagApi,
 };
 
 pub mod auth;
@@ -25,7 +24,6 @@ pub mod bookmark;
 mod common;
 pub mod feed;
 pub mod feed_entry;
-pub mod profile;
 pub mod smart_feed;
 pub mod tag;
 
@@ -36,7 +34,6 @@ pub struct ApiState {
     bookmark_state: BookmarkState,
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
-    profile_state: ProfileState,
     smart_feed_state: SmartFeedState,
     tag_state: TagState,
 }
@@ -49,7 +46,6 @@ impl ApiState {
         bookmark_state: BookmarkState,
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
-        profile_state: ProfileState,
         smart_feed_state: SmartFeedState,
         tag_state: TagState,
     ) -> Self {
@@ -59,7 +55,6 @@ impl ApiState {
             bookmark_state,
             feed_state,
             feed_entry_state,
-            profile_state,
             smart_feed_state,
             tag_state,
         }
@@ -98,8 +93,6 @@ impl<'a> Api<'a> {
                     .with_state(FeedEntryState::from_ref(self.api_state))
                     .nest("/feeds", FeedApi::router())
                     .with_state(FeedState::from_ref(self.api_state))
-                    .nest("/profiles", ProfileApi::router())
-                    .with_state(ProfileState::from_ref(self.api_state))
                     .nest("/smartFeeds", SmartFeedApi::router())
                     .with_state(SmartFeedState::from_ref(self.api_state))
                     .nest("/tags", TagApi::router())

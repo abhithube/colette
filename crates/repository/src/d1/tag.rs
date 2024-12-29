@@ -30,7 +30,7 @@ impl Findable for D1TagRepository {
     async fn find(&self, params: Self::Params) -> Self::Output {
         let (sql, values) = crate::tag::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.limit,
             params.cursor,
             params.tag_type,
@@ -55,7 +55,7 @@ impl Creatable for D1TagRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
 
-        let (sql, values) = crate::tag::insert(Some(id), data.title.clone(), data.profile_id)
+        let (sql, values) = crate::tag::insert(Some(id), data.title.clone(), data.user_id)
             .build_d1(SqliteQueryBuilder);
 
         super::run(&self.db, sql, values)
@@ -77,7 +77,7 @@ impl Updatable for D1TagRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() {
-            let (sql, values) = crate::tag::update(params.id, params.profile_id, data.title)
+            let (sql, values) = crate::tag::update(params.id, params.user_id, data.title)
                 .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
@@ -100,7 +100,7 @@ impl Deletable for D1TagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::tag::delete_by_id(params.id, params.profile_id)
+        let (sql, values) = crate::tag::delete_by_id(params.id, params.user_id)
             .build_d1(SqliteQueryBuilder);
 
         let result = super::run(&self.db, sql, values)

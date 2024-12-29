@@ -3,7 +3,7 @@ use deadpool_sqlite::{rusqlite, Pool};
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder;
 
-use super::feed::{create_feed_with_entries, link_entries_to_profiles};
+use super::feed::{create_feed_with_entries, link_entries_to_users};
 
 #[derive(Debug, Clone)]
 pub struct SqliteScraperRepository {
@@ -30,7 +30,7 @@ impl ScraperRepository for SqliteScraperRepository {
 
             let feed_id = create_feed_with_entries(&tx, data.url, data.feed)?;
 
-            link_entries_to_profiles(&tx, feed_id)?;
+            link_entries_to_users(&tx, feed_id)?;
 
             tx.commit()
         })

@@ -43,9 +43,9 @@ impl Findable for D1BookmarkRepository {
             )
         });
 
-        let (sql, values) = crate::profile_bookmark::select(
+        let (sql, values) = crate::user_bookmark::select(
             params.id,
-            params.profile_id,
+            params.user_id,
             params.cursor,
             params.limit,
             jsonb_agg,
@@ -86,7 +86,7 @@ impl Creatable for D1BookmarkRepository {
 
         let pb_id = {
             let (mut sql, mut values) =
-                crate::profile_bookmark::select_by_unique_index(data.profile_id, bookmark_id)
+                crate::user_bookmark::select_by_unique_index(data.user_id, bookmark_id)
                     .build_d1(SqliteQueryBuilder);
 
             if let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
@@ -98,7 +98,7 @@ impl Creatable for D1BookmarkRepository {
                 let id = Uuid::new_v4();
 
                 (sql, values) =
-                    crate::profile_bookmark::insert(Some(id), bookmark_id, data.profile_id)
+                    crate::user_bookmark::insert(Some(id), bookmark_id, data.user_id)
                         .build_d1(SqliteQueryBuilder);
 
                 super::run(&self.db, sql, values)
@@ -110,7 +110,7 @@ impl Creatable for D1BookmarkRepository {
         };
 
         if let Some(tags) = data.tags {
-            link_tags(&self.db, pb_id, tags, data.profile_id)
+            link_tags(&self.db, pb_id, tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -127,7 +127,7 @@ impl Updatable for D1BookmarkRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if let Some(tags) = data.tags {
-            link_tags(&self.db, params.id, tags, params.profile_id)
+            link_tags(&self.db, params.id, tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -142,8 +142,8 @@ impl Deletable for D1BookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::profile_bookmark::delete(params.id, params.profile_id)
-            .build_d1(SqliteQueryBuilder);
+        let (sql, values) =
+            crate::user_bookmark::delete(params.id, params.user_id).build_d1(SqliteQueryBuilder);
 
         let result = super::run(&self.db, sql, values)
             .await
@@ -181,9 +181,9 @@ impl BookmarkRepository for D1BookmarkRepository {
 #[worker::send]
 pub(crate) async fn link_tags(
     db: &D1Database,
-    profile_bookmark_id: Uuid,
+    user_bookmark_id: Uuid,
     tags: Vec<String>,
-    profile_id: Uuid,
+    user_id: Uuid,
 ) -> worker::Result<()> {
     let insert_many = tags
         .iter()
@@ -194,8 +194,8 @@ pub(crate) async fn link_tags(
         .collect::<Vec<_>>();
 
     let queries: Vec<(String, D1Values)> = vec![
-        crate::tag::insert_many(&insert_many, profile_id).build_d1(SqliteQueryBuilder),
-        crate::tag::select_ids_by_titles(&tags, profile_id).build_d1(SqliteQueryBuilder),
+        crate::tag::insert_many(&insert_many, user_id).build_d1(SqliteQueryBuilder),
+        crate::tag::select_ids_by_titles(&tags, user_id).build_d1(SqliteQueryBuilder),
     ];
 
     let results = super::batch(db, queries).await?;
@@ -217,17 +217,16 @@ pub(crate) async fn link_tags(
 
     let insert_many = tag_ids
         .into_iter()
-        .map(|e| crate::profile_bookmark_tag::InsertMany {
-            profile_bookmark_id,
+        .map(|e| crate::user_bookmark_tag::InsertMany {
+            user_bookmark_id,
             tag_id: e,
         })
         .collect::<Vec<_>>();
 
     let queries: Vec<(String, D1Values)> = vec![
-        crate::profile_bookmark_tag::delete_many_not_in_titles(&tags, profile_id)
+        crate::user_bookmark_tag::delete_many_not_in_titles(&tags, user_id)
             .build_d1(SqliteQueryBuilder),
-        crate::profile_bookmark_tag::insert_many(&insert_many, profile_id)
-            .build_d1(SqliteQueryBuilder),
+        crate::user_bookmark_tag::insert_many(&insert_many, user_id).build_d1(SqliteQueryBuilder),
     ];
 
     super::batch(db, queries).await?;

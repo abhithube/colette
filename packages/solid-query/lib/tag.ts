@@ -2,13 +2,9 @@ import type { API, Tag, TagCreate, TagListQuery } from '@colette/core'
 import type { MutationOptions } from '@tanstack/query-core'
 import { queryOptions } from '@tanstack/solid-query'
 
-export const listTagsOptions = (
-  query: TagListQuery,
-  profileId: string,
-  api: API,
-) =>
+export const listTagsOptions = (query: TagListQuery, api: API) =>
   queryOptions({
-    queryKey: ['profiles', profileId, 'tags', query],
+    queryKey: ['tags', query],
     queryFn: () => api.tags.list(query),
   })
 

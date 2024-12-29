@@ -194,7 +194,7 @@ impl From<DateOperation> for smart_feed::DateOperation {
     path = "",
     responses(ListResponse),
     operation_id = "listSmartFeeds",
-    description = "List the active profile smart feeds",
+    description = "List user smart feeds",
     tag = SMART_FEEDS_TAG
 )]
 #[axum::debug_handler]
@@ -202,7 +202,7 @@ pub async fn list_smart_feeds(
     State(service): State<SmartFeedService>,
     session: Session,
 ) -> Result<ListResponse, Error> {
-    match service.list_smart_feeds(session.profile_id).await {
+    match service.list_smart_feeds(session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -223,7 +223,7 @@ pub async fn get_smart_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<GetResponse, Error> {
-    match service.get_smart_feed(id, session.profile_id).await {
+    match service.get_smart_feed(id, session.user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             smart_feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
@@ -250,7 +250,7 @@ pub async fn create_smart_feed(
     Json(body): Json<SmartFeedCreate>,
 ) -> Result<CreateResponse, Error> {
     match service
-        .create_smart_feed(body.into(), session.profile_id)
+        .create_smart_feed(body.into(), session.user_id)
         .await
     {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
@@ -276,7 +276,7 @@ pub async fn update_smart_feed(
     Json(body): Json<SmartFeedUpdate>,
 ) -> Result<UpdateResponse, Error> {
     match service
-        .update_smart_feed(id, body.into(), session.profile_id)
+        .update_smart_feed(id, body.into(), session.user_id)
         .await
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
@@ -304,7 +304,7 @@ pub async fn delete_smart_feed(
     Path(Id(id)): Path<Id>,
     session: Session,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_smart_feed(id, session.profile_id).await {
+    match service.delete_smart_feed(id, session.user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             smart_feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

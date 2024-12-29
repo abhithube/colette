@@ -83,14 +83,9 @@ impl Creatable for PostgresUserRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let client = self
             .pool
             .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -98,12 +93,12 @@ impl Creatable for PostgresUserRepository {
             let (sql, values) = crate::user::insert(None, data.email.clone(), data.password)
                 .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx
+            let stmt = client
                 .prepare_cached(&sql)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-            let row = tx
+            let row = client
                 .query_one(&stmt, &values.as_params())
                 .await
                 .map_err(|e| match e.code() {
@@ -114,23 +109,6 @@ impl Creatable for PostgresUserRepository {
             row.try_get::<_, Uuid>("id")
                 .map_err(|e| Error::Unknown(e.into()))?
         };
-
-        {
-            let (sql, values) =
-                crate::profile::insert(None, "Default".to_owned(), None, Some(true), id)
-                    .build_postgres(PostgresQueryBuilder);
-
-            let stmt = tx
-                .prepare_cached(&sql)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            tx.execute(&stmt, &values.as_params())
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(id)
     }

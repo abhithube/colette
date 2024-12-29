@@ -12,7 +12,6 @@ import {
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
 import { BaseError, createApiClient } from './openapi.gen'
-import { HTTPProfileAPI, type ProfileAPI } from './profile'
 import { HTTPSmartFeedAPI, type SmartFeedAPI } from './smart-feed'
 import { HTTPTagAPI, type TagAPI } from './tag'
 
@@ -22,7 +21,6 @@ export interface API {
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  profiles: ProfileAPI
   smartFeeds: SmartFeedAPI
   tags: TagAPI
 }
@@ -37,7 +35,6 @@ export class HttpAPI implements API {
   bookmarks: BookmarkAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  profiles: ProfileAPI
   smartFeeds: SmartFeedAPI
   tags: TagAPI
 
@@ -94,7 +91,6 @@ export class HttpAPI implements API {
     this.bookmarks = new HTTPBookmarkAPI(client)
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
-    this.profiles = new HTTPProfileAPI(client)
     this.smartFeeds = new HTTPSmartFeedAPI(client)
     this.tags = new HTTPTagAPI(client)
   }

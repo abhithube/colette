@@ -78,14 +78,14 @@ impl FeedService {
     pub async fn list_feeds(
         &self,
         query: FeedListQuery,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repository
             .find(FeedFindParams {
                 pinned: query.pinned,
                 tags: query.tags,
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -96,12 +96,12 @@ impl FeedService {
         })
     }
 
-    pub async fn get_feed(&self, id: Uuid, profile_id: Uuid) -> Result<Feed, Error> {
+    pub async fn get_feed(&self, id: Uuid, user_id: Uuid) -> Result<Feed, Error> {
         let mut feeds = self
             .repository
             .find(FeedFindParams {
                 id: Some(id),
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -112,7 +112,7 @@ impl FeedService {
         Ok(feeds.swap_remove(0))
     }
 
-    pub async fn create_feed(&self, data: FeedCreate, profile_id: Uuid) -> Result<Feed, Error> {
+    pub async fn create_feed(&self, data: FeedCreate, user_id: Uuid) -> Result<Feed, Error> {
         let id = self
             .repository
             .create(FeedCreateData {
@@ -121,28 +121,28 @@ impl FeedService {
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
-                profile_id,
+                user_id,
             })
             .await?;
 
-        self.get_feed(id, profile_id).await
+        self.get_feed(id, user_id).await
     }
 
     pub async fn update_feed(
         &self,
         id: Uuid,
         data: FeedUpdate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Feed, Error> {
         self.repository
-            .update(IdParams::new(id, profile_id), data.into())
+            .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_feed(id, profile_id).await
+        self.get_feed(id, user_id).await
     }
 
-    pub async fn delete_feed(&self, id: Uuid, profile_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, profile_id)).await
+    pub async fn delete_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        self.repository.delete(IdParams::new(id, user_id)).await
     }
 
     pub async fn detect_feeds(&self, data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
@@ -196,7 +196,7 @@ pub struct FeedFindParams {
     pub id: Option<Uuid>,
     pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
 }
@@ -206,7 +206,7 @@ pub struct FeedCreateData {
     pub url: String,
     pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

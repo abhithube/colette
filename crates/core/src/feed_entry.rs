@@ -58,7 +58,7 @@ impl FeedEntryService {
     pub async fn list_feed_entries(
         &self,
         query: FeedEntryListQuery,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Paginated<FeedEntry>, Error> {
         let cursor = query
             .cursor
@@ -71,7 +71,7 @@ impl FeedEntryService {
                 smart_feed_id: query.smart_feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
-                profile_id,
+                user_id,
                 limit: Some(PAGINATION_LIMIT + 1),
                 cursor,
                 ..Default::default()
@@ -100,12 +100,12 @@ impl FeedEntryService {
         })
     }
 
-    pub async fn get_feed_entry(&self, id: Uuid, profile_id: Uuid) -> Result<FeedEntry, Error> {
+    pub async fn get_feed_entry(&self, id: Uuid, user_id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
             .repository
             .find(FeedEntryFindParams {
                 id: Some(id),
-                profile_id,
+                user_id,
                 ..Default::default()
             })
             .await?;
@@ -120,13 +120,13 @@ impl FeedEntryService {
         &self,
         id: Uuid,
         data: FeedEntryUpdate,
-        profile_id: Uuid,
+        user_id: Uuid,
     ) -> Result<FeedEntry, Error> {
         self.repository
-            .update(IdParams::new(id, profile_id), data.into())
+            .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_feed_entry(id, profile_id).await
+        self.get_feed_entry(id, user_id).await
     }
 }
 
@@ -148,7 +148,7 @@ pub struct FeedEntryFindParams {
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
-    pub profile_id: Uuid,
+    pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
 }
