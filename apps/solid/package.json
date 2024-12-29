@@ -9,11 +9,13 @@
   },
   "dependencies": {
     "@ark-ui/solid": "^4",
+    "@tanstack/solid-form": "^0.40",
     "class-variance-authority": "^0.7",
     "clsx": "^2",
     "lucide-solid": "^0.469",
     "solid-js": "^1",
-    "tailwind-merge": "^2"
+    "tailwind-merge": "^2",
+    "zod": "^3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.0-beta.8",

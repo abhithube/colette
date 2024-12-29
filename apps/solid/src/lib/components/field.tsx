@@ -3,10 +3,6 @@ import { type Component, splitProps } from 'solid-js'
 import { cn } from '../utils'
 import { cva } from 'class-variance-authority'
 
-export const labelVariants = cva(
-  'font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
-)
-
 export const Root: Component<Field.RootProps> = (props) => {
   return <Field.Root {...props} />
 }
@@ -25,8 +21,23 @@ export const Input: Component<Field.InputProps> = (props) => {
   )
 }
 
+export const labelVariants = cva(
+  'font-medium text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70',
+)
+
 export const Label: Component<Field.LabelProps> = (props) => {
   const [local, rest] = splitProps(props, ['class'])
 
   return <Field.Label class={cn(labelVariants(), local.class)} {...rest} />
+}
+
+export const ErrorText: Component<Field.ErrorTextProps> = (props) => {
+  const [local, rest] = splitProps(props, ['class'])
+
+  return (
+    <Field.ErrorText
+      class={cn('font-medium text-destructive text-sm', local.class)}
+      {...rest}
+    />
+  )
 }
