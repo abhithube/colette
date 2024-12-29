@@ -1,6 +1,7 @@
+import { type HTMLArkProps, ark } from '@ark-ui/solid'
 import type { VariantProps } from 'class-variance-authority'
 import { cva } from 'class-variance-authority'
-import type { Component, ComponentProps } from 'solid-js'
+import type { Component } from 'solid-js'
 import { splitProps } from 'solid-js'
 import { cn } from '../utils'
 
@@ -34,13 +35,14 @@ export const buttonVariants = cva(
   },
 )
 
-export const Button: Component<
-  ComponentProps<'button'> & VariantProps<typeof buttonVariants>
-> = (props) => {
-  const [local, rest] = splitProps(props, ['class', 'variant', 'size'])
+export type ButtonProps = HTMLArkProps<'button'> &
+  VariantProps<typeof buttonVariants>
+
+export const Button: Component<ButtonProps> = (props) => {
+  const [local, others] = splitProps(props, ['variant', 'size', 'class'])
 
   return (
-    <button
+    <ark.button
       class={cn(
         buttonVariants({
           size: local.size,
@@ -48,7 +50,7 @@ export const Button: Component<
         }),
         local.class,
       )}
-      {...rest}
+      {...others}
     />
   )
 }

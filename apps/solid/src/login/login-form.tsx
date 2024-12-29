@@ -4,7 +4,18 @@ import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'
 import { z } from 'zod'
 import { useAPI } from '../lib/api-context'
-import { Button, Card, Field } from '../lib/components'
+import { Button } from '../lib/components/button'
+import {
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardRoot,
+  CardTitle,
+} from '../lib/components/card'
+import { FormControl, FormMessage } from '../lib/components/form'
+import { Input } from '../lib/components/input'
+import { Label } from '../lib/components/label'
 
 export const LoginForm: Component = () => {
   const form = createForm(() => ({
@@ -36,12 +47,12 @@ export const LoginForm: Component = () => {
         form.handleSubmit()
       }}
     >
-      <Card.Root>
-        <Card.Header class="space-y-2">
-          <Card.Title>Login</Card.Title>
-          <Card.Description>Login to your account</Card.Description>
-        </Card.Header>
-        <Card.Content class="space-y-4">
+      <CardRoot>
+        <CardHeader class="space-y-2">
+          <CardTitle>Login</CardTitle>
+          <CardDescription>Login to your account</CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
           <form.Field
             name="email"
             validators={{
@@ -49,17 +60,17 @@ export const LoginForm: Component = () => {
             }}
           >
             {(field) => (
-              <Field.Root invalid={field().state.meta.errors.length > 0}>
-                <Field.Label>Email</Field.Label>
-                <Field.Input
+              <FormControl invalid={field().state.meta.errors.length > 0}>
+                <Label>Email</Label>
+                <Input
                   placeholder="user@email.com"
                   onChange={(e) => field().handleChange(e.target.value)}
                   onBlur={() => field().handleBlur()}
                 />
-                <Field.ErrorText>
+                <FormMessage>
                   {field().state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
-              </Field.Root>
+                </FormMessage>
+              </FormControl>
             )}
           </form.Field>
           <form.Field
@@ -71,27 +82,27 @@ export const LoginForm: Component = () => {
             }}
           >
             {(field) => (
-              <Field.Root invalid={field().state.meta.errors.length > 0}>
-                <Field.Label>Password</Field.Label>
-                <Field.Input
+              <FormControl invalid={field().state.meta.errors.length > 0}>
+                <Label>Password</Label>
+                <Input
                   type="password"
                   placeholder="********"
                   onChange={(e) => field().handleChange(e.target.value)}
                   onBlur={() => field().handleBlur()}
                 />
-                <Field.ErrorText>
+                <FormMessage>
                   {field().state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
-              </Field.Root>
+                </FormMessage>
+              </FormControl>
             )}
           </form.Field>
-        </Card.Content>
-        <Card.Footer>
+        </CardContent>
+        <CardFooter>
           <Button class="grow" disabled={isPending}>
             Login
           </Button>
-        </Card.Footer>
-      </Card.Root>
+        </CardFooter>
+      </CardRoot>
     </form>
   )
 }

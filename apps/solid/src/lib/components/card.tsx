@@ -6,8 +6,8 @@ import {
 } from 'solid-js'
 import { cn } from '../utils'
 
-export const Root: Component<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardRoot: Component<ComponentProps<'div'>> = (props) => {
+  const [local, others] = splitProps(props, ['class'])
 
   return (
     <div
@@ -15,46 +15,50 @@ export const Root: Component<ComponentProps<'div'>> = (props) => {
         'rounded-xl border bg-card text-card-foreground shadow',
         local.class,
       )}
-      {...rest}
+      {...others}
     />
   )
 }
 
-export const Header: Component<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardHeader: Component<ComponentProps<'div'>> = (props) => {
+  const [local, others] = splitProps(props, ['class'])
 
   return (
-    <div class={cn('flex flex-col space-y-1.5 p-6', local.class)} {...rest} />
+    <div class={cn('flex flex-col space-y-1.5 p-6', local.class)} {...others} />
   )
 }
 
-export const Title: ParentComponent<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardTitle: ParentComponent<ComponentProps<'div'>> = (props) => {
+  const [local, others] = splitProps(props, ['class'])
 
   return (
     <div
       class={cn('font-semibold leading-none tracking-tight', local.class)}
-      {...rest}
+      {...others}
     />
   )
 }
 
-export const Description: ParentComponent<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardDescription: ParentComponent<ComponentProps<'div'>> = (
+  props,
+) => {
+  const [local, others] = splitProps(props, ['class'])
 
   return (
-    <div class={cn('text-muted-foreground text-sm', local.class)} {...rest} />
+    <div class={cn('text-muted-foreground text-sm', local.class)} {...others} />
   )
 }
 
-export const Content: Component<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardContent: Component<ComponentProps<'div'>> = (props) => {
+  const [local, others] = splitProps(props, ['class'])
 
-  return <div class={cn('p-6 pt-0', local.class)} {...rest} />
+  return <div class={cn('p-6 pt-0', local.class)} {...others} />
 }
 
-export const Footer: Component<ComponentProps<'div'>> = (props) => {
-  const [local, rest] = splitProps(props, ['class'])
+export const CardFooter: Component<ComponentProps<'div'>> = (props) => {
+  const [local, others] = splitProps(props, ['class'])
 
-  return <div class={cn('flex items-center p-6 pt-0', local.class)} {...rest} />
+  return (
+    <div class={cn('flex items-center p-6 pt-0', local.class)} {...others} />
+  )
 }
