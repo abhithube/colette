@@ -43,7 +43,7 @@ export const Description: ParentComponent<ComponentProps<'div'>> = (props) => {
   const [local, rest] = splitProps(props, ['class'])
 
   return (
-    <div class={cn('text-sm text-muted-foreground', local.class)} {...rest} />
+    <div class={cn('text-muted-foreground text-sm', local.class)} {...rest} />
   )
 }
 

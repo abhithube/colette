@@ -17,6 +17,14 @@
 	},
 	"linter": {
 		"rules": {
+			"nursery": {
+				"useSortedClasses": {
+					"level":"warn",
+					"options": {
+						"functions": ["cva"]
+					}
+				}
+			},
 			"style": {
 				"noNonNullAssertion": "warn"
 			},
