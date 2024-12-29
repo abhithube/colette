@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@ark-ui/solid": "^4",
+    "@colette/core": "*",
     "@tanstack/solid-form": "^0.40",
     "class-variance-authority": "^0.7",
     "clsx": "^2",
