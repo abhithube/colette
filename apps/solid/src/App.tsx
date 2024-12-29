@@ -1,13 +1,13 @@
+import { Route, Router } from '@solidjs/router'
 import type { Component } from 'solid-js'
-import { LoginForm } from './login/login-form'
+import { LoginPage } from './login'
 
 const App: Component = () => {
   return (
-    <div class="flex h-screen items-center justify-center">
-      <div class="w-[400px]">
-        <LoginForm />
-      </div>
-    </div>
+    <Router>
+      <Route path="/" component={() => <div>Home</div>} />
+      <Route path="/login" component={LoginPage} />
+    </Router>
   )
 }
 
