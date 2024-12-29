@@ -1,0 +1,12 @@
+{
+	"name": "@colette/solid-query",
+	"module": "./lib/index.ts",
+	"exports": ["./lib/index.ts"],
+	"dependencies": {
+		"@colette/core": "*",
+		"@tanstack/solid-query": "^5"
+	},
+	"devDependencies": {
+		"typescript": "*"
+	}
+}
