@@ -1,18 +1,34 @@
-import type { Component } from 'solid-js'
-import { Button, Card, Field } from '../lib/components'
+import { loginOptions } from '@colette/solid-query'
 import { createForm } from '@tanstack/solid-form'
+import { createMutation } from '@tanstack/solid-query'
+import type { Component } from 'solid-js'
 import { z } from 'zod'
+import { useAPI } from '../lib/api-context'
+import { Button, Card, Field } from '../lib/components'
 
 export const LoginForm: Component = () => {
+  const api = useAPI()
+
   const form = createForm(() => ({
     defaultValues: {
       email: '',
       password: '',
     },
-    onSubmit: ({ value }) => {
-      console.log(value)
-    },
+    onSubmit: ({ value }) => login(value),
   }))
+
+  const { mutateAsync: login, isPending } = createMutation(() =>
+    loginOptions(
+      {
+        onSuccess: async (user) => {
+          console.log(user)
+
+          form.reset()
+        },
+      },
+      api,
+    ),
+  )
 
   return (
     <form
@@ -72,7 +88,9 @@ export const LoginForm: Component = () => {
           </form.Field>
         </Card.Content>
         <Card.Footer>
-          <Button class="grow">Login</Button>
+          <Button class="grow" disabled={isPending}>
+            Login
+          </Button>
         </Card.Footer>
       </Card.Root>
     </form>

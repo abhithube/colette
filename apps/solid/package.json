@@ -10,6 +10,7 @@
   "dependencies": {
     "@ark-ui/solid": "^4",
     "@colette/core": "*",
+    "@colette/solid-query": "*",
     "@tanstack/solid-form": "^0.40",
     "@tanstack/solid-query": "^5",
     "class-variance-authority": "^0.7",
