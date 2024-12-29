@@ -13,4 +13,6 @@ export class AuthCommands implements AuthAPI {
   getActive(): Promise<User> {
     return invoke('get_active_user').then(User.parse)
   }
+
+  async logout(): Promise<void> {}
 }

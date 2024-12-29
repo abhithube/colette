@@ -6,6 +6,8 @@ export interface AuthAPI {
   login(data: Login): Promise<User>
 
   getActive(): Promise<User>
+
+  logout(): Promise<void>
 }
 
 export class HTTPAuthAPI implements AuthAPI {
@@ -29,5 +31,9 @@ export class HTTPAuthAPI implements AuthAPI {
 
   getActive(): Promise<User> {
     return this.client.get('/auth/@me').then(User.parse)
+  }
+
+  logout(): Promise<void> {
+    return this.client.post('/auth/logout').then()
   }
 }
