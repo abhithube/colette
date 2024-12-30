@@ -4,7 +4,6 @@ use anyhow::anyhow;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
-use dyn_clone::DynClone;
 use url::Url;
 
 use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
@@ -147,18 +146,14 @@ impl From<Feed> for ExtractedFeed {
 }
 
 #[async_trait::async_trait]
-pub trait FeedScraper: Send + Sync + DynClone + 'static {
+pub trait FeedScraper: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error>;
 }
-
-dyn_clone::clone_trait_object!(FeedScraper);
 
 #[async_trait::async_trait]
 pub trait FeedDetector: FeedScraper + Send + Sync {
     async fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error>;
 }
-
-dyn_clone::clone_trait_object!(FeedDetector);
 
 #[derive(Clone)]
 pub struct DefaultFeedScraper<D> {

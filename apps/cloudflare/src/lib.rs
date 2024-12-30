@@ -63,20 +63,20 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
-        register_bookmark_plugins(
+        Arc::new(register_bookmark_plugins(
             client.clone(),
             downloader.clone(),
             DefaultBookmarkScraper::new(downloader),
-        ),
+        )),
         base64_encoder.clone(),
     ));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        register_feed_plugins(
+        Arc::new(register_feed_plugins(
             client,
             downloader.clone(),
             DefaultFeedScraper::new(downloader.clone()),
-        ),
+        )),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(
         D1FeedEntryRepository::new(d1.clone()),

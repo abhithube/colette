@@ -6,7 +6,6 @@ use crate::Error;
 
 use super::{BookmarkScraper, ProcessedBookmark};
 
-#[derive(Clone)]
 pub struct BookmarkPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     default_scraper: S,

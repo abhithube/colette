@@ -5,7 +5,6 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
-use dyn_clone::DynClone;
 use url::Url;
 
 use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
@@ -69,11 +68,9 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarkScraper: Send + Sync + DynClone + 'static {
+pub trait BookmarkScraper: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error>;
 }
-
-dyn_clone::clone_trait_object!(BookmarkScraper);
 
 #[derive(Clone)]
 pub struct DefaultBookmarkScraper<D> {

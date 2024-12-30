@@ -751,7 +751,6 @@ dependencies = [
  "colette-feed",
  "colette-http",
  "colette-meta",
- "dyn-clone",
  "http",
  "reqwest",
  "scraper",

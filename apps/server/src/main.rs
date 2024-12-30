@@ -76,16 +76,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let client = colette_http::Client::build(None, None)?;
     let downloader = DefaultDownloader::new(client.clone());
-    let feed_plugin_registry = register_feed_plugins(
+    let feed_plugin_registry = Arc::new(register_feed_plugins(
         client.clone(),
         downloader.clone(),
         DefaultFeedScraper::new(downloader.clone()),
-    );
-    let bookmark_plugin_registry = register_bookmark_plugins(
+    ));
+    let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
         client,
         downloader.clone(),
         DefaultBookmarkScraper::new(downloader),
-    );
+    ));
 
     let base64_encoder = Base64Encoder;
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use colette_scraper::feed::FeedDetector;
 pub use colette_scraper::feed::ProcessedFeed;
 use futures::stream::BoxStream;
@@ -62,14 +64,14 @@ pub struct Cursor {
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
-    detector: Box<dyn FeedDetector>,
+    detector: Arc<dyn FeedDetector>,
 }
 
 impl FeedService {
-    pub fn new(repository: impl FeedRepository, detector: impl FeedDetector) -> Self {
+    pub fn new(repository: impl FeedRepository, detector: Arc<dyn FeedDetector>) -> Self {
         Self {
             repository: Box::new(repository),
-            detector: Box::new(detector),
+            detector,
         }
     }
 

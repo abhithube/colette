@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 pub use colette_scraper::feed::ProcessedFeed;
 use colette_scraper::{
     bookmark::{BookmarkScraper, ProcessedBookmark},
@@ -17,20 +19,20 @@ pub struct BookmarkCreate {
 
 pub struct ScraperService {
     repository: Box<dyn ScraperRepository>,
-    feed_scraper: Box<dyn FeedScraper>,
-    bookmark_scraper: Box<dyn BookmarkScraper>,
+    feed_scraper: Arc<dyn FeedScraper>,
+    bookmark_scraper: Arc<dyn BookmarkScraper>,
 }
 
 impl ScraperService {
     pub fn new(
         repository: impl ScraperRepository,
-        feed_scraper: impl FeedScraper,
-        bookmark_scraper: impl BookmarkScraper,
+        feed_scraper: Arc<dyn FeedScraper>,
+        bookmark_scraper: Arc<dyn BookmarkScraper>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
-            feed_scraper: Box::new(feed_scraper),
-            bookmark_scraper: Box::new(bookmark_scraper),
+            feed_scraper,
+            bookmark_scraper,
         }
     }
 

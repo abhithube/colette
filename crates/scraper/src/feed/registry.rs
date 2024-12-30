@@ -11,7 +11,6 @@ use crate::{downloader::Downloader, Error, ExtractorError};
 
 use super::{ExtractedFeed, FeedDetector, FeedScraper, ProcessedFeed};
 
-#[derive(Clone)]
 pub struct FeedPluginRegistry<D, S> {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
     downloader: D,
