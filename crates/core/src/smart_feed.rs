@@ -145,6 +145,7 @@ pub trait SmartFeedRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
 }
 

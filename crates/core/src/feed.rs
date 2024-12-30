@@ -183,6 +183,7 @@ pub trait FeedRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
     async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error>;
 

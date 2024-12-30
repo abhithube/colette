@@ -60,7 +60,7 @@ impl ScraperService {
 }
 
 #[async_trait::async_trait]
-pub trait ScraperRepository: Send + Sync + DynClone {
+pub trait ScraperRepository: Send + Sync + DynClone + 'static {
     async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error>;
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error>;

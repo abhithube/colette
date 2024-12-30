@@ -89,7 +89,7 @@ impl IdParams {
 }
 
 #[async_trait::async_trait]
-pub trait Findable: Send + Sync {
+pub trait Findable {
     type Params;
     type Output;
 
@@ -97,7 +97,7 @@ pub trait Findable: Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait Creatable: Send + Sync {
+pub trait Creatable {
     type Data;
     type Output;
 
@@ -105,7 +105,7 @@ pub trait Creatable: Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait Updatable: Send + Sync {
+pub trait Updatable {
     type Params;
     type Data;
     type Output;
@@ -114,7 +114,7 @@ pub trait Updatable: Send + Sync {
 }
 
 #[async_trait::async_trait]
-pub trait Deletable: Send + Sync {
+pub trait Deletable {
     type Params;
     type Output;
 

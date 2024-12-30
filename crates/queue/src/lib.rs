@@ -6,7 +6,7 @@ pub mod cloudflare;
 pub mod memory;
 
 #[async_trait::async_trait]
-pub trait Queue: Send + Sync + DynClone {
+pub trait Queue: Send + Sync + DynClone + 'static {
     type Data;
 
     async fn push(&self, data: Self::Data) -> Result<(), anyhow::Error>;

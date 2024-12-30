@@ -99,12 +99,7 @@ impl TagService {
         self.get_tag(id, user_id).await
     }
 
-    pub async fn update_tag(
-        &self,
-        id: Uuid,
-        data: TagUpdate,
-        user_id: Uuid,
-    ) -> Result<Tag, Error> {
+    pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
         self.repository
             .update(IdParams::new(id, user_id), data.into())
             .await?;
@@ -125,6 +120,7 @@ pub trait TagRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
 }
 

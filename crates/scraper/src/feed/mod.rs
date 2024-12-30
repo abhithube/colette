@@ -147,7 +147,7 @@ impl From<Feed> for ExtractedFeed {
 }
 
 #[async_trait::async_trait]
-pub trait FeedScraper: Send + Sync + DynClone {
+pub trait FeedScraper: Send + Sync + DynClone + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error>;
 }
 

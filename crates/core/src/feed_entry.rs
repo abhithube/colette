@@ -136,6 +136,7 @@ pub trait FeedEntryRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
 }
 

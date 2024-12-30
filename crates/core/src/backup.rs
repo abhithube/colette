@@ -185,7 +185,7 @@ impl BackupService {
 }
 
 #[async_trait::async_trait]
-pub trait BackupRepository: Send + Sync + DynClone {
+pub trait BackupRepository: Send + Sync + DynClone + 'static {
     async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error>;
 
     async fn import_netscape(&self, outlines: Vec<Item>, user_id: Uuid) -> Result<(), Error>;

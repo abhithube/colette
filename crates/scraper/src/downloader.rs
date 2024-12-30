@@ -5,7 +5,7 @@ use dyn_clone::DynClone;
 use url::Url;
 
 #[async_trait::async_trait]
-pub trait Downloader: Send + Sync + DynClone {
+pub trait Downloader: Send + Sync + DynClone + 'static {
     async fn download(&self, url: &mut Url) -> Result<Bytes, DownloaderError>;
 }
 

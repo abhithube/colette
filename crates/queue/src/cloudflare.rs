@@ -21,7 +21,7 @@ impl<T> CloudflareQueue<T> {
 }
 
 #[async_trait::async_trait]
-impl<T: Clone + Send + Sync + Serialize> Queue for CloudflareQueue<T> {
+impl<T: Clone + Send + Sync + Serialize + 'static> Queue for CloudflareQueue<T> {
     type Data = T;
 
     async fn push(&self, data: Self::Data) -> Result<(), anyhow::Error> {

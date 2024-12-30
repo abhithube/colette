@@ -207,6 +207,7 @@ pub trait BookmarkRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error>;
 }

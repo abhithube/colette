@@ -69,7 +69,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 }
 
 #[async_trait::async_trait]
-pub trait BookmarkScraper: Send + Sync + DynClone {
+pub trait BookmarkScraper: Send + Sync + DynClone + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error>;
 }
 

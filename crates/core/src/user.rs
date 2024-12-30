@@ -17,6 +17,7 @@ pub trait UserRepository:
     + Send
     + Sync
     + DynClone
+    + 'static
 {
 }
 

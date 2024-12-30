@@ -4,7 +4,7 @@ use dyn_clone::DynClone;
 pub mod netscape;
 pub mod opml;
 
-pub trait BackupManager: Send + Sync + DynClone {
+pub trait BackupManager: Send + Sync + DynClone + 'static {
     type T;
 
     fn import(&self, raw: Bytes) -> Result<Self::T, Error>;
