@@ -1,19 +1,19 @@
 use scraper::{ElementRef, Html, Selector};
 
 #[derive(Clone, Debug)]
-pub enum Node<'a> {
+pub enum Node {
     Text,
-    Attr(&'a str),
+    Attr(&'static str),
 }
 
 #[derive(Clone, Debug)]
-pub struct ExtractorQuery<'a> {
+pub struct ExtractorQuery {
     pub selector: Selector,
-    pub node: Node<'a>,
+    pub node: Node,
 }
 
-impl<'a> ExtractorQuery<'a> {
-    pub fn new(selector: Selector, node: Node<'a>) -> Self {
+impl ExtractorQuery {
+    pub fn new(selector: Selector, node: Node) -> Self {
         Self { selector, node }
     }
 }
@@ -42,7 +42,7 @@ impl TextSelector for ElementRef<'_> {
     }
 }
 
-pub fn select(e: ElementRef, node: &Node<'_>) -> Option<String> {
+pub fn select(e: ElementRef, node: &Node) -> Option<String> {
     match node {
         Node::Text => {
             let text = e.inner_html();

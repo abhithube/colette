@@ -9,20 +9,20 @@ use crate::{
 use super::ExtractedBookmark;
 
 #[derive(Clone, Debug, Default)]
-pub struct BookmarkExtractorOptions<'a> {
-    pub title_queries: Vec<ExtractorQuery<'a>>,
-    pub published_queries: Vec<ExtractorQuery<'a>>,
-    pub author_queries: Vec<ExtractorQuery<'a>>,
-    pub thumbnail_queries: Vec<ExtractorQuery<'a>>,
+pub struct BookmarkExtractorOptions {
+    pub title_queries: Vec<ExtractorQuery>,
+    pub published_queries: Vec<ExtractorQuery>,
+    pub author_queries: Vec<ExtractorQuery>,
+    pub thumbnail_queries: Vec<ExtractorQuery>,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct BookmarkExtractor<'a> {
-    options: BookmarkExtractorOptions<'a>,
+pub struct BookmarkExtractor {
+    options: BookmarkExtractorOptions,
 }
 
-impl<'a> BookmarkExtractor<'a> {
-    pub fn new(options: BookmarkExtractorOptions<'a>) -> Self {
+impl BookmarkExtractor {
+    pub fn new(options: BookmarkExtractorOptions) -> Self {
         Self { options }
     }
 

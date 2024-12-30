@@ -9,25 +9,25 @@ use crate::{
 use super::{ExtractedFeed, ExtractedFeedEntry};
 
 #[derive(Clone, Debug, Default)]
-pub struct FeedExtractorOptions<'a> {
-    pub feed_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_title_queries: Vec<ExtractorQuery<'a>>,
+pub struct FeedExtractorOptions {
+    pub feed_link_queries: Vec<ExtractorQuery>,
+    pub feed_title_queries: Vec<ExtractorQuery>,
     pub feed_entries_selectors: Vec<Selector>,
-    pub feed_entry_link_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_title_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_published_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_description_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_author_queries: Vec<ExtractorQuery<'a>>,
-    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery<'a>>,
+    pub feed_entry_link_queries: Vec<ExtractorQuery>,
+    pub feed_entry_title_queries: Vec<ExtractorQuery>,
+    pub feed_entry_published_queries: Vec<ExtractorQuery>,
+    pub feed_entry_description_queries: Vec<ExtractorQuery>,
+    pub feed_entry_author_queries: Vec<ExtractorQuery>,
+    pub feed_entry_thumbnail_queries: Vec<ExtractorQuery>,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct FeedExtractor<'a> {
-    options: FeedExtractorOptions<'a>,
+pub struct FeedExtractor {
+    options: FeedExtractorOptions,
 }
 
-impl<'a> FeedExtractor<'a> {
-    pub fn new(options: FeedExtractorOptions<'a>) -> Self {
+impl FeedExtractor {
+    pub fn new(options: FeedExtractorOptions) -> Self {
         Self { options }
     }
 

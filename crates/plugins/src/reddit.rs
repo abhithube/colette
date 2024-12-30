@@ -9,9 +9,9 @@ use scraper::Selector;
 use url::Url;
 
 #[derive(Clone)]
-pub struct RedditBookmarkPlugin<'a> {
+pub struct RedditBookmarkPlugin {
     client: Client,
-    extractor: BookmarkExtractor<'a>,
+    extractor: BookmarkExtractor,
 }
 
 pub fn bookmark(client: Client) -> Box<dyn BookmarkScraper> {
@@ -41,7 +41,7 @@ pub fn bookmark(client: Client) -> Box<dyn BookmarkScraper> {
 }
 
 #[async_trait::async_trait]
-impl<'a> BookmarkScraper for RedditBookmarkPlugin<'a> {
+impl BookmarkScraper for RedditBookmarkPlugin {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, colette_scraper::Error> {
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
