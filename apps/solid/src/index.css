@@ -20,6 +20,14 @@
   --color-popover-foreground: hsl(222.2 47.4% 11.2%);
   --color-card: hsl(0 0% 100%);
   --color-card-foreground: hsl(222.2 47.4% 11.2%);
+  --color-sidebar: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
+  --color-sidebar-primary: hsl(240 5.9% 10%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: hsl(240 4.8% 95.9%);
+  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --color-sidebar-border: hsl(220 13% 91%);
+  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
 * {
