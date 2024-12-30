@@ -17,19 +17,17 @@ pub struct Data {
 }
 
 #[derive(Clone)]
-pub struct Task {
-    scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>,
+pub struct Task<Q> {
+    scrape_feed_queue: Q,
 }
 
-impl Task {
-    pub fn new(scrape_feed_queue: impl Queue<Data = scrape_feed::Data>) -> Self {
-        Self {
-            scrape_feed_queue: Box::new(scrape_feed_queue),
-        }
+impl<Q: Queue<Data = scrape_feed::Data>> Task<Q> {
+    pub fn new(scrape_feed_queue: Q) -> Self {
+        Self { scrape_feed_queue }
     }
 }
 
-impl Service<Data> for Task {
+impl<Q: Queue<Data = scrape_feed::Data> + Clone> Service<Data> for Task<Q> {
     type Response = ();
     type Error = scraper::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;

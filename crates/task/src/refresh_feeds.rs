@@ -13,24 +13,21 @@ use url::Url;
 use crate::scrape_feed;
 
 #[derive(Clone)]
-pub struct Task {
+pub struct Task<Q> {
     service: FeedService,
-    scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>,
+    scrape_feed_queue: Q,
 }
 
-impl Task {
-    pub fn new(
-        service: FeedService,
-        scrape_feed_queue: impl Queue<Data = scrape_feed::Data>,
-    ) -> Self {
+impl<Q: Queue<Data = scrape_feed::Data>> Task<Q> {
+    pub fn new(service: FeedService, scrape_feed_queue: Q) -> Self {
         Self {
             service,
-            scrape_feed_queue: Box::new(scrape_feed_queue),
+            scrape_feed_queue,
         }
     }
 }
 
-impl Service<()> for Task {
+impl<Q: Queue<Data = scrape_feed::Data> + Clone> Service<()> for Task<Q> {
     type Response = ();
     type Error = feed::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
