@@ -161,20 +161,18 @@ pub trait FeedDetector: FeedScraper + Send + Sync {
 dyn_clone::clone_trait_object!(FeedDetector);
 
 #[derive(Clone)]
-pub struct DefaultFeedScraper {
-    downloader: Box<dyn Downloader>,
+pub struct DefaultFeedScraper<D> {
+    downloader: D,
 }
 
-impl DefaultFeedScraper {
-    pub fn new(downloader: impl Downloader) -> Self {
-        Self {
-            downloader: Box::new(downloader),
-        }
+impl<D: Downloader> DefaultFeedScraper<D> {
+    pub fn new(downloader: D) -> Self {
+        Self { downloader }
     }
 }
 
 #[async_trait::async_trait]
-impl FeedScraper for DefaultFeedScraper {
+impl<D: Downloader + Clone> FeedScraper for DefaultFeedScraper<D> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
         let body = self.downloader.download(url).await?;
 

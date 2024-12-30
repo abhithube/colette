@@ -3,16 +3,16 @@ use lazy_regex::regex_captures;
 use url::Url;
 
 #[derive(Clone)]
-pub struct YouTubeFeedPlugin {
-    default_scraper: Box<dyn FeedScraper>,
+pub struct YouTubeFeedPlugin<S> {
+    default_scraper: S,
 }
 
-pub fn create(default_scraper: Box<dyn FeedScraper>) -> Box<dyn FeedScraper> {
+pub fn feed<S: FeedScraper + Clone>(default_scraper: S) -> Box<dyn FeedScraper> {
     Box::new(YouTubeFeedPlugin { default_scraper })
 }
 
 #[async_trait::async_trait]
-impl FeedScraper for YouTubeFeedPlugin {
+impl<S: FeedScraper + Clone> FeedScraper for YouTubeFeedPlugin<S> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, colette_scraper::Error> {
         if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.as_str()) {
             url.set_query(Some(&format!("channel_id={}", channel_id)));

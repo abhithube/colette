@@ -7,25 +7,25 @@ use crate::Error;
 use super::{BookmarkScraper, ProcessedBookmark};
 
 #[derive(Clone)]
-pub struct BookmarkPluginRegistry {
+pub struct BookmarkPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-    default_scraper: Box<dyn BookmarkScraper>,
+    default_scraper: S,
 }
 
-impl BookmarkPluginRegistry {
+impl<S: BookmarkScraper> BookmarkPluginRegistry<S> {
     pub fn new(
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-        default_scraper: impl BookmarkScraper,
+        default_scraper: S,
     ) -> Self {
         Self {
             plugins,
-            default_scraper: Box::new(default_scraper),
+            default_scraper,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl BookmarkScraper for BookmarkPluginRegistry {
+impl<S: BookmarkScraper + Clone> BookmarkScraper for BookmarkPluginRegistry<S> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let host = url.host_str().ok_or(Error::Parse)?;
 

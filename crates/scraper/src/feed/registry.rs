@@ -12,28 +12,28 @@ use crate::{downloader::Downloader, Error, ExtractorError};
 use super::{ExtractedFeed, FeedDetector, FeedScraper, ProcessedFeed};
 
 #[derive(Clone)]
-pub struct FeedPluginRegistry {
+pub struct FeedPluginRegistry<D, S> {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
-    downloader: Box<dyn Downloader>,
-    default_scraper: Box<dyn FeedScraper>,
+    downloader: D,
+    default_scraper: S,
 }
 
-impl FeedPluginRegistry {
+impl<D: Downloader, S: FeedScraper> FeedPluginRegistry<D, S> {
     pub fn new(
         plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
-        downloader: impl Downloader,
-        default_scraper: impl FeedScraper,
+        downloader: D,
+        default_scraper: S,
     ) -> Self {
         Self {
             plugins,
-            downloader: Box::new(downloader),
-            default_scraper: Box::new(default_scraper),
+            downloader,
+            default_scraper,
         }
     }
 }
 
 #[async_trait::async_trait]
-impl FeedScraper for FeedPluginRegistry {
+impl<D: Downloader + Clone, S: FeedScraper + Clone> FeedScraper for FeedPluginRegistry<D, S> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
         let host = url.host_str().ok_or(Error::Parse)?;
 
@@ -45,7 +45,7 @@ impl FeedScraper for FeedPluginRegistry {
 }
 
 #[async_trait::async_trait]
-impl FeedDetector for FeedPluginRegistry {
+impl<D: Downloader + Clone, S: FeedScraper + Clone> FeedDetector for FeedPluginRegistry<D, S> {
     async fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error> {
         let body = self.downloader.download(&mut url).await?;
 

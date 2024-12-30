@@ -76,20 +76,18 @@ pub trait BookmarkScraper: Send + Sync + DynClone + 'static {
 dyn_clone::clone_trait_object!(BookmarkScraper);
 
 #[derive(Clone)]
-pub struct DefaultBookmarkScraper {
-    downloader: Box<dyn Downloader>,
+pub struct DefaultBookmarkScraper<D> {
+    downloader: D,
 }
 
-impl DefaultBookmarkScraper {
-    pub fn new(downloader: impl Downloader) -> Self {
-        Self {
-            downloader: Box::new(downloader),
-        }
+impl<D: Downloader> DefaultBookmarkScraper<D> {
+    pub fn new(downloader: D) -> Self {
+        Self { downloader }
     }
 }
 
 #[async_trait::async_trait]
-impl BookmarkScraper for DefaultBookmarkScraper {
+impl<D: Downloader + Clone> BookmarkScraper for DefaultBookmarkScraper<D> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
         let body = self.downloader.download(url).await?;
 
