@@ -1,4 +1,4 @@
-use std::{fs, str::FromStr};
+use std::{fs, str::FromStr, sync::Arc};
 
 use colette_api::Session;
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
@@ -99,11 +99,11 @@ pub fn run() {
                     SqliteFeedEntryRepository::new(pool.clone()),
                     base64_encoder,
                 );
-                let scraper_service = ScraperService::new(
+                let scraper_service = Arc::new(ScraperService::new(
                     SqliteScraperRepository::new(pool.clone()),
                     feed_plugin_registry,
                     bookmark_plugin_registry,
-                );
+                ));
                 let smart_feed_service =
                     SmartFeedService::new(SqliteSmartFeedRepository::new(pool.clone()));
                 let tag_service = TagService::new(SqliteTagRepository::new(pool.clone()));

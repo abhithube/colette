@@ -554,7 +554,6 @@ dependencies = [
  "bytes",
  "colette-netscape",
  "colette-opml",
- "dyn-clone",
  "thiserror 1.0.69",
 ]
 
@@ -610,7 +609,6 @@ dependencies = [
  "colette-opml",
  "colette-scraper",
  "colette-util",
- "dyn-clone",
  "email_address",
  "futures",
  "serde",
@@ -715,7 +713,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-trait",
- "dyn-clone",
  "serde",
  "tokio",
  "worker",
@@ -826,7 +823,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
- "dyn-clone",
  "password-auth",
  "serde",
  "serde_json",

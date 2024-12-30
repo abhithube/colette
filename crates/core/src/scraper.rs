@@ -3,7 +3,6 @@ use colette_scraper::{
     bookmark::{BookmarkScraper, ProcessedBookmark},
     feed::FeedScraper,
 };
-use dyn_clone::DynClone;
 use url::Url;
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
@@ -16,7 +15,6 @@ pub struct BookmarkCreate {
     pub url: Url,
 }
 
-#[derive(Clone)]
 pub struct ScraperService {
     repository: Box<dyn ScraperRepository>,
     feed_scraper: Box<dyn FeedScraper>,
@@ -60,13 +58,11 @@ impl ScraperService {
 }
 
 #[async_trait::async_trait]
-pub trait ScraperRepository: Send + Sync + DynClone + 'static {
+pub trait ScraperRepository: Send + Sync + 'static {
     async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error>;
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error>;
 }
-
-dyn_clone::clone_trait_object!(ScraperRepository);
 
 #[derive(Clone, Debug)]
 pub struct SaveFeedData {

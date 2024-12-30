@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use dyn_clone::DynClone;
 use uuid::Uuid;
 
 use crate::common::{
@@ -61,7 +60,6 @@ pub struct Cursor {
     pub title: String,
 }
 
-#[derive(Clone)]
 pub struct SmartFeedService {
     repository: Box<dyn SmartFeedRepository>,
 }
@@ -146,12 +144,9 @@ pub trait SmartFeedRepository:
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
-    + DynClone
     + 'static
 {
 }
-
-dyn_clone::clone_trait_object!(SmartFeedRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct SmartFeedFindParams {

@@ -13,7 +13,6 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-scraper.workspace = true
 colette-util.workspace = true
-dyn-clone.workspace = true
 email_address.workspace = true
 futures.workspace = true
 serde.workspace = true

@@ -50,15 +50,18 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
 
     let base64_encoder = Base64Encoder;
 
-    let auth_service = AuthService::new(D1UserRepository::new(d1.clone()), ArgonHasher);
-    let backup_service = BackupService::new(
+    let auth_service = Arc::new(AuthService::new(
+        D1UserRepository::new(d1.clone()),
+        ArgonHasher,
+    ));
+    let backup_service = Arc::new(BackupService::new(
         D1BackupRepository::new(d1.clone()),
         feed_repository.clone(),
         bookmark_repository.clone(),
         OpmlManager,
         NetscapeManager,
-    );
-    let bookmark_service = BookmarkService::new(
+    ));
+    let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
         register_bookmark_plugins(
             client.clone(),
@@ -66,26 +69,30 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
             DefaultBookmarkScraper::new(downloader),
         ),
         base64_encoder.clone(),
-    );
-    let feed_service = FeedService::new(
+    ));
+    let feed_service = Arc::new(FeedService::new(
         feed_repository,
         register_feed_plugins(
             client,
             downloader.clone(),
             DefaultFeedScraper::new(downloader.clone()),
         ),
-    );
-    let feed_entry_service =
-        FeedEntryService::new(D1FeedEntryRepository::new(d1.clone()), base64_encoder);
-    let smart_feed_service = SmartFeedService::new(D1SmartFeedRepository::new(d1.clone()));
-    let tag_service = TagService::new(D1TagRepository::new(d1.clone()));
+    ));
+    let feed_entry_service = Arc::new(FeedEntryService::new(
+        D1FeedEntryRepository::new(d1.clone()),
+        base64_encoder,
+    ));
+    let smart_feed_service = Arc::new(SmartFeedService::new(D1SmartFeedRepository::new(
+        d1.clone(),
+    )));
+    let tag_service = Arc::new(TagService::new(D1TagRepository::new(d1.clone())));
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
         BackupState::new(
             backup_service,
-            CloudflareQueue::<import_feeds::Data>::new(queue.clone()),
-            CloudflareQueue::<import_bookmarks::Data>::new(queue),
+            Arc::new(CloudflareQueue::<import_feeds::Data>::new(queue.clone())),
+            Arc::new(CloudflareQueue::<import_bookmarks::Data>::new(queue)),
         ),
         BookmarkState::new(bookmark_service),
         FeedState::new(feed_service),

@@ -20,7 +20,6 @@ pub struct Login {
     pub password: NonEmptyString,
 }
 
-#[derive(Clone)]
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
     password_hasher: Box<dyn PasswordHasher>,

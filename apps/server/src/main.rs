@@ -1,4 +1,4 @@
-use std::{error::Error, future::Future, ops::DerefMut, pin::Pin};
+use std::{error::Error, future::Future, ops::DerefMut, pin::Pin, sync::Arc};
 
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -89,7 +89,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let base64_encoder = Base64Encoder;
 
-    let auth_service = AuthService::new(PostgresUserRepository::new(pool.clone()), ArgonHasher);
+    let auth_service = Arc::new(AuthService::new(
+        PostgresUserRepository::new(pool.clone()),
+        ArgonHasher,
+    ));
     let backup_service = BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
         feed_repository.clone(),
@@ -102,23 +105,31 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_plugin_registry.clone(),
         base64_encoder.clone(),
     );
-    let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
-    let feed_entry_service = FeedEntryService::new(
+    let feed_service = Arc::new(FeedService::new(
+        feed_repository,
+        feed_plugin_registry.clone(),
+    ));
+    let feed_entry_service = Arc::new(FeedEntryService::new(
         PostgresFeedEntryRepository::new(pool.clone()),
         base64_encoder,
-    );
-    let scraper_service = ScraperService::new(
+    ));
+    let scraper_service = Arc::new(ScraperService::new(
         PostgresScraperRepository::new(pool.clone()),
         feed_plugin_registry,
         bookmark_plugin_registry,
-    );
-    let smart_feed_service = SmartFeedService::new(PostgresSmartFeedRepository::new(pool.clone()));
-    let tag_service = TagService::new(PostgresTagRepository::new(pool.clone()));
+    ));
+    let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
+        pool.clone(),
+    )));
+    let tag_service = Arc::new(TagService::new(PostgresTagRepository::new(pool.clone())));
 
     let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
     let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
     let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
     let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
+
+    let import_feeds_queue = Arc::new(import_feeds_queue);
+    let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
 
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)
@@ -133,8 +144,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
-        BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
-        BookmarkState::new(bookmark_service),
+        BackupState::new(
+            Arc::new(backup_service),
+            import_feeds_queue,
+            import_bookmarks_queue,
+        ),
+        BookmarkState::new(Arc::new(bookmark_service)),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         SmartFeedState::new(smart_feed_service),

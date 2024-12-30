@@ -11,7 +11,7 @@ chrono.workspace = true
 colette-feed.workspace = true
 colette-http.workspace = true
 colette-meta.workspace = true
-dyn-clone.workspace = true
+dyn-clone = { version = "1", default-features = false }
 http.workspace = true
 reqwest.workspace = true
 scraper.workspace = true

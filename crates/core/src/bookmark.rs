@@ -1,7 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_scraper::bookmark::{BookmarkScraper, ProcessedBookmark};
 use colette_util::DataEncoder;
-use dyn_clone::DynClone;
 use url::Url;
 use uuid::Uuid;
 
@@ -61,7 +60,6 @@ pub struct Cursor {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Clone)]
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     scraper: Box<dyn BookmarkScraper>,
@@ -206,13 +204,10 @@ pub trait BookmarkRepository:
     + Deletable<Params = IdParams, Output = Result<(), Error>>
     + Send
     + Sync
-    + DynClone
     + 'static
 {
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error>;
 }
-
-dyn_clone::clone_trait_object!(BookmarkRepository);
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkFindParams {

@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 base64 = { version = "0.22", default-features = false }
-dyn-clone.workspace = true
 password-auth = { version = "1", default-features = false, features = [
   "argon2",
 ] }

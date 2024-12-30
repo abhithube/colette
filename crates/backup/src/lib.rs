@@ -1,10 +1,9 @@
 use bytes::Bytes;
-use dyn_clone::DynClone;
 
 pub mod netscape;
 pub mod opml;
 
-pub trait BackupManager: Send + Sync + DynClone + 'static {
+pub trait BackupManager: Send + Sync + 'static {
     type Data;
 
     fn import(&self, raw: Bytes) -> Result<Self::Data, Error>;
@@ -20,5 +19,3 @@ pub enum Error {
     #[error("failed to deserialize backup data")]
     Deserialize,
 }
-
-dyn_clone::clone_trait_object!(<T> BackupManager<Data = T>);

@@ -6,7 +6,6 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 async-trait.workspace = true
-dyn-clone.workspace = true
 serde = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 worker = { workspace = true, optional = true }

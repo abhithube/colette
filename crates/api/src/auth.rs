@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::State,
     http::StatusCode,
@@ -18,11 +20,11 @@ use crate::common::{BaseError, Error, Session, AUTH_TAG, SESSION_KEY};
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct AuthState {
-    auth_service: AuthService,
+    auth_service: Arc<AuthService>,
 }
 
 impl AuthState {
-    pub fn new(auth_service: AuthService) -> Self {
+    pub fn new(auth_service: Arc<AuthService>) -> Self {
         Self { auth_service }
     }
 }
@@ -105,7 +107,7 @@ impl From<Login> for auth::Login {
 )]
 #[axum::debug_handler]
 pub async fn register(
-    State(service): State<AuthService>,
+    State(service): State<Arc<AuthService>>,
     Json(body): Json<Register>,
 ) -> Result<RegisterResponse, Error> {
     match service.register(body.into()).await {
@@ -132,7 +134,7 @@ pub async fn register(
 )]
 #[axum::debug_handler]
 pub async fn login(
-    State(service): State<AuthService>,
+    State(service): State<Arc<AuthService>>,
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
 ) -> Result<LoginResponse, Error> {
@@ -162,7 +164,7 @@ pub async fn login(
 )]
 #[axum::debug_handler]
 pub async fn get_active_user(
-    State(service): State<AuthService>,
+    State(service): State<Arc<AuthService>>,
     session: Session,
 ) -> Result<GetActiveResponse, Error> {
     match service.get_active(session.user_id).await {

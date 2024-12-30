@@ -1,6 +1,7 @@
 use std::{
     future::Future,
     pin::Pin,
+    sync::Arc,
     task::{Context, Poll},
 };
 
@@ -14,12 +15,12 @@ use crate::scrape_feed;
 
 #[derive(Clone)]
 pub struct Task<Q> {
-    service: FeedService,
+    service: Arc<FeedService>,
     scrape_feed_queue: Q,
 }
 
 impl<Q: Queue<Data = scrape_feed::Data>> Task<Q> {
-    pub fn new(service: FeedService, scrape_feed_queue: Q) -> Self {
+    pub fn new(service: Arc<FeedService>, scrape_feed_queue: Q) -> Self {
         Self {
             service,
             scrape_feed_queue,
