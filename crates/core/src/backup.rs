@@ -24,18 +24,18 @@ pub struct BackupService {
 
 impl BackupService {
     pub fn new(
-        backup_repository: Box<dyn BackupRepository>,
-        feed_repository: Box<dyn FeedRepository>,
-        bookmark_repository: Box<dyn BookmarkRepository>,
-        opml_manager: Box<dyn BackupManager<T = Opml>>,
-        netscape_manager: Box<dyn BackupManager<T = Netscape>>,
+        backup_repository: impl BackupRepository,
+        feed_repository: impl FeedRepository,
+        bookmark_repository: impl BookmarkRepository,
+        opml_manager: impl BackupManager<T = Opml>,
+        netscape_manager: impl BackupManager<T = Netscape>,
     ) -> Self {
         Self {
-            backup_repository,
-            feed_repository,
-            bookmark_repository,
-            opml_manager,
-            netscape_manager,
+            backup_repository: Box::new(backup_repository),
+            feed_repository: Box::new(feed_repository),
+            bookmark_repository: Box::new(bookmark_repository),
+            opml_manager: Box::new(opml_manager),
+            netscape_manager: Box::new(netscape_manager),
         }
     }
 

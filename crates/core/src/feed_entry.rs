@@ -46,12 +46,12 @@ pub struct FeedEntryService {
 
 impl FeedEntryService {
     pub fn new(
-        repository: Box<dyn FeedEntryRepository>,
-        base64_encoder: Box<dyn DataEncoder<Cursor>>,
+        repository: impl FeedEntryRepository,
+        base64_encoder: impl DataEncoder<Cursor>,
     ) -> Self {
         Self {
-            repository,
-            base64_encoder,
+            repository: Box::new(repository),
+            base64_encoder: Box::new(base64_encoder),
         }
     }
 

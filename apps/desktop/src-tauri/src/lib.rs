@@ -62,33 +62,30 @@ pub fn run() {
                     .await
                     .unwrap()?;
 
-                let backup_repository = Box::new(SqliteBackupRepository::new(pool.clone()));
-                let bookmark_repository = Box::new(SqliteBookmarkRepository::new(pool.clone()));
-                let feed_repository = Box::new(SqliteFeedRepository::new(pool.clone()));
-                let feed_entry_repository = Box::new(SqliteFeedEntryRepository::new(pool.clone()));
-                let scraper_repository = Box::new(SqliteScraperRepository::new(pool.clone()));
-                let smart_feed_repository = Box::new(SqliteSmartFeedRepository::new(pool.clone()));
-                let tag_repository = Box::new(SqliteTagRepository::new(pool.clone()));
-                let user_repository = Box::new(SqliteUserRepository::new(pool));
+                let bookmark_repository = SqliteBookmarkRepository::new(pool.clone());
+                let feed_repository = SqliteFeedRepository::new(pool.clone());
 
                 let client = colette_http::Client::build(None, None)?;
-                let downloader = Box::new(DefaultDownloader::new(client.clone()));
-                let feed_scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
-                let bookmark_scraper = Box::new(DefaultBookmarkScraper::new(downloader.clone()));
-                let feed_plugin_registry =
-                    Box::new(register_feed_plugins(downloader.clone(), feed_scraper));
-                let bookmark_plugin_registry =
-                    Box::new(register_bookmark_plugins(client, bookmark_scraper));
+                let downloader = DefaultDownloader::new(client.clone());
+                let feed_plugin_registry = register_feed_plugins(
+                    downloader.clone(),
+                    DefaultFeedScraper::new(downloader.clone()),
+                );
+                let bookmark_plugin_registry = register_bookmark_plugins(
+                    client,
+                    DefaultBookmarkScraper::new(downloader.clone()),
+                );
 
-                let base64_encoder = Box::new(Base64Encoder);
+                let base64_encoder = Base64Encoder;
 
-                let auth_service = AuthService::new(user_repository, Box::new(ArgonHasher));
+                let auth_service =
+                    AuthService::new(SqliteUserRepository::new(pool.clone()), ArgonHasher);
                 let backup_service = BackupService::new(
-                    backup_repository,
+                    SqliteBackupRepository::new(pool.clone()),
                     feed_repository.clone(),
                     bookmark_repository.clone(),
-                    Box::new(OpmlManager),
-                    Box::new(NetscapeManager),
+                    OpmlManager,
+                    NetscapeManager,
                 );
                 let bookmark_service = BookmarkService::new(
                     bookmark_repository,
@@ -96,25 +93,23 @@ pub fn run() {
                     base64_encoder.clone(),
                 );
                 let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
-                let feed_entry_service =
-                    FeedEntryService::new(feed_entry_repository, base64_encoder);
+                let feed_entry_service = FeedEntryService::new(
+                    SqliteFeedEntryRepository::new(pool.clone()),
+                    base64_encoder,
+                );
                 let scraper_service = ScraperService::new(
-                    scraper_repository,
+                    SqliteScraperRepository::new(pool.clone()),
                     feed_plugin_registry,
                     bookmark_plugin_registry,
                 );
-                let smart_feed_service = SmartFeedService::new(smart_feed_repository);
-                let tag_service = TagService::new(tag_repository);
+                let smart_feed_service =
+                    SmartFeedService::new(SqliteSmartFeedRepository::new(pool.clone()));
+                let tag_service = TagService::new(SqliteTagRepository::new(pool.clone()));
 
                 let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
                 let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
                 let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
                 let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
-
-                let scrape_feed_queue = Box::new(scrape_feed_queue);
-                let scrape_bookmark_queue = Box::new(scrape_bookmark_queue);
-                let import_feeds_queue = Box::new(import_feeds_queue);
-                let import_bookmarks_queue = Box::new(import_bookmarks_queue);
 
                 let scrape_feed_task = ServiceBuilder::new()
                     .concurrency_limit(5)

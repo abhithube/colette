@@ -22,8 +22,10 @@ pub struct Task {
 }
 
 impl Task {
-    pub fn new(scrape_feed_queue: Box<dyn Queue<Data = scrape_feed::Data>>) -> Self {
-        Self { scrape_feed_queue }
+    pub fn new(scrape_feed_queue: impl Queue<Data = scrape_feed::Data>) -> Self {
+        Self {
+            scrape_feed_queue: Box::new(scrape_feed_queue),
+        }
     }
 }
 

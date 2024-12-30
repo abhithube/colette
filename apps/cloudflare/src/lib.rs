@@ -41,50 +41,52 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     let queue = env.queue("QUEUE")?;
     let api_prefix = env.var("API_PREFIX")?.to_string();
 
-    let backup_repository = Box::new(D1BackupRepository::new(d1.clone()));
-    let bookmark_repository = Box::new(D1BookmarkRepository::new(d1.clone()));
-    let feed_repository = Box::new(D1FeedRepository::new(d1.clone()));
-    let feed_entry_repository = Box::new(D1FeedEntryRepository::new(d1.clone()));
-    let smart_feed_repository = Box::new(D1SmartFeedRepository::new(d1.clone()));
-    let tag_repository = Box::new(D1TagRepository::new(d1.clone()));
-    let user_repository = Box::new(D1UserRepository::new(d1));
+    let backup_repository = D1BackupRepository::new(d1.clone());
+    let bookmark_repository = D1BookmarkRepository::new(d1.clone());
+    let feed_repository = D1FeedRepository::new(d1.clone());
 
     let client = colette_http::Client::build(None).unwrap();
-    let downloader = Box::new(DefaultDownloader::new(client.clone()));
-    let feed_scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
-    let bookmark_scraper = Box::new(DefaultBookmarkScraper::new(downloader.clone()));
-    let feed_plugin_registry = Box::new(register_feed_plugins(downloader.clone(), feed_scraper));
-    let bookmark_plugin_registry = Box::new(register_bookmark_plugins(client, bookmark_scraper));
+    let downloader = DefaultDownloader::new(client.clone());
 
-    let base64_encoder = Box::new(Base64Encoder);
+    let base64_encoder = Base64Encoder;
 
-    let feed_service = FeedService::new(feed_repository.clone(), feed_plugin_registry.clone());
-
-    let import_feeds_queue = Box::new(CloudflareQueue::<import_feeds::Data>::new(queue.clone()));
-    let import_bookmarks_queue = Box::new(CloudflareQueue::<import_bookmarks::Data>::new(queue));
+    let auth_service = AuthService::new(D1UserRepository::new(d1.clone()), ArgonHasher);
+    let backup_service = BackupService::new(
+        D1BackupRepository::new(d1.clone()),
+        feed_repository.clone(),
+        bookmark_repository.clone(),
+        OpmlManager,
+        NetscapeManager,
+    );
+    let bookmark_service = BookmarkService::new(
+        bookmark_repository,
+        register_bookmark_plugins(client, DefaultBookmarkScraper::new(downloader.clone())),
+        base64_encoder.clone(),
+    );
+    let feed_service = FeedService::new(
+        feed_repository,
+        register_feed_plugins(
+            downloader.clone(),
+            DefaultFeedScraper::new(downloader.clone()),
+        ),
+    );
+    let feed_entry_service =
+        FeedEntryService::new(D1FeedEntryRepository::new(d1.clone()), base64_encoder);
+    let smart_feed_service = SmartFeedService::new(D1SmartFeedRepository::new(d1.clone()));
+    let tag_service = TagService::new(D1TagRepository::new(d1.clone()));
 
     let api_state = ApiState::new(
-        AuthState::new(AuthService::new(user_repository, Box::new(ArgonHasher))),
+        AuthState::new(auth_service),
         BackupState::new(
-            BackupService::new(
-                backup_repository,
-                feed_repository.clone(),
-                bookmark_repository.clone(),
-                Box::new(OpmlManager),
-                Box::new(NetscapeManager),
-            ),
-            import_feeds_queue,
-            import_bookmarks_queue,
+            backup_service,
+            CloudflareQueue::<import_feeds::Data>::new(queue.clone()),
+            CloudflareQueue::<import_bookmarks::Data>::new(queue),
         ),
-        BookmarkState::new(BookmarkService::new(
-            bookmark_repository,
-            bookmark_plugin_registry,
-            base64_encoder.clone(),
-        )),
+        BookmarkState::new(bookmark_service),
         FeedState::new(feed_service),
-        FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_encoder)),
-        SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
-        TagState::new(TagService::new(tag_repository)),
+        FeedEntryState::new(feed_entry_service),
+        SmartFeedState::new(smart_feed_service),
+        TagState::new(tag_service),
     );
 
     let mut router = Api::new(&api_state, &api_prefix)

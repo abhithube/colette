@@ -47,8 +47,10 @@ pub struct TagService {
 }
 
 impl TagService {
-    pub fn new(repository: Box<dyn TagRepository>) -> Self {
-        Self { repository }
+    pub fn new(repository: impl TagRepository) -> Self {
+        Self {
+            repository: Box::new(repository),
+        }
     }
 
     pub async fn list_tags(

@@ -67,8 +67,10 @@ pub struct SmartFeedService {
 }
 
 impl SmartFeedService {
-    pub fn new(repository: Box<dyn SmartFeedRepository>) -> Self {
-        Self { repository }
+    pub fn new(repository: impl SmartFeedRepository) -> Self {
+        Self {
+            repository: Box::new(repository),
+        }
     }
 
     pub async fn list_smart_feeds(&self, user_id: Uuid) -> Result<Paginated<SmartFeed>, Error> {

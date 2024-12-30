@@ -21,13 +21,13 @@ pub struct FeedPluginRegistry {
 impl FeedPluginRegistry {
     pub fn new(
         plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
-        downloader: Box<dyn Downloader>,
-        default_scraper: Box<dyn FeedScraper>,
+        downloader: impl Downloader,
+        default_scraper: impl FeedScraper,
     ) -> Self {
         Self {
             plugins,
-            downloader,
-            default_scraper,
+            downloader: Box::new(downloader),
+            default_scraper: Box::new(default_scraper),
         }
     }
 }

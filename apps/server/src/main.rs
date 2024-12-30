@@ -71,41 +71,50 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let client = client.deref_mut().deref_mut();
     migrations::runner().run_async(client).await?;
 
-    let backup_repository = Box::new(PostgresBackupRepository::new(pool.clone()));
-    let bookmark_repository = Box::new(PostgresBookmarkRepository::new(pool.clone()));
-    let feed_repository = Box::new(PostgresFeedRepository::new(pool.clone()));
-    let feed_entry_repository = Box::new(PostgresFeedEntryRepository::new(pool.clone()));
-    let scraper_repository = Box::new(PostgresScraperRepository::new(pool.clone()));
-    let smart_feed_repository = Box::new(PostgresSmartFeedRepository::new(pool.clone()));
-    let tag_repository = Box::new(PostgresTagRepository::new(pool.clone()));
-    let user_repository = Box::new(PostgresUserRepository::new(pool.clone()));
-    let session_store = PostgresSessionStore::new(pool);
+    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+    let feed_repository = PostgresFeedRepository::new(pool.clone());
 
     let client = colette_http::Client::build(None, None)?;
-    let downloader = Box::new(DefaultDownloader::new(client.clone()));
-    let feed_scraper = Box::new(DefaultFeedScraper::new(downloader.clone()));
-    let bookmark_scraper = Box::new(DefaultBookmarkScraper::new(downloader.clone()));
-    let feed_plugin_registry = Box::new(register_feed_plugins(downloader.clone(), feed_scraper));
-    let bookmark_plugin_registry = Box::new(register_bookmark_plugins(client, bookmark_scraper));
-
-    let base64_encoder = Box::new(Base64Encoder);
-
-    let feed_service = FeedService::new(feed_repository.clone(), feed_plugin_registry.clone());
-    let scraper_service = ScraperService::new(
-        scraper_repository,
-        feed_plugin_registry,
-        bookmark_plugin_registry.clone(),
+    let downloader = DefaultDownloader::new(client.clone());
+    let feed_plugin_registry = register_feed_plugins(
+        downloader.clone(),
+        DefaultFeedScraper::new(downloader.clone()),
     );
+    let bookmark_plugin_registry =
+        register_bookmark_plugins(client, DefaultBookmarkScraper::new(downloader.clone()));
+
+    let base64_encoder = Base64Encoder;
+
+    let auth_service = AuthService::new(PostgresUserRepository::new(pool.clone()), ArgonHasher);
+    let backup_service = BackupService::new(
+        PostgresBackupRepository::new(pool.clone()),
+        feed_repository.clone(),
+        bookmark_repository.clone(),
+        OpmlManager,
+        NetscapeManager,
+    );
+    let bookmark_service = BookmarkService::new(
+        bookmark_repository,
+        bookmark_plugin_registry.clone(),
+        base64_encoder.clone(),
+    );
+    let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
+    let feed_entry_service = FeedEntryService::new(
+        PostgresFeedEntryRepository::new(pool.clone()),
+        base64_encoder,
+    );
+    let scraper_service = ScraperService::new(
+        PostgresScraperRepository::new(pool.clone()),
+        feed_plugin_registry,
+        bookmark_plugin_registry,
+    );
+    let smart_feed_service = SmartFeedService::new(PostgresSmartFeedRepository::new(pool.clone()));
+    let tag_service = TagService::new(PostgresTagRepository::new(pool.clone()));
 
     let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
     let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
     let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
     let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
-
-    let scrape_feed_queue = Box::new(scrape_feed_queue);
-    let scrape_bookmark_queue = Box::new(scrape_bookmark_queue);
-    let import_feeds_queue = Box::new(import_feeds_queue);
-    let import_bookmarks_queue = Box::new(import_bookmarks_queue);
 
     let scrape_feed_task = ServiceBuilder::new()
         .concurrency_limit(5)
@@ -119,28 +128,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
 
     let api_state = ApiState::new(
-        AuthState::new(AuthService::new(user_repository, Box::new(ArgonHasher))),
-        BackupState::new(
-            BackupService::new(
-                backup_repository,
-                feed_repository.clone(),
-                bookmark_repository.clone(),
-                Box::new(OpmlManager),
-                Box::new(NetscapeManager),
-            ),
-            import_feeds_queue,
-            import_bookmarks_queue,
-        ),
-        BookmarkState::new(BookmarkService::new(
-            bookmark_repository,
-            bookmark_plugin_registry,
-            base64_encoder.clone(),
-        )),
+        AuthState::new(auth_service),
+        BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
+        BookmarkState::new(bookmark_service),
         FeedState::new(feed_service),
-        FeedEntryState::new(FeedEntryService::new(feed_entry_repository, base64_encoder)),
-        SmartFeedState::new(SmartFeedService::new(smart_feed_repository)),
-        TagState::new(TagService::new(tag_repository)),
+        FeedEntryState::new(feed_entry_service),
+        SmartFeedState::new(smart_feed_service),
+        TagState::new(tag_service),
     );
+
+    let session_store = PostgresSessionStore::new(pool);
+
     let mut api = Api::new(&api_state, &app_config.api_prefix)
         .build()
         .with_state(api_state)

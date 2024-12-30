@@ -68,10 +68,10 @@ pub struct FeedService {
 }
 
 impl FeedService {
-    pub fn new(repository: Box<dyn FeedRepository>, detector: Box<dyn FeedDetector>) -> Self {
+    pub fn new(repository: impl FeedRepository, detector: impl FeedDetector) -> Self {
         Self {
-            repository,
-            detector,
+            repository: Box::new(repository),
+            detector: Box::new(detector),
         }
     }
 

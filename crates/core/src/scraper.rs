@@ -25,14 +25,14 @@ pub struct ScraperService {
 
 impl ScraperService {
     pub fn new(
-        repository: Box<dyn ScraperRepository>,
-        feed_scraper: Box<dyn FeedScraper>,
-        bookmark_scraper: Box<dyn BookmarkScraper>,
+        repository: impl ScraperRepository,
+        feed_scraper: impl FeedScraper,
+        bookmark_scraper: impl BookmarkScraper,
     ) -> Self {
         Self {
-            repository,
-            feed_scraper,
-            bookmark_scraper,
+            repository: Box::new(repository),
+            feed_scraper: Box::new(feed_scraper),
+            bookmark_scraper: Box::new(bookmark_scraper),
         }
     }
 

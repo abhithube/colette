@@ -166,8 +166,10 @@ pub struct DefaultFeedScraper {
 }
 
 impl DefaultFeedScraper {
-    pub fn new(downloader: Box<dyn Downloader>) -> Self {
-        Self { downloader }
+    pub fn new(downloader: impl Downloader) -> Self {
+        Self {
+            downloader: Box::new(downloader),
+        }
     }
 }
 

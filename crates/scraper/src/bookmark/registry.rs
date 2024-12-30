@@ -15,11 +15,11 @@ pub struct BookmarkPluginRegistry {
 impl BookmarkPluginRegistry {
     pub fn new(
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-        default_scraper: Box<dyn BookmarkScraper>,
+        default_scraper: impl BookmarkScraper,
     ) -> Self {
         Self {
             plugins,
-            default_scraper,
+            default_scraper: Box::new(default_scraper),
         }
     }
 }

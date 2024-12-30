@@ -27,13 +27,10 @@ pub struct AuthService {
 }
 
 impl AuthService {
-    pub fn new(
-        user_repository: Box<dyn UserRepository>,
-        password_hasher: Box<dyn PasswordHasher>,
-    ) -> Self {
+    pub fn new(user_repository: impl UserRepository, password_hasher: impl PasswordHasher) -> Self {
         Self {
-            user_repository,
-            password_hasher,
+            user_repository: Box::new(user_repository),
+            password_hasher: Box::new(password_hasher),
         }
     }
 

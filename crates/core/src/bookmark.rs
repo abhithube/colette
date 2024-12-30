@@ -70,14 +70,14 @@ pub struct BookmarkService {
 
 impl BookmarkService {
     pub fn new(
-        repository: Box<dyn BookmarkRepository>,
-        scraper: Box<dyn BookmarkScraper>,
-        base64_encoder: Box<dyn DataEncoder<Cursor>>,
+        repository: impl BookmarkRepository,
+        scraper: impl BookmarkScraper,
+        base64_encoder: impl DataEncoder<Cursor>,
     ) -> Self {
         Self {
-            repository,
-            scraper,
-            base64_encoder,
+            repository: Box::new(repository),
+            scraper: Box::new(scraper),
+            base64_encoder: Box::new(base64_encoder),
         }
     }
 

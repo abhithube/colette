@@ -22,13 +22,13 @@ pub struct BackupState {
 impl BackupState {
     pub fn new(
         backup_service: BackupService,
-        import_feeds_queue: Box<dyn Queue<Data = import_feeds::Data>>,
-        import_bookmarks_queue: Box<dyn Queue<Data = import_bookmarks::Data>>,
+        import_feeds_queue: impl Queue<Data = import_feeds::Data>,
+        import_bookmarks_queue: impl Queue<Data = import_bookmarks::Data>,
     ) -> Self {
         Self {
             backup_service,
-            import_feeds_queue,
-            import_bookmarks_queue,
+            import_feeds_queue: Box::new(import_feeds_queue),
+            import_bookmarks_queue: Box::new(import_bookmarks_queue),
         }
     }
 }
