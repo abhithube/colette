@@ -7,13 +7,13 @@ use crate::BackupManager;
 pub struct NetscapeManager;
 
 impl BackupManager for NetscapeManager {
-    type T = Netscape;
+    type Data = Netscape;
 
-    fn import(&self, raw: Bytes) -> Result<Self::T, crate::Error> {
+    fn import(&self, raw: Bytes) -> Result<Self::Data, crate::Error> {
         colette_netscape::from_reader(raw.reader()).map_err(|_| crate::Error::Deserialize)
     }
 
-    fn export(&self, data: Self::T) -> Result<Bytes, crate::Error> {
+    fn export(&self, data: Self::Data) -> Result<Bytes, crate::Error> {
         let mut buffer: Vec<u8> = Vec::new();
 
         colette_netscape::to_writer(&mut buffer, data).map_err(|_| crate::Error::Serialize)?;
@@ -21,5 +21,3 @@ impl BackupManager for NetscapeManager {
         Ok(buffer.into())
     }
 }
-
-dyn_clone::clone_trait_object!(BackupManager<T = Netscape>);
