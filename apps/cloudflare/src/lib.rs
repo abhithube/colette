@@ -60,12 +60,17 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     );
     let bookmark_service = BookmarkService::new(
         bookmark_repository,
-        register_bookmark_plugins(client, DefaultBookmarkScraper::new(downloader.clone())),
+        register_bookmark_plugins(
+            client.clone(),
+            downloader.clone(),
+            DefaultBookmarkScraper::new(downloader),
+        ),
         base64_encoder.clone(),
     );
     let feed_service = FeedService::new(
         feed_repository,
         register_feed_plugins(
+            client,
             downloader.clone(),
             DefaultFeedScraper::new(downloader.clone()),
         ),
