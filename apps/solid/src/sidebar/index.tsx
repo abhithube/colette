@@ -4,6 +4,7 @@ import type { Component } from 'solid-js'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -13,8 +14,9 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '~/components/ui/sidebar'
+import { UserCard } from './user-card'
 
-export const AppSidebar: Component = () => {
+export const AppSidebar: Component<{ user: User }> = ({ user }) => {
   return (
     <Sidebar>
       <SidebarHeader>
@@ -73,6 +75,9 @@ export const AppSidebar: Component = () => {
         </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
+      <SidebarFooter>
+        <UserCard user={user} />
+      </SidebarFooter>
     </Sidebar>
   )
 }
