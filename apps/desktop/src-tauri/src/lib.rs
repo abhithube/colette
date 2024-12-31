@@ -21,7 +21,9 @@ use colette_repository::sqlite::{
     SqliteUserRepository,
 };
 use colette_scraper::{
-    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
+    bookmark::DefaultBookmarkScraper,
+    downloader::DefaultDownloader,
+    feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
 use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
@@ -75,7 +77,7 @@ pub fn run() {
                 let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
                     client,
                     downloader.clone(),
-                    DefaultBookmarkScraper::new(downloader),
+                    DefaultBookmarkScraper::new(downloader.clone()),
                 ));
 
                 let base64_encoder = Base64Encoder;
@@ -94,7 +96,10 @@ pub fn run() {
                     bookmark_plugin_registry.clone(),
                     base64_encoder.clone(),
                 );
-                let feed_service = FeedService::new(feed_repository, feed_plugin_registry.clone());
+                let feed_service = FeedService::new(
+                    feed_repository,
+                    Box::new(DefaultFeedDetector::new(downloader)),
+                );
                 let feed_entry_service = FeedEntryService::new(
                     SqliteFeedEntryRepository::new(pool.clone()),
                     base64_encoder,

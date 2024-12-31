@@ -1,4 +1,5 @@
-use std::io::BufReader;
+use core::str;
+use std::io::{BufRead, BufReader};
 
 use anyhow::anyhow;
 use bytes::Buf;
@@ -49,6 +50,26 @@ pub struct ProcessedFeedEntry {
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail: Option<Url>,
+}
+
+#[derive(Clone, Debug)]
+pub struct DetectedFeed {
+    pub url: String,
+    pub title: String,
+}
+
+impl From<colette_meta::rss::Feed> for DetectedFeed {
+    fn from(value: colette_meta::rss::Feed) -> Self {
+        Self {
+            url: value.href,
+            title: value.title,
+        }
+    }
+}
+
+pub enum DetectorResponse {
+    Detected(Vec<DetectedFeed>),
+    Processed(ProcessedFeed),
 }
 
 impl TryFrom<ExtractedFeed> for ProcessedFeed {
@@ -151,8 +172,8 @@ pub trait FeedScraper: Send + Sync + 'static {
 }
 
 #[async_trait::async_trait]
-pub trait FeedDetector: FeedScraper + Send + Sync {
-    async fn detect(&self, mut url: Url) -> Result<Vec<(Url, ProcessedFeed)>, Error>;
+pub trait FeedDetector: Send + Sync {
+    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, Error>;
 }
 
 #[derive(Clone)]
@@ -176,5 +197,48 @@ impl<D: Downloader + Clone> FeedScraper for DefaultFeedScraper<D> {
             .map_err(ExtractorError)?;
 
         Ok(feed.try_into()?)
+    }
+}
+
+#[derive(Clone)]
+pub struct DefaultFeedDetector<D> {
+    downloader: D,
+}
+
+impl<D: Downloader> DefaultFeedDetector<D> {
+    pub fn new(downloader: D) -> Self {
+        Self { downloader }
+    }
+}
+
+#[async_trait::async_trait]
+impl<D: Downloader + Clone> FeedDetector for DefaultFeedDetector<D> {
+    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, Error> {
+        let body = self.downloader.download(&mut url).await?;
+
+        let mut reader = BufReader::new(body.reader());
+        let buffer = reader
+            .fill_buf()
+            .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
+
+        let raw = str::from_utf8(buffer).map_err(|_| Error::Parse)?;
+
+        match raw {
+            raw if raw.contains("<!DOCTYPE html") => {
+                let metadata = colette_meta::parse_metadata(reader).map_err(|_| Error::Parse)?;
+
+                let feeds = metadata.feeds.into_iter().map(DetectedFeed::from).collect();
+
+                Ok(DetectorResponse::Detected(feeds))
+            }
+            raw if raw.contains("<?xml") => {
+                let feed = colette_feed::from_reader(BufReader::new(reader))
+                    .map(ExtractedFeed::from)
+                    .map_err(ExtractorError)?;
+
+                Ok(DetectorResponse::Processed(feed.try_into()?))
+            }
+            _ => Err(Error::Parse),
+        }
     }
 }

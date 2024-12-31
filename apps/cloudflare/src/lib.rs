@@ -11,14 +11,14 @@ use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
     feed_entry::FeedEntryService, smart_feed::SmartFeedService, tag::TagService,
 };
-use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_plugins::register_bookmark_plugins;
 use colette_queue::cloudflare::CloudflareQueue;
 use colette_repository::d1::{
     D1BackupRepository, D1BookmarkRepository, D1FeedEntryRepository, D1FeedRepository,
     D1SmartFeedRepository, D1TagRepository, D1UserRepository,
 };
 use colette_scraper::{
-    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
+    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedDetector,
 };
 use colette_session::kv::KvSessionStore;
 use colette_task::{import_bookmarks, import_feeds};
@@ -72,11 +72,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     ));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        Arc::new(register_feed_plugins(
-            client,
-            downloader.clone(),
-            DefaultFeedScraper::new(downloader.clone()),
-        )),
+        Box::new(DefaultFeedDetector::new(downloader)),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(
         D1FeedEntryRepository::new(d1.clone()),

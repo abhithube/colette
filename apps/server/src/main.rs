@@ -20,7 +20,9 @@ use colette_repository::postgres::{
     PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{
-    bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedScraper,
+    bookmark::DefaultBookmarkScraper,
+    downloader::DefaultDownloader,
+    feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
 use colette_session::postgres::PostgresSessionStore;
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
@@ -84,7 +86,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
         client,
         downloader.clone(),
-        DefaultBookmarkScraper::new(downloader),
+        DefaultBookmarkScraper::new(downloader.clone()),
     ));
 
     let base64_encoder = Base64Encoder;
@@ -107,7 +109,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     );
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        feed_plugin_registry.clone(),
+        Box::new(DefaultFeedDetector::new(downloader)),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(
         PostgresFeedEntryRepository::new(pool.clone()),

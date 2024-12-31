@@ -15,19 +15,15 @@ pub fn register_feed_plugins<D: Downloader + Clone, S: FeedScraper + Clone>(
     client: Client,
     downloader: D,
     default_scraper: S,
-) -> FeedPluginRegistry<D, S> {
+) -> FeedPluginRegistry<S> {
     let mut plugins: Vec<(&'static str, Box<dyn FeedScraper>)> = vec![(
         "www.youtube.com",
         Box::new(YouTubeFeedPlugin::new(default_scraper.clone())),
     )];
 
-    plugins.extend(custom::feeds(
-        client,
-        downloader.clone(),
-        default_scraper.clone(),
-    ));
+    plugins.extend(custom::feeds(client, downloader, default_scraper.clone()));
 
-    FeedPluginRegistry::new(plugins.into_iter().collect(), downloader, default_scraper)
+    FeedPluginRegistry::new(plugins.into_iter().collect(), default_scraper)
 }
 
 pub fn register_bookmark_plugins<D: Downloader + Clone, S: BookmarkScraper + Clone>(

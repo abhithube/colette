@@ -1,7 +1,5 @@
-use std::sync::Arc;
-
-use colette_scraper::feed::FeedDetector;
 pub use colette_scraper::feed::ProcessedFeed;
+use colette_scraper::feed::{DetectorResponse, FeedDetector};
 use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
@@ -56,6 +54,15 @@ pub struct FeedDetected {
     pub title: String,
 }
 
+impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
+    fn from(value: colette_scraper::feed::DetectedFeed) -> Self {
+        Self {
+            url: value.url,
+            title: value.title,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
     pub id: Uuid,
@@ -64,11 +71,11 @@ pub struct Cursor {
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
-    detector: Arc<dyn FeedDetector>,
+    detector: Box<dyn FeedDetector>,
 }
 
 impl FeedService {
-    pub fn new(repository: impl FeedRepository, detector: Arc<dyn FeedDetector>) -> Self {
+    pub fn new(repository: impl FeedRepository, detector: Box<dyn FeedDetector>) -> Self {
         Self {
             repository: Box::new(repository),
             detector,
@@ -146,27 +153,25 @@ impl FeedService {
     }
 
     pub async fn detect_feeds(&self, data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
-        let detected = self.detector.detect(data.url).await?;
+        match self.detector.detect(data.url.clone()).await? {
+            DetectorResponse::Detected(feeds) => Ok(Paginated::<FeedDetected> {
+                data: feeds.into_iter().map(Into::into).collect(),
+                cursor: None,
+            }),
+            DetectorResponse::Processed(feed) => {
+                self.repository
+                    .cache(vec![FeedCacheData {
+                        url: data.url.to_string(),
+                        feed,
+                    }])
+                    .await?;
 
-        let mut feeds: Vec<FeedDetected> = Vec::new();
-        let mut data: Vec<FeedCacheData> = Vec::new();
-
-        for (url, feed) in detected {
-            let url = url.to_string();
-
-            feeds.push(FeedDetected {
-                url: url.clone(),
-                title: feed.title.clone(),
-            });
-            data.push(FeedCacheData { url, feed });
+                Ok(Paginated::<FeedDetected> {
+                    data: Vec::new(),
+                    cursor: None,
+                })
+            }
         }
-
-        self.repository.cache(data).await?;
-
-        Ok(Paginated::<FeedDetected> {
-            data: feeds,
-            cursor: None,
-        })
     }
 
     pub async fn stream(&self) -> Result<BoxStream<String>, Error> {
