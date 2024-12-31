@@ -3,11 +3,7 @@ import { type ParentComponent, createContext, useContext } from 'solid-js'
 
 const APIContext = createContext<API>()
 
-export interface APIProviderProps {
-  api: API
-}
-
-export const APIProvider: ParentComponent<APIProviderProps> = (props) => {
+export const APIProvider: ParentComponent<{ api: API }> = (props) => {
   return (
     <APIContext.Provider value={props.api}>
       {props.children}
