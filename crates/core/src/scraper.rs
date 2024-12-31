@@ -7,12 +7,12 @@ use colette_scraper::{
 };
 use url::Url;
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct FeedCreate {
     pub url: Url,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
 }

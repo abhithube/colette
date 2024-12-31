@@ -14,7 +14,7 @@ use crate::{
     Tag,
 };
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
@@ -26,29 +26,29 @@ pub struct Bookmark {
     pub tags: Option<Vec<Tag>>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdate {
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkListQuery {
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct BookmarkScrape {
     pub url: Url,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct BookmarkScraped {
     pub link: String,
     pub title: String,

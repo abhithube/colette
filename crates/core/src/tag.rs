@@ -4,7 +4,7 @@ use crate::common::{
     Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
 };
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
@@ -12,22 +12,22 @@ pub struct Tag {
     pub feed_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct TagCreate {
     pub title: NonEmptyString,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct TagUpdate {
     pub title: Option<NonEmptyString>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct TagListQuery {
     pub tag_type: TagType,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub enum TagType {
     #[default]
     All,

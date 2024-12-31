@@ -5,26 +5,26 @@ use crate::common::{
     Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated, Updatable,
 };
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct SmartFeed {
     pub id: Uuid,
     pub title: String,
     pub unread_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct SmartFeedCreate {
     pub title: NonEmptyString,
     pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct SmartFeedUpdate {
     pub title: Option<NonEmptyString>,
     pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub enum SmartFeedFilter {
     Link(TextOperation),
     Title(TextOperation),
@@ -34,7 +34,7 @@ pub enum SmartFeedFilter {
     HasRead(BooleanOperation),
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub enum TextOperation {
     Equals(String),
     DoesNotEqual(String),
@@ -42,12 +42,12 @@ pub enum TextOperation {
     DoesNotContain(String),
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct BooleanOperation {
     pub value: bool,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub enum DateOperation {
     Equals(DateTime<Utc>),
     GreaterThan(DateTime<Utc>),

@@ -11,7 +11,7 @@ use crate::{
     Tag,
 };
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct Feed {
     pub id: Uuid,
     pub link: String,
@@ -23,32 +23,32 @@ pub struct Feed {
     pub unread_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct FeedCreate {
     pub url: Url,
     pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedListQuery {
     pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct FeedDetect {
     pub url: Url,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedDetected {
     pub url: String,
     pub title: String,
