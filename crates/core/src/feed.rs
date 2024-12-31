@@ -63,6 +63,12 @@ impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
     }
 }
 
+#[derive(Clone, Debug)]
+pub enum DetectedResponse {
+    Detected(Vec<FeedDetected>),
+    Processed(ProcessedFeed),
+}
+
 #[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
 pub struct Cursor {
     pub id: Uuid,
@@ -152,24 +158,20 @@ impl FeedService {
         self.repository.delete(IdParams::new(id, user_id)).await
     }
 
-    pub async fn detect_feeds(&self, data: FeedDetect) -> Result<Paginated<FeedDetected>, Error> {
+    pub async fn detect_feeds(&self, data: FeedDetect) -> Result<DetectedResponse, Error> {
         match self.detector.detect(data.url.clone()).await? {
-            DetectorResponse::Detected(feeds) => Ok(Paginated::<FeedDetected> {
-                data: feeds.into_iter().map(Into::into).collect(),
-                cursor: None,
-            }),
+            DetectorResponse::Detected(feeds) => Ok(DetectedResponse::Detected(
+                feeds.into_iter().map(Into::into).collect(),
+            )),
             DetectorResponse::Processed(feed) => {
                 self.repository
                     .cache(FeedCacheData {
                         url: data.url.to_string(),
-                        feed,
+                        feed: feed.clone(),
                     })
                     .await?;
 
-                Ok(Paginated::<FeedDetected> {
-                    data: Vec::new(),
-                    cursor: None,
-                })
+                Ok(DetectedResponse::Processed(feed))
             }
         }
     }

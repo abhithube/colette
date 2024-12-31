@@ -41,7 +41,8 @@ impl FeedState {
     FeedUpdate,
     FeedDetect,
     FeedDetected,
-    Paginated<FeedDetected>
+    FeedProcessed,
+    DetectedResponse
 )))]
 pub struct FeedApi;
 
@@ -187,6 +188,41 @@ impl From<feed::FeedDetected> for FeedDetected {
         Self {
             url: value.url,
             title: value.title,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedProcessed {
+    #[schema(format = "uri")]
+    pub link: String,
+    pub title: String,
+}
+
+impl From<feed::ProcessedFeed> for FeedProcessed {
+    fn from(value: feed::ProcessedFeed) -> Self {
+        Self {
+            link: value.link.to_string(),
+            title: value.title,
+        }
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(untagged)]
+pub enum DetectedResponse {
+    Detected(Vec<FeedDetected>),
+    Processed(FeedProcessed),
+}
+
+impl From<feed::DetectedResponse> for DetectedResponse {
+    fn from(value: feed::DetectedResponse) -> Self {
+        match value {
+            feed::DetectedResponse::Detected(feeds) => {
+                Self::Detected(feeds.into_iter().map(FeedDetected::from).collect())
+            }
+            feed::DetectedResponse::Processed(feed) => Self::Processed(feed.into()),
         }
     }
 }
@@ -437,8 +473,8 @@ impl IntoResponse for DeleteResponse {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum DetectResponse {
-    #[response(status = 201, description = "Detected feeds")]
-    Ok(Paginated<FeedDetected>),
+    #[response(status = 200, description = "Detected feeds")]
+    Ok(DetectedResponse),
 
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),

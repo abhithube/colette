@@ -1,5 +1,5 @@
 use colette_api::{
-    feed::{Feed, FeedCreate, FeedDetect, FeedDetected, FeedListQuery, FeedUpdate},
+    feed::{DetectedResponse, Feed, FeedCreate, FeedDetect, FeedListQuery, FeedUpdate},
     Paginated, Session,
 };
 use colette_core::feed::FeedService;
@@ -79,7 +79,7 @@ pub async fn delete_feed(
 pub async fn detect_feeds(
     service: State<'_, FeedService>,
     data: FeedDetect,
-) -> Result<Paginated<FeedDetected>, String> {
+) -> Result<DetectedResponse, String> {
     let feeds = service
         .detect_feeds(data.into())
         .await
