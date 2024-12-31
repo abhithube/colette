@@ -14,30 +14,32 @@ pub struct RedditBookmarkPlugin {
     extractor: BookmarkExtractor,
 }
 
-pub fn bookmark(client: Client) -> Box<dyn BookmarkScraper> {
-    let options = BookmarkExtractorOptions {
-        title_queries: vec![ExtractorQuery {
-            selector: Selector::parse("shreddit-post").unwrap(),
-            node: Node::Attr("post-title"),
-        }],
-        thumbnail_queries: vec![ExtractorQuery {
-            selector: Selector::parse(".preview-img").unwrap(),
-            node: Node::Attr("src"),
-        }],
-        published_queries: vec![ExtractorQuery {
-            selector: Selector::parse("shreddit-post").unwrap(),
-            node: Node::Attr("created-timestamp"),
-        }],
-        author_queries: vec![ExtractorQuery {
-            selector: Selector::parse("shreddit-post").unwrap(),
-            node: Node::Attr("author"),
-        }],
-    };
+impl RedditBookmarkPlugin {
+    pub fn new(client: Client) -> Self {
+        let options = BookmarkExtractorOptions {
+            title_queries: vec![ExtractorQuery {
+                selector: Selector::parse("shreddit-post").unwrap(),
+                node: Node::Attr("post-title"),
+            }],
+            thumbnail_queries: vec![ExtractorQuery {
+                selector: Selector::parse(".preview-img").unwrap(),
+                node: Node::Attr("src"),
+            }],
+            published_queries: vec![ExtractorQuery {
+                selector: Selector::parse("shreddit-post").unwrap(),
+                node: Node::Attr("created-timestamp"),
+            }],
+            author_queries: vec![ExtractorQuery {
+                selector: Selector::parse("shreddit-post").unwrap(),
+                node: Node::Attr("author"),
+            }],
+        };
 
-    Box::new(RedditBookmarkPlugin {
-        client,
-        extractor: BookmarkExtractor::new(options),
-    })
+        Self {
+            client,
+            extractor: BookmarkExtractor::new(options),
+        }
+    }
 }
 
 #[async_trait::async_trait]

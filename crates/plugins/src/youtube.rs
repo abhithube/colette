@@ -7,8 +7,10 @@ pub struct YouTubeFeedPlugin<S> {
     default_scraper: S,
 }
 
-pub fn feed<S: FeedScraper + Clone>(default_scraper: S) -> Box<dyn FeedScraper> {
-    Box::new(YouTubeFeedPlugin { default_scraper })
+impl<S: FeedScraper> YouTubeFeedPlugin<S> {
+    pub fn new(default_scraper: S) -> Self {
+        Self { default_scraper }
+    }
 }
 
 #[async_trait::async_trait]
