@@ -3,6 +3,8 @@ import { useNavigate } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
 import { type ParentComponent, Show, createEffect } from 'solid-js'
 import { useAPI } from './lib/api-context'
+import { SidebarProvider, SidebarTrigger } from './lib/components/sidebar'
+import { AppSidebar } from './sidebar'
 
 export const AuthLayout: ParentComponent = (props) => {
   const navigate = useNavigate()
@@ -21,5 +23,15 @@ export const AuthLayout: ParentComponent = (props) => {
     }
   })
 
-  return <Show when={!query.isLoading && !!query.data}>{props.children}</Show>
+  return (
+    <Show when={!query.isLoading && !!query.data}>
+      <SidebarProvider>
+        <AppSidebar />
+        <div>
+          <SidebarTrigger />
+          {props.children}
+        </div>
+      </SidebarProvider>
+    </Show>
+  )
 }
