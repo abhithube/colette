@@ -183,12 +183,10 @@ impl Deletable for D1FeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for D1FeedRepository {
-    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
-        for data in data {
-            create_feed_with_entries(&self.db, data.url, data.feed)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
+        create_feed_with_entries(&self.db, data.url, data.feed)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(())
     }

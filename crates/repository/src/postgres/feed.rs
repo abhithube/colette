@@ -252,7 +252,7 @@ impl Deletable for PostgresFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
-    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
         let mut client = self
             .pool
             .get()
@@ -264,11 +264,9 @@ impl FeedRepository for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        for data in data {
-            create_feed_with_entries(&tx, data.url, data.feed)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-        }
+        create_feed_with_entries(&tx, data.url, data.feed)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))
     }

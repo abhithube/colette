@@ -160,10 +160,10 @@ impl FeedService {
             }),
             DetectorResponse::Processed(feed) => {
                 self.repository
-                    .cache(vec![FeedCacheData {
+                    .cache(FeedCacheData {
                         url: data.url.to_string(),
                         feed,
-                    }])
+                    })
                     .await?;
 
                 Ok(Paginated::<FeedDetected> {
@@ -189,7 +189,7 @@ pub trait FeedRepository:
     + Sync
     + 'static
 {
-    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error>;
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
 
     async fn stream(&self) -> Result<BoxStream<String>, Error>;
 }

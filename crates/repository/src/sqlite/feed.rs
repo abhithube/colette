@@ -230,7 +230,7 @@ impl Deletable for SqliteFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
-    async fn cache(&self, data: Vec<FeedCacheData>) -> Result<(), Error> {
+    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
         let conn = self
             .pool
             .get()
@@ -240,9 +240,7 @@ impl FeedRepository for SqliteFeedRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            for data in data {
-                create_feed_with_entries(&tx, data.url, data.feed)?;
-            }
+            create_feed_with_entries(&tx, data.url, data.feed)?;
 
             tx.commit()
         })
