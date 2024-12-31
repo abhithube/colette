@@ -1,7 +1,12 @@
-import { loginOptions } from '@colette/solid-query'
+import { getActiveOptions, loginOptions } from '@colette/solid-query'
+import { useNavigate } from '@solidjs/router'
 import { createForm } from '@tanstack/solid-form'
-import { createMutation, useQueryClient } from '@tanstack/solid-query'
-import type { Component } from 'solid-js'
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query'
+import { type Component, createEffect } from 'solid-js'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
 import {
@@ -21,6 +26,21 @@ import {
 import { useAPI } from '~/lib/api-context'
 
 export const LoginForm: Component = () => {
+  const navigate = useNavigate()
+
+  const query = createQuery(() => ({
+    ...getActiveOptions(useAPI()),
+    retry: false,
+  }))
+
+  createEffect(() => {
+    if (!query.isLoading && query.data) {
+      navigate('/', {
+        replace: true,
+      })
+    }
+  })
+
   const form = createForm(() => ({
     defaultValues: {
       email: '',
@@ -32,11 +52,7 @@ export const LoginForm: Component = () => {
   const { mutateAsync: login, isPending } = createMutation(() =>
     loginOptions(
       {
-        onSuccess: async (user) => {
-          console.log(user)
-
-          form.reset()
-        },
+        onSuccess: () => form.reset(),
       },
       useAPI(),
       useQueryClient(),
@@ -109,7 +125,7 @@ export const LoginForm: Component = () => {
           </form.Field>
         </CardContent>
         <CardFooter>
-          <Button class="grow" disabled={isPending}>
+          <Button class="grow" type="submit" disabled={isPending}>
             Login
           </Button>
         </CardFooter>
