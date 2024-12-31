@@ -11,7 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from '../lib/components/sidebar'
+} from '~/lib/components/sidebar'
 
 export const AppSidebar: Component = () => {
   return (
@@ -42,6 +42,8 @@ export const AppSidebar: Component = () => {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Feeds</SidebarGroupLabel>
+          {/* <AddFeedDialog /> */}
+          {/* <AddFeedForm /> */}
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -75,7 +77,6 @@ export const AppSidebar: Component = () => {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild={(props) => <A {...props} href="/collections/2" />}
-                  tooltip="lol"
                 >
                   Collection 2
                 </SidebarMenuButton>

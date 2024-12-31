@@ -1,6 +1,6 @@
 import { Field } from '@ark-ui/solid'
 import { type Component, splitProps } from 'solid-js'
-import { cn } from '../utils'
+import { cn } from '~/lib/utils'
 
 export const Input: Component<Field.InputProps> = (props) => {
   const [local, others] = splitProps(props, ['class'])

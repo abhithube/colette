@@ -19,8 +19,8 @@ import {
   splitProps,
   useContext,
 } from 'solid-js'
-import { useIsMobile } from '../use-mobile'
-import { cn } from '../utils'
+import { useIsMobile } from '~/lib/use-mobile'
+import { cn } from '~/lib/utils'
 import { Button, type ButtonProps } from './button'
 import { Separator, type SeparatorProps } from './separator'
 import { Sheet, SheetContent } from './sheet'

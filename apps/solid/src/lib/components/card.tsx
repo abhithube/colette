@@ -4,7 +4,7 @@ import {
   type ParentComponent,
   splitProps,
 } from 'solid-js'
-import { cn } from '../utils'
+import { cn } from '~/lib/utils'
 
 export const CardRoot: Component<ComponentProps<'div'>> = (props) => {
   const [local, others] = splitProps(props, ['class'])

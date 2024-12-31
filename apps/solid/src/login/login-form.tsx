@@ -3,8 +3,8 @@ import { createForm } from '@tanstack/solid-form'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'
 import { z } from 'zod'
-import { useAPI } from '../lib/api-context'
-import { Button } from '../lib/components/button'
+import { useAPI } from '~/lib/api-context'
+import { Button } from '~/lib/components/button'
 import {
   CardContent,
   CardDescription,
@@ -12,10 +12,10 @@ import {
   CardHeader,
   CardRoot,
   CardTitle,
-} from '../lib/components/card'
-import { FormControl, FormMessage } from '../lib/components/form'
-import { Input } from '../lib/components/input'
-import { Label } from '../lib/components/label'
+} from '~/lib/components/card'
+import { FormControl, FormMessage } from '~/lib/components/form'
+import { Input } from '~/lib/components/input'
+import { Label } from '~/lib/components/label'
 
 export const LoginForm: Component = () => {
   const form = createForm(() => ({

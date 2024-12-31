@@ -8,7 +8,7 @@ import {
   splitProps,
 } from 'solid-js'
 import { Portal } from 'solid-js/web'
-import { cn } from '../utils'
+import { cn } from '~/lib/utils'
 
 export const Sheet: Component<Dialog.RootProps> = (props) => {
   return <Dialog.Root {...props} />
@@ -84,7 +84,7 @@ const sheetVariants = cva(
 export const SheetContent: ParentComponent<
   Dialog.ContentProps & VariantProps<typeof sheetVariants>
 > = (props) => {
-  const [local, others] = splitProps(props, ['position', 'class', 'children'])
+  const [local, others] = splitProps(props, ['class', 'position', 'children'])
 
   return (
     <SheetPortal position={local.position}>

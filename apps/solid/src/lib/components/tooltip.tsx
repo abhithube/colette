@@ -1,6 +1,6 @@
 import { Tooltip as TooltipPrimitive } from '@ark-ui/solid'
 import { type Component, splitProps } from 'solid-js'
-import { cn } from '../utils'
+import { cn } from '~/lib/utils'
 
 export const Tooltip: Component<TooltipPrimitive.RootProps> = (props) => {
   const [local, others] = splitProps(props, ['positioning'])
