@@ -80,6 +80,7 @@ export const LoginForm: Component = () => {
           >
             {(field) => (
               <TextField
+                class="space-y-1"
                 validationState={
                   field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
                 }
@@ -106,6 +107,7 @@ export const LoginForm: Component = () => {
           >
             {(field) => (
               <TextField
+                class="space-y-1"
                 validationState={
                   field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
                 }
