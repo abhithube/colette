@@ -3,19 +3,22 @@ import { createForm } from '@tanstack/solid-form'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'
 import { z } from 'zod'
-import { useAPI } from '~/lib/api-context'
-import { Button } from '~/lib/components/button'
+import { Button } from '~/components/ui/button'
 import {
+  Card,
   CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
-  CardRoot,
   CardTitle,
-} from '~/lib/components/card'
-import { FormControl, FormMessage } from '~/lib/components/form'
-import { Input } from '~/lib/components/input'
-import { Label } from '~/lib/components/label'
+} from '~/components/ui/card'
+import {
+  TextField,
+  TextFieldErrorMessage,
+  TextFieldInput,
+  TextFieldLabel,
+} from '~/components/ui/text-field'
+import { useAPI } from '~/lib/api-context'
 
 export const LoginForm: Component = () => {
   const form = createForm(() => ({
@@ -47,7 +50,7 @@ export const LoginForm: Component = () => {
         form.handleSubmit()
       }}
     >
-      <CardRoot>
+      <Card>
         <CardHeader class="space-y-2">
           <CardTitle>Login</CardTitle>
           <CardDescription>Login to your account</CardDescription>
@@ -60,17 +63,21 @@ export const LoginForm: Component = () => {
             }}
           >
             {(field) => (
-              <FormControl invalid={field().state.meta.errors.length > 0}>
-                <Label>Email</Label>
-                <Input
+              <TextField
+                validationState={
+                  field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
+                }
+              >
+                <TextFieldLabel>Email</TextFieldLabel>
+                <TextFieldInput
                   placeholder="user@email.com"
                   onChange={(e) => field().handleChange(e.target.value)}
                   onBlur={() => field().handleBlur()}
                 />
-                <FormMessage>
+                <TextFieldErrorMessage>
                   {field().state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </FormControl>
+                </TextFieldErrorMessage>
+              </TextField>
             )}
           </form.Field>
           <form.Field
@@ -82,18 +89,22 @@ export const LoginForm: Component = () => {
             }}
           >
             {(field) => (
-              <FormControl invalid={field().state.meta.errors.length > 0}>
-                <Label>Password</Label>
-                <Input
+              <TextField
+                validationState={
+                  field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
+                }
+              >
+                <TextFieldLabel>Password</TextFieldLabel>
+                <TextFieldInput
                   type="password"
                   placeholder="********"
                   onChange={(e) => field().handleChange(e.target.value)}
                   onBlur={() => field().handleBlur()}
                 />
-                <FormMessage>
+                <TextFieldErrorMessage>
                   {field().state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </FormControl>
+                </TextFieldErrorMessage>
+              </TextField>
             )}
           </form.Field>
         </CardContent>
@@ -102,7 +113,7 @@ export const LoginForm: Component = () => {
             Login
           </Button>
         </CardFooter>
-      </CardRoot>
+      </Card>
     </form>
   )
 }

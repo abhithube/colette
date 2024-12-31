@@ -1,3 +1,4 @@
+import type { User } from '@colette/core'
 import { A } from '@solidjs/router'
 import type { Component } from 'solid-js'
 import {
@@ -11,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-} from '~/lib/components/sidebar'
+} from '~/components/ui/sidebar'
 
 export const AppSidebar: Component = () => {
   return (
@@ -24,16 +25,12 @@ export const AppSidebar: Component = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/" />}
-                >
+                <SidebarMenuButton as={A} href="/">
                   Home
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/archived" />}
-                >
+                <SidebarMenuButton as={A} href="/archived">
                   Archived
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -42,21 +39,15 @@ export const AppSidebar: Component = () => {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Feeds</SidebarGroupLabel>
-          {/* <AddFeedDialog /> */}
-          {/* <AddFeedForm /> */}
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/feeds/1" />}
-                >
+                <SidebarMenuButton as={A} href="/feeds/1">
                   Feed 1
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/feeds/2" />}
-                >
+                <SidebarMenuButton as={A} href="/feeds/2">
                   Feed 2
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -68,16 +59,12 @@ export const AppSidebar: Component = () => {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/collections/1" />}
-                >
+                <SidebarMenuButton as={A} href="/collections/1">
                   Collection 1
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild={(props) => <A {...props} href="/collections/2" />}
-                >
+                <SidebarMenuButton as={A} href="/collections/2">
                   Collection 2
                 </SidebarMenuButton>
               </SidebarMenuItem>
