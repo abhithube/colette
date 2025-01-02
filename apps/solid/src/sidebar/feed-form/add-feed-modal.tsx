@@ -1,8 +1,11 @@
+import type { FeedDetected, FeedProcessed } from '@colette/core'
 import Plus from 'lucide-solid/icons/plus'
-import { Match, Switch, createSignal } from 'solid-js'
+import { Match, Show, Switch, createSignal } from 'solid-js'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { SidebarGroupAction } from '~/components/ui/sidebar'
+import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
+import { SelectStep } from './select-step'
 
 enum Step {
   Search = 0,
@@ -13,6 +16,12 @@ enum Step {
 export function AddFeedModal() {
   const [isOpen, setOpen] = createSignal(false)
   const [step, setStep] = createSignal(Step.Search)
+  const [detectedFeeds, setDetectedFeeds] = createSignal<FeedDetected[] | null>(
+    null,
+  )
+  const [selectedFeed, setSelectedFeed] = createSignal<FeedProcessed | null>(
+    null,
+  )
 
   return (
     <Dialog open={isOpen()} onOpenChange={setOpen}>
@@ -25,12 +34,41 @@ export function AddFeedModal() {
             <SearchStep
               onNext={(res) => {
                 if (Array.isArray(res)) {
+                  setDetectedFeeds(res)
                   setStep(Step.Select)
                 } else {
+                  setSelectedFeed(res)
                   setStep(Step.Edit)
                 }
               }}
             />
+          </Match>
+          <Match when={step() === Step.Select}>
+            <Show when={detectedFeeds()}>
+              {(feeds) => (
+                <SelectStep
+                  feeds={feeds()}
+                  onNext={(feed) => {
+                    setSelectedFeed(feed)
+                    setStep(Step.Edit)
+                  }}
+                  onBack={() => setStep(Step.Search)}
+                />
+              )}
+            </Show>
+          </Match>
+          <Match when={step() === Step.Edit}>
+            <Show when={selectedFeed()}>
+              {(feed) => (
+                <EditStep
+                  feed={feed()}
+                  onClose={() => setOpen(false)}
+                  onBack={() => {
+                    setStep(detectedFeeds() ? Step.Select : Step.Search)
+                  }}
+                />
+              )}
+            </Show>
           </Match>
         </Switch>
       </DialogContent>
