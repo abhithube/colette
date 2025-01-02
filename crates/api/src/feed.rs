@@ -94,6 +94,8 @@ impl From<colette_core::Feed> for Feed {
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    pub title: Option<NonEmptyString>,
     #[schema(nullable = false, default = false)]
     pub pinned: Option<bool>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
@@ -104,6 +106,7 @@ impl From<FeedCreate> for feed::FeedCreate {
     fn from(value: FeedCreate) -> Self {
         Self {
             url: value.url,
+            title: value.title,
             pinned: value.pinned,
             tags: value.tags,
         }

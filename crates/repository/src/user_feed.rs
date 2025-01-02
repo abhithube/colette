@@ -55,10 +55,7 @@ pub fn select(
     let pf_id = Alias::new("pf_id");
 
     let unread_count_cte = Query::select()
-        .expr_as(
-            Expr::col((UserFeed::Table, UserFeed::Id)),
-            pf_id.clone(),
-        )
+        .expr_as(Expr::col((UserFeed::Table, UserFeed::Id)), pf_id.clone())
         .expr_as(
             Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).count(),
             unread_count.clone(),
@@ -76,10 +73,7 @@ pub fn select(
     let tags = Alias::new("tags");
 
     let json_tags_cte = Query::select()
-        .expr_as(
-            Expr::col((UserFeed::Table, UserFeed::Id)),
-            pf_id.clone(),
-        )
+        .expr_as(Expr::col((UserFeed::Table, UserFeed::Id)), pf_id.clone())
         .expr_as(jsonb_agg, tags.clone())
         .from(UserFeed::Table)
         .join(
@@ -123,8 +117,7 @@ pub fn select(
         .join(
             JoinType::InnerJoin,
             Feed::Table,
-            Expr::col((Feed::Table, Feed::Id))
-                .eq(Expr::col((UserFeed::Table, UserFeed::FeedId))),
+            Expr::col((Feed::Table, Feed::Id)).eq(Expr::col((UserFeed::Table, UserFeed::FeedId))),
         )
         .join(
             JoinType::LeftJoin,
@@ -140,9 +133,7 @@ pub fn select(
         )
         .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
-        .and_where_option(
-            pinned.map(|e| Expr::col((UserFeed::Table, UserFeed::Pinned)).eq(e)),
-        )
+        .and_where_option(pinned.map(|e| Expr::col((UserFeed::Table, UserFeed::Pinned)).eq(e)))
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::tuple([
@@ -201,16 +192,19 @@ pub fn select_by_unique_index(user_id: Uuid, feed_id: i32) -> SelectStatement {
 
 pub fn insert(
     id: Option<Uuid>,
+    title: Option<String>,
     pinned: Option<bool>,
     feed_id: i32,
     user_id: Uuid,
 ) -> InsertStatement {
     let mut columns = vec![
+        UserFeed::Title,
         UserFeed::Pinned,
         UserFeed::FeedId,
         UserFeed::UserId,
     ];
     let mut values: Vec<SimpleExpr> = vec![
+        title.into(),
         pinned.unwrap_or_default().into(),
         feed_id.into(),
         user_id.into(),

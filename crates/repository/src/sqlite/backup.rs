@@ -99,6 +99,7 @@ impl BackupRepository for SqliteBackupRepository {
                             (sql, values) = crate::user_feed::insert(
                                 Some(Uuid::new_v4()),
                                 None,
+                                None,
                                 feed_id,
                                 user_id,
                             )

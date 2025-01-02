@@ -96,7 +96,7 @@ impl BackupRepository for D1BackupRepository {
                         let id = Uuid::new_v4();
 
                         (sql, values) =
-                            crate::user_feed::insert(Some(id), None, feed_id, user_id)
+                            crate::user_feed::insert(Some(id), None, None, feed_id, user_id)
                                 .build_d1(SqliteQueryBuilder);
 
                         super::run(&self.db, sql, values)

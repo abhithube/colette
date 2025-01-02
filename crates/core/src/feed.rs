@@ -26,6 +26,7 @@ pub struct Feed {
 #[derive(Clone, Debug)]
 pub struct FeedCreate {
     pub url: Url,
+    pub title: Option<NonEmptyString>,
     pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -130,6 +131,7 @@ impl FeedService {
             .repository
             .create(FeedCreateData {
                 url: data.url.to_string(),
+                title: data.title.map(String::from),
                 pinned: data.pinned,
                 tags: data
                     .tags
@@ -209,6 +211,7 @@ pub struct FeedFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct FeedCreateData {
     pub url: String,
+    pub title: Option<String>,
     pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
