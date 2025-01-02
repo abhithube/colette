@@ -1,9 +1,9 @@
 import type {
   API,
+  DetectedResponse,
   Feed,
   FeedCreate,
   FeedDetect,
-  FeedDetectedList,
   FeedListQuery,
   FeedUpdate,
 } from '@colette/core'
@@ -56,7 +56,7 @@ export const deleteFeedOptions = (
 })
 
 export type DetectFeedsOptions = MutationOptions<
-  FeedDetectedList,
+  DetectedResponse,
   Error,
   FeedDetect
 >

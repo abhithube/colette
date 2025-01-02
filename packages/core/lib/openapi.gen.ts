@@ -74,6 +74,21 @@ export const DateOperation = z.union([
   }),
 ]);
 
+export type FeedDetected = z.infer<typeof FeedDetected>;
+export const FeedDetected = z.object({
+  url: z.string(),
+  title: z.string(),
+});
+
+export type FeedProcessed = z.infer<typeof FeedProcessed>;
+export const FeedProcessed = z.object({
+  link: z.string(),
+  title: z.string(),
+});
+
+export type DetectedResponse = z.infer<typeof DetectedResponse>;
+export const DetectedResponse = z.union([z.array(FeedDetected), FeedProcessed]);
+
 export type Feed = z.infer<typeof Feed>;
 export const Feed = z.object({
   id: z.string(),
@@ -89,6 +104,7 @@ export const Feed = z.object({
 export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
+  title: z.union([z.string(), z.null(), z.undefined()]).optional(),
   pinned: z.union([z.boolean(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
@@ -96,12 +112,6 @@ export const FeedCreate = z.object({
 export type FeedDetect = z.infer<typeof FeedDetect>;
 export const FeedDetect = z.object({
   url: z.string(),
-});
-
-export type FeedDetected = z.infer<typeof FeedDetected>;
-export const FeedDetected = z.object({
-  url: z.string(),
-  title: z.string(),
 });
 
 export type FeedEntry = z.infer<typeof FeedEntry>;
@@ -163,17 +173,6 @@ export const Paginated_Feed = z.object({
       url: z.union([z.string(), z.null()]),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
       unreadCount: z.union([z.number(), z.undefined()]).optional(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_FeedDetected = z.infer<typeof Paginated_FeedDetected>;
-export const Paginated_FeedDetected = z.object({
-  data: z.array(
-    z.object({
-      url: z.string(),
-      title: z.string(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -586,7 +585,7 @@ export const post_DetectFeeds = {
   parameters: z.object({
     body: FeedDetect,
   }),
-  response: Paginated_FeedDetected,
+  response: DetectedResponse,
 };
 
 export type get_ListSmartFeeds = typeof get_ListSmartFeeds;

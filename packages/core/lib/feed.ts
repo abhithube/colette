@@ -1,12 +1,12 @@
 import type { z } from 'zod'
 import {
   type ApiClient,
+  DetectedResponse,
   Feed,
   FeedCreate,
   FeedDetect,
   FeedUpdate,
   Paginated_Feed,
-  Paginated_FeedDetected,
   get_ListFeeds,
 } from './openapi.gen'
 
@@ -15,8 +15,6 @@ export type FeedListQuery = z.infer<typeof FeedListQuery>
 
 export type FeedList = Paginated_Feed
 export const FeedList = Paginated_Feed
-export const FeedDetectedList = Paginated_FeedDetected
-export type FeedDetectedList = Paginated_FeedDetected
 
 export interface FeedAPI {
   list(query: FeedListQuery): Promise<FeedList>
@@ -24,12 +22,12 @@ export interface FeedAPI {
   get(id: string): Promise<Feed>
 
   create(data: FeedCreate): Promise<Feed>
-  
+
   update(id: string, data: FeedUpdate): Promise<Feed>
-  
+
   delete(id: string): Promise<void>
 
-  detect(data: FeedDetect): Promise<FeedDetectedList>
+  detect(data: FeedDetect): Promise<DetectedResponse>
 }
 
 export class HTTPFeedAPI implements FeedAPI {
@@ -82,11 +80,11 @@ export class HTTPFeedAPI implements FeedAPI {
       .then()
   }
 
-  detect(data: FeedDetect): Promise<FeedDetectedList> {
+  detect(data: FeedDetect): Promise<DetectedResponse> {
     return this.client
       .post('/feeds/detect', {
         body: FeedDetect.parse(data),
       })
-      .then(FeedDetectedList.parse)
+      .then(DetectedResponse.parse)
   }
 }
