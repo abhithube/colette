@@ -15,6 +15,7 @@ import {
   SidebarRail,
 } from '~/components/ui/sidebar'
 import { AddFeedModal } from './feed-form/add-feed-modal'
+import { FeedList } from './feed-list'
 import { UserCard } from './user-card'
 
 export const AppSidebar: Component<{ user: User }> = ({ user }) => {
@@ -45,16 +46,7 @@ export const AppSidebar: Component<{ user: User }> = ({ user }) => {
           <AddFeedModal />
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton as={A} href="/feeds/1">
-                  Feed 1
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton as={A} href="/feeds/2">
-                  Feed 2
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <FeedList />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
