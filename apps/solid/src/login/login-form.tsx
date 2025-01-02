@@ -81,16 +81,15 @@ export const LoginForm: Component = () => {
             {(field) => (
               <TextField
                 class="space-y-1"
+                value={field().state.value}
+                onChange={field().handleChange}
+                onBlur={field().handleBlur}
                 validationState={
                   field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
                 }
               >
                 <TextFieldLabel>Email</TextFieldLabel>
-                <TextFieldInput
-                  placeholder="user@email.com"
-                  onChange={(e) => field().handleChange(e.target.value)}
-                  onBlur={() => field().handleBlur()}
-                />
+                <TextFieldInput placeholder="user@email.com" />
                 <TextFieldErrorMessage>
                   {field().state.meta.errors[0]?.toString()}
                 </TextFieldErrorMessage>
@@ -108,17 +107,15 @@ export const LoginForm: Component = () => {
             {(field) => (
               <TextField
                 class="space-y-1"
+                value={field().state.value}
+                onChange={field().handleChange}
+                onBlur={field().handleBlur}
                 validationState={
                   field().state.meta.errors.length > 0 ? 'invalid' : 'valid'
                 }
               >
                 <TextFieldLabel>Password</TextFieldLabel>
-                <TextFieldInput
-                  type="password"
-                  placeholder="********"
-                  onChange={(e) => field().handleChange(e.target.value)}
-                  onBlur={() => field().handleBlur()}
-                />
+                <TextFieldInput type="password" placeholder="********" />
                 <TextFieldErrorMessage>
                   {field().state.meta.errors[0]?.toString()}
                 </TextFieldErrorMessage>
