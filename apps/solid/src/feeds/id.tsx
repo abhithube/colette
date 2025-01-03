@@ -8,6 +8,7 @@ import Pencil from 'lucide-solid/icons/pencil'
 import { type Component, Show } from 'solid-js'
 import { Button } from '~/components/ui/button'
 import { useAPI } from '~/lib/api-context'
+import { EntryList } from './entry-list'
 
 export const FeedPage: Component = () => {
   const params = useParams<{ id: string }>()
@@ -46,6 +47,9 @@ export const FeedPage: Component = () => {
               </Button>
             </div>
           </div>
+          <main>
+            <EntryList feedId={feed().id} />
+          </main>
         </>
       )}
     </Show>
