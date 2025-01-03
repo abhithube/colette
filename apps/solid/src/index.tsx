@@ -4,12 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
 import { render } from 'solid-js/web'
 import App from './App'
 import './index.css'
-import {
-  ColorModeProvider,
-  ColorModeScript,
-  createLocalStorageManager,
-} from '@kobalte/core'
+import {} from '@kobalte/core'
 import { APIProvider } from './lib/api-context'
+import { ThemeProvider } from './lib/theme-context'
 
 const root = document.getElementById('root')
 
@@ -20,15 +17,9 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
 }
 
 render(() => {
-  const storageManager = createLocalStorageManager('vite-ui-theme')
-
   return (
     <>
-      <ColorModeScript storageType={storageManager.type} />
-      <ColorModeProvider
-        storageManager={storageManager}
-        initialColorMode="system"
-      >
+      <ThemeProvider>
         <QueryClientProvider client={new QueryClient()}>
           <APIProvider
             api={
@@ -43,7 +34,7 @@ render(() => {
             <App />
           </APIProvider>
         </QueryClientProvider>
-      </ColorModeProvider>
+      </ThemeProvider>
     </>
   )
 }, root!)
