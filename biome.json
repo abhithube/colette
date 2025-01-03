@@ -18,6 +18,9 @@
 	},
 	"linter": {
 		"rules": {
+			"correctness": {
+				"noUnusedImports": "warn"
+			},
 			"nursery": {
 				"useSortedClasses": {
 					"level":"warn",
