@@ -46,10 +46,10 @@ export const LoginForm: Component = () => {
       email: '',
       password: '',
     },
-    onSubmit: ({ value }) => login(value),
+    onSubmit: ({ value }) => mutation.mutate(value),
   }))
 
-  const { mutateAsync: login, isPending } = createMutation(() =>
+  const mutation = createMutation(() =>
     loginOptions(
       {
         onSuccess: () => form.reset(),
@@ -124,7 +124,7 @@ export const LoginForm: Component = () => {
           </form.Field>
         </CardContent>
         <CardFooter>
-          <Button class="grow" type="submit" disabled={isPending}>
+          <Button class="grow" type="submit" disabled={mutation.isPending}>
             Login
           </Button>
         </CardFooter>

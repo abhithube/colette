@@ -38,7 +38,7 @@ export const EditStep: Component<{
         title = undefined
       }
 
-      createFeed({
+      mutation.mutate({
         url: props.feed.link,
         title,
       })
@@ -47,7 +47,7 @@ export const EditStep: Component<{
 
   const queryClient = useQueryClient()
 
-  const { mutateAsync: createFeed, isPending } = createMutation(() =>
+  const mutation = createMutation(() =>
     createFeedOptions(
       {
         onSuccess: async (feed) => {
@@ -115,7 +115,7 @@ export const EditStep: Component<{
           <Button variant="outline" onClick={props.onBack}>
             Back
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={mutation.isPending}>
             Submit
           </Button>
         </DialogFooter>

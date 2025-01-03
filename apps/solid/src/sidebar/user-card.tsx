@@ -18,7 +18,7 @@ import {
 import { useAPI } from '~/lib/api-context'
 
 export const UserCard: Component<{ user: AppUser }> = ({ user }) => {
-  const { mutateAsync: logout } = createMutation(() =>
+  const mutation = createMutation(() =>
     logoutOptions({}, useAPI(), useQueryClient()),
   )
 
@@ -38,7 +38,9 @@ export const UserCard: Component<{ user: AppUser }> = ({ user }) => {
             <ChevronsUpDown class="ml-auto" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem onSelect={logout}>Logout</DropdownMenuItem>
+            <DropdownMenuItem onSelect={mutation.mutate}>
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

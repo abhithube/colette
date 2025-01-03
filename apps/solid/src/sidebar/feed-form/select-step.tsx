@@ -24,10 +24,10 @@ export const SelectStep: Component<{
     defaultValues: {
       url: '',
     },
-    onSubmit: ({ value }) => detectFeeds(value),
+    onSubmit: ({ value }) => mutation.mutate(value),
   }))
 
-  const { mutateAsync: detectFeeds, isPending } = createMutation(() =>
+  const mutation = createMutation(() =>
     detectFeedsOptions(
       {
         onSuccess: (res) => {
@@ -93,7 +93,7 @@ export const SelectStep: Component<{
           <Button variant="outline" onClick={props.onBack}>
             Back
           </Button>
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={mutation.isPending}>
             Select
           </Button>
         </DialogFooter>

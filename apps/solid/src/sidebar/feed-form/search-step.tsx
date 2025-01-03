@@ -26,10 +26,10 @@ export const SearchStep: Component<{
     defaultValues: {
       url: '',
     },
-    onSubmit: ({ value }) => detectFeeds(value),
+    onSubmit: ({ value }) => mutation.mutate(value),
   }))
 
-  const { mutateAsync: detectFeeds, isPending } = createMutation(() =>
+  const mutation = createMutation(() =>
     detectFeedsOptions(
       {
         onSuccess: (res) => {
@@ -77,7 +77,7 @@ export const SearchStep: Component<{
           )}
         </form.Field>
         <DialogFooter class="mt-6">
-          <Button type="submit" disabled={isPending}>
+          <Button type="submit" disabled={mutation.isPending}>
             Search
           </Button>
         </DialogFooter>
