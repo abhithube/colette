@@ -1,7 +1,8 @@
 import type { FeedProcessed } from '@colette/core'
 import { createFeedOptions } from '@colette/solid-query'
+import { useNavigate } from '@solidjs/router'
 import { createForm } from '@tanstack/solid-form'
-import { createMutation } from '@tanstack/solid-query'
+import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import RotateCcw from 'lucide-solid/icons/rotate-ccw'
 import type { Component } from 'solid-js'
 import { z } from 'zod'
@@ -25,6 +26,8 @@ export const EditStep: Component<{
   onClose: () => void
   onBack: () => void
 }> = (props) => {
+  const navigate = useNavigate()
+
   const form = createForm(() => ({
     defaultValues: {
       title: props.feed.title,
@@ -42,11 +45,20 @@ export const EditStep: Component<{
     },
   }))
 
+  const queryClient = useQueryClient()
+
   const { mutateAsync: createFeed, isPending } = createMutation(() =>
     createFeedOptions(
       {
-        onSuccess: () => {
+        onSuccess: async (feed) => {
           form.reset()
+
+          await queryClient.invalidateQueries({
+            queryKey: ['feeds'],
+          })
+
+          navigate(`/feeds/${feed.id}`)
+
           props.onClose()
         },
       },
