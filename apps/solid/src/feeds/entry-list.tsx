@@ -1,16 +1,9 @@
 import { listFeedEntriesOptions } from '@colette/solid-query'
 import { createInfiniteQuery } from '@tanstack/solid-query'
-import { type Component, For } from 'solid-js'
+import { type Component, For, onCleanup, onMount } from 'solid-js'
 import { Separator } from '~/components/ui/separator'
 import { useAPI } from '~/lib/api-context'
 import { EntryCard } from './entry-card'
-
-const day = 1000 * 60 * 60 * 24
-const date = Date.now()
-const today = date - day
-const lastWeek = date - day * 7
-const lastMonth = date - day * 30
-const lastYear = date - day * 365
 
 export const EntryList: Component<{
   feedId?: string
@@ -22,23 +15,56 @@ export const EntryList: Component<{
   const allEntries = () => query.data?.pages.flatMap((page) => page.data)
 
   const list = () => {
-    if (!allEntries()) return undefined
+    const day = 1000 * 60 * 60 * 24
+    const date = Date.now()
+    const today = date - day
+    const lastWeek = date - day * 7
+    const lastMonth = date - day * 30
+    const lastYear = date - day * 365
 
-    return Object.entries(
-      Object.groupBy(allEntries()!, (item) => {
-        const publishedAt = Date.parse(item.publishedAt)
-        return publishedAt > today
-          ? 'Today'
-          : publishedAt > lastWeek
-            ? 'This Week'
-            : publishedAt > lastMonth
-              ? 'This Month'
-              : publishedAt > lastYear
-                ? 'This Year'
-                : 'Older'
-      }),
-    )
+    const entries = allEntries()
+    if (entries) {
+      return Object.entries(
+        Object.groupBy(entries, (item) => {
+          const publishedAt = Date.parse(item.publishedAt)
+          return publishedAt > today
+            ? 'Today'
+            : publishedAt > lastWeek
+              ? 'This Week'
+              : publishedAt > lastMonth
+                ? 'This Month'
+                : publishedAt > lastYear
+                  ? 'This Year'
+                  : 'Older'
+        }),
+      )
+    }
   }
+
+  let target: HTMLDivElement | undefined
+
+  onMount(() => {
+    const observer = new IntersectionObserver(
+      async (entries) => {
+        if (entries.at(0)?.isIntersecting && query.hasNextPage) {
+          query.fetchNextPage()
+        }
+      },
+      {
+        rootMargin: '200px',
+      },
+    )
+
+    if (target) {
+      observer.observe(target)
+    }
+
+    onCleanup(() => {
+      if (target) {
+        observer.unobserve(target)
+      }
+    })
+  })
 
   return (
     <div class="space-y-8 px-8 pb-8">
@@ -52,16 +78,15 @@ export const EntryList: Component<{
             </div>
             <div class="container space-y-4">
               <For each={entries}>
-                {(item) => (
-                  <div>
-                    <EntryCard entry={item} />
-                  </div>
-                )}
+                {(item) => {
+                  return <EntryCard entry={item} />
+                }}
               </For>
             </div>
           </div>
         )}
       </For>
+      <div ref={target} class="sr-only" />
     </div>
   )
 }
