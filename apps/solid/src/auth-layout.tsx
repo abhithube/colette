@@ -27,7 +27,7 @@ export const AuthLayout: ParentComponent = (props) => {
     <Show when={!query.isLoading && !!query.data}>
       <SidebarProvider>
         <AppSidebar user={query.data!} />
-        <div>
+        <div class="w-full">
           <SidebarTrigger />
           {props.children}
         </div>
