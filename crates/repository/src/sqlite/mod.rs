@@ -1,5 +1,6 @@
 pub use backup::SqliteBackupRepository;
 pub use bookmark::SqliteBookmarkRepository;
+pub use collection::SqliteCollectionRepository;
 pub use feed::SqliteFeedRepository;
 pub use feed_entry::SqliteFeedEntryRepository;
 pub use scraper::SqliteScraperRepository;
@@ -9,6 +10,7 @@ pub use user::SqliteUserRepository;
 
 mod backup;
 mod bookmark;
+mod collection;
 mod feed;
 mod feed_entry;
 mod scraper;

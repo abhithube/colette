@@ -1,5 +1,6 @@
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
+pub use collection::PostgresCollectionRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use scraper::PostgresScraperRepository;
@@ -9,6 +10,7 @@ pub use user::PostgresUserRepository;
 
 mod backup;
 mod bookmark;
+mod collection;
 mod feed;
 mod feed_entry;
 mod scraper;

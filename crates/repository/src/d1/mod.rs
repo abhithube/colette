@@ -1,5 +1,6 @@
 pub use backup::D1BackupRepository;
 pub use bookmark::D1BookmarkRepository;
+pub use collection::D1CollectionRepository;
 pub use feed::D1FeedRepository;
 pub use feed_entry::D1FeedEntryRepository;
 pub use scraper::D1ScraperRepository;
@@ -15,6 +16,7 @@ use worker::{console_error, wasm_bindgen::JsValue, D1Argument, D1Database, D1Res
 
 mod backup;
 mod bookmark;
+mod collection;
 mod feed;
 mod feed_entry;
 mod scraper;
