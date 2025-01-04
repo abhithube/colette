@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '~/components/ui/sidebar'
+import { CollectionList } from './collection-list'
 import { AddFeedModal } from './feed-form/add-feed-modal'
 import { FeedList } from './feed-list'
 import { UserCard } from './user-card'
@@ -54,16 +55,7 @@ export const AppSidebar: Component<{ user: User }> = ({ user }) => {
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton as={A} href="/collections/1">
-                  Collection 1
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton as={A} href="/collections/2">
-                  Collection 2
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <CollectionList />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
