@@ -4,6 +4,7 @@ import MoreHorizontal from 'lucide-solid/icons/more-horizontal'
 import { type Component, createSignal } from 'solid-js'
 import { Favicon } from '~/components/favicon'
 import { AlertDialog, AlertDialogTrigger } from '~/components/ui/alert-dialog'
+import { Badge } from '~/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,9 +23,20 @@ export const FeedItem: Component<{ feed: Feed }> = (props) => {
 
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton as={A} href={`/feeds/${props.feed.id}`}>
-        <Favicon url={props.feed.link} />
-        {props.feed.title ?? props.feed.originalTitle}
+      <SidebarMenuButton
+        as={A}
+        class="justify-between"
+        href={`/feeds/${props.feed.id}`}
+      >
+        <div class="flex items-center gap-2">
+          <Favicon url={props.feed.link} />
+          {props.feed.title ?? props.feed.originalTitle}
+        </div>
+        {props.feed.unreadCount && (
+          <Badge class="justify-self-end" variant="outline">
+            {props.feed.unreadCount}
+          </Badge>
+        )}
       </SidebarMenuButton>
       <AlertDialog open={isAlertOpen()} onOpenChange={setAlertOpen}>
         <DropdownMenu placement="right-start">
