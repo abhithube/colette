@@ -1,6 +1,7 @@
 export * from './auth'
 export * from './backup'
 export * from './bookmark'
+export * from './collection'
 export * from './common'
 export * from './feed'
 export * from './feed-entry'

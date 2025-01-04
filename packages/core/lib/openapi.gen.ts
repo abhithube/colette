@@ -21,12 +21,14 @@ export const Bookmark = z.object({
   thumbnailUrl: z.union([z.string(), z.null()]),
   publishedAt: z.union([z.string(), z.null()]),
   author: z.union([z.string(), z.null()]),
+  collectionId: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
 export type BookmarkCreate = z.infer<typeof BookmarkCreate>;
 export const BookmarkCreate = z.object({
   url: z.string(),
+  collectionId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -46,12 +48,29 @@ export const BookmarkScraped = z.object({
 
 export type BookmarkUpdate = z.infer<typeof BookmarkUpdate>;
 export const BookmarkUpdate = z.object({
+  collectionId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
 });
 
 export type BooleanOperation = z.infer<typeof BooleanOperation>;
 export const BooleanOperation = z.object({
   value: z.boolean(),
+});
+
+export type Collection = z.infer<typeof Collection>;
+export const Collection = z.object({
+  id: z.string(),
+  title: z.string(),
+});
+
+export type CollectionCreate = z.infer<typeof CollectionCreate>;
+export const CollectionCreate = z.object({
+  title: z.string(),
+});
+
+export type CollectionUpdate = z.infer<typeof CollectionUpdate>;
+export const CollectionUpdate = z.object({
+  title: z.string().optional(),
 });
 
 export type DateOperation = z.infer<typeof DateOperation>;
@@ -155,7 +174,19 @@ export const Paginated_Bookmark = z.object({
       thumbnailUrl: z.union([z.string(), z.null()]),
       publishedAt: z.union([z.string(), z.null()]),
       author: z.union([z.string(), z.null()]),
+      collectionId: z.union([z.string(), z.null()]),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_Collection = z.infer<typeof Paginated_Collection>;
+export const Paginated_Collection = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -397,6 +428,8 @@ export const get_ListBookmarks = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
+      filterByCollection: z.boolean().optional(),
+      collectionId: z.string().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
@@ -465,6 +498,66 @@ export const post_ScrapeBookmark = {
     body: BookmarkScrape,
   }),
   response: BookmarkScraped,
+};
+
+export type get_ListCollections = typeof get_ListCollections;
+export const get_ListCollections = {
+  method: z.literal("GET"),
+  path: z.literal("/collections"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: Paginated_Collection,
+};
+
+export type post_CreateCollection = typeof post_CreateCollection;
+export const post_CreateCollection = {
+  method: z.literal("POST"),
+  path: z.literal("/collections"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: CollectionCreate,
+  }),
+  response: Collection,
+};
+
+export type get_GetCollection = typeof get_GetCollection;
+export const get_GetCollection = {
+  method: z.literal("GET"),
+  path: z.literal("/collections/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: Collection,
+};
+
+export type delete_DeleteCollection = typeof delete_DeleteCollection;
+export const delete_DeleteCollection = {
+  method: z.literal("DELETE"),
+  path: z.literal("/collections/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
+export type patch_UpdateCollection = typeof patch_UpdateCollection;
+export const patch_UpdateCollection = {
+  method: z.literal("PATCH"),
+  path: z.literal("/collections/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: CollectionUpdate,
+  }),
+  response: Collection,
 };
 
 export type get_ListFeedEntries = typeof get_ListFeedEntries;
@@ -724,6 +817,7 @@ export const EndpointByMethod = {
     "/backups/netscape/export": post_ExportNetscape,
     "/bookmarks": post_CreateBookmark,
     "/bookmarks/scrape": post_ScrapeBookmark,
+    "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
     "/smartFeeds": post_CreateSmartFeed,
@@ -733,6 +827,8 @@ export const EndpointByMethod = {
     "/auth/@me": get_GetActiveUser,
     "/bookmarks": get_ListBookmarks,
     "/bookmarks/{id}": get_GetBookmark,
+    "/collections": get_ListCollections,
+    "/collections/{id}": get_GetCollection,
     "/feedEntries": get_ListFeedEntries,
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
@@ -744,12 +840,14 @@ export const EndpointByMethod = {
   },
   delete: {
     "/bookmarks/{id}": delete_DeleteBookmark,
+    "/collections/{id}": delete_DeleteCollection,
     "/feeds/{id}": delete_DeleteFeed,
     "/smartFeeds/{id}": delete_DeleteSmartFeed,
     "/tags/{id}": delete_DeleteTag,
   },
   patch: {
     "/bookmarks/{id}": patch_UpdateBookmark,
+    "/collections/{id}": patch_UpdateCollection,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
     "/smartFeeds/{id}": patch_UpdateSmartFeed,

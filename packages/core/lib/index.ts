@@ -2,6 +2,7 @@ export * from './api'
 export * from './auth'
 export * from './backup'
 export * from './bookmark'
+export * from './collection'
 export * from './error'
 export * from './feed'
 export * from './feed-entry'
@@ -12,6 +13,9 @@ export {
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
+  Collection,
+  CollectionCreate,
+  CollectionUpdate,
   DetectedResponse,
   Feed,
   FeedCreate,

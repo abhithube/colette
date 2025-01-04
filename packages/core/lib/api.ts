@@ -1,6 +1,7 @@
 import { type AuthAPI, HTTPAuthAPI } from './auth'
 import { type BackupAPI, HTTPBackupAPI } from './backup'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
+import { type CollectionAPI, HTTPCollectionAPI } from './collection'
 import {
   APIError,
   BadGatewayError,
@@ -19,6 +20,7 @@ export interface API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   smartFeeds: SmartFeedAPI
@@ -33,6 +35,7 @@ export class HttpAPI implements API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   smartFeeds: SmartFeedAPI
@@ -89,6 +92,7 @@ export class HttpAPI implements API {
     this.auth = new HTTPAuthAPI(client)
     this.backups = new HTTPBackupAPI(client)
     this.bookmarks = new HTTPBookmarkAPI(client)
+    this.collections = new HTTPCollectionAPI(client)
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
     this.smartFeeds = new HTTPSmartFeedAPI(client)
