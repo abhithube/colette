@@ -211,6 +211,7 @@ impl BackupRepository for SqliteBackupRepository {
                                 Some(Uuid::new_v4()),
                                 bookmark_id,
                                 user_id,
+                                None,
                             )
                             .build_rusqlite(SqliteQueryBuilder);
 

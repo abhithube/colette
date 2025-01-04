@@ -61,6 +61,8 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
+    #[schema(required)]
+    pub collection_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -75,6 +77,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
+            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
@@ -85,6 +88,7 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
+    pub collection_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -93,6 +97,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     fn from(value: BookmarkCreate) -> Self {
         Self {
             url: value.url,
+            collection_id: value.collection_id,
             tags: value.tags,
         }
     }
@@ -101,13 +106,22 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub collection_id: Option<Option<Uuid>>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
-        Self { tags: value.tags }
+        Self {
+            collection_id: value.collection_id,
+            tags: value.tags,
+        }
     }
 }
 

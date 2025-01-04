@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::bookmark::Cursor;
 use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, WithQuery,
+    OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
@@ -15,6 +15,7 @@ pub enum UserBookmark {
     Id,
     UserId,
     BookmarkId,
+    CollectionId,
     CreatedAt,
     UpdatedAt,
 }
@@ -29,6 +30,7 @@ impl Iden for UserBookmark {
                 Self::Id => "id",
                 Self::UserId => "user_id",
                 Self::BookmarkId => "bookmark_id",
+                Self::CollectionId => "collection_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
             }
@@ -39,6 +41,7 @@ impl Iden for UserBookmark {
 
 pub fn select(
     id: Option<Uuid>,
+    collection_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<u64>,
@@ -77,6 +80,7 @@ pub fn select(
         .columns([
             (UserBookmark::Table, UserBookmark::Id),
             (UserBookmark::Table, UserBookmark::CreatedAt),
+            (UserBookmark::Table, UserBookmark::CollectionId),
         ])
         .columns([
             (Bookmark::Table, Bookmark::Link),
@@ -101,6 +105,10 @@ pub fn select(
         )
         .and_where(Expr::col((UserBookmark::Table, UserBookmark::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserBookmark::Table, UserBookmark::Id)).eq(e)))
+        .and_where_option(
+            collection_id
+                .map(|e| Expr::col((UserBookmark::Table, UserBookmark::CollectionId)).eq(e)),
+        )
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::col((UserBookmark::Table, UserBookmark::CreatedAt)).gt(Expr::val(e.created_at))
@@ -132,9 +140,19 @@ pub fn select_by_unique_index(user_id: Uuid, bookmark_id: i32) -> SelectStatemen
         .to_owned()
 }
 
-pub fn insert(id: Option<Uuid>, bookmark_id: i32, user_id: Uuid) -> InsertStatement {
-    let mut columns = vec![UserBookmark::BookmarkId, UserBookmark::UserId];
-    let mut values: Vec<SimpleExpr> = vec![bookmark_id.into(), user_id.into()];
+pub fn insert(
+    id: Option<Uuid>,
+    bookmark_id: i32,
+    user_id: Uuid,
+    collection_id: Option<Uuid>,
+) -> InsertStatement {
+    let mut columns = vec![
+        UserBookmark::BookmarkId,
+        UserBookmark::UserId,
+        UserBookmark::CollectionId,
+    ];
+    let mut values: Vec<SimpleExpr> =
+        vec![bookmark_id.into(), user_id.into(), collection_id.into()];
 
     if let Some(id) = id {
         columns.push(UserBookmark::Id);
@@ -152,6 +170,21 @@ pub fn insert(id: Option<Uuid>, bookmark_id: i32, user_id: Uuid) -> InsertStatem
         )
         .returning_col(UserBookmark::Id)
         .to_owned()
+}
+
+pub fn update(id: Uuid, user_id: Uuid, collection_id: Option<Option<Uuid>>) -> UpdateStatement {
+    let mut query = Query::update()
+        .table(UserBookmark::Table)
+        .value(UserBookmark::UpdatedAt, Expr::current_timestamp())
+        .and_where(Expr::col(UserBookmark::Id).eq(id))
+        .and_where(Expr::col(UserBookmark::UserId).eq(user_id))
+        .to_owned();
+
+    if let Some(collection_id) = collection_id {
+        query.value(UserBookmark::CollectionId, collection_id);
+    }
+
+    query
 }
 
 pub fn delete(id: Uuid, user_id: Uuid) -> DeleteStatement {

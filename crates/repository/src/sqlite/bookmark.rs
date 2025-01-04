@@ -1,7 +1,6 @@
 use colette_core::{
     bookmark::{
-        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
-        BookmarkUpdateData, Error,
+        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData, Error
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
@@ -52,6 +51,7 @@ impl Findable for SqliteBookmarkRepository {
             
             let (sql, values) = crate::user_bookmark::select(
                 params.id,
+                params.collection_id,
                 params.user_id,
                 params.cursor,
                 params.limit,
@@ -116,6 +116,7 @@ impl Creatable for SqliteBookmarkRepository {
                         Some(Uuid::new_v4()),
                         bookmark_id,
                         data.user_id,
+                        data.collection_id,
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -156,6 +157,15 @@ impl Updatable for SqliteBookmarkRepository {
 
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
+
+            if data.collection_id.is_some() {
+                let (sql, values) = crate::user_bookmark::update(params.id, params.user_id, data.collection_id).build_rusqlite(SqliteQueryBuilder);
+
+                let count = tx.prepare_cached(&sql)?.execute(&*values.as_params())?;
+                if count == 0 {
+                    return Err(rusqlite::Error::QueryReturnedNoRows);
+                }
+            }
 
             if let Some(tags) = data.tags {
                 link_tags(&tx, params.id, tags, params.user_id)?;
@@ -247,6 +257,7 @@ impl TryFrom<&Row<'_>> for BookmarkSelect {
             thumbnail_url: value.get("thumbnail_url")?,
             published_at: value.get("published_at")?,
             author: value.get("author")?,
+            collection_id: value.get("collection_id")?,
             created_at: value.get("created_at")?,
             tags: value.get::<_, Value>("tags").map(|e| match e {
                 Value::Text(text) => serde_json::from_str(&text).ok(),

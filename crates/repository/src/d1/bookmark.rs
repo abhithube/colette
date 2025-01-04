@@ -45,6 +45,7 @@ impl Findable for D1BookmarkRepository {
 
         let (sql, values) = crate::user_bookmark::select(
             params.id,
+            params.collection_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -97,9 +98,13 @@ impl Creatable for D1BookmarkRepository {
             } else {
                 let id = Uuid::new_v4();
 
-                (sql, values) =
-                    crate::user_bookmark::insert(Some(id), bookmark_id, data.user_id)
-                        .build_d1(SqliteQueryBuilder);
+                (sql, values) = crate::user_bookmark::insert(
+                    Some(id),
+                    bookmark_id,
+                    data.user_id,
+                    data.collection_id,
+                )
+                .build_d1(SqliteQueryBuilder);
 
                 super::run(&self.db, sql, values)
                     .await
@@ -126,6 +131,21 @@ impl Updatable for D1BookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        if data.collection_id.is_some() {
+            let (sql, values) =
+                crate::user_bookmark::update(params.id, params.user_id, data.collection_id)
+                    .build_d1(SqliteQueryBuilder);
+
+            let result = super::run(&self.db, sql, values)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            let meta = result.meta().unwrap().unwrap();
+
+            if meta.changes.is_none_or(|e| e == 0) {
+                return Err(Error::NotFound(params.id));
+            }
+        }
+
         if let Some(tags) = data.tags {
             link_tags(&self.db, params.id, tags, params.user_id)
                 .await
@@ -242,6 +262,7 @@ struct BookmarkSelect {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub collection_id: Option<Uuid>,
     pub created_at: String,
     pub tags: Option<String>,
 }
@@ -255,6 +276,7 @@ impl From<BookmarkSelect> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
+            collection_id: value.collection_id,
             created_at: NaiveDateTime::parse_from_str(&value.created_at, "%Y-%m-%d %H:%M:%S")
                 .unwrap()
                 .and_utc(),

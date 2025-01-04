@@ -50,6 +50,7 @@ impl Findable for PostgresBookmarkRepository {
 
         let (sql, values) = crate::user_bookmark::select(
             params.id,
+            params.collection_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -129,8 +130,13 @@ impl Creatable for PostgresBookmarkRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) = crate::user_bookmark::insert(None, bookmark_id, data.user_id)
-                    .build_postgres(PostgresQueryBuilder);
+                (sql, values) = crate::user_bookmark::insert(
+                    None,
+                    bookmark_id,
+                    data.user_id,
+                    data.collection_id,
+                )
+                .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
                     .prepare_cached(&sql)
@@ -173,6 +179,25 @@ impl Updatable for PostgresBookmarkRepository {
             .transaction()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
+
+        if data.collection_id.is_some() {
+            let (sql, values) =
+                crate::user_bookmark::update(params.id, params.user_id, data.collection_id)
+                    .build_postgres(PostgresQueryBuilder);
+
+            let stmt = tx
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = tx
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            if count == 0 {
+                return Err(Error::NotFound(params.id));
+            }
+        }
 
         if let Some(tags) = data.tags {
             link_tags(&tx, params.id, tags, params.user_id)
@@ -262,6 +287,7 @@ impl From<Row> for BookmarkSelect {
             thumbnail_url: value.get("thumbnail_url"),
             published_at: value.get("published_at"),
             author: value.get("author"),
+            collection_id: value.get("collection_id"),
             created_at: value.get("created_at"),
             tags: value
                 .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")

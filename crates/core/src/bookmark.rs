@@ -22,6 +22,7 @@ pub struct Bookmark {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+    pub collection_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }
@@ -29,11 +30,13 @@ pub struct Bookmark {
 #[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
+    pub collection_id: Option<Uuid>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdate {
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
@@ -147,6 +150,7 @@ impl BookmarkService {
             .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
+                collection_id: data.collection_id,
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
@@ -215,6 +219,7 @@ pub trait BookmarkRepository:
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
+    pub collection_id: Option<Option<Uuid>>,
     pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
@@ -223,18 +228,21 @@ pub struct BookmarkFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
+    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
+            collection_id: value.collection_id,
             tags: value
                 .tags
                 .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
