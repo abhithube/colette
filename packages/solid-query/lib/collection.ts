@@ -27,3 +27,12 @@ export const createCollectionOptions = (
   ...options,
   mutationFn: (body) => api.collections.create(body),
 })
+
+export const deleteCollectionOptions = (
+  id: string,
+  options: Omit<MutationOptions, 'mutationFn'>,
+  api: API,
+): MutationOptions => ({
+  ...options,
+  mutationFn: () => api.collections.delete(id),
+})
