@@ -42,6 +42,7 @@ pub struct BookmarkUpdate {
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkListQuery {
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
@@ -96,6 +97,7 @@ impl BookmarkService {
         let mut bookmarks = self
             .repository
             .find(BookmarkFindParams {
+                collection_id: query.collection_id,
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT + 1),
@@ -218,8 +220,8 @@ pub trait BookmarkRepository:
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
-    pub tags: Option<Vec<String>>,
     pub collection_id: Option<Option<Uuid>>,
+    pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<u64>,
     pub cursor: Option<Cursor>,
