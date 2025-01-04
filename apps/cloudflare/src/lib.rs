@@ -3,19 +3,21 @@ use std::sync::Arc;
 use axum::{body::Body, http::Response};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, smart_feed::SmartFeedState, tag::TagState, Api, ApiState,
+    auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
+    feed::FeedState, feed_entry::FeedEntryState, smart_feed::SmartFeedState, tag::TagState, Api,
+    ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, smart_feed::SmartFeedService, tag::TagService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
+    smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::register_bookmark_plugins;
 use colette_queue::cloudflare::CloudflareQueue;
 use colette_repository::d1::{
-    D1BackupRepository, D1BookmarkRepository, D1FeedEntryRepository, D1FeedRepository,
-    D1SmartFeedRepository, D1TagRepository, D1UserRepository,
+    D1BackupRepository, D1BookmarkRepository, D1CollectionRepository, D1FeedEntryRepository,
+    D1FeedRepository, D1SmartFeedRepository, D1TagRepository, D1UserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedDetector,
@@ -70,6 +72,9 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         )),
         base64_encoder.clone(),
     ));
+    let collection_service = Arc::new(CollectionService::new(D1CollectionRepository::new(
+        d1.clone(),
+    )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
         Box::new(DefaultFeedDetector::new(downloader)),
@@ -91,6 +96,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
             Arc::new(CloudflareQueue::<import_bookmarks::Data>::new(queue)),
         ),
         BookmarkState::new(bookmark_service),
+        CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         SmartFeedState::new(smart_feed_service),

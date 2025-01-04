@@ -14,6 +14,7 @@ use uuid::Uuid;
 
 pub const AUTH_TAG: &str = "Auth";
 pub const BACKUPS_TAG: &str = "Backups";
+pub const COLLECTIONS_TAG: &str = "Collections";
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 pub const FEEDS_TAG: &str = "Feeds";
