@@ -62,7 +62,12 @@ export function AddFeedModal() {
               {(feed) => (
                 <EditStep
                   feed={feed()}
-                  onClose={() => setOpen(false)}
+                  onClose={() => {
+                    setOpen(false)
+                    setStep(Step.Search)
+                    setDetectedFeeds(null)
+                    setSelectedFeed(null)
+                  }}
                   onBack={() => {
                     setStep(detectedFeeds() ? Step.Select : Step.Search)
                   }}
