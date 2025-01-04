@@ -13,7 +13,7 @@ enum Step {
   Edit = 2,
 }
 
-export function AddFeedModal() {
+export function CreateFeedModal() {
   const [isOpen, setOpen] = createSignal(false)
   const [step, setStep] = createSignal(Step.Search)
   const [detectedFeeds, setDetectedFeeds] = createSignal<FeedDetected[] | null>(
