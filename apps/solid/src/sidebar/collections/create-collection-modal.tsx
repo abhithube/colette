@@ -25,6 +25,7 @@ import {
 import { useAPI } from '~/lib/api-context'
 
 export const CreateCollectionModal: Component = () => {
+  const api = useAPI()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -52,7 +53,7 @@ export const CreateCollectionModal: Component = () => {
           setOpen(false)
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

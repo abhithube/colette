@@ -22,6 +22,8 @@ import { useAPI } from '~/lib/api-context'
 export const SearchStep: Component<{
   onNext: (res: DetectedResponse) => void
 }> = (props) => {
+  const api = useAPI()
+
   const form = createForm(() => ({
     defaultValues: {
       url: '',
@@ -37,7 +39,7 @@ export const SearchStep: Component<{
           props.onNext(res)
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

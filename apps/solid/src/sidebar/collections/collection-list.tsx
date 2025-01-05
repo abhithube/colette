@@ -5,7 +5,9 @@ import { useAPI } from '~/lib/api-context'
 import { CollectionItem } from './collection-item'
 
 export const CollectionList: Component = () => {
-  const query = createQuery(() => listCollectionsOptions(useAPI()))
+  const api = useAPI()
+
+  const query = createQuery(() => listCollectionsOptions(api))
 
   return (
     <Show when={query.data}>

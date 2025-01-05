@@ -16,9 +16,9 @@ export const UnsubscribeAlert: Component<{
   feed: Feed
   close: () => void
 }> = (props) => {
-  const queryClient = useQueryClient()
-
+  const api = useAPI()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const params = useParams<{ id?: string }>()
 
@@ -38,7 +38,7 @@ export const UnsubscribeAlert: Component<{
           })
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

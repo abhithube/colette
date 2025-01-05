@@ -26,10 +26,12 @@ import {
 import { useAPI } from '~/lib/api-context'
 
 export const LoginForm: Component = () => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
   const navigate = useNavigate()
 
   const query = createQuery(() => ({
-    ...getActiveOptions(useAPI()),
+    ...getActiveOptions(api),
     retry: false,
   }))
 
@@ -54,8 +56,8 @@ export const LoginForm: Component = () => {
       {
         onSuccess: () => form.reset(),
       },
-      useAPI(),
-      useQueryClient(),
+      api,
+      queryClient,
     ),
   )
 

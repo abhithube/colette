@@ -5,7 +5,9 @@ import { useAPI } from '~/lib/api-context'
 import { FeedItem } from './feed-item'
 
 export const FeedList: Component = () => {
-  const query = createQuery(() => listFeedsOptions({}, useAPI()))
+  const api = useAPI()
+
+  const query = createQuery(() => listFeedsOptions({}, api))
 
   return (
     <Show when={query.data}>

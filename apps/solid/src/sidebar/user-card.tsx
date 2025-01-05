@@ -18,9 +18,10 @@ import {
 import { useAPI } from '~/lib/api-context'
 
 export const UserCard: Component<{ user: AppUser }> = ({ user }) => {
-  const mutation = createMutation(() =>
-    logoutOptions({}, useAPI(), useQueryClient()),
-  )
+  const api = useAPI()
+  const queryClient = useQueryClient()
+
+  const mutation = createMutation(() => logoutOptions({}, api, queryClient))
 
   return (
     <SidebarMenu>

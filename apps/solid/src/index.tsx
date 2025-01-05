@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
 import { render } from 'solid-js/web'
 import App from './App'
 import './index.css'
-import {} from '@kobalte/core'
 import { APIProvider } from './lib/api-context'
 import { ThemeProvider } from './lib/theme-context'
 
@@ -16,21 +15,18 @@ if (import.meta.env.DEV && !(root instanceof HTMLElement)) {
   )
 }
 
+const api = new HttpAPI({
+  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api/v1',
+  credentials: 'include',
+})
+const client = new QueryClient()
+
 render(() => {
   return (
     <>
       <ThemeProvider>
-        <QueryClientProvider client={new QueryClient()}>
-          <APIProvider
-            api={
-              new HttpAPI({
-                baseUrl: import.meta.env.DEV
-                  ? import.meta.env.VITE_BACKEND_URL
-                  : '/api/v1',
-                credentials: 'include',
-              })
-            }
-          >
+        <QueryClientProvider client={client}>
+          <APIProvider api={api}>
             <App />
           </APIProvider>
         </QueryClientProvider>

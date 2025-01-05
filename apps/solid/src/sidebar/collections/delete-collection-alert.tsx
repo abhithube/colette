@@ -16,11 +16,10 @@ export const DeleteCollectionAlert: Component<{
   collection: Collection
   close: () => void
 }> = (props) => {
-  const queryClient = useQueryClient()
-
+  const api = useAPI()
   const navigate = useNavigate()
-
   const params = useParams<{ id?: string }>()
+  const queryClient = useQueryClient()
 
   const mutation = createMutation(() =>
     deleteCollectionOptions(
@@ -38,7 +37,7 @@ export const DeleteCollectionAlert: Component<{
           })
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

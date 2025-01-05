@@ -20,6 +20,8 @@ export const SelectStep: Component<{
   onNext: (feed: FeedProcessed) => void
   onBack: () => void
 }> = (props) => {
+  const api = useAPI()
+
   const form = createForm(() => ({
     defaultValues: {
       url: '',
@@ -38,7 +40,7 @@ export const SelectStep: Component<{
           }
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

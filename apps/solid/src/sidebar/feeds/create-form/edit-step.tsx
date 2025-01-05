@@ -26,7 +26,9 @@ export const EditStep: Component<{
   onClose: () => void
   onBack: () => void
 }> = (props) => {
+  const api = useAPI()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const form = createForm(() => ({
     defaultValues: {
@@ -45,8 +47,6 @@ export const EditStep: Component<{
     },
   }))
 
-  const queryClient = useQueryClient()
-
   const mutation = createMutation(() =>
     createFeedOptions(
       {
@@ -62,7 +62,7 @@ export const EditStep: Component<{
           props.onClose()
         },
       },
-      useAPI(),
+      api,
     ),
   )
 

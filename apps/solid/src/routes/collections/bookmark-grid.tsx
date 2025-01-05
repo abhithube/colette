@@ -7,11 +7,11 @@ import { BookmarkCard } from './bookmark-card'
 export const BookmarkGrid: Component<{
   collectionId?: string
 }> = (props) => {
-  const query = createInfiniteQuery(() =>
-    listBookmarksOptions({ collectionId: props.collectionId }, useAPI()),
-  )
+  const api = useAPI()
 
-  const allBookmarks = () => query.data?.pages.flatMap((page) => page.data)
+  const query = createInfiniteQuery(() =>
+    listBookmarksOptions({ collectionId: props.collectionId }, api),
+  )
 
   let target: HTMLDivElement | undefined
 
@@ -42,7 +42,7 @@ export const BookmarkGrid: Component<{
     <div class="space-y-8 px-8 pb-8">
       <div class="grid grid-cols-3 gap-4">
         <For
-          each={allBookmarks()}
+          each={query.data?.pages.flatMap((page) => page.data)}
           fallback={
             <div class="text-muted-foreground">
               No bookmarks in this collection.

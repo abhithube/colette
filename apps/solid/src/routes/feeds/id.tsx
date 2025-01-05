@@ -11,9 +11,10 @@ import { useAPI } from '~/lib/api-context'
 import { EntryList } from './entry-list'
 
 export const FeedPage: Component = () => {
+  const api = useAPI()
   const params = useParams<{ id: string }>()
 
-  const query = createQuery(() => getFeedOptions(params.id, useAPI()))
+  const query = createQuery(() => getFeedOptions(params.id, api))
 
   return (
     <Show when={query.data}>
