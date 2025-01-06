@@ -1,5 +1,5 @@
 import type { DetectedResponse } from '@colette/core'
-import { detectFeedsOptions } from '@colette/solid-query'
+import { detectFeedsOptions } from '@colette/query'
 import { createForm } from '@tanstack/solid-form'
 import { createMutation } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'

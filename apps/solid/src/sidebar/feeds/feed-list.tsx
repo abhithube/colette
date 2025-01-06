@@ -1,4 +1,4 @@
-import { listFeedsOptions } from '@colette/solid-query'
+import { listFeedsOptions } from '@colette/query'
 import { createQuery } from '@tanstack/solid-query'
 import { type Component, For, Show } from 'solid-js'
 import { useAPI } from '~/lib/api-context'

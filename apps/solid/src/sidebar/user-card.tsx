@@ -1,5 +1,5 @@
 import type { User as AppUser } from '@colette/core'
-import { logoutOptions } from '@colette/solid-query'
+import { logoutOptions } from '@colette/query'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import ChevronsUpDown from 'lucide-solid/icons/chevrons-up-down'
 import User from 'lucide-solid/icons/user'

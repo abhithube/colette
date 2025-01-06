@@ -1,4 +1,4 @@
-import { getFeedOptions } from '@colette/solid-query'
+import { getFeedOptions } from '@colette/query'
 import { useParams } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
 import CircleX from 'lucide-solid/icons/circle-x'

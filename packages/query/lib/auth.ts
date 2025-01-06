@@ -1,30 +1,55 @@
-import type { API, Login, Profile, SwitchProfile } from '@colette/core'
-import type { UseMutationOptions } from '@tanstack/react-query'
+import type { API, Login, User } from '@colette/core'
+import type { QueryClient, QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
-export type LoginOptions = UseMutationOptions<Profile, Error, Login>
+const AUTH_KEY: QueryKey = ['auth']
+
+type LoginOptions = BaseMutationOptions<User, Login>
 
 export const loginOptions = (
-  options: Omit<LoginOptions, 'mutationFn'>,
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: (body) => api.auth.login(body),
-  } as LoginOptions
-}
+  queryClient: QueryClient,
+  options: Omit<LoginOptions, 'mutationFn'> = {},
+): LoginOptions => ({
+  ...options,
+  mutationFn: (body) => api.auth.login(body),
+  onSuccess: async (...args) => {
+    queryClient.setQueryData(AUTH_KEY, args[0])
 
-export type SwitchProfileOptions = UseMutationOptions<
-  Profile,
-  Error,
-  SwitchProfile
->
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
+})
 
-export const switchProfileOptions = (
-  options: Omit<SwitchProfileOptions, 'mutationFn'>,
+type GetActiveOptions = BaseQueryOptions<User>
+
+export const getActiveOptions = (
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: (body) => api.auth.switchProfile(body),
-  } as SwitchProfileOptions
-}
+  options: Omit<GetActiveOptions, 'queryKey' | 'queryFn'> = {},
+): GetActiveOptions => ({
+  ...options,
+  queryKey: AUTH_KEY,
+  queryFn: () => api.auth.getActive(),
+})
+
+type LogoutOptions = BaseMutationOptions<void, void>
+
+export const logoutOptions = (
+  api: API,
+  queryClient: QueryClient,
+  options: Omit<LogoutOptions, 'mutationFn'> = {},
+): LogoutOptions => ({
+  ...options,
+  mutationFn: () => api.auth.logout(),
+  onSuccess: async (...args) => {
+    queryClient.setQueryData(AUTH_KEY, null)
+    await queryClient.invalidateQueries({
+      queryKey: AUTH_KEY,
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
+})

@@ -1,14 +1,12 @@
 import type { API } from '@colette/core'
-import type { UseMutationOptions } from '@tanstack/react-query'
+import type { BaseMutationOptions } from './common'
 
-export type ImportOpmlOptions = UseMutationOptions<void, Error, File>
+type ImportOpmlOptions = BaseMutationOptions<void, File>
 
 export const importOpmlOptions = (
-  options: Omit<ImportOpmlOptions, 'mutationFn'>,
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: (body) => api.backups.import(body),
-  } as ImportOpmlOptions
-}
+  options: Omit<ImportOpmlOptions, 'mutationFn'> = {},
+): ImportOpmlOptions => ({
+  ...options,
+  mutationFn: (body) => api.backups.import(body),
+})

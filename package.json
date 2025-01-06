@@ -11,7 +11,6 @@
 		"packages/core",
 		"packages/panda-preset",
 		"packages/query",
-		"packages/solid-query",
 		"packages/styled-system",
 		"packages/ui"
 	],

@@ -1,4 +1,4 @@
-import { listFeedEntriesOptions } from '@colette/solid-query'
+import { listFeedEntriesOptions } from '@colette/query'
 import { createInfiniteQuery } from '@tanstack/solid-query'
 import { type Component, For, onCleanup, onMount } from 'solid-js'
 import { Separator } from '~/components/ui/separator'

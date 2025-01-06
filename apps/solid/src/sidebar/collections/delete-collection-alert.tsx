@@ -1,5 +1,5 @@
 import type { Collection } from '@colette/core'
-import { deleteCollectionOptions } from '@colette/solid-query'
+import { deleteCollectionOptions } from '@colette/query'
 import { useNavigate, useParams } from '@solidjs/router'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'

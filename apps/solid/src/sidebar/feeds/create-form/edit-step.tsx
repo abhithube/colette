@@ -1,5 +1,5 @@
 import type { FeedProcessed } from '@colette/core'
-import { createFeedOptions } from '@colette/solid-query'
+import { createFeedOptions } from '@colette/query'
 import { useNavigate } from '@solidjs/router'
 import { createForm } from '@tanstack/solid-form'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'

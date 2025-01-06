@@ -1,5 +1,5 @@
 import type { Feed } from '@colette/core'
-import { deleteFeedOptions } from '@colette/solid-query'
+import { deleteFeedOptions } from '@colette/query'
 import { useNavigate, useParams } from '@solidjs/router'
 import { createMutation, useQueryClient } from '@tanstack/solid-query'
 import type { Component } from 'solid-js'

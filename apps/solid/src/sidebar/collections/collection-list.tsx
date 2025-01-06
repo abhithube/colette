@@ -1,4 +1,4 @@
-import { listCollectionsOptions } from '@colette/solid-query'
+import { listCollectionsOptions } from '@colette/query'
 import { createQuery } from '@tanstack/solid-query'
 import { type Component, For, Show } from 'solid-js'
 import { useAPI } from '~/lib/api-context'

@@ -1,63 +1,80 @@
 import type {
   API,
+  DetectedResponse,
   Feed,
   FeedCreate,
+  FeedDetect,
+  FeedList,
   FeedListQuery,
   FeedUpdate,
 } from '@colette/core'
-import { type UseMutationOptions, queryOptions } from '@tanstack/react-query'
+import type { QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
+
+const FEEDS_KEY: QueryKey = ['feeds']
+
+type ListFeedsOptions = BaseQueryOptions<FeedList>
 
 export const listFeedsOptions = (
   query: FeedListQuery,
-  profileId: string,
   api: API,
-) =>
-  queryOptions({
-    queryKey: ['profiles', profileId, 'feeds', query],
-    queryFn: () => api.feeds.list(query),
-  })
+  options: Omit<ListFeedsOptions, 'queryKey' | 'queryFn'> = {},
+): ListFeedsOptions => ({
+  ...options,
+  queryKey: [...FEEDS_KEY, query],
+  queryFn: () => api.feeds.list(query),
+})
 
-export const getFeedOptions = (id: string, api: API) =>
-  queryOptions({
-    queryKey: ['feeds', id],
-    queryFn: () => api.feeds.get(id),
-  })
+type GetFeedOptions = BaseQueryOptions<Feed>
 
-export type CreateFeedOptions = UseMutationOptions<Feed, Error, FeedCreate>
+export const getFeedOptions = (
+  id: string,
+  api: API,
+  options: Omit<GetFeedOptions, 'queryKey' | 'queryFn'> = {},
+): GetFeedOptions => ({
+  ...options,
+  queryKey: [...FEEDS_KEY, id],
+  queryFn: () => api.feeds.get(id),
+})
+
+type CreateFeedOptions = BaseMutationOptions<Feed, FeedCreate>
 
 export const createFeedOptions = (
-  options: Omit<CreateFeedOptions, 'mutationFn'>,
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: (body) => api.feeds.create(body),
-  } as UseMutationOptions<Feed, Error, FeedCreate>
-}
+  options: Omit<CreateFeedOptions, 'mutationFn'> = {},
+): CreateFeedOptions => ({
+  ...options,
+  mutationFn: (body) => api.feeds.create(body),
+})
 
-export type UpdateFeedOptions = UseMutationOptions<
+type UpdateFeedOptions = BaseMutationOptions<
   Feed,
-  Error,
   { id: string; body: FeedUpdate }
 >
 
 export const updateFeedOptions = (
-  options: Omit<UpdateFeedOptions, 'mutationFn'>,
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: ({ id, body }) => api.feeds.update(id, body),
-  } as UseMutationOptions<Feed, Error, { id: string; body: FeedUpdate }>
-}
+  options: Omit<UpdateFeedOptions, 'mutationFn'> = {},
+): UpdateFeedOptions => ({
+  ...options,
+  mutationFn: ({ id, body }) => api.feeds.update(id, body),
+})
 
 export const deleteFeedOptions = (
   id: string,
-  options: Omit<UseMutationOptions, 'mutationFn'>,
   api: API,
-) => {
-  return {
-    ...options,
-    mutationFn: () => api.feeds.delete(id),
-  } as UseMutationOptions
-}
+  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
+): BaseMutationOptions => ({
+  ...options,
+  mutationFn: () => api.feeds.delete(id),
+})
+
+type DetectFeedsOptions = BaseMutationOptions<DetectedResponse, FeedDetect>
+
+export const detectFeedsOptions = (
+  api: API,
+  options: Omit<DetectFeedsOptions, 'mutationFn'> = {},
+): DetectFeedsOptions => ({
+  ...options,
+  mutationFn: (body) => api.feeds.detect(body),
+})

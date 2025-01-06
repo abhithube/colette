@@ -1,4 +1,4 @@
-import { getCollectionOptions } from '@colette/solid-query'
+import { getCollectionOptions } from '@colette/query'
 import { useParams } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
 import BookmarkPlus from 'lucide-solid/icons/bookmark-plus'

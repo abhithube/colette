@@ -1,4 +1,4 @@
-import { getActiveOptions } from '@colette/solid-query'
+import { getActiveOptions } from '@colette/query'
 import { useNavigate } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
 import { type ParentComponent, Show, createEffect } from 'solid-js'

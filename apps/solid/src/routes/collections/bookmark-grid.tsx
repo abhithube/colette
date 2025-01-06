@@ -1,4 +1,4 @@
-import { listBookmarksOptions } from '@colette/solid-query'
+import { listBookmarksOptions } from '@colette/query'
 import { createInfiniteQuery } from '@tanstack/solid-query'
 import { type Component, For, onCleanup, onMount } from 'solid-js'
 import { useAPI } from '~/lib/api-context'
