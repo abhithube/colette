@@ -4,20 +4,20 @@ use axum::{body::Body, http::Response};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
-    feed::FeedState, feed_entry::FeedEntryState, smart_feed::SmartFeedState, tag::TagState, Api,
-    ApiState,
+    feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, smart_feed::SmartFeedState,
+    tag::TagState, Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    smart_feed::SmartFeedService, tag::TagService,
+    folder::FolderService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::register_bookmark_plugins;
 use colette_queue::cloudflare::CloudflareQueue;
 use colette_repository::d1::{
     D1BackupRepository, D1BookmarkRepository, D1CollectionRepository, D1FeedEntryRepository,
-    D1FeedRepository, D1SmartFeedRepository, D1TagRepository, D1UserRepository,
+    D1FeedRepository, D1FolderRepository, D1SmartFeedRepository, D1TagRepository, D1UserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedDetector,
@@ -83,6 +83,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         D1FeedEntryRepository::new(d1.clone()),
         base64_encoder,
     ));
+    let folder_service = Arc::new(FolderService::new(D1FolderRepository::new(d1.clone())));
     let smart_feed_service = Arc::new(SmartFeedService::new(D1SmartFeedRepository::new(
         d1.clone(),
     )));
@@ -99,6 +100,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
+        FolderState::new(folder_service),
         SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );

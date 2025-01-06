@@ -4,21 +4,22 @@ use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
-    feed::FeedState, feed_entry::FeedEntryState, smart_feed::SmartFeedState, tag::TagState, Api,
-    ApiState,
+    feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, smart_feed::SmartFeedState,
+    tag::TagState, Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
+    folder::FolderService, scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresScraperRepository,
-    PostgresSmartFeedRepository, PostgresTagRepository, PostgresUserRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresFolderRepository,
+    PostgresScraperRepository, PostgresSmartFeedRepository, PostgresTagRepository,
+    PostgresUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
@@ -119,6 +120,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         PostgresFeedEntryRepository::new(pool.clone()),
         base64_encoder,
     ));
+    let folder_service = Arc::new(FolderService::new(PostgresFolderRepository::new(
+        pool.clone(),
+    )));
     let scraper_service = Arc::new(ScraperService::new(
         PostgresScraperRepository::new(pool.clone()),
         feed_plugin_registry,
@@ -155,6 +159,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
+        FolderState::new(folder_service),
         SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );

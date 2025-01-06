@@ -8,6 +8,7 @@ use collection::{CollectionApi, CollectionState};
 pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
+use folder::{FolderApi, FolderState};
 use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
 use utoipa::{openapi::Server, OpenApi};
@@ -38,6 +39,7 @@ pub struct ApiState {
     collection_state: CollectionState,
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
+    folder_state: FolderState,
     smart_feed_state: SmartFeedState,
     tag_state: TagState,
 }
@@ -51,6 +53,7 @@ impl ApiState {
         collection_state: CollectionState,
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
+        folder_state: FolderState,
         smart_feed_state: SmartFeedState,
         tag_state: TagState,
     ) -> Self {
@@ -61,6 +64,7 @@ impl ApiState {
             collection_state,
             feed_state,
             feed_entry_state,
+            folder_state,
             smart_feed_state,
             tag_state,
         }
@@ -101,6 +105,8 @@ impl<'a> Api<'a> {
                     .with_state(FeedEntryState::from_ref(self.api_state))
                     .nest("/feeds", FeedApi::router())
                     .with_state(FeedState::from_ref(self.api_state))
+                    .nest("/folders", FolderApi::router())
+                    .with_state(FolderState::from_ref(self.api_state))
                     .nest("/smartFeeds", SmartFeedApi::router())
                     .with_state(SmartFeedState::from_ref(self.api_state))
                     .nest("/tags", TagApi::router())
