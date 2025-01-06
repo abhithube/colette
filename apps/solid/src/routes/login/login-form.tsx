@@ -52,13 +52,9 @@ export const LoginForm: Component = () => {
   }))
 
   const mutation = createMutation(() =>
-    loginOptions(
-      {
-        onSuccess: () => form.reset(),
-      },
-      api,
-      queryClient,
-    ),
+    loginOptions(api, queryClient, {
+      onSuccess: () => form.reset(),
+    }),
   )
 
   return (

@@ -13,8 +13,8 @@ const SMART_FEEDS_KEY: QueryKey = ['smartFeeds']
 type ListSmartFeedsOptions = BaseQueryOptions<SmartFeedList>
 
 export const listSmartFeedsOptions = (
-  options: Omit<ListSmartFeedsOptions, 'queryKey' | 'queryFn'>,
   api: API,
+  options: Omit<ListSmartFeedsOptions, 'queryKey' | 'queryFn'> = {},
 ): ListSmartFeedsOptions => ({
   ...options,
   queryKey: SMART_FEEDS_KEY,
@@ -25,8 +25,8 @@ type GetSmartFeedOptions = BaseQueryOptions<SmartFeed>
 
 export const getSmartFeedOptions = (
   id: string,
-  options: Omit<GetSmartFeedOptions, 'queryKey' | 'queryFn'>,
   api: API,
+  options: Omit<GetSmartFeedOptions, 'queryKey' | 'queryFn'> = {},
 ): GetSmartFeedOptions => ({
   ...options,
   queryKey: [...SMART_FEEDS_KEY, id],
@@ -36,8 +36,8 @@ export const getSmartFeedOptions = (
 type CreateSmartFeedOptions = BaseMutationOptions<SmartFeed, SmartFeedCreate>
 
 export const createSmartFeedOptions = (
-  options: Omit<CreateSmartFeedOptions, 'mutationFn'>,
   api: API,
+  options: Omit<CreateSmartFeedOptions, 'mutationFn'> = {},
 ): CreateSmartFeedOptions => ({
   ...options,
   mutationFn: (body) => api.smartFeeds.create(body),
@@ -49,8 +49,8 @@ type UpdateSmartFeedOptions = BaseMutationOptions<
 >
 
 export const updateSmartFeedOptions = (
-  options: Omit<UpdateSmartFeedOptions, 'mutationFn'>,
   api: API,
+  options: Omit<UpdateSmartFeedOptions, 'mutationFn'> = {},
 ): UpdateSmartFeedOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.smartFeeds.update(id, body),
@@ -58,8 +58,8 @@ export const updateSmartFeedOptions = (
 
 export const deleteSmartFeedOptions = (
   id: string,
-  options: Omit<BaseMutationOptions, 'mutationFn'>,
   api: API,
+  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
 ): BaseMutationOptions => ({
   ...options,
   mutationFn: () => api.smartFeeds.delete(id),

@@ -40,8 +40,8 @@ export const listBookmarksOptions = (
 type CreateBookmarkOptions = BaseMutationOptions<Bookmark, BookmarkCreate>
 
 export const createBookmarkOptions = (
-  options: Omit<CreateBookmarkOptions, 'mutationFn'>,
   api: API,
+  options: Omit<CreateBookmarkOptions, 'mutationFn'> = {},
 ): CreateBookmarkOptions => ({
   ...options,
   mutationFn: (body) => api.bookmarks.create(body),
@@ -53,8 +53,8 @@ type UpdateBookmarkOptions = BaseMutationOptions<
 >
 
 export const updateBookmarkOptions = (
-  options: Omit<UpdateBookmarkOptions, 'mutationFn'>,
   api: API,
+  options: Omit<UpdateBookmarkOptions, 'mutationFn'> = {},
 ): UpdateBookmarkOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
@@ -66,8 +66,8 @@ type ScrapeBookmarkOptions = BaseMutationOptions<
 >
 
 export const scrapeBookmarkOptions = (
-  options: Omit<ScrapeBookmarkOptions, 'mutationFn'>,
   api: API,
+  options: Omit<ScrapeBookmarkOptions, 'mutationFn'> = {},
 ): ScrapeBookmarkOptions => ({
   ...options,
   mutationFn: (body) => api.bookmarks.scrape(body),

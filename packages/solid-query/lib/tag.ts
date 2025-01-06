@@ -8,8 +8,8 @@ type ListTagsOptions = BaseQueryOptions<TagList>
 
 export const listTagsOptions = (
   query: TagListQuery,
-  options: Omit<ListTagsOptions, 'queryKey' | 'queryFn'>,
   api: API,
+  options: Omit<ListTagsOptions, 'queryKey' | 'queryFn'> = {},
 ): ListTagsOptions => ({
   ...options,
   queryKey: [...TAGS_KEY, query],
@@ -20,8 +20,8 @@ type GetTagOptions = BaseQueryOptions<Tag>
 
 export const getTagOptions = (
   id: string,
-  options: Omit<GetTagOptions, 'queryKey' | 'queryFn'>,
   api: API,
+  options: Omit<GetTagOptions, 'queryKey' | 'queryFn'> = {},
 ): GetTagOptions => ({
   ...options,
   queryKey: [...TAGS_KEY, id],
@@ -31,8 +31,8 @@ export const getTagOptions = (
 type CreateTagOptions = BaseMutationOptions<Tag, TagCreate>
 
 export const createTagOptions = (
-  options: Omit<CreateTagOptions, 'mutationFn'>,
   api: API,
+  options: Omit<CreateTagOptions, 'mutationFn'> = {},
 ): CreateTagOptions => ({
   ...options,
   mutationFn: (body) => api.tags.create(body),

@@ -21,7 +21,7 @@ export const UserCard: Component<{ user: AppUser }> = ({ user }) => {
   const api = useAPI()
   const queryClient = useQueryClient()
 
-  const mutation = createMutation(() => logoutOptions({}, api, queryClient))
+  const mutation = createMutation(() => logoutOptions(api, queryClient))
 
   return (
     <SidebarMenu>

@@ -40,8 +40,8 @@ export const getFeedOptions = (
 type CreateFeedOptions = BaseMutationOptions<Feed, FeedCreate>
 
 export const createFeedOptions = (
-  options: Omit<CreateFeedOptions, 'mutationFn'>,
   api: API,
+  options: Omit<CreateFeedOptions, 'mutationFn'> = {},
 ): CreateFeedOptions => ({
   ...options,
   mutationFn: (body) => api.feeds.create(body),
@@ -53,8 +53,8 @@ type UpdateFeedOptions = BaseMutationOptions<
 >
 
 export const updateFeedOptions = (
-  options: Omit<UpdateFeedOptions, 'mutationFn'>,
   api: API,
+  options: Omit<UpdateFeedOptions, 'mutationFn'> = {},
 ): UpdateFeedOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.feeds.update(id, body),
@@ -62,8 +62,8 @@ export const updateFeedOptions = (
 
 export const deleteFeedOptions = (
   id: string,
-  options: Omit<BaseMutationOptions, 'mutationFn'>,
   api: API,
+  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
 ): BaseMutationOptions => ({
   ...options,
   mutationFn: () => api.feeds.delete(id),
@@ -72,8 +72,8 @@ export const deleteFeedOptions = (
 type DetectFeedsOptions = BaseMutationOptions<DetectedResponse, FeedDetect>
 
 export const detectFeedsOptions = (
-  options: Omit<DetectFeedsOptions, 'mutationFn'>,
   api: API,
+  options: Omit<DetectFeedsOptions, 'mutationFn'> = {},
 ): DetectFeedsOptions => ({
   ...options,
   mutationFn: (body) => api.feeds.detect(body),

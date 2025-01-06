@@ -22,23 +22,19 @@ export const DeleteCollectionAlert: Component<{
   const queryClient = useQueryClient()
 
   const mutation = createMutation(() =>
-    deleteCollectionOptions(
-      props.collection.id,
-      {
-        onSuccess: async () => {
-          props.close()
+    deleteCollectionOptions(props.collection.id, api, {
+      onSuccess: async () => {
+        props.close()
 
-          if (params.id === props.collection.id) {
-            navigate('/collections')
-          }
+        if (params.id === props.collection.id) {
+          navigate('/collections')
+        }
 
-          await queryClient.invalidateQueries({
-            queryKey: ['collections'],
-          })
-        },
+        await queryClient.invalidateQueries({
+          queryKey: ['collections'],
+        })
       },
-      api,
-    ),
+    }),
   )
 
   return (

@@ -40,8 +40,8 @@ type UpdateFeedEntryOptions = BaseMutationOptions<
 >
 
 export const updateFeedEntryOptions = (
-  options: Omit<UpdateFeedEntryOptions, 'mutationFn'>,
   api: API,
+  options: Omit<UpdateFeedEntryOptions, 'mutationFn'> = {},
 ): UpdateFeedEntryOptions => ({
   ...options,
   mutationFn: (data) => api.feedEntries.update(data.id, data.body),

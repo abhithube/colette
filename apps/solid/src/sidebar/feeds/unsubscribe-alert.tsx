@@ -23,23 +23,19 @@ export const UnsubscribeAlert: Component<{
   const params = useParams<{ id?: string }>()
 
   const mutation = createMutation(() =>
-    deleteFeedOptions(
-      props.feed.id,
-      {
-        onSuccess: async () => {
-          props.close()
+    deleteFeedOptions(props.feed.id, api, {
+      onSuccess: async () => {
+        props.close()
 
-          if (params.id === props.feed.id) {
-            navigate('/feeds')
-          }
+        if (params.id === props.feed.id) {
+          navigate('/feeds')
+        }
 
-          await queryClient.invalidateQueries({
-            queryKey: ['feeds'],
-          })
-        },
+        await queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
       },
-      api,
-    ),
+    }),
   )
 
   return (

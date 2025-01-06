@@ -7,9 +7,9 @@ const AUTH_KEY: QueryKey = ['auth']
 type LoginOptions = BaseMutationOptions<User, Login>
 
 export const loginOptions = (
-  options: Omit<LoginOptions, 'mutationFn'>,
   api: API,
   queryClient: QueryClient,
+  options: Omit<LoginOptions, 'mutationFn'> = {},
 ): LoginOptions => ({
   ...options,
   mutationFn: (body) => api.auth.login(body),
@@ -36,9 +36,9 @@ export const getActiveOptions = (
 type LogoutOptions = BaseMutationOptions<void, void>
 
 export const logoutOptions = (
-  options: Omit<LogoutOptions, 'mutationFn'>,
   api: API,
   queryClient: QueryClient,
+  options: Omit<LogoutOptions, 'mutationFn'> = {},
 ): LogoutOptions => ({
   ...options,
   mutationFn: () => api.auth.logout(),

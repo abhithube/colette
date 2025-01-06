@@ -32,15 +32,12 @@ export const SearchStep: Component<{
   }))
 
   const mutation = createMutation(() =>
-    detectFeedsOptions(
-      {
-        onSuccess: (res) => {
-          form.reset()
-          props.onNext(res)
-        },
+    detectFeedsOptions(api, {
+      onSuccess: (res) => {
+        form.reset()
+        props.onNext(res)
       },
-      api,
-    ),
+    }),
   )
 
   return (

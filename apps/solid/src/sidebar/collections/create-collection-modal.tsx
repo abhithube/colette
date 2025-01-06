@@ -39,22 +39,19 @@ export const CreateCollectionModal: Component = () => {
   }))
 
   const mutation = createMutation(() =>
-    createCollectionOptions(
-      {
-        onSuccess: async (collection) => {
-          form.reset()
+    createCollectionOptions(api, {
+      onSuccess: async (collection) => {
+        form.reset()
 
-          await queryClient.invalidateQueries({
-            queryKey: ['collections'],
-          })
+        await queryClient.invalidateQueries({
+          queryKey: ['collections'],
+        })
 
-          navigate(`/collections/${collection.id}`)
+        navigate(`/collections/${collection.id}`)
 
-          setOpen(false)
-        },
+        setOpen(false)
       },
-      api,
-    ),
+    }),
   )
 
   return (

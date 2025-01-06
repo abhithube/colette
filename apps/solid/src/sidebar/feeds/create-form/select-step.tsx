@@ -30,18 +30,15 @@ export const SelectStep: Component<{
   }))
 
   const mutation = createMutation(() =>
-    detectFeedsOptions(
-      {
-        onSuccess: (res) => {
-          form.reset()
+    detectFeedsOptions(api, {
+      onSuccess: (res) => {
+        form.reset()
 
-          if ('link' in res) {
-            props.onNext(res)
-          }
-        },
+        if ('link' in res) {
+          props.onNext(res)
+        }
       },
-      api,
-    ),
+    }),
   )
 
   return (

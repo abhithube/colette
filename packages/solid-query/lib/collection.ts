@@ -35,8 +35,8 @@ export const getCollectionOptions = (
 type CreateCollectionOptions = BaseMutationOptions<Collection, CollectionCreate>
 
 export const createCollectionOptions = (
-  options: Omit<CreateCollectionOptions, 'mutationFn'>,
   api: API,
+  options: Omit<CreateCollectionOptions, 'mutationFn'> = {},
 ): CreateCollectionOptions => ({
   ...options,
   mutationFn: (body) => api.collections.create(body),
@@ -44,8 +44,8 @@ export const createCollectionOptions = (
 
 export const deleteCollectionOptions = (
   id: string,
-  options: Omit<BaseMutationOptions, 'mutationFn'>,
   api: API,
+  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
 ): MutationOptions => ({
   ...options,
   mutationFn: () => api.collections.delete(id),
