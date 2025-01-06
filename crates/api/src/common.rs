@@ -18,6 +18,7 @@ pub const COLLECTIONS_TAG: &str = "Collections";
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 pub const FEEDS_TAG: &str = "Feeds";
+pub const FOLDERS_TAG: &str = "Folders";
 pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
 pub const TAGS_TAG: &str = "Tags";
 

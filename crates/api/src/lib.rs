@@ -26,6 +26,7 @@ pub mod collection;
 mod common;
 pub mod feed;
 pub mod feed_entry;
+pub mod folder;
 pub mod smart_feed;
 pub mod tag;
 
