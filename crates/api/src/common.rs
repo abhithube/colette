@@ -54,7 +54,6 @@ pub struct Session {
     pub user_id: Uuid,
 }
 
-#[async_trait::async_trait]
 impl<S> FromRequestParts<S> for Session
 where
     S: Send + Sync,

@@ -28,14 +28,14 @@ resolver = "2"
 [workspace.dependencies]
 anyhow = { version = "1", default-features = false, features = ["std"] }
 async-trait = { version = "0.1", default-features = false }
-axum = { version = "0.7", default-features = false, features = [
+axum = { version = "0.8", default-features = false, features = [
   "http1",
   "json",
   "query",
   "macros",
 ] }
 axum-embed = { version = "0.1", default-features = false }
-axum-extra = { version = "0.9", default-features = false, features = [
+axum-extra = { version = "0.10", default-features = false, features = [
   "query",
   "tracing",
 ] }
@@ -102,7 +102,7 @@ tower = { version = "0.5", default-features = false, features = [
   "limit",
   "tracing",
 ] }
-tower-sessions = { version = "0.13", default-features = false, features = [
+tower-sessions = { version = "0.14", default-features = false, features = [
   "axum-core",
 ] }
 tracing-subscriber = { version = "0.3", default-features = false, features = [
@@ -110,7 +110,7 @@ tracing-subscriber = { version = "0.3", default-features = false, features = [
   "env-filter",
   "tracing-log",
 ] }
-tower-sessions-core = { version = "0.13", default-features = false, features = [
+tower-sessions-core = { version = "0.14", default-features = false, features = [
   "deletion-task",
 ] }
 tracing = { version = "0.1", default-features = false }
