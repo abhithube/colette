@@ -1,7 +1,7 @@
 import type { API } from '@colette/core'
-import type { MutationOptions } from '@tanstack/query-core'
+import type { BaseMutationOptions } from './common'
 
-export type ImportOpmlOptions = MutationOptions<void, Error, File>
+type ImportOpmlOptions = BaseMutationOptions<void, File>
 
 export const importOpmlOptions = (
   options: Omit<ImportOpmlOptions, 'mutationFn'>,

@@ -2,31 +2,42 @@ import type {
   API,
   Bookmark,
   BookmarkCreate,
+  BookmarkList,
   BookmarkListQuery,
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
 } from '@colette/core'
-import type { MutationOptions } from '@tanstack/query-core'
-import { infiniteQueryOptions } from '@tanstack/solid-query'
+import type { QueryKey } from '@tanstack/query-core'
+import type { BaseInfiniteQueryOptions, BaseMutationOptions } from './common'
 
-export const listBookmarksOptions = (query: BookmarkListQuery, api: API) =>
-  infiniteQueryOptions({
-    queryKey: ['bookmarks', query],
-    queryFn: ({ pageParam }) =>
-      api.bookmarks.list({
-        ...query,
-        cursor: pageParam,
-      }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.cursor,
-  })
+const BOOKMARKS_KEY: QueryKey = ['bookmarks']
 
-export type CreateBookmarkOptions = MutationOptions<
-  Bookmark,
-  Error,
-  BookmarkCreate
+type ListBookmarksOptions = BaseInfiniteQueryOptions<
+  BookmarkList,
+  string | undefined
 >
+
+export const listBookmarksOptions = (
+  query: BookmarkListQuery,
+  api: API,
+  options: Omit<
+    ListBookmarksOptions,
+    'queryKey' | 'queryFn' | 'initialPageParam' | 'getNextPageParam'
+  > = {},
+): ListBookmarksOptions => ({
+  ...options,
+  queryKey: [...BOOKMARKS_KEY, query],
+  queryFn: ({ pageParam }) =>
+    api.bookmarks.list({
+      ...query,
+      cursor: pageParam,
+    }),
+  initialPageParam: undefined,
+  getNextPageParam: (lastPage) => lastPage.cursor,
+})
+
+type CreateBookmarkOptions = BaseMutationOptions<Bookmark, BookmarkCreate>
 
 export const createBookmarkOptions = (
   options: Omit<CreateBookmarkOptions, 'mutationFn'>,
@@ -36,9 +47,8 @@ export const createBookmarkOptions = (
   mutationFn: (body) => api.bookmarks.create(body),
 })
 
-export type UpdateBookmarkOptions = MutationOptions<
+type UpdateBookmarkOptions = BaseMutationOptions<
   Bookmark,
-  Error,
   { id: string; body: BookmarkUpdate }
 >
 
@@ -50,9 +60,8 @@ export const updateBookmarkOptions = (
   mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
 })
 
-export type ScrapeBookmarkOptions = MutationOptions<
+type ScrapeBookmarkOptions = BaseMutationOptions<
   BookmarkScraped,
-  Error,
   BookmarkScrape
 >
 

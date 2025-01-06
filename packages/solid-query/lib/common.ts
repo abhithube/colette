@@ -1,12 +1,34 @@
-import type { QueryClient } from '@tanstack/query-core'
-import type { FetchInfiniteQueryOptions } from '@tanstack/solid-query'
+import type {
+  InfiniteData,
+  InfiniteQueryObserverOptions,
+  MutationOptions,
+  QueryKey,
+  QueryOptions,
+} from '@tanstack/query-core'
 
-export const ensureInfiniteQueryData = async (
-  queryClient: QueryClient,
-  options: FetchInfiniteQueryOptions,
-) => {
-  const data = queryClient.getQueryData(options.queryKey)
-  if (!data) {
-    await queryClient.fetchInfiniteQuery(options)
-  }
+export type BaseQueryOptions<
+  TQueryFnData = unknown,
+  TData = TQueryFnData,
+> = QueryOptions<TQueryFnData, Error, TData> & {
+  queryKey: QueryKey
+  initialData?: undefined
 }
+
+export type BaseInfiniteQueryOptions<
+  TQueryFnData = unknown,
+  TPageParam = unknown,
+> = InfiniteQueryObserverOptions<
+  TQueryFnData,
+  Error,
+  InfiniteData<TQueryFnData>,
+  TQueryFnData,
+  QueryKey,
+  TPageParam
+> & {
+  initialData?: undefined
+}
+
+export type BaseMutationOptions<
+  TQueryFnData = unknown,
+  TVariables = void,
+> = MutationOptions<TQueryFnData, Error, TVariables>

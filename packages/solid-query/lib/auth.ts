@@ -1,14 +1,10 @@
 import type { API, Login, User } from '@colette/core'
-import type {
-  MutationOptions,
-  QueryClient,
-  QueryKey,
-} from '@tanstack/query-core'
-import { queryOptions } from '@tanstack/solid-query'
+import type { QueryClient, QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
-const authQueryKey = () => ['auth'] as QueryKey
+const AUTH_KEY: QueryKey = ['auth']
 
-export type LoginOptions = MutationOptions<User, Error, Login>
+type LoginOptions = BaseMutationOptions<User, Login>
 
 export const loginOptions = (
   options: Omit<LoginOptions, 'mutationFn'>,
@@ -18,7 +14,7 @@ export const loginOptions = (
   ...options,
   mutationFn: (body) => api.auth.login(body),
   onSuccess: async (...args) => {
-    queryClient.setQueryData(authQueryKey(), args[0])
+    queryClient.setQueryData(AUTH_KEY, args[0])
 
     if (options.onSuccess) {
       await options.onSuccess(...args)
@@ -26,23 +22,30 @@ export const loginOptions = (
   },
 })
 
-export const getActiveOptions = (api: API) =>
-  queryOptions({
-    queryKey: authQueryKey(),
-    queryFn: () => api.auth.getActive(),
-  })
+type GetActiveOptions = BaseQueryOptions<User>
+
+export const getActiveOptions = (
+  api: API,
+  options: Omit<GetActiveOptions, 'queryKey' | 'queryFn'> = {},
+): GetActiveOptions => ({
+  ...options,
+  queryKey: AUTH_KEY,
+  queryFn: () => api.auth.getActive(),
+})
+
+type LogoutOptions = BaseMutationOptions<void, void>
 
 export const logoutOptions = (
-  options: Omit<MutationOptions<void, Error, void>, 'mutationFn'>,
+  options: Omit<LogoutOptions, 'mutationFn'>,
   api: API,
   queryClient: QueryClient,
-): MutationOptions<void, Error, void> => ({
+): LogoutOptions => ({
   ...options,
   mutationFn: () => api.auth.logout(),
   onSuccess: async (...args) => {
-    queryClient.setQueryData(authQueryKey(), null)
+    queryClient.setQueryData(AUTH_KEY, null)
     await queryClient.invalidateQueries({
-      queryKey: authQueryKey(),
+      queryKey: AUTH_KEY,
     })
 
     if (options.onSuccess) {

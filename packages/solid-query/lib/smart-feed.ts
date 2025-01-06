@@ -2,28 +2,38 @@ import type {
   API,
   SmartFeed,
   SmartFeedCreate,
+  SmartFeedList,
   SmartFeedUpdate,
 } from '@colette/core'
-import type { MutationOptions } from '@tanstack/query-core'
-import { queryOptions } from '@tanstack/solid-query'
+import type { QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
-export const listSmartFeedsOptions = (api: API) =>
-  queryOptions({
-    queryKey: ['smartFeeds'],
-    queryFn: () => api.smartFeeds.list(),
-  })
+const SMART_FEEDS_KEY: QueryKey = ['smartFeeds']
 
-export const getSmartFeedOptions = (id: string, api: API) =>
-  queryOptions({
-    queryKey: ['smartFeeds', id],
-    queryFn: () => api.smartFeeds.get(id),
-  })
+type ListSmartFeedsOptions = BaseQueryOptions<SmartFeedList>
 
-export type CreateSmartFeedOptions = MutationOptions<
-  SmartFeed,
-  Error,
-  SmartFeedCreate
->
+export const listSmartFeedsOptions = (
+  options: Omit<ListSmartFeedsOptions, 'queryKey' | 'queryFn'>,
+  api: API,
+): ListSmartFeedsOptions => ({
+  ...options,
+  queryKey: SMART_FEEDS_KEY,
+  queryFn: () => api.smartFeeds.list(),
+})
+
+type GetSmartFeedOptions = BaseQueryOptions<SmartFeed>
+
+export const getSmartFeedOptions = (
+  id: string,
+  options: Omit<GetSmartFeedOptions, 'queryKey' | 'queryFn'>,
+  api: API,
+): GetSmartFeedOptions => ({
+  ...options,
+  queryKey: [...SMART_FEEDS_KEY, id],
+  queryFn: () => api.smartFeeds.get(id),
+})
+
+type CreateSmartFeedOptions = BaseMutationOptions<SmartFeed, SmartFeedCreate>
 
 export const createSmartFeedOptions = (
   options: Omit<CreateSmartFeedOptions, 'mutationFn'>,
@@ -33,9 +43,8 @@ export const createSmartFeedOptions = (
   mutationFn: (body) => api.smartFeeds.create(body),
 })
 
-export type UpdateSmartFeedOptions = MutationOptions<
+type UpdateSmartFeedOptions = BaseMutationOptions<
   SmartFeed,
-  Error,
   { id: string; body: SmartFeedUpdate }
 >
 
@@ -49,9 +58,9 @@ export const updateSmartFeedOptions = (
 
 export const deleteSmartFeedOptions = (
   id: string,
-  options: Omit<MutationOptions, 'mutationFn'>,
+  options: Omit<BaseMutationOptions, 'mutationFn'>,
   api: API,
-): MutationOptions => ({
+): BaseMutationOptions => ({
   ...options,
   mutationFn: () => api.smartFeeds.delete(id),
 })

@@ -1,20 +1,34 @@
-import type { API, Tag, TagCreate, TagListQuery } from '@colette/core'
-import type { MutationOptions } from '@tanstack/query-core'
-import { queryOptions } from '@tanstack/solid-query'
+import type { API, Tag, TagCreate, TagList, TagListQuery } from '@colette/core'
+import type { QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
-export const listTagsOptions = (query: TagListQuery, api: API) =>
-  queryOptions({
-    queryKey: ['tags', query],
-    queryFn: () => api.tags.list(query),
-  })
+const TAGS_KEY: QueryKey = ['tags']
 
-export const getTagOptions = (id: string, api: API) =>
-  queryOptions({
-    queryKey: ['tags', id],
-    queryFn: () => api.tags.get(id),
-  })
+type ListTagsOptions = BaseQueryOptions<TagList>
 
-export type CreateTagOptions = MutationOptions<Tag, Error, TagCreate>
+export const listTagsOptions = (
+  query: TagListQuery,
+  options: Omit<ListTagsOptions, 'queryKey' | 'queryFn'>,
+  api: API,
+): ListTagsOptions => ({
+  ...options,
+  queryKey: [...TAGS_KEY, query],
+  queryFn: () => api.tags.list(query),
+})
+
+type GetTagOptions = BaseQueryOptions<Tag>
+
+export const getTagOptions = (
+  id: string,
+  options: Omit<GetTagOptions, 'queryKey' | 'queryFn'>,
+  api: API,
+): GetTagOptions => ({
+  ...options,
+  queryKey: [...TAGS_KEY, id],
+  queryFn: () => api.tags.get(id),
+})
+
+type CreateTagOptions = BaseMutationOptions<Tag, TagCreate>
 
 export const createTagOptions = (
   options: Omit<CreateTagOptions, 'mutationFn'>,

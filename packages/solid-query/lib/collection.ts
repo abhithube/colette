@@ -1,24 +1,38 @@
-import type { API, Collection, CollectionCreate } from '@colette/core'
-import type { MutationOptions } from '@tanstack/query-core'
-import { queryOptions } from '@tanstack/solid-query'
-
-export const listCollectionsOptions = (api: API) =>
-  queryOptions({
-    queryKey: ['collections'],
-    queryFn: () => api.collections.list(),
-  })
-
-export const getCollectionOptions = (id: string, api: API) =>
-  queryOptions({
-    queryKey: ['collections', id],
-    queryFn: () => api.collections.get(id),
-  })
-
-export type CreateCollectionOptions = MutationOptions<
+import type {
+  API,
   Collection,
-  Error,
-  CollectionCreate
->
+  CollectionCreate,
+  CollectionList,
+} from '@colette/core'
+import type { MutationOptions, QueryKey } from '@tanstack/query-core'
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
+
+const COLLECTIONS_KEY: QueryKey = ['collections']
+
+type ListCollectionsOptions = BaseQueryOptions<CollectionList>
+
+export const listCollectionsOptions = (
+  api: API,
+  options: Omit<ListCollectionsOptions, 'queryKey' | 'queryFn'> = {},
+): ListCollectionsOptions => ({
+  ...options,
+  queryKey: COLLECTIONS_KEY,
+  queryFn: () => api.collections.list(),
+})
+
+type GetCollectionOptions = BaseQueryOptions<Collection>
+
+export const getCollectionOptions = (
+  id: string,
+  api: API,
+  options: Omit<GetCollectionOptions, 'queryKey' | 'queryFn'> = {},
+): GetCollectionOptions => ({
+  ...options,
+  queryKey: [...COLLECTIONS_KEY, id],
+  queryFn: () => api.collections.get(id),
+})
+
+type CreateCollectionOptions = BaseMutationOptions<Collection, CollectionCreate>
 
 export const createCollectionOptions = (
   options: Omit<CreateCollectionOptions, 'mutationFn'>,
@@ -30,7 +44,7 @@ export const createCollectionOptions = (
 
 export const deleteCollectionOptions = (
   id: string,
-  options: Omit<MutationOptions, 'mutationFn'>,
+  options: Omit<BaseMutationOptions, 'mutationFn'>,
   api: API,
 ): MutationOptions => ({
   ...options,
