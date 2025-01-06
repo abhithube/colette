@@ -4,6 +4,7 @@ mod collection;
 pub mod d1;
 mod feed;
 mod feed_entry;
+mod folder;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 pub mod session;

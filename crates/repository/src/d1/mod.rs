@@ -3,6 +3,7 @@ pub use bookmark::D1BookmarkRepository;
 pub use collection::D1CollectionRepository;
 pub use feed::D1FeedRepository;
 pub use feed_entry::D1FeedEntryRepository;
+pub use folder::D1FolderRepository;
 pub use scraper::D1ScraperRepository;
 use sea_query::{
     DeleteStatement, InsertStatement, QueryBuilder, SelectStatement, UpdateStatement, Value,
@@ -19,6 +20,7 @@ mod bookmark;
 mod collection;
 mod feed;
 mod feed_entry;
+mod folder;
 mod scraper;
 mod smart_feed;
 mod tag;
