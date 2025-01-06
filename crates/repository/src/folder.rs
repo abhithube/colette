@@ -24,7 +24,7 @@ impl Iden for Folder {
             s,
             "{}",
             match self {
-                Self::Table => "collections",
+                Self::Table => "folders",
                 Self::Id => "id",
                 Self::Title => "title",
                 Self::ParentId => "parent_id",
