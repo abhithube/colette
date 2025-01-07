@@ -1,5 +1,5 @@
 CREATE TABLE bookmarks (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
