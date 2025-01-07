@@ -59,7 +59,6 @@ impl Findable for PostgresFeedRepository {
         let (sql, values) = crate::user_feed::select(
             params.id,
             params.user_id,
-            params.pinned,
             params.cursor,
             params.limit,
             jsonb_agg,
@@ -138,9 +137,8 @@ impl Creatable for PostgresFeedRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) =
-                    crate::user_feed::insert(None, data.title, data.pinned, feed_id, data.user_id)
-                        .build_postgres(PostgresQueryBuilder);
+                (sql, values) = crate::user_feed::insert(None, data.title, feed_id, data.user_id)
+                    .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
                     .prepare_cached(&sql)
@@ -188,10 +186,9 @@ impl Updatable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.title.is_some() || data.pinned.is_some() {
-            let (sql, values) =
-                crate::user_feed::update(params.id, params.user_id, data.title, data.pinned)
-                    .build_postgres(PostgresQueryBuilder);
+        if data.title.is_some() {
+            let (sql, values) = crate::user_feed::update(params.id, params.user_id, data.title)
+                .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
                 .prepare_cached(&sql)
@@ -307,7 +304,6 @@ impl From<Row> for FeedSelect {
             id: value.get("id"),
             link: value.get("link"),
             title: value.get("title"),
-            pinned: value.get("pinned"),
             original_title: value.get("original_title"),
             url: value.get("url"),
             tags: value

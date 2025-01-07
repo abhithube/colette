@@ -54,7 +54,6 @@ impl Findable for SqliteFeedRepository {
             let (sql, values) = crate::user_feed::select(
                 params.id,
                 params.user_id,
-                params.pinned,
                 params.cursor,
                 params.limit,
                 jsonb_agg,
@@ -117,7 +116,6 @@ impl Creatable for SqliteFeedRepository {
                     (sql, values) = crate::user_feed::insert(
                         Some(Uuid::new_v4()),
                         data.title,
-                        data.pinned,
                         feed_id,
                         data.user_id,
                     )
@@ -163,13 +161,12 @@ impl Updatable for SqliteFeedRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            if data.title.is_some() || data.pinned.is_some() {
+            if data.title.is_some()  {
                 let count = {
                     let (sql, values) = crate::user_feed::update(
                         params.id,
                         params.user_id,
-                        data.title,
-                        data.pinned,
+                        data.title
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -289,7 +286,6 @@ impl TryFrom<&Row<'_>> for FeedSelect {
             id: value.get("id")?,
             link: value.get("link")?,
             title: value.get("title")?,
-            pinned: value.get("pinned")?,
             original_title: value.get("original_title")?,
             url: value.get("url")?,
             tags: value.get::<_, Value>("tags").map(|e| match e {

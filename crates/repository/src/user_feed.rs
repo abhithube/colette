@@ -14,7 +14,6 @@ pub enum UserFeed {
     Table,
     Id,
     Title,
-    Pinned,
     UserId,
     FeedId,
     CreatedAt,
@@ -30,7 +29,6 @@ impl Iden for UserFeed {
                 Self::Table => "user_feeds",
                 Self::Id => "id",
                 Self::Title => "title",
-                Self::Pinned => "pinned",
                 Self::UserId => "user_id",
                 Self::FeedId => "feed_id",
                 Self::CreatedAt => "created_at",
@@ -45,7 +43,6 @@ impl Iden for UserFeed {
 pub fn select(
     id: Option<Uuid>,
     user_id: Uuid,
-    pinned: Option<bool>,
     cursor: Option<Cursor>,
     limit: Option<u64>,
     jsonb_agg: SimpleExpr,
@@ -98,7 +95,6 @@ pub fn select(
         .columns([
             (UserFeed::Table, UserFeed::Id),
             (UserFeed::Table, UserFeed::Title),
-            (UserFeed::Table, UserFeed::Pinned),
         ])
         .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::Url)])
         .expr_as(
@@ -133,7 +129,6 @@ pub fn select(
         )
         .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
-        .and_where_option(pinned.map(|e| Expr::col((UserFeed::Table, UserFeed::Pinned)).eq(e)))
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::tuple([
@@ -193,22 +188,11 @@ pub fn select_by_unique_index(user_id: Uuid, feed_id: i32) -> SelectStatement {
 pub fn insert(
     id: Option<Uuid>,
     title: Option<String>,
-    pinned: Option<bool>,
     feed_id: i32,
     user_id: Uuid,
 ) -> InsertStatement {
-    let mut columns = vec![
-        UserFeed::Title,
-        UserFeed::Pinned,
-        UserFeed::FeedId,
-        UserFeed::UserId,
-    ];
-    let mut values: Vec<SimpleExpr> = vec![
-        title.into(),
-        pinned.unwrap_or_default().into(),
-        feed_id.into(),
-        user_id.into(),
-    ];
+    let mut columns = vec![UserFeed::Title, UserFeed::FeedId, UserFeed::UserId];
+    let mut values: Vec<SimpleExpr> = vec![title.into(), feed_id.into(), user_id.into()];
 
     if let Some(id) = id {
         columns.push(UserFeed::Id);
@@ -228,12 +212,7 @@ pub fn insert(
         .to_owned()
 }
 
-pub fn update(
-    id: Uuid,
-    user_id: Uuid,
-    title: Option<Option<String>>,
-    pinned: Option<bool>,
-) -> UpdateStatement {
+pub fn update(id: Uuid, user_id: Uuid, title: Option<Option<String>>) -> UpdateStatement {
     let mut query = Query::update()
         .table(UserFeed::Table)
         .value(UserFeed::UpdatedAt, Expr::current_timestamp())
@@ -243,9 +222,6 @@ pub fn update(
 
     if let Some(title) = title {
         query.value(UserFeed::Title, title);
-    }
-    if let Some(pinned) = pinned {
-        query.value(UserFeed::Pinned, pinned);
     }
 
     query

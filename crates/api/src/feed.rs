@@ -63,7 +63,6 @@ pub struct Feed {
     pub link: String,
     #[schema(required)]
     pub title: Option<String>,
-    pub pinned: bool,
     pub original_title: String,
     #[schema(format = "uri", required)]
     pub url: Option<String>,
@@ -80,7 +79,6 @@ impl From<colette_core::Feed> for Feed {
             id: value.id,
             link: value.link,
             title: value.title,
-            pinned: value.pinned,
             original_title: value.original_title,
             url: value.url,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
@@ -96,8 +94,6 @@ pub struct FeedCreate {
     pub url: Url,
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
-    #[schema(nullable = false, default = false)]
-    pub pinned: Option<bool>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -107,7 +103,6 @@ impl From<FeedCreate> for feed::FeedCreate {
         Self {
             url: value.url,
             title: value.title,
-            pinned: value.pinned,
             tags: value.tags,
         }
     }
@@ -123,8 +118,6 @@ pub struct FeedUpdate {
         with = "serde_with::rust::double_option"
     )]
     pub title: Option<Option<NonEmptyString>>,
-    #[schema(nullable = false)]
-    pub pinned: Option<bool>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -133,7 +126,6 @@ impl From<FeedUpdate> for feed::FeedUpdate {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
-            pinned: value.pinned,
             tags: value.tags,
         }
     }
@@ -144,8 +136,6 @@ impl From<FeedUpdate> for feed::FeedUpdate {
 #[into_params(parameter_in = Query)]
 pub struct FeedListQuery {
     #[param(nullable = false)]
-    pub pinned: Option<bool>,
-    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -155,7 +145,6 @@ pub struct FeedListQuery {
 impl From<FeedListQuery> for feed::FeedListQuery {
     fn from(value: FeedListQuery) -> Self {
         Self {
-            pinned: value.pinned,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

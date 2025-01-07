@@ -16,7 +16,6 @@ pub struct Feed {
     pub id: Uuid,
     pub link: String,
     pub title: Option<String>,
-    pub pinned: bool,
     pub original_title: String,
     pub url: Option<String>,
     pub tags: Option<Vec<Tag>>,
@@ -27,20 +26,17 @@ pub struct Feed {
 pub struct FeedCreate {
     pub url: Url,
     pub title: Option<NonEmptyString>,
-    pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
-    pub pinned: Option<bool>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedListQuery {
-    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -97,7 +93,6 @@ impl FeedService {
         let feeds = self
             .repository
             .find(FeedFindParams {
-                pinned: query.pinned,
                 tags: query.tags,
                 user_id,
                 ..Default::default()
@@ -132,7 +127,6 @@ impl FeedService {
             .create(FeedCreateData {
                 url: data.url.to_string(),
                 title: data.title.map(String::from),
-                pinned: data.pinned,
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
@@ -201,7 +195,6 @@ pub trait FeedRepository:
 #[derive(Clone, Debug, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
-    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<u64>,
@@ -212,7 +205,6 @@ pub struct FeedFindParams {
 pub struct FeedCreateData {
     pub url: String,
     pub title: Option<String>,
-    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
 }
@@ -226,7 +218,6 @@ pub struct FeedCacheData {
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
-    pub pinned: Option<bool>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -234,7 +225,6 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(|e| e.map(String::from)),
-            pinned: value.pinned,
             tags: value
                 .tags
                 .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
