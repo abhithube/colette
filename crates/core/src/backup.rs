@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bytes::Bytes;
+use bytes::{buf::Reader, Buf, Bytes};
 use colette_backup::BackupManager;
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
@@ -16,8 +16,8 @@ pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
-    opml_manager: Box<dyn BackupManager<Data = Opml>>,
-    netscape_manager: Box<dyn BackupManager<Data = Netscape>>,
+    opml_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Opml>>,
+    netscape_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Netscape>>,
 }
 
 impl BackupService {
@@ -25,8 +25,8 @@ impl BackupService {
         backup_repository: impl BackupRepository,
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
-        opml_manager: impl BackupManager<Data = Opml>,
-        netscape_manager: impl BackupManager<Data = Netscape>,
+        opml_manager: impl BackupManager<Reader<Bytes>, Data = Opml>,
+        netscape_manager: impl BackupManager<Reader<Bytes>, Data = Netscape>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
@@ -40,7 +40,7 @@ impl BackupService {
     pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
         let opml = self
             .opml_manager
-            .import(raw)
+            .import(raw.reader())
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
         let urls = opml
@@ -106,15 +106,19 @@ impl BackupService {
             ..Default::default()
         };
 
+        let mut raw = Vec::<u8>::new();
+
         self.opml_manager
-            .export(opml)
-            .map_err(|e| Error::Opml(OpmlError(e.into())))
+            .export(&mut raw, opml)
+            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+
+        Ok(raw.into())
     }
 
     pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
         let netscape = self
             .netscape_manager
-            .import(raw)
+            .import(raw.reader())
             .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 
         let urls = netscape
@@ -176,9 +180,13 @@ impl BackupService {
             ..Default::default()
         };
 
+        let mut raw = Vec::<u8>::new();
+
         self.netscape_manager
-            .export(netscape)
-            .map_err(|e| Error::Netscape(NetscapeError(e.into())))
+            .export(&mut raw, netscape)
+            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
+
+        Ok(raw.into())
     }
 }
 

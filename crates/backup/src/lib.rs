@@ -1,14 +1,14 @@
-use bytes::Bytes;
+use std::io::{Read, Write};
 
 pub mod netscape;
 pub mod opml;
 
-pub trait BackupManager: Send + Sync + 'static {
+pub trait BackupManager<R: Read>: Send + Sync + 'static {
     type Data;
 
-    fn import(&self, raw: Bytes) -> Result<Self::Data, Error>;
+    fn import(&self, reader: R) -> Result<Self::Data, Error>;
 
-    fn export(&self, data: Self::Data) -> Result<Bytes, Error>;
+    fn export(&self, writer: &mut dyn Write, data: Self::Data) -> Result<(), Error>;
 }
 
 #[derive(Debug, thiserror::Error)]

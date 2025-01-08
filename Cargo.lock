@@ -377,7 +377,6 @@ dependencies = [
 name = "colette-backup"
 version = "0.1.0"
 dependencies = [
- "bytes",
  "colette-netscape",
  "colette-opml",
  "thiserror 1.0.69",
