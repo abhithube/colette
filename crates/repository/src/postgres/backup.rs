@@ -227,8 +227,9 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             } else if let Some(link) = item.href {
                 let bookmark_id = {
-                    let (sql, values) = crate::bookmark::insert(link, item.title, None, None, None)
-                        .build_postgres(PostgresQueryBuilder);
+                    let (sql, values) =
+                        crate::bookmark::insert(None, link, item.title, None, None, None)
+                            .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx
                         .prepare_cached(&sql)
@@ -237,7 +238,7 @@ impl BackupRepository for PostgresBackupRepository {
 
                     tx.query_one(&stmt, &values.as_params())
                         .await
-                        .map(|e| e.get::<_, i32>("id"))
+                        .map(|e| e.get::<_, Uuid>("id"))
                         .map_err(|e| Error::Unknown(e.into()))?
                 };
 

@@ -186,12 +186,18 @@ impl BackupRepository for SqliteBackupRepository {
                     }
                 } else if let Some(link) = item.href {
                     let bookmark_id = {
-                        let (sql, values) =
-                            crate::bookmark::insert(link, item.title, None, None, None)
-                                .build_rusqlite(SqliteQueryBuilder);
+                        let (sql, values) = crate::bookmark::insert(
+                            Some(Uuid::new_v4()),
+                            link,
+                            item.title,
+                            None,
+                            None,
+                            None,
+                        )
+                        .build_rusqlite(SqliteQueryBuilder);
 
                         tx.prepare_cached(&sql)?
-                            .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?
+                            .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
                     };
 
                     let pb_id = {

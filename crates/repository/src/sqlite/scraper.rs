@@ -2,6 +2,7 @@ use colette_core::scraper::{Error, SaveBookmarkData, SaveFeedData, ScraperReposi
 use deadpool_sqlite::{rusqlite, Pool};
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder;
+use uuid::Uuid;
 
 use super::feed::{create_feed_with_entries, link_entries_to_users};
 
@@ -48,6 +49,7 @@ impl ScraperRepository for SqliteScraperRepository {
 
         conn.interact(move |conn| {
             let (sql, values) = crate::bookmark::insert(
+                Some(Uuid::new_v4()),
                 data.url,
                 data.bookmark.title,
                 data.bookmark.thumbnail.map(String::from),

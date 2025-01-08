@@ -75,7 +75,7 @@ impl Creatable for D1BookmarkRepository {
             let (sql, values) =
                 crate::bookmark::select_by_link(data.url.clone()).build_d1(SqliteQueryBuilder);
 
-            let Some(id) = super::first::<i32>(&self.db, sql, values, Some("id"))
+            let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             else {
@@ -182,6 +182,7 @@ impl Deletable for D1BookmarkRepository {
 impl BookmarkRepository for D1BookmarkRepository {
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
         let (sql, values) = crate::bookmark::insert(
+            Some(Uuid::new_v4()),
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),

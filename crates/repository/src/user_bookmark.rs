@@ -131,7 +131,7 @@ pub fn select(
     )
 }
 
-pub fn select_by_unique_index(user_id: Uuid, bookmark_id: i32) -> SelectStatement {
+pub fn select_by_unique_index(user_id: Uuid, bookmark_id: Uuid) -> SelectStatement {
     Query::select()
         .column(UserBookmark::Id)
         .from(UserBookmark::Table)
@@ -142,7 +142,7 @@ pub fn select_by_unique_index(user_id: Uuid, bookmark_id: i32) -> SelectStatemen
 
 pub fn insert(
     id: Option<Uuid>,
-    bookmark_id: i32,
+    bookmark_id: Uuid,
     user_id: Uuid,
     collection_id: Option<Uuid>,
 ) -> InsertStatement {

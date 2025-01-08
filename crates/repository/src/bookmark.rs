@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
 use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use uuid::Uuid;
 
 #[allow(dead_code)]
 pub enum Bookmark {
@@ -46,30 +47,39 @@ pub fn select_by_link(link: String) -> SelectStatement {
 }
 
 pub fn insert(
+    id: Option<Uuid>,
     link: String,
     title: String,
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
 ) -> InsertStatement {
+    let mut columns = vec![
+        Bookmark::Link,
+        Bookmark::Title,
+        Bookmark::ThumbnailUrl,
+        Bookmark::PublishedAt,
+        Bookmark::Author,
+        Bookmark::UpdatedAt,
+    ];
+    let mut values = vec![
+        link.into(),
+        title.into(),
+        thumbnail_url.into(),
+        published_at.into(),
+        author.into(),
+        Expr::current_timestamp().into(),
+    ];
+
+    if let Some(id) = id {
+        columns.push(Bookmark::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(Bookmark::Table)
-        .columns([
-            Bookmark::Link,
-            Bookmark::Title,
-            Bookmark::ThumbnailUrl,
-            Bookmark::PublishedAt,
-            Bookmark::Author,
-            Bookmark::UpdatedAt,
-        ])
-        .values_panic([
-            link.into(),
-            title.into(),
-            thumbnail_url.into(),
-            published_at.into(),
-            author.into(),
-            Expr::current_timestamp().into(),
-        ])
+        .columns(columns)
+        .values_panic(values)
         .on_conflict(
             OnConflict::column(Bookmark::Link)
                 .update_columns([

@@ -174,10 +174,17 @@ impl BackupRepository for D1BackupRepository {
                 }
             } else if let Some(link) = item.href {
                 let bookmark_id = {
-                    let (sql, values) = crate::bookmark::insert(link, item.title, None, None, None)
-                        .build_d1(SqliteQueryBuilder);
+                    let (sql, values) = crate::bookmark::insert(
+                        Some(Uuid::new_v4()),
+                        link,
+                        item.title,
+                        None,
+                        None,
+                        None,
+                    )
+                    .build_d1(SqliteQueryBuilder);
 
-                    super::first::<i32>(&self.db, sql, values, Some("id"))
+                    super::first::<Uuid>(&self.db, sql, values, Some("id"))
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                         .unwrap()

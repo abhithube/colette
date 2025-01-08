@@ -98,7 +98,7 @@ impl Creatable for SqliteBookmarkRepository {
 
             let bookmark_id = tx
                 .prepare_cached(&sql)?
-                .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?;
+                .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
             let pb_id = {
                 let (mut sql, mut values) =
@@ -225,6 +225,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         conn.interact(move |conn| {
             let (sql, values) = crate::bookmark::insert(
+                Some(Uuid::new_v4()),
                 data.url,
                 data.bookmark.title,
                 data.bookmark.thumbnail.map(String::from),

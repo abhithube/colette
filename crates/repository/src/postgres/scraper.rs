@@ -49,6 +49,7 @@ impl ScraperRepository for PostgresScraperRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let (sql, values) = crate::bookmark::insert(
+            None,
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),

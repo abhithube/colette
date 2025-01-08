@@ -107,7 +107,7 @@ impl Creatable for PostgresBookmarkRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
-                Ok(row.get::<_, i32>("id"))
+                Ok(row.get::<_, Uuid>("id"))
             } else {
                 Err(Error::Conflict(data.url))
             }
@@ -253,6 +253,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let (sql, values) = crate::bookmark::insert(
+            None,
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
