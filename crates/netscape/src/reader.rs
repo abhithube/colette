@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, io::BufRead};
+use std::{collections::BTreeMap, io::Read};
 
 use html5gum::{HtmlString, IoReader, Token, Tokenizer};
 
@@ -12,7 +12,7 @@ enum StartTag {
     A,
 }
 
-pub fn from_reader<R: BufRead>(reader: R) -> Result<Netscape, anyhow::Error> {
+pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, anyhow::Error> {
     let mut netscape = Netscape::default();
 
     let mut tag_stack: Vec<StartTag> = Vec::new();
