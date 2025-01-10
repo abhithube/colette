@@ -35,8 +35,7 @@ use refinery::embed_migrations;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{cookie::time::Duration, SessionManagerLayer};
-use tower_sessions_core::{ExpiredDeletion, Expiry};
+use tower_sessions::{cookie::time::Duration, ExpiredDeletion, Expiry, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, rust_embed::Embed)]

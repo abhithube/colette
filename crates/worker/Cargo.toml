@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 chrono.workspace = true
-cron = { version = "0.14", default-features = false }
+cron = { version = "0.14.0", default-features = false }
 tokio.workspace = true
 tower.workspace = true
 tracing.workspace = true

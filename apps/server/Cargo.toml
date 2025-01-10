@@ -25,11 +25,6 @@ refinery = { workspace = true, features = ["tokio-postgres"] }
 rust-embed.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
-tower-http = { version = "0.6", default-features = false, features = [
-  "cors",
-  "fs",
-  "trace",
-] }
+tower-http.workspace = true
 tower-sessions.workspace = true
-tower-sessions-core.workspace = true
 tracing-subscriber.workspace = true

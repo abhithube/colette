@@ -14,4 +14,6 @@ http.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
 url.workspace = true
-lazy-regex = { version = "3", default-features = false, features = ["lite"] }
+lazy-regex = { version = "3.4.1", default-features = false, features = [
+  "lite",
+] }

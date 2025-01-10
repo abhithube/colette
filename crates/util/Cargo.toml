@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-base64 = { version = "0.22", default-features = false }
-password-auth = { version = "1", default-features = false, features = [
+base64 = { version = "0.22.1", default-features = false }
+password-auth = { version = "1.0.0", default-features = false, features = [
   "argon2",
 ] }
 serde.workspace = true

@@ -12,7 +12,9 @@ sea-query = { workspace = true, features = [
 ], optional = true }
 sea-query-postgres = { workspace = true, optional = true }
 serde_json.workspace = true
-tower-sessions-core.workspace = true
+tower-sessions-core = { version = "0.14.0", default-features = false, features = [
+  "deletion-task",
+] }
 worker = { workspace = true, optional = true }
 
 [features]
