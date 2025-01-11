@@ -1,5 +1,11 @@
+import { type ClassValue, clsx } from 'clsx'
 import { type FormatDistanceToken, formatDistanceToNowStrict } from 'date-fns'
 import * as locale from 'date-fns/locale/en-US'
+import { twMerge } from 'tailwind-merge'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
 
 const formatDistanceLocale: Record<FormatDistanceToken, string> = {
   lessThanXSeconds: 's',

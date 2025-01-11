@@ -4,6 +4,7 @@
 		"ignore": [
 			"./crates/**/*",
 			"./packages/app/src/routeTree.gen.ts",
+			"./packages/app/src/components/ui/**",
 			"./packages/core/lib/openapi.gen.ts",
 			"./packages/ui/lib/**/*",
 			"./apps/solid/src/components/ui/*"
