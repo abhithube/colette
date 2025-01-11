@@ -6,10 +6,10 @@
 		"generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
 	},
 	"dependencies": {
-		"zod": "^3"
+		"zod": "*"
 	},
 	"devDependencies": {
-		"typed-openapi": "^0.10",
+		"typed-openapi": "^0.10.1",
 		"typescript": "*"
 	}
 }

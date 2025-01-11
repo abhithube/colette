@@ -4,7 +4,7 @@
 	"exports": ["./lib/index.ts"],
 	"dependencies": {
 		"@colette/core": "*",
-		"@tanstack/query-core": "^5"
+		"@tanstack/query-core": "^5.62.16"
 	},
 	"devDependencies": {
 		"typescript": "*"

@@ -9,18 +9,18 @@
 	"dependencies": {
 		"@colette/app": "*",
 		"@colette/core": "*",
-		"@tanstack/react-query": "^5",
-		"@tanstack/react-router": "^1",
-		"react": "^18",
-		"react-dom": "^18"
+		"@tanstack/react-query": "^5.63.0",
+		"@tanstack/react-router": "^1.95.3",
+		"react": "*",
+		"react-dom": "*"
 	},
 	"devDependencies": {
 		"@colette/panda-preset": "*",
-		"@tanstack/router-plugin": "^1",
-		"@types/react": "^18",
-		"@types/react-dom": "^18",
+		"@tanstack/router-plugin": "^1.95.3",
+		"@types/react": "*",
+		"@types/react-dom": "*",
 		"@vitejs/plugin-react-swc": "*",
-		"postcss": "^8",
+		"postcss": "*",
 		"typescript": "*",
 		"vite": "*"
 	}

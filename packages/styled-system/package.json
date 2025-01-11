@@ -38,6 +38,6 @@
 	},
 	"devDependencies": {
 		"@colette/panda-preset": "*",
-		"@pandacss/dev": "^0.48"
+		"@pandacss/dev": "^0.48.1"
 	}
 }

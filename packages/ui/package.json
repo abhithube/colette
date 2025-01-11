@@ -2,9 +2,9 @@
 	"name": "@colette/ui",
 	"exports": ["./lib/index.ts"],
 	"dependencies": {
-		"@ark-ui/react": "^4",
-		"react": "^18",
-		"react-dom": "^18"
+		"@ark-ui/react": "^4.7.0",
+		"react": "*",
+		"react-dom": "*"
 	},
 	"devDependencies": {
 		"@colette/styled-system": "*",
