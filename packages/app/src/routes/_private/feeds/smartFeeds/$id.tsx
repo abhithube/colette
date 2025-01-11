@@ -1,8 +1,4 @@
-import {
-  ensureInfiniteQueryData,
-  getSmartFeedOptions,
-  listFeedEntriesOptions,
-} from '@colette/query'
+import { getSmartFeedOptions, listFeedEntriesOptions } from '@colette/query'
 import { Button, Dialog, HStack, Heading, Icon } from '@colette/ui'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -21,14 +17,10 @@ export const Route = createFileRoute('/_private/feeds/smartFeeds/$id')({
         smartFeedId: params.id,
         hasRead: false,
       },
-      context.profile.id,
       context.api,
     )
 
-    await Promise.all([
-      context.queryClient.ensureQueryData(smartFeedOptions),
-      ensureInfiniteQueryData(context.queryClient, feedEntryOptions as any),
-    ])
+    await context.queryClient.ensureQueryData(smartFeedOptions)
 
     return {
       smartFeedOptions,

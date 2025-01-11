@@ -21,20 +21,17 @@ export const LoginForm = () => {
   })
 
   const { mutateAsync: login, isPending } = useMutation(
-    loginOptions(
-      {
-        onSuccess: async (profile) => {
-          form.reset()
-          context.profile = profile
+    loginOptions(context.api, context.queryClient, {
+      onSuccess: async (user) => {
+        form.reset()
+        context.user = user
 
-          await navigate({
-            to: '/',
-            replace: true,
-          })
-        },
+        await navigate({
+          to: '/',
+          replace: true,
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

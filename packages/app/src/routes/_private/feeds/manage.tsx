@@ -7,7 +7,7 @@ import { FeedGrid } from './-components/feed-grid'
 
 export const Route = createFileRoute('/_private/feeds/manage')({
   loader: async ({ context }) => {
-    const options = listFeedsOptions({}, context.profile.id, context.api)
+    const options = listFeedsOptions({}, context.api)
 
     await context.queryClient.ensureQueryData(options)
 

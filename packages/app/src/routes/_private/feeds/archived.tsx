@@ -1,4 +1,4 @@
-import { ensureInfiniteQueryData, listFeedEntriesOptions } from '@colette/query'
+import { listFeedEntriesOptions } from '@colette/query'
 import { HStack, Heading } from '@colette/ui'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
@@ -6,16 +6,13 @@ import { useEffect } from 'react'
 import { FeedEntryGrid } from './-components/feed-entry-grid'
 
 export const Route = createFileRoute('/_private/feeds/archived')({
-  loader: async ({ context }) => {
+  loader: ({ context }) => {
     const options = listFeedEntriesOptions(
       {
         hasRead: true,
       },
-      context.profile.id,
       context.api,
     )
-
-    await ensureInfiniteQueryData(context.queryClient, options as any)
 
     return {
       options,

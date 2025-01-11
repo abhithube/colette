@@ -4,14 +4,14 @@ import { OuterSidebar } from './-components/outer-sidebar'
 
 export const Route = createFileRoute('/_private')({
   beforeLoad: async ({ context }) => {
-    if (!context.profile) {
+    if (!context.user) {
       throw redirect({
         to: '/login',
       })
     }
 
     return {
-      profile: context.profile,
+      user: context.user,
     }
   },
   component: Component,

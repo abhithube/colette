@@ -16,9 +16,7 @@ type Props = {
 export function EditBookmarkModal({ bookmark, close }: Props) {
   const context = Route.useRouteContext()
 
-  const { data: tags } = useQuery(
-    listTagsOptions({}, context.profile.id, context.api),
-  )
+  const { data: tags } = useQuery(listTagsOptions({}, context.api))
 
   const form = useForm({
     defaultValues: {
@@ -54,20 +52,17 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
   })
 
   const { mutateAsync: updateBookmark, isPending } = useMutation(
-    updateBookmarkOptions(
-      {
-        onSuccess: async (data) => {
-          form.reset()
-          close()
+    updateBookmarkOptions(context.api, {
+      onSuccess: async (data) => {
+        form.reset()
+        close()
 
-          await context.queryClient.setQueryData(['feeds', bookmark.id], data)
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
-          })
-        },
+        await context.queryClient.setQueryData(['bookmarks', bookmark.id], data)
+        await context.queryClient.invalidateQueries({
+          queryKey: ['bookmarks'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>

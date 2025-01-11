@@ -27,9 +27,7 @@ type Props = {
 export function EditFeedModal({ feed, close }: Props) {
   const context = Route.useRouteContext()
 
-  const { data: tags } = useQuery(
-    listTagsOptions({}, context.profile.id, context.api),
-  )
+  const { data: tags } = useQuery(listTagsOptions({}, context.api))
 
   const form = useForm({
     defaultValues: {
@@ -82,20 +80,17 @@ export function EditFeedModal({ feed, close }: Props) {
   })
 
   const { mutateAsync: updateFeed, isPending } = useMutation(
-    updateFeedOptions(
-      {
-        onSuccess: async (data) => {
-          form.reset()
-          close()
+    updateFeedOptions(context.api, {
+      onSuccess: async (data) => {
+        form.reset()
+        close()
 
-          await context.queryClient.setQueryData(['feeds', feed.id], data)
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
-          })
-        },
+        await context.queryClient.setQueryData(['feeds', feed.id], data)
+        await context.queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>

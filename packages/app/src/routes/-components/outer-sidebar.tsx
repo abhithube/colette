@@ -11,7 +11,6 @@ import {
 } from '@colette/ui'
 import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
-import { ProfileModal } from './profile-modal'
 import { SettingsModal } from './settings-modal'
 
 export const OuterSidebar = () => {
@@ -131,33 +130,25 @@ export const OuterSidebar = () => {
         </Tooltip.Positioner>
       </Tooltip.Root>
       <Flex grow={1} />
-      <Dialog.Root>
-        <Tooltip.Root
-          positioning={{
-            placement: 'right',
-          }}
-        >
-          <Tooltip.Trigger asChild>
-            <Dialog.Trigger asChild>
-              <IconButton variant="ghost" size="lg" flexShrink={0}>
-                <User />
-              </IconButton>
-            </Dialog.Trigger>
-          </Tooltip.Trigger>
-          <Tooltip.Positioner>
-            <Tooltip.Arrow>
-              <Tooltip.ArrowTip />
-            </Tooltip.Arrow>
-            <Tooltip.Content>Profile</Tooltip.Content>
-          </Tooltip.Positioner>
-        </Tooltip.Root>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Context>
-            {({ setOpen }) => <ProfileModal close={() => setOpen(false)} />}
-          </Dialog.Context>
-        </Dialog.Positioner>
-      </Dialog.Root>
+      <Tooltip.Root
+        positioning={{
+          placement: 'right',
+        }}
+      >
+        <Tooltip.Trigger asChild>
+          <Dialog.Trigger asChild>
+            <IconButton variant="ghost" size="lg" flexShrink={0}>
+              <User />
+            </IconButton>
+          </Dialog.Trigger>
+        </Tooltip.Trigger>
+        <Tooltip.Positioner>
+          <Tooltip.Arrow>
+            <Tooltip.ArrowTip />
+          </Tooltip.Arrow>
+          <Tooltip.Content>User</Tooltip.Content>
+        </Tooltip.Positioner>
+      </Tooltip.Root>
       <Dialog.Root>
         <Tooltip.Root
           positioning={{

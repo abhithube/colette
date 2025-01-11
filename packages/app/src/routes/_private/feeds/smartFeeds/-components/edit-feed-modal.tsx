@@ -41,23 +41,20 @@ export function EditSmartFeedModal({ smartFeed, close }: Props) {
   })
 
   const { mutateAsync: updateSmartFeed, isPending } = useMutation(
-    updateSmartFeedOptions(
-      {
-        onSuccess: async (data) => {
-          form.reset()
-          close()
+    updateSmartFeedOptions(context.api, {
+      onSuccess: async (data) => {
+        form.reset()
+        close()
 
-          await context.queryClient.setQueryData(
-            ['smartFeeds', smartFeed.id],
-            data,
-          )
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'smartFeeds'],
-          })
-        },
+        await context.queryClient.setQueryData(
+          ['smartFeeds', smartFeed.id],
+          data,
+        )
+        await context.queryClient.invalidateQueries({
+          queryKey: ['smartFeeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>

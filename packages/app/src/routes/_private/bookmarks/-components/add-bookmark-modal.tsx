@@ -22,7 +22,7 @@ export function AddBookmarkModal({ close }: Props) {
     onSubmit: async ({ value }) => {
       const scraped = await scrapeBookmark(value)
       await createBookmark({
-        url: scraped.link
+        url: scraped.link,
       })
     },
   })
@@ -30,35 +30,29 @@ export function AddBookmarkModal({ close }: Props) {
   const navigate = useNavigate()
 
   const { mutateAsync: createBookmark, isPending: isPending1 } = useMutation(
-    createBookmarkOptions(
-      {
-        onSuccess: async () => {
-          form.reset()
-          close()
+    createBookmarkOptions(context.api, {
+      onSuccess: async () => {
+        form.reset()
+        close()
 
-          await navigate({
-            to: '/bookmarks',
-          })
-        },
+        await navigate({
+          to: '/bookmarks',
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   const { mutateAsync: scrapeBookmark, isPending: isPending2 } = useMutation(
-    scrapeBookmarkOptions(
-      {
-        onSuccess: async () => {
-          form.reset()
-          close()
+    scrapeBookmarkOptions(context.api, {
+      onSuccess: async () => {
+        form.reset()
+        close()
 
-          await navigate({
-            to: '/bookmarks',
-          })
-        },
+        await navigate({
+          to: '/bookmarks',
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

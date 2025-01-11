@@ -35,26 +35,23 @@ export function SubscribeModal({ close }: Props) {
   const navigate = useNavigate()
 
   const { mutateAsync: createFeed, isPending } = useMutation(
-    createFeedOptions(
-      {
-        onSuccess: async (data) => {
-          form.reset()
-          close()
+    createFeedOptions(context.api, {
+      onSuccess: async (data) => {
+        form.reset()
+        close()
 
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
-          })
+        await context.queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
 
-          await navigate({
-            to: '/feeds/$id',
-            params: {
-              id: data.id,
-            },
-          })
-        },
+        await navigate({
+          to: '/feeds/$id',
+          params: {
+            id: data.id,
+          },
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

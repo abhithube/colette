@@ -1,5 +1,5 @@
 import type { API } from '@colette/core'
-import { getActiveProfileOptions } from '@colette/query'
+import { getActiveOptions } from '@colette/query'
 import type { QueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Outlet, createRootRouteWithContext } from '@tanstack/react-router'
@@ -11,16 +11,16 @@ export const Route = createRootRouteWithContext<{
 }>()({
   beforeLoad: async ({ context }) => {
     try {
-      const profile = await context.queryClient.fetchQuery(
-        getActiveProfileOptions(context.api),
+      const user = await context.queryClient.fetchQuery(
+        getActiveOptions(context.api),
       )
 
       return {
-        profile,
+        user,
       }
     } catch (_) {
       return {
-        profile: undefined,
+        user: undefined,
       }
     }
   },

@@ -15,17 +15,14 @@ export function FeedRowActions({ feed }: Props) {
   const context = Route.useRouteContext()
 
   const { mutateAsync: updateFeed } = useMutation(
-    updateFeedOptions(
-      {
-        onSuccess: async (data) => {
-          await context.queryClient.setQueryData(['feeds', feed.id], data)
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
-          })
-        },
+    updateFeedOptions(context.api, {
+      onSuccess: async (data) => {
+        await context.queryClient.setQueryData(['feeds', feed.id], data)
+        await context.queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

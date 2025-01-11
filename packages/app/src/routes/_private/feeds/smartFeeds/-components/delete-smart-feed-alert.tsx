@@ -19,25 +19,21 @@ export function DeleteSmartFeedAlert({ smartFeed, close }: Props) {
   const params = matchRoute({ to: '/feeds/smartFeeds/$id' })
 
   const { mutateAsync: unsubscribe, isPending } = useMutation(
-    deleteSmartFeedOptions(
-      smartFeed.id,
-      {
-        onSuccess: async () => {
-          close()
+    deleteSmartFeedOptions(smartFeed.id, context.api, {
+      onSuccess: async () => {
+        close()
 
-          if (typeof params === 'object' && params.id === smartFeed.id) {
-            await navigate({
-              to: '/feeds',
-            })
-          }
-
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'smartFeeds'],
+        if (typeof params === 'object' && params.id === smartFeed.id) {
+          await navigate({
+            to: '/feeds',
           })
-        },
+        }
+
+        await context.queryClient.invalidateQueries({
+          queryKey: ['smartFeeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

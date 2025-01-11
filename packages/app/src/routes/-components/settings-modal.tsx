@@ -27,19 +27,16 @@ export function SettingsModal({ close }: Props) {
   })
 
   const { mutateAsync: importOpml, isPending } = useMutation(
-    importOpmlOptions(
-      {
-        onSuccess: async () => {
-          form.reset()
-          close()
+    importOpmlOptions(context.api, {
+      onSuccess: async () => {
+        form.reset()
+        close()
 
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
-          })
-        },
+        await context.queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (

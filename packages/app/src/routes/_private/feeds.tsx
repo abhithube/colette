@@ -26,14 +26,10 @@ export const Route = createFileRoute('/_private/feeds')({
   loader: async ({ context }) => {
     const feedOptions = listFeedsOptions(
       { pinned: true, filterByTags: true, 'tag[]': [] },
-      context.profile.id,
       context.api,
     )
 
-    const smartFeedOptions = listSmartFeedsOptions(
-      context.profile.id,
-      context.api,
-    )
+    const smartFeedOptions = listSmartFeedsOptions(context.api)
 
     await Promise.all([
       context.queryClient.ensureQueryData(feedOptions),

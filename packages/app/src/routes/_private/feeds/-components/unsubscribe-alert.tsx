@@ -19,25 +19,21 @@ export function UnsubscribeAlert({ feed, close }: Props) {
   const params = matchRoute({ to: '/feeds/$id' })
 
   const { mutateAsync: unsubscribe, isPending } = useMutation(
-    deleteFeedOptions(
-      feed.id,
-      {
-        onSuccess: async () => {
-          close()
+    deleteFeedOptions(feed.id, context.api, {
+      onSuccess: async () => {
+        close()
 
-          if (typeof params === 'object' && params.id === feed.id) {
-            await navigate({
-              to: '/feeds',
-            })
-          }
-
-          await context.queryClient.invalidateQueries({
-            queryKey: ['profiles', context.profile.id, 'feeds'],
+        if (typeof params === 'object' && params.id === feed.id) {
+          await navigate({
+            to: '/feeds',
           })
-        },
+        }
+
+        await context.queryClient.invalidateQueries({
+          queryKey: ['feeds'],
+        })
       },
-      context.api,
-    ),
+    }),
   )
 
   return (
