@@ -113,7 +113,6 @@ export const Feed = z.object({
   id: z.string(),
   link: z.string(),
   title: z.union([z.string(), z.null()]),
-  pinned: z.boolean(),
   originalTitle: z.string(),
   url: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -124,7 +123,6 @@ export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
   title: z.union([z.string(), z.null(), z.undefined()]).optional(),
-  pinned: z.union([z.boolean(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -154,8 +152,26 @@ export const FeedEntryUpdate = z.object({
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
-  pinned: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
+});
+
+export type Folder = z.infer<typeof Folder>;
+export const Folder = z.object({
+  id: z.string(),
+  title: z.string(),
+  parentId: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type FolderCreate = z.infer<typeof FolderCreate>;
+export const FolderCreate = z.object({
+  title: z.string(),
+  parentId: z.union([z.string(), z.null(), z.undefined()]).optional(),
+});
+
+export type FolderUpdate = z.infer<typeof FolderUpdate>;
+export const FolderUpdate = z.object({
+  title: z.string().optional(),
+  parentId: z.union([z.string(), z.null()]).optional(),
 });
 
 export type Login = z.infer<typeof Login>;
@@ -199,7 +215,6 @@ export const Paginated_Feed = z.object({
       id: z.string(),
       link: z.string(),
       title: z.union([z.string(), z.null()]),
-      pinned: z.boolean(),
       originalTitle: z.string(),
       url: z.union([z.string(), z.null()]),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -222,6 +237,18 @@ export const Paginated_FeedEntry = z.object({
       thumbnailUrl: z.union([z.string(), z.null()]),
       hasRead: z.boolean(),
       feedId: z.string(),
+    }),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
+export type Paginated_Folder = z.infer<typeof Paginated_Folder>;
+export const Paginated_Folder = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      title: z.string(),
+      parentId: z.union([z.string(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -611,7 +638,6 @@ export const get_ListFeeds = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
-      pinned: z.boolean().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
     }),
@@ -679,6 +705,66 @@ export const post_DetectFeeds = {
     body: FeedDetect,
   }),
   response: DetectedResponse,
+};
+
+export type get_ListFolders = typeof get_ListFolders;
+export const get_ListFolders = {
+  method: z.literal("GET"),
+  path: z.literal("/folders"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: Paginated_Folder,
+};
+
+export type post_CreateFolder = typeof post_CreateFolder;
+export const post_CreateFolder = {
+  method: z.literal("POST"),
+  path: z.literal("/folders"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: FolderCreate,
+  }),
+  response: Folder,
+};
+
+export type get_GetFolder = typeof get_GetFolder;
+export const get_GetFolder = {
+  method: z.literal("GET"),
+  path: z.literal("/folders/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: Folder,
+};
+
+export type delete_DeleteFolder = typeof delete_DeleteFolder;
+export const delete_DeleteFolder = {
+  method: z.literal("DELETE"),
+  path: z.literal("/folders/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+  }),
+  response: z.unknown(),
+};
+
+export type patch_UpdateFolder = typeof patch_UpdateFolder;
+export const patch_UpdateFolder = {
+  method: z.literal("PATCH"),
+  path: z.literal("/folders/{id}"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: FolderUpdate,
+  }),
+  response: Folder,
 };
 
 export type get_ListSmartFeeds = typeof get_ListSmartFeeds;
@@ -820,6 +906,7 @@ export const EndpointByMethod = {
     "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
+    "/folders": post_CreateFolder,
     "/smartFeeds": post_CreateSmartFeed,
     "/tags": post_CreateTag,
   },
@@ -833,6 +920,8 @@ export const EndpointByMethod = {
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
     "/feeds/{id}": get_GetFeed,
+    "/folders": get_ListFolders,
+    "/folders/{id}": get_GetFolder,
     "/smartFeeds": get_ListSmartFeeds,
     "/smartFeeds/{id}": get_GetSmartFeed,
     "/tags": get_ListTags,
@@ -842,6 +931,7 @@ export const EndpointByMethod = {
     "/bookmarks/{id}": delete_DeleteBookmark,
     "/collections/{id}": delete_DeleteCollection,
     "/feeds/{id}": delete_DeleteFeed,
+    "/folders/{id}": delete_DeleteFolder,
     "/smartFeeds/{id}": delete_DeleteSmartFeed,
     "/tags/{id}": delete_DeleteTag,
   },
@@ -850,6 +940,7 @@ export const EndpointByMethod = {
     "/collections/{id}": patch_UpdateCollection,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
+    "/folders/{id}": patch_UpdateFolder,
     "/smartFeeds/{id}": patch_UpdateSmartFeed,
     "/tags/{id}": patch_UpdateTag,
   },
