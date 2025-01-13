@@ -77,7 +77,7 @@ impl Creatable for D1FeedRepository {
             let (sql, values) =
                 crate::feed::select_by_url(data.url.clone()).build_d1(SqliteQueryBuilder);
 
-            let Some(id) = super::first::<i32>(&self.db, sql, values, Some("id"))
+            let Some(id) = super::first::<Uuid>(&self.db, sql, values, Some("id"))
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             else {
@@ -219,14 +219,14 @@ pub(crate) async fn create_feed_with_entries(
     db: &D1Database,
     url: String,
     feed: ProcessedFeed,
-) -> worker::Result<i32> {
+) -> worker::Result<Uuid> {
     let feed_id = {
         let link = feed.link.to_string();
         let url = if url == link { None } else { Some(url) };
 
         let (sql, values) = crate::feed::insert(link, feed.title, url).build_d1(SqliteQueryBuilder);
 
-        super::first::<i32>(db, sql, values, Some("id"))
+        super::first::<Uuid>(db, sql, values, Some("id"))
             .await?
             .unwrap()
     };
@@ -256,7 +256,7 @@ pub(crate) async fn create_feed_with_entries(
     Ok(feed_id)
 }
 
-pub(crate) async fn link_entries_to_users(db: &D1Database, feed_id: i32) -> worker::Result<()> {
+pub(crate) async fn link_entries_to_users(db: &D1Database, feed_id: Uuid) -> worker::Result<()> {
     let fe_ids = {
         let (sql, values) =
             crate::feed_entry::select_many_by_feed_id(feed_id).build_d1(SqliteQueryBuilder);
@@ -265,7 +265,7 @@ pub(crate) async fn link_entries_to_users(db: &D1Database, feed_id: i32) -> work
 
         #[derive(serde::Deserialize)]
         struct FeedEntryId {
-            id: i32,
+            id: Uuid,
         }
 
         result

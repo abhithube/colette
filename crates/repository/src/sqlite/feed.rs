@@ -99,7 +99,7 @@ impl Creatable for SqliteFeedRepository {
 
             let feed_id = tx
                 .prepare_cached(&sql)?
-                .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?;
+                .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
             let pf_id = {
                 let (mut sql, mut values) =
@@ -301,7 +301,7 @@ pub(crate) fn create_feed_with_entries(
     conn: &Connection,
     url: String,
     feed: ProcessedFeed,
-) -> rusqlite::Result<i32> {
+) -> rusqlite::Result<Uuid> {
     let link = feed.link.to_string();
     let url = if url == link { None } else { Some(url) };
 
@@ -310,7 +310,7 @@ pub(crate) fn create_feed_with_entries(
             crate::feed::insert(link, feed.title, url).build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?
-            .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?
+            .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
     };
 
     let insert_many = feed
@@ -334,12 +334,12 @@ pub(crate) fn create_feed_with_entries(
     Ok(feed_id)
 }
 
-pub(crate) fn link_entries_to_users(conn: &Connection, feed_id: i32) -> rusqlite::Result<()> {
+pub(crate) fn link_entries_to_users(conn: &Connection, feed_id: Uuid) -> rusqlite::Result<()> {
     let fe_ids = {
         let (sql, values) =
             crate::feed_entry::select_many_by_feed_id(feed_id).build_rusqlite(SqliteQueryBuilder);
 
-        let mut ids: Vec<i32> = Vec::new();
+        let mut ids: Vec<Uuid> = Vec::new();
 
         let mut stmt = conn.prepare_cached(&sql)?;
         let mut rows = stmt.query(&*values.as_params())?;

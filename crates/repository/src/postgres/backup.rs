@@ -99,7 +99,7 @@ impl BackupRepository for PostgresBackupRepository {
 
                     tx.query_one(&stmt, &values.as_params())
                         .await
-                        .map(|e| e.get::<_, i32>("id"))
+                        .map(|e| e.get::<_, Uuid>("id"))
                         .map_err(|e| Error::Unknown(e.into()))?
                 };
 

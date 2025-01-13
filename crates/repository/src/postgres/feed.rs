@@ -114,7 +114,7 @@ impl Creatable for PostgresFeedRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
-                Ok(row.get::<_, i32>("id"))
+                Ok(row.get::<_, Uuid>("id"))
             } else {
                 Err(Error::Conflict(data.url))
             }
@@ -318,7 +318,7 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
     client: &C,
     url: String,
     feed: ProcessedFeed,
-) -> Result<i32, tokio_postgres::Error> {
+) -> Result<Uuid, tokio_postgres::Error> {
     let feed_id = {
         let link = feed.link.to_string();
         let url = if url == link { None } else { Some(url) };
@@ -331,7 +331,7 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
         client
             .query_one(&stmt, &values.as_params())
             .await
-            .map(|e| e.get::<_, i32>("id"))?
+            .map(|e| e.get::<_, Uuid>("id"))?
     };
 
     if !feed.entries.is_empty() {
@@ -361,7 +361,7 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
 
 pub(crate) async fn link_entries_to_users<C: GenericClient>(
     client: &C,
-    feed_id: i32,
+    feed_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     let fe_ids = {
         let (sql, values) =
@@ -371,7 +371,7 @@ pub(crate) async fn link_entries_to_users<C: GenericClient>(
 
         client.query(&stmt, &values.as_params()).await.map(|e| {
             e.into_iter()
-                .map(|e| e.get::<_, i32>("id"))
+                .map(|e| e.get::<_, Uuid>("id"))
                 .collect::<Vec<_>>()
         })?
     };
@@ -391,7 +391,7 @@ pub(crate) async fn link_entries_to_users<C: GenericClient>(
 
         let mut types: Vec<Type> = Vec::new();
         for _ in insert_many.iter() {
-            types.push(Type::INT4);
+            types.push(Type::UUID);
         }
 
         let stmt = client.prepare_typed_cached(&sql, &types).await?;

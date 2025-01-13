@@ -176,7 +176,7 @@ pub fn select(
     )
 }
 
-pub fn select_by_unique_index(user_id: Uuid, feed_id: i32) -> SelectStatement {
+pub fn select_by_unique_index(user_id: Uuid, feed_id: Uuid) -> SelectStatement {
     Query::select()
         .column(UserFeed::Id)
         .from(UserFeed::Table)
@@ -188,7 +188,7 @@ pub fn select_by_unique_index(user_id: Uuid, feed_id: i32) -> SelectStatement {
 pub fn insert(
     id: Option<Uuid>,
     title: Option<String>,
-    feed_id: i32,
+    feed_id: Uuid,
     user_id: Uuid,
 ) -> InsertStatement {
     let mut columns = vec![UserFeed::Title, UserFeed::FeedId, UserFeed::UserId];

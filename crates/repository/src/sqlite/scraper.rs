@@ -59,7 +59,7 @@ impl ScraperRepository for SqliteScraperRepository {
             .build_rusqlite(SqliteQueryBuilder);
 
             conn.prepare_cached(&sql)?
-                .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?;
+                .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
             Ok(())
         })

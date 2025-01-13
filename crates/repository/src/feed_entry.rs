@@ -2,6 +2,7 @@ use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
 use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use uuid::Uuid;
 
 #[allow(dead_code)]
 pub enum FeedEntry {
@@ -50,7 +51,7 @@ pub struct InsertMany {
     pub thumbnail_url: Option<String>,
 }
 
-pub fn select_many_by_feed_id(feed_id: i32) -> SelectStatement {
+pub fn select_many_by_feed_id(feed_id: Uuid) -> SelectStatement {
     Query::select()
         .column(FeedEntry::Id)
         .from(FeedEntry::Table)
@@ -58,7 +59,7 @@ pub fn select_many_by_feed_id(feed_id: i32) -> SelectStatement {
         .to_owned()
 }
 
-pub fn insert_many(data: &[InsertMany], feed_id: i32) -> InsertStatement {
+pub fn insert_many(data: &[InsertMany], feed_id: Uuid) -> InsertStatement {
     let mut query = Query::insert()
         .into_table(FeedEntry::Table)
         .columns([

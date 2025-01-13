@@ -76,7 +76,7 @@ impl BackupRepository for D1BackupRepository {
                     let (sql, values) = crate::feed::insert(link, title, outline.xml_url)
                         .build_d1(SqliteQueryBuilder);
 
-                    super::first::<i32>(&self.db, sql, values, Some("id"))
+                    super::first::<Uuid>(&self.db, sql, values, Some("id"))
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                         .unwrap()

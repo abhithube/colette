@@ -46,7 +46,7 @@ impl Iden for UserFeedEntry {
 
 pub struct InsertMany {
     pub id: Option<Uuid>,
-    pub feed_entry_id: i32,
+    pub feed_entry_id: Uuid,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -140,7 +140,7 @@ pub fn select(
     query
 }
 
-pub fn insert_many_for_all_users(data: &[InsertMany], feed_id: i32) -> WithQuery {
+pub fn insert_many_for_all_users(data: &[InsertMany], feed_id: Uuid) -> WithQuery {
     let input = Alias::new("input");
 
     let input_cte = Query::select()

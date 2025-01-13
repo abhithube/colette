@@ -81,7 +81,7 @@ impl BackupRepository for SqliteBackupRepository {
                             .build_rusqlite(SqliteQueryBuilder);
 
                         tx.prepare_cached(&sql)?
-                            .query_row(&*values.as_params(), |row| row.get::<_, i32>("id"))?
+                            .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
                     };
 
                     let pf_id = {
