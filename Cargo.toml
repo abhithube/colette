@@ -73,7 +73,7 @@ email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
 futures = { version = "0.3.31", default-features = false }
-html5gum = { version = "0.5.7", default-features = false }
+html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false, features = ["std"] }
 quick-xml = { version = "0.37.2", default-features = false }
 refinery = { git = "https://github.com/rust-db/refinery.git", default-features = false }
@@ -83,7 +83,7 @@ reqwest = { version = "0.12.12", default-features = false, features = [
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
-scraper = { version = "0.20.0", default-features = false }
+scraper = { version = "0.22.0", default-features = false }
 sea-query = { version = "0.32.1", default-features = false, features = [
   "derive",
   "with-chrono",
@@ -97,7 +97,7 @@ sea-query-postgres = { version = "0.5.0", default-features = false, features = [
 ] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false }
-thiserror = { version = "1.0.69", default-features = false }
+thiserror = { version = "2.0.11", default-features = false }
 tokio = { version = "1.43.0", default-features = false, features = ["macros"] }
 tower = { version = "0.5.2", default-features = false, features = [
   "limit",
