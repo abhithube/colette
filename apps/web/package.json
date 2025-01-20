@@ -15,12 +15,10 @@
 		"react-dom": "*"
 	},
 	"devDependencies": {
-		"@colette/panda-preset": "*",
 		"@tanstack/router-plugin": "^1.95.3",
 		"@types/react": "*",
 		"@types/react-dom": "*",
 		"@vitejs/plugin-react-swc": "*",
-		"postcss": "*",
 		"typescript": "*",
 		"vite": "*"
 	}

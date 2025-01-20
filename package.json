@@ -9,11 +9,8 @@
 
 		"packages/app",
 		"packages/core",
-		"packages/panda-preset",
 		"packages/query",
-		"packages/react-ui",
-		"packages/styled-system",
-		"packages/ui"
+		"packages/react-ui"
 	],
 	"dependencies": {
 		"date-fns": "^4.1.0",
