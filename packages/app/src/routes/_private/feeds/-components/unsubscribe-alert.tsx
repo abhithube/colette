@@ -1,6 +1,14 @@
 import type { Feed } from '@colette/core'
 import { deleteFeedOptions } from '@colette/query'
-import { Button, Dialog, Flex } from '@colette/ui'
+import {
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@colette/react-ui/components/ui/alert-dialog'
 import { useMutation } from '@tanstack/react-query'
 import { useMatchRoute, useNavigate } from '@tanstack/react-router'
 import { Route } from '../../feeds'
@@ -37,21 +45,21 @@ export function UnsubscribeAlert({ feed, close }: Props) {
   )
 
   return (
-    <Dialog.Content maxW="md" p={6}>
-      <Dialog.Title lineClamp={1}>
-        Unsubscribe from {feed.title ?? feed.originalTitle}?
-      </Dialog.Title>
-      <Dialog.Description>
-        Are you sure you want to unsubscribe? This action cannot be undone.
-      </Dialog.Description>
-      <Flex justify="end" spaceX={4} mt={8}>
-        <Dialog.CloseTrigger asChild>
-          <Button variant="outline">Cancel</Button>
-        </Dialog.CloseTrigger>
-        <Button loading={isPending} onClick={() => unsubscribe()}>
+    <AlertDialogContent className="max-w-md p-6">
+      <AlertDialogHeader>
+        <AlertDialogTitle className="line-clamp-1">
+          Unsubscribe from {feed.title ?? feed.originalTitle}?
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          Are you sure you want to unsubscribe? This action cannot be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter className="mt-8">
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction onClick={() => unsubscribe()} disabled={isPending}>
           Submit
-        </Button>
-      </Flex>
-    </Dialog.Content>
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
   )
 }

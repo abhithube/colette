@@ -1,9 +1,19 @@
 import { loginOptions } from '@colette/query'
-import { Button, Card, Field } from '@colette/ui'
+import { FormMessage } from '@colette/react-ui/components/form'
+import { Button } from '@colette/react-ui/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@colette/react-ui/components/ui/card'
+import { Input } from '@colette/react-ui/components/ui/input'
+import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { zodValidator } from '@tanstack/zod-form-adapter'
 import { z } from 'zod'
 import { Route } from '../login'
 
@@ -41,39 +51,32 @@ export const LoginForm = () => {
         form.handleSubmit()
       }}
     >
-      <Card.Root>
-        <Card.Header spaceY="2">
-          <Card.Title>Login</Card.Title>
-          <Card.Description>Login to your account</Card.Description>
-        </Card.Header>
-        <Card.Body spaceY="4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Login</CardTitle>
+          <CardDescription>Login to your account</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
           <form.Field
             name="email"
-            validatorAdapter={zodValidator()}
             validators={{
               onBlur: z.string().email('Please enter a valid email'),
             }}
           >
             {({ state, handleChange, handleBlur }) => (
-              <Field.Root
-                defaultValue={state.value}
-                invalid={state.meta.errors.length > 0}
-              >
-                <Field.Label>Email</Field.Label>
-                <Field.Input
-                  placeholder="user@email.com"
+              <div className="space-y-1">
+                <Label>Email</Label>
+                <Input
+                  placeholder="user@example.com"
                   onChange={(e) => handleChange(e.target.value)}
                   onBlur={handleBlur}
                 />
-                <Field.ErrorText>
-                  {state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
-              </Field.Root>
+                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+              </div>
             )}
           </form.Field>
           <form.Field
             name="password"
-            validatorAdapter={zodValidator()}
             validators={{
               onBlur: z
                 .string()
@@ -81,30 +84,25 @@ export const LoginForm = () => {
             }}
           >
             {({ state, handleChange, handleBlur }) => (
-              <Field.Root
-                defaultValue={state.value}
-                invalid={state.meta.errors.length > 0}
-              >
-                <Field.Label>Password</Field.Label>
-                <Field.Input
+              <div className="space-y-1">
+                <Label>Password</Label>
+                <Input
                   type="password"
                   placeholder="********"
                   onChange={(e) => handleChange(e.target.value)}
                   onBlur={handleBlur}
                 />
-                <Field.ErrorText>
-                  {state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
-              </Field.Root>
+                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+              </div>
             )}
           </form.Field>
-        </Card.Body>
-        <Card.Footer>
-          <Button flexGrow={1} loading={isPending}>
+        </CardContent>
+        <CardFooter>
+          <Button className="flex-1" disabled={isPending}>
             Login
           </Button>
-        </Card.Footer>
-      </Card.Root>
+        </CardFooter>
+      </Card>
     </form>
   )
 }

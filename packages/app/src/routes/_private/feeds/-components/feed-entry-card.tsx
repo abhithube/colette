@@ -1,113 +1,54 @@
 import type { FeedEntry } from '@colette/core'
-import { updateFeedEntryOptions } from '@colette/query'
+import { Favicon } from '@colette/react-ui/components/favicon'
 import {
-  Button,
   Card,
-  Checkbox,
-  Divider,
-  HStack,
-  Icon,
-  Link,
-  Text,
-  VStack,
-  css,
-} from '@colette/ui'
-import { useMutation } from '@tanstack/react-query'
-import { ExternalLink } from 'lucide-react'
-import { Favicon } from '../../../../components/favicon'
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@colette/react-ui/components/ui/card'
+import { Separator } from '@colette/react-ui/components/ui/separator'
 import { formatRelativeDate } from '../../../../lib/utils'
-import { Route } from '../../feeds'
 
 type Props = {
   feedEntry: FeedEntry
 }
 
 export function FeedEntryCard({ feedEntry }: Props) {
-  const context = Route.useRouteContext()
-
-  const { mutateAsync: updateFeedEntry } = useMutation(
-    updateFeedEntryOptions(context.api, {
-      onSuccess: async () => {
-        await context.queryClient.invalidateQueries({
-          queryKey: ['feedEntries'],
-        })
-      },
-    }),
-  )
-
   return (
-    <Card.Root h={160} flexDir="unset">
+    <Card className="flex h-[160px] overflow-hidden">
       <img
-        className={css({
-          aspectRatio: 16 / 9,
-          bg: 'bg.default',
-          objectFit: 'cover',
-        })}
+        className="aspect-video object-cover"
         src={
           feedEntry.thumbnailUrl ?? 'https://placehold.co/320x180/black/black'
         }
         alt={feedEntry.title}
         loading="lazy"
       />
-      <VStack alignItems="unset" gap={0} flex={1}>
-        <Card.Header py={0} pt={4}>
-          <Card.Title lineClamp={1} title={feedEntry.title}>
-            {feedEntry.title}
-          </Card.Title>
-        </Card.Header>
-        <Card.Body pt={2} pb={4}>
+      <div className="flex grow flex-col gap-0">
+        <CardHeader className="py-0 pt-4">
+          <CardTitle title={feedEntry.title}>{feedEntry.title}</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-2 pb-4">
           {feedEntry.description ? (
-            <Text
-              lineClamp={2}
-              wordBreak="break-word"
-              title={feedEntry.description}
-            >
-              {feedEntry.description}
-            </Text>
+            <p className="line-clamp-2">{feedEntry.description}</p>
           ) : (
-            <Text>No description.</Text>
+            <p>No description.</p>
           )}
-        </Card.Body>
-        <Card.Footer justifyContent="space-between" py={0} pb={4}>
-          <HStack gap={2} h={4} fontSize="sm" fontWeight="semibold">
-            <HStack gap={2}>
-              <Favicon domain={new URL(feedEntry.link).hostname} />
-              {feedEntry.author && (
-                <Text as="span" truncate title={feedEntry.author}>
-                  {feedEntry.author}
-                </Text>
-              )}
-            </HStack>
-            <Divider orientation="vertical" />
-            <Text as="span" title={new Date(feedEntry.publishedAt).toString()}>
+        </CardContent>
+        <CardFooter className="justify-between py-0 pb-4">
+          <div className="flex h-4 items-center gap-2 font-medium text-sm">
+            <Favicon url={feedEntry.link} />
+            {feedEntry.author && (
+              <span className="truncate">{feedEntry.author}</span>
+            )}
+            <Separator orientation="vertical" />
+            <span title={new Date(feedEntry.publishedAt).toString()}>
               {formatRelativeDate(feedEntry.publishedAt)}
-            </Text>
-          </HStack>
-          <HStack>
-            <Button asChild variant="ghost" title="Open in new tab">
-              <Link href={feedEntry.link} target="_blank">
-                <Icon color="fg.muted">
-                  <ExternalLink />
-                </Icon>
-              </Link>
-            </Button>
-            <Checkbox
-              defaultChecked={feedEntry.hasRead}
-              title={feedEntry.hasRead ? 'Mark as unread' : 'Mark as read'}
-              onCheckedChange={(e) => {
-                if (typeof e.checked === 'boolean') {
-                  updateFeedEntry({
-                    id: feedEntry.id,
-                    body: {
-                      hasRead: e.checked,
-                    },
-                  })
-                }
-              }}
-            />
-          </HStack>
-        </Card.Footer>
-      </VStack>
-    </Card.Root>
+            </span>
+          </div>
+        </CardFooter>
+      </div>
+    </Card>
   )
 }

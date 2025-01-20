@@ -1,9 +1,14 @@
 import { getFeedOptions, listFeedEntriesOptions } from '@colette/query'
-import { Button, Dialog, HStack, Heading, Icon, Link } from '@colette/ui'
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+} from '@colette/react-ui/components/ui/alert-dialog'
+import { Button } from '@colette/react-ui/components/ui/button'
+import { Dialog, DialogTrigger } from '@colette/react-ui/components/ui/dialog'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { EditFeedModal } from './-components/edit-feed-modal'
 import { FeedEntryGrid } from './-components/feed-entry-grid'
 import { UnsubscribeAlert } from './-components/unsubscribe-alert'
@@ -34,6 +39,9 @@ function Component() {
   const { id } = Route.useParams()
   const { feedOptions, feedEntryOptions } = Route.useLoaderData()
 
+  const [isEditModalOpen, setEditModalOpen] = useState(false)
+  const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
+
   const { data: feed } = useQuery(feedOptions)
   const {
     data: feedEntries,
@@ -50,70 +58,47 @@ function Component() {
 
   return (
     <>
-      <HStack
-        pos="sticky"
-        zIndex="sticky"
-        top={0}
-        justify="space-between"
-        bg="bg.default"
-        p={8}
-      >
-        <Heading as="h1" fontSize="3xl" fontWeight="medium" lineClamp={1}>
+      <div className="sticky top-0 z-10 flex justify-between bg-background p-8">
+        <h1 className="line-clamp-1 font-medium text-3xl">
           {feed.title ?? feed.originalTitle}
-        </Heading>
-        <HStack>
-          <Button asChild variant="subtle">
-            <Link href={feed.link} target="_blank" textDecoration="none">
-              <Icon>
-                <ExternalLink />
-              </Icon>
+        </h1>
+        <div className="flex gap-2">
+          <Button asChild variant="secondary">
+            <a href={feed.link} target="_blank" rel="noreferrer">
+              <ExternalLink />
               Open Link
-            </Link>
+            </a>
           </Button>
-          <Dialog.Root>
-            <Dialog.Trigger asChild>
-              <Button variant="subtle">
-                <Icon>
-                  <Pencil />
-                </Icon>
+          <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="secondary">
+                <Pencil />
                 Edit
               </Button>
-            </Dialog.Trigger>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Context>
-                {({ setOpen }) => (
-                  <EditFeedModal feed={feed} close={() => setOpen(false)} />
-                )}
-              </Dialog.Context>
-            </Dialog.Positioner>
-          </Dialog.Root>
-          <Button variant="subtle">
-            <Icon>
-              <ListChecks />
-            </Icon>
+            </DialogTrigger>
+            <EditFeedModal feed={feed} close={() => setEditModalOpen(false)} />
+          </Dialog>
+          <Button variant="secondary">
+            <ListChecks />
             Mark as Read
           </Button>
-          <Dialog.Root>
-            <Dialog.Trigger asChild>
-              <Button variant="subtle" colorPalette="red">
-                <Icon>
-                  <CircleX />
-                </Icon>
+          <AlertDialog
+            open={isUnsubscribeAlertOpen}
+            onOpenChange={setUnsubscribeAlertOpen}
+          >
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">
+                <CircleX />
                 Unsubscribe
               </Button>
-            </Dialog.Trigger>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Context>
-                {({ setOpen }) => (
-                  <UnsubscribeAlert feed={feed} close={() => setOpen(false)} />
-                )}
-              </Dialog.Context>
-            </Dialog.Positioner>
-          </Dialog.Root>
-        </HStack>
-      </HStack>
+            </AlertDialogTrigger>
+            <UnsubscribeAlert
+              feed={feed}
+              close={() => setUnsubscribeAlertOpen(false)}
+            />
+          </AlertDialog>
+        </div>
+      </div>
       <main>
         <FeedEntryGrid
           feedEntries={feedEntries.pages.flatMap((page) => page.data)}

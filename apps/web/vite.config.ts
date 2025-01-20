@@ -19,4 +19,9 @@ export default defineConfig({
       quoteStyle: 'single',
     }),
   ],
+  resolve: {
+    alias: {
+      '~': path.resolve(__dirname, '../../packages/react-ui/src'),
+    },
+  },
 })

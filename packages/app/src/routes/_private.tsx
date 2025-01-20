@@ -1,4 +1,4 @@
-import { Box, Divider, Flex } from '@colette/ui'
+import { Separator } from '@colette/react-ui/components/ui/separator'
 import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
 import { OuterSidebar } from './-components/outer-sidebar'
 
@@ -19,12 +19,12 @@ export const Route = createFileRoute('/_private')({
 
 function Component() {
   return (
-    <Flex h="screen">
+    <div className="flex h-screen">
       <OuterSidebar />
-      <Divider orientation="vertical" />
-      <Box w="full" overflowY="auto">
+      <Separator orientation="vertical" />
+      <div className="w-full overflow-y-auto">
         <Outlet />
-      </Box>
-    </Flex>
+      </div>
+    </div>
   )
 }

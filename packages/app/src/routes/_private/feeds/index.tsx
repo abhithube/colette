@@ -1,5 +1,4 @@
 import { listFeedEntriesOptions } from '@colette/query'
-import { HStack, Heading } from '@colette/ui'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
@@ -33,11 +32,9 @@ function Component() {
 
   return (
     <>
-      <HStack pos="sticky" zIndex="sticky" top={0} bg="bg.default" p={8}>
-        <Heading as="h1" fontSize="3xl" fontWeight="medium">
-          All Feeds
-        </Heading>
-      </HStack>
+      <div className="sticky top-0 z-10 flex justify-between bg-background p-8">
+        <h1 className="font-medium text-3xl">All Feeds</h1>
+      </div>
       <main>
         <FeedEntryGrid
           feedEntries={feedEntries.pages.flatMap((page) => page.data)}

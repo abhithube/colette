@@ -1,15 +1,15 @@
 import { importOpmlOptions } from '@colette/query'
+import { FormMessage } from '@colette/react-ui/components/form'
+import { Button } from '@colette/react-ui/components/ui/button'
 import {
-  Button,
-  Dialog,
-  Field,
-  FileUpload,
-  Flex,
-  IconButton,
-} from '@colette/ui'
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from '@colette/react-ui/components/ui/dialog'
+import { Input } from '@colette/react-ui/components/ui/input'
+import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
-import { Trash2, X } from 'lucide-react'
 import { Route } from '../_private'
 
 type Props = {
@@ -40,75 +40,45 @@ export function SettingsModal({ close }: Props) {
   )
 
   return (
-    <Dialog.Content p={6}>
+    <DialogContent className="p-6">
       <form
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <Dialog.Title>Import Feeds</Dialog.Title>
-        <Dialog.Description>
+        <DialogTitle>Import Feeds</DialogTitle>
+        <DialogDescription>
           Upload an OPML file to import feeds.
-        </Dialog.Description>
-        <form.Field
-          name="file"
-          validators={{
-            onSubmit: ({ value }) => {
-              if (!value) {
-                return 'Please select a valid OPML file'
-              }
-            },
-          }}
-        >
-          {({ state, handleChange }) => (
-            <Field.Root mt={4} invalid={state.meta.errors.length > 0}>
-              <FileUpload.Root
-                accept={['application/xml', 'text/xml', '.opml']}
-                onFileChange={(e) => handleChange(e.acceptedFiles[0])}
-              >
-                <FileUpload.Label>OPML file</FileUpload.Label>
-                <FileUpload.Trigger asChild>
-                  <Button variant="outline">Choose a file...</Button>
-                </FileUpload.Trigger>
-                <FileUpload.ItemGroup>
-                  <FileUpload.Context>
-                    {({ acceptedFiles }) =>
-                      acceptedFiles.map((file) => (
-                        <FileUpload.Item key={file.name} file={file}>
-                          <FileUpload.ItemName />
-                          <FileUpload.ItemSizeText />
-                          <FileUpload.ItemDeleteTrigger asChild>
-                            <IconButton
-                              variant="ghost"
-                              colorPalette="red"
-                              size="sm"
-                            >
-                              <Trash2 />
-                            </IconButton>
-                          </FileUpload.ItemDeleteTrigger>
-                        </FileUpload.Item>
-                      ))
-                    }
-                  </FileUpload.Context>
-                </FileUpload.ItemGroup>
-                <FileUpload.HiddenInput />
-              </FileUpload.Root>
-              <Field.ErrorText>
-                {state.meta.errors[0]?.toString()}
-              </Field.ErrorText>
-            </Field.Root>
-          )}
-        </form.Field>
-        <Flex justify="end" mt={4}>
-          <Button loading={isPending}>Submit</Button>
-        </Flex>
+        </DialogDescription>
+        <div className="mt-4 flex flex-col items-stretch space-y-4">
+          <form.Field
+            name="file"
+            validators={{
+              onSubmit: ({ value }) => {
+                if (!value) {
+                  return 'Please select a valid OPML file'
+                }
+              },
+            }}
+          >
+            {({ state, handleChange }) => (
+              <div className="space-y-1">
+                <Label>OPML file</Label>
+                <Input
+                  type="file"
+                  accept=".opml,text/xml,application/xml"
+                  onChange={(e) => handleChange(e.target.files![0])}
+                />
+                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+              </div>
+            )}
+          </form.Field>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button disabled={isPending}>Submit</Button>
+        </div>
       </form>
-      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
-        <IconButton variant="ghost" size="sm">
-          <X />
-        </IconButton>
-      </Dialog.CloseTrigger>
-    </Dialog.Content>
+    </DialogContent>
   )
 }

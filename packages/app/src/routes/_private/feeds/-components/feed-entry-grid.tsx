@@ -1,5 +1,5 @@
 import type { FeedEntry } from '@colette/core'
-import { Box, Container, Divider, HStack, Text } from '@colette/ui'
+import { Separator } from '@colette/react-ui/components/ui/separator'
 import groupBy from 'object.groupby'
 import { useInView } from 'react-intersection-observer'
 import { FeedEntryCard } from './feed-entry-card'
@@ -39,28 +39,26 @@ export function FeedEntryGrid({ feedEntries, hasMore, loadMore }: Props) {
   })
 
   return (
-    <Box spaceY={6} px={8} pb={8}>
+    <div className="space-y-6 px-8 pb-8">
       {list.map(([title, feedEntries]) => (
-        <Box key={title} spaceY={6}>
-          <HStack spaceX={4}>
-            <Divider flex={1} />
-            <Text as="span" fontSize="sm" fontWeight="medium">
-              {title}
-            </Text>
-            <Divider flex={1} />
-          </HStack>
-          <Container spaceY={4}>
+        <div key={title} className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Separator className="flex-1" />
+            <span className="font-medium text-sm">{title}</span>
+            <Separator className="flex-1" />
+          </div>
+          <div className="container space-y-4">
             {feedEntries.map((feedEntry, i) => (
-              <Box
+              <div
                 key={feedEntry.id}
                 ref={hasMore && i === feedEntries.length - 1 ? ref : undefined}
               >
                 <FeedEntryCard feedEntry={feedEntry} />
-              </Box>
+              </div>
             ))}
-          </Container>
-        </Box>
+          </div>
+        </div>
       ))}
-    </Box>
+    </div>
   )
 }

@@ -1,22 +1,21 @@
 import type { Feed } from '@colette/core'
-import { listTagsOptions, updateFeedOptions } from '@colette/query'
+import { updateFeedOptions } from '@colette/query'
+import { FormDescription, FormMessage } from '@colette/react-ui/components/form'
+import { Button } from '@colette/react-ui/components/ui/button'
 import {
-  Button,
-  Dialog,
-  Field,
-  Fieldset,
-  Flex,
-  IconButton,
-  Switch,
-  VStack,
-} from '@colette/ui'
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@colette/react-ui/components/ui/dialog'
+import { Input } from '@colette/react-ui/components/ui/input'
+import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { zodValidator } from '@tanstack/zod-form-adapter'
-import { X } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { z } from 'zod'
-import { TagSelector } from '../../../../components/tag-selector'
+import { TagsInput } from '../../../../components/tags-input'
 import { Route } from '../../../_private'
 
 type Props = {
@@ -27,12 +26,9 @@ type Props = {
 export function EditFeedModal({ feed, close }: Props) {
   const context = Route.useRouteContext()
 
-  const { data: tags } = useQuery(listTagsOptions({}, context.api))
-
   const form = useForm({
     defaultValues: {
       title: feed.title ?? feed.originalTitle,
-      pinned: feed.pinned,
       tags: feed.tags?.map((tag) => tag.title) ?? [],
     },
     onSubmit: ({ value }) => {
@@ -46,8 +42,6 @@ export function EditFeedModal({ feed, close }: Props) {
           title = null
         }
       }
-
-      const pinned = value.pinned === feed.pinned ? undefined : value.pinned
 
       let tags: string[] | undefined = value.tags
       if (feed.tags) {
@@ -64,7 +58,7 @@ export function EditFeedModal({ feed, close }: Props) {
         tags = undefined
       }
 
-      if (title === undefined && pinned === undefined && tags === undefined) {
+      if (title === undefined && tags === undefined) {
         return close()
       }
 
@@ -72,7 +66,6 @@ export function EditFeedModal({ feed, close }: Props) {
         id: feed.id,
         body: {
           title,
-          pinned,
           tags,
         },
       })
@@ -98,78 +91,52 @@ export function EditFeedModal({ feed, close }: Props) {
     form.reset()
   }, [form.reset, feed.id])
 
-  if (!tags) return
-
   return (
-    <Dialog.Content maxW="md" p={6}>
+    <DialogContent className="max-w-md p-6">
       <form
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <Dialog.Title lineClamp={1}>
-          Edit {feed.title ?? feed.originalTitle}
-        </Dialog.Title>
-        <Dialog.Description>Edit a feed's data.</Dialog.Description>
-        <VStack alignItems="stretch" spaceY={4} mt={4}>
+        <DialogHeader>
+          <DialogTitle className="line-clamp-1">
+            Edit {feed.title ?? feed.originalTitle}
+          </DialogTitle>
+          <DialogDescription>Edit a feed's data.</DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field
             name="title"
-            validatorAdapter={zodValidator()}
             validators={{
               onBlur: z.string().min(1, "Title can't be empty"),
             }}
           >
             {({ state, handleChange, handleBlur }) => (
-              <Field.Root invalid={state.meta.errors.length > 0}>
-                <Field.Label>Title</Field.Label>
-                <Field.Input
-                  value={state.value}
+              <div className="space-y-1">
+                <Label>Title</Label>
+                <Input
                   onChange={(e) => handleChange(e.target.value)}
                   onBlur={handleBlur}
                 />
-                <Field.HelperText>Custom title</Field.HelperText>
-                <Field.ErrorText>
-                  {state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
-              </Field.Root>
-            )}
-          </form.Field>
-          <form.Field name="pinned">
-            {({ state, handleChange }) => (
-              <Fieldset.Root paddingBlock={0} borderTop="none">
-                <Fieldset.Legend>Pinned</Fieldset.Legend>
-                <Fieldset.HelperText>
-                  Should the feed be pinned to the sidebar?
-                </Fieldset.HelperText>
-                <Field.Root>
-                  <Switch
-                    checked={state.value}
-                    onCheckedChange={(details) => handleChange(details.checked)}
-                  />
-                </Field.Root>
-              </Fieldset.Root>
+                <FormDescription>Custom title</FormDescription>
+                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+              </div>
             )}
           </form.Field>
           <form.Field name="tags">
             {({ state, handleChange }) => (
-              <TagSelector
-                tags={tags.data}
-                state={state}
-                handleChange={handleChange}
-              />
+              <div className="space-y-1">
+                <Label>Tags</Label>
+                <TagsInput state={state} handleChange={handleChange} />
+              </div>
             )}
           </form.Field>
-          <Flex justify="end">
-            <Button loading={isPending}>Submit</Button>
-          </Flex>
-        </VStack>
+          <DialogFooter>
+            <Button disabled={isPending}>Submit</Button>
+          </DialogFooter>
+        </div>
       </form>
-      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
-        <IconButton variant="ghost" size="sm">
-          <X />
-        </IconButton>
-      </Dialog.CloseTrigger>
-    </Dialog.Content>
+    </DialogContent>
   )
 }

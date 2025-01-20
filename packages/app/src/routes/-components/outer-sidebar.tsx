@@ -1,181 +1,112 @@
+import { Button } from '@colette/react-ui/components/ui/button'
+import { Dialog, DialogTrigger } from '@colette/react-ui/components/ui/dialog'
 import {
-  Button,
-  Dialog,
-  Flex,
-  Icon,
-  IconButton,
-  Link,
   Tooltip,
-  VStack,
-  css,
-} from '@colette/ui'
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@colette/react-ui/components/ui/tooltip'
 import { Link as TLink } from '@tanstack/react-router'
 import { Bookmark, Home, Rss, Search, Settings, User } from 'lucide-react'
+import { useState } from 'react'
 import { SettingsModal } from './settings-modal'
 
 export const OuterSidebar = () => {
+  const [isOpen, setOpen] = useState(false)
+
   return (
-    <VStack h="full" p={4}>
-      <Tooltip.Root
-        positioning={{
-          placement: 'right-start',
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg" flexShrink={0}>
-            <Link asChild>
+    <div className="flex h-full flex-col gap-4 p-4">
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost">
               <TLink
                 to="/"
                 activeProps={{
-                  className: css({
-                    bg: 'bg.muted',
-                  }),
+                  className: 'bg-muted',
                 }}
               >
-                <Icon>
-                  <Home />
-                </Icon>
+                <Home />
               </TLink>
-            </Link>
-          </Button>
-        </Tooltip.Trigger>
-        <Tooltip.Positioner>
-          <Tooltip.Arrow>
-            <Tooltip.ArrowTip />
-          </Tooltip.Arrow>
-          <Tooltip.Content>Home</Tooltip.Content>
-        </Tooltip.Positioner>
-      </Tooltip.Root>
-      <Tooltip.Root
-        positioning={{
-          placement: 'right',
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg" flexShrink={0}>
-            <Link asChild>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Home</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost">
               <TLink
                 to="/feeds"
                 activeProps={{
-                  className: css({
-                    bg: 'bg.muted',
-                  }),
+                  className: 'bg-muted',
                 }}
                 activeOptions={{
                   exact: false,
                 }}
               >
-                <Icon>
-                  <Rss />
-                </Icon>
+                <Rss />
               </TLink>
-            </Link>
-          </Button>
-        </Tooltip.Trigger>
-        <Tooltip.Positioner>
-          <Tooltip.Arrow>
-            <Tooltip.ArrowTip />
-          </Tooltip.Arrow>
-          <Tooltip.Content>Feed</Tooltip.Content>
-        </Tooltip.Positioner>
-      </Tooltip.Root>
-      <Tooltip.Root
-        positioning={{
-          placement: 'right',
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <Button asChild variant="ghost" size="lg" flexShrink={0}>
-            <Link asChild>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Feed</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button asChild variant="ghost">
               <TLink
                 to="/bookmarks"
                 activeProps={{
-                  className: css({
-                    bg: 'bg.muted',
-                  }),
+                  className: 'bg-muted',
                 }}
                 activeOptions={{
                   exact: false,
                 }}
               >
-                <Icon>
-                  <Bookmark />
-                </Icon>
+                <Bookmark />
               </TLink>
-            </Link>
-          </Button>
-        </Tooltip.Trigger>
-        <Tooltip.Positioner>
-          <Tooltip.Arrow>
-            <Tooltip.ArrowTip />
-          </Tooltip.Arrow>
-          <Tooltip.Content>Bookmarks</Tooltip.Content>
-        </Tooltip.Positioner>
-      </Tooltip.Root>
-      <Tooltip.Root
-        positioning={{
-          placement: 'right',
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <IconButton variant="ghost" size="lg" flexShrink={0}>
-            <Search />
-          </IconButton>
-        </Tooltip.Trigger>
-        <Tooltip.Positioner>
-          <Tooltip.Arrow>
-            <Tooltip.ArrowTip />
-          </Tooltip.Arrow>
-          <Tooltip.Content>Search</Tooltip.Content>
-        </Tooltip.Positioner>
-      </Tooltip.Root>
-      <Flex grow={1} />
-      <Tooltip.Root
-        positioning={{
-          placement: 'right',
-        }}
-      >
-        <Tooltip.Trigger asChild>
-          <Dialog.Trigger asChild>
-            <IconButton variant="ghost" size="lg" flexShrink={0}>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Bookmarks</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost">
+              <Search />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Search</TooltipContent>
+        </Tooltip>
+        <div className="flex grow" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost">
               <User />
-            </IconButton>
-          </Dialog.Trigger>
-        </Tooltip.Trigger>
-        <Tooltip.Positioner>
-          <Tooltip.Arrow>
-            <Tooltip.ArrowTip />
-          </Tooltip.Arrow>
-          <Tooltip.Content>User</Tooltip.Content>
-        </Tooltip.Positioner>
-      </Tooltip.Root>
-      <Dialog.Root>
-        <Tooltip.Root
-          positioning={{
-            placement: 'right',
-          }}
-        >
-          <Tooltip.Trigger asChild>
-            <Dialog.Trigger asChild>
-              <IconButton variant="ghost" size="lg" flexShrink={0}>
-                <Settings />
-              </IconButton>
-            </Dialog.Trigger>
-          </Tooltip.Trigger>
-          <Tooltip.Positioner>
-            <Tooltip.Arrow>
-              <Tooltip.ArrowTip />
-            </Tooltip.Arrow>
-            <Tooltip.Content>Settings</Tooltip.Content>
-          </Tooltip.Positioner>
-        </Tooltip.Root>
-        <Dialog.Backdrop />
-        <Dialog.Positioner>
-          <Dialog.Context>
-            {({ setOpen }) => <SettingsModal close={() => setOpen(false)} />}
-          </Dialog.Context>
-        </Dialog.Positioner>
-      </Dialog.Root>
-    </VStack>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>User</TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+      <Dialog open={isOpen} onOpenChange={setOpen}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DialogTrigger asChild>
+                <Button variant="ghost">
+                  <Settings />
+                </Button>
+              </DialogTrigger>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        <SettingsModal close={() => setOpen(false)} />
+      </Dialog>
+    </div>
   )
 }

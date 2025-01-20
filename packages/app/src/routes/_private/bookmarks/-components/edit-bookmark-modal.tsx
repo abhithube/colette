@@ -1,11 +1,18 @@
 import type { Bookmark } from '@colette/core'
-import { listTagsOptions, updateBookmarkOptions } from '@colette/query'
-import { Button, Dialog, Flex, IconButton, VStack } from '@colette/ui'
+import { updateBookmarkOptions } from '@colette/query'
+import { Button } from '@colette/react-ui/components/ui/button'
+import {
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@colette/react-ui/components/ui/dialog'
+import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { X } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 import { useEffect } from 'react'
-import { TagSelector } from '../../../../components/tag-selector'
+import { TagsInput } from '../../../../components/tags-input'
 import { Route } from '../../../_private'
 
 type Props = {
@@ -15,8 +22,6 @@ type Props = {
 
 export function EditBookmarkModal({ bookmark, close }: Props) {
   const context = Route.useRouteContext()
-
-  const { data: tags } = useQuery(listTagsOptions({}, context.api))
 
   const form = useForm({
     defaultValues: {
@@ -70,38 +75,34 @@ export function EditBookmarkModal({ bookmark, close }: Props) {
     form.reset()
   }, [form.reset, bookmark.id])
 
-  if (!tags) return
-
   return (
-    <Dialog.Content maxW="md" p={6}>
+    <DialogContent className="max-w-md p-6">
       <form
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <Dialog.Title lineClamp={1}>Edit {bookmark.title}</Dialog.Title>
-        <Dialog.Description>Edit a feed's data.</Dialog.Description>
-        <VStack alignItems="stretch" spaceY={4} mt={4}>
+        <DialogHeader>
+          <DialogTitle className="line-clamp-1">
+            Edit {bookmark.title}
+          </DialogTitle>
+          <DialogDescription>Edit a feed's data.</DialogDescription>
+        </DialogHeader>
+        <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field name="tags">
             {({ state, handleChange }) => (
-              <TagSelector
-                tags={tags.data}
-                state={state}
-                handleChange={handleChange}
-              />
+              <div className="space-y-1">
+                <Label>Tags</Label>
+                <TagsInput state={state} handleChange={handleChange} />
+              </div>
             )}
           </form.Field>
-          <Flex justify="end">
-            <Button loading={isPending}>Submit</Button>
-          </Flex>
-        </VStack>
+          <DialogFooter>
+            <Button disabled={isPending}>Submit</Button>
+          </DialogFooter>
+        </div>
       </form>
-      <Dialog.CloseTrigger asChild position="absolute" top="2" right="2">
-        <IconButton variant="ghost" size="sm">
-          <X />
-        </IconButton>
-      </Dialog.CloseTrigger>
-    </Dialog.Content>
+    </DialogContent>
   )
 }

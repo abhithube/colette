@@ -1,5 +1,4 @@
 import type { Bookmark } from '@colette/core'
-import { Box, Grid, GridItem } from '@colette/ui'
 import { useInView } from 'react-intersection-observer'
 import { BookmarkCard } from './bookmark-card'
 
@@ -26,20 +25,20 @@ export function BookmarkGrid({
     : bookmarks
 
   return (
-    <Grid columns={{ base: 1, md: 2, lg: 3 }} gap={4} px={8} pb={8}>
+    <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
       {created && (
-        <Box rounded="lg" border="2">
+        <div className="rounded-lg border-2">
           <BookmarkCard bookmark={created} />
-        </Box>
+        </div>
       )}
       {filtered.map((bookmark, i) => (
-        <GridItem
+        <div
           key={bookmark.id}
           ref={hasMore && i === filtered.length - 1 ? ref : undefined}
         >
           <BookmarkCard bookmark={bookmark} />
-        </GridItem>
+        </div>
       ))}
-    </Grid>
+    </div>
   )
 }

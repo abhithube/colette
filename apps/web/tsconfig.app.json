@@ -1,4 +1,10 @@
 {
 	"extends": "../../tsconfig.app.json",
+	"compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["../../packages/react-ui/src/*"]
+    }
+  },
 	"include": ["src"]
 }
