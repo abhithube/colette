@@ -9,6 +9,7 @@
 	"dependencies": {
 		"@colette/app": "*",
 		"@colette/core": "*",
+		"@colette/react-ui": "*",
 		"@tanstack/react-query": "^5.63.0",
 		"react": "*",
 		"react-dom": "*"

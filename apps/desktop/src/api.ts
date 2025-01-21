@@ -2,6 +2,7 @@ import type {
   AuthAPI,
   BackupAPI,
   BookmarkAPI,
+  CollectionAPI,
   FeedAPI,
   FeedEntryAPI,
   SmartFeedAPI,
@@ -16,11 +17,13 @@ import {
   SmartFeedCommands,
   TagCommands,
 } from './commands'
+import { CollectionCommands } from './commands/collection'
 
 export interface API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   smartFeeds: SmartFeedAPI
@@ -31,6 +34,7 @@ export class CommandsAPI implements API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   smartFeeds: SmartFeedAPI
@@ -40,6 +44,7 @@ export class CommandsAPI implements API {
     this.auth = new AuthCommands()
     this.backups = new BackupCommands()
     this.bookmarks = new BookmarkCommands()
+    this.collections = new CollectionCommands()
     this.feedEntries = new FeedEntryCommands()
     this.feeds = new FeedCommands()
     this.smartFeeds = new SmartFeedCommands()
