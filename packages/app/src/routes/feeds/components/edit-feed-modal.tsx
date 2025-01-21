@@ -82,7 +82,7 @@ export const EditFeedModal: FC<{
 
   useEffect(() => {
     form.reset()
-  }, [form.reset, props.feed.id])
+  }, [form, props.feed.id])
 
   return (
     <DialogContent className="max-w-md p-6">

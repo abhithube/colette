@@ -66,7 +66,7 @@ export const EditBookmarkModal: FC<{
 
   useEffect(() => {
     form.reset()
-  }, [form.reset, props.bookmark.id])
+  }, [form, props.bookmark.id])
 
   return (
     <DialogContent className="max-w-md p-6">
