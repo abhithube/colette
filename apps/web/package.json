@@ -15,6 +15,7 @@
 		"react-dom": "*"
 	},
 	"devDependencies": {
+		"@types/node": "*",
 		"@types/react": "*",
 		"@types/react-dom": "*",
 		"@vitejs/plugin-react-swc": "*",
