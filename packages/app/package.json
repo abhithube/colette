@@ -24,7 +24,7 @@
     "@types/object.groupby": "^1.0.4",
     "@types/react": "*",
     "@types/react-dom": "*",
-    "@vitejs/plugin-react-swc": "*",
+    "@vitejs/plugin-react": "*",
     "typescript": "*",
     "vite": "*"
   }

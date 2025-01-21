@@ -20,7 +20,7 @@
     "@tauri-apps/cli": "^2",
     "@types/react": "*",
     "@types/react-dom": "*",
-    "@vitejs/plugin-react": "^4",
+    "@vitejs/plugin-react": "*",
     "typescript": "*",
     "vite": "*"
   }

@@ -2,6 +2,7 @@ import { includeIgnoreFile } from '@eslint/compat'
 import pluginJs from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
 import pluginReact from 'eslint-plugin-react'
+import reactCompiler from 'eslint-plugin-react-compiler'
 import globals from 'globals'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -19,6 +20,14 @@ export default [
   ...tseslint.configs.recommended,
   pluginReact.configs.flat.recommended,
   pluginReact.configs.flat['jsx-runtime'],
+  {
+    plugins: {
+      'react-compiler': reactCompiler,
+    },
+    rules: {
+      'react-compiler/react-compiler': 'error',
+    },
+  },
   eslintConfigPrettier,
   includeIgnoreFile(gitignorePath),
   {

@@ -4,7 +4,13 @@ import { defineConfig } from 'vite'
 const host = process.env.TAURI_DEV_HOST
 
 export default defineConfig(async () => ({
-  plugins: [react()],
+  plugins: [
+    react({
+      babel: {
+        plugins: ['babel-plugin-react-compiler'],
+      },
+    }),
+  ],
   clearScreen: false,
   server: {
     port: 1420,
