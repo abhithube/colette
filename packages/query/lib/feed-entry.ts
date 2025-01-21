@@ -6,9 +6,9 @@ import type {
   FeedEntryListQuery,
   FeedEntryUpdate,
 } from '@colette/core'
-import type { QueryKey } from '@tanstack/query-core'
+import { QueryClient } from '@tanstack/query-core'
 
-const FEED_ENTRIES_KEY: QueryKey = ['feedEntries']
+const FEED_ENTRIES_PREFIX = 'feedEntries'
 
 type ListFeedEntriesOptions = BaseInfiniteQueryOptions<
   FeedEntryList,
@@ -24,7 +24,7 @@ export const listFeedEntriesOptions = (
   > = {},
 ): ListFeedEntriesOptions => ({
   ...options,
-  queryKey: [...FEED_ENTRIES_KEY, query],
+  queryKey: [FEED_ENTRIES_PREFIX, query],
   queryFn: ({ pageParam }) =>
     api.feedEntries.list({
       ...query,
@@ -41,8 +41,18 @@ type UpdateFeedEntryOptions = BaseMutationOptions<
 
 export const updateFeedEntryOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<UpdateFeedEntryOptions, 'mutationFn'> = {},
 ): UpdateFeedEntryOptions => ({
   ...options,
   mutationFn: (data) => api.feedEntries.update(data.id, data.body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [FEED_ENTRIES_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })

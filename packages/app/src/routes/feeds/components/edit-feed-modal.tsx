@@ -72,15 +72,10 @@ export const EditFeedModal: FC<{
   })
 
   const { mutateAsync: updateFeed, isPending } = useMutation(
-    updateFeedOptions(api, {
-      onSuccess: async (data) => {
+    updateFeedOptions(api, queryClient, {
+      onSuccess: () => {
         form.reset()
         props.close()
-
-        await queryClient.setQueryData(['feeds', props.feed.id], data)
-        await queryClient.invalidateQueries({
-          queryKey: ['feeds'],
-        })
       },
     }),
   )

@@ -23,17 +23,13 @@ export const UnsubscribeAlert: FC<{
   const params = useParams<{ id?: string }>()
 
   const mutation = useMutation(
-    deleteFeedOptions(props.feed.id, api, {
-      onSuccess: async () => {
+    deleteFeedOptions(props.feed.id, api, queryClient, {
+      onSuccess: () => {
         props.close()
 
         if (params.id === props.feed.id) {
           navigate('/feeds')
         }
-
-        await queryClient.invalidateQueries({
-          queryKey: ['feeds'],
-        })
       },
     }),
   )

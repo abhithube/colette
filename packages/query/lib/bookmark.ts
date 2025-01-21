@@ -9,9 +9,9 @@ import type {
   BookmarkScraped,
   BookmarkUpdate,
 } from '@colette/core'
-import type { QueryKey } from '@tanstack/query-core'
+import type { QueryClient } from '@tanstack/query-core'
 
-const BOOKMARKS_KEY: QueryKey = ['bookmarks']
+const BOOKMARKS_PREFIX = 'bookmarks'
 
 type ListBookmarksOptions = BaseInfiniteQueryOptions<
   BookmarkList,
@@ -27,7 +27,7 @@ export const listBookmarksOptions = (
   > = {},
 ): ListBookmarksOptions => ({
   ...options,
-  queryKey: [...BOOKMARKS_KEY, query],
+  queryKey: [BOOKMARKS_PREFIX, query],
   queryFn: ({ pageParam }) =>
     api.bookmarks.list({
       ...query,
@@ -41,10 +41,20 @@ type CreateBookmarkOptions = BaseMutationOptions<Bookmark, BookmarkCreate>
 
 export const createBookmarkOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<CreateBookmarkOptions, 'mutationFn'> = {},
 ): CreateBookmarkOptions => ({
   ...options,
   mutationFn: (body) => api.bookmarks.create(body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [BOOKMARKS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 type UpdateBookmarkOptions = BaseMutationOptions<
@@ -54,10 +64,39 @@ type UpdateBookmarkOptions = BaseMutationOptions<
 
 export const updateBookmarkOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<UpdateBookmarkOptions, 'mutationFn'> = {},
 ): UpdateBookmarkOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [BOOKMARKS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
+})
+
+export const deleteBookmarkOptions = (
+  id: string,
+  api: API,
+  queryClient: QueryClient,
+  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
+): BaseMutationOptions => ({
+  ...options,
+  mutationFn: () => api.bookmarks.delete(id),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [BOOKMARKS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 type ScrapeBookmarkOptions = BaseMutationOptions<

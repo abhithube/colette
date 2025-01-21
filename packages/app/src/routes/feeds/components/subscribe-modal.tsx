@@ -29,14 +29,10 @@ export const SubscribeModal: FC<{ close: () => void }> = (props) => {
   })
 
   const { mutateAsync: createFeed, isPending } = useMutation(
-    createFeedOptions(api, {
-      onSuccess: async (data) => {
+    createFeedOptions(api, queryClient, {
+      onSuccess: (data) => {
         form.reset()
         props.close()
-
-        await queryClient.invalidateQueries({
-          queryKey: ['feeds'],
-        })
 
         navigate(`/feeds/${data.id}`)
       },

@@ -25,14 +25,10 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
   })
 
   const { mutateAsync: importOpml, isPending } = useMutation(
-    importOpmlOptions(api, {
-      onSuccess: async () => {
+    importOpmlOptions(api, queryClient, {
+      onSuccess: () => {
         form.reset()
         props.close()
-
-        await queryClient.invalidateQueries({
-          queryKey: ['feeds'],
-        })
       },
     }),
   )

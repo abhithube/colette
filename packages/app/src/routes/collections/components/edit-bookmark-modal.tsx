@@ -56,15 +56,10 @@ export const EditBookmarkModal: FC<{
   })
 
   const { mutateAsync: updateBookmark, isPending } = useMutation(
-    updateBookmarkOptions(api, {
-      onSuccess: async (data) => {
+    updateBookmarkOptions(api, queryClient, {
+      onSuccess: () => {
         form.reset()
         props.close()
-
-        await queryClient.setQueryData(['bookmarks', props.bookmark.id], data)
-        await queryClient.invalidateQueries({
-          queryKey: ['bookmarks'],
-        })
       },
     }),
   )

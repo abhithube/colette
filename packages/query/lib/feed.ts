@@ -9,9 +9,9 @@ import type {
   FeedListQuery,
   FeedUpdate,
 } from '@colette/core'
-import type { QueryKey } from '@tanstack/query-core'
+import { QueryClient } from '@tanstack/query-core'
 
-const FEEDS_KEY: QueryKey = ['feeds']
+export const FEEDS_PREFIX = 'feeds'
 
 type ListFeedsOptions = BaseQueryOptions<FeedList>
 
@@ -21,7 +21,7 @@ export const listFeedsOptions = (
   options: Omit<ListFeedsOptions, 'queryKey' | 'queryFn'> = {},
 ): ListFeedsOptions => ({
   ...options,
-  queryKey: [...FEEDS_KEY, query],
+  queryKey: [FEEDS_PREFIX, query],
   queryFn: () => api.feeds.list(query),
 })
 
@@ -33,7 +33,7 @@ export const getFeedOptions = (
   options: Omit<GetFeedOptions, 'queryKey' | 'queryFn'> = {},
 ): GetFeedOptions => ({
   ...options,
-  queryKey: [...FEEDS_KEY, id],
+  queryKey: [FEEDS_PREFIX, id],
   queryFn: () => api.feeds.get(id),
 })
 
@@ -41,10 +41,20 @@ type CreateFeedOptions = BaseMutationOptions<Feed, FeedCreate>
 
 export const createFeedOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<CreateFeedOptions, 'mutationFn'> = {},
 ): CreateFeedOptions => ({
   ...options,
   mutationFn: (body) => api.feeds.create(body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 type UpdateFeedOptions = BaseMutationOptions<
@@ -54,19 +64,39 @@ type UpdateFeedOptions = BaseMutationOptions<
 
 export const updateFeedOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<UpdateFeedOptions, 'mutationFn'> = {},
 ): UpdateFeedOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.feeds.update(id, body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 export const deleteFeedOptions = (
   id: string,
   api: API,
+  queryClient: QueryClient,
   options: Omit<BaseMutationOptions, 'mutationFn'> = {},
 ): BaseMutationOptions => ({
   ...options,
   mutationFn: () => api.feeds.delete(id),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 type DetectFeedsOptions = BaseMutationOptions<DetectedResponse, FeedDetect>

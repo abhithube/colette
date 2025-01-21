@@ -45,17 +45,12 @@ export const EditStep: FC<{
   })
 
   const mutation = useMutation(
-    createFeedOptions(api, {
-      onSuccess: async (feed) => {
+    createFeedOptions(api, queryClient, {
+      onSuccess: (feed) => {
         form.reset()
-
-        await queryClient.invalidateQueries({
-          queryKey: ['feeds'],
-        })
+        props.onClose()
 
         navigate(`/feeds/${feed.id}`)
-
-        props.onClose()
       },
     }),
   )

@@ -6,9 +6,9 @@ import type {
   SmartFeedList,
   SmartFeedUpdate,
 } from '@colette/core'
-import type { QueryKey } from '@tanstack/query-core'
+import { QueryClient } from '@tanstack/query-core'
 
-const SMART_FEEDS_KEY: QueryKey = ['smartFeeds']
+const SMART_FEEDS_PREFIX = 'smartFeeds'
 
 type ListSmartFeedsOptions = BaseQueryOptions<SmartFeedList>
 
@@ -17,7 +17,7 @@ export const listSmartFeedsOptions = (
   options: Omit<ListSmartFeedsOptions, 'queryKey' | 'queryFn'> = {},
 ): ListSmartFeedsOptions => ({
   ...options,
-  queryKey: SMART_FEEDS_KEY,
+  queryKey: [SMART_FEEDS_PREFIX],
   queryFn: () => api.smartFeeds.list(),
 })
 
@@ -29,7 +29,7 @@ export const getSmartFeedOptions = (
   options: Omit<GetSmartFeedOptions, 'queryKey' | 'queryFn'> = {},
 ): GetSmartFeedOptions => ({
   ...options,
-  queryKey: [...SMART_FEEDS_KEY, id],
+  queryKey: [SMART_FEEDS_PREFIX, id],
   queryFn: () => api.smartFeeds.get(id),
 })
 
@@ -37,10 +37,20 @@ type CreateSmartFeedOptions = BaseMutationOptions<SmartFeed, SmartFeedCreate>
 
 export const createSmartFeedOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<CreateSmartFeedOptions, 'mutationFn'> = {},
 ): CreateSmartFeedOptions => ({
   ...options,
   mutationFn: (body) => api.smartFeeds.create(body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [SMART_FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 type UpdateSmartFeedOptions = BaseMutationOptions<
@@ -50,17 +60,37 @@ type UpdateSmartFeedOptions = BaseMutationOptions<
 
 export const updateSmartFeedOptions = (
   api: API,
+  queryClient: QueryClient,
   options: Omit<UpdateSmartFeedOptions, 'mutationFn'> = {},
 ): UpdateSmartFeedOptions => ({
   ...options,
   mutationFn: ({ id, body }) => api.smartFeeds.update(id, body),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [SMART_FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })
 
 export const deleteSmartFeedOptions = (
   id: string,
   api: API,
+  queryClient: QueryClient,
   options: Omit<BaseMutationOptions, 'mutationFn'> = {},
 ): BaseMutationOptions => ({
   ...options,
   mutationFn: () => api.smartFeeds.delete(id),
+  onSuccess: async (...args) => {
+    await queryClient.invalidateQueries({
+      queryKey: [SMART_FEEDS_PREFIX],
+    })
+
+    if (options.onSuccess) {
+      await options.onSuccess(...args)
+    }
+  },
 })

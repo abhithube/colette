@@ -1,8 +1,8 @@
 import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type { API, Login, User } from '@colette/core'
-import type { QueryClient, QueryKey } from '@tanstack/query-core'
+import type { QueryClient } from '@tanstack/query-core'
 
-const AUTH_KEY: QueryKey = ['auth']
+const AUTH_PREFIX = 'auth'
 
 type LoginOptions = BaseMutationOptions<User, Login>
 
@@ -14,7 +14,7 @@ export const loginOptions = (
   ...options,
   mutationFn: (body) => api.auth.login(body),
   onSuccess: async (...args) => {
-    queryClient.setQueryData(AUTH_KEY, args[0])
+    queryClient.setQueryData([AUTH_PREFIX], args[0])
 
     if (options.onSuccess) {
       await options.onSuccess(...args)
@@ -29,7 +29,7 @@ export const getActiveOptions = (
   options: Omit<GetActiveOptions, 'queryKey' | 'queryFn'> = {},
 ): GetActiveOptions => ({
   ...options,
-  queryKey: AUTH_KEY,
+  queryKey: [AUTH_PREFIX],
   queryFn: () => api.auth.getActive(),
 })
 
@@ -43,9 +43,9 @@ export const logoutOptions = (
   ...options,
   mutationFn: () => api.auth.logout(),
   onSuccess: async (...args) => {
-    queryClient.setQueryData(AUTH_KEY, null)
-    await queryClient.invalidateQueries({
-      queryKey: AUTH_KEY,
+    queryClient.removeQueries({
+      queryKey: [AUTH_PREFIX],
+      exact: true,
     })
 
     if (options.onSuccess) {

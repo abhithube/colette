@@ -36,17 +36,12 @@ export const CreateCollectionModal: FC = () => {
   })
 
   const mutation = useMutation(
-    createCollectionOptions(api, {
-      onSuccess: async (collection) => {
+    createCollectionOptions(api, queryClient, {
+      onSuccess: (collection) => {
         form.reset()
-
-        await queryClient.invalidateQueries({
-          queryKey: ['collections'],
-        })
+        setOpen(false)
 
         navigate(`/collections/${collection.id}`)
-
-        setOpen(false)
       },
     }),
   )
