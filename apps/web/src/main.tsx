@@ -1,7 +1,6 @@
-import { ThemeProvider, createRouter } from '@colette/app'
+import { APIProvider, App, ThemeProvider } from '@colette/app'
 import { HttpAPI } from '@colette/core'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { RouterProvider } from '@tanstack/react-router'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import '@colette/react-ui/index.css'
@@ -12,14 +11,14 @@ const api = new HttpAPI({
   credentials: 'include',
 })
 
-const router = createRouter(queryClient, api)
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <APIProvider api={api}>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </APIProvider>
   </React.StrictMode>,
 )

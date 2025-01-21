@@ -19,7 +19,7 @@ import type { FieldState, Updater } from '@tanstack/form-core'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
-import { Route } from '../routes/_private'
+import { useAPI } from '../lib/api-context'
 
 export const TagsInput: FC<{
   state: FieldState<string[]>
@@ -61,9 +61,9 @@ export const TagsInner: FC<{
   state: FieldState<string[]>
   handleChange: (updater: Updater<string[]>) => void
 }> = (props) => {
-  const context = Route.useRouteContext()
+  const api = useAPI()
 
-  const { data: tags } = useQuery(listTagsOptions({}, context.api))
+  const { data: tags } = useQuery(listTagsOptions({}, api))
 
   const [search, setSearch] = useState('')
 
