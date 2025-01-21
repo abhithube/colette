@@ -85,7 +85,6 @@ export const EditFeedModal: FC<{
     }),
   )
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     form.reset()
   }, [form.reset, props.feed.id])
@@ -102,7 +101,7 @@ export const EditFeedModal: FC<{
           <DialogTitle className="line-clamp-1">
             Edit {props.feed.title ?? props.feed.originalTitle}
           </DialogTitle>
-          <DialogDescription>Edit a feed's data.</DialogDescription>
+          <DialogDescription>Edit a feed&apos;s data.</DialogDescription>
         </DialogHeader>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field

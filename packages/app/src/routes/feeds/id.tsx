@@ -28,7 +28,6 @@ export const FeedPage: FC = () => {
     fetchNextPage,
   } = useInfiniteQuery(listFeedEntriesOptions({}, api))
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])

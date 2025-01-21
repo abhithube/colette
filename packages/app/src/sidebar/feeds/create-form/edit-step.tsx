@@ -65,7 +65,7 @@ export const EditStep: FC<{
       <DialogHeader>
         <DialogTitle>Edit Feed</DialogTitle>
         <DialogDescription>
-          Modify a feed's metadata before subscribing to it
+          Modify a feed&apos;s metadata before subscribing to it
         </DialogDescription>
       </DialogHeader>
       <form
