@@ -22,7 +22,11 @@ export default [
   eslintConfigPrettier,
   includeIgnoreFile(gitignorePath),
   {
-    ignores: ['**/dist/', 'packages/react-ui/src/components/ui/'],
+    ignores: [
+      '**/dist/',
+      'apps/solid/',
+      'packages/react-ui/src/components/ui/',
+    ],
   },
   {
     rules: {
