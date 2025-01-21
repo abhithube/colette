@@ -1,25 +1,25 @@
 {
-	"name": "@colette/web",
-	"type": "module",
-	"scripts": {
-		"dev": "vite",
-		"build": "tsc -b && vite build",
-		"preview": "vite preview"
-	},
-	"dependencies": {
-		"@colette/app": "*",
-		"@colette/core": "*",
-		"@colette/react-ui": "*",
-		"@tanstack/react-query": "^5.63.0",
-		"react": "*",
-		"react-dom": "*"
-	},
-	"devDependencies": {
-		"@types/node": "*",
-		"@types/react": "*",
-		"@types/react-dom": "*",
-		"@vitejs/plugin-react-swc": "*",
-		"typescript": "*",
-		"vite": "*"
-	}
+  "name": "@colette/web",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@colette/app": "*",
+    "@colette/core": "*",
+    "@colette/react-ui": "*",
+    "@tanstack/react-query": "^5.63.0",
+    "react": "*",
+    "react-dom": "*"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "@vitejs/plugin-react-swc": "*",
+    "typescript": "*",
+    "vite": "*"
+  }
 }

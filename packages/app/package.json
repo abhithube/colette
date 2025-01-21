@@ -1,29 +1,31 @@
 {
-	"name": "@colette/app",
-	"type": "module",
-	"exports": ["./src/index.ts"],
-	"dependencies": {
-		"@colette/core": "*",
-		"@colette/query": "*",
-		"@colette/react-ui": "*",
-		"@tanstack/react-form": "^0.41.2",
-		"@tanstack/react-query": "^5.63.0",
-		"@tanstack/react-query-devtools": "^5.63.0",
-		"date-fns": "*",
-		"lucide-react": "^0.473.0",
-		"object.groupby": "^1.0.3",
-		"react": "*",
-		"react-dom": "*",
-		"react-intersection-observer": "^9.14.1",
-		"wouter": "^3.3.5",
-		"zod": "^3.24.1"
-	},
-	"devDependencies": {
-		"@types/object.groupby": "^1.0.4",
-		"@types/react": "*",
-		"@types/react-dom": "*",
-		"@vitejs/plugin-react-swc": "*",
-		"typescript": "*",
-		"vite": "*"
-	}
+  "name": "@colette/app",
+  "type": "module",
+  "exports": [
+    "./src/index.ts"
+  ],
+  "dependencies": {
+    "@colette/core": "*",
+    "@colette/query": "*",
+    "@colette/react-ui": "*",
+    "@tanstack/react-form": "^0.41.2",
+    "@tanstack/react-query": "^5.63.0",
+    "@tanstack/react-query-devtools": "^5.63.0",
+    "date-fns": "*",
+    "lucide-react": "^0.473.0",
+    "object.groupby": "^1.0.3",
+    "react": "*",
+    "react-dom": "*",
+    "react-intersection-observer": "^9.14.1",
+    "wouter": "^3.3.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/object.groupby": "^1.0.4",
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "@vitejs/plugin-react-swc": "*",
+    "typescript": "*",
+    "vite": "*"
+  }
 }

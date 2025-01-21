@@ -1,5 +1,5 @@
-import type { Component } from 'solid-js'
 import { LoginForm } from './login-form'
+import type { Component } from 'solid-js'
 
 export const LoginPage: Component = () => {
   return (

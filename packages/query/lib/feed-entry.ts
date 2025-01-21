@@ -1,3 +1,4 @@
+import type { BaseInfiniteQueryOptions, BaseMutationOptions } from './common'
 import type {
   API,
   FeedEntry,
@@ -6,7 +7,6 @@ import type {
   FeedEntryUpdate,
 } from '@colette/core'
 import type { QueryKey } from '@tanstack/query-core'
-import type { BaseInfiniteQueryOptions, BaseMutationOptions } from './common'
 
 const FEED_ENTRIES_KEY: QueryKey = ['feedEntries']
 

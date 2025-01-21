@@ -1,3 +1,4 @@
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type {
   API,
   SmartFeed,
@@ -6,7 +7,6 @@ import type {
   SmartFeedUpdate,
 } from '@colette/core'
 import type { QueryKey } from '@tanstack/query-core'
-import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
 const SMART_FEEDS_KEY: QueryKey = ['smartFeeds']
 

@@ -58,7 +58,7 @@
   }
 
   .dark,
-  [data-kb-theme="dark"] {
+  [data-kb-theme='dark'] {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
 
@@ -120,8 +120,8 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings:
-      "rlig" 1,
-      "calt" 1;
+      'rlig' 1,
+      'calt' 1;
   }
 }
 
@@ -131,7 +131,7 @@
   }
 
   .step:before {
-    @apply absolute w-9 h-9 bg-muted rounded-full font-mono font-medium text-center text-base inline-flex items-center justify-center -indent-px border-4 border-background;
+    @apply bg-muted border-background absolute inline-flex h-9 w-9 items-center justify-center rounded-full border-4 text-center -indent-px font-mono text-base font-medium;
     @apply ml-[-50px] mt-[-4px];
     content: counter(step);
   }

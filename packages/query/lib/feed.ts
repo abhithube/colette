@@ -1,3 +1,4 @@
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type {
   API,
   DetectedResponse,
@@ -9,7 +10,6 @@ import type {
   FeedUpdate,
 } from '@colette/core'
 import type { QueryKey } from '@tanstack/query-core'
-import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
 const FEEDS_KEY: QueryKey = ['feeds']
 

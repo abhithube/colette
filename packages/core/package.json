@@ -1,15 +1,17 @@
 {
-	"name": "@colette/core",
-	"module": "./lib/index.ts",
-	"exports": ["./lib/index.ts"],
-	"scripts": {
-		"generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
-	},
-	"dependencies": {
-		"zod": "*"
-	},
-	"devDependencies": {
-		"typed-openapi": "^0.10.1",
-		"typescript": "*"
-	}
+  "name": "@colette/core",
+  "module": "./lib/index.ts",
+  "exports": [
+    "./lib/index.ts"
+  ],
+  "scripts": {
+    "generate": "typed-openapi 'http://localhost:8000/api/v1/openapi.json' -o ./lib/openapi.gen.ts -r zod"
+  },
+  "dependencies": {
+    "zod": "*"
+  },
+  "devDependencies": {
+    "typed-openapi": "^0.10.1",
+    "typescript": "*"
+  }
 }

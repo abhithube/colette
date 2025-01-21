@@ -1,3 +1,4 @@
+import { useAPI } from '../../../lib/api-context'
 import { createFeedOptions } from '@colette/query'
 import { FormDescription, FormMessage } from '@colette/react-ui/components/form'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -14,7 +15,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
-import { useAPI } from '../../../lib/api-context'
 
 export const SubscribeModal: FC<{ close: () => void }> = (props) => {
   const api = useAPI()

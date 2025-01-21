@@ -1,5 +1,5 @@
-import type { API } from '@colette/core'
 import type { BaseMutationOptions } from './common'
+import type { API } from '@colette/core'
 
 type ImportOpmlOptions = BaseMutationOptions<void, File>
 

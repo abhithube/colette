@@ -1,3 +1,8 @@
+import { CollectionList } from './collections/collection-list'
+import { CreateCollectionModal } from './collections/create-collection-modal'
+import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
+import { FeedList } from './feeds/feed-list'
+import { UserCard } from './user-card'
 import type { User } from '@colette/core'
 import {
   Sidebar,
@@ -15,11 +20,6 @@ import {
 import { Archive, History, Home } from 'lucide-react'
 import type { FC } from 'react'
 import { Link } from 'wouter'
-import { CollectionList } from './collections/collection-list'
-import { CreateCollectionModal } from './collections/create-collection-modal'
-import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
-import { FeedList } from './feeds/feed-list'
-import { UserCard } from './user-card'
 
 export const AppSidebar: FC<{ user: User }> = (props) => {
   return (

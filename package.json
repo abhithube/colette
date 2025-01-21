@@ -1,31 +1,33 @@
 {
-	"name": "colette",
-	"type": "module",
-	"workspaces": [
-		"apps/desktop",
-		"apps/leptos",
-		"apps/solid",
-		"apps/web",
-		"packages/app",
-		"packages/core",
-		"packages/query",
-		"packages/react-ui"
-	],
-	"dependencies": {
-		"date-fns": "^4.1.0",
-		"react": "^19.0.0",
-		"react-dom": "^19.0.0",
-		"zod": "^3.24.1"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
-		"@tsconfig/vite-react": "^3.4.0",
-		"@types/node": "^22.10.7",
-		"@types/react": "^19.0.7",
-		"@types/react-dom": "^19.0.3",
-		"@vitejs/plugin-react-swc": "^3.7.2",
-		"postcss": "^8.4.49",
-		"typescript": "^5.7.3",
-		"vite": "^6.0.7"
-	}
+  "name": "colette",
+  "type": "module",
+  "workspaces": [
+    "apps/desktop",
+    "apps/leptos",
+    "apps/solid",
+    "apps/web",
+    "packages/app",
+    "packages/core",
+    "packages/query",
+    "packages/react-ui"
+  ],
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^5.2.1",
+    "@tsconfig/vite-react": "^3.4.0",
+    "@types/node": "^22.10.7",
+    "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react-swc": "^3.7.2",
+    "postcss": "^8.4.49",
+    "prettier": "^3.4.2",
+    "prettier-plugin-tailwindcss": "^0.6.10",
+    "typescript": "^5.7.3",
+    "vite": "^6.0.7"
+  }
 }

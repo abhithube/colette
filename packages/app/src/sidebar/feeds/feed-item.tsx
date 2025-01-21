@@ -1,3 +1,4 @@
+import { UnsubscribeAlert } from './unsubscribe-alert'
 import type { Feed } from '@colette/core'
 import { Favicon } from '@colette/react-ui/components/favicon'
 import {
@@ -19,7 +20,6 @@ import {
 import { MoreHorizontal } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { Link, useRoute } from 'wouter'
-import { UnsubscribeAlert } from './unsubscribe-alert'
 
 export const FeedItem: FC<{ feed: Feed }> = (props) => {
   const [match, params] = useRoute('/feeds/:id')

@@ -1,3 +1,4 @@
+import { useAPI } from '../../../lib/api-context'
 import { createBookmarkOptions, scrapeBookmarkOptions } from '@colette/query'
 import { FormDescription, FormMessage } from '@colette/react-ui/components/form'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -15,7 +16,6 @@ import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
-import { useAPI } from '../../../lib/api-context'
 
 export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
   const api = useAPI()

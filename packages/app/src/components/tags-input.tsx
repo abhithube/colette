@@ -1,3 +1,4 @@
+import { useAPI } from '../lib/api-context'
 import { listTagsOptions } from '@colette/query'
 import { Badge } from '@colette/react-ui/components/ui/badge'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -19,7 +20,6 @@ import type { FieldState, Updater } from '@tanstack/form-core'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
-import { useAPI } from '../lib/api-context'
 
 export const TagsInput: FC<{
   state: FieldState<string[]>
@@ -43,7 +43,7 @@ export const TagsInput: FC<{
               ))}
             </div>
           ) : (
-            <span className="font-normal text-muted-foreground">
+            <span className="text-muted-foreground font-normal">
               Select tags...
             </span>
           )}

@@ -1,3 +1,4 @@
+import { useAPI } from '../../lib/api-context'
 import type { Collection } from '@colette/core'
 import { deleteCollectionOptions } from '@colette/query'
 import {
@@ -10,7 +11,6 @@ import { DialogFooter } from '@colette/react-ui/components/ui/dialog'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation, useParams } from 'wouter'
-import { useAPI } from '../../lib/api-context'
 
 export const DeleteCollectionAlert: FC<{
   collection: Collection

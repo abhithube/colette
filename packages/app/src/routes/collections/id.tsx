@@ -1,9 +1,9 @@
+import { useAPI } from '../../lib/api-context'
+import { BookmarkGrid } from './components/bookmark-grid'
 import { getCollectionOptions, listBookmarksOptions } from '@colette/query'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 import { useParams } from 'wouter'
-import { useAPI } from '../../lib/api-context'
-import { BookmarkGrid } from './components/bookmark-grid'
 
 export const CollectionPage: FC = () => {
   const api = useAPI()
@@ -24,8 +24,8 @@ export const CollectionPage: FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex justify-between bg-background p-8">
-        <h1 className="font-medium text-3xl">{collection.title}</h1>
+      <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
+        <h1 className="text-3xl font-medium">{collection.title}</h1>
       </div>
       <main>
         <BookmarkGrid

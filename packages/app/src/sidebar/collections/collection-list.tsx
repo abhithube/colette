@@ -1,8 +1,8 @@
+import { useAPI } from '../../lib/api-context'
+import { CollectionItem } from './collection-item'
 import { listCollectionsOptions } from '@colette/query'
 import { useQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
-import { useAPI } from '../../lib/api-context'
-import { CollectionItem } from './collection-item'
 
 export const CollectionList: FC = () => {
   const api = useAPI()

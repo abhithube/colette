@@ -1,8 +1,8 @@
+import { CollectionItem } from './collection-item'
 import { listCollectionsOptions } from '@colette/query'
 import { createQuery } from '@tanstack/solid-query'
 import { type Component, For, Show } from 'solid-js'
 import { useAPI } from '~/lib/api-context'
-import { CollectionItem } from './collection-item'
 
 export const CollectionList: Component = () => {
   const api = useAPI()

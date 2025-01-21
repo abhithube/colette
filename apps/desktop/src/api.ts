@@ -1,13 +1,3 @@
-import type {
-  AuthAPI,
-  BackupAPI,
-  BookmarkAPI,
-  CollectionAPI,
-  FeedAPI,
-  FeedEntryAPI,
-  SmartFeedAPI,
-  TagAPI,
-} from '@colette/core'
 import {
   AuthCommands,
   BackupCommands,
@@ -18,6 +8,16 @@ import {
   TagCommands,
 } from './commands'
 import { CollectionCommands } from './commands/collection'
+import type {
+  AuthAPI,
+  BackupAPI,
+  BookmarkAPI,
+  CollectionAPI,
+  FeedAPI,
+  FeedEntryAPI,
+  SmartFeedAPI,
+  TagAPI,
+} from '@colette/core'
 
 export interface API {
   auth: AuthAPI

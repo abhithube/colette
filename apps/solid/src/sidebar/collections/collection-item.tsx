@@ -1,3 +1,4 @@
+import { DeleteCollectionAlert } from './delete-collection-alert'
 import type { Collection } from '@colette/core'
 import { A } from '@solidjs/router'
 import Library from 'lucide-solid/icons/library'
@@ -15,7 +16,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '~/components/ui/sidebar'
-import { DeleteCollectionAlert } from './delete-collection-alert'
 
 export const CollectionItem: Component<{ collection: Collection }> = (
   props,

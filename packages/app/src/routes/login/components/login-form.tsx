@@ -1,3 +1,4 @@
+import { useAPI } from '../../../lib/api-context'
 import { loginOptions } from '@colette/query'
 import { FormMessage } from '@colette/react-ui/components/form'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -15,7 +16,6 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { z } from 'zod'
-import { useAPI } from '../../../lib/api-context'
 
 export const LoginForm: FC = () => {
   const api = useAPI()

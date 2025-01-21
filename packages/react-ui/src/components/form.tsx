@@ -20,7 +20,7 @@ const FormMessage: FC<ComponentPropsWithRef<'p'>> = ({
 
   return (
     <p
-      className={cn('font-medium text-destructive text-sm', className)}
+      className={cn('text-destructive text-sm font-medium', className)}
       {...props}
     >
       {children}

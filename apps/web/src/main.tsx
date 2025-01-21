@@ -1,9 +1,9 @@
 import { APIProvider, App, ThemeProvider } from '@colette/app'
 import { HttpAPI } from '@colette/core'
+import '@colette/react-ui/index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import '@colette/react-ui/index.css'
 
 const queryClient = new QueryClient()
 const api = new HttpAPI({

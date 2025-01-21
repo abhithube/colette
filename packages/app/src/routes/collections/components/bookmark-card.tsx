@@ -1,3 +1,5 @@
+import { formatRelativeDate } from '../../../lib/utils'
+import { EditBookmarkModal } from './edit-bookmark-modal'
 import type { Bookmark } from '@colette/core'
 import { Favicon } from '@colette/react-ui/components/favicon'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -12,8 +14,6 @@ import { Dialog, DialogTrigger } from '@colette/react-ui/components/ui/dialog'
 import { Separator } from '@colette/react-ui/components/ui/separator'
 import { ExternalLink, Pencil } from 'lucide-react'
 import { type FC, useState } from 'react'
-import { formatRelativeDate } from '../../../lib/utils'
-import { EditBookmarkModal } from './edit-bookmark-modal'
 
 export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
   const [isOpen, setOpen] = useState(false)
@@ -21,7 +21,7 @@ export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
   return (
     <Card className="overflow-hidden">
       <img
-        className="aspect-video bg-background object-cover"
+        className="bg-background aspect-video object-cover"
         src={
           props.bookmark.thumbnailUrl ??
           'https://placehold.co/320x180/black/black'
@@ -37,7 +37,7 @@ export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
         </CardHeader>
         <CardContent className="flex justify-between">
           <div className="flex h-4 space-x-2">
-            <div className="flex h-4 gap-2 font-semibold text-sm">
+            <div className="flex h-4 gap-2 text-sm font-semibold">
               <div className="flex gap-2">
                 <Favicon url={props.bookmark.link} />
                 {props.bookmark.author && (

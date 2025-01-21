@@ -1,3 +1,4 @@
+import { useAPI } from '../../lib/api-context'
 import { importOpmlOptions } from '@colette/query'
 import { FormMessage } from '@colette/react-ui/components/form'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -11,7 +12,6 @@ import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
-import { useAPI } from '../../lib/api-context'
 
 export const SettingsModal: FC<{ close: () => void }> = (props) => {
   const api = useAPI()

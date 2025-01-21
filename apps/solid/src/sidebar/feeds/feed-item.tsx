@@ -1,3 +1,4 @@
+import { UnsubscribeAlert } from './unsubscribe-alert'
 import type { Feed } from '@colette/core'
 import { A } from '@solidjs/router'
 import MoreHorizontal from 'lucide-solid/icons/more-horizontal'
@@ -16,7 +17,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '~/components/ui/sidebar'
-import { UnsubscribeAlert } from './unsubscribe-alert'
 
 export const FeedItem: Component<{ feed: Feed }> = (props) => {
   const [isAlertOpen, setAlertOpen] = createSignal(false)

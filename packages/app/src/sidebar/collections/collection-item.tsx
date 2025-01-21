@@ -1,3 +1,4 @@
+import { DeleteCollectionAlert } from './delete-collection-alert'
 import type { Collection } from '@colette/core'
 import {
   AlertDialog,
@@ -17,7 +18,6 @@ import {
 import { Library, MoreHorizontal } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { Link, useRoute } from 'wouter'
-import { DeleteCollectionAlert } from './delete-collection-alert'
 
 export const CollectionItem: FC<{ collection: Collection }> = (props) => {
   const [match, params] = useRoute('/collections/:id')

@@ -1,11 +1,11 @@
 /* @refresh reload */
-import { HttpAPI } from '@colette/core'
-import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
-import { render } from 'solid-js/web'
 import App from './App'
 import './index.css'
 import { APIProvider } from './lib/api-context'
 import { ThemeProvider } from './lib/theme-context'
+import { HttpAPI } from '@colette/core'
+import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
+import { render } from 'solid-js/web'
 
 const root = document.getElementById('root')
 

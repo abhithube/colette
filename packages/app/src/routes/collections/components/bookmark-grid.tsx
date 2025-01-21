@@ -1,7 +1,7 @@
+import { BookmarkCard } from './bookmark-card'
 import type { Bookmark } from '@colette/core'
 import type { FC } from 'react'
 import { useInView } from 'react-intersection-observer'
-import { BookmarkCard } from './bookmark-card'
 
 export const BookmarkGrid: FC<{
   bookmarks: Bookmark[]

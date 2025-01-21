@@ -1,9 +1,9 @@
+import { CommandsAPI } from './api'
 import { APIProvider, App, ThemeProvider } from '@colette/app'
+import '@colette/react-ui/index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import '@colette/react-ui/index.css'
-import { CommandsAPI } from './api'
 
 const queryClient = new QueryClient()
 const api = new CommandsAPI()

@@ -1,3 +1,4 @@
+import { EntryList } from './entry-list'
 import { getFeedOptions } from '@colette/query'
 import { useParams } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
@@ -8,7 +9,6 @@ import Pencil from 'lucide-solid/icons/pencil'
 import { type Component, Show } from 'solid-js'
 import { Button } from '~/components/ui/button'
 import { useAPI } from '~/lib/api-context'
-import { EntryList } from './entry-list'
 
 export const FeedPage: Component = () => {
   const api = useAPI()
@@ -20,8 +20,8 @@ export const FeedPage: Component = () => {
     <Show when={query.data}>
       {(feed) => (
         <>
-          <div class="sticky top-0 z-10 flex justify-between bg-background p-8">
-            <h1 class="font-medium text-3xl">
+          <div class="bg-background sticky top-0 z-10 flex justify-between p-8">
+            <h1 class="text-3xl font-medium">
               {feed().title ?? feed().originalTitle}
             </h1>
             <div class="flex gap-2">

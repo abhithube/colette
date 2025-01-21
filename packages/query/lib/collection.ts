@@ -1,3 +1,4 @@
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type {
   API,
   Collection,
@@ -5,7 +6,6 @@ import type {
   CollectionList,
 } from '@colette/core'
 import type { MutationOptions, QueryKey } from '@tanstack/query-core'
-import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
 const COLLECTIONS_KEY: QueryKey = ['collections']
 

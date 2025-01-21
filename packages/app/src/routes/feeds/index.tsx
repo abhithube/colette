@@ -1,8 +1,8 @@
+import { useAPI } from '../../lib/api-context'
+import { EntryGrid } from './components/entry-grid'
 import { listFeedEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
-import { useAPI } from '../../lib/api-context'
-import { EntryGrid } from './components/entry-grid'
 
 export const HomePage: FC = () => {
   const api = useAPI()
@@ -21,8 +21,8 @@ export const HomePage: FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex justify-between bg-background p-8">
-        <h1 className="font-medium text-3xl">All Feeds</h1>
+      <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
+        <h1 className="text-3xl font-medium">All Feeds</h1>
       </div>
       <main>
         <EntryGrid

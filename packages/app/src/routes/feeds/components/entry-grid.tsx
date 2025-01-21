@@ -1,9 +1,9 @@
+import { EntryCard } from './entry-card'
 import type { FeedEntry } from '@colette/core'
 import { Separator } from '@colette/react-ui/components/ui/separator'
 import groupBy from 'object.groupby'
 import type { FC } from 'react'
 import { useInView } from 'react-intersection-observer'
-import { EntryCard } from './entry-card'
 
 export const EntryGrid: FC<{
   entries: FeedEntry[]
@@ -43,7 +43,7 @@ export const EntryGrid: FC<{
         <div key={title} className="space-y-6">
           <div className="flex items-center space-x-4">
             <Separator className="flex-1" />
-            <span className="font-medium text-sm">{title}</span>
+            <span className="text-sm font-medium">{title}</span>
             <Separator className="flex-1" />
           </div>
           <div className="container space-y-4">

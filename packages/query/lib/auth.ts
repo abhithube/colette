@@ -1,6 +1,6 @@
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type { API, Login, User } from '@colette/core'
 import type { QueryClient, QueryKey } from '@tanstack/query-core'
-import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
 const AUTH_KEY: QueryKey = ['auth']
 

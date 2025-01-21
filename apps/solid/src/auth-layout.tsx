@@ -1,10 +1,10 @@
+import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
+import { useAPI } from './lib/api-context'
+import { AppSidebar } from './sidebar'
 import { getActiveOptions } from '@colette/query'
 import { useNavigate } from '@solidjs/router'
 import { createQuery } from '@tanstack/solid-query'
 import { type ParentComponent, Show, createEffect } from 'solid-js'
-import { SidebarProvider, SidebarTrigger } from './components/ui/sidebar'
-import { useAPI } from './lib/api-context'
-import { AppSidebar } from './sidebar'
 
 export const AuthLayout: ParentComponent = (props) => {
   const api = useAPI()

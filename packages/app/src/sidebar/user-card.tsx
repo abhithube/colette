@@ -1,3 +1,4 @@
+import { useAPI } from '../lib/api-context'
 import type { User as AppUser } from '@colette/core'
 import { logoutOptions } from '@colette/query'
 import {
@@ -14,7 +15,6 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronsUpDown, User } from 'lucide-react'
 import type { FC } from 'react'
-import { useAPI } from '../lib/api-context'
 
 export const UserCard: FC<{ user: AppUser }> = (props) => {
   const api = useAPI()
@@ -31,7 +31,7 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
               className="data-[expanded]:bg-sidebar-accent"
               size="lg"
             >
-              <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-8 items-center justify-center rounded-lg">
                 <User className="size-4" />
               </div>
               <span className="font-semibold">

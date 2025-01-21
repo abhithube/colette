@@ -1,8 +1,8 @@
+import { FeedItem } from './feed-item'
 import { listFeedsOptions } from '@colette/query'
 import { createQuery } from '@tanstack/solid-query'
 import { type Component, For, Show } from 'solid-js'
 import { useAPI } from '~/lib/api-context'
-import { FeedItem } from './feed-item'
 
 export const FeedList: Component = () => {
   const api = useAPI()

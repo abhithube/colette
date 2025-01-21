@@ -1,4 +1,3 @@
-import type { z } from 'zod'
 import {
   type ApiClient,
   Bookmark,
@@ -9,6 +8,7 @@ import {
   Paginated_Bookmark,
   get_ListBookmarks,
 } from './openapi.gen'
+import type { z } from 'zod'
 
 export const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
 export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>

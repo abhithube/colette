@@ -1,6 +1,6 @@
+import type { BaseMutationOptions, BaseQueryOptions } from './common'
 import type { API, Tag, TagCreate, TagList, TagListQuery } from '@colette/core'
 import type { QueryKey } from '@tanstack/query-core'
-import type { BaseMutationOptions, BaseQueryOptions } from './common'
 
 const TAGS_KEY: QueryKey = ['tags']
 

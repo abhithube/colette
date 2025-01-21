@@ -1,3 +1,4 @@
+import { useAPI } from '../../../lib/api-context'
 import type { DetectedResponse } from '@colette/core'
 import { detectFeedsOptions } from '@colette/query'
 import { FormMessage } from '@colette/react-ui/components/form'
@@ -14,7 +15,6 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { z } from 'zod'
-import { useAPI } from '../../../lib/api-context'
 
 export const SearchStep: FC<{
   onNext: (res: DetectedResponse) => void

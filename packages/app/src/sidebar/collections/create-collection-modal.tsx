@@ -1,3 +1,4 @@
+import { useAPI } from '../../lib/api-context'
 import { createCollectionOptions } from '@colette/query'
 import { FormMessage } from '@colette/react-ui/components/form'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -19,7 +20,6 @@ import { Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
-import { useAPI } from '../../lib/api-context'
 
 export const CreateCollectionModal: FC = () => {
   const api = useAPI()

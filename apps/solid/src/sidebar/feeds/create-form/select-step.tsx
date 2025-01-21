@@ -68,7 +68,7 @@ export const SelectStep: Component<{
                       value={item.url}
                     />
                     <Label
-                      class="flex grow items-center gap-2 rounded-md border-2 p-4 hover:bg-accent peer-data-[checked]:border-primary"
+                      class="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
                       for={item.url}
                       onClick={() => {
                         field().setValue(item.url)

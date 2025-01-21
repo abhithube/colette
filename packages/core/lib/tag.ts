@@ -1,4 +1,3 @@
-import type { z } from 'zod'
 import {
   type ApiClient,
   Paginated_Tag,
@@ -7,6 +6,7 @@ import {
   TagUpdate,
   get_ListTags,
 } from './openapi.gen'
+import type { z } from 'zod'
 
 export const TagListQuery = get_ListTags.parameters.shape.query
 export type TagListQuery = z.infer<typeof TagListQuery>

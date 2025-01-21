@@ -1,9 +1,9 @@
+import { EntryCard } from './entry-card'
 import { listFeedEntriesOptions } from '@colette/query'
 import { createInfiniteQuery } from '@tanstack/solid-query'
 import { type Component, For, onCleanup, onMount } from 'solid-js'
 import { Separator } from '~/components/ui/separator'
 import { useAPI } from '~/lib/api-context'
-import { EntryCard } from './entry-card'
 
 export const EntryList: Component<{
   feedId?: string
@@ -73,7 +73,7 @@ export const EntryList: Component<{
           <div class="space-y-8">
             <div class="flex items-center gap-8">
               <Separator class="flex-1" />
-              <span class="font-medium text-sm">{title}</span>
+              <span class="text-sm font-medium">{title}</span>
               <Separator class="flex-1" />
             </div>
             <div class="container space-y-4">

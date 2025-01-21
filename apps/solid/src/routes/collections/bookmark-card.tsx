@@ -23,7 +23,7 @@ export const BookmarkCard: Component<{ bookmark: Bookmark }> = (props) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div class="flex h-4 items-center gap-2 font-medium text-sm">
+        <div class="flex h-4 items-center gap-2 text-sm font-medium">
           <Favicon url={props.bookmark.link} />
           {props.bookmark.author && (
             <span class="truncate">{props.bookmark.author}</span>

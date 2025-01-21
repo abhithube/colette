@@ -1,34 +1,34 @@
 {
-	"name": "@colette/solid",
-	"type": "module",
-	"scripts": {
-		"start": "vite",
-		"dev": "vite",
-		"build": "vite build",
-		"serve": "vite preview"
-	},
-	"dependencies": {
-		"@colette/core": "*",
-		"@colette/query": "*",
-		"@kobalte/core": "^0.13.7",
-		"@solidjs/router": "^0.15.2",
-		"@tanstack/solid-form": "^0.40.4",
-		"@tanstack/solid-query": "^5.62.16",
-		"class-variance-authority": "^0.7.1",
-		"clsx": "^2.1.1",
-		"date-fns": "*",
-		"lucide-solid": "^0.471",
-		"solid-js": "^1.9.4",
-		"tailwind-merge": "^2.6.0",
-		"zod": "*"
-	},
-	"devDependencies": {
-		"autoprefixer": "^10.4.20",
-		"postcss": "*",
-		"tailwindcss": "^3.4.17",
-		"tailwindcss-animate": "^1.0.7",
-		"typescript": "*",
-		"vite": "*",
-		"vite-plugin-solid": "^2.11.0"
-	}
+  "name": "@colette/solid",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "@colette/core": "*",
+    "@colette/query": "*",
+    "@kobalte/core": "^0.13.7",
+    "@solidjs/router": "^0.15.2",
+    "@tanstack/solid-form": "^0.40.4",
+    "@tanstack/solid-query": "^5.62.16",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "*",
+    "lucide-solid": "^0.471",
+    "solid-js": "^1.9.4",
+    "tailwind-merge": "^2.6.0",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "*",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "*",
+    "vite": "*",
+    "vite-plugin-solid": "^2.11.0"
+  }
 }

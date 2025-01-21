@@ -1,3 +1,4 @@
+import { formatRelativeDate } from '../../../lib/utils'
 import type { FeedEntry } from '@colette/core'
 import { Favicon } from '@colette/react-ui/components/favicon'
 import {
@@ -9,7 +10,6 @@ import {
 } from '@colette/react-ui/components/ui/card'
 import { Separator } from '@colette/react-ui/components/ui/separator'
 import type { FC } from 'react'
-import { formatRelativeDate } from '../../../lib/utils'
 
 export const EntryCard: FC<{ entry: FeedEntry }> = (props) => {
   return (
@@ -26,7 +26,7 @@ export const EntryCard: FC<{ entry: FeedEntry }> = (props) => {
         <CardHeader className="py-0 pt-4">
           <CardTitle title={props.entry.title}>{props.entry.title}</CardTitle>
         </CardHeader>
-        <CardContent className="pt-2 pb-4">
+        <CardContent className="pb-4 pt-2">
           {props.entry.description ? (
             <p className="line-clamp-2">{props.entry.description}</p>
           ) : (
@@ -34,7 +34,7 @@ export const EntryCard: FC<{ entry: FeedEntry }> = (props) => {
           )}
         </CardContent>
         <CardFooter className="justify-between py-0 pb-4">
-          <div className="flex h-4 items-center gap-2 font-medium text-sm">
+          <div className="flex h-4 items-center gap-2 text-sm font-medium">
             <Favicon url={props.entry.link} />
             {props.entry.author && (
               <span className="truncate">{props.entry.author}</span>

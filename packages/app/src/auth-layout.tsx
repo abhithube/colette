@@ -1,3 +1,5 @@
+import { useAPI } from './lib/api-context'
+import { AppSidebar } from './sidebar'
 import { getActiveOptions } from '@colette/query'
 import {
   SidebarProvider,
@@ -6,8 +8,6 @@ import {
 import { useQuery } from '@tanstack/react-query'
 import { type FC, type PropsWithChildren, useEffect } from 'react'
 import { useLocation } from 'wouter'
-import { useAPI } from './lib/api-context'
-import { AppSidebar } from './sidebar'
 
 export const AuthLayout: FC<PropsWithChildren> = (props) => {
   const api = useAPI()

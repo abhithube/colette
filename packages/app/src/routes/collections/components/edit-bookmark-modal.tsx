@@ -1,3 +1,5 @@
+import { TagsInput } from '../../../components/tags-input'
+import { useAPI } from '../../../lib/api-context'
 import type { Bookmark } from '@colette/core'
 import { updateBookmarkOptions } from '@colette/query'
 import { Button } from '@colette/react-ui/components/ui/button'
@@ -12,8 +14,6 @@ import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
-import { TagsInput } from '../../../components/tags-input'
-import { useAPI } from '../../../lib/api-context'
 
 export const EditBookmarkModal: FC<{
   bookmark: Bookmark

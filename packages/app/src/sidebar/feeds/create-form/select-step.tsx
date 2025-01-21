@@ -1,3 +1,4 @@
+import { useAPI } from '../../../lib/api-context'
 import type { FeedDetected, FeedProcessed } from '@colette/core'
 import { detectFeedsOptions } from '@colette/query'
 import { Favicon } from '@colette/react-ui/components/favicon'
@@ -16,7 +17,6 @@ import {
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'
-import { useAPI } from '../../../lib/api-context'
 
 export const SelectStep: FC<{
   feeds: FeedDetected[]
@@ -70,7 +70,7 @@ export const SelectStep: FC<{
                     value={feed.url}
                   />
                   <Label
-                    className="flex grow items-center gap-2 rounded-md border-2 p-4 hover:bg-accent peer-data-[checked]:border-primary"
+                    className="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
                     onClick={() => {
                       field.setValue(feed.url)
                     }}

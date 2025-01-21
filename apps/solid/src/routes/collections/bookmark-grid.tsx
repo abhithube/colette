@@ -1,8 +1,8 @@
+import { BookmarkCard } from './bookmark-card'
 import { listBookmarksOptions } from '@colette/query'
 import { createInfiniteQuery } from '@tanstack/solid-query'
 import { type Component, For, onCleanup, onMount } from 'solid-js'
 import { useAPI } from '~/lib/api-context'
-import { BookmarkCard } from './bookmark-card'
 
 export const BookmarkGrid: Component<{
   collectionId?: string

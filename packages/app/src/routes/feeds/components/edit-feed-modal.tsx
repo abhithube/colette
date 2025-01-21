@@ -1,3 +1,5 @@
+import { TagsInput } from '../../../components/tags-input'
+import { useAPI } from '../../../lib/api-context'
 import type { Feed } from '@colette/core'
 import { updateFeedOptions } from '@colette/query'
 import { FormDescription, FormMessage } from '@colette/react-ui/components/form'
@@ -15,8 +17,6 @@ import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 import { z } from 'zod'
-import { TagsInput } from '../../../components/tags-input'
-import { useAPI } from '../../../lib/api-context'
 
 export const EditFeedModal: FC<{
   feed: Feed

@@ -1,9 +1,9 @@
-import { Route, Router } from '@solidjs/router'
-import type { Component } from 'solid-js'
 import { AuthLayout } from './auth-layout'
 import { CollectionPage } from './routes/collections/id'
 import { FeedPage } from './routes/feeds/id'
 import { LoginPage } from './routes/login'
+import { Route, Router } from '@solidjs/router'
+import type { Component } from 'solid-js'
 
 const App: Component = () => {
   return (

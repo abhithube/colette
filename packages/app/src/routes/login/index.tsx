@@ -1,5 +1,5 @@
-import type { FC } from 'react'
 import { LoginForm } from './components/login-form'
+import type { FC } from 'react'
 
 export const LoginPage: FC = () => {
   return (

@@ -1,3 +1,8 @@
+import { CollectionList } from './collections/collection-list'
+import { CreateCollectionModal } from './collections/create-collection-modal'
+import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
+import { FeedList } from './feeds/feed-list'
+import { UserCard } from './user-card'
 import type { User } from '@colette/core'
 import { A } from '@solidjs/router'
 import type { Component } from 'solid-js'
@@ -14,11 +19,6 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from '~/components/ui/sidebar'
-import { CollectionList } from './collections/collection-list'
-import { CreateCollectionModal } from './collections/create-collection-modal'
-import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
-import { FeedList } from './feeds/feed-list'
-import { UserCard } from './user-card'
 
 export const AppSidebar: Component<{ user: User }> = ({ user }) => {
   return (

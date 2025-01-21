@@ -1,3 +1,7 @@
+import { useAPI } from '../../lib/api-context'
+import { UnsubscribeAlert } from '../../sidebar/feeds/unsubscribe-alert'
+import { EditFeedModal } from './components/edit-feed-modal'
+import { EntryGrid } from './components/entry-grid'
 import { getFeedOptions, listFeedEntriesOptions } from '@colette/query'
 import {
   AlertDialog,
@@ -9,10 +13,6 @@ import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
 import { type FC, useEffect, useState } from 'react'
 import { useParams } from 'wouter'
-import { useAPI } from '../../lib/api-context'
-import { UnsubscribeAlert } from '../../sidebar/feeds/unsubscribe-alert'
-import { EditFeedModal } from './components/edit-feed-modal'
-import { EntryGrid } from './components/entry-grid'
 
 export const FeedPage: FC = () => {
   const api = useAPI()
@@ -37,8 +37,8 @@ export const FeedPage: FC = () => {
 
   return (
     <>
-      <div className="sticky top-0 z-10 flex justify-between bg-background p-8">
-        <h1 className="line-clamp-1 font-medium text-3xl">
+      <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
+        <h1 className="line-clamp-1 text-3xl font-medium">
           {feed.title ?? feed.originalTitle}
         </h1>
         <div className="flex gap-2">

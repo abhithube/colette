@@ -1,11 +1,11 @@
+import { EditStep } from './edit-step'
+import { SearchStep } from './search-step'
+import { SelectStep } from './select-step'
 import type { FeedDetected, FeedProcessed } from '@colette/core'
 import Plus from 'lucide-solid/icons/plus'
 import { type Component, Match, Show, Switch, createSignal } from 'solid-js'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { SidebarGroupAction } from '~/components/ui/sidebar'
-import { EditStep } from './edit-step'
-import { SearchStep } from './search-step'
-import { SelectStep } from './select-step'
 
 enum Step {
   Search = 0,

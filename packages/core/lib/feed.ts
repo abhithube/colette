@@ -1,4 +1,3 @@
-import type { z } from 'zod'
 import {
   type ApiClient,
   DetectedResponse,
@@ -9,6 +8,7 @@ import {
   Paginated_Feed,
   get_ListFeeds,
 } from './openapi.gen'
+import type { z } from 'zod'
 
 export const FeedListQuery = get_ListFeeds.parameters.shape.query
 export type FeedListQuery = z.infer<typeof FeedListQuery>

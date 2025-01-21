@@ -26,7 +26,7 @@ export const EntryCard: Component<{ entry: FeedEntry }> = (props) => {
         <CardHeader class="py-0 pt-4">
           <CardTitle title={props.entry.title}>{props.entry.title}</CardTitle>
         </CardHeader>
-        <CardContent class="pt-2 pb-4">
+        <CardContent class="pb-4 pt-2">
           {props.entry.description ? (
             <p class="line-clamp-2">{props.entry.description}</p>
           ) : (
@@ -34,13 +34,11 @@ export const EntryCard: Component<{ entry: FeedEntry }> = (props) => {
           )}
         </CardContent>
         <CardFooter class="justify-between py-0 pb-4">
-          <div class="flex h-4 items-center gap-2 font-medium text-sm">
-            <div class="flex items-center gap-2">
-              <Favicon url={props.entry.link} />
-              {props.entry.author && (
-                <span class="truncate">{props.entry.author}</span>
-              )}
-            </div>
+          <div class="flex h-4 items-center gap-2 text-sm font-medium">
+            <Favicon url={props.entry.link} />
+            {props.entry.author && (
+              <span class="truncate">{props.entry.author}</span>
+            )}
             <Separator orientation="vertical" />
             <span title={new Date(props.entry.publishedAt).toString()}>
               {formatRelativeDate(props.entry.publishedAt)}
