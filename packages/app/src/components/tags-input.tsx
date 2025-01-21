@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from '@colette/react-ui/components/ui/popover'
 import { cn } from '@colette/react-ui/lib/utils'
-import type { FieldState, Updater } from '@tanstack/form-core'
+import type { FieldState, Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
