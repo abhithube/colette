@@ -1,5 +1,5 @@
 import { useAPI } from '../../lib/api-context'
-import { EntryGrid } from './components/entry-grid'
+import { EntryList } from './components/entry-list'
 import { listFeedEntriesOptions } from '@colette/query'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
@@ -25,7 +25,7 @@ export const HomePage: FC = () => {
         <h1 className="text-3xl font-medium">All Feeds</h1>
       </div>
       <main>
-        <EntryGrid
+        <EntryList
           entries={feedEntries.pages.flatMap((page) => page.data)}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}

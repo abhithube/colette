@@ -1,11 +1,11 @@
+import { useIntersectionObserver } from '../../../lib/use-intersection-observer'
 import { EntryCard } from './entry-card'
 import type { FeedEntry } from '@colette/core'
 import { Separator } from '@colette/react-ui/components/ui/separator'
 import groupBy from 'object.groupby'
-import type { FC } from 'react'
-import { useInView } from 'react-intersection-observer'
+import { type FC } from 'react'
 
-export const EntryGrid: FC<{
+export const EntryList: FC<{
   entries: FeedEntry[]
   hasMore: boolean
   loadMore?: () => void
@@ -32,9 +32,12 @@ export const EntryGrid: FC<{
     }),
   )
 
-  const { ref } = useInView({
-    threshold: 0,
-    onChange: (inView) => inView && props.loadMore && props.loadMore(),
+  const target = useIntersectionObserver({
+    options: {
+      rootMargin: '200px',
+    },
+    onChange: (isIntersecting) =>
+      isIntersecting && props.hasMore && props.loadMore?.(),
   })
 
   return (
@@ -47,19 +50,13 @@ export const EntryGrid: FC<{
             <Separator className="flex-1" />
           </div>
           <div className="container space-y-4">
-            {entries.map((entry, i) => (
-              <div
-                key={entry.id}
-                ref={
-                  props.hasMore && i === entries.length - 1 ? ref : undefined
-                }
-              >
-                <EntryCard entry={entry} />
-              </div>
+            {entries.map((entry) => (
+              <EntryCard key={entry.id} entry={entry} />
             ))}
           </div>
         </div>
       ))}
+      <div ref={target} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
+import { useIntersectionObserver } from '../../../lib/use-intersection-observer'
 import { BookmarkCard } from './bookmark-card'
 import type { Bookmark } from '@colette/core'
 import type { FC } from 'react'
-import { useInView } from 'react-intersection-observer'
 
 export const BookmarkGrid: FC<{
   bookmarks: Bookmark[]
@@ -9,9 +9,12 @@ export const BookmarkGrid: FC<{
   loadMore?: () => void
   created?: Bookmark
 }> = (props) => {
-  const { ref } = useInView({
-    threshold: 0,
-    onChange: (inView) => inView && props.loadMore && props.loadMore(),
+  const target = useIntersectionObserver({
+    options: {
+      rootMargin: '200px',
+    },
+    onChange: (isIntersecting) =>
+      isIntersecting && props.loadMore && props.loadMore(),
   })
 
   const filtered = props.created
@@ -25,14 +28,10 @@ export const BookmarkGrid: FC<{
           <BookmarkCard bookmark={props.created} />
         </div>
       )}
-      {filtered.map((bookmark, i) => (
-        <div
-          key={bookmark.id}
-          ref={props.hasMore && i === filtered.length - 1 ? ref : undefined}
-        >
-          <BookmarkCard bookmark={bookmark} />
-        </div>
+      {filtered.map((bookmark) => (
+        <BookmarkCard key={bookmark.id} bookmark={bookmark} />
       ))}
+      <div ref={target} />
     </div>
   )
 }

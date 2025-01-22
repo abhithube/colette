@@ -1,7 +1,7 @@
 import { useAPI } from '../../lib/api-context'
 import { UnsubscribeAlert } from '../../sidebar/feeds/unsubscribe-alert'
 import { EditFeedModal } from './components/edit-feed-modal'
-import { EntryGrid } from './components/entry-grid'
+import { EntryList } from './components/entry-list'
 import { getFeedOptions, listFeedEntriesOptions } from '@colette/query'
 import {
   AlertDialog,
@@ -78,7 +78,7 @@ export const FeedPage: FC = () => {
         </div>
       </div>
       <main>
-        <EntryGrid
+        <EntryList
           entries={feedEntries.pages.flatMap((page) => page.data)}
           hasMore={hasNextPage}
           loadMore={fetchNextPage}
