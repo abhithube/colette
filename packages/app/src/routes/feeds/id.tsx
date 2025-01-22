@@ -2,14 +2,14 @@ import { useAPI } from '../../lib/api-context'
 import { UnsubscribeAlert } from '../../sidebar/feeds/unsubscribe-alert'
 import { EditFeedModal } from './components/edit-feed-modal'
 import { EntryList } from './components/entry-list'
-import { getFeedOptions, listFeedEntriesOptions } from '@colette/query'
+import { getFeedOptions } from '@colette/query'
 import {
   AlertDialog,
   AlertDialogTrigger,
 } from '@colette/react-ui/components/ui/alert-dialog'
 import { Button } from '@colette/react-ui/components/ui/button'
 import { Dialog, DialogTrigger } from '@colette/react-ui/components/ui/dialog'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
 import { type FC, useEffect, useState } from 'react'
 import { useParams } from 'wouter'
@@ -22,17 +22,12 @@ export const FeedPage: FC = () => {
   const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
   const { data: feed } = useQuery(getFeedOptions(id, api))
-  const {
-    data: feedEntries,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery(listFeedEntriesOptions({}, api))
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (!feed || !feedEntries) return
+  if (!feed) return
 
   return (
     <>
@@ -78,11 +73,7 @@ export const FeedPage: FC = () => {
         </div>
       </div>
       <main>
-        <EntryList
-          entries={feedEntries.pages.flatMap((page) => page.data)}
-          hasMore={hasNextPage}
-          loadMore={fetchNextPage}
-        />
+        <EntryList query={{}} />
       </main>
     </>
   )

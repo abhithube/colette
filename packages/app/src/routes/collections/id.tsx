@@ -1,7 +1,7 @@
 import { useAPI } from '../../lib/api-context'
 import { BookmarkGrid } from './components/bookmark-grid'
-import { getCollectionOptions, listBookmarksOptions } from '@colette/query'
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { getCollectionOptions } from '@colette/query'
+import { useQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 import { useParams } from 'wouter'
 
@@ -10,17 +10,12 @@ export const CollectionPage: FC = () => {
   const { id } = useParams<{ id: string }>()
 
   const { data: collection } = useQuery(getCollectionOptions(id, api))
-  const {
-    data: bookmarks,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteQuery(listBookmarksOptions({ collectionId: id }, api))
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  if (!collection || !bookmarks) return
+  if (!collection) return
 
   return (
     <>
@@ -28,11 +23,7 @@ export const CollectionPage: FC = () => {
         <h1 className="text-3xl font-medium">{collection.title}</h1>
       </div>
       <main>
-        <BookmarkGrid
-          bookmarks={bookmarks.pages.flatMap((page) => page.data) ?? []}
-          hasMore={hasNextPage}
-          loadMore={fetchNextPage}
-        />
+        <BookmarkGrid query={{ collectionId: id }} />
       </main>
     </>
   )

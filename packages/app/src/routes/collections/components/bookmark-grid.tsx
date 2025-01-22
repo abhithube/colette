@@ -1,25 +1,36 @@
+import { useAPI } from '../../../lib/api-context'
 import { useIntersectionObserver } from '../../../lib/use-intersection-observer'
 import { BookmarkCard } from './bookmark-card'
-import type { Bookmark } from '@colette/core'
+import type { Bookmark, BookmarkListQuery } from '@colette/core'
+import { listBookmarksOptions } from '@colette/query'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
 
 export const BookmarkGrid: FC<{
-  bookmarks: Bookmark[]
-  hasMore: boolean
-  loadMore?: () => void
+  query: BookmarkListQuery
   created?: Bookmark
 }> = (props) => {
+  const api = useAPI()
+
+  const { data, isLoading, hasNextPage, fetchNextPage } = useInfiniteQuery(
+    listBookmarksOptions(props.query, api),
+  )
+
   const target = useIntersectionObserver({
     options: {
       rootMargin: '200px',
     },
     onChange: (isIntersecting) =>
-      isIntersecting && props.loadMore && props.loadMore(),
+      isIntersecting && hasNextPage && fetchNextPage,
   })
 
+  if (isLoading || !data) return
+
+  const bookmarks = data.pages.flatMap((page) => page.data)
+
   const filtered = props.created
-    ? props.bookmarks.filter((v) => v.id !== props.created?.id)
-    : props.bookmarks
+    ? bookmarks.filter((v) => v.id !== props.created?.id)
+    : bookmarks
 
   return (
     <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
