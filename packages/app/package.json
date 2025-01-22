@@ -13,14 +13,12 @@
     "@tanstack/react-query-devtools": "^5.63.0",
     "date-fns": "*",
     "lucide-react": "^0.473.0",
-    "object.groupby": "^1.0.3",
     "react": "*",
     "react-dom": "*",
     "wouter": "^3.3.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@types/object.groupby": "^1.0.4",
     "@types/react": "*",
     "@types/react-dom": "*",
     "@vitejs/plugin-react": "*",

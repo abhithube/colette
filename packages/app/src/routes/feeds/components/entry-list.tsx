@@ -2,7 +2,6 @@ import { useIntersectionObserver } from '../../../lib/use-intersection-observer'
 import { EntryCard } from './entry-card'
 import type { FeedEntry } from '@colette/core'
 import { Separator } from '@colette/react-ui/components/ui/separator'
-import groupBy from 'object.groupby'
 import { type FC } from 'react'
 
 export const EntryList: FC<{
@@ -18,7 +17,7 @@ export const EntryList: FC<{
   const lastYear = date - day * 365
 
   const list = Object.entries(
-    groupBy(props.entries, (item: FeedEntry) => {
+    Object.groupBy(props.entries, (item: FeedEntry) => {
       const publishedAt = Date.parse(item.publishedAt)
       return publishedAt > today
         ? 'Today'
