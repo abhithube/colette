@@ -321,10 +321,10 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
 ) -> Result<Uuid, tokio_postgres::Error> {
     let feed_id = {
         let link = feed.link.to_string();
-        let url = if url == link { None } else { Some(url) };
+        let xml_url = if url == link { None } else { Some(url) };
 
         let (sql, values) =
-            crate::feed::insert(link, feed.title, url).build_postgres(PostgresQueryBuilder);
+            crate::feed::insert(link, feed.title, xml_url).build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 

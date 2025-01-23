@@ -96,7 +96,7 @@ pub fn select(
             (UserFeed::Table, UserFeed::Id),
             (UserFeed::Table, UserFeed::Title),
         ])
-        .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::Url)])
+        .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::XmlUrl)])
         .expr_as(
             Expr::col((Feed::Table, Feed::Title)),
             Alias::new("original_title"),

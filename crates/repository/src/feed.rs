@@ -10,7 +10,7 @@ pub enum Feed {
     Id,
     Link,
     Title,
-    Url,
+    XmlUrl,
     CreatedAt,
     UpdatedAt,
 }
@@ -25,7 +25,7 @@ impl Iden for Feed {
                 Self::Id => "id",
                 Self::Link => "link",
                 Self::Title => "title",
-                Self::Url => "url",
+                Self::XmlUrl => "xml_url",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
             }
@@ -39,26 +39,26 @@ pub fn select_by_url(url: String) -> SelectStatement {
         .column(Feed::Id)
         .from(Feed::Table)
         .and_where(
-            Expr::col(Feed::Url)
+            Expr::col(Feed::XmlUrl)
                 .eq(url.clone())
                 .or(Expr::col(Feed::Link).eq(url)),
         )
         .to_owned()
 }
 
-pub fn insert(link: String, title: String, url: Option<String>) -> InsertStatement {
+pub fn insert(link: String, title: String, xml_url: Option<String>) -> InsertStatement {
     Query::insert()
         .into_table(Feed::Table)
-        .columns([Feed::Link, Feed::Title, Feed::Url, Feed::UpdatedAt])
+        .columns([Feed::Link, Feed::Title, Feed::XmlUrl, Feed::UpdatedAt])
         .values_panic([
             link.into(),
             title.into(),
-            url.into(),
+            xml_url.into(),
             Expr::current_timestamp().into(),
         ])
         .on_conflict(
             OnConflict::column(Feed::Link)
-                .update_columns([Feed::Title, Feed::Url, Feed::UpdatedAt])
+                .update_columns([Feed::Title, Feed::XmlUrl, Feed::UpdatedAt])
                 .to_owned(),
         )
         .returning_col(Feed::Id)
@@ -69,7 +69,7 @@ pub fn iterate() -> SelectStatement {
     Query::select()
         .expr_as(
             Func::coalesce([
-                Expr::col((Feed::Table, Feed::Url)).into(),
+                Expr::col((Feed::Table, Feed::XmlUrl)).into(),
                 Expr::col((Feed::Table, Feed::Link)).into(),
             ]),
             Alias::new("url"),
@@ -77,8 +77,7 @@ pub fn iterate() -> SelectStatement {
         .from(Feed::Table)
         .inner_join(
             UserFeed::Table,
-            Expr::col((UserFeed::Table, UserFeed::FeedId))
-                .eq(Expr::col((Feed::Table, Feed::Id))),
+            Expr::col((UserFeed::Table, UserFeed::FeedId)).eq(Expr::col((Feed::Table, Feed::Id))),
         )
         .to_owned()
 }

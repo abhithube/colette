@@ -303,11 +303,11 @@ pub(crate) fn create_feed_with_entries(
     feed: ProcessedFeed,
 ) -> rusqlite::Result<Uuid> {
     let link = feed.link.to_string();
-    let url = if url == link { None } else { Some(url) };
+    let xml_url = if url == link { None } else { Some(url) };
 
     let feed_id = {
         let (sql, values) =
-            crate::feed::insert(link, feed.title, url).build_rusqlite(SqliteQueryBuilder);
+            crate::feed::insert(link, feed.title, xml_url).build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?
             .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?

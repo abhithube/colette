@@ -222,9 +222,10 @@ pub(crate) async fn create_feed_with_entries(
 ) -> worker::Result<Uuid> {
     let feed_id = {
         let link = feed.link.to_string();
-        let url = if url == link { None } else { Some(url) };
+        let xml_url = if url == link { None } else { Some(url) };
 
-        let (sql, values) = crate::feed::insert(link, feed.title, url).build_d1(SqliteQueryBuilder);
+        let (sql, values) =
+            crate::feed::insert(link, feed.title, xml_url).build_d1(SqliteQueryBuilder);
 
         super::first::<Uuid>(db, sql, values, Some("id"))
             .await?
