@@ -18,11 +18,15 @@ use crate::{
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
-    pub title: String,
+    pub title: Option<String>,
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub collection_id: Option<Uuid>,
+    pub original_title: String,
+    pub original_thumbnail_url: Option<String>,
+    pub original_published_at: Option<DateTime<Utc>>,
+    pub original_author: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }
@@ -30,19 +34,27 @@ pub struct Bookmark {
 #[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub collection_id: Option<Uuid>,
+    pub title: Option<NonEmptyString>,
+    pub thumbnail_url: Option<NonEmptyString>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<NonEmptyString>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdate {
-    pub collection_id: Option<Option<Uuid>>,
+    pub title: Option<Option<NonEmptyString>>,
+    pub thumbnail_url: Option<Option<NonEmptyString>>,
+    pub published_at: Option<Option<DateTime<Utc>>>,
+    pub author: Option<Option<NonEmptyString>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkListQuery {
-    pub collection_id: Option<Option<Uuid>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
@@ -97,7 +109,7 @@ impl BookmarkService {
         let mut bookmarks = self
             .repository
             .find(BookmarkFindParams {
-                collection_id: query.collection_id,
+                folder_id: query.folder_id,
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT + 1),
@@ -152,7 +164,11 @@ impl BookmarkService {
             .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
-                collection_id: data.collection_id,
+                title: data.title.map(String::from),
+                thumbnail_url: data.thumbnail_url.map(String::from),
+                published_at: data.published_at,
+                author: data.author.map(String::from),
+                folder_id: data.folder_id,
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
@@ -220,7 +236,7 @@ pub trait BookmarkRepository:
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
-    pub collection_id: Option<Option<Uuid>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<u64>,
@@ -230,21 +246,33 @@ pub struct BookmarkFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
-    pub collection_id: Option<Uuid>,
+    pub title: Option<String>,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
-    pub collection_id: Option<Option<Uuid>>,
+    pub title: Option<Option<String>>,
+    pub thumbnail_url: Option<Option<String>>,
+    pub published_at: Option<Option<DateTime<Utc>>>,
+    pub author: Option<Option<String>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            collection_id: value.collection_id,
+            title: value.title.map(|e| e.map(String::from)),
+            thumbnail_url: value.thumbnail_url.map(|e| e.map(String::from)),
+            published_at: value.published_at,
+            author: value.author.map(|e| e.map(String::from)),
+            folder_id: value.folder_id,
             tags: value
                 .tags
                 .map(|e| Vec::from(e).into_iter().map(String::from).collect()),

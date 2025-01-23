@@ -54,7 +54,7 @@ pub struct Bookmark {
     #[schema(format = "uri")]
     pub link: String,
     #[schema(required)]
-    pub title: String,
+    pub title: Option<String>,
     #[schema(format = "uri", required)]
     pub thumbnail_url: Option<String>,
     #[schema(required)]
@@ -62,7 +62,15 @@ pub struct Bookmark {
     #[schema(required)]
     pub author: Option<String>,
     #[schema(required)]
-    pub collection_id: Option<Uuid>,
+    pub original_title: String,
+    #[schema(format = "uri", required)]
+    pub original_thumbnail_url: Option<String>,
+    #[schema(required)]
+    pub original_published_at: Option<DateTime<Utc>>,
+    #[schema(required)]
+    pub original_author: Option<String>,
+    #[schema(required)]
+    pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -77,7 +85,11 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            collection_id: value.collection_id,
+            original_title: value.original_title,
+            original_thumbnail_url: value.original_thumbnail_url,
+            original_published_at: value.original_published_at,
+            original_author: value.original_author,
+            folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
     }
@@ -88,7 +100,14 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    pub collection_id: Option<Uuid>,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    pub title: Option<NonEmptyString>,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    pub thumbnail_url: Option<NonEmptyString>,
+    pub published_at: Option<DateTime<Utc>>,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    pub author: Option<NonEmptyString>,
+    pub folder_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -97,7 +116,11 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     fn from(value: BookmarkCreate) -> Self {
         Self {
             url: value.url,
-            collection_id: value.collection_id,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            folder_id: value.folder_id,
             tags: value.tags,
         }
     }
@@ -106,12 +129,40 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
+    #[schema(value_type = Option<String>, min_length = 1)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub collection_id: Option<Option<Uuid>>,
+    pub title: Option<Option<NonEmptyString>>,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub thumbnail_url: Option<Option<NonEmptyString>>,
+    #[schema(value_type = Option<DateTime<Utc>>, min_length = 1)]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub published_at: Option<Option<DateTime<Utc>>>,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub author: Option<Option<NonEmptyString>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub folder_id: Option<Option<Uuid>>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -119,7 +170,11 @@ pub struct BookmarkUpdate {
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            collection_id: value.collection_id,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
+            published_at: value.published_at,
+            author: value.author,
+            folder_id: value.folder_id,
             tags: value.tags,
         }
     }
@@ -130,8 +185,8 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {
     #[param(nullable = false)]
-    pub filter_by_collection: Option<bool>,
-    pub collection_id: Option<Uuid>,
+    pub filter_by_folder: Option<bool>,
+    pub folder_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
@@ -144,11 +199,8 @@ pub struct BookmarkListQuery {
 impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     fn from(value: BookmarkListQuery) -> Self {
         Self {
-            collection_id: if value
-                .filter_by_collection
-                .unwrap_or(value.collection_id.is_some())
-            {
-                Some(value.collection_id)
+            folder_id: if value.filter_by_folder.unwrap_or(value.folder_id.is_some()) {
+                Some(value.folder_id)
             } else {
                 None
             },
@@ -368,6 +420,7 @@ impl IntoResponse for ListResponse {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, serde::Serialize, serde::Deserialize, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Bookmark by ID")]

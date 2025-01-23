@@ -65,7 +65,9 @@ pub struct Feed {
     pub title: Option<String>,
     pub original_title: String,
     #[schema(format = "uri", required)]
-    pub url: Option<String>,
+    pub xml_url: Option<String>,
+    #[schema(required)]
+    pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -80,7 +82,8 @@ impl From<colette_core::Feed> for Feed {
             link: value.link,
             title: value.title,
             original_title: value.original_title,
-            url: value.url,
+            xml_url: value.xml_url,
+            folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
             unread_count: value.unread_count,
         }
@@ -94,6 +97,7 @@ pub struct FeedCreate {
     pub url: Url,
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
+    pub folder_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -103,6 +107,7 @@ impl From<FeedCreate> for feed::FeedCreate {
         Self {
             url: value.url,
             title: value.title,
+            folder_id: value.folder_id,
             tags: value.tags,
         }
     }
@@ -118,6 +123,12 @@ pub struct FeedUpdate {
         with = "serde_with::rust::double_option"
     )]
     pub title: Option<Option<NonEmptyString>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
+    pub folder_id: Option<Option<Uuid>>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
@@ -126,6 +137,7 @@ impl From<FeedUpdate> for feed::FeedUpdate {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
+            folder_id: value.folder_id,
             tags: value.tags,
         }
     }
@@ -136,6 +148,9 @@ impl From<FeedUpdate> for feed::FeedUpdate {
 #[into_params(parameter_in = Query)]
 pub struct FeedListQuery {
     #[param(nullable = false)]
+    pub filter_by_folder: Option<bool>,
+    pub folder_id: Option<Uuid>,
+    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -145,6 +160,11 @@ pub struct FeedListQuery {
 impl From<FeedListQuery> for feed::FeedListQuery {
     fn from(value: FeedListQuery) -> Self {
         Self {
+            folder_id: if value.filter_by_folder.unwrap_or(value.folder_id.is_some()) {
+                Some(value.folder_id)
+            } else {
+                None
+            },
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

@@ -75,7 +75,7 @@ impl BackupService {
                 r#type: Some(OutlineType::default()),
                 title: feed.title.or_else(|| Some(feed.original_title.clone())),
                 text: feed.original_title,
-                xml_url: feed.url,
+                xml_url: feed.xml_url,
                 html_url: Some(feed.link),
                 ..Default::default()
             };
@@ -149,7 +149,7 @@ impl BackupService {
 
         for bookmark in bookmarks {
             let item = Item {
-                title: bookmark.title,
+                title: bookmark.title.unwrap_or(bookmark.original_title),
                 href: Some(bookmark.link),
                 ..Default::default()
             };

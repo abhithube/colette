@@ -48,6 +48,7 @@ impl Findable for D1FeedRepository {
 
         let (sql, values) = crate::user_feed::select(
             params.id,
+            params.folder_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -100,9 +101,14 @@ impl Creatable for D1FeedRepository {
             } else {
                 let id = Uuid::new_v4();
 
-                (sql, values) =
-                    crate::user_feed::insert(Some(id), data.title, feed_id, data.user_id)
-                        .build_d1(SqliteQueryBuilder);
+                (sql, values) = crate::user_feed::insert(
+                    Some(id),
+                    data.title,
+                    data.folder_id,
+                    feed_id,
+                    data.user_id,
+                )
+                .build_d1(SqliteQueryBuilder);
 
                 super::run(&self.db, sql, values)
                     .await
@@ -134,8 +140,9 @@ impl Updatable for D1FeedRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() {
-            let (sql, values) = crate::user_feed::update(params.id, params.user_id, data.title)
-                .build_d1(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::user_feed::update(params.id, params.user_id, data.title, data.folder_id)
+                    .build_d1(SqliteQueryBuilder);
 
             let result = super::run(&self.db, sql, values)
                 .await
@@ -359,7 +366,8 @@ struct FeedSelect {
     pub link: String,
     pub title: Option<String>,
     pub original_title: String,
-    pub url: Option<String>,
+    pub xml_url: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<String>,
     pub unread_count: i64,
 }
@@ -371,7 +379,8 @@ impl From<FeedSelect> for Feed {
             link: value.link,
             title: value.title,
             original_title: value.original_title,
-            url: value.url,
+            xml_url: value.xml_url,
+            folder_id: value.folder_id,
             tags: value
                 .tags
                 .as_ref()

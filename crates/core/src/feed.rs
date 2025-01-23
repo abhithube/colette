@@ -16,8 +16,9 @@ pub struct Feed {
     pub id: Uuid,
     pub link: String,
     pub title: Option<String>,
+    pub xml_url: Option<String>,
     pub original_title: String,
-    pub url: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }
@@ -26,17 +27,20 @@ pub struct Feed {
 pub struct FeedCreate {
     pub url: Url,
     pub title: Option<NonEmptyString>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<NonEmptyVec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedListQuery {
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -127,6 +131,7 @@ impl FeedService {
             .create(FeedCreateData {
                 url: data.url.to_string(),
                 title: data.title.map(String::from),
+                folder_id: data.folder_id,
                 tags: data
                     .tags
                     .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
@@ -195,6 +200,7 @@ pub trait FeedRepository:
 #[derive(Clone, Debug, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<u64>,
@@ -205,6 +211,7 @@ pub struct FeedFindParams {
 pub struct FeedCreateData {
     pub url: String,
     pub title: Option<String>,
+    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
 }
@@ -218,6 +225,7 @@ pub struct FeedCacheData {
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<Option<String>>,
+    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -225,6 +233,7 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(|e| e.map(String::from)),
+            folder_id: value.folder_id,
             tags: value
                 .tags
                 .map(|e| Vec::from(e).into_iter().map(String::from).collect()),

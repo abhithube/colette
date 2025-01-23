@@ -53,6 +53,7 @@ impl Findable for SqliteFeedRepository {
             
             let (sql, values) = crate::user_feed::select(
                 params.id,
+                params.folder_id,
                 params.user_id,
                 params.cursor,
                 params.limit,
@@ -116,6 +117,7 @@ impl Creatable for SqliteFeedRepository {
                     (sql, values) = crate::user_feed::insert(
                         Some(Uuid::new_v4()),
                         data.title,
+                        data.folder_id,
                         feed_id,
                         data.user_id,
                     )
@@ -161,12 +163,13 @@ impl Updatable for SqliteFeedRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            if data.title.is_some()  {
+            if data.title.is_some() || data.folder_id.is_some() {
                 let count = {
                     let (sql, values) = crate::user_feed::update(
                         params.id,
                         params.user_id,
-                        data.title
+                        data.title,
+                        data.folder_id
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -286,8 +289,9 @@ impl TryFrom<&Row<'_>> for FeedSelect {
             id: value.get("id")?,
             link: value.get("link")?,
             title: value.get("title")?,
+            folder_id: value.get("folder_id")?,
             original_title: value.get("original_title")?,
-            url: value.get("url")?,
+            xml_url: value.get("url")?,
             tags: value.get::<_, Value>("tags").map(|e| match e {
                 Value::Text(text) => serde_json::from_str(&text).ok(),
                 _ => None,

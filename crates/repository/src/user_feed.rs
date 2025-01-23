@@ -14,6 +14,7 @@ pub enum UserFeed {
     Table,
     Id,
     Title,
+    FolderId,
     UserId,
     FeedId,
     CreatedAt,
@@ -29,6 +30,7 @@ impl Iden for UserFeed {
                 Self::Table => "user_feeds",
                 Self::Id => "id",
                 Self::Title => "title",
+                Self::FolderId => "folder_id",
                 Self::UserId => "user_id",
                 Self::FeedId => "feed_id",
                 Self::CreatedAt => "created_at",
@@ -42,6 +44,7 @@ impl Iden for UserFeed {
 #[allow(clippy::too_many_arguments)]
 pub fn select(
     id: Option<Uuid>,
+    folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<u64>,
@@ -95,6 +98,7 @@ pub fn select(
         .columns([
             (UserFeed::Table, UserFeed::Id),
             (UserFeed::Table, UserFeed::Title),
+            (UserFeed::Table, UserFeed::FolderId),
         ])
         .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::XmlUrl)])
         .expr_as(
@@ -129,6 +133,7 @@ pub fn select(
         )
         .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
+        .and_where_option(folder_id.map(|e| Expr::col((UserFeed::Table, UserFeed::FolderId)).eq(e)))
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::tuple([
@@ -188,11 +193,22 @@ pub fn select_by_unique_index(user_id: Uuid, feed_id: Uuid) -> SelectStatement {
 pub fn insert(
     id: Option<Uuid>,
     title: Option<String>,
+    folder_id: Option<Uuid>,
     feed_id: Uuid,
     user_id: Uuid,
 ) -> InsertStatement {
-    let mut columns = vec![UserFeed::Title, UserFeed::FeedId, UserFeed::UserId];
-    let mut values: Vec<SimpleExpr> = vec![title.into(), feed_id.into(), user_id.into()];
+    let mut columns = vec![
+        UserFeed::Title,
+        UserFeed::FolderId,
+        UserFeed::FeedId,
+        UserFeed::UserId,
+    ];
+    let mut values: Vec<SimpleExpr> = vec![
+        title.into(),
+        folder_id.into(),
+        feed_id.into(),
+        user_id.into(),
+    ];
 
     if let Some(id) = id {
         columns.push(UserFeed::Id);
@@ -212,7 +228,12 @@ pub fn insert(
         .to_owned()
 }
 
-pub fn update(id: Uuid, user_id: Uuid, title: Option<Option<String>>) -> UpdateStatement {
+pub fn update(
+    id: Uuid,
+    user_id: Uuid,
+    title: Option<Option<String>>,
+    folder_id: Option<Option<Uuid>>,
+) -> UpdateStatement {
     let mut query = Query::update()
         .table(UserFeed::Table)
         .value(UserFeed::UpdatedAt, Expr::current_timestamp())
@@ -222,6 +243,9 @@ pub fn update(id: Uuid, user_id: Uuid, title: Option<Option<String>>) -> UpdateS
 
     if let Some(title) = title {
         query.value(UserFeed::Title, title);
+    }
+    if let Some(folder_id) = folder_id {
+        query.value(UserFeed::FolderId, folder_id);
     }
 
     query

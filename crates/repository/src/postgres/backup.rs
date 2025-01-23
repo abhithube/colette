@@ -120,8 +120,9 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) = crate::user_feed::insert(None, None, feed_id, user_id)
-                            .build_postgres(PostgresQueryBuilder);
+                        (sql, values) =
+                            crate::user_feed::insert(None, None, None, feed_id, user_id)
+                                .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
                             .prepare_cached(&sql)
@@ -259,9 +260,17 @@ impl BackupRepository for PostgresBackupRepository {
                     {
                         row.get::<_, Uuid>("id")
                     } else {
-                        (sql, values) =
-                            crate::user_bookmark::insert(None, bookmark_id, user_id, None)
-                                .build_postgres(PostgresQueryBuilder);
+                        (sql, values) = crate::user_bookmark::insert(
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            None,
+                            bookmark_id,
+                            user_id,
+                        )
+                        .build_postgres(PostgresQueryBuilder);
 
                         let stmt = tx
                             .prepare_cached(&sql)

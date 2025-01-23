@@ -50,7 +50,7 @@ impl Findable for PostgresBookmarkRepository {
 
         let (sql, values) = crate::user_bookmark::select(
             params.id,
-            params.collection_id,
+            params.folder_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -132,9 +132,13 @@ impl Creatable for PostgresBookmarkRepository {
             } else {
                 (sql, values) = crate::user_bookmark::insert(
                     None,
+                    data.title,
+                    data.thumbnail_url,
+                    data.published_at,
+                    data.author,
+                    data.folder_id,
                     bookmark_id,
                     data.user_id,
-                    data.collection_id,
                 )
                 .build_postgres(PostgresQueryBuilder);
 
@@ -180,10 +184,22 @@ impl Updatable for PostgresBookmarkRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.collection_id.is_some() {
-            let (sql, values) =
-                crate::user_bookmark::update(params.id, params.user_id, data.collection_id)
-                    .build_postgres(PostgresQueryBuilder);
+        if data.title.is_some()
+            || data.thumbnail_url.is_some()
+            || data.published_at.is_some()
+            || data.author.is_some()
+            || data.folder_id.is_some()
+        {
+            let (sql, values) = crate::user_bookmark::update(
+                params.id,
+                data.title,
+                data.thumbnail_url,
+                data.published_at,
+                data.author,
+                data.folder_id,
+                params.user_id,
+            )
+            .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
                 .prepare_cached(&sql)
@@ -288,7 +304,11 @@ impl From<Row> for BookmarkSelect {
             thumbnail_url: value.get("thumbnail_url"),
             published_at: value.get("published_at"),
             author: value.get("author"),
-            collection_id: value.get("collection_id"),
+            original_title: value.get("original_title"),
+            original_thumbnail_url: value.get("original_thumbnail_url"),
+            original_published_at: value.get("original_published_at"),
+            original_author: value.get("original_author"),
+            folder_id: value.get("folder_id"),
             created_at: value.get("created_at"),
             tags: value
                 .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")

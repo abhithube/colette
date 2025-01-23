@@ -58,6 +58,7 @@ impl Findable for PostgresFeedRepository {
 
         let (sql, values) = crate::user_feed::select(
             params.id,
+            params.folder_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -137,8 +138,14 @@ impl Creatable for PostgresFeedRepository {
             {
                 row.get::<_, Uuid>("id")
             } else {
-                (sql, values) = crate::user_feed::insert(None, data.title, feed_id, data.user_id)
-                    .build_postgres(PostgresQueryBuilder);
+                (sql, values) = crate::user_feed::insert(
+                    None,
+                    data.title,
+                    data.folder_id,
+                    feed_id,
+                    data.user_id,
+                )
+                .build_postgres(PostgresQueryBuilder);
 
                 let stmt = tx
                     .prepare_cached(&sql)
@@ -187,8 +194,9 @@ impl Updatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            let (sql, values) = crate::user_feed::update(params.id, params.user_id, data.title)
-                .build_postgres(PostgresQueryBuilder);
+            let (sql, values) =
+                crate::user_feed::update(params.id, params.user_id, data.title, data.folder_id)
+                    .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
                 .prepare_cached(&sql)
@@ -304,8 +312,9 @@ impl From<Row> for FeedSelect {
             id: value.get("id"),
             link: value.get("link"),
             title: value.get("title"),
+            xml_url: value.get("url"),
             original_title: value.get("original_title"),
-            url: value.get("url"),
+            folder_id: value.get("folder_id"),
             tags: value
                 .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")
                 .map(|e| e.0),

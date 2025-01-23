@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::{DateTime, Utc};
 use colette_core::bookmark::Cursor;
 use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType,
@@ -13,9 +14,13 @@ use crate::{bookmark::Bookmark, tag::Tag, user_bookmark_tag::UserBookmarkTag};
 pub enum UserBookmark {
     Table,
     Id,
+    Title,
+    ThumbnailUrl,
+    PublishedAt,
+    Author,
+    FolderId,
     UserId,
     BookmarkId,
-    CollectionId,
     CreatedAt,
     UpdatedAt,
 }
@@ -28,9 +33,13 @@ impl Iden for UserBookmark {
             match self {
                 Self::Table => "user_bookmarks",
                 Self::Id => "id",
+                Self::Title => "title",
+                Self::ThumbnailUrl => "thumbnail_url",
+                Self::PublishedAt => "published_at",
+                Self::Author => "author",
+                Self::FolderId => "folder_id",
                 Self::UserId => "user_id",
                 Self::BookmarkId => "bookmark_id",
-                Self::CollectionId => "collection_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
             }
@@ -41,7 +50,7 @@ impl Iden for UserBookmark {
 
 pub fn select(
     id: Option<Uuid>,
-    collection_id: Option<Option<Uuid>>,
+    folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<u64>,
@@ -79,16 +88,30 @@ pub fn select(
     let mut select = Query::select()
         .columns([
             (UserBookmark::Table, UserBookmark::Id),
+            (UserBookmark::Table, UserBookmark::Title),
+            (UserBookmark::Table, UserBookmark::ThumbnailUrl),
+            (UserBookmark::Table, UserBookmark::PublishedAt),
+            (UserBookmark::Table, UserBookmark::Author),
+            (UserBookmark::Table, UserBookmark::FolderId),
             (UserBookmark::Table, UserBookmark::CreatedAt),
-            (UserBookmark::Table, UserBookmark::CollectionId),
         ])
-        .columns([
-            (Bookmark::Table, Bookmark::Link),
-            (Bookmark::Table, Bookmark::Title),
-            (Bookmark::Table, Bookmark::ThumbnailUrl),
-            (Bookmark::Table, Bookmark::PublishedAt),
-            (Bookmark::Table, Bookmark::Author),
-        ])
+        .columns([(Bookmark::Table, Bookmark::Link)])
+        .expr_as(
+            Expr::col((Bookmark::Table, Bookmark::Title)),
+            Alias::new("original_title"),
+        )
+        .expr_as(
+            Expr::col((Bookmark::Table, Bookmark::ThumbnailUrl)),
+            Alias::new("original_thumbnail_url"),
+        )
+        .expr_as(
+            Expr::col((Bookmark::Table, Bookmark::PublishedAt)),
+            Alias::new("original_published_at"),
+        )
+        .expr_as(
+            Expr::col((Bookmark::Table, Bookmark::Author)),
+            Alias::new("original_author"),
+        )
         .column((json_tags.clone(), tags))
         .from(UserBookmark::Table)
         .join(
@@ -106,8 +129,7 @@ pub fn select(
         .and_where(Expr::col((UserBookmark::Table, UserBookmark::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserBookmark::Table, UserBookmark::Id)).eq(e)))
         .and_where_option(
-            collection_id
-                .map(|e| Expr::col((UserBookmark::Table, UserBookmark::CollectionId)).eq(e)),
+            folder_id.map(|e| Expr::col((UserBookmark::Table, UserBookmark::FolderId)).eq(e)),
         )
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
@@ -140,19 +162,35 @@ pub fn select_by_unique_index(user_id: Uuid, bookmark_id: Uuid) -> SelectStateme
         .to_owned()
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn insert(
     id: Option<Uuid>,
+    title: Option<String>,
+    thumbnail_url: Option<String>,
+    published_at: Option<DateTime<Utc>>,
+    author: Option<String>,
+    folder_id: Option<Uuid>,
     bookmark_id: Uuid,
     user_id: Uuid,
-    collection_id: Option<Uuid>,
 ) -> InsertStatement {
     let mut columns = vec![
+        UserBookmark::Title,
+        UserBookmark::ThumbnailUrl,
+        UserBookmark::PublishedAt,
+        UserBookmark::Author,
+        UserBookmark::FolderId,
         UserBookmark::BookmarkId,
         UserBookmark::UserId,
-        UserBookmark::CollectionId,
     ];
-    let mut values: Vec<SimpleExpr> =
-        vec![bookmark_id.into(), user_id.into(), collection_id.into()];
+    let mut values: Vec<SimpleExpr> = vec![
+        title.into(),
+        thumbnail_url.into(),
+        published_at.into(),
+        author.into(),
+        folder_id.into(),
+        bookmark_id.into(),
+        user_id.into(),
+    ];
 
     if let Some(id) = id {
         columns.push(UserBookmark::Id);
@@ -172,7 +210,15 @@ pub fn insert(
         .to_owned()
 }
 
-pub fn update(id: Uuid, user_id: Uuid, collection_id: Option<Option<Uuid>>) -> UpdateStatement {
+pub fn update(
+    id: Uuid,
+    title: Option<Option<String>>,
+    thumbnail_url: Option<Option<String>>,
+    published_at: Option<Option<DateTime<Utc>>>,
+    author: Option<Option<String>>,
+    folder_id: Option<Option<Uuid>>,
+    user_id: Uuid,
+) -> UpdateStatement {
     let mut query = Query::update()
         .table(UserBookmark::Table)
         .value(UserBookmark::UpdatedAt, Expr::current_timestamp())
@@ -180,8 +226,20 @@ pub fn update(id: Uuid, user_id: Uuid, collection_id: Option<Option<Uuid>>) -> U
         .and_where(Expr::col(UserBookmark::UserId).eq(user_id))
         .to_owned();
 
-    if let Some(collection_id) = collection_id {
-        query.value(UserBookmark::CollectionId, collection_id);
+    if let Some(title) = title {
+        query.value(UserBookmark::Title, title);
+    }
+    if let Some(thumbnail_url) = thumbnail_url {
+        query.value(UserBookmark::ThumbnailUrl, thumbnail_url);
+    }
+    if let Some(published_at) = published_at {
+        query.value(UserBookmark::PublishedAt, published_at);
+    }
+    if let Some(author) = author {
+        query.value(UserBookmark::Author, author);
+    }
+    if let Some(folder_id) = folder_id {
+        query.value(UserBookmark::FolderId, folder_id);
     }
 
     query

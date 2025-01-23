@@ -99,6 +99,7 @@ impl BackupRepository for SqliteBackupRepository {
                             (sql, values) = crate::user_feed::insert(
                                 Some(Uuid::new_v4()),
                                 None,
+                                None,
                                 feed_id,
                                 user_id,
                             )
@@ -214,9 +215,13 @@ impl BackupRepository for SqliteBackupRepository {
                         } else {
                             (sql, values) = crate::user_bookmark::insert(
                                 Some(Uuid::new_v4()),
+                                None,
+                                None,
+                                None,
+                                None,
+                                None,
                                 bookmark_id,
                                 user_id,
-                                None,
                             )
                             .build_rusqlite(SqliteQueryBuilder);
 
