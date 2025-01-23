@@ -43,7 +43,6 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     let queue = env.queue("QUEUE")?;
     let api_prefix = env.var("API_PREFIX")?.to_string();
 
-    let backup_repository = D1BackupRepository::new(d1.clone());
     let bookmark_repository = D1BookmarkRepository::new(d1.clone());
     let feed_repository = D1FeedRepository::new(d1.clone());
 
@@ -68,7 +67,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         Arc::new(register_bookmark_plugins(
             client.clone(),
             downloader.clone(),
-            DefaultBookmarkScraper::new(downloader),
+            DefaultBookmarkScraper::new(downloader.clone()),
         )),
         base64_encoder.clone(),
     ));
@@ -87,7 +86,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
     let smart_feed_service = Arc::new(SmartFeedService::new(D1SmartFeedRepository::new(
         d1.clone(),
     )));
-    let tag_service = Arc::new(TagService::new(D1TagRepository::new(d1.clone())));
+    let tag_service = Arc::new(TagService::new(D1TagRepository::new(d1)));
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
