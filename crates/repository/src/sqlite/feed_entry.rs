@@ -10,8 +10,6 @@ use deadpool_sqlite::{
 use sea_query::SqliteQueryBuilder;
 use sea_query_rusqlite::RusqliteBinder;
 
-use super::smart_feed::build_case_statement;
-
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {
     pool: Pool,
@@ -42,10 +40,10 @@ impl Findable for SqliteFeedEntryRepository {
                 params.feed_id,
                 params.has_read,
                 params.tags.as_deref(),
-                params.smart_feed_id,
+                // params.smart_feed_id,
                 params.cursor,
                 params.limit,
-                build_case_statement(),
+                // build_case_statement(),
             )
             .build_rusqlite(SqliteQueryBuilder);
 

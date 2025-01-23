@@ -1,5 +1,5 @@
 mod bookmark;
-mod collection;
+// mod collection;
 #[cfg(feature = "cloudflare")]
 pub mod d1;
 mod feed;
@@ -8,8 +8,8 @@ mod folder;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 pub mod session;
-mod smart_feed;
-mod smart_feed_filter;
+// mod smart_feed;
+// mod smart_feed_filter;
 #[cfg(feature = "sqlite")]
 pub mod sqlite;
 mod tag;

@@ -4,12 +4,10 @@ use auth::AuthState;
 use axum::{extract::FromRef, routing, Router};
 use backup::BackupState;
 use bookmark::BookmarkState;
-use collection::{CollectionApi, CollectionState};
 pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
 use folder::{FolderApi, FolderState};
-use smart_feed::{SmartFeedApi, SmartFeedState};
 use tag::TagState;
 use utoipa::{openapi::Server, OpenApi};
 use utoipa_axum::router::OpenApiRouter;
@@ -23,12 +21,12 @@ use crate::{
 pub mod auth;
 pub mod backup;
 pub mod bookmark;
-pub mod collection;
+// pub mod collection;
 mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod folder;
-pub mod smart_feed;
+// pub mod smart_feed;
 pub mod tag;
 
 #[derive(Clone, FromRef)]
@@ -36,11 +34,11 @@ pub struct ApiState {
     auth_state: AuthState,
     backup_state: BackupState,
     bookmark_state: BookmarkState,
-    collection_state: CollectionState,
+    // collection_state: CollectionState,
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
     folder_state: FolderState,
-    smart_feed_state: SmartFeedState,
+    // smart_feed_state: SmartFeedState,
     tag_state: TagState,
 }
 
@@ -50,22 +48,22 @@ impl ApiState {
         auth_state: AuthState,
         backup_state: BackupState,
         bookmark_state: BookmarkState,
-        collection_state: CollectionState,
+        // collection_state: CollectionState,
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
         folder_state: FolderState,
-        smart_feed_state: SmartFeedState,
+        // smart_feed_state: SmartFeedState,
         tag_state: TagState,
     ) -> Self {
         Self {
             auth_state,
             backup_state,
             bookmark_state,
-            collection_state,
+            // collection_state,
             feed_state,
             feed_entry_state,
             folder_state,
-            smart_feed_state,
+            // smart_feed_state,
             tag_state,
         }
     }
@@ -99,16 +97,16 @@ impl<'a> Api<'a> {
                     .with_state(BackupState::from_ref(self.api_state))
                     .nest("/bookmarks", BookmarkApi::router())
                     .with_state(BookmarkState::from_ref(self.api_state))
-                    .nest("/collections", CollectionApi::router())
-                    .with_state(CollectionState::from_ref(self.api_state))
+                    // .nest("/collections", CollectionApi::router())
+                    // .with_state(CollectionState::from_ref(self.api_state))
                     .nest("/feedEntries", FeedEntryApi::router())
                     .with_state(FeedEntryState::from_ref(self.api_state))
                     .nest("/feeds", FeedApi::router())
                     .with_state(FeedState::from_ref(self.api_state))
                     .nest("/folders", FolderApi::router())
                     .with_state(FolderState::from_ref(self.api_state))
-                    .nest("/smartFeeds", SmartFeedApi::router())
-                    .with_state(SmartFeedState::from_ref(self.api_state))
+                    // .nest("/smartFeeds", SmartFeedApi::router())
+                    // .with_state(SmartFeedState::from_ref(self.api_state))
                     .nest("/tags", TagApi::router())
                     .with_state(TagState::from_ref(self.api_state)),
             )

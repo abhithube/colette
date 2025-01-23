@@ -1,21 +1,21 @@
 pub use backup::PostgresBackupRepository;
 pub use bookmark::PostgresBookmarkRepository;
-pub use collection::PostgresCollectionRepository;
+// pub use collection::PostgresCollectionRepository;
 pub use feed::PostgresFeedRepository;
 pub use feed_entry::PostgresFeedEntryRepository;
 pub use folder::PostgresFolderRepository;
 pub use scraper::PostgresScraperRepository;
-pub use smart_feed::PostgresSmartFeedRepository;
+// pub use smart_feed::PostgresSmartFeedRepository;
 pub use tag::PostgresTagRepository;
 pub use user::PostgresUserRepository;
 
 mod backup;
 mod bookmark;
-mod collection;
+// mod collection;
 mod feed;
 mod feed_entry;
 mod folder;
 mod scraper;
-mod smart_feed;
+// mod smart_feed;
 mod tag;
 mod user;

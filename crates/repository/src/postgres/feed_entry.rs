@@ -7,8 +7,6 @@ use deadpool_postgres::{tokio_postgres::Row, Pool};
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 
-use super::smart_feed::build_case_statement;
-
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
     pool: Pool,
@@ -38,10 +36,10 @@ impl Findable for PostgresFeedEntryRepository {
             params.feed_id,
             params.has_read,
             params.tags.as_deref(),
-            params.smart_feed_id,
+            // params.smart_feed_id,
             params.cursor,
             params.limit,
-            build_case_statement(),
+            // build_case_statement(),
         )
         .build_postgres(PostgresQueryBuilder);
 

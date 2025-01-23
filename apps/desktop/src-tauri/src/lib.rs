@@ -10,7 +10,6 @@ use colette_core::{
     feed::FeedService,
     feed_entry::FeedEntryService,
     scraper::ScraperService,
-    smart_feed::SmartFeedService,
     tag::TagService,
 };
 use colette_migration::MigrationFile;
@@ -18,8 +17,7 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
-    SqliteFeedRepository, SqliteScraperRepository, SqliteSmartFeedRepository, SqliteTagRepository,
-    SqliteUserRepository,
+    SqliteFeedRepository, SqliteScraperRepository, SqliteTagRepository, SqliteUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
@@ -29,7 +27,7 @@ use colette_scraper::{
 use colette_task::{import_bookmarks, import_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::run_task_worker;
-use command::{auth, backup, bookmark, feed, feed_entry, smart_feed, tag};
+use command::{auth, backup, bookmark, feed, feed_entry, tag};
 use deadpool_sqlite::{Config, Runtime};
 use email_address::EmailAddress;
 use refinery_core::Runner;
@@ -122,8 +120,8 @@ pub fn run() {
                     feed_plugin_registry,
                     bookmark_plugin_registry,
                 ));
-                let smart_feed_service =
-                    SmartFeedService::new(SqliteSmartFeedRepository::new(pool.clone()));
+                // let smart_feed_service =
+                //     SmartFeedService::new(SqliteSmartFeedRepository::new(pool.clone()));
                 let tag_service = TagService::new(SqliteTagRepository::new(pool.clone()));
 
                 let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
@@ -160,7 +158,7 @@ pub fn run() {
                 app.manage(bookmark_service);
                 app.manage(feed_service);
                 app.manage(feed_entry_service);
-                app.manage(smart_feed_service);
+                // app.manage(smart_feed_service);
                 app.manage(tag_service);
 
                 app.manage(import_feeds_queue);
@@ -203,11 +201,11 @@ pub fn run() {
             feed_entry::list_feed_entries,
             feed_entry::get_feed_entry,
             feed_entry::update_feed_entry,
-            smart_feed::list_smart_feeds,
-            smart_feed::create_smart_feed,
-            smart_feed::get_smart_feed,
-            smart_feed::update_smart_feed,
-            smart_feed::delete_smart_feed,
+            // smart_feed::list_smart_feeds,
+            // smart_feed::create_smart_feed,
+            // smart_feed::get_smart_feed,
+            // smart_feed::update_smart_feed,
+            // smart_feed::delete_smart_feed,
             tag::list_tags,
             tag::create_tag,
             tag::get_tag,

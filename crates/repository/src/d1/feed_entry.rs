@@ -10,7 +10,7 @@ use sea_query::SqliteQueryBuilder;
 use uuid::Uuid;
 use worker::D1Database;
 
-use super::{smart_feed::build_case_statement, D1Binder};
+use super::D1Binder;
 
 #[derive(Clone)]
 pub struct D1FeedEntryRepository {
@@ -35,10 +35,10 @@ impl Findable for D1FeedEntryRepository {
             params.feed_id,
             params.has_read,
             params.tags.as_deref(),
-            params.smart_feed_id,
+            // params.smart_feed_id,
             params.cursor,
             params.limit,
-            build_case_statement(),
+            // build_case_statement(),
         )
         .build_d1(SqliteQueryBuilder);
 

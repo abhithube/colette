@@ -3,24 +3,21 @@ use std::{error::Error, future::Future, ops::DerefMut, pin::Pin, sync::Arc};
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, backup::BackupState, bookmark::BookmarkState, collection::CollectionState,
-    feed::FeedState, feed_entry::FeedEntryState, folder::FolderState, smart_feed::SmartFeedState,
-    tag::TagState, Api, ApiState,
+    auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
+    feed_entry::FeedEntryState, folder::FolderState, tag::TagState, Api, ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    folder::FolderService, scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
+    feed_entry::FeedEntryService, folder::FolderService, scraper::ScraperService, tag::TagService,
 };
 use colette_migration::MigrationFile;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
-    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresFolderRepository,
-    PostgresScraperRepository, PostgresSmartFeedRepository, PostgresTagRepository,
-    PostgresUserRepository,
+    PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
+    PostgresFeedRepository, PostgresFolderRepository, PostgresScraperRepository,
+    PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
@@ -122,9 +119,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_plugin_registry.clone(),
         base64_encoder.clone(),
     ));
-    let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
-        pool.clone(),
-    )));
+    // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
+    //     pool.clone(),
+    // )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
         Box::new(DefaultFeedDetector::new(downloader)),
@@ -141,9 +138,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_plugin_registry,
         bookmark_plugin_registry,
     ));
-    let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
-        pool.clone(),
-    )));
+    // let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
+    //     pool.clone(),
+    // )));
     let tag_service = Arc::new(TagService::new(PostgresTagRepository::new(pool.clone())));
 
     let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
@@ -169,11 +166,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         AuthState::new(auth_service),
         BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
         BookmarkState::new(bookmark_service),
-        CollectionState::new(collection_service),
+        // CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         FolderState::new(folder_service),
-        SmartFeedState::new(smart_feed_service),
+        // SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );
 

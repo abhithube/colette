@@ -14,12 +14,12 @@ use uuid::Uuid;
 
 pub const AUTH_TAG: &str = "Auth";
 pub const BACKUPS_TAG: &str = "Backups";
-pub const COLLECTIONS_TAG: &str = "Collections";
+// pub const COLLECTIONS_TAG: &str = "Collections";
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 pub const FEEDS_TAG: &str = "Feeds";
 pub const FOLDERS_TAG: &str = "Folders";
-pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
+// pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
 pub const TAGS_TAG: &str = "Tags";
 
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]

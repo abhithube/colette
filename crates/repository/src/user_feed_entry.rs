@@ -2,15 +2,12 @@ use std::fmt::Write;
 
 use colette_core::feed_entry::Cursor;
 use sea_query::{
-    Alias, Asterisk, CaseStatement, CommonTableExpression, Expr, Iden, IntoValueTuple, JoinType,
-    OnConflict, Order, Query, SelectStatement, UpdateStatement, WithQuery,
+    Alias, Asterisk, CommonTableExpression, Expr, Iden, IntoValueTuple, JoinType, OnConflict,
+    Order, Query, SelectStatement, UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
-use crate::{
-    feed_entry::FeedEntry, smart_feed_filter::SmartFeedFilter, tag::Tag, user_feed::UserFeed,
-    user_feed_tag::UserFeedTag,
-};
+use crate::{feed_entry::FeedEntry, tag::Tag, user_feed::UserFeed, user_feed_tag::UserFeedTag};
 
 #[allow(dead_code)]
 pub enum UserFeedEntry {
@@ -56,10 +53,10 @@ pub fn select(
     feed_id: Option<Uuid>,
     has_read: Option<bool>,
     tags: Option<&[String]>,
-    smart_feed_id: Option<Uuid>,
+    // smart_feed_id: Option<Uuid>,
     cursor: Option<Cursor>,
     limit: Option<u64>,
-    smart_feed_case_statement: CaseStatement,
+    // smart_feed_case_statement: CaseStatement,
 ) -> SelectStatement {
     let mut query = Query::select()
         .columns([
@@ -123,15 +120,15 @@ pub fn select(
             .and_where(Expr::col((Tag::Table, Tag::Title)).is_in(tags));
     }
 
-    if let Some(smart_feed_id) = smart_feed_id {
-        query.join(
-            JoinType::InnerJoin,
-            SmartFeedFilter::Table,
-            Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
-                .eq(Expr::val(smart_feed_id))
-                .and(smart_feed_case_statement.into()),
-        );
-    }
+    // if let Some(smart_feed_id) = smart_feed_id {
+    //     query.join(
+    //         JoinType::InnerJoin,
+    //         SmartFeedFilter::Table,
+    //         Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
+    //             .eq(Expr::val(smart_feed_id))
+    //             .and(smart_feed_case_statement.into()),
+    //     );
+    // }
 
     if let Some(limit) = limit {
         query.limit(limit);

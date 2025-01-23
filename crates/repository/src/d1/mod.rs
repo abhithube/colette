@@ -1,6 +1,6 @@
 pub use backup::D1BackupRepository;
 pub use bookmark::D1BookmarkRepository;
-pub use collection::D1CollectionRepository;
+// pub use collection::D1CollectionRepository;
 pub use feed::D1FeedRepository;
 pub use feed_entry::D1FeedEntryRepository;
 pub use folder::D1FolderRepository;
@@ -10,19 +10,19 @@ use sea_query::{
     WithQuery,
 };
 use serde::Deserialize;
-pub use smart_feed::D1SmartFeedRepository;
+// pub use smart_feed::D1SmartFeedRepository;
 pub use tag::D1TagRepository;
 pub use user::D1UserRepository;
 use worker::{console_error, wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
 
 mod backup;
 mod bookmark;
-mod collection;
+// mod collection;
 mod feed;
 mod feed_entry;
 mod folder;
 mod scraper;
-mod smart_feed;
+// mod smart_feed;
 mod tag;
 mod user;
 

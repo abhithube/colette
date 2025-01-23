@@ -1,21 +1,21 @@
 pub use backup::SqliteBackupRepository;
 pub use bookmark::SqliteBookmarkRepository;
-pub use collection::SqliteCollectionRepository;
+// pub use collection::SqliteCollectionRepository;
 pub use feed::SqliteFeedRepository;
 pub use feed_entry::SqliteFeedEntryRepository;
 pub use folder::SqliteFolderRepository;
 pub use scraper::SqliteScraperRepository;
-pub use smart_feed::SqliteSmartFeedRepository;
+// pub use smart_feed::SqliteSmartFeedRepository;
 pub use tag::SqliteTagRepository;
 pub use user::SqliteUserRepository;
 
 mod backup;
 mod bookmark;
-mod collection;
+// mod collection;
 mod feed;
 mod feed_entry;
 mod folder;
 mod scraper;
-mod smart_feed;
+// mod smart_feed;
 mod tag;
 mod user;
