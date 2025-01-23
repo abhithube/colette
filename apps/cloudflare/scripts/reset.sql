@@ -1,7 +1,3 @@
-DROP TABLE IF EXISTS smart_feed_filters;
-
-DROP TABLE IF EXISTS smart_feeds;
-
 DROP TABLE IF EXISTS user_bookmark_tags;
 
 DROP TABLE IF EXISTS user_feed_tags;
@@ -9,8 +5,6 @@ DROP TABLE IF EXISTS user_feed_tags;
 DROP TABLE IF EXISTS tags;
 
 DROP TABLE IF EXISTS user_bookmarks;
-
-DROP TABLE IF EXISTS collections;
 
 DROP TABLE IF EXISTS user_feed_entries;
 

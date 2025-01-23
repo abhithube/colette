@@ -47,6 +47,20 @@ args = [
   "docker://postgres/17/dev",
 ]
 
+[tasks.generate-sqlite]
+command = "atlas"
+args = [
+  "migrate",
+  "diff",
+  "${@}",
+  "--dir",
+  "file://${MIGRATIONS_DIR}",
+  "--to",
+  "file://schema/sqlite.sql",
+  "--dev-url",
+  "sqlite://file?mode=memory",
+]
+
 [tasks.bloat]
 install_crate = "cargo-bloat"
 command = "cargo"

@@ -13,6 +13,7 @@ use colette_core::{
     smart_feed::SmartFeedService,
     tag::TagService,
 };
+use colette_migration::MigrationFile;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::sqlite::{
@@ -31,14 +32,16 @@ use colette_worker::run_task_worker;
 use command::{auth, backup, bookmark, feed, feed_entry, smart_feed, tag};
 use deadpool_sqlite::{Config, Runtime};
 use email_address::EmailAddress;
-use refinery::embed_migrations;
+use refinery_core::Runner;
 use tauri::Manager;
 use tower::ServiceBuilder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod command;
 
-embed_migrations!("../migrations");
+#[derive(rust_embed::Embed)]
+#[folder = "$CARGO_MANIFEST_DIR/../migrations/"]
+struct Migrations;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -59,8 +62,18 @@ pub fn run() {
 
                 let pool = Config::new(path).create_pool(Runtime::Tokio1)?;
 
+                let mut migration_files = Vec::<MigrationFile>::new();
+
+                for file_path in Migrations::iter() {
+                    if let Some(file) = Migrations::get(&file_path) {
+                        migration_files.push(MigrationFile::new(file_path, file.data));
+                    }
+                }
+
+                let migrations = colette_migration::load_migrations(&mut migration_files)?;
+
                 let conn = pool.get().await?;
-                conn.interact(move |conn| migrations::runner().run(conn))
+                conn.interact(move |conn| Runner::new(&migrations).run(conn))
                     .await
                     .unwrap()?;
 

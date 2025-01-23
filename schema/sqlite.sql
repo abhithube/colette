@@ -1,0 +1,114 @@
+CREATE TABLE users (
+  id TEXT NOT NULL PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE feeds (
+  id TEXT NOT NULL PRIMARY KEY,
+  link TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  xml_url TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE feed_entries (
+  id TEXT NOT NULL PRIMARY KEY,
+  link TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  published_at TEXT NOT NULL,
+  description TEXT,
+  author TEXT,
+  thumbnail_url TEXT,
+  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (feed_id, link)
+);
+
+CREATE TABLE bookmarks (
+  id TEXT NOT NULL PRIMARY KEY,
+  link TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  thumbnail_url TEXT,
+  published_at TEXT,
+  author TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE folders (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT NOT NULL,
+  parent_id TEXT REFERENCES folders (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, parent_id, title)
+);
+
+CREATE TABLE user_feeds (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT,
+  folder_id TEXT REFERENCES folders (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, feed_id)
+);
+
+CREATE TABLE user_feed_entries (
+  id TEXT NOT NULL PRIMARY KEY,
+  has_read INTEGER NOT NULL DEFAULT 0,
+  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+  feed_entry_id TEXT NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_feed_id, feed_entry_id)
+);
+
+CREATE TABLE user_bookmarks (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT,
+  thumbnail_url TEXT,
+  published_at TIMESTAMPTZ,
+  author TEXT,
+  folder_id TEXT REFERENCES folders (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  bookmark_id TEXT NOT NULL REFERENCES bookmarks (id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, bookmark_id)
+);
+
+CREATE TABLE tags (
+  id TEXT NOT NULL PRIMARY KEY,
+  title TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, title)
+);
+
+CREATE TABLE user_feed_tags (
+  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_feed_id, tag_id)
+);
+
+CREATE TABLE user_bookmark_tags (
+  user_bookmark_id TEXT NOT NULL REFERENCES user_bookmarks (id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_bookmark_id, tag_id)
+);

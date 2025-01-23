@@ -1,9 +1,0 @@
-CREATE TABLE folders (
-  id TEXT NOT NULL PRIMARY,
-  title TEXT NOT NULL,
-  parent_id TEXT REFERENCES folders (id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE (user_id, parent_id, title)
-);
