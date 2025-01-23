@@ -12,6 +12,7 @@ colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
+colette-migration.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["in-memory"] }
 colette-repository = { workspace = true, features = ["postgres"] }
@@ -21,7 +22,7 @@ colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true
 deadpool-postgres.workspace = true
-refinery = { workspace = true, features = ["tokio-postgres"] }
+refinery-core = { workspace = true, features = ["tokio-postgres"] }
 rust-embed.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true

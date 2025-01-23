@@ -13,6 +13,7 @@ use colette_core::{
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
     folder::FolderService, scraper::ScraperService, smart_feed::SmartFeedService, tag::TagService,
 };
+use colette_migration::MigrationFile;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
@@ -31,7 +32,7 @@ use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmar
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
 use deadpool_postgres::{tokio_postgres::NoTls, Config, Runtime};
-use refinery::embed_migrations;
+use refinery_core::Runner;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -39,10 +40,12 @@ use tower_sessions::{cookie::time::Duration, ExpiredDeletion, Expiry, SessionMan
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, rust_embed::Embed)]
-#[folder = "$CARGO_MANIFEST_DIR/../web/dist"]
+#[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
 
-embed_migrations!("./migrations");
+#[derive(rust_embed::Embed)]
+#[folder = "migrations/"]
+struct Migrations;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -72,7 +75,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut client = pool.get().await?;
     let client = client.deref_mut().deref_mut();
-    migrations::runner().run_async(client).await?;
+
+    let mut migration_files = Vec::<MigrationFile>::new();
+
+    for file_path in Migrations::iter() {
+        if let Some(file) = Migrations::get(&file_path) {
+            migration_files.push(MigrationFile::new(file_path, file.data));
+        }
+    }
+
+    let migrations = colette_migration::load_migrations(&mut migration_files)?;
+
+    Runner::new(&migrations).run_async(client).await?;
 
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let feed_repository = PostgresFeedRepository::new(pool.clone());

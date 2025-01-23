@@ -12,6 +12,7 @@ members = [
   "crates/feed",
   "crates/http",
   "crates/meta",
+  "crates/migration",
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
@@ -52,6 +53,7 @@ colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
 colette-meta.path = "crates/meta"
+colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
@@ -76,7 +78,7 @@ futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false, features = ["std"] }
 quick-xml = { version = "0.37.2", default-features = false }
-refinery = { git = "https://github.com/rust-db/refinery.git", default-features = false }
+refinery-core = { git = "https://github.com/rust-db/refinery.git", default-features = false }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "rustls-tls",
 ] }

@@ -469,6 +469,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-migration"
+version = "0.1.0"
+dependencies = [
+ "refinery-core",
+]
+
+[[package]]
 name = "colette-netscape"
 version = "0.1.0"
 dependencies = [
@@ -564,6 +571,7 @@ dependencies = [
  "colette-config",
  "colette-core",
  "colette-http",
+ "colette-migration",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -573,7 +581,7 @@ dependencies = [
  "colette-util",
  "colette-worker",
  "deadpool-postgres",
- "refinery",
+ "refinery-core",
  "rust-embed",
  "tokio",
  "tower",
@@ -1094,12 +1102,6 @@ name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
-
-[[package]]
-name = "heck"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hermit-abi"
@@ -2056,15 +2058,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "refinery"
-version = "0.8.14"
-source = "git+https://github.com/rust-db/refinery.git#8e120f6cb866940c9ebe843cdc6a837bcf56bad8"
-dependencies = [
- "refinery-core",
- "refinery-macros",
-]
-
-[[package]]
 name = "refinery-core"
 version = "0.8.14"
 source = "git+https://github.com/rust-db/refinery.git#8e120f6cb866940c9ebe843cdc6a837bcf56bad8"
@@ -2080,19 +2073,6 @@ dependencies = [
  "tokio-postgres",
  "url",
  "walkdir",
-]
-
-[[package]]
-name = "refinery-macros"
-version = "0.8.14"
-source = "git+https://github.com/rust-db/refinery.git#8e120f6cb866940c9ebe843cdc6a837bcf56bad8"
-dependencies = [
- "heck 0.5.0",
- "proc-macro2",
- "quote",
- "refinery-core",
- "regex",
- "syn",
 ]
 
 [[package]]
@@ -2371,7 +2351,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9834af2c4bd8c5162f00c89f1701fb6886119a88062cf76fe842ea9e232b9839"
 dependencies = [
  "darling",
- "heck 0.4.1",
+ "heck",
  "proc-macro2",
  "quote",
  "syn",
