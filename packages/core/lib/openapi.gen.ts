@@ -17,18 +17,26 @@ export type Bookmark = z.infer<typeof Bookmark>;
 export const Bookmark = z.object({
   id: z.string(),
   link: z.string(),
-  title: z.string(),
+  title: z.union([z.string(), z.null()]),
   thumbnailUrl: z.union([z.string(), z.null()]),
   publishedAt: z.union([z.string(), z.null()]),
   author: z.union([z.string(), z.null()]),
-  collectionId: z.union([z.string(), z.null()]),
+  originalTitle: z.string(),
+  originalThumbnailUrl: z.union([z.string(), z.null()]),
+  originalPublishedAt: z.union([z.string(), z.null()]),
+  originalAuthor: z.union([z.string(), z.null()]),
+  folderId: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
 export type BookmarkCreate = z.infer<typeof BookmarkCreate>;
 export const BookmarkCreate = z.object({
   url: z.string(),
-  collectionId: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  title: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  thumbnailUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  publishedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  author: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -48,50 +56,13 @@ export const BookmarkScraped = z.object({
 
 export type BookmarkUpdate = z.infer<typeof BookmarkUpdate>;
 export const BookmarkUpdate = z.object({
-  collectionId: z.union([z.string(), z.null()]).optional(),
+  title: z.union([z.string(), z.null()]).optional(),
+  thumbnailUrl: z.union([z.string(), z.null()]).optional(),
+  publishedAt: z.union([z.string(), z.null()]).optional(),
+  author: z.union([z.string(), z.null()]).optional(),
+  folderId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
 });
-
-export type BooleanOperation = z.infer<typeof BooleanOperation>;
-export const BooleanOperation = z.object({
-  value: z.boolean(),
-});
-
-export type Collection = z.infer<typeof Collection>;
-export const Collection = z.object({
-  id: z.string(),
-  title: z.string(),
-});
-
-export type CollectionCreate = z.infer<typeof CollectionCreate>;
-export const CollectionCreate = z.object({
-  title: z.string(),
-});
-
-export type CollectionUpdate = z.infer<typeof CollectionUpdate>;
-export const CollectionUpdate = z.object({
-  title: z.string().optional(),
-});
-
-export type DateOperation = z.infer<typeof DateOperation>;
-export const DateOperation = z.union([
-  z.object({
-    value: z.string(),
-    type: z.literal("equals"),
-  }),
-  z.object({
-    value: z.string(),
-    type: z.literal("greaterThan"),
-  }),
-  z.object({
-    value: z.string(),
-    type: z.literal("lessThan"),
-  }),
-  z.object({
-    value: z.number(),
-    type: z.literal("inLast"),
-  }),
-]);
 
 export type FeedDetected = z.infer<typeof FeedDetected>;
 export const FeedDetected = z.object({
@@ -114,7 +85,8 @@ export const Feed = z.object({
   link: z.string(),
   title: z.union([z.string(), z.null()]),
   originalTitle: z.string(),
-  url: z.union([z.string(), z.null()]),
+  xmlUrl: z.union([z.string(), z.null()]),
+  folderId: z.union([z.string(), z.null()]),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
   unreadCount: z.union([z.number(), z.undefined()]).optional(),
 });
@@ -123,6 +95,7 @@ export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
   title: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -152,6 +125,7 @@ export const FeedEntryUpdate = z.object({
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
+  folderId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -186,23 +160,16 @@ export const Paginated_Bookmark = z.object({
     z.object({
       id: z.string(),
       link: z.string(),
-      title: z.string(),
+      title: z.union([z.string(), z.null()]),
       thumbnailUrl: z.union([z.string(), z.null()]),
       publishedAt: z.union([z.string(), z.null()]),
       author: z.union([z.string(), z.null()]),
-      collectionId: z.union([z.string(), z.null()]),
+      originalTitle: z.string(),
+      originalThumbnailUrl: z.union([z.string(), z.null()]),
+      originalPublishedAt: z.union([z.string(), z.null()]),
+      originalAuthor: z.union([z.string(), z.null()]),
+      folderId: z.union([z.string(), z.null()]),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_Collection = z.infer<typeof Paginated_Collection>;
-export const Paginated_Collection = z.object({
-  data: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -216,7 +183,8 @@ export const Paginated_Feed = z.object({
       link: z.string(),
       title: z.union([z.string(), z.null()]),
       originalTitle: z.string(),
-      url: z.union([z.string(), z.null()]),
+      xmlUrl: z.union([z.string(), z.null()]),
+      folderId: z.union([z.string(), z.null()]),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
       unreadCount: z.union([z.number(), z.undefined()]).optional(),
     }),
@@ -254,18 +222,6 @@ export const Paginated_Folder = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_SmartFeed = z.infer<typeof Paginated_SmartFeed>;
-export const Paginated_SmartFeed = z.object({
-  data: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      unreadCount: z.union([z.number(), z.undefined()]).optional(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
 export type Paginated_Tag = z.infer<typeof Paginated_Tag>;
 export const Paginated_Tag = z.object({
   data: z.array(
@@ -283,73 +239,6 @@ export type Register = z.infer<typeof Register>;
 export const Register = z.object({
   email: z.string(),
   password: z.string(),
-});
-
-export type SmartFeed = z.infer<typeof SmartFeed>;
-export const SmartFeed = z.object({
-  id: z.string(),
-  title: z.string(),
-  unreadCount: z.union([z.number(), z.undefined()]).optional(),
-});
-
-export type TextOperation = z.infer<typeof TextOperation>;
-export const TextOperation = z.union([
-  z.object({
-    value: z.string(),
-    type: z.literal("equals"),
-  }),
-  z.object({
-    value: z.string(),
-    type: z.literal("doesNotEqual"),
-  }),
-  z.object({
-    value: z.string(),
-    type: z.literal("contains"),
-  }),
-  z.object({
-    value: z.string(),
-    type: z.literal("doesNotContain"),
-  }),
-]);
-
-export type SmartFeedFilter = z.infer<typeof SmartFeedFilter>;
-export const SmartFeedFilter = z.union([
-  z.object({
-    operation: TextOperation,
-    field: z.literal("link"),
-  }),
-  z.object({
-    operation: TextOperation,
-    field: z.literal("title"),
-  }),
-  z.object({
-    operation: DateOperation,
-    field: z.literal("publishedAt"),
-  }),
-  z.object({
-    operation: TextOperation,
-    field: z.literal("description"),
-  }),
-  z.object({
-    operation: TextOperation,
-    field: z.literal("author"),
-  }),
-  z.object({
-    operation: BooleanOperation,
-    field: z.literal("hasRead"),
-  }),
-]);
-
-export type SmartFeedCreate = z.infer<typeof SmartFeedCreate>;
-export const SmartFeedCreate = z.object({
-  title: z.string(),
-  filters: z.union([z.array(SmartFeedFilter), z.undefined()]).optional(),
-});
-
-export type SmartFeedUpdate = z.infer<typeof SmartFeedUpdate>;
-export const SmartFeedUpdate = z.object({
-  title: z.union([z.string(), z.null()]).optional(),
-  filters: z.array(SmartFeedFilter).optional(),
 });
 
 export type TagCreate = z.infer<typeof TagCreate>;
@@ -455,8 +344,8 @@ export const get_ListBookmarks = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
-      filterByCollection: z.boolean().optional(),
-      collectionId: z.string().optional(),
+      filterByFolder: z.boolean().optional(),
+      folderId: z.string().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
@@ -527,66 +416,6 @@ export const post_ScrapeBookmark = {
   response: BookmarkScraped,
 };
 
-export type get_ListCollections = typeof get_ListCollections;
-export const get_ListCollections = {
-  method: z.literal("GET"),
-  path: z.literal("/collections"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Paginated_Collection,
-};
-
-export type post_CreateCollection = typeof post_CreateCollection;
-export const post_CreateCollection = {
-  method: z.literal("POST"),
-  path: z.literal("/collections"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: CollectionCreate,
-  }),
-  response: Collection,
-};
-
-export type get_GetCollection = typeof get_GetCollection;
-export const get_GetCollection = {
-  method: z.literal("GET"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: Collection,
-};
-
-export type delete_DeleteCollection = typeof delete_DeleteCollection;
-export const delete_DeleteCollection = {
-  method: z.literal("DELETE"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
-export type patch_UpdateCollection = typeof patch_UpdateCollection;
-export const patch_UpdateCollection = {
-  method: z.literal("PATCH"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: CollectionUpdate,
-  }),
-  response: Collection,
-};
-
 export type get_ListFeedEntries = typeof get_ListFeedEntries;
 export const get_ListFeedEntries = {
   method: z.literal("GET"),
@@ -638,6 +467,8 @@ export const get_ListFeeds = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
+      filterByFolder: z.boolean().optional(),
+      folderId: z.string().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
     }),
@@ -767,66 +598,6 @@ export const patch_UpdateFolder = {
   response: Folder,
 };
 
-export type get_ListSmartFeeds = typeof get_ListSmartFeeds;
-export const get_ListSmartFeeds = {
-  method: z.literal("GET"),
-  path: z.literal("/smartFeeds"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: Paginated_SmartFeed,
-};
-
-export type post_CreateSmartFeed = typeof post_CreateSmartFeed;
-export const post_CreateSmartFeed = {
-  method: z.literal("POST"),
-  path: z.literal("/smartFeeds"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: SmartFeedCreate,
-  }),
-  response: SmartFeed,
-};
-
-export type get_GetSmartFeed = typeof get_GetSmartFeed;
-export const get_GetSmartFeed = {
-  method: z.literal("GET"),
-  path: z.literal("/smartFeeds/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: SmartFeed,
-};
-
-export type delete_DeleteSmartFeed = typeof delete_DeleteSmartFeed;
-export const delete_DeleteSmartFeed = {
-  method: z.literal("DELETE"),
-  path: z.literal("/smartFeeds/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
-export type patch_UpdateSmartFeed = typeof patch_UpdateSmartFeed;
-export const patch_UpdateSmartFeed = {
-  method: z.literal("PATCH"),
-  path: z.literal("/smartFeeds/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: SmartFeedUpdate,
-  }),
-  response: SmartFeed,
-};
-
 export type get_ListTags = typeof get_ListTags;
 export const get_ListTags = {
   method: z.literal("GET"),
@@ -903,45 +674,35 @@ export const EndpointByMethod = {
     "/backups/netscape/export": post_ExportNetscape,
     "/bookmarks": post_CreateBookmark,
     "/bookmarks/scrape": post_ScrapeBookmark,
-    "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
     "/folders": post_CreateFolder,
-    "/smartFeeds": post_CreateSmartFeed,
     "/tags": post_CreateTag,
   },
   get: {
     "/auth/@me": get_GetActiveUser,
     "/bookmarks": get_ListBookmarks,
     "/bookmarks/{id}": get_GetBookmark,
-    "/collections": get_ListCollections,
-    "/collections/{id}": get_GetCollection,
     "/feedEntries": get_ListFeedEntries,
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
     "/feeds/{id}": get_GetFeed,
     "/folders": get_ListFolders,
     "/folders/{id}": get_GetFolder,
-    "/smartFeeds": get_ListSmartFeeds,
-    "/smartFeeds/{id}": get_GetSmartFeed,
     "/tags": get_ListTags,
     "/tags/{id}": get_GetTag,
   },
   delete: {
     "/bookmarks/{id}": delete_DeleteBookmark,
-    "/collections/{id}": delete_DeleteCollection,
     "/feeds/{id}": delete_DeleteFeed,
     "/folders/{id}": delete_DeleteFolder,
-    "/smartFeeds/{id}": delete_DeleteSmartFeed,
     "/tags/{id}": delete_DeleteTag,
   },
   patch: {
     "/bookmarks/{id}": patch_UpdateBookmark,
-    "/collections/{id}": patch_UpdateCollection,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
     "/folders/{id}": patch_UpdateFolder,
-    "/smartFeeds/{id}": patch_UpdateSmartFeed,
     "/tags/{id}": patch_UpdateTag,
   },
 };
