@@ -3,12 +3,12 @@ ARG TARGET="x86_64-unknown-linux-musl"
 FROM node:23-alpine AS web-build
 WORKDIR /app
 COPY package*.json tsconfig*.json ./
-COPY apps ./apps
+COPY apps/web ./apps/web
 COPY packages ./packages
 RUN npm ci
 RUN npm run build --workspace=@colette/web
 
-FROM rust:1.82-alpine AS base
+FROM rust:1.84-alpine AS base
 WORKDIR /app
 ARG TARGET
 RUN apk add --no-cache musl-dev
