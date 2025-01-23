@@ -35,7 +35,7 @@ pub enum TagType {
     Feeds,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }

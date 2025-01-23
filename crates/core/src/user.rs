@@ -2,11 +2,10 @@ use uuid::Uuid;
 
 use crate::common::{Creatable, Findable};
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
-    #[serde(skip_serializing)]
     pub password: String,
 }
 

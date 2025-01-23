@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::common::{Findable, IdParams, Paginated, Updatable, PAGINATION_LIMIT};
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedEntry {
     pub id: Uuid,
     pub link: String,
@@ -17,12 +17,12 @@ pub struct FeedEntry {
     pub feed_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
@@ -31,7 +31,7 @@ pub struct FeedEntryListQuery {
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub id: Uuid,
     pub published_at: DateTime<Utc>,

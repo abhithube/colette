@@ -3,26 +3,26 @@ use crate::common::{
 };
 use uuid::Uuid;
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
     pub parent_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug)]
 pub struct FolderCreate {
     pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Debug, Default)]
 pub struct FolderUpdate {
     pub title: Option<NonEmptyString>,
     pub parent_id: Option<Option<Uuid>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }
