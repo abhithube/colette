@@ -33,6 +33,20 @@ args = [
   ".",
 ]
 
+[tasks.generate-pg]
+command = "atlas"
+args = [
+  "migrate",
+  "diff",
+  "${@}",
+  "--dir",
+  "file://apps/server/migrations",
+  "--to",
+  "file://schema/postgresql.sql",
+  "--dev-url",
+  "docker://postgres/17/dev",
+]
+
 [tasks.bloat]
 install_crate = "cargo-bloat"
 command = "cargo"
