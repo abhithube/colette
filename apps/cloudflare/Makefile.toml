@@ -1,0 +1,13 @@
+[tasks.migrate]
+command = "atlas"
+args = [
+  "migrate",
+  "diff",
+  "${@}",
+  "--dir",
+  "file://migrations",
+  "--to",
+  "file://../../schema/sqlite.sql",
+  "--dev-url",
+  "sqlite://file?mode=memory",
+]

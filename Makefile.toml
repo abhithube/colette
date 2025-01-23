@@ -1,23 +1,4 @@
-env_files = [".env"]
-
 config.default_to_workspace = false
-
-[tasks.dev]
-command = "cargo"
-args = ["run", "-p", "colette-server"]
-
-[tasks.watch]
-install_crate = "cargo-leptos"
-command = "cargo"
-args = ["leptos", "watch", "-p", "colette-leptos"]
-
-[tasks.tauri-dev]
-command = "npm"
-args = ["run", "tauri", "dev", "--workspace=@colette/desktop"]
-
-[tasks.build]
-command = "cargo"
-args = ["build", "--release", "-p", "colette-server"]
 
 [tasks.build-docker]
 command = "docker"
@@ -32,36 +13,3 @@ args = [
   "colette-server",
   ".",
 ]
-
-[tasks.generate-pg]
-command = "atlas"
-args = [
-  "migrate",
-  "diff",
-  "${@}",
-  "--dir",
-  "file://apps/server/migrations",
-  "--to",
-  "file://schema/postgresql.sql",
-  "--dev-url",
-  "docker://postgres/17/dev",
-]
-
-[tasks.generate-sqlite]
-command = "atlas"
-args = [
-  "migrate",
-  "diff",
-  "${@}",
-  "--dir",
-  "file://${MIGRATIONS_DIR}",
-  "--to",
-  "file://schema/sqlite.sql",
-  "--dev-url",
-  "sqlite://file?mode=memory",
-]
-
-[tasks.bloat]
-install_crate = "cargo-bloat"
-command = "cargo"
-args = ["bloat", "--release", "--crates", "-p", "colette-server"]
