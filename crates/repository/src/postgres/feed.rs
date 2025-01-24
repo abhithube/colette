@@ -312,7 +312,7 @@ impl From<Row> for FeedSelect {
             id: value.get("id"),
             link: value.get("link"),
             title: value.get("title"),
-            xml_url: value.get("url"),
+            xml_url: value.get("xml_url"),
             original_title: value.get("original_title"),
             folder_id: value.get("folder_id"),
             tags: value

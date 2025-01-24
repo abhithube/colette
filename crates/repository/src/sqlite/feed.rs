@@ -291,7 +291,7 @@ impl TryFrom<&Row<'_>> for FeedSelect {
             title: value.get("title")?,
             folder_id: value.get("folder_id")?,
             original_title: value.get("original_title")?,
-            xml_url: value.get("url")?,
+            xml_url: value.get("xml_url")?,
             tags: value.get::<_, Value>("tags").map(|e| match e {
                 Value::Text(text) => serde_json::from_str(&text).ok(),
                 _ => None,
