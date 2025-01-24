@@ -133,7 +133,12 @@ pub fn select(
         )
         .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
-        .and_where_option(folder_id.map(|e| Expr::col((UserFeed::Table, UserFeed::FolderId)).eq(e)))
+        .and_where_option(folder_id.map(|e| {
+            e.map_or_else(
+                || Expr::col(UserFeed::FolderId).is_null(),
+                |e| Expr::col(UserFeed::FolderId).eq(e),
+            )
+        }))
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::tuple([

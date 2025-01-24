@@ -49,7 +49,12 @@ pub fn select(
         .from(Folder::Table)
         .and_where(Expr::col(Folder::UserId).eq(user_id))
         .and_where_option(id.map(|e| Expr::col(Folder::Id).eq(e)))
-        .and_where_option(parent_id.map(|e| Expr::col(Folder::ParentId).eq(e)))
+        .and_where_option(parent_id.map(|e| {
+            e.map_or_else(
+                || Expr::col(Folder::ParentId).is_null(),
+                |e| Expr::col(Folder::ParentId).eq(e),
+            )
+        }))
         .and_where_option(cursor.map(|e| Expr::col(Folder::Title).gt(e.title)))
         .order_by((Folder::Table, Folder::Title), Order::Asc)
         .to_owned();

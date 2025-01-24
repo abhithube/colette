@@ -128,9 +128,12 @@ pub fn select(
         )
         .and_where(Expr::col((UserBookmark::Table, UserBookmark::UserId)).eq(user_id))
         .and_where_option(id.map(|e| Expr::col((UserBookmark::Table, UserBookmark::Id)).eq(e)))
-        .and_where_option(
-            folder_id.map(|e| Expr::col((UserBookmark::Table, UserBookmark::FolderId)).eq(e)),
-        )
+        .and_where_option(folder_id.map(|e| {
+            e.map_or_else(
+                || Expr::col(UserBookmark::FolderId).is_null(),
+                |e| Expr::col(UserBookmark::FolderId).eq(e),
+            )
+        }))
         .and_where_option(tags_subquery)
         .and_where_option(cursor.map(|e| {
             Expr::col((UserBookmark::Table, UserBookmark::CreatedAt)).gt(Expr::val(e.created_at))
