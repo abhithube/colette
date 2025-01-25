@@ -89,7 +89,7 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             } else if let Some(link) = outline.html_url {
                 let feed_id = {
-                    let (sql, values) = crate::feed::insert(link, title, outline.xml_url)
+                    let (sql, values) = crate::feed::insert(None, link, title, outline.xml_url)
                         .build_postgres(PostgresQueryBuilder);
 
                     let stmt = tx

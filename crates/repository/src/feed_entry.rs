@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement, SimpleExpr};
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -43,6 +43,7 @@ impl Iden for FeedEntry {
 }
 
 pub struct InsertMany {
+    pub id: Option<Uuid>,
     pub link: String,
     pub title: String,
     pub published_at: DateTime<Utc>,
@@ -60,18 +61,24 @@ pub fn select_many_by_feed_id(feed_id: Uuid) -> SelectStatement {
 }
 
 pub fn insert_many(data: &[InsertMany], feed_id: Uuid) -> InsertStatement {
+    let mut columns = vec![
+        FeedEntry::Link,
+        FeedEntry::Title,
+        FeedEntry::PublishedAt,
+        FeedEntry::Description,
+        FeedEntry::Author,
+        FeedEntry::ThumbnailUrl,
+        FeedEntry::FeedId,
+        FeedEntry::UpdatedAt,
+    ];
+
+    if data.iter().any(|e| e.id.is_some()) {
+        columns.push(FeedEntry::Id);
+    }
+
     let mut query = Query::insert()
         .into_table(FeedEntry::Table)
-        .columns([
-            FeedEntry::Link,
-            FeedEntry::Title,
-            FeedEntry::PublishedAt,
-            FeedEntry::Description,
-            FeedEntry::Author,
-            FeedEntry::ThumbnailUrl,
-            FeedEntry::FeedId,
-            FeedEntry::UpdatedAt,
-        ])
+        .columns(columns)
         .on_conflict(
             OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
                 .update_columns([
@@ -87,7 +94,7 @@ pub fn insert_many(data: &[InsertMany], feed_id: Uuid) -> InsertStatement {
         .to_owned();
 
     for fe in data {
-        query.values_panic([
+        let mut values: Vec<SimpleExpr> = vec![
             (*fe.link).into(),
             (*fe.title).into(),
             fe.published_at.into(),
@@ -96,7 +103,12 @@ pub fn insert_many(data: &[InsertMany], feed_id: Uuid) -> InsertStatement {
             fe.thumbnail_url.as_deref().into(),
             feed_id.into(),
             Expr::current_timestamp().into(),
-        ]);
+        ];
+        if let Some(id) = fe.id {
+            values.push(id.into());
+        }
+
+        query.values_panic(values);
     }
 
     query

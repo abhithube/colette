@@ -73,8 +73,9 @@ impl BackupRepository for D1BackupRepository {
                 }
             } else if let Some(link) = outline.html_url {
                 let feed_id = {
-                    let (sql, values) = crate::feed::insert(link, title, outline.xml_url)
-                        .build_d1(SqliteQueryBuilder);
+                    let (sql, values) =
+                        crate::feed::insert(Some(Uuid::new_v4()), link, title, outline.xml_url)
+                            .build_d1(SqliteQueryBuilder);
 
                     super::first::<Uuid>(&self.db, sql, values, Some("id"))
                         .await

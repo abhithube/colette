@@ -1,6 +1,9 @@
 use std::fmt::Write;
 
-use sea_query::{Alias, Expr, Func, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use sea_query::{
+    Alias, Expr, Func, Iden, InsertStatement, OnConflict, Query, SelectStatement, SimpleExpr,
+};
+use uuid::Uuid;
 
 use crate::user_feed::UserFeed;
 
@@ -46,16 +49,29 @@ pub fn select_by_url(url: String) -> SelectStatement {
         .to_owned()
 }
 
-pub fn insert(link: String, title: String, xml_url: Option<String>) -> InsertStatement {
+pub fn insert(
+    id: Option<Uuid>,
+    link: String,
+    title: String,
+    xml_url: Option<String>,
+) -> InsertStatement {
+    let mut columns = vec![Feed::Link, Feed::Title, Feed::XmlUrl, Feed::UpdatedAt];
+    let mut values: Vec<SimpleExpr> = vec![
+        link.into(),
+        title.into(),
+        xml_url.into(),
+        Expr::current_timestamp().into(),
+    ];
+
+    if let Some(id) = id {
+        columns.push(Feed::Id);
+        values.push(id.into());
+    }
+
     Query::insert()
         .into_table(Feed::Table)
-        .columns([Feed::Link, Feed::Title, Feed::XmlUrl, Feed::UpdatedAt])
-        .values_panic([
-            link.into(),
-            title.into(),
-            xml_url.into(),
-            Expr::current_timestamp().into(),
-        ])
+        .columns(columns)
+        .values_panic(values)
         .on_conflict(
             OnConflict::column(Feed::Link)
                 .update_columns([Feed::Title, Feed::XmlUrl, Feed::UpdatedAt])

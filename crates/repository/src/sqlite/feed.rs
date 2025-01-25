@@ -313,8 +313,8 @@ pub(crate) fn create_feed_with_entries(
     let xml_url = if url == link { None } else { Some(url) };
 
     let feed_id = {
-        let (sql, values) =
-            crate::feed::insert(link, feed.title, xml_url).build_rusqlite(SqliteQueryBuilder);
+        let (sql, values) = crate::feed::insert(Some(Uuid::new_v4()), link, feed.title, xml_url)
+            .build_rusqlite(SqliteQueryBuilder);
 
         conn.prepare_cached(&sql)?
             .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
@@ -324,6 +324,7 @@ pub(crate) fn create_feed_with_entries(
         .entries
         .into_iter()
         .map(|e| crate::feed_entry::InsertMany {
+            id: Some(Uuid::new_v4()),
             link: e.link.to_string(),
             title: e.title,
             published_at: e.published,

@@ -335,8 +335,8 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
         let link = feed.link.to_string();
         let xml_url = if url == link { None } else { Some(url) };
 
-        let (sql, values) =
-            crate::feed::insert(link, feed.title, xml_url).build_postgres(PostgresQueryBuilder);
+        let (sql, values) = crate::feed::insert(None, link, feed.title, xml_url)
+            .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
 
@@ -351,6 +351,7 @@ pub(crate) async fn create_feed_with_entries<C: GenericClient>(
             .entries
             .into_iter()
             .map(|e| crate::feed_entry::InsertMany {
+                id: None,
                 link: e.link.to_string(),
                 title: e.title,
                 published_at: e.published,

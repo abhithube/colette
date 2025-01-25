@@ -223,7 +223,8 @@ pub(crate) fn build_select(params: FeedFindParams) -> WithQuery {
     )
 }
 
-const CHUNK_SIZE: usize = 14;
+// 100 max params per query / 8 params per feed entry = ~12 feed entries per query
+const CHUNK_SIZE: usize = 12;
 
 pub(crate) async fn create_feed_with_entries(
     db: &D1Database,
@@ -234,8 +235,8 @@ pub(crate) async fn create_feed_with_entries(
         let link = feed.link.to_string();
         let xml_url = if url == link { None } else { Some(url) };
 
-        let (sql, values) =
-            crate::feed::insert(link, feed.title, xml_url).build_d1(SqliteQueryBuilder);
+        let (sql, values) = crate::feed::insert(Some(Uuid::new_v4()), link, feed.title, xml_url)
+            .build_d1(SqliteQueryBuilder);
 
         super::first::<Uuid>(db, sql, values, Some("id"))
             .await?
@@ -247,6 +248,7 @@ pub(crate) async fn create_feed_with_entries(
             .entries
             .into_iter()
             .map(|e| crate::feed_entry::InsertMany {
+                id: Some(Uuid::new_v4()),
                 link: e.link.to_string(),
                 title: e.title,
                 published_at: e.published,

@@ -77,8 +77,9 @@ impl BackupRepository for SqliteBackupRepository {
                     }
                 } else if let Some(link) = outline.html_url {
                     let feed_id = {
-                        let (sql, values) = crate::feed::insert(link, title, outline.xml_url)
-                            .build_rusqlite(SqliteQueryBuilder);
+                        let (sql, values) =
+                            crate::feed::insert(Some(Uuid::new_v4()), link, title, outline.xml_url)
+                                .build_rusqlite(SqliteQueryBuilder);
 
                         tx.prepare_cached(&sql)?
                             .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?
