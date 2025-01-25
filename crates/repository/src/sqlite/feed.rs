@@ -10,8 +10,11 @@ use deadpool_sqlite::{
     rusqlite::{self, types::Value, Connection, OptionalExtension, Row},
     Pool,
 };
-use futures::{stream::{self, BoxStream}, StreamExt};
-use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
+use futures::{
+    stream::{self, BoxStream},
+    StreamExt,
+};
+use sea_query::{Expr, ExprTrait, SqliteQueryBuilder, WithQuery};
 use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
 
@@ -32,35 +35,14 @@ impl Findable for SqliteFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        
         let conn = self
-        .pool
-        .get()
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-    
-    conn.interact(move |conn| {
-            let jsonb_agg = Expr::cust(
-                r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-            );
-        
-            let tags_subquery = params.tags.map(|e| {
-                Expr::cust_with_expr(
-                    r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
-                    Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
-                )
-            });
-            
-            let (sql, values) = crate::user_feed::select(
-                params.id,
-                params.folder_id,
-                params.user_id,
-                params.cursor,
-                params.limit,
-                jsonb_agg,
-                tags_subquery,
-            )
-            .build_rusqlite(SqliteQueryBuilder);
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| {
+            let (sql, values) = build_select(params).build_rusqlite(SqliteQueryBuilder);
 
             let mut stmt = conn.prepare_cached(&sql)?;
             let mut rows = stmt.query(&*values.as_params())?;
@@ -169,7 +151,7 @@ impl Updatable for SqliteFeedRepository {
                         params.id,
                         params.user_id,
                         data.title,
-                        data.folder_id
+                        data.folder_id,
                     )
                     .build_rusqlite(SqliteQueryBuilder);
 
@@ -257,7 +239,7 @@ impl FeedRepository for SqliteFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-         conn.interact(move |conn| {
+        conn.interact(move |conn| {
             let (sql, values) = crate::feed::iterate().build_rusqlite(SqliteQueryBuilder);
 
             let mut stmt = conn.prepare_cached(&sql)?;
@@ -273,13 +255,11 @@ impl FeedRepository for SqliteFeedRepository {
         .await
         .unwrap()
         .map_err(|e: rusqlite::Error| Error::Unknown(e.into()))
-        
-        
     }
 }
 
 #[derive(Debug, Clone)]
-struct FeedSelect(Feed);
+pub(crate) struct FeedSelect(pub(crate) Feed);
 
 impl TryFrom<&Row<'_>> for FeedSelect {
     type Error = rusqlite::Error;
@@ -299,6 +279,29 @@ impl TryFrom<&Row<'_>> for FeedSelect {
             unread_count: Some(value.get("unread_count")?),
         }))
     }
+}
+
+pub(crate) fn build_select(params: FeedFindParams) -> WithQuery {
+    let jsonb_agg = Expr::cust(
+        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = params.tags.map(|e| {
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+        )
+    });
+
+    crate::user_feed::select(
+        params.id,
+        params.folder_id,
+        params.user_id,
+        params.cursor,
+        params.limit,
+        jsonb_agg,
+        tags_subquery,
+    )
 }
 
 pub(crate) fn create_feed_with_entries(
@@ -423,8 +426,8 @@ pub(crate) fn link_tags(
         })
         .collect::<Vec<_>>();
 
-    let (sql, values) = crate::user_feed_tag::insert_many(&insert_many, user_id)
-        .build_rusqlite(SqliteQueryBuilder);
+    let (sql, values) =
+        crate::user_feed_tag::insert_many(&insert_many, user_id).build_rusqlite(SqliteQueryBuilder);
 
     conn.prepare_cached(&sql)?.execute(&*values.as_params())?;
 

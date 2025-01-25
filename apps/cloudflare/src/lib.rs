@@ -4,18 +4,19 @@ use axum::{body::Body, http::Response};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, folder::FolderState, tag::TagState, Api, ApiState,
+    feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState, Api,
+    ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, folder::FolderService, tag::TagService,
+    feed_entry::FeedEntryService, folder::FolderService, library::LibraryService, tag::TagService,
 };
 use colette_plugins::register_bookmark_plugins;
 use colette_queue::cloudflare::CloudflareQueue;
 use colette_repository::d1::{
     D1BackupRepository, D1BookmarkRepository, D1FeedEntryRepository, D1FeedRepository,
-    D1FolderRepository, D1TagRepository, D1UserRepository,
+    D1FolderRepository, D1LibraryRepository, D1TagRepository, D1UserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper, downloader::DefaultDownloader, feed::DefaultFeedDetector,
@@ -81,6 +82,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         base64_encoder,
     ));
     let folder_service = Arc::new(FolderService::new(D1FolderRepository::new(d1.clone())));
+    let library_service = Arc::new(LibraryService::new(D1LibraryRepository::new(d1.clone())));
     // let smart_feed_service = Arc::new(SmartFeedService::new(D1SmartFeedRepository::new(
     //     d1.clone(),
     // )));
@@ -98,6 +100,7 @@ async fn fetch(req: HttpRequest, env: Env, _ctx: Context) -> worker::Result<Resp
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         FolderState::new(folder_service),
+        LibraryState::new(library_service),
         // SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );

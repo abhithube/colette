@@ -1,6 +1,7 @@
 use colette_core::{
     bookmark::{
-        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData, Error
+        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
+        BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
@@ -9,7 +10,7 @@ use deadpool_sqlite::{
     rusqlite::{self, types::Value, Connection, OptionalExtension, Row},
     Pool,
 };
-use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
+use sea_query::{Expr, ExprTrait, SqliteQueryBuilder, WithQuery};
 use sea_query_rusqlite::RusqliteBinder;
 use uuid::Uuid;
 
@@ -30,35 +31,14 @@ impl Findable for SqliteBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        
         let conn = self
-        .pool
-        .get()
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-    
-    conn.interact(move |conn| {
-            let jsonb_agg = Expr::cust(
-                r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-            );
-        
-            let tags_subquery = params.tags.map(|e| {
-                Expr::cust_with_expr(
-                    r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
-                    Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
-                )
-            });
-            
-            let (sql, values) = crate::user_bookmark::select(
-                params.id,
-                params.folder_id,
-                params.user_id,
-                params.cursor,
-                params.limit,
-                jsonb_agg,
-                tags_subquery,
-            )
-            .build_rusqlite(SqliteQueryBuilder);
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        conn.interact(move |conn| {
+            let (sql, values) = build_select(params).build_rusqlite(SqliteQueryBuilder);
 
             let mut stmt = conn.prepare_cached(&sql)?;
             let mut rows = stmt.query(&*values.as_params())?;
@@ -93,8 +73,8 @@ impl Creatable for SqliteBookmarkRepository {
         conn.interact(move |conn| {
             let tx = conn.transaction()?;
 
-            let (sql, values) = crate::bookmark::select_by_link(data.url)
-                .build_rusqlite(SqliteQueryBuilder);
+            let (sql, values) =
+                crate::bookmark::select_by_link(data.url).build_rusqlite(SqliteQueryBuilder);
 
             let bookmark_id = tx
                 .prepare_cached(&sql)?
@@ -175,7 +155,7 @@ impl Updatable for SqliteBookmarkRepository {
                     data.published_at,
                     data.author,
                     data.folder_id,
-                    params.user_id
+                    params.user_id,
                 )
                 .build_rusqlite(SqliteQueryBuilder);
 
@@ -252,7 +232,8 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             )
             .build_rusqlite(SqliteQueryBuilder);
 
-            conn.prepare_cached(&sql)?.query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
+            conn.prepare_cached(&sql)?
+                .query_row(&*values.as_params(), |row| row.get::<_, Uuid>("id"))?;
 
             Ok(())
         })
@@ -263,7 +244,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 }
 
 #[derive(Debug, Clone)]
-struct BookmarkSelect(Bookmark);
+pub(crate) struct BookmarkSelect(pub(crate) Bookmark);
 
 impl TryFrom<&Row<'_>> for BookmarkSelect {
     type Error = rusqlite::Error;
@@ -288,6 +269,29 @@ impl TryFrom<&Row<'_>> for BookmarkSelect {
             })?,
         }))
     }
+}
+
+pub(crate) fn build_select(params: BookmarkFindParams) -> WithQuery {
+    let jsonb_agg = Expr::cust(
+        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', HEX("tags"."id"), 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = params.tags.map(|e| {
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+        )
+    });
+
+    crate::user_bookmark::select(
+        params.id,
+        params.folder_id,
+        params.user_id,
+        params.cursor,
+        params.limit,
+        jsonb_agg,
+        tags_subquery,
+    )
 }
 
 pub(crate) fn link_tags(

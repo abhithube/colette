@@ -6,6 +6,7 @@ pub use feed_entry::SqliteFeedEntryRepository;
 pub use folder::SqliteFolderRepository;
 pub use scraper::SqliteScraperRepository;
 // pub use smart_feed::SqliteSmartFeedRepository;
+pub use library::SqliteLibraryRepository;
 pub use tag::SqliteTagRepository;
 pub use user::SqliteUserRepository;
 
@@ -15,6 +16,7 @@ mod bookmark;
 mod feed;
 mod feed_entry;
 mod folder;
+mod library;
 mod scraper;
 // mod smart_feed;
 mod tag;

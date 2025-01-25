@@ -4,6 +4,7 @@ pub use feed::Feed;
 pub use feed_entry::FeedEntry;
 pub use folder::Folder;
 // pub use smart_feed::SmartFeed;
+pub use library::LibraryItem;
 pub use tag::Tag;
 pub use user::User;
 
@@ -15,6 +16,7 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod folder;
+pub mod library;
 pub mod scraper;
 // pub mod smart_feed;
 pub mod tag;

@@ -11,6 +11,7 @@ use sea_query::{
 };
 use serde::Deserialize;
 // pub use smart_feed::D1SmartFeedRepository;
+pub use library::D1LibraryRepository;
 pub use tag::D1TagRepository;
 pub use user::D1UserRepository;
 use worker::{console_error, wasm_bindgen::JsValue, D1Argument, D1Database, D1Result};
@@ -21,6 +22,7 @@ mod bookmark;
 mod feed;
 mod feed_entry;
 mod folder;
+mod library;
 mod scraper;
 // mod smart_feed;
 mod tag;

@@ -10,7 +10,7 @@ use deadpool_postgres::{
     tokio_postgres::{self, types::Json, Row},
     GenericClient, Pool,
 };
-use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
+use sea_query::{Expr, ExprTrait, PostgresQueryBuilder, WithQuery};
 use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
@@ -37,27 +37,7 @@ impl Findable for PostgresBookmarkRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let jsonb_agg = Expr::cust(
-            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-        );
-
-        let tags_subquery = params.tags.map(|e| {
-            Expr::cust_with_expr(
-                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
-                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
-            )
-        });
-
-        let (sql, values) = crate::user_bookmark::select(
-            params.id,
-            params.folder_id,
-            params.user_id,
-            params.cursor,
-            params.limit,
-            jsonb_agg,
-            tags_subquery,
-        )
-        .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = build_select(params).build_postgres(PostgresQueryBuilder);
 
         let stmt = client
             .prepare_cached(&sql)
@@ -293,7 +273,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 }
 
 #[derive(Debug, Clone)]
-struct BookmarkSelect(Bookmark);
+pub(crate) struct BookmarkSelect(pub(crate) Bookmark);
 
 impl From<Row> for BookmarkSelect {
     fn from(value: Row) -> Self {
@@ -315,6 +295,29 @@ impl From<Row> for BookmarkSelect {
                 .map(|e| e.0),
         })
     }
+}
+
+pub(crate) fn build_select(params: BookmarkFindParams) -> WithQuery {
+    let jsonb_agg = Expr::cust(
+        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = params.tags.map(|e| {
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+        )
+    });
+
+    crate::user_bookmark::select(
+        params.id,
+        params.folder_id,
+        params.user_id,
+        params.cursor,
+        params.limit,
+        jsonb_agg,
+        tags_subquery,
+    )
 }
 
 pub(crate) async fn link_tags<C: GenericClient>(

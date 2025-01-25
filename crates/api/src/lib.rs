@@ -8,6 +8,7 @@ pub use common::{Paginated, Session};
 use feed::FeedState;
 use feed_entry::FeedEntryState;
 use folder::{FolderApi, FolderState};
+use library::{LibraryApi, LibraryState};
 use tag::TagState;
 use utoipa::{openapi::Server, OpenApi};
 use utoipa_axum::router::OpenApiRouter;
@@ -26,6 +27,7 @@ mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod folder;
+pub mod library;
 // pub mod smart_feed;
 pub mod tag;
 
@@ -38,6 +40,7 @@ pub struct ApiState {
     feed_state: FeedState,
     feed_entry_state: FeedEntryState,
     folder_state: FolderState,
+    library_state: LibraryState,
     // smart_feed_state: SmartFeedState,
     tag_state: TagState,
 }
@@ -52,6 +55,7 @@ impl ApiState {
         feed_state: FeedState,
         feed_entry_state: FeedEntryState,
         folder_state: FolderState,
+        library_state: LibraryState,
         // smart_feed_state: SmartFeedState,
         tag_state: TagState,
     ) -> Self {
@@ -63,6 +67,7 @@ impl ApiState {
             feed_state,
             feed_entry_state,
             folder_state,
+            library_state,
             // smart_feed_state,
             tag_state,
         }
@@ -105,6 +110,8 @@ impl<'a> Api<'a> {
                     .with_state(FeedState::from_ref(self.api_state))
                     .nest("/folders", FolderApi::router())
                     .with_state(FolderState::from_ref(self.api_state))
+                    .nest("/library", LibraryApi::router())
+                    .with_state(LibraryState::from_ref(self.api_state))
                     // .nest("/smartFeeds", SmartFeedApi::router())
                     // .with_state(SmartFeedState::from_ref(self.api_state))
                     .nest("/tags", TagApi::router())

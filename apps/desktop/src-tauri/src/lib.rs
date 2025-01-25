@@ -9,6 +9,7 @@ use colette_core::{
     common::NonEmptyString,
     feed::FeedService,
     feed_entry::FeedEntryService,
+    library::LibraryService,
     scraper::ScraperService,
     tag::TagService,
 };
@@ -17,7 +18,8 @@ use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::sqlite::{
     SqliteBackupRepository, SqliteBookmarkRepository, SqliteFeedEntryRepository,
-    SqliteFeedRepository, SqliteScraperRepository, SqliteTagRepository, SqliteUserRepository,
+    SqliteFeedRepository, SqliteLibraryRepository, SqliteScraperRepository, SqliteTagRepository,
+    SqliteUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
@@ -115,6 +117,8 @@ pub fn run() {
                     SqliteFeedEntryRepository::new(pool.clone()),
                     base64_encoder,
                 );
+                let library_service =
+                    LibraryService::new(SqliteLibraryRepository::new(pool.clone()));
                 let scraper_service = Arc::new(ScraperService::new(
                     SqliteScraperRepository::new(pool.clone()),
                     feed_plugin_registry,
@@ -158,6 +162,7 @@ pub fn run() {
                 app.manage(bookmark_service);
                 app.manage(feed_service);
                 app.manage(feed_entry_service);
+                app.manage(library_service);
                 // app.manage(smart_feed_service);
                 app.manage(tag_service);
 

@@ -18,7 +18,7 @@ use futures::{
     stream::{self, BoxStream},
     StreamExt,
 };
-use sea_query::{Expr, ExprTrait, PostgresQueryBuilder};
+use sea_query::{Expr, ExprTrait, PostgresQueryBuilder, WithQuery};
 use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
@@ -45,27 +45,7 @@ impl Findable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let jsonb_agg = Expr::cust(
-            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-        );
-
-        let tags_subquery = params.tags.map(|e| {
-            Expr::cust_with_expr(
-                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
-                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
-            )
-        });
-
-        let (sql, values) = crate::user_feed::select(
-            params.id,
-            params.folder_id,
-            params.user_id,
-            params.cursor,
-            params.limit,
-            jsonb_agg,
-            tags_subquery,
-        )
-        .build_postgres(PostgresQueryBuilder);
+        let (sql, values) = build_select(params).build_postgres(PostgresQueryBuilder);
 
         let stmt = client
             .prepare_cached(&sql)
@@ -304,7 +284,7 @@ impl FeedRepository for PostgresFeedRepository {
 }
 
 #[derive(Debug, Clone)]
-struct FeedSelect(Feed);
+pub(crate) struct FeedSelect(pub(crate) Feed);
 
 impl From<Row> for FeedSelect {
     fn from(value: Row) -> Self {
@@ -321,6 +301,29 @@ impl From<Row> for FeedSelect {
             unread_count: Some(value.get("unread_count")),
         })
     }
+}
+
+pub(crate) fn build_select(params: FeedFindParams) -> WithQuery {
+    let jsonb_agg = Expr::cust(
+        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = params.tags.map(|e| {
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+        )
+    });
+
+    crate::user_feed::select(
+        params.id,
+        params.folder_id,
+        params.user_id,
+        params.cursor,
+        params.limit,
+        jsonb_agg,
+        tags_subquery,
+    )
 }
 
 pub(crate) async fn create_feed_with_entries<C: GenericClient>(

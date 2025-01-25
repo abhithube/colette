@@ -163,7 +163,7 @@ impl Deletable for SqliteFolderRepository {
 impl FolderRepository for SqliteFolderRepository {}
 
 #[derive(Debug, Clone)]
-struct FolderSelect(Folder);
+pub(crate) struct FolderSelect(pub(crate) Folder);
 
 impl TryFrom<&Row<'_>> for FolderSelect {
     type Error = rusqlite::Error;

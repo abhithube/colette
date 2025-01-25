@@ -4,20 +4,22 @@ use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
     auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, folder::FolderState, tag::TagState, Api, ApiState,
+    feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState, Api,
+    ApiState,
 };
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, folder::FolderService, scraper::ScraperService, tag::TagService,
+    feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
+    scraper::ScraperService, tag::TagService,
 };
 use colette_migration::MigrationFile;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresFolderRepository, PostgresScraperRepository,
-    PostgresTagRepository, PostgresUserRepository,
+    PostgresFeedRepository, PostgresFolderRepository, PostgresLibraryRepository,
+    PostgresScraperRepository, PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
@@ -133,6 +135,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let folder_service = Arc::new(FolderService::new(PostgresFolderRepository::new(
         pool.clone(),
     )));
+    let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
+        pool.clone(),
+    )));
     let scraper_service = Arc::new(ScraperService::new(
         PostgresScraperRepository::new(pool.clone()),
         feed_plugin_registry,
@@ -170,6 +175,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),
         FolderState::new(folder_service),
+        LibraryState::new(library_service),
         // SmartFeedState::new(smart_feed_service),
         TagState::new(tag_service),
     );

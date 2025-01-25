@@ -159,7 +159,7 @@ impl Deletable for PostgresFolderRepository {
 impl FolderRepository for PostgresFolderRepository {}
 
 #[derive(Debug, Clone)]
-struct FolderSelect(Folder);
+pub(crate) struct FolderSelect(pub(crate) Folder);
 
 impl From<Row> for FolderSelect {
     fn from(value: Row) -> Self {

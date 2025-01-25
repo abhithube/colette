@@ -9,7 +9,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
-use sea_query::{Expr, ExprTrait, SqliteQueryBuilder};
+use sea_query::{Expr, ExprTrait, SqliteQueryBuilder, WithQuery};
 use uuid::Uuid;
 use worker::D1Database;
 
@@ -32,27 +32,7 @@ impl Findable for D1BookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let jsonb_agg = Expr::cust(
-            r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-        );
-
-        let tags_subquery = params.tags.map(|e| {
-            Expr::cust_with_expr(
-                r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
-                Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
-            )
-        });
-
-        let (sql, values) = crate::user_bookmark::select(
-            params.id,
-            params.folder_id,
-            params.user_id,
-            params.cursor,
-            params.limit,
-            jsonb_agg,
-            tags_subquery,
-        )
-        .build_d1(SqliteQueryBuilder);
+        let (sql, values) = build_select(params).build_d1(SqliteQueryBuilder);
 
         let result = super::all(&self.db, sql, values)
             .await
@@ -215,6 +195,29 @@ impl BookmarkRepository for D1BookmarkRepository {
     }
 }
 
+pub(crate) fn build_select(params: BookmarkFindParams) -> WithQuery {
+    let jsonb_agg = Expr::cust(
+        r#"JSON_GROUP_ARRAY(JSON_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+    );
+
+    let tags_subquery = params.tags.map(|e| {
+        Expr::cust_with_expr(
+            r#"EXISTS (SELECT 1 FROM JSON_EACH("json_tags"."tags") AS "t" WHERE ?)"#,
+            Expr::cust(r#""t"."value" ->> 'title'"#).is_in(e),
+        )
+    });
+
+    crate::user_bookmark::select(
+        params.id,
+        params.folder_id,
+        params.user_id,
+        params.cursor,
+        params.limit,
+        jsonb_agg,
+        tags_subquery,
+    )
+}
+
 #[worker::send]
 pub(crate) async fn link_tags(
     db: &D1Database,
@@ -272,7 +275,7 @@ pub(crate) async fn link_tags(
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
-struct BookmarkSelect {
+pub(crate) struct BookmarkSelect {
     pub id: Uuid,
     pub link: String,
     pub title: Option<String>,
