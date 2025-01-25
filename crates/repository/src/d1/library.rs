@@ -72,7 +72,7 @@ impl Findable for D1LibraryRepository {
             })
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut bookmarks = result[1]
+        let mut bookmarks = result[2]
             .results::<BookmarkSelect>()
             .map(|e| {
                 e.into_iter()
