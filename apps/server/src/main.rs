@@ -40,10 +40,6 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
 
-#[derive(rust_embed::Embed)]
-#[folder = "migrations/"]
-struct Migrations;
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(debug_assertions)]
@@ -67,7 +63,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = colette_config::load_config()?;
 
     let pool = Pool::<Postgres>::connect(&app_config.database_url).await?;
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    sqlx::migrate!("../../migrations").run(&pool).await?;
 
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let feed_repository = PostgresFeedRepository::new(pool.clone());

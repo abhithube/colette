@@ -1,4 +1,27 @@
 config.default_to_workspace = false
+env_files = [".env"]
+
+[tasks.dev]
+command = "cargo"
+args = ["run"]
+
+[tasks.build]
+command = "cargo"
+args = ["build", "--release"]
+
+[tasks.migrate]
+command = "atlas"
+args = [
+  "migrate",
+  "diff",
+  "${@}",
+  "--dir",
+  "file://migrations",
+  "--to",
+  "file://schema.sql",
+  "--dev-url",
+  "docker://postgres/17/dev",
+]
 
 [tasks.build-docker]
 command = "docker"
@@ -17,4 +40,4 @@ args = [
 [tasks.format-sql]
 install_crate = "sqruff"
 command = "sqruff"
-args = ["fix", "schema", "apps/server/migrations"]
+args = ["fix", "schema.sql", "migrations"]
