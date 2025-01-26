@@ -4,19 +4,19 @@ use colette_core::{
     feed::FeedFindParams,
     library::{Error, LibraryItem, LibraryItemFindParams, LibraryRepository},
 };
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Postgres};
 
 use super::{bookmark::BookmarkSelect, feed::FeedSelect, folder::FolderSelect};
 
 #[derive(Debug, Clone)]
 pub struct PostgresLibraryRepository {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresLibraryRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -27,12 +27,6 @@ impl Findable for PostgresLibraryRepository {
     type Output = Result<Vec<LibraryItem>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let (sql, values) = crate::folder::select(
             None,
             params.user_id,
@@ -40,15 +34,10 @@ impl Findable for PostgresLibraryRepository {
             params.limit,
             None,
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let mut folders = client
-            .query(&stmt, &values.as_params())
+        let mut folders = sqlx::query_with(&sql, values)
+            .fetch_all(&self.pool)
             .await
             .map(|e| {
                 e.into_iter()
@@ -63,15 +52,10 @@ impl Findable for PostgresLibraryRepository {
             limit: params.limit,
             ..Default::default()
         })
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let mut feeds = client
-            .query(&stmt, &values.as_params())
+        let mut feeds = sqlx::query_with(&sql, values)
+            .fetch_all(&self.pool)
             .await
             .map(|e| {
                 e.into_iter()
@@ -86,15 +70,10 @@ impl Findable for PostgresLibraryRepository {
             limit: params.limit,
             ..Default::default()
         })
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let mut bookmarks = client
-            .query(&stmt, &values.as_params())
+        let mut bookmarks = sqlx::query_with(&sql, values)
+            .fetch_all(&self.pool)
             .await
             .map(|e| {
                 e.into_iter()

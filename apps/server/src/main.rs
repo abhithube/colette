@@ -1,4 +1,4 @@
-use std::{error::Error, future::Future, ops::DerefMut, pin::Pin, sync::Arc};
+use std::{error::Error, future::Future, pin::Pin, sync::Arc};
 
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -13,7 +13,6 @@ use colette_core::{
     feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
     scraper::ScraperService, tag::TagService,
 };
-use colette_migration::MigrationFile;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
 use colette_repository::postgres::{
@@ -30,8 +29,7 @@ use colette_session::postgres::PostgresSessionStore;
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
-use deadpool_postgres::{tokio_postgres::NoTls, Config, Runtime};
-use refinery_core::Runner;
+use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -68,24 +66,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = colette_config::load_config()?;
 
-    let mut config = Config::new();
-    config.url = Some(app_config.database_url);
-    let pool = config.create_pool(Some(Runtime::Tokio1), NoTls)?;
-
-    let mut client = pool.get().await?;
-    let client = client.deref_mut().deref_mut();
-
-    let mut migration_files = Vec::<MigrationFile>::new();
-
-    for file_path in Migrations::iter() {
-        if let Some(file) = Migrations::get(&file_path) {
-            migration_files.push(MigrationFile::new(file_path, file.data));
-        }
-    }
-
-    let migrations = colette_migration::load_migrations(&mut migration_files)?;
-
-    Runner::new(&migrations).run_async(client).await?;
+    let pool = Pool::<Postgres>::connect(&app_config.database_url).await?;
+    sqlx::migrate!("./migrations").run(&pool).await?;
 
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let feed_repository = PostgresFeedRepository::new(pool.clone());

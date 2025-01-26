@@ -1,11 +1,7 @@
 use std::fmt::Write;
 
-use sea_query::{
-    Alias, Expr, Func, Iden, InsertStatement, OnConflict, Query, SelectStatement, SimpleExpr,
-};
+use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement, SimpleExpr};
 use uuid::Uuid;
-
-use crate::user_feed::UserFeed;
 
 #[allow(dead_code)]
 pub enum Feed {
@@ -78,22 +74,5 @@ pub fn insert(
                 .to_owned(),
         )
         .returning_col(Feed::Id)
-        .to_owned()
-}
-
-pub fn iterate() -> SelectStatement {
-    Query::select()
-        .expr_as(
-            Func::coalesce([
-                Expr::col((Feed::Table, Feed::XmlUrl)).into(),
-                Expr::col((Feed::Table, Feed::Link)).into(),
-            ]),
-            Alias::new("url"),
-        )
-        .from(Feed::Table)
-        .inner_join(
-            UserFeed::Table,
-            Expr::col((UserFeed::Table, UserFeed::FeedId)).eq(Expr::col((Feed::Table, Feed::Id))),
-        )
         .to_owned()
 }

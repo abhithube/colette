@@ -3,17 +3,17 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
-use deadpool_postgres::{tokio_postgres::Row, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, Pool, Postgres, Row};
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresFeedEntryRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -24,12 +24,6 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let (sql, values) = crate::user_feed_entry::select(
             params.id,
             params.user_id,
@@ -41,15 +35,10 @@ impl Findable for PostgresFeedEntryRepository {
             params.limit,
             // build_case_statement(),
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        client
-            .query(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .fetch_all(&self.pool)
             .await
             .map(|e| {
                 e.into_iter()
@@ -67,31 +56,18 @@ impl Updatable for PostgresFeedEntryRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         if data.has_read.is_some() {
-            let count = {
-                let (sql, values) =
-                    crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
-                        .build_postgres(PostgresQueryBuilder);
+            let (sql, values) =
+                crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
+                    .build_sqlx(PostgresQueryBuilder);
 
-                let stmt = client
-                    .prepare_cached(&sql)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                client
-                    .execute(&stmt, &values.as_params())
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-            };
-            if count == 0 {
-                return Err(Error::NotFound(params.id));
-            }
+            sqlx::query_with(&sql, values)
+                .execute(&self.pool)
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                    _ => Error::Unknown(e.into()),
+                })?;
         }
 
         Ok(())
@@ -103,8 +79,8 @@ impl FeedEntryRepository for PostgresFeedEntryRepository {}
 #[derive(Debug, Clone)]
 struct FeedEntrySelect(FeedEntry);
 
-impl From<Row> for FeedEntrySelect {
-    fn from(value: Row) -> Self {
+impl From<PgRow> for FeedEntrySelect {
+    fn from(value: PgRow) -> Self {
         Self(FeedEntry {
             id: value.get("id"),
             link: value.get("link"),

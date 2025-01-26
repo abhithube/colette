@@ -9,19 +9,15 @@ chrono.workspace = true
 colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
-deadpool-postgres = { workspace = true, optional = true }
 futures.workspace = true
 sea-query.workspace = true
-sea-query-postgres = { workspace = true, optional = true }
+sea-query-binder = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
+sqlx = { workspace = true, features = ["postgres"] }
 thiserror.workspace = true
 uuid.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = [
-  "dep:deadpool-postgres",
-  "sea-query/backend-postgres",
-  "dep:sea-query-postgres",
-]
+postgres = ["sea-query/backend-postgres", "dep:sea-query-binder"]

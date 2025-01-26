@@ -1,8 +1,8 @@
 use std::time::SystemTime;
 
-use deadpool_postgres::{tokio_postgres::error::SqlState, Pool};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Postgres};
 use tower_sessions_core::{
     session::{Id, Record},
     session_store, ExpiredDeletion, SessionStore,
@@ -12,11 +12,11 @@ use super::query;
 
 #[derive(Debug, Clone)]
 pub struct PostgresSessionStore {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresSessionStore {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -28,27 +28,13 @@ impl SessionStore for PostgresSessionStore {
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
         let expires_at = SystemTime::from(record.expiry_date);
 
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        let (sql, _) = query::insert(record.id.to_string(), &payload, expires_at.into())
-            .build_postgres(PostgresQueryBuilder);
-
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
         loop {
-            match client
-                .execute(&stmt, &[&record.id.to_string(), &payload, &expires_at])
-                .await
-            {
+            let (sql, values) = query::insert(record.id.to_string(), &payload, expires_at.into())
+                .build_sqlx(PostgresQueryBuilder);
+
+            match sqlx::query_with(&sql, values).execute(&self.pool).await {
                 Ok(_) => break,
-                Err(e) if e.code() == Some(&SqlState::UNIQUE_VIOLATION) => {
+                Err(sqlx::Error::Database(e)) if e.is_unique_violation() => {
                     record.id = Id::default();
                 }
                 Err(e) => {
@@ -65,22 +51,11 @@ impl SessionStore for PostgresSessionStore {
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
         let expires_at: SystemTime = record.expiry_date.into();
 
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
         let (sql, values) = query::upsert(record.id.to_string(), &payload, expires_at.into())
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        client
-            .execute(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
@@ -88,28 +63,15 @@ impl SessionStore for PostgresSessionStore {
     }
 
     async fn load(&self, session_id: &Id) -> session_store::Result<Option<Record>> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
         let (sql, values) =
-            query::select_by_id(session_id.to_string()).build_postgres(PostgresQueryBuilder);
+            query::select_by_id(session_id.to_string()).build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
+        let data = sqlx::query_scalar_with::<_, Vec<u8>, _>(&sql, values)
+            .fetch_optional(&self.pool)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
-        let row = client
-            .query_opt(&stmt, &values.as_params())
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        if let Some(row) = row {
-            let data = row.get::<_, Vec<u8>>(0);
-
+        if let Some(data) = data {
             Ok(Some(serde_json::from_slice(&data).map_err(|e| {
                 session_store::Error::Decode(e.to_string())
             })?))
@@ -119,22 +81,11 @@ impl SessionStore for PostgresSessionStore {
     }
 
     async fn delete(&self, session_id: &Id) -> session_store::Result<()> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
         let (sql, values) =
-            query::delete_by_id(session_id.to_string()).build_postgres(PostgresQueryBuilder);
+            query::delete_by_id(session_id.to_string()).build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        client
-            .execute(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 
@@ -145,21 +96,10 @@ impl SessionStore for PostgresSessionStore {
 #[async_trait::async_trait]
 impl ExpiredDeletion for PostgresSessionStore {
     async fn delete_expired(&self) -> session_store::Result<()> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
+        let (sql, values) = query::delete_many().build_sqlx(PostgresQueryBuilder);
 
-        let (sql, values) = query::delete_many().build_postgres(PostgresQueryBuilder);
-
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| session_store::Error::Backend(e.to_string()))?;
-
-        client
-            .execute(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| session_store::Error::Backend(e.to_string()))?;
 

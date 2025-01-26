@@ -6,21 +6,18 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
-use deadpool_postgres::{
-    tokio_postgres::{self, error::SqlState, types::Json, Row},
-    GenericClient, Pool,
-};
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder, WithQuery};
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, types::Json, PgConnection, Pool, Postgres, Row};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresBookmarkRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -31,21 +28,10 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let (sql, values) = build_select(params).build_sqlx(PostgresQueryBuilder);
 
-        let (sql, values) = build_select(params).build_postgres(PostgresQueryBuilder);
-
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        client
-            .query(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .fetch_all(&self.pool)
             .await
             .map(|e| {
                 e.into_iter()
@@ -62,32 +48,22 @@ impl Creatable for PostgresBookmarkRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
         let bookmark_id = {
-            let (sql, values) = crate::bookmark::select_by_link(data.url.clone())
-                .build_postgres(PostgresQueryBuilder);
+            let (sql, values) =
+                crate::bookmark::select_by_link(data.url.clone()).build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            if let Some(row) = tx
-                .query_opt(&stmt, &values.as_params())
+            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_optional(&mut *tx)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?
             {
-                Ok(row.get::<_, Uuid>("id"))
+                Ok(id)
             } else {
                 Err(Error::Conflict(ConflictError::NotCached(data.url.clone())))
             }
@@ -104,18 +80,14 @@ impl Creatable for PostgresBookmarkRepository {
                 bookmark_id,
                 data.user_id,
             )
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
+            sqlx::query_with(&sql, values)
+                .fetch_one(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            tx.query_one(&stmt, &values.as_params())
-                .await
-                .map(|e| e.get::<_, Uuid>("id"))
-                .map_err(|e| match e.code() {
-                    Some(&SqlState::UNIQUE_VIOLATION) => {
+                .map(|e| e.get::<Uuid, _>("id"))
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
                         Error::Conflict(ConflictError::AlreadyExists(data.url))
                     }
                     _ => Error::Unknown(e.into()),
@@ -123,7 +95,7 @@ impl Creatable for PostgresBookmarkRepository {
         };
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pb_id, &tags, data.user_id)
+            link_tags(&mut tx, pb_id, &tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -141,14 +113,9 @@ impl Updatable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let tx = client
-            .transaction()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -167,24 +134,19 @@ impl Updatable for PostgresBookmarkRepository {
                 data.folder_id,
                 params.user_id,
             )
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = tx
-                .prepare_cached(&sql)
+            sqlx::query_with(&sql, values)
+                .execute(&mut *tx)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            let count = tx
-                .execute(&stmt, &values.as_params())
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-            if count == 0 {
-                return Err(Error::NotFound(params.id));
-            }
+                .map_err(|e| match e {
+                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                    _ => Error::Unknown(e.into()),
+                })?;
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, &tags, params.user_id)
+            link_tags(&mut tx, params.id, &tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -201,27 +163,16 @@ impl Deletable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let (sql, values) = crate::user_bookmark::delete(params.id, params.user_id)
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        let count = client
-            .execute(&stmt, &values.as_params())
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-        if count == 0 {
-            return Err(Error::NotFound(params.id));
-        }
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
 
         Ok(())
     }
@@ -230,12 +181,6 @@ impl Deletable for PostgresBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let (sql, values) = crate::bookmark::insert(
             None,
             data.url,
@@ -244,15 +189,10 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             data.bookmark.published,
             data.bookmark.author,
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        client
-            .execute(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -263,8 +203,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 #[derive(Debug, Clone)]
 pub(crate) struct BookmarkSelect(pub(crate) Bookmark);
 
-impl From<Row> for BookmarkSelect {
-    fn from(value: Row) -> Self {
+impl From<PgRow> for BookmarkSelect {
+    fn from(value: PgRow) -> Self {
         Self(Bookmark {
             id: value.get("id"),
             link: value.get("link"),
@@ -279,7 +219,7 @@ impl From<Row> for BookmarkSelect {
             folder_id: value.get("folder_id"),
             created_at: value.get("created_at"),
             tags: value
-                .get::<_, Option<Json<Vec<colette_core::Tag>>>>("tags")
+                .get::<Option<Json<Vec<colette_core::Tag>>>, _>("tags")
                 .map(|e| e.0),
         })
     }
@@ -308,19 +248,17 @@ pub(crate) fn build_select(params: BookmarkFindParams) -> WithQuery {
     )
 }
 
-pub(crate) async fn link_tags<C: GenericClient>(
-    client: &C,
+pub(crate) async fn link_tags(
+    conn: &mut PgConnection,
     user_bookmark_id: Uuid,
     tags: &[String],
     user_id: Uuid,
-) -> Result<(), tokio_postgres::Error> {
+) -> Result<(), sqlx::Error> {
     {
         let (sql, values) = crate::user_bookmark_tag::delete_many_not_in_titles(tags, user_id)
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     {
@@ -333,20 +271,16 @@ pub(crate) async fn link_tags<C: GenericClient>(
             .collect::<Vec<_>>();
 
         let (sql, values) =
-            crate::tag::insert_many(&insert_many, user_id).build_postgres(PostgresQueryBuilder);
+            crate::tag::insert_many(&insert_many, user_id).build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     {
         let (sql, values) = crate::user_bookmark_tag::insert_many(user_bookmark_id, tags, user_id)
-            .build_postgres(PostgresQueryBuilder);
+            .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-
-        client.execute(&stmt, &values.as_params()).await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
     }
 
     Ok(())

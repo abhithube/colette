@@ -3,21 +3,18 @@ use colette_core::{
     user::{Error, NotFoundError, UserCreateData, UserFindParams, UserRepository},
     User,
 };
-use deadpool_postgres::{
-    tokio_postgres::{error::SqlState, Row},
-    Pool,
-};
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, Pool, Postgres, Row};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct PostgresUserRepository {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresUserRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -28,24 +25,13 @@ impl Findable for PostgresUserRepository {
     type Output = Result<User, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         match params {
             UserFindParams::Id(id) => {
                 let (sql, values) =
-                    crate::user::select(Some(id), None).build_postgres(PostgresQueryBuilder);
+                    crate::user::select(Some(id), None).build_sqlx(PostgresQueryBuilder);
 
-                let stmt = client
-                    .prepare_cached(&sql)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                if let Some(row) = client
-                    .query_opt(&stmt, &values.as_params())
+                if let Some(row) = sqlx::query_with(&sql, values)
+                    .fetch_optional(&self.pool)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 {
@@ -55,16 +41,11 @@ impl Findable for PostgresUserRepository {
                 }
             }
             UserFindParams::Email(email) => {
-                let (sql, values) = crate::user::select(None, Some(email.clone()))
-                    .build_postgres(PostgresQueryBuilder);
+                let (sql, values) =
+                    crate::user::select(None, Some(email.clone())).build_sqlx(PostgresQueryBuilder);
 
-                let stmt = client
-                    .prepare_cached(&sql)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                if let Some(row) = client
-                    .query_opt(&stmt, &values.as_params())
+                if let Some(row) = sqlx::query_with(&sql, values)
+                    .fetch_optional(&self.pool)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                 {
@@ -83,31 +64,19 @@ impl Creatable for PostgresUserRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let id = {
             let (sql, values) = crate::user::insert(None, data.email.clone(), data.password)
-                .build_postgres(PostgresQueryBuilder);
+                .build_sqlx(PostgresQueryBuilder);
 
-            let stmt = client
-                .prepare_cached(&sql)
+            sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
+                .fetch_one(&self.pool)
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            let row = client
-                .query_one(&stmt, &values.as_params())
-                .await
-                .map_err(|e| match e.code() {
-                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.email),
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(data.email)
+                    }
                     _ => Error::Unknown(e.into()),
-                })?;
-
-            row.try_get::<_, Uuid>("id")
-                .map_err(|e| Error::Unknown(e.into()))?
+                })?
         };
 
         Ok(id)
@@ -119,8 +88,8 @@ impl UserRepository for PostgresUserRepository {}
 #[derive(Debug, Clone)]
 struct UserSelect(User);
 
-impl From<Row> for UserSelect {
-    fn from(value: Row) -> Self {
+impl From<PgRow> for UserSelect {
+    fn from(value: PgRow) -> Self {
         Self(User {
             id: value.get("id"),
             email: value.get("email"),

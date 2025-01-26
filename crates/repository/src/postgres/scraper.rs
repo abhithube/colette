@@ -1,17 +1,17 @@
 use colette_core::scraper::{Error, SaveBookmarkData, SaveFeedData, ScraperRepository};
-use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
-use sea_query_postgres::PostgresBinder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Postgres};
 
 use super::feed::{create_feed_with_entries, link_entries_to_users};
 
 #[derive(Debug, Clone)]
 pub struct PostgresScraperRepository {
-    pool: Pool,
+    pool: Pool<Postgres>,
 }
 
 impl PostgresScraperRepository {
-    pub fn new(pool: Pool) -> Self {
+    pub fn new(pool: Pool<Postgres>) -> Self {
         Self { pool }
     }
 }
@@ -19,22 +19,17 @@ impl PostgresScraperRepository {
 #[async_trait::async_trait]
 impl ScraperRepository for PostgresScraperRepository {
     async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error> {
-        let mut client = self
+        let mut tx = self
             .pool
-            .get()
+            .begin()
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let tx = client
-            .transaction()
+        let feed_id = create_feed_with_entries(&mut tx, data.url, data.feed)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = create_feed_with_entries(&tx, data.url, data.feed)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        link_entries_to_users(&tx, feed_id)
+        link_entries_to_users(&mut tx, feed_id)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -42,12 +37,6 @@ impl ScraperRepository for PostgresScraperRepository {
     }
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error> {
-        let client = self
-            .pool
-            .get()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
         let (sql, values) = crate::bookmark::insert(
             None,
             data.url,
@@ -56,15 +45,10 @@ impl ScraperRepository for PostgresScraperRepository {
             data.bookmark.published,
             data.bookmark.author,
         )
-        .build_postgres(PostgresQueryBuilder);
+        .build_sqlx(PostgresQueryBuilder);
 
-        let stmt = client
-            .prepare_cached(&sql)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        client
-            .execute(&stmt, &values.as_params())
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
