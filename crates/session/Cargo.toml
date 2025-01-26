@@ -15,9 +15,7 @@ serde_json.workspace = true
 tower-sessions-core = { version = "0.14.0", default-features = false, features = [
   "deletion-task",
 ] }
-worker = { workspace = true, optional = true }
 
 [features]
 default = ["postgres"]
 postgres = ["dep:deadpool-postgres", "dep:sea-query", "dep:sea-query-postgres"]
-cloudflare = ["dep:worker"]

@@ -8,9 +8,7 @@ anyhow.workspace = true
 async-trait.workspace = true
 serde = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
-worker = { workspace = true, optional = true }
 
 [features]
 default = ["in-memory"]
 in-memory = ["dep:tokio"]
-cloudflare = ["dep:serde", "dep:worker", "worker/queue"]

@@ -1,5 +1,3 @@
-#[cfg(feature = "cloudflare")]
-pub mod cloudflare;
 #[cfg(feature = "in-memory")]
 pub mod memory;
 

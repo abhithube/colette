@@ -7,7 +7,6 @@ pub struct Client {
 }
 
 impl Client {
-    #[cfg(not(target_arch = "wasm32"))]
     pub fn build(user_agent: Option<String>, proxy: Option<&str>) -> Result<Self, reqwest::Error> {
         let mut client_builder = ReqwestClient::builder();
 
@@ -17,19 +16,6 @@ impl Client {
 
         if let Some(proxy) = proxy {
             client_builder = client_builder.proxy(reqwest::Proxy::all(proxy)?);
-        }
-
-        let client = client_builder.build()?;
-
-        Ok(Client { client })
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn build(user_agent: Option<String>) -> Result<Self, reqwest::Error> {
-        let mut client_builder = ReqwestClient::builder();
-
-        if let Some(user_agent) = user_agent {
-            client_builder = client_builder.user_agent(user_agent);
         }
 
         let client = client_builder.build()?;
@@ -52,13 +38,8 @@ impl Client {
         url: &str,
         headers: Option<HeaderMap>,
     ) -> Result<Bytes, reqwest::Error> {
-        send(self.request(Method::GET, url, headers)).await
+        let resp = self.request(Method::GET, url, headers).send().await?;
+
+        resp.bytes().await
     }
-}
-
-#[cfg_attr(target_arch = "wasm32", worker::send)]
-async fn send(req: RequestBuilder) -> Result<Bytes, reqwest::Error> {
-    let resp = req.send().await?;
-
-    resp.bytes().await
 }

@@ -1,10 +1,6 @@
 [workspace]
 members = [
-  "apps/cloudflare",
-  # "apps/desktop/src-tauri",
-  # "apps/leptos",
   "apps/server",
-
   "crates/api",
   "crates/backup",
   "crates/config",
@@ -66,9 +62,6 @@ colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
 console_error_panic_hook = { version = "0.1.7", default-features = false }
 deadpool-postgres = { version = "0.14.1", default-features = false, features = [
-  "rt_tokio_1",
-] }
-deadpool-sqlite = { version = "0.9.0", default-features = false, features = [
   "rt_tokio_1",
 ] }
 email_address = { version = "0.2.9", default-features = false, features = [

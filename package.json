@@ -2,8 +2,6 @@
   "name": "colette",
   "type": "module",
   "workspaces": [
-    "apps/cloudflare",
-    "apps/desktop",
     "apps/leptos",
     "apps/web",
     "packages/app",
