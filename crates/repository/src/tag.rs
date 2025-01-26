@@ -104,15 +104,6 @@ pub fn select_by_title(title: String, user_id: Uuid) -> SelectStatement {
         .to_owned()
 }
 
-pub fn select_ids_by_titles(titles: &[String], user_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(Tag::Id)
-        .from(Tag::Table)
-        .and_where(Expr::col(Tag::UserId).eq(user_id))
-        .and_where(Expr::col(Tag::Title).is_in(titles))
-        .to_owned()
-}
-
 pub fn insert(id: Option<Uuid>, title: String, user_id: Uuid) -> InsertStatement {
     let mut columns = vec![Tag::Title, Tag::UserId];
     let mut values: Vec<SimpleExpr> = vec![title.into(), user_id.into()];

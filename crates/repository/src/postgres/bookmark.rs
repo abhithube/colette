@@ -1,13 +1,13 @@
 use colette_core::{
     bookmark::{
         BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
-        BookmarkUpdateData, Error,
+        BookmarkUpdateData, ConflictError, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
 use deadpool_postgres::{
-    tokio_postgres::{self, types::Json, Row},
+    tokio_postgres::{self, error::SqlState, types::Json, Row},
     GenericClient, Pool,
 };
 use sea_query::{Expr, ExprTrait, PostgresQueryBuilder, WithQuery};
@@ -89,53 +89,41 @@ impl Creatable for PostgresBookmarkRepository {
             {
                 Ok(row.get::<_, Uuid>("id"))
             } else {
-                Err(Error::Conflict(data.url))
+                Err(Error::Conflict(ConflictError::NotCached(data.url.clone())))
             }
         }?;
 
         let pb_id = {
-            let (mut sql, mut values) =
-                crate::user_bookmark::select_by_unique_index(data.user_id, bookmark_id)
-                    .build_postgres(PostgresQueryBuilder);
+            let (sql, values) = crate::user_bookmark::insert(
+                None,
+                data.title,
+                data.thumbnail_url,
+                data.published_at,
+                data.author,
+                data.folder_id,
+                bookmark_id,
+                data.user_id,
+            )
+            .build_postgres(PostgresQueryBuilder);
 
             let stmt = tx
                 .prepare_cached(&sql)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-            if let Some(row) = tx
-                .query_opt(&stmt, &values.as_params())
+            tx.query_one(&stmt, &values.as_params())
                 .await
-                .map_err(|e| Error::Unknown(e.into()))?
-            {
-                row.get::<_, Uuid>("id")
-            } else {
-                (sql, values) = crate::user_bookmark::insert(
-                    None,
-                    data.title,
-                    data.thumbnail_url,
-                    data.published_at,
-                    data.author,
-                    data.folder_id,
-                    bookmark_id,
-                    data.user_id,
-                )
-                .build_postgres(PostgresQueryBuilder);
-
-                let stmt = tx
-                    .prepare_cached(&sql)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
-
-                tx.query_one(&stmt, &values.as_params())
-                    .await
-                    .map(|e| e.get::<_, Uuid>("id"))
-                    .map_err(|e| Error::Unknown(e.into()))?
-            }
+                .map(|e| e.get::<_, Uuid>("id"))
+                .map_err(|e| match e.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => {
+                        Error::Conflict(ConflictError::AlreadyExists(data.url))
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?
         };
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pb_id, tags, data.user_id)
+            link_tags(&tx, pb_id, &tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -196,7 +184,7 @@ impl Updatable for PostgresBookmarkRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, tags, params.user_id)
+            link_tags(&tx, params.id, &tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -323,11 +311,11 @@ pub(crate) fn build_select(params: BookmarkFindParams) -> WithQuery {
 pub(crate) async fn link_tags<C: GenericClient>(
     client: &C,
     user_bookmark_id: Uuid,
-    tags: Vec<String>,
+    tags: &[String],
     user_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     {
-        let (sql, values) = crate::user_bookmark_tag::delete_many_not_in_titles(&tags, user_id)
+        let (sql, values) = crate::user_bookmark_tag::delete_many_not_in_titles(tags, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
@@ -353,26 +341,7 @@ pub(crate) async fn link_tags<C: GenericClient>(
     }
 
     {
-        let (sql, values) =
-            crate::tag::select_ids_by_titles(&tags, user_id).build_postgres(PostgresQueryBuilder);
-
-        let stmt = client.prepare_cached(&sql).await?;
-
-        let tag_ids = client.query(&stmt, &values.as_params()).await.map(|e| {
-            e.into_iter()
-                .map(|e| e.get::<_, Uuid>("id"))
-                .collect::<Vec<_>>()
-        })?;
-
-        let insert_many = tag_ids
-            .into_iter()
-            .map(|e| crate::user_bookmark_tag::InsertMany {
-                user_bookmark_id,
-                tag_id: e,
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) = crate::user_bookmark_tag::insert_many(&insert_many, user_id)
+        let (sql, values) = crate::user_bookmark_tag::insert_many(user_bookmark_id, tags, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;

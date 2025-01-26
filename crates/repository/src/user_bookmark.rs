@@ -3,8 +3,8 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType,
-    OnConflict, Query, SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
+    Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType, Query,
+    SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
@@ -204,11 +204,6 @@ pub fn insert(
         .into_table(UserBookmark::Table)
         .columns(columns)
         .values_panic(values)
-        .on_conflict(
-            OnConflict::columns([UserBookmark::UserId, UserBookmark::BookmarkId])
-                .do_nothing()
-                .to_owned(),
-        )
         .returning_col(UserBookmark::Id)
         .to_owned()
 }

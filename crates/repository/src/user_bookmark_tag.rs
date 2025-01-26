@@ -3,7 +3,7 @@ use std::fmt::Write;
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
-use crate::tag::build_titles_subquery;
+use crate::tag::{build_titles_subquery, Tag};
 
 #[allow(dead_code)]
 pub enum UserBookmarkTag {
@@ -33,35 +33,31 @@ impl Iden for UserBookmarkTag {
     }
 }
 
-pub struct InsertMany {
-    pub user_bookmark_id: Uuid,
-    pub tag_id: Uuid,
-}
-
-pub fn insert_many(data: &[InsertMany], user_id: Uuid) -> InsertStatement {
-    let mut query = Query::insert()
+pub fn insert_many(user_bookmark_id: Uuid, titles: &[String], user_id: Uuid) -> InsertStatement {
+    Query::insert()
         .into_table(UserBookmarkTag::Table)
         .columns([
             UserBookmarkTag::UserBookmarkId,
             UserBookmarkTag::TagId,
             UserBookmarkTag::UserId,
         ])
+        .select_from(
+            Query::select()
+                .expr(Expr::val(user_bookmark_id))
+                .column(Tag::Id)
+                .column(Tag::UserId)
+                .from(Tag::Table)
+                .and_where(Expr::col(Tag::UserId).eq(user_id))
+                .and_where(Expr::col(Tag::Title).is_in(titles))
+                .to_owned(),
+        )
+        .unwrap()
         .on_conflict(
             OnConflict::columns([UserBookmarkTag::UserBookmarkId, UserBookmarkTag::TagId])
                 .do_nothing()
                 .to_owned(),
         )
-        .to_owned();
-
-    for pbt in data {
-        query.values_panic([
-            pbt.user_bookmark_id.into(),
-            pbt.tag_id.into(),
-            user_id.into(),
-        ]);
-    }
-
-    query
+        .to_owned()
 }
 
 pub fn delete_many_not_in_titles(titles: &[String], user_id: Uuid) -> DeleteStatement {

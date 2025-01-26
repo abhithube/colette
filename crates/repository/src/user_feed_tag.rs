@@ -3,7 +3,7 @@ use std::fmt::Write;
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
-use crate::tag::build_titles_subquery;
+use crate::tag::{build_titles_subquery, Tag};
 
 #[allow(dead_code)]
 pub enum UserFeedTag {
@@ -33,31 +33,31 @@ impl Iden for UserFeedTag {
     }
 }
 
-pub struct InsertMany {
-    pub user_feed_id: Uuid,
-    pub tag_id: Uuid,
-}
-
-pub fn insert_many(data: &[InsertMany], user_id: Uuid) -> InsertStatement {
-    let mut query = Query::insert()
+pub fn insert_many(user_feed_id: Uuid, titles: &[String], user_id: Uuid) -> InsertStatement {
+    Query::insert()
         .into_table(UserFeedTag::Table)
         .columns([
             UserFeedTag::UserFeedId,
             UserFeedTag::TagId,
             UserFeedTag::UserId,
         ])
+        .select_from(
+            Query::select()
+                .expr(Expr::val(user_feed_id))
+                .column(Tag::Id)
+                .column(Tag::UserId)
+                .from(Tag::Table)
+                .and_where(Expr::col(Tag::UserId).eq(user_id))
+                .and_where(Expr::col(Tag::Title).is_in(titles))
+                .to_owned(),
+        )
+        .unwrap()
         .on_conflict(
             OnConflict::columns([UserFeedTag::UserFeedId, UserFeedTag::TagId])
                 .do_nothing()
                 .to_owned(),
         )
-        .to_owned();
-
-    for pft in data {
-        query.values_panic([pft.user_feed_id.into(), pft.tag_id.into(), user_id.into()]);
-    }
-
-    query
+        .to_owned()
 }
 
 pub fn delete_many_not_in_titles(titles: &[String], user_id: Uuid) -> DeleteStatement {

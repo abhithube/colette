@@ -136,25 +136,25 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 };
 
-                if let Some(tag) = parent {
-                    let (sql, values) = crate::user_feed_tag::insert_many(
-                        &[crate::user_feed_tag::InsertMany {
-                            user_feed_id: pf_id,
-                            tag_id: tag.id,
-                        }],
-                        user_id,
-                    )
-                    .build_postgres(PostgresQueryBuilder);
+                // if let Some(tag) = parent {
+                //     let (sql, values) = crate::user_feed_tag::insert_many(
+                //         &[crate::user_feed_tag::InsertMany {
+                //             user_feed_id: pf_id,
+                //             tag_id: tag.id,
+                //         }],
+                //         user_id,
+                //     )
+                //     .build_postgres(PostgresQueryBuilder);
 
-                    let stmt = tx
-                        .prepare_cached(&sql)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                //     let stmt = tx
+                //         .prepare_cached(&sql)
+                //         .await
+                //         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    tx.execute(&stmt, &values.as_params())
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-                }
+                //     tx.execute(&stmt, &values.as_params())
+                //         .await
+                //         .map_err(|e| Error::Unknown(e.into()))?;
+                // }
             }
         }
 
@@ -284,25 +284,25 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 };
 
-                if let Some(tag) = parent {
-                    let (sql, values) = crate::user_bookmark_tag::insert_many(
-                        &[crate::user_bookmark_tag::InsertMany {
-                            user_bookmark_id: pb_id,
-                            tag_id: tag.id,
-                        }],
-                        user_id,
-                    )
-                    .build_postgres(PostgresQueryBuilder);
+                // if let Some(tag) = parent {
+                //     let (sql, values) = crate::user_bookmark_tag::insert_many(
+                //         &[crate::user_bookmark_tag::InsertMany {
+                //             user_bookmark_id: pb_id,
+                //             tag_id: tag.id,
+                //         }],
+                //         user_id,
+                //     )
+                //     .build_postgres(PostgresQueryBuilder);
 
-                    let stmt = tx
-                        .prepare_cached(&sql)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                //     let stmt = tx
+                //         .prepare_cached(&sql)
+                //         .await
+                //         .map_err(|e| Error::Unknown(e.into()))?;
 
-                    tx.execute(&stmt, &values.as_params())
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
-                }
+                //     tx.execute(&stmt, &values.as_params())
+                //         .await
+                //         .map_err(|e| Error::Unknown(e.into()))?;
+                // }
             }
         }
 

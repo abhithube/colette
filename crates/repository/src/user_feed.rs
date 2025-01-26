@@ -3,7 +3,7 @@ use std::fmt::Write;
 use colette_core::feed::Cursor;
 use sea_query::{
     Alias, CommonTableExpression, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType,
-    OnConflict, Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
+    Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
 };
 use uuid::Uuid;
 
@@ -224,11 +224,6 @@ pub fn insert(
         .into_table(UserFeed::Table)
         .columns(columns)
         .values_panic(values)
-        .on_conflict(
-            OnConflict::columns([UserFeed::UserId, UserFeed::FeedId])
-                .do_nothing()
-                .to_owned(),
-        )
         .returning_col(UserFeed::Id)
         .to_owned()
 }

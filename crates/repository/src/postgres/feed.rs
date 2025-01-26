@@ -1,14 +1,15 @@
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
-        Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
-        ProcessedFeed,
+        ConflictError, Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository,
+        FeedUpdateData, ProcessedFeed,
     },
     Feed,
 };
 use deadpool_postgres::{
     tokio_postgres::{
         self,
+        error::SqlState,
         types::{Json, Type},
         Row,
     },
@@ -97,7 +98,7 @@ impl Creatable for PostgresFeedRepository {
             {
                 Ok(row.get::<_, Uuid>("id"))
             } else {
-                Err(Error::Conflict(data.url))
+                Err(Error::Conflict(ConflictError::NotCached(data.url.clone())))
             }
         }?;
 
@@ -135,7 +136,12 @@ impl Creatable for PostgresFeedRepository {
                 tx.query_one(&stmt, &values.as_params())
                     .await
                     .map(|e| e.get::<_, Uuid>("id"))
-                    .map_err(|e| Error::Unknown(e.into()))?
+                    .map_err(|e| match e.code() {
+                        Some(&SqlState::UNIQUE_VIOLATION) => {
+                            Error::Conflict(ConflictError::AlreadyExists(data.url))
+                        }
+                        _ => Error::Unknown(e.into()),
+                    })?
             }
         };
 
@@ -144,7 +150,7 @@ impl Creatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, pf_id, tags, data.user_id)
+            link_tags(&tx, pf_id, &tags, data.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -193,7 +199,7 @@ impl Updatable for PostgresFeedRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&tx, params.id, tags, params.user_id)
+            link_tags(&tx, params.id, &tags, params.user_id)
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
         }
@@ -418,11 +424,11 @@ pub(crate) async fn link_entries_to_users<C: GenericClient>(
 pub(crate) async fn link_tags<C: GenericClient>(
     client: &C,
     user_feed_id: Uuid,
-    tags: Vec<String>,
+    tags: &[String],
     user_id: Uuid,
 ) -> Result<(), tokio_postgres::Error> {
     {
-        let (sql, values) = crate::user_feed_tag::delete_many_not_in_titles(&tags, user_id)
+        let (sql, values) = crate::user_feed_tag::delete_many_not_in_titles(tags, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
@@ -448,26 +454,7 @@ pub(crate) async fn link_tags<C: GenericClient>(
     }
 
     {
-        let (sql, values) =
-            crate::tag::select_ids_by_titles(&tags, user_id).build_postgres(PostgresQueryBuilder);
-
-        let stmt = client.prepare_cached(&sql).await?;
-
-        let tag_ids = client.query(&stmt, &values.as_params()).await.map(|e| {
-            e.into_iter()
-                .map(|e| e.get::<_, Uuid>("id"))
-                .collect::<Vec<_>>()
-        })?;
-
-        let insert_many = tag_ids
-            .into_iter()
-            .map(|e| crate::user_feed_tag::InsertMany {
-                user_feed_id,
-                tag_id: e,
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) = crate::user_feed_tag::insert_many(&insert_many, user_id)
+        let (sql, values) = crate::user_feed_tag::insert_many(user_feed_id, tags, user_id)
             .build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;

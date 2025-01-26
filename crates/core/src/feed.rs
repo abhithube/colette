@@ -246,8 +246,8 @@ pub enum Error {
     #[error("feed not found with id: {0}")]
     NotFound(Uuid),
 
-    #[error("feed not cached with URL: {0}")]
-    Conflict(String),
+    #[error(transparent)]
+    Conflict(ConflictError),
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::Error),
@@ -257,4 +257,13 @@ pub enum Error {
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConflictError {
+    #[error("feed not cached with URL: {0}")]
+    NotCached(String),
+
+    #[error("feed already exists with URL: {0}")]
+    AlreadyExists(String),
 }
