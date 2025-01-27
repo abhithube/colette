@@ -42,7 +42,9 @@ impl<Q: Queue<Data = scrape_feed::Data> + Clone> Service<()> for Task<Q> {
         let scrape_feed_queue = self.scrape_feed_queue.clone();
 
         Box::pin(async move {
-            while let Some(Ok(raw)) = service.stream().next().await {
+            let mut stream = service.stream();
+
+            while let Some(Ok(raw)) = stream.next().await {
                 let url = Url::parse(&raw).unwrap();
 
                 scrape_feed_queue
