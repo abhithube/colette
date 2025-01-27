@@ -5,9 +5,10 @@ use anyhow::anyhow;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
+use reqwest::Client;
 use url::Url;
 
-use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
+use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
 pub use extractor::{FeedExtractor, FeedExtractorOptions};
 pub use registry::FeedPluginRegistry;
 
@@ -177,20 +178,26 @@ pub trait FeedDetector: Send + Sync {
 }
 
 #[derive(Clone)]
-pub struct DefaultFeedScraper<D> {
-    downloader: D,
+pub struct DefaultFeedScraper {
+    client: Client,
 }
 
-impl<D: Downloader> DefaultFeedScraper<D> {
-    pub fn new(downloader: D) -> Self {
-        Self { downloader }
+impl DefaultFeedScraper {
+    pub fn new(client: Client) -> Self {
+        Self { client }
     }
 }
 
 #[async_trait::async_trait]
-impl<D: Downloader + Clone> FeedScraper for DefaultFeedScraper<D> {
+impl FeedScraper for DefaultFeedScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let body = self.downloader.download(url).await?;
+        let resp = self
+            .client
+            .get(url.as_str())
+            .send()
+            .await
+            .map_err(|e| DownloaderError(e.into()))?;
+        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
 
         let feed = colette_feed::from_reader(BufReader::new(body.reader()))
             .map(ExtractedFeed::from)
@@ -201,20 +208,26 @@ impl<D: Downloader + Clone> FeedScraper for DefaultFeedScraper<D> {
 }
 
 #[derive(Clone)]
-pub struct DefaultFeedDetector<D> {
-    downloader: D,
+pub struct DefaultFeedDetector {
+    client: Client,
 }
 
-impl<D: Downloader> DefaultFeedDetector<D> {
-    pub fn new(downloader: D) -> Self {
-        Self { downloader }
+impl DefaultFeedDetector {
+    pub fn new(client: Client) -> Self {
+        Self { client }
     }
 }
 
 #[async_trait::async_trait]
-impl<D: Downloader + Clone> FeedDetector for DefaultFeedDetector<D> {
-    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, Error> {
-        let body = self.downloader.download(&mut url).await?;
+impl FeedDetector for DefaultFeedDetector {
+    async fn detect(&self, url: Url) -> Result<DetectorResponse, Error> {
+        let resp = self
+            .client
+            .get(url.as_str())
+            .send()
+            .await
+            .map_err(|e| DownloaderError(e.into()))?;
+        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
 
         let mut reader = BufReader::new(body.reader());
         let buffer = reader

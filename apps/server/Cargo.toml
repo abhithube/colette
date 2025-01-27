@@ -11,7 +11,6 @@ colette-api.workspace = true
 colette-backup.workspace = true
 colette-config.workspace = true
 colette-core.workspace = true
-colette-http.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["in-memory"] }
 colette-repository.workspace = true
@@ -21,6 +20,7 @@ colette-task.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true
 redis.workspace = true
+reqwest.workspace = true
 rust-embed.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }

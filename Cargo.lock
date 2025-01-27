@@ -404,14 +404,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-http"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "reqwest",
-]
-
-[[package]]
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [
@@ -445,10 +437,8 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
- "colette-http",
  "colette-meta",
  "colette-scraper",
- "http",
  "lazy-regex",
  "reqwest",
  "scraper",
@@ -491,9 +481,7 @@ dependencies = [
  "bytes",
  "chrono",
  "colette-feed",
- "colette-http",
  "colette-meta",
- "http",
  "reqwest",
  "scraper",
  "thiserror 2.0.11",
@@ -511,7 +499,6 @@ dependencies = [
  "colette-backup",
  "colette-config",
  "colette-core",
- "colette-http",
  "colette-plugins",
  "colette-queue",
  "colette-repository",
@@ -521,6 +508,7 @@ dependencies = [
  "colette-util",
  "colette-worker",
  "redis",
+ "reqwest",
  "rust-embed",
  "sqlx",
  "tokio",

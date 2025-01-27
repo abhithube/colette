@@ -5,9 +5,10 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
+use reqwest::Client;
 use url::Url;
 
-use crate::{downloader::Downloader, Error, ExtractorError, PostprocessorError};
+use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
 pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
 pub use registry::BookmarkPluginRegistry;
 
@@ -73,20 +74,26 @@ pub trait BookmarkScraper: Send + Sync + 'static {
 }
 
 #[derive(Clone)]
-pub struct DefaultBookmarkScraper<D> {
-    downloader: D,
+pub struct DefaultBookmarkScraper {
+    client: Client,
 }
 
-impl<D: Downloader> DefaultBookmarkScraper<D> {
-    pub fn new(downloader: D) -> Self {
-        Self { downloader }
+impl DefaultBookmarkScraper {
+    pub fn new(client: Client) -> Self {
+        Self { client }
     }
 }
 
 #[async_trait::async_trait]
-impl<D: Downloader + Clone> BookmarkScraper for DefaultBookmarkScraper<D> {
+impl BookmarkScraper for DefaultBookmarkScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let body = self.downloader.download(url).await?;
+        let resp = self
+            .client
+            .get(url.as_str())
+            .send()
+            .await
+            .map_err(|e| DownloaderError(e.into()))?;
+        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
 
         let metadata = colette_meta::parse_metadata(body.reader()).map_err(ExtractorError)?;
 

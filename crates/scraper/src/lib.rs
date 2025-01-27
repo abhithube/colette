@@ -1,5 +1,4 @@
 pub mod bookmark;
-pub mod downloader;
 pub mod feed;
 pub mod utils;
 

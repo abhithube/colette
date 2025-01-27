@@ -1,4 +1,4 @@
-use std::{error::Error, future::Future, pin::Pin, sync::Arc};
+use std::{error::Error, future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
@@ -22,7 +22,6 @@ use colette_repository::{
 };
 use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
-    downloader::DefaultDownloader,
     feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
 use colette_session::RedisStore;
@@ -30,11 +29,12 @@ use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmar
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
 use redis::Client;
+use reqwest::ClientBuilder;
 use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
+use tower_sessions::{cookie::time, Expiry, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, rust_embed::Embed)]
@@ -69,17 +69,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let feed_repository = PostgresFeedRepository::new(pool.clone());
 
-    let client = colette_http::Client::build(None, None)?;
-    let downloader = DefaultDownloader::new(client.clone());
+    let client = ClientBuilder::new()
+        .timeout(Duration::from_secs(30))
+        .build()?;
     let feed_plugin_registry = Arc::new(register_feed_plugins(
         client.clone(),
-        downloader.clone(),
-        DefaultFeedScraper::new(downloader.clone()),
+        DefaultFeedScraper::new(client.clone()),
     ));
     let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
-        client,
-        downloader.clone(),
-        DefaultBookmarkScraper::new(downloader.clone()),
+        client.clone(),
+        DefaultBookmarkScraper::new(client.clone()),
     ));
 
     let base64_encoder = Base64Encoder;
@@ -105,7 +104,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        Box::new(DefaultFeedDetector::new(downloader)),
+        Box::new(DefaultFeedDetector::new(client)),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(
         PostgresFeedEntryRepository::new(pool.clone()),
@@ -170,7 +169,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .layer(
             SessionManagerLayer::new(session_store.clone())
                 .with_secure(false)
-                .with_expiry(Expiry::OnInactivity(Duration::days(1))),
+                .with_expiry(Expiry::OnInactivity(time::Duration::days(1))),
         )
         .layer(TraceLayer::new_for_http())
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
