@@ -159,7 +159,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         TagState::new(tag_service),
     );
 
-    let redis = Client::open("redis://127.0.0.1/").unwrap();
+    let redis = Client::open(app_config.redis_url)?;
     let redis_conn = redis.get_multiplexed_async_connection().await?;
 
     let session_store = RedisStore::new(redis_conn);
