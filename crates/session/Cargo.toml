@@ -6,21 +6,8 @@ edition = "2021"
 [dependencies]
 async-trait.workspace = true
 chrono.workspace = true
-sea-query = { workspace = true, features = [
-  "backend-postgres",
-], optional = true }
-sea-query-binder = { workspace = true, optional = true }
+redis.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
-tower-sessions-core = { version = "0.14.0", default-features = false, features = [
-  "deletion-task",
-] }
-
-[features]
-default = ["postgres"]
-postgres = [
-  "dep:sea-query",
-  "dep:sea-query-binder",
-  "sqlx/postgres",
-  "sea-query-binder/sqlx-postgres",
-]
+tokio.workspace = true
+tower-sessions-core = { version = "0.14.0", default-features = false }

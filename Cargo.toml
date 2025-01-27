@@ -66,6 +66,9 @@ futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false, features = ["std"] }
 quick-xml = { version = "0.37.2", default-features = false }
+redis = { version = "0.28.2", default-features = false, features = [
+  "tokio-comp",
+] }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "rustls-tls",
 ] }
@@ -73,17 +76,6 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 scraper = { version = "0.22.0", default-features = false }
-sea-query = { version = "0.32.1", default-features = false, features = [
-  "derive",
-  "with-chrono",
-  "with-json",
-  "with-uuid",
-] }
-sea-query-binder = { version = "0.7.0", default-features = false, features = [
-  "with-chrono",
-  "with-json",
-  "with-uuid",
-] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false }
 sqlx = { version = "0.8.3", features = [

@@ -25,15 +25,16 @@ use colette_scraper::{
     downloader::DefaultDownloader,
     feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
-use colette_session::postgres::PostgresSessionStore;
+use colette_session::RedisStore;
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use colette_worker::{run_cron_worker, run_task_worker};
+use redis::Client;
 use sqlx::{Pool, Postgres};
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{cookie::time::Duration, ExpiredDeletion, Expiry, SessionManagerLayer};
+use tower_sessions::{cookie::time::Duration, Expiry, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[derive(Clone, rust_embed::Embed)]
@@ -158,7 +159,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         TagState::new(tag_service),
     );
 
-    let session_store = PostgresSessionStore::new(pool);
+    let redis = Client::open("redis://127.0.0.1/").unwrap();
+    let redis_conn = redis.get_multiplexed_async_connection().await?;
+
+    let session_store = RedisStore::new(redis_conn);
 
     let mut api = Api::new(&api_state, &app_config.api_prefix)
         .build()
@@ -211,7 +215,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         run_task_worker(import_feeds_receiver, import_feeds_task),
         run_task_worker(import_bookmarks_receiver, import_bookmarks_task),
         refresh_task_worker,
-        session_store.continuously_delete_expired(tokio::time::Duration::from_secs(60))
     );
 
     Ok(())

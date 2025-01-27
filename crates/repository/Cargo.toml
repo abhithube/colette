@@ -10,19 +10,21 @@ colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 futures.workspace = true
-sea-query.workspace = true
-sea-query-binder = { workspace = true, optional = true }
+sea-query = { version = "0.32.1", default-features = false, features = [
+  "backend-postgres",
+  "derive",
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
+sea-query-binder = { version = "0.7.0", default-features = false, features = [
+  "sqlx-postgres",
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
-
-[features]
-default = ["postgres"]
-postgres = [
-  "sea-query/backend-postgres",
-  "dep:sea-query-binder",
-  "sea-query-binder/sqlx-postgres",
-  "sqlx/postgres",
-]

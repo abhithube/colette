@@ -3,9 +3,7 @@ mod bookmark;
 mod feed;
 mod feed_entry;
 mod folder;
-#[cfg(feature = "postgres")]
 pub mod postgres;
-pub mod session;
 // mod smart_feed;
 // mod smart_feed_filter;
 mod tag;
