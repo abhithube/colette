@@ -1,59 +1,61 @@
-use std::fmt::Write;
-
-use sea_query::{Expr, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr};
+use colette_core::User;
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
-#[allow(dead_code)]
-pub enum User {
-    Table,
-    Id,
-    Email,
-    Password,
-    CreatedAt,
-    UpdatedAt,
+struct UserRow {
+    id: Uuid,
+    email: String,
+    password: String,
 }
 
-impl Iden for User {
-    fn unquoted(&self, s: &mut dyn Write) {
-        write!(
-            s,
-            "{}",
-            match self {
-                Self::Table => "users",
-                Self::Id => "id",
-                Self::Email => "email",
-                Self::Password => "password",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
-            }
-        )
-        .unwrap();
+impl From<UserRow> for User {
+    fn from(value: UserRow) -> Self {
+        Self {
+            id: value.id,
+            email: value.email,
+            password: value.password,
+        }
     }
 }
 
-pub fn select(id: Option<Uuid>, email: Option<String>) -> SelectStatement {
-    Query::select()
-        .columns([User::Id, User::Email, User::Password])
-        .from(User::Table)
-        .and_where_option(id.map(|e| Expr::col((User::Table, User::Id)).eq(e)))
-        .and_where_option(email.map(|e| Expr::col((User::Table, User::Email)).eq(e)))
-        .order_by((User::Table, User::Email), Order::Asc)
-        .to_owned()
+pub async fn select_by_id<'a>(ex: impl PgExecutor<'a>, id: Uuid) -> sqlx::Result<User> {
+    sqlx::query_as!(
+        UserRow,
+        "SELECT id, email, password
+    FROM users
+    WHERE id = $1",
+        id
+    )
+    .fetch_one(ex)
+    .await
+    .map(User::from)
 }
 
-pub fn insert(id: Option<Uuid>, email: String, password: String) -> InsertStatement {
-    let mut columns = vec![User::Email, User::Password];
-    let mut values: Vec<SimpleExpr> = vec![email.into(), password.into()];
+pub async fn select_by_email<'a>(ex: impl PgExecutor<'a>, email: &String) -> sqlx::Result<User> {
+    sqlx::query_as!(
+        UserRow,
+        "SELECT id, email, password
+    FROM users
+    WHERE email = $1",
+        email
+    )
+    .fetch_one(ex)
+    .await
+    .map(User::from)
+}
 
-    if let Some(id) = id {
-        columns.push(User::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(User::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(User::Id)
-        .to_owned()
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
+    email: String,
+    password: String,
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO users (email, password)
+    VALUES ($1, $2)
+    RETURNING id",
+        email,
+        password
+    )
+    .fetch_one(ex)
+    .await
 }

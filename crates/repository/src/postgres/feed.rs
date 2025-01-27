@@ -7,7 +7,7 @@ use colette_core::{
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sea_query::{Expr, ExprTrait, PostgresQueryBuilder, WithQuery};
+use sea_query::PostgresQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{postgres::PgRow, types::Json, PgConnection, Pool, Postgres, Row};
 use uuid::Uuid;
@@ -29,17 +29,22 @@ impl Findable for PostgresFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = build_select(params).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .fetch_all(&self.pool)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .map(|e| FeedSelect::from(e).0)
-                    .collect::<Vec<_>>()
-            })
-            .map_err(|e| Error::Unknown(e.into()))
+        crate::user_feed::select(
+            &self.pool,
+            params.id,
+            params.folder_id,
+            params.user_id,
+            params.cursor,
+            params.limit,
+            params.tags,
+        )
+        .await
+        .map(|e| {
+            e.into_iter()
+                .map(|e| FeedSelect::from(e).0)
+                .collect::<Vec<_>>()
+        })
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -55,52 +60,37 @@ impl Creatable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = {
-            let (sql, values) =
-                crate::feed::select_by_url(data.url.clone()).build_sqlx(PostgresQueryBuilder);
-
-            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
-            {
-                Ok(id)
-            } else {
-                Err(Error::Conflict(ConflictError::NotCached(data.url.clone())))
-            }
-        }?;
+        let feed_id = crate::feed::select_by_url(&mut *tx, data.url.clone())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => {
+                    Error::Conflict(ConflictError::NotCached(data.url.clone()))
+                }
+                _ => Error::Unknown(e.into()),
+            })?;
 
         let pf_id = {
-            let (mut sql, mut values) =
-                crate::user_feed::select_by_unique_index(data.user_id, feed_id)
-                    .build_sqlx(PostgresQueryBuilder);
-
-            if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                .fetch_optional(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?
+            if let Some(id) =
+                crate::user_feed::select_by_unique_index(&mut *tx, data.user_id, feed_id)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
             {
                 id
             } else {
-                (sql, values) = crate::user_feed::insert(
-                    None,
+                crate::user_feed::insert(
+                    &mut *tx,
                     data.title,
                     data.folder_id,
                     feed_id,
                     data.user_id,
                 )
-                .build_sqlx(PostgresQueryBuilder);
-
-                sqlx::query_with(&sql, values)
-                    .fetch_one(&mut *tx)
-                    .await
-                    .map(|e| e.get::<Uuid, _>("id"))
-                    .map_err(|e| match e {
-                        sqlx::Error::Database(e) if e.is_unique_violation() => {
-                            Error::Conflict(ConflictError::AlreadyExists(data.url))
-                        }
-                        _ => Error::Unknown(e.into()),
-                    })?
+                .await
+                .map_err(|e| match e {
+                    sqlx::Error::Database(e) if e.is_unique_violation() => {
+                        Error::Conflict(ConflictError::AlreadyExists(data.url))
+                    }
+                    _ => Error::Unknown(e.into()),
+                })?
             }
         };
 
@@ -165,11 +155,7 @@ impl Deletable for PostgresFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) =
-            crate::user_feed::delete(params.id, params.user_id).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        crate::user_feed::delete(&self.pool, params.id, params.user_id)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -224,29 +210,6 @@ impl From<PgRow> for FeedSelect {
     }
 }
 
-pub(crate) fn build_select(params: FeedFindParams) -> WithQuery {
-    let jsonb_agg = Expr::cust(
-        r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-    );
-
-    let tags_subquery = params.tags.map(|e| {
-        Expr::cust_with_expr(
-            r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
-            Expr::cust(r#""t" ->> 'title'"#).is_in(e),
-        )
-    });
-
-    crate::user_feed::select(
-        params.id,
-        params.folder_id,
-        params.user_id,
-        params.cursor,
-        params.limit,
-        jsonb_agg,
-        tags_subquery,
-    )
-}
-
 pub(crate) async fn create_feed_with_entries(
     conn: &mut PgConnection,
     url: String,
@@ -256,13 +219,7 @@ pub(crate) async fn create_feed_with_entries(
         let link = feed.link.to_string();
         let xml_url = if url == link { None } else { Some(url) };
 
-        let (sql, values) =
-            crate::feed::insert(None, link, feed.title, xml_url).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .fetch_one(&mut *conn)
-            .await
-            .map(|e| e.get::<Uuid, _>("id"))?
+        crate::feed::insert(&mut *conn, link, feed.title, xml_url).await?
     };
 
     if !feed.entries.is_empty() {
@@ -270,7 +227,6 @@ pub(crate) async fn create_feed_with_entries(
             .entries
             .into_iter()
             .map(|e| crate::feed_entry::InsertMany {
-                id: None,
                 link: e.link.to_string(),
                 title: e.title,
                 published_at: e.published,
@@ -280,10 +236,7 @@ pub(crate) async fn create_feed_with_entries(
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) =
-            crate::feed_entry::insert_many(&insert_many, feed_id).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+        crate::feed_entry::insert_many(&mut *conn, insert_many, feed_id).await?;
     }
 
     Ok(feed_id)
@@ -293,19 +246,7 @@ pub(crate) async fn link_entries_to_users(
     conn: &mut PgConnection,
     feed_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    let fe_ids = {
-        let (sql, values) =
-            crate::feed_entry::select_many_by_feed_id(feed_id).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .fetch_all(&mut *conn)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .map(|e| e.get::<Uuid, _>("id"))
-                    .collect::<Vec<_>>()
-            })?
-    };
+    let fe_ids = { crate::feed_entry::select_many_by_feed_id(&mut *conn, feed_id).await? };
 
     if !fe_ids.is_empty() {
         let insert_many = fe_ids
@@ -316,11 +257,8 @@ pub(crate) async fn link_entries_to_users(
             })
             .collect::<Vec<_>>();
 
-        let (sql, values) =
-            crate::user_feed_entry::insert_many_for_all_users(&insert_many, feed_id)
-                .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
+        crate::user_feed_entry::insert_many_for_all_users(&mut *conn, &insert_many, feed_id)
+            .await?;
     }
 
     Ok(())
@@ -332,34 +270,11 @@ pub(crate) async fn link_tags(
     tags: &[String],
     user_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    {
-        let (sql, values) = crate::user_feed_tag::delete_many_not_in_titles(tags, user_id)
-            .build_sqlx(PostgresQueryBuilder);
+    crate::user_feed_tag::delete_many(&mut *conn, tags, user_id).await?;
 
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
+    crate::tag::insert_many(&mut *conn, tags, user_id).await?;
 
-    {
-        let insert_many = tags
-            .iter()
-            .map(|e| crate::tag::InsertMany {
-                id: Some(Uuid::new_v4()),
-                title: e.to_owned(),
-            })
-            .collect::<Vec<_>>();
-
-        let (sql, values) =
-            crate::tag::insert_many(&insert_many, user_id).build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
-
-    {
-        let (sql, values) = crate::user_feed_tag::insert_many(user_feed_id, tags, user_id)
-            .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-    }
+    crate::user_feed_tag::insert_many(&mut *conn, user_feed_id, tags, user_id).await?;
 
     Ok(())
 }

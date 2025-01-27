@@ -2,9 +2,11 @@ use std::fmt::Write;
 
 use colette_core::feed::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType,
-    Order, Query, SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
+    Alias, CommonTableExpression, Expr, ExprTrait, Func, Iden, JoinType, Order,
+    PostgresQueryBuilder, Query, UpdateStatement,
 };
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, PgExecutor};
 use uuid::Uuid;
 
 use crate::{feed::Feed, tag::Tag, user_feed_entry::UserFeedEntry, user_feed_tag::UserFeedTag};
@@ -42,15 +44,15 @@ impl Iden for UserFeed {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn select(
+pub async fn select<'a>(
+    ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<u64>,
-    jsonb_agg: SimpleExpr,
-    tags_subquery: Option<SimpleExpr>,
-) -> WithQuery {
+    tag_titles: Option<Vec<String>>,
+) -> sqlx::Result<Vec<PgRow>> {
     let unread_count = Alias::new("unread_count");
     let pf_id = Alias::new("pf_id");
 
@@ -74,7 +76,9 @@ pub fn select(
 
     let json_tags_cte = Query::select()
         .expr_as(Expr::col((UserFeed::Table, UserFeed::Id)), pf_id.clone())
-        .expr_as(jsonb_agg, tags.clone())
+        .expr_as(Expr::cust(
+            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+        ), tags.clone())
         .from(UserFeed::Table)
         .join(
             JoinType::InnerJoin,
@@ -139,7 +143,12 @@ pub fn select(
                 |e| Expr::col(UserFeed::FolderId).eq(e),
             )
         }))
-        .and_where_option(tags_subquery)
+        .and_where_option(tag_titles.map(|e| {
+            Expr::cust_with_expr(
+                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+            )
+        }))
         .and_where_option(cursor.map(|e| {
             Expr::tuple([
                 Func::coalesce([
@@ -168,7 +177,7 @@ pub fn select(
         select.limit(limit);
     }
 
-    select.with(
+    let query = select.with(
         Query::with()
             .cte(
                 CommonTableExpression::new()
@@ -183,49 +192,48 @@ pub fn select(
                     .to_owned(),
             )
             .to_owned(),
+    );
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).fetch_all(ex).await
+}
+
+pub async fn select_by_unique_index<'a>(
+    ex: impl PgExecutor<'a>,
+    user_id: Uuid,
+    feed_id: Uuid,
+) -> sqlx::Result<Option<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT id
+FROM user_feeds
+WHERE user_id = $1
+AND feed_id = $2",
+        user_id,
+        feed_id
     )
+    .fetch_optional(ex)
+    .await
 }
 
-pub fn select_by_unique_index(user_id: Uuid, feed_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(UserFeed::Id)
-        .from(UserFeed::Table)
-        .and_where(Expr::col(UserFeed::UserId).eq(user_id))
-        .and_where(Expr::col(UserFeed::FeedId).eq(feed_id))
-        .to_owned()
-}
-
-pub fn insert(
-    id: Option<Uuid>,
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
     title: Option<String>,
     folder_id: Option<Uuid>,
     feed_id: Uuid,
     user_id: Uuid,
-) -> InsertStatement {
-    let mut columns = vec![
-        UserFeed::Title,
-        UserFeed::FolderId,
-        UserFeed::FeedId,
-        UserFeed::UserId,
-    ];
-    let mut values: Vec<SimpleExpr> = vec![
-        title.into(),
-        folder_id.into(),
-        feed_id.into(),
-        user_id.into(),
-    ];
-
-    if let Some(id) = id {
-        columns.push(UserFeed::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(UserFeed::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(UserFeed::Id)
-        .to_owned()
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO user_feeds (title, folder_id, feed_id, user_id)
+VALUES ($1, $2, $3, $4)
+RETURNING id",
+        title,
+        folder_id,
+        feed_id,
+        user_id
+    )
+    .fetch_one(ex)
+    .await
 }
 
 pub fn update(
@@ -251,10 +259,16 @@ pub fn update(
     query
 }
 
-pub fn delete(id: Uuid, user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(UserFeed::Table)
-        .and_where(Expr::col((UserFeed::Table, UserFeed::Id)).eq(id))
-        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
-        .to_owned()
+pub async fn delete<'a>(ex: impl PgExecutor<'a>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM user_feeds
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }

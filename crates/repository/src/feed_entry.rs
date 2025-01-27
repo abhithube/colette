@@ -1,7 +1,8 @@
 use std::fmt::Write;
 
-use chrono::{DateTime, Utc};
-use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement, SimpleExpr};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use sea_query::Iden;
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -42,8 +43,21 @@ impl Iden for FeedEntry {
     }
 }
 
+pub async fn select_many_by_feed_id<'a>(
+    ex: impl PgExecutor<'a>,
+    feed_id: Uuid,
+) -> sqlx::Result<Vec<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT id
+FROM feed_entries
+WHERE feed_id = $1",
+        feed_id
+    )
+    .fetch_all(ex)
+    .await
+}
+
 pub struct InsertMany {
-    pub id: Option<Uuid>,
     pub link: String,
     pub title: String,
     pub published_at: DateTime<Utc>,
@@ -52,64 +66,47 @@ pub struct InsertMany {
     pub thumbnail_url: Option<String>,
 }
 
-pub fn select_many_by_feed_id(feed_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(FeedEntry::Id)
-        .from(FeedEntry::Table)
-        .and_where(Expr::col(FeedEntry::FeedId).eq(feed_id))
-        .to_owned()
-}
+pub async fn insert_many<'a>(
+    ex: impl PgExecutor<'a>,
+    data: Vec<InsertMany>,
+    feed_id: Uuid,
+) -> sqlx::Result<()> {
+    let mut links = Vec::<String>::new();
+    let mut titles = Vec::<String>::new();
+    let mut published_ats = Vec::<NaiveDateTime>::new();
+    let mut descriptions = Vec::<Option<String>>::new();
+    let mut authors = Vec::<Option<String>>::new();
+    let mut thumbnail_urls = Vec::<Option<String>>::new();
 
-pub fn insert_many(data: &[InsertMany], feed_id: Uuid) -> InsertStatement {
-    let mut columns = vec![
-        FeedEntry::Link,
-        FeedEntry::Title,
-        FeedEntry::PublishedAt,
-        FeedEntry::Description,
-        FeedEntry::Author,
-        FeedEntry::ThumbnailUrl,
-        FeedEntry::FeedId,
-        FeedEntry::UpdatedAt,
-    ];
-
-    if data.iter().any(|e| e.id.is_some()) {
-        columns.push(FeedEntry::Id);
+    for item in data {
+        links.push(item.link);
+        titles.push(item.title);
+        published_ats.push(item.published_at.naive_utc());
+        descriptions.push(item.description);
+        authors.push(item.author);
+        thumbnail_urls.push(item.thumbnail_url);
     }
 
-    let mut query = Query::insert()
-        .into_table(FeedEntry::Table)
-        .columns(columns)
-        .on_conflict(
-            OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
-                .update_columns([
-                    FeedEntry::Title,
-                    FeedEntry::PublishedAt,
-                    FeedEntry::Description,
-                    FeedEntry::Author,
-                    FeedEntry::ThumbnailUrl,
-                    FeedEntry::UpdatedAt,
-                ])
-                .to_owned(),
-        )
-        .to_owned();
+    sqlx::query_scalar!(
+        "INSERT INTO feed_entries (link, title, published_at, description, author, thumbnail_url, feed_id, updated_at)
+SELECT *, $7::uuid, now() FROM UNNEST($1::text[], $2::text[], $3::timestamp[], $4::text[], $5::text[], $6::text[])
+ON CONFLICT (feed_id, link) DO UPDATE SET
+    title = excluded.title,
+    published_at = excluded.published_at,
+    description = excluded.description,
+    author = excluded.author,
+    thumbnail_url = excluded.thumbnail_url,
+    updated_at = excluded.updated_at",
+        &links[..],
+        &titles[..],
+        &published_ats[..],
+        &descriptions[..] as &[Option<String>],
+        &authors[..] as &[Option<String>],
+        &thumbnail_urls[..] as &[Option<String>],
+        feed_id
+    )
+    .execute(ex)
+    .await?;
 
-    for fe in data {
-        let mut values: Vec<SimpleExpr> = vec![
-            (*fe.link).into(),
-            (*fe.title).into(),
-            fe.published_at.into(),
-            fe.description.as_deref().into(),
-            fe.author.as_deref().into(),
-            fe.thumbnail_url.as_deref().into(),
-            feed_id.into(),
-            Expr::current_timestamp().into(),
-        ];
-        if let Some(id) = fe.id {
-            values.push(id.into());
-        }
-
-        query.values_panic(values);
-    }
-
-    query
+    Ok(())
 }

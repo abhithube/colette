@@ -3,8 +3,10 @@ use std::fmt::Write;
 use colette_core::feed_entry::Cursor;
 use sea_query::{
     Alias, Asterisk, CommonTableExpression, Expr, Iden, IntoValueTuple, JoinType, OnConflict,
-    Order, Query, SelectStatement, UpdateStatement, WithQuery,
+    Order, PostgresQueryBuilder, Query,
 };
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, PgExecutor};
 use uuid::Uuid;
 
 use crate::{feed_entry::FeedEntry, tag::Tag, user_feed::UserFeed, user_feed_tag::UserFeedTag};
@@ -47,7 +49,8 @@ pub struct InsertMany {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn select(
+pub async fn select<'a>(
+    ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
     feed_id: Option<Uuid>,
@@ -57,7 +60,7 @@ pub fn select(
     cursor: Option<Cursor>,
     limit: Option<u64>,
     // smart_feed_case_statement: CaseStatement,
-) -> SelectStatement {
+) -> sqlx::Result<Vec<PgRow>> {
     let mut query = Query::select()
         .columns([
             (UserFeedEntry::Table, UserFeedEntry::Id),
@@ -134,10 +137,16 @@ pub fn select(
         query.limit(limit);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).fetch_all(ex).await
 }
 
-pub fn insert_many_for_all_users(data: &[InsertMany], feed_id: Uuid) -> WithQuery {
+pub async fn insert_many_for_all_users<'a>(
+    ex: impl PgExecutor<'a>,
+    data: &[InsertMany],
+    feed_id: Uuid,
+) -> sqlx::Result<()> {
     let input = Alias::new("input");
 
     let input_cte = Query::select()
@@ -199,10 +208,21 @@ pub fn insert_many_for_all_users(data: &[InsertMany], feed_id: Uuid) -> WithQuer
         )
         .to_owned();
 
-    insert.with(Query::with().cte(cte.to_owned()).to_owned())
+    let query = insert.with(Query::with().cte(cte.to_owned()).to_owned());
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).execute(ex).await?;
+
+    Ok(())
 }
 
-pub fn update(id: Uuid, user_id: Uuid, has_read: Option<bool>) -> UpdateStatement {
+pub async fn update<'a>(
+    ex: impl PgExecutor<'a>,
+    id: Uuid,
+    user_id: Uuid,
+    has_read: Option<bool>,
+) -> sqlx::Result<()> {
     let mut query = Query::update()
         .table(UserFeedEntry::Table)
         .value(UserFeedEntry::UpdatedAt, Expr::current_timestamp())
@@ -214,5 +234,9 @@ pub fn update(id: Uuid, user_id: Uuid, has_read: Option<bool>) -> UpdateStatemen
         query.value(UserFeedEntry::HasRead, has_read);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).execute(ex).await?;
+
+    Ok(())
 }

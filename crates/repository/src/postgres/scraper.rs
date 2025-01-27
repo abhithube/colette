@@ -1,6 +1,4 @@
 use colette_core::scraper::{Error, SaveBookmarkData, SaveFeedData, ScraperRepository};
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Postgres};
 
 use super::feed::{create_feed_with_entries, link_entries_to_users};
@@ -37,20 +35,16 @@ impl ScraperRepository for PostgresScraperRepository {
     }
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error> {
-        let (sql, values) = crate::bookmark::insert(
-            None,
+        crate::bookmark::insert(
+            &self.pool,
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
             data.bookmark.published,
             data.bookmark.author,
         )
-        .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        .await
+        .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(())
     }

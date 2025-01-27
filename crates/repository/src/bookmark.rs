@@ -1,7 +1,8 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement};
+use sea_query::Iden;
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -38,59 +39,41 @@ impl Iden for Bookmark {
     }
 }
 
-pub fn select_by_link(link: String) -> SelectStatement {
-    Query::select()
-        .column(Bookmark::Id)
-        .from(Bookmark::Table)
-        .and_where(Expr::col(Bookmark::Link).eq(link))
-        .to_owned()
+pub async fn select_by_link<'a>(ex: impl PgExecutor<'a>, link: String) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "SELECT id
+FROM bookmarks
+WHERE link = $1",
+        link
+    )
+    .fetch_one(ex)
+    .await
 }
 
-pub fn insert(
-    id: Option<Uuid>,
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
     link: String,
     title: String,
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
-) -> InsertStatement {
-    let mut columns = vec![
-        Bookmark::Link,
-        Bookmark::Title,
-        Bookmark::ThumbnailUrl,
-        Bookmark::PublishedAt,
-        Bookmark::Author,
-        Bookmark::UpdatedAt,
-    ];
-    let mut values = vec![
-        link.into(),
-        title.into(),
-        thumbnail_url.into(),
-        published_at.into(),
-        author.into(),
-        Expr::current_timestamp().into(),
-    ];
-
-    if let Some(id) = id {
-        columns.push(Bookmark::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(Bookmark::Table)
-        .columns(columns)
-        .values_panic(values)
-        .on_conflict(
-            OnConflict::column(Bookmark::Link)
-                .update_columns([
-                    Bookmark::Title,
-                    Bookmark::ThumbnailUrl,
-                    Bookmark::PublishedAt,
-                    Bookmark::Author,
-                    Bookmark::UpdatedAt,
-                ])
-                .to_owned(),
-        )
-        .returning_col(Bookmark::Id)
-        .to_owned()
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO bookmarks (link, title, thumbnail_url, published_at, author, updated_at)
+VALUES ($1, $2, $3, $4, $5, now())
+ON CONFLICT (link) DO UPDATE SET
+    title = excluded.title,
+    thumbnail_url = excluded.thumbnail_url,
+    published_at = excluded.published_at,
+    author = excluded.author,
+    updated_at = excluded.updated_at
+RETURNING id",
+        link,
+        title,
+        thumbnail_url,
+        published_at,
+        author
+    )
+    .fetch_one(ex)
+    .await
 }

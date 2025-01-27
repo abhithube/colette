@@ -1,9 +1,7 @@
 use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Postgres, Row};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -41,21 +39,13 @@ impl BackupRepository for PostgresBackupRepository {
 
             if outline.outline.is_some() {
                 let tag_id = {
-                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
-                        .build_sqlx(PostgresQueryBuilder);
-
-                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_optional(&mut *tx)
+                    if let Some(id) = crate::tag::select_by_title(&mut *tx, title.clone(), user_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        (sql, values) = crate::tag::insert(None, title.clone(), user_id)
-                            .build_sqlx(PostgresQueryBuilder);
-
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        crate::tag::insert(&mut *tx, title.clone(), user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -73,35 +63,19 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id = {
-                    let (sql, values) = crate::feed::insert(None, link, title, outline.xml_url)
-                        .build_sqlx(PostgresQueryBuilder);
-
-                    sqlx::query_with(&sql, values)
-                        .fetch_one(&mut *tx)
-                        .await
-                        .map(|e| e.get::<Uuid, _>("id"))
-                        .map_err(|e| Error::Unknown(e.into()))?
-                };
+                let feed_id = crate::feed::insert(&mut *tx, link, title, outline.xml_url)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?;
 
                 let pf_id = {
-                    let (mut sql, mut values) =
-                        crate::user_feed::select_by_unique_index(user_id, feed_id)
-                            .build_sqlx(PostgresQueryBuilder);
-
-                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_optional(&mut *tx)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) =
+                        crate::user_feed::select_by_unique_index(&mut *tx, user_id, feed_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        (sql, values) =
-                            crate::user_feed::insert(None, None, None, feed_id, user_id)
-                                .build_sqlx(PostgresQueryBuilder);
-
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        crate::user_feed::insert(&mut *tx, None, None, feed_id, user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -146,21 +120,13 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 let tag_id = {
-                    let (mut sql, mut values) = crate::tag::select_by_title(title.clone(), user_id)
-                        .build_sqlx(PostgresQueryBuilder);
-
-                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_optional(&mut *tx)
+                    if let Some(id) = crate::tag::select_by_title(&mut *tx, title.clone(), user_id)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        (sql, values) = crate::tag::insert(None, title.clone(), user_id)
-                            .build_sqlx(PostgresQueryBuilder);
-
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
+                        crate::tag::insert(&mut *tx, title.clone(), user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -179,30 +145,21 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             } else if let Some(link) = item.href {
                 let bookmark_id = {
-                    let (sql, values) =
-                        crate::bookmark::insert(None, link, item.title, None, None, None)
-                            .build_sqlx(PostgresQueryBuilder);
-
-                    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_one(&mut *tx)
+                    crate::bookmark::insert(&mut *tx, link, item.title, None, None, None)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                 };
 
                 let pb_id = {
-                    let (mut sql, mut values) =
-                        crate::user_bookmark::select_by_unique_index(user_id, bookmark_id)
-                            .build_sqlx(PostgresQueryBuilder);
-
-                    if let Some(id) = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_optional(&mut *tx)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) =
+                        crate::user_bookmark::select_by_unique_index(&mut *tx, user_id, bookmark_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        (sql, values) = crate::user_bookmark::insert(
-                            None,
+                        crate::user_bookmark::insert(
+                            &mut *tx,
                             None,
                             None,
                             None,
@@ -211,12 +168,8 @@ impl BackupRepository for PostgresBackupRepository {
                             bookmark_id,
                             user_id,
                         )
-                        .build_sqlx(PostgresQueryBuilder);
-
-                        sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                            .fetch_one(&mut *tx)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 

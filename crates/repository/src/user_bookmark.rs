@@ -3,9 +3,10 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::Cursor;
 use sea_query::{
-    Alias, CommonTableExpression, DeleteStatement, Expr, Iden, InsertStatement, JoinType, Query,
-    SelectStatement, SimpleExpr, UpdateStatement, WithQuery,
+    Alias, CommonTableExpression, Expr, ExprTrait, Iden, JoinType, PostgresQueryBuilder, Query,
 };
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, PgExecutor};
 use uuid::Uuid;
 
 use crate::{bookmark::Bookmark, tag::Tag, user_bookmark_tag::UserBookmarkTag};
@@ -48,15 +49,15 @@ impl Iden for UserBookmark {
     }
 }
 
-pub fn select(
+pub async fn select<'a>(
+    ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<u64>,
-    jsonb_agg: SimpleExpr,
-    tags_subquery: Option<SimpleExpr>,
-) -> WithQuery {
+    tag_titles: Option<Vec<String>>,
+) -> sqlx::Result<Vec<PgRow>> {
     let pf_id = Alias::new("pf_id");
 
     let tags = Alias::new("tags");
@@ -66,7 +67,9 @@ pub fn select(
             Expr::col((UserBookmark::Table, UserBookmark::Id)),
             pf_id.clone(),
         )
-        .expr_as(jsonb_agg, tags.clone())
+        .expr_as(Expr::cust(
+            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
+        ), tags.clone())
         .from(UserBookmark::Table)
         .join(
             JoinType::InnerJoin,
@@ -134,7 +137,12 @@ pub fn select(
                 |e| Expr::col(UserBookmark::FolderId).eq(e),
             )
         }))
-        .and_where_option(tags_subquery)
+        .and_where_option(tag_titles.map(|e| {
+            Expr::cust_with_expr(
+                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
+                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
+            )
+        }))
         .and_where_option(cursor.map(|e| {
             Expr::col((UserBookmark::Table, UserBookmark::CreatedAt)).gt(Expr::val(e.created_at))
         }))
@@ -144,7 +152,7 @@ pub fn select(
         select.limit(limit);
     }
 
-    select.with(
+    let query = select.with(
         Query::with()
             .cte(
                 CommonTableExpression::new()
@@ -153,21 +161,33 @@ pub fn select(
                     .to_owned(),
             )
             .to_owned(),
-    )
+    );
+
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).fetch_all(ex).await
 }
 
-pub fn select_by_unique_index(user_id: Uuid, bookmark_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(UserBookmark::Id)
-        .from(UserBookmark::Table)
-        .and_where(Expr::col(UserBookmark::UserId).eq(user_id))
-        .and_where(Expr::col(UserBookmark::BookmarkId).eq(bookmark_id))
-        .to_owned()
+pub async fn select_by_unique_index<'a>(
+    ex: impl PgExecutor<'a>,
+    user_id: Uuid,
+    bookmark_id: Uuid,
+) -> sqlx::Result<Option<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT id
+FROM user_bookmarks
+WHERE user_id = $1
+AND bookmark_id = $2",
+        user_id,
+        bookmark_id
+    )
+    .fetch_optional(ex)
+    .await
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn insert(
-    id: Option<Uuid>,
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
     title: Option<String>,
     thumbnail_url: Option<String>,
     published_at: Option<DateTime<Utc>>,
@@ -175,40 +195,26 @@ pub fn insert(
     folder_id: Option<Uuid>,
     bookmark_id: Uuid,
     user_id: Uuid,
-) -> InsertStatement {
-    let mut columns = vec![
-        UserBookmark::Title,
-        UserBookmark::ThumbnailUrl,
-        UserBookmark::PublishedAt,
-        UserBookmark::Author,
-        UserBookmark::FolderId,
-        UserBookmark::BookmarkId,
-        UserBookmark::UserId,
-    ];
-    let mut values: Vec<SimpleExpr> = vec![
-        title.into(),
-        thumbnail_url.into(),
-        published_at.into(),
-        author.into(),
-        folder_id.into(),
-        bookmark_id.into(),
-        user_id.into(),
-    ];
-
-    if let Some(id) = id {
-        columns.push(UserBookmark::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(UserBookmark::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(UserBookmark::Id)
-        .to_owned()
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO user_bookmarks (title, thumbnail_url, published_at, author, folder_id, bookmark_id, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id",
+        title,
+        thumbnail_url,
+        published_at,
+        author,
+        folder_id,
+        bookmark_id,
+        user_id
+    )
+    .fetch_one(ex)
+    .await
 }
 
-pub fn update(
+#[allow(clippy::too_many_arguments)]
+pub async fn update<'a>(
+    ex: impl PgExecutor<'a>,
     id: Uuid,
     title: Option<Option<String>>,
     thumbnail_url: Option<Option<String>>,
@@ -216,7 +222,7 @@ pub fn update(
     author: Option<Option<String>>,
     folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
-) -> UpdateStatement {
+) -> sqlx::Result<()> {
     let mut query = Query::update()
         .table(UserBookmark::Table)
         .value(UserBookmark::UpdatedAt, Expr::current_timestamp())
@@ -240,13 +246,23 @@ pub fn update(
         query.value(UserBookmark::FolderId, folder_id);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).execute(ex).await?;
+
+    Ok(())
 }
 
-pub fn delete(id: Uuid, user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(UserBookmark::Table)
-        .and_where(Expr::col((UserBookmark::Table, UserBookmark::Id)).eq(id))
-        .and_where(Expr::col((UserBookmark::Table, UserBookmark::UserId)).eq(user_id))
-        .to_owned()
+pub async fn delete<'a>(ex: impl PgExecutor<'a>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM user_bookmarks
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }

@@ -1,9 +1,8 @@
 use std::fmt::Write;
 
-use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
+use sea_query::Iden;
+use sqlx::PgExecutor;
 use uuid::Uuid;
-
-use crate::tag::{build_titles_subquery, Tag};
 
 #[allow(dead_code)]
 pub enum UserBookmarkTag {
@@ -33,41 +32,48 @@ impl Iden for UserBookmarkTag {
     }
 }
 
-pub fn insert_many(user_bookmark_id: Uuid, titles: &[String], user_id: Uuid) -> InsertStatement {
-    Query::insert()
-        .into_table(UserBookmarkTag::Table)
-        .columns([
-            UserBookmarkTag::UserBookmarkId,
-            UserBookmarkTag::TagId,
-            UserBookmarkTag::UserId,
-        ])
-        .select_from(
-            Query::select()
-                .expr(Expr::val(user_bookmark_id))
-                .column(Tag::Id)
-                .column(Tag::UserId)
-                .from(Tag::Table)
-                .and_where(Expr::col(Tag::UserId).eq(user_id))
-                .and_where(Expr::col(Tag::Title).is_in(titles))
-                .to_owned(),
-        )
-        .unwrap()
-        .on_conflict(
-            OnConflict::columns([UserBookmarkTag::UserBookmarkId, UserBookmarkTag::TagId])
-                .do_nothing()
-                .to_owned(),
-        )
-        .to_owned()
+pub async fn insert_many<'a>(
+    ex: impl PgExecutor<'a>,
+    user_bookmark_id: Uuid,
+    titles: &[String],
+    user_id: Uuid,
+) -> sqlx::Result<()> {
+    sqlx::query_scalar!(
+        "INSERT INTO user_bookmark_tags (user_bookmark_id, tag_id, user_id)
+SELECT $1, id, user_id
+FROM tags
+WHERE user_id = $3
+AND title = ANY($2)
+ON CONFLICT (user_bookmark_id, tag_id) DO NOTHING",
+        user_bookmark_id,
+        titles,
+        user_id
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }
 
-pub fn delete_many_not_in_titles(titles: &[String], user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(UserBookmarkTag::Table)
-        .and_where(Expr::col(UserBookmarkTag::UserId).eq(user_id))
-        .and_where(
-            Expr::col(UserBookmarkTag::TagId)
-                .in_subquery(build_titles_subquery(titles, user_id))
-                .not(),
-        )
-        .to_owned()
+pub async fn delete_many<'a>(
+    ex: impl PgExecutor<'a>,
+    titles: &[String],
+    user_id: Uuid,
+) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM user_bookmark_tags
+WHERE user_id = $1
+AND tag_id IN (
+    SELECT id
+    FROM tags
+    WHERE user_id = $1
+    AND title = ANY($2)
+)",
+        user_id,
+        titles
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }

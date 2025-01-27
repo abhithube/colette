@@ -14,10 +14,15 @@ sea-query.workspace = true
 sea-query-binder = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
-sqlx = { workspace = true, features = ["postgres"] }
+sqlx.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 
 [features]
 default = ["postgres"]
-postgres = ["sea-query/backend-postgres", "dep:sea-query-binder"]
+postgres = [
+  "sea-query/backend-postgres",
+  "dep:sea-query-binder",
+  "sea-query-binder/sqlx-postgres",
+  "sqlx/postgres",
+]

@@ -1,10 +1,9 @@
 use std::fmt::Write;
 
 use colette_core::tag::{Cursor, TagType};
-use sea_query::{
-    Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    SimpleExpr, UpdateStatement,
-};
+use sea_query::{Alias, Expr, Iden, Order, PostgresQueryBuilder, Query};
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, PgExecutor};
 use uuid::Uuid;
 
 use crate::{user_bookmark_tag::UserBookmarkTag, user_feed_tag::UserFeedTag};
@@ -37,18 +36,14 @@ impl Iden for Tag {
     }
 }
 
-pub struct InsertMany {
-    pub id: Option<Uuid>,
-    pub title: String,
-}
-
-pub fn select(
+pub async fn select<'a>(
+    ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
     limit: Option<u64>,
     cursor: Option<Cursor>,
     tag_type: TagType,
-) -> SelectStatement {
+) -> sqlx::Result<Vec<PgRow>> {
     let mut query = Query::select()
         .column((Tag::Table, Tag::Id))
         .column((Tag::Table, Tag::Title))
@@ -92,64 +87,68 @@ pub fn select(
         query.limit(limit);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).fetch_all(ex).await
 }
 
-pub fn select_by_title(title: String, user_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(Tag::Id)
-        .from(Tag::Table)
-        .and_where(Expr::col(Tag::UserId).eq(user_id))
-        .and_where(Expr::col(Tag::Title).eq(title))
-        .to_owned()
+pub async fn select_by_title<'a>(
+    ex: impl PgExecutor<'a>,
+    title: String,
+    user_id: Uuid,
+) -> sqlx::Result<Option<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT id
+FROM tags
+WHERE title = $1
+AND user_id = $2",
+        title,
+        user_id
+    )
+    .fetch_optional(ex)
+    .await
 }
 
-pub fn insert(id: Option<Uuid>, title: String, user_id: Uuid) -> InsertStatement {
-    let mut columns = vec![Tag::Title, Tag::UserId];
-    let mut values: Vec<SimpleExpr> = vec![title.into(), user_id.into()];
-
-    if let Some(id) = id {
-        columns.push(Tag::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(Tag::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(Tag::Id)
-        .to_owned()
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
+    title: String,
+    user_id: Uuid,
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO tags (title, user_id)
+VALUES ($1, $2)
+RETURNING id",
+        title,
+        user_id
+    )
+    .fetch_one(ex)
+    .await
 }
 
-pub fn insert_many(data: &[InsertMany], user_id: Uuid) -> InsertStatement {
-    let mut columns = vec![Tag::Title, Tag::UserId];
-    if data.iter().any(|e| e.id.is_some()) {
-        columns.push(Tag::Id);
-    }
+pub async fn insert_many<'a>(
+    ex: impl PgExecutor<'a>,
+    tags: &[String],
+    user_id: Uuid,
+) -> sqlx::Result<()> {
+    sqlx::query_scalar!(
+        "INSERT INTO tags (title, user_id)
+SELECT *, $2 FROM UNNEST($1::text[])
+ON CONFLICT (user_id, title) DO NOTHING",
+        tags,
+        user_id
+    )
+    .execute(ex)
+    .await?;
 
-    let mut query = Query::insert()
-        .into_table(Tag::Table)
-        .columns(columns)
-        .on_conflict(
-            OnConflict::columns([Tag::UserId, Tag::Title])
-                .do_nothing()
-                .to_owned(),
-        )
-        .to_owned();
-
-    for t in data {
-        let mut values: Vec<SimpleExpr> = vec![(*t.title).into(), user_id.into()];
-        if let Some(id) = t.id {
-            values.push(id.into());
-        }
-
-        query.values_panic(values);
-    }
-
-    query
+    Ok(())
 }
 
-pub fn update(id: Uuid, user_id: Uuid, title: Option<String>) -> UpdateStatement {
+pub async fn update<'a>(
+    ex: impl PgExecutor<'a>,
+    id: Uuid,
+    user_id: Uuid,
+    title: Option<String>,
+) -> sqlx::Result<()> {
     let mut query = Query::update()
         .table(Tag::Table)
         .value(Tag::UpdatedAt, Expr::current_timestamp())
@@ -161,22 +160,23 @@ pub fn update(id: Uuid, user_id: Uuid, title: Option<String>) -> UpdateStatement
         query.value(Tag::Title, title);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).execute(ex).await?;
+
+    Ok(())
 }
 
-pub fn delete_by_id(id: Uuid, user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(Tag::Table)
-        .and_where(Expr::col((Tag::Table, Tag::Id)).eq(id))
-        .and_where(Expr::col((Tag::Table, Tag::UserId)).eq(user_id))
-        .to_owned()
-}
+pub async fn delete<'a>(ex: impl PgExecutor<'a>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM tags
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id
+    )
+    .execute(ex)
+    .await?;
 
-pub(crate) fn build_titles_subquery(titles: &[String], user_id: Uuid) -> SelectStatement {
-    Query::select()
-        .column(Tag::Id)
-        .from(Tag::Table)
-        .and_where(Expr::col(Tag::UserId).eq(user_id))
-        .and_where(Expr::col(Tag::Title).is_in(titles))
-        .to_owned()
+    Ok(())
 }

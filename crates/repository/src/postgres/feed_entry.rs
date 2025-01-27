@@ -3,8 +3,6 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
 use sqlx::{postgres::PgRow, Pool, Postgres, Row};
 
 #[derive(Debug, Clone)]
@@ -24,7 +22,8 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (sql, values) = crate::user_feed_entry::select(
+        crate::user_feed_entry::select(
+            &self.pool,
             params.id,
             params.user_id,
             params.feed_id,
@@ -35,17 +34,13 @@ impl Findable for PostgresFeedEntryRepository {
             params.limit,
             // build_case_statement(),
         )
-        .build_sqlx(PostgresQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .fetch_all(&self.pool)
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .map(|e| FeedEntrySelect::from(e).0)
-                    .collect::<Vec<_>>()
-            })
-            .map_err(|e| Error::Unknown(e.into()))
+        .await
+        .map(|e| {
+            e.into_iter()
+                .map(|e| FeedEntrySelect::from(e).0)
+                .collect::<Vec<_>>()
+        })
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -57,12 +52,7 @@ impl Updatable for PostgresFeedEntryRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.has_read.is_some() {
-            let (sql, values) =
-                crate::user_feed_entry::update(params.id, params.user_id, data.has_read)
-                    .build_sqlx(PostgresQueryBuilder);
-
-            sqlx::query_with(&sql, values)
-                .execute(&self.pool)
+            crate::user_feed_entry::update(&self.pool, params.id, params.user_id, data.has_read)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::RowNotFound => Error::NotFound(params.id),

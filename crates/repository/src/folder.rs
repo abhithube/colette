@@ -1,10 +1,9 @@
 use std::fmt::Write;
 
 use colette_core::folder::Cursor;
-use sea_query::{
-    DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr,
-    UpdateStatement,
-};
+use sea_query::{Expr, Iden, Order, PostgresQueryBuilder, Query};
+use sea_query_binder::SqlxBinder;
+use sqlx::{postgres::PgRow, PgExecutor};
 use uuid::Uuid;
 
 #[allow(dead_code)]
@@ -37,13 +36,14 @@ impl Iden for Folder {
     }
 }
 
-pub fn select(
+pub async fn select<'a>(
+    ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
     parent_id: Option<Option<Uuid>>,
     limit: Option<u64>,
     cursor: Option<Cursor>,
-) -> SelectStatement {
+) -> sqlx::Result<Vec<PgRow>> {
     let mut query = Query::select()
         .columns([Folder::Id, Folder::Title, Folder::ParentId])
         .from(Folder::Table)
@@ -63,37 +63,36 @@ pub fn select(
         query.limit(limit);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).fetch_all(ex).await
 }
 
-pub fn insert(
-    id: Option<Uuid>,
+pub async fn insert<'a>(
+    ex: impl PgExecutor<'a>,
     title: String,
     parent_id: Option<Uuid>,
     user_id: Uuid,
-) -> InsertStatement {
-    let mut columns = vec![Folder::Title, Folder::ParentId, Folder::UserId];
-    let mut values: Vec<SimpleExpr> = vec![title.into(), parent_id.into(), user_id.into()];
-
-    if let Some(id) = id {
-        columns.push(Folder::Id);
-        values.push(id.into());
-    }
-
-    Query::insert()
-        .into_table(Folder::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(Folder::Id)
-        .to_owned()
+) -> sqlx::Result<Uuid> {
+    sqlx::query_scalar!(
+        "INSERT INTO folders (title, parent_id, user_id)
+VALUES ($1, $2, $3)
+RETURNING id",
+        title,
+        parent_id,
+        user_id
+    )
+    .fetch_one(ex)
+    .await
 }
 
-pub fn update(
+pub async fn update<'a>(
+    ex: impl PgExecutor<'a>,
     id: Uuid,
     user_id: Uuid,
     title: Option<String>,
     parent_id: Option<Option<Uuid>>,
-) -> UpdateStatement {
+) -> sqlx::Result<()> {
     let mut query = Query::update()
         .table(Folder::Table)
         .value(Folder::UpdatedAt, Expr::current_timestamp())
@@ -108,13 +107,23 @@ pub fn update(
         query.value(Folder::ParentId, parent_id);
     }
 
-    query
+    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+
+    sqlx::query_with(&sql, values).execute(ex).await?;
+
+    Ok(())
 }
 
-pub fn delete_by_id(id: Uuid, user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(Folder::Table)
-        .and_where(Expr::col(Folder::Id).eq(id))
-        .and_where(Expr::col(Folder::UserId).eq(user_id))
-        .to_owned()
+pub async fn delete<'a>(ex: impl PgExecutor<'a>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM folders
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id
+    )
+    .execute(ex)
+    .await?;
+
+    Ok(())
 }
