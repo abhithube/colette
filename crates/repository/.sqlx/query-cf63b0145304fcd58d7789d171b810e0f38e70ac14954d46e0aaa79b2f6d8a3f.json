@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id\nFROM user_bookmarks\nWHERE user_id = $1\nAND bookmark_id = $2",
+  "query": "INSERT INTO folders (title, parent_id, user_id) VALUES ($1, $2, $3) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,6 +11,7 @@
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Uuid",
         "Uuid"
       ]
@@ -19,5 +20,5 @@
       false
     ]
   },
-  "hash": "9e98d2c802da293985e2d9bfb47d99982c2f0e70c9c67db90d4ba60fb01d3c61"
+  "hash": "cf63b0145304fcd58d7789d171b810e0f38e70ac14954d46e0aaa79b2f6d8a3f"
 }

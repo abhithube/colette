@@ -1,218 +1,97 @@
-use std::fmt::Write;
-
 use colette_core::feed_entry::Cursor;
-use sea_query::{
-    Alias, Asterisk, CommonTableExpression, Expr, Iden, IntoValueTuple, JoinType, OnConflict,
-    Order, PostgresQueryBuilder, Query,
-};
-use sea_query_binder::SqlxBinder;
-use sqlx::{postgres::PgRow, PgExecutor};
+use sqlx::{postgres::PgRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
-
-use crate::{feed_entry::FeedEntry, tag::Tag, user_feed::UserFeed, user_feed_tag::UserFeedTag};
-
-#[allow(dead_code)]
-pub enum UserFeedEntry {
-    Table,
-    Id,
-    HasRead,
-    UserFeedId,
-    FeedEntryId,
-    UserId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl Iden for UserFeedEntry {
-    fn unquoted(&self, s: &mut dyn Write) {
-        write!(
-            s,
-            "{}",
-            match self {
-                Self::Table => "user_feed_entries",
-                Self::Id => "id",
-                Self::HasRead => "has_read",
-                Self::UserFeedId => "user_feed_id",
-                Self::FeedEntryId => "feed_entry_id",
-                Self::UserId => "user_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
-            }
-        )
-        .unwrap();
-    }
-}
-
-pub struct InsertMany {
-    pub id: Option<Uuid>,
-    pub feed_entry_id: Uuid,
-}
 
 #[allow(clippy::too_many_arguments)]
 pub async fn select<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
-    feed_id: Option<Uuid>,
+    user_feed_id: Option<Uuid>,
     has_read: Option<bool>,
     tags: Option<&[String]>,
-    // smart_feed_id: Option<Uuid>,
     cursor: Option<Cursor>,
-    limit: Option<u64>,
-    // smart_feed_case_statement: CaseStatement,
+    limit: Option<i64>,
 ) -> sqlx::Result<Vec<PgRow>> {
-    let mut query = Query::select()
-        .columns([
-            (UserFeedEntry::Table, UserFeedEntry::Id),
-            (UserFeedEntry::Table, UserFeedEntry::HasRead),
-            (UserFeedEntry::Table, UserFeedEntry::UserFeedId),
-        ])
-        .columns([
-            (FeedEntry::Table, FeedEntry::Link),
-            (FeedEntry::Table, FeedEntry::Title),
-            (FeedEntry::Table, FeedEntry::PublishedAt),
-            (FeedEntry::Table, FeedEntry::Description),
-            (FeedEntry::Table, FeedEntry::Author),
-            (FeedEntry::Table, FeedEntry::ThumbnailUrl),
-        ])
-        .from(UserFeedEntry::Table)
-        .join(
-            JoinType::InnerJoin,
-            FeedEntry::Table,
-            Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(Expr::col((
-                UserFeedEntry::Table,
-                UserFeedEntry::FeedEntryId,
-            ))),
-        )
-        .and_where(Expr::col((UserFeedEntry::Table, UserFeedEntry::UserId)).eq(user_id))
-        .and_where_option(id.map(|e| Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).eq(e)))
-        .and_where_option(
-            feed_id.map(|e| Expr::col((UserFeedEntry::Table, UserFeedEntry::UserFeedId)).eq(e)),
-        )
-        .and_where_option(
-            has_read.map(|e| Expr::col((UserFeedEntry::Table, UserFeedEntry::HasRead)).eq(e)),
-        )
-        .and_where_option(cursor.map(|e| {
-            Expr::tuple([
-                Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
-                Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).into(),
-            ])
-            .lt(Expr::tuple([
-                Expr::val(e.published_at).into(),
-                Expr::val(e.id).into(),
-            ]))
-        }))
-        .order_by((FeedEntry::Table, FeedEntry::PublishedAt), Order::Desc)
-        .order_by((UserFeedEntry::Table, UserFeedEntry::Id), Order::Desc)
-        .to_owned();
+    let mut qb = QueryBuilder::<Postgres>::new(
+        "
+SELECT
+    ufe.id, ufe.has_read, ufe.user_feed_id,
+    fe.link, fe.title, fe.published_at, fe.description, fe.author, fe.thumbnail_url
+FROM user_feed_entries ufe
+JOIN feed_entries fe ON fe.id = ufe.feed_entry_id",
+    );
 
     if let Some(tags) = tags {
-        query
-            .join(
-                JoinType::InnerJoin,
-                UserFeedTag::Table,
-                Expr::col((UserFeedTag::Table, UserFeedTag::UserFeedId))
-                    .eq(Expr::col((UserFeedEntry::Table, UserFeedEntry::UserFeedId))),
-            )
-            .join(
-                JoinType::InnerJoin,
-                Tag::Table,
-                Expr::col((Tag::Table, Tag::Id))
-                    .eq(Expr::col((UserFeedTag::Table, UserFeedTag::TagId))),
-            )
-            .and_where(Expr::col((Tag::Table, Tag::Title)).is_in(tags));
+        qb.push(
+            " 
+INNER JOIN user_feed_tags uft ON uft.user_feed_id = ufe.user_feed_id
+INNER JOIN tags t ON t.id = uft.tag_id WHERE title IN (",
+        );
+
+        let mut separated = qb.separated(", ");
+        for title in tags {
+            separated.push_bind(title);
+        }
+
+        separated.push_unseparated(")");
     }
 
-    // if let Some(smart_feed_id) = smart_feed_id {
-    //     query.join(
-    //         JoinType::InnerJoin,
-    //         SmartFeedFilter::Table,
-    //         Expr::col((SmartFeedFilter::Table, SmartFeedFilter::SmartFeedId))
-    //             .eq(Expr::val(smart_feed_id))
-    //             .and(smart_feed_case_statement.into()),
-    //     );
-    // }
+    qb.push(" WHERE user_id = ");
+    qb.push_bind(user_id);
+
+    if let Some(id) = id {
+        qb.push(" AND id = ");
+        qb.push_bind(id);
+    }
+
+    if let Some(user_feed_id) = user_feed_id {
+        qb.push(" AND ufe.user_feed_id = ");
+        qb.push_bind(user_feed_id);
+    }
+
+    if let Some(has_read) = has_read {
+        qb.push(" AND ufe.has_read = ");
+        qb.push_bind(has_read);
+    }
+
+    if let Some(cursor) = cursor {
+        qb.push(" (fe.published_at, ufe.id) > (");
+
+        let mut separated = qb.separated(", ");
+        separated.push_bind(cursor.published_at);
+        separated.push_bind(cursor.id);
+
+        separated.push_unseparated(")");
+    }
+
+    qb.push(" ORDER BY fe.published_at DESC, ufe.id DESC");
 
     if let Some(limit) = limit {
-        query.limit(limit);
+        qb.push(" LIMIT ");
+        qb.push_bind(limit);
     }
 
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_with(&sql, values).fetch_all(ex).await
+    qb.build().fetch_all(ex).await
 }
 
-pub async fn insert_many_for_all_users<'a>(
+pub async fn insert_many<'a>(
     ex: impl PgExecutor<'a>,
-    data: &[InsertMany],
+    feed_entry_ids: &[Uuid],
     feed_id: Uuid,
 ) -> sqlx::Result<()> {
-    let input = Alias::new("input");
+    let mut qb = QueryBuilder::<Postgres>::new(
+        "
+INSERT INTO user_feed_entries (feed_entry_id, user_feed_id, user_id)
+SELECT feed_entry_id, uf.id, uf.user_id FROM UNNEST(",
+    );
+    qb.push_bind(feed_entry_ids);
+    qb.push(") AS feed_entry_id JOIN user_feeds uf ON uf.feed_id = ");
+    qb.push_bind(feed_id);
 
-    let input_cte = Query::select()
-        .expr(Expr::col(Asterisk))
-        .from_values(
-            data.iter()
-                .map(|e| {
-                    if let Some(id) = e.id {
-                        (e.feed_entry_id, id).into_value_tuple()
-                    } else {
-                        (e.feed_entry_id).into_value_tuple()
-                    }
-                })
-                .collect::<Vec<_>>(),
-            Alias::new("row"),
-        )
-        .to_owned();
+    qb.push(" ON CONFLICT (user_feed_id, feed_entry_id) DO NOTHING");
 
-    let mut cte = CommonTableExpression::new()
-        .query(input_cte)
-        .column(UserFeedEntry::FeedEntryId)
-        .table_name(input.clone())
-        .to_owned();
-
-    let mut select_from = Query::select()
-        .column((input.clone(), UserFeedEntry::FeedEntryId))
-        .columns([
-            (UserFeed::Table, UserFeed::Id),
-            (UserFeed::Table, UserFeed::UserId),
-        ])
-        .from(input.clone())
-        .inner_join(
-            UserFeed::Table,
-            Expr::col((UserFeed::Table, UserFeed::FeedId)).eq(feed_id),
-        )
-        .to_owned();
-
-    let mut columns = vec![
-        UserFeedEntry::FeedEntryId,
-        UserFeedEntry::UserFeedId,
-        UserFeedEntry::UserId,
-    ];
-
-    if data.iter().any(|e| e.id.is_some()) {
-        cte.column(UserFeedEntry::Id);
-        select_from.column((input, UserFeedEntry::Id));
-        columns.push(UserFeedEntry::Id);
-    }
-
-    let insert = Query::insert()
-        .into_table(UserFeedEntry::Table)
-        .columns(columns)
-        .select_from(select_from)
-        .unwrap()
-        .on_conflict(
-            OnConflict::columns([UserFeedEntry::UserFeedId, UserFeedEntry::FeedEntryId])
-                .do_nothing()
-                .to_owned(),
-        )
-        .to_owned();
-
-    let query = insert.with(Query::with().cte(cte.to_owned()).to_owned());
-
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
-
-    sqlx::query_with(&sql, values).execute(ex).await?;
+    qb.build().execute(ex).await?;
 
     Ok(())
 }
@@ -223,20 +102,23 @@ pub async fn update<'a>(
     user_id: Uuid,
     has_read: Option<bool>,
 ) -> sqlx::Result<()> {
-    let mut query = Query::update()
-        .table(UserFeedEntry::Table)
-        .value(UserFeedEntry::UpdatedAt, Expr::current_timestamp())
-        .and_where(Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).eq(id))
-        .and_where(Expr::col((UserFeedEntry::Table, UserFeedEntry::UserId)).eq(user_id))
-        .to_owned();
+    let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("UPDATE user_feed_entries SET ");
+
+    let mut separated = qb.separated(", ");
 
     if let Some(has_read) = has_read {
-        query.value(UserFeedEntry::HasRead, has_read);
+        separated.push("has_read = ");
+        separated.push_bind_unseparated(has_read);
     }
 
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    separated.push("updated_at = now()");
 
-    sqlx::query_with(&sql, values).execute(ex).await?;
+    qb.push(" WHERE id = ");
+    qb.push_bind(id);
+    qb.push(" AND user_id = ");
+    qb.push_bind(user_id);
+
+    qb.build().execute(ex).await?;
 
     Ok(())
 }

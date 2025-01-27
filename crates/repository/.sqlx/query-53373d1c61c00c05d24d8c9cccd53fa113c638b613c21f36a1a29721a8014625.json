@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id\nFROM user_feeds\nWHERE user_id = $1\nAND feed_id = $2",
+  "query": "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,13 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Uuid"
+        "Text",
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "e1998c3959609caf67d1e1624575026f7cf192789b4b650a9f9dccb84b9159c5"
+  "hash": "53373d1c61c00c05d24d8c9cccd53fa113c638b613c21f36a1a29721a8014625"
 }

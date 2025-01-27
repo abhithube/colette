@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id\nFROM feeds\nWHERE xml_url = $1\nOR link = $1",
+  "query": "INSERT INTO tags (title, user_id) VALUES ($1, $2) RETURNING id",
   "describe": {
     "columns": [
       {
@@ -11,12 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Text"
+        "Text",
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "9043601e7bd94e837636bc577803bd930f7725ef32c89b4875bddd4ccc6852ed"
+  "hash": "1cf8b857e00d10b7c6abd38f312fe14c0392c18534a822ca8c10829159dc4cc8"
 }

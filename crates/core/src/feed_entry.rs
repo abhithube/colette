@@ -70,7 +70,7 @@ impl FeedEntryService {
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id,
-                limit: Some(PAGINATION_LIMIT + 1),
+                limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
                 ..Default::default()
             })
@@ -145,7 +145,7 @@ pub struct FeedEntryFindParams {
     pub has_read: Option<bool>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }
 

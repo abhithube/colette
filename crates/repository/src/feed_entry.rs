@@ -1,60 +1,14 @@
-use std::fmt::Write;
-
 use chrono::{DateTime, NaiveDateTime, Utc};
-use sea_query::Iden;
 use sqlx::PgExecutor;
 use uuid::Uuid;
-
-#[allow(dead_code)]
-pub enum FeedEntry {
-    Table,
-    Id,
-    Link,
-    Title,
-    PublishedAt,
-    Description,
-    Author,
-    ThumbnailUrl,
-    FeedId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl Iden for FeedEntry {
-    fn unquoted(&self, s: &mut dyn Write) {
-        write!(
-            s,
-            "{}",
-            match self {
-                Self::Table => "feed_entries",
-                Self::Id => "id",
-                Self::Link => "link",
-                Self::Title => "title",
-                Self::PublishedAt => "published_at",
-                Self::Description => "description",
-                Self::Author => "author",
-                Self::ThumbnailUrl => "thumbnail_url",
-                Self::FeedId => "feed_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
-            }
-        )
-        .unwrap();
-    }
-}
 
 pub async fn select_many_by_feed_id<'a>(
     ex: impl PgExecutor<'a>,
     feed_id: Uuid,
 ) -> sqlx::Result<Vec<Uuid>> {
-    sqlx::query_scalar!(
-        "SELECT id
-FROM feed_entries
-WHERE feed_id = $1",
-        feed_id
-    )
-    .fetch_all(ex)
-    .await
+    sqlx::query_scalar!("SELECT id FROM feed_entries WHERE feed_id = $1", feed_id)
+        .fetch_all(ex)
+        .await
 }
 
 pub struct InsertMany {
@@ -88,8 +42,10 @@ pub async fn insert_many<'a>(
     }
 
     sqlx::query_scalar!(
-        "INSERT INTO feed_entries (link, title, published_at, description, author, thumbnail_url, feed_id, updated_at)
-SELECT *, $7::uuid, now() FROM UNNEST($1::text[], $2::text[], $3::timestamp[], $4::text[], $5::text[], $6::text[])
+        "
+INSERT INTO feed_entries (link, title, published_at, description, author, thumbnail_url, feed_id, updated_at)
+SELECT *, $7::uuid, now()
+FROM UNNEST($1::text[], $2::text[], $3::timestamp[], $4::text[], $5::text[], $6::text[])
 ON CONFLICT (feed_id, link) DO UPDATE SET
     title = excluded.title,
     published_at = excluded.published_at,
@@ -97,12 +53,12 @@ ON CONFLICT (feed_id, link) DO UPDATE SET
     author = excluded.author,
     thumbnail_url = excluded.thumbnail_url,
     updated_at = excluded.updated_at",
-        &links[..],
-        &titles[..],
-        &published_ats[..],
-        &descriptions[..] as &[Option<String>],
-        &authors[..] as &[Option<String>],
-        &thumbnail_urls[..] as &[Option<String>],
+        &links,
+        &titles,
+        &published_ats,
+        &descriptions as &[Option<String>],
+        &authors as &[Option<String>],
+        &thumbnail_urls as &[Option<String>],
         feed_id
     )
     .execute(ex)

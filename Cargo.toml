@@ -77,12 +77,15 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
 ] }
 scraper = { version = "0.22.0", default-features = false }
 serde = { version = "1.0.217", default-features = false }
-serde_json = { version = "1.0.135", default-features = false }
+serde_json = { version = "1.0.135", default-features = false, features = [
+  "std",
+] }
 sqlx = { version = "0.8.3", features = [
   "chrono",
   "json",
   "macros",
   "migrate",
+  "postgres",
   "runtime-tokio",
   "uuid",
 ] }

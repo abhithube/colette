@@ -7,8 +7,6 @@ use colette_core::{
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sea_query::PostgresQueryBuilder;
-use sea_query_binder::SqlxBinder;
 use sqlx::{postgres::PgRow, types::Json, PgConnection, Pool, Postgres, Row};
 use uuid::Uuid;
 
@@ -124,17 +122,18 @@ impl Updatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() {
-            let (sql, values) =
-                crate::user_feed::update(params.id, params.user_id, data.title, data.folder_id)
-                    .build_sqlx(PostgresQueryBuilder);
-
-            sqlx::query_with(&sql, values)
-                .execute(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                    _ => Error::Unknown(e.into()),
-                })?;
+            crate::user_feed::update(
+                &mut *tx,
+                params.id,
+                params.user_id,
+                data.title,
+                data.folder_id,
+            )
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
         }
 
         if let Some(tags) = data.tags {
@@ -249,16 +248,15 @@ pub(crate) async fn link_entries_to_users(
     let fe_ids = { crate::feed_entry::select_many_by_feed_id(&mut *conn, feed_id).await? };
 
     if !fe_ids.is_empty() {
-        let insert_many = fe_ids
-            .into_iter()
-            .map(|feed_entry_id| crate::user_feed_entry::InsertMany {
-                id: None,
-                feed_entry_id,
-            })
-            .collect::<Vec<_>>();
+        // let insert_many = fe_ids
+        //     .into_iter()
+        //     .map(|feed_entry_id| crate::user_feed_entry::InsertMany {
+        //         id: None,
+        //         feed_entry_id,
+        //     })
+        //     .collect::<Vec<_>>();
 
-        crate::user_feed_entry::insert_many_for_all_users(&mut *conn, &insert_many, feed_id)
-            .await?;
+        crate::user_feed_entry::insert_many(&mut *conn, &fe_ids, feed_id).await?;
     }
 
     Ok(())

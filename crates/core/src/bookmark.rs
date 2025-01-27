@@ -112,7 +112,7 @@ impl BookmarkService {
                 folder_id: query.folder_id,
                 tags: query.tags,
                 user_id,
-                limit: Some(PAGINATION_LIMIT + 1),
+                limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
                 ..Default::default()
             })
@@ -239,7 +239,7 @@ pub struct BookmarkFindParams {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }
 

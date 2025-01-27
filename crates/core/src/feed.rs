@@ -203,7 +203,7 @@ pub struct FeedFindParams {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }
 

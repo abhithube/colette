@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO users (email, password)\n    VALUES ($1, $2)\n    RETURNING id",
+  "query": "SELECT id FROM user_bookmarks WHERE user_id = $1 AND bookmark_id = $2",
   "describe": {
     "columns": [
       {
@@ -11,13 +11,13 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text"
+        "Uuid",
+        "Uuid"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "1f98dda270f8c5cfd19ee5c7c36b5e4a54856901759c41a4eca6b68ab30f3e1f"
+  "hash": "1432325ee71ee8c26ad50b993213dc189001fc363be75463a9b060713473f7bc"
 }

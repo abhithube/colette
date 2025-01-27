@@ -1,47 +1,6 @@
-use std::fmt::Write;
-
 use colette_core::feed::Cursor;
-use sea_query::{
-    Alias, CommonTableExpression, Expr, ExprTrait, Func, Iden, JoinType, Order,
-    PostgresQueryBuilder, Query, UpdateStatement,
-};
-use sea_query_binder::SqlxBinder;
-use sqlx::{postgres::PgRow, PgExecutor};
+use sqlx::{postgres::PgRow, PgExecutor, Postgres, QueryBuilder};
 use uuid::Uuid;
-
-use crate::{feed::Feed, tag::Tag, user_feed_entry::UserFeedEntry, user_feed_tag::UserFeedTag};
-
-#[allow(dead_code)]
-pub enum UserFeed {
-    Table,
-    Id,
-    Title,
-    FolderId,
-    UserId,
-    FeedId,
-    CreatedAt,
-    UpdatedAt,
-}
-
-impl Iden for UserFeed {
-    fn unquoted(&self, s: &mut dyn Write) {
-        write!(
-            s,
-            "{}",
-            match self {
-                Self::Table => "user_feeds",
-                Self::Id => "id",
-                Self::Title => "title",
-                Self::FolderId => "folder_id",
-                Self::UserId => "user_id",
-                Self::FeedId => "feed_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
-            }
-        )
-        .unwrap();
-    }
-}
 
 #[allow(clippy::too_many_arguments)]
 pub async fn select<'a>(
@@ -50,153 +9,75 @@ pub async fn select<'a>(
     folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<Cursor>,
-    limit: Option<u64>,
+    limit: Option<i64>,
     tag_titles: Option<Vec<String>>,
 ) -> sqlx::Result<Vec<PgRow>> {
-    let unread_count = Alias::new("unread_count");
-    let pf_id = Alias::new("pf_id");
+    let mut qb = QueryBuilder::<Postgres>::new("
+WITH unread_counts AS (
+    SELECT uf.id as uf_id, count(ufe.id) as count
+    FROM user_feeds uf
+    INNER JOIN user_feed_entries ufe ON ufe.user_feed_id = uf.id
+    GROUP BY uf.id
+),
+json_tags AS (
+    SELECT
+        uf.id AS uf_id,
+        jsonb_agg(jsonb_build_object('id', t.id, 'title', t.title) ORDER BY t.title) FILTER (WHERE t.id IS NOT NULL) as tags
+    FROM user_feeds uf
+    INNER JOIN user_feed_tags uft ON uft.user_feed_id = uf.id
+    INNER JOIN tags t ON t.id = uft.tag_id
+    GROUP BY uf.id
+)
+SELECT
+    uf.id, uf.title, uf.folder_id,
+    f.link, f.title AS original_title, f.xml_url,
+    jt.tags as tags,
+    coalesce(uc.count, 0) AS unread_count
+FROM user_feeds uf
+INNER JOIN feeds f ON f.id = uf.feed_id
+LEFT JOIN json_tags jt ON jt.uf_id = uf.id
+LEFT JOIN unread_counts uc ON uc.uf_id = uf.id
+WHERE uf.user_id = ");
 
-    let unread_count_cte = Query::select()
-        .expr_as(Expr::col((UserFeed::Table, UserFeed::Id)), pf_id.clone())
-        .expr_as(
-            Expr::col((UserFeedEntry::Table, UserFeedEntry::Id)).count(),
-            unread_count.clone(),
-        )
-        .from(UserFeed::Table)
-        .join(
-            JoinType::InnerJoin,
-            UserFeedEntry::Table,
-            Expr::col((UserFeedEntry::Table, UserFeedEntry::UserFeedId))
-                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
-        )
-        .group_by_col((UserFeed::Table, UserFeed::Id))
-        .to_owned();
+    qb.push_bind(user_id);
 
-    let tags = Alias::new("tags");
-
-    let json_tags_cte = Query::select()
-        .expr_as(Expr::col((UserFeed::Table, UserFeed::Id)), pf_id.clone())
-        .expr_as(Expr::cust(
-            r#"JSONB_AGG(JSONB_BUILD_OBJECT('id', "tags"."id", 'title', "tags"."title") ORDER BY "tags"."title") FILTER (WHERE "tags"."id" IS NOT NULL)"#,
-        ), tags.clone())
-        .from(UserFeed::Table)
-        .join(
-            JoinType::InnerJoin,
-            UserFeedTag::Table,
-            Expr::col((UserFeedTag::Table, UserFeedTag::UserFeedId))
-                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
-        )
-        .join(
-            JoinType::InnerJoin,
-            Tag::Table,
-            Expr::col((Tag::Table, Tag::Id))
-                .eq(Expr::col((UserFeedTag::Table, UserFeedTag::TagId))),
-        )
-        .group_by_col((UserFeed::Table, UserFeed::Id))
-        .to_owned();
-
-    let json_tags = Alias::new("json_tags");
-    let unread_counts = Alias::new("unread_counts");
-
-    let mut select = Query::select()
-        .columns([
-            (UserFeed::Table, UserFeed::Id),
-            (UserFeed::Table, UserFeed::Title),
-            (UserFeed::Table, UserFeed::FolderId),
-        ])
-        .columns([(Feed::Table, Feed::Link), (Feed::Table, Feed::XmlUrl)])
-        .expr_as(
-            Expr::col((Feed::Table, Feed::Title)),
-            Alias::new("original_title"),
-        )
-        .column((json_tags.clone(), tags))
-        .expr_as(
-            Func::coalesce([
-                Expr::col((unread_counts.clone(), unread_count.clone())).into(),
-                Expr::val(0_i64).into(),
-            ]),
-            unread_count,
-        )
-        .from(UserFeed::Table)
-        .join(
-            JoinType::InnerJoin,
-            Feed::Table,
-            Expr::col((Feed::Table, Feed::Id)).eq(Expr::col((UserFeed::Table, UserFeed::FeedId))),
-        )
-        .join(
-            JoinType::LeftJoin,
-            json_tags.clone(),
-            Expr::col((json_tags.clone(), pf_id.clone()))
-                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
-        )
-        .join(
-            JoinType::LeftJoin,
-            unread_counts.clone(),
-            Expr::col((unread_counts.clone(), pf_id))
-                .eq(Expr::col((UserFeed::Table, UserFeed::Id))),
-        )
-        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
-        .and_where_option(id.map(|e| Expr::col((UserFeed::Table, UserFeed::Id)).eq(e)))
-        .and_where_option(folder_id.map(|e| {
-            e.map_or_else(
-                || Expr::col(UserFeed::FolderId).is_null(),
-                |e| Expr::col(UserFeed::FolderId).eq(e),
-            )
-        }))
-        .and_where_option(tag_titles.map(|e| {
-            Expr::cust_with_expr(
-                r#"EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS("json_tags"."tags") AS "t" WHERE ?)"#,
-                Expr::cust(r#""t" ->> 'title'"#).is_in(e),
-            )
-        }))
-        .and_where_option(cursor.map(|e| {
-            Expr::tuple([
-                Func::coalesce([
-                    Expr::col((UserFeed::Table, UserFeed::Title)).into(),
-                    Expr::col((Feed::Table, Feed::Title)).into(),
-                ])
-                .into(),
-                Expr::col((UserFeed::Table, UserFeed::Id)).into(),
-            ])
-            .lt(Expr::tuple([
-                Expr::val(e.title).into(),
-                Expr::val(e.id).into(),
-            ]))
-        }))
-        .order_by_expr(
-            Func::coalesce([
-                Expr::col((UserFeed::Table, UserFeed::Title)).into(),
-                Expr::col((Feed::Table, Feed::Title)).into(),
-            ])
-            .into(),
-            Order::Asc,
-        )
-        .to_owned();
-
-    if let Some(limit) = limit {
-        select.limit(limit);
+    if let Some(id) = id {
+        qb.push(" AND uf.id = ");
+        qb.push_bind(id);
     }
 
-    let query = select.with(
-        Query::with()
-            .cte(
-                CommonTableExpression::new()
-                    .query(json_tags_cte)
-                    .table_name(json_tags)
-                    .to_owned(),
-            )
-            .cte(
-                CommonTableExpression::new()
-                    .query(unread_count_cte)
-                    .table_name(unread_counts)
-                    .to_owned(),
-            )
-            .to_owned(),
-    );
+    if let Some(folder_id) = folder_id {
+        if folder_id.is_some() {
+            qb.push(" AND uf.folder_id = ");
+            qb.push_bind(folder_id);
+        } else {
+            qb.push(" AND uf.folder_id IS NULL");
+        }
+    }
 
-    let (sql, values) = query.build_sqlx(PostgresQueryBuilder);
+    if let Some(tags) = tag_titles {
+        qb.push(" AND EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS(jt.tags) AS t WHERE t ->> 'title' IN )");
+        qb.push_bind(tags);
+    }
 
-    sqlx::query_with(&sql, values).fetch_all(ex).await
+    if let Some(cursor) = cursor {
+        qb.push(" AND (coalesce(uf.title, f.title), uf.id) < (");
+
+        let mut separated = qb.separated(", ");
+        separated.push_bind(cursor.title);
+        separated.push_bind(cursor.id);
+
+        separated.push_unseparated(")");
+    }
+
+    qb.push(" ORDER BY coalesce(uf.title, f.title) ASC, uf.id ASC");
+
+    if let Some(limit) = limit {
+        qb.push(" LIMIT ");
+        qb.push_bind(limit);
+    }
+
+    qb.build().fetch_all(ex).await
 }
 
 pub async fn select_by_unique_index<'a>(
@@ -205,10 +86,7 @@ pub async fn select_by_unique_index<'a>(
     feed_id: Uuid,
 ) -> sqlx::Result<Option<Uuid>> {
     sqlx::query_scalar!(
-        "SELECT id
-FROM user_feeds
-WHERE user_id = $1
-AND feed_id = $2",
+        "SELECT id FROM user_feeds WHERE user_id = $1 AND feed_id = $2",
         user_id,
         feed_id
     )
@@ -224,7 +102,8 @@ pub async fn insert<'a>(
     user_id: Uuid,
 ) -> sqlx::Result<Uuid> {
     sqlx::query_scalar!(
-        "INSERT INTO user_feeds (title, folder_id, feed_id, user_id)
+        "
+INSERT INTO user_feeds (title, folder_id, feed_id, user_id)
 VALUES ($1, $2, $3, $4)
 RETURNING id",
         title,
@@ -236,34 +115,41 @@ RETURNING id",
     .await
 }
 
-pub fn update(
+pub async fn update<'a>(
+    ex: impl PgExecutor<'a>,
     id: Uuid,
     user_id: Uuid,
     title: Option<Option<String>>,
     folder_id: Option<Option<Uuid>>,
-) -> UpdateStatement {
-    let mut query = Query::update()
-        .table(UserFeed::Table)
-        .value(UserFeed::UpdatedAt, Expr::current_timestamp())
-        .and_where(Expr::col((UserFeed::Table, UserFeed::Id)).eq(id))
-        .and_where(Expr::col((UserFeed::Table, UserFeed::UserId)).eq(user_id))
-        .to_owned();
+) -> sqlx::Result<()> {
+    let mut qb = QueryBuilder::<Postgres>::new("UPDATE user_feeds SET ");
+
+    let mut separated = qb.separated(", ");
 
     if let Some(title) = title {
-        query.value(UserFeed::Title, title);
+        separated.push("title = ");
+        separated.push_bind_unseparated(title);
     }
     if let Some(folder_id) = folder_id {
-        query.value(UserFeed::FolderId, folder_id);
+        separated.push("folder_id = ");
+        separated.push_bind_unseparated(folder_id);
     }
 
-    query
+    separated.push("updated_at = now()");
+
+    qb.push(" WHERE id = ");
+    qb.push_bind(id);
+    qb.push(" AND user_id = ");
+    qb.push_bind(user_id);
+
+    qb.build().execute(ex).await?;
+
+    Ok(())
 }
 
 pub async fn delete<'a>(ex: impl PgExecutor<'a>, id: Uuid, user_id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
-        "DELETE FROM user_feeds
-WHERE id = $1
-AND user_id = $2",
+        "DELETE FROM user_feeds WHERE id = $1 AND user_id = $2",
         id,
         user_id
     )

@@ -130,7 +130,7 @@ pub struct TagFindParams {
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
     pub user_id: Uuid,
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }
 

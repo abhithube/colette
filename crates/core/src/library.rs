@@ -62,7 +62,7 @@ pub trait LibraryRepository:
 pub struct LibraryItemFindParams {
     pub folder_id: Option<Uuid>,
     pub user_id: Uuid,
-    pub limit: Option<u64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Debug, thiserror::Error)]

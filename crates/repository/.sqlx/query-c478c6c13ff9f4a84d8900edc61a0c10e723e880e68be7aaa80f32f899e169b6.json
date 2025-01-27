@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO tags (title, user_id)\nVALUES ($1, $2)\nRETURNING id",
+  "query": "SELECT id FROM bookmarks WHERE link = $1",
   "describe": {
     "columns": [
       {
@@ -11,13 +11,12 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
       false
     ]
   },
-  "hash": "a02ffc40f9e33ab005d0a4072d216022a1966099223de99f47843f410f91fc3b"
+  "hash": "c478c6c13ff9f4a84d8900edc61a0c10e723e880e68be7aaa80f32f899e169b6"
 }

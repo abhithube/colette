@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "DELETE FROM tags\nWHERE id = $1\nAND user_id = $2",
+  "query": "DELETE FROM user_bookmarks WHERE id = $1 AND user_id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "66fd9e0727344b306db94ddf55472104dfaf3b54b866c91eb74233019c27aeb5"
+  "hash": "a2d6f85f621ffaadfdb316c4e94c5c76c8d2c8978a86bcdb8e436af7633be6c4"
 }
