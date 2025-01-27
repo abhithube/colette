@@ -35,7 +35,7 @@ impl ScraperRepository for PostgresScraperRepository {
     }
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error> {
-        crate::bookmark::insert(
+        crate::query::bookmark::insert(
             &self.pool,
             data.url,
             data.bookmark.title,

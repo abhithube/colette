@@ -23,7 +23,7 @@ impl Findable for PostgresLibraryRepository {
     type Output = Result<Vec<LibraryItem>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut folders = crate::folder::select(
+        let mut folders = crate::query::folder::select(
             &self.pool,
             None,
             params.user_id,
@@ -39,7 +39,7 @@ impl Findable for PostgresLibraryRepository {
         })
         .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut feeds = crate::user_feed::select(
+        let mut feeds = crate::query::user_feed::select(
             &self.pool,
             None,
             Some(params.folder_id),
@@ -56,7 +56,7 @@ impl Findable for PostgresLibraryRepository {
         })
         .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut bookmarks = crate::user_bookmark::select(
+        let mut bookmarks = crate::query::user_bookmark::select(
             &self.pool,
             None,
             Some(params.folder_id),

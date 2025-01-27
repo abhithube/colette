@@ -15,7 +15,7 @@ use colette_core::{
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::memory::InMemoryQueue;
-use colette_repository::postgres::{
+use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
     PostgresFeedRepository, PostgresFolderRepository, PostgresLibraryRepository,
     PostgresScraperRepository, PostgresTagRepository, PostgresUserRepository,

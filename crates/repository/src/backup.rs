@@ -39,13 +39,14 @@ impl BackupRepository for PostgresBackupRepository {
 
             if outline.outline.is_some() {
                 let tag_id = {
-                    if let Some(id) = crate::tag::select_by_title(&mut *tx, title.clone(), user_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) =
+                        crate::query::tag::select_by_title(&mut *tx, title.clone(), user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::tag::insert(&mut *tx, title.clone(), user_id)
+                        crate::query::tag::insert(&mut *tx, title.clone(), user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -63,27 +64,27 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id = crate::feed::insert(&mut *tx, link, title, outline.xml_url)
+                let feed_id = crate::query::feed::insert(&mut *tx, link, title, outline.xml_url)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?;
 
                 let pf_id = {
                     if let Some(id) =
-                        crate::user_feed::select_by_unique_index(&mut *tx, user_id, feed_id)
+                        crate::query::user_feed::select_by_unique_index(&mut *tx, user_id, feed_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::user_feed::insert(&mut *tx, None, None, feed_id, user_id)
+                        crate::query::user_feed::insert(&mut *tx, None, None, feed_id, user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 
                 // if let Some(tag) = parent {
-                //     let (sql, values) = crate::user_feed_tag::insert_many(
-                //         &[crate::user_feed_tag::InsertMany {
+                //     let (sql, values) = crate::query::user_feed_tag::insert_many(
+                //         &[crate::query::user_feed_tag::InsertMany {
                 //             user_feed_id: pf_id,
                 //             tag_id: tag.id,
                 //         }],
@@ -120,13 +121,14 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 let tag_id = {
-                    if let Some(id) = crate::tag::select_by_title(&mut *tx, title.clone(), user_id)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) =
+                        crate::query::tag::select_by_title(&mut *tx, title.clone(), user_id)
+                            .await
+                            .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::tag::insert(&mut *tx, title.clone(), user_id)
+                        crate::query::tag::insert(&mut *tx, title.clone(), user_id)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -145,20 +147,23 @@ impl BackupRepository for PostgresBackupRepository {
                 }
             } else if let Some(link) = item.href {
                 let bookmark_id = {
-                    crate::bookmark::insert(&mut *tx, link, item.title, None, None, None)
+                    crate::query::bookmark::insert(&mut *tx, link, item.title, None, None, None)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                 };
 
                 let pb_id = {
-                    if let Some(id) =
-                        crate::user_bookmark::select_by_unique_index(&mut *tx, user_id, bookmark_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) = crate::query::user_bookmark::select_by_unique_index(
+                        &mut *tx,
+                        user_id,
+                        bookmark_id,
+                    )
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::user_bookmark::insert(
+                        crate::query::user_bookmark::insert(
                             &mut *tx,
                             None,
                             None,
@@ -174,8 +179,8 @@ impl BackupRepository for PostgresBackupRepository {
                 };
 
                 // if let Some(tag) = parent {
-                //     let (sql, values) = crate::user_bookmark_tag::insert_many(
-                //         &[crate::user_bookmark_tag::InsertMany {
+                //     let (sql, values) = crate::query::user_bookmark_tag::insert_many(
+                //         &[crate::query::user_bookmark_tag::InsertMany {
                 //             user_bookmark_id: pb_id,
                 //             tag_id: tag.id,
                 //         }],

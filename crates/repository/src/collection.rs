@@ -1,98 +1,167 @@
-use std::fmt::Write;
-
-use colette_core::collection::Cursor;
-use sea_query::{
-    DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement, SimpleExpr,
-    UpdateStatement,
+use colette_core::{
+    collection::{
+        CollectionCreateData, CollectionFindParams, CollectionRepository, CollectionUpdateData,
+        Error,
+    },
+    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    Collection,
 };
+use deadpool_postgres::{tokio_postgres::Row, Pool};
+use sea_query::PostgresQueryBuilder;
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
-#[allow(dead_code)]
-pub enum Collection {
-    Table,
-    Id,
-    Title,
-    UserId,
-    CreatedAt,
-    UpdatedAt,
+#[derive(Debug, Clone)]
+pub struct PostgresCollectionRepository {
+    pool: Pool,
 }
 
-impl Iden for Collection {
-    fn unquoted(&self, s: &mut dyn Write) {
-        write!(
-            s,
-            "{}",
-            match self {
-                Self::Table => "collections",
-                Self::Id => "id",
-                Self::Title => "title",
-                Self::UserId => "user_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
+impl PostgresCollectionRepository {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
+    }
+}
+
+#[async_trait::async_trait]
+impl Findable for PostgresCollectionRepository {
+    type Params = CollectionFindParams;
+    type Output = Result<Vec<Collection>, Error>;
+
+    async fn find(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let (sql, values) =
+            crate::collection::select(params.id, params.user_id, params.limit, params.cursor)
+                .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        client
+            .query(&stmt, &values.as_params())
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| CollectionSelect::from(e).0)
+                    .collect::<Vec<_>>()
+            })
+            .map_err(|e| Error::Unknown(e.into()))
+    }
+}
+
+#[async_trait::async_trait]
+impl Creatable for PostgresCollectionRepository {
+    type Data = CollectionCreateData;
+    type Output = Result<Uuid, Error>;
+
+    async fn create(&self, data: Self::Data) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let (sql, values) = crate::collection::insert(None, data.title.clone(), data.user_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let id = client
+            .query_one(&stmt, &values.as_params())
+            .await
+            .map(|e| e.get::<_, Uuid>("id"))
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        Ok(id)
+    }
+}
+
+#[async_trait::async_trait]
+impl Updatable for PostgresCollectionRepository {
+    type Params = IdParams;
+    type Data = CollectionUpdateData;
+    type Output = Result<(), Error>;
+
+    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        if data.title.is_some() {
+            let (sql, values) = crate::collection::update(params.id, params.user_id, data.title)
+                .build_postgres(PostgresQueryBuilder);
+
+            let stmt = client
+                .prepare_cached(&sql)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+
+            let count = client
+                .execute(&stmt, &values.as_params())
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            if count == 0 {
+                return Err(Error::NotFound(params.id));
             }
-        )
-        .unwrap();
+        }
+
+        Ok(())
     }
 }
 
-pub fn select(
-    id: Option<Uuid>,
-    user_id: Uuid,
-    limit: Option<u64>,
-    cursor: Option<Cursor>,
-) -> SelectStatement {
-    let mut query = Query::select()
-        .columns([Collection::Id, Collection::Title])
-        .from(Collection::Table)
-        .and_where(Expr::col(Collection::UserId).eq(user_id))
-        .and_where_option(id.map(|e| Expr::col(Collection::Id).eq(e)))
-        .and_where_option(cursor.map(|e| Expr::col(Collection::Title).gt(e.title)))
-        .order_by((Collection::Table, Collection::Title), Order::Asc)
-        .to_owned();
+#[async_trait::async_trait]
+impl Deletable for PostgresCollectionRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
 
-    if let Some(limit) = limit {
-        query.limit(limit);
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let client = self
+            .pool
+            .get()
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let (sql, values) = crate::collection::delete_by_id(params.id, params.user_id)
+            .build_postgres(PostgresQueryBuilder);
+
+        let stmt = client
+            .prepare_cached(&sql)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+
+        let count = client
+            .execute(&stmt, &values.as_params())
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
+        if count == 0 {
+            return Err(Error::NotFound(params.id));
+        }
+
+        Ok(())
     }
-
-    query
 }
 
-pub fn insert(id: Option<Uuid>, title: String, user_id: Uuid) -> InsertStatement {
-    let mut columns = vec![Collection::Title, Collection::UserId];
-    let mut values: Vec<SimpleExpr> = vec![title.into(), user_id.into()];
+impl CollectionRepository for PostgresCollectionRepository {}
 
-    if let Some(id) = id {
-        columns.push(Collection::Id);
-        values.push(id.into());
+#[derive(Debug, Clone)]
+struct CollectionSelect(Collection);
+
+impl From<Row> for CollectionSelect {
+    fn from(value: Row) -> Self {
+        Self(Collection {
+            id: value.get("id"),
+            title: value.get("title"),
+        })
     }
-
-    Query::insert()
-        .into_table(Collection::Table)
-        .columns(columns)
-        .values_panic(values)
-        .returning_col(Collection::Id)
-        .to_owned()
-}
-
-pub fn update(id: Uuid, user_id: Uuid, title: Option<String>) -> UpdateStatement {
-    let mut query = Query::update()
-        .table(Collection::Table)
-        .value(Collection::UpdatedAt, Expr::current_timestamp())
-        .and_where(Expr::col(Collection::Id).eq(id))
-        .and_where(Expr::col(Collection::UserId).eq(user_id))
-        .to_owned();
-
-    if let Some(title) = title {
-        query.value(Collection::Title, title);
-    }
-
-    query
-}
-
-pub fn delete_by_id(id: Uuid, user_id: Uuid) -> DeleteStatement {
-    Query::delete()
-        .from_table(Collection::Table)
-        .and_where(Expr::col(Collection::Id).eq(id))
-        .and_where(Expr::col(Collection::UserId).eq(user_id))
-        .to_owned()
 }
