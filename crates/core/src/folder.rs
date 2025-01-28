@@ -1,7 +1,8 @@
+use uuid::Uuid;
+
 use crate::common::{
     Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
 };
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct Folder {
@@ -22,6 +23,11 @@ pub struct FolderUpdate {
     pub parent_id: Option<Option<Uuid>>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct FolderListQuery {
+    pub parent_id: Option<Option<Uuid>>,
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
@@ -38,10 +44,15 @@ impl FolderService {
         }
     }
 
-    pub async fn list_folders(&self, user_id: Uuid) -> Result<Paginated<Folder>, Error> {
+    pub async fn list_folders(
+        &self,
+        query: FolderListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<Folder>, Error> {
         let folders = self
             .repository
             .find(FolderFindParams {
+                parent_id: query.parent_id,
                 user_id,
                 ..Default::default()
             })

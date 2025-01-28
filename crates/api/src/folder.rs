@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use axum_extra::extract::Query;
 use colette_core::{
     common::NonEmptyString,
     folder::{self, FolderService},
@@ -100,9 +101,31 @@ impl From<FolderUpdate> for folder::FolderUpdate {
     }
 }
 
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct FolderListQuery {
+    #[param(nullable = false)]
+    pub filter_by_parent: Option<bool>,
+    pub parent_id: Option<Uuid>,
+}
+
+impl From<FolderListQuery> for folder::FolderListQuery {
+    fn from(value: FolderListQuery) -> Self {
+        Self {
+            parent_id: if value.filter_by_parent.unwrap_or(value.parent_id.is_some()) {
+                Some(value.parent_id)
+            } else {
+                None
+            },
+        }
+    }
+}
+
 #[utoipa::path(
     get,
     path = "",
+    params(FolderListQuery),
     responses(ListResponse),
     operation_id = "listFolders",
     description = "List user folders",
@@ -111,9 +134,10 @@ impl From<FolderUpdate> for folder::FolderUpdate {
 #[axum::debug_handler]
 pub async fn list_folders(
     State(service): State<Arc<FolderService>>,
+    Query(query): Query<FolderListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service.list_folders(session.user_id).await {
+    match service.list_folders(query.into(), session.user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
