@@ -1,5 +1,8 @@
-use std::{error::Error, future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{error::Error, str::FromStr, sync::Arc, time::Duration};
 
+use apalis::prelude::{Monitor, WorkerBuilder, WorkerFactoryFn};
+use apalis_cron::{CronStream, Schedule};
+use apalis_redis::RedisStorage;
 use axum::http::{header, HeaderValue, Method};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
@@ -14,7 +17,6 @@ use colette_core::{
     scraper::ScraperService, tag::TagService,
 };
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_queue::memory::InMemoryQueue;
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
     PostgresFeedRepository, PostgresFolderRepository, PostgresLibraryRepository,
@@ -27,12 +29,10 @@ use colette_scraper::{
 use colette_session::RedisStore;
 use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
-use colette_worker::{run_cron_worker, run_task_worker};
 use redis::Client;
 use reqwest::ClientBuilder;
 use sqlx::{Pool, Postgres};
-use tokio::net::TcpListener;
-use tower::ServiceBuilder;
+use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{cookie::time, Expiry, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -124,30 +124,64 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
     //     pool.clone(),
     // )));
-    let tag_service = Arc::new(TagService::new(PostgresTagRepository::new(pool.clone())));
+    let tag_service = Arc::new(TagService::new(PostgresTagRepository::new(pool)));
 
-    let (scrape_feed_queue, scrape_feed_receiver) = InMemoryQueue::new();
-    let (scrape_bookmark_queue, scrape_bookmark_receiver) = InMemoryQueue::new();
-    let (import_feeds_queue, import_feeds_receiver) = InMemoryQueue::new();
-    let (import_bookmarks_queue, import_bookmarks_receiver) = InMemoryQueue::new();
+    let redis = Client::open(app_config.redis_url)?;
+    let redis_manager = redis.get_connection_manager().await?;
 
-    let import_feeds_queue = Arc::new(import_feeds_queue);
-    let import_bookmarks_queue = Arc::new(import_bookmarks_queue);
+    let scrape_feed_storage = RedisStorage::new(redis_manager.clone());
+    let scrape_feed_worker = WorkerBuilder::new("scrape-feed")
+        .data(scraper_service.clone())
+        .backend(scrape_feed_storage.clone())
+        .build_fn(scrape_feed::run);
+    let scrape_feed_storage = Arc::new(Mutex::new(scrape_feed_storage));
 
-    let scrape_feed_task = ServiceBuilder::new()
-        .concurrency_limit(5)
-        .service(scrape_feed::Task::new(scraper_service.clone()));
-    let scrape_bookmark_task = ServiceBuilder::new()
-        .concurrency_limit(5)
-        .service(scrape_bookmark::Task::new(scraper_service));
-    let refresh_feeds_task =
-        refresh_feeds::Task::new(feed_service.clone(), scrape_feed_queue.clone());
-    let import_feeds_task = import_feeds::Task::new(scrape_feed_queue);
-    let import_bookmarks_task = import_bookmarks::Task::new(scrape_bookmark_queue);
+    let scrape_bookmark_storage = RedisStorage::new(redis_manager.clone());
+    let scrape_bookmark_worker = WorkerBuilder::new("scrape-bookmark")
+        .data(scraper_service)
+        .backend(scrape_bookmark_storage.clone())
+        .build_fn(scrape_bookmark::run);
+    let scrape_bookmark_storage = Arc::new(Mutex::new(scrape_bookmark_storage));
+
+    let import_feeds_storage = RedisStorage::new(redis_manager.clone());
+    let import_feeds_worker = WorkerBuilder::new("import-feeds")
+        .data(scrape_feed_storage.clone())
+        .backend(import_feeds_storage.clone())
+        .build_fn(import_feeds::run);
+    let import_feeds_storage = Arc::new(Mutex::new(import_feeds_storage));
+
+    let import_bookmarks_storage = RedisStorage::new(redis_manager);
+    let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
+        .data(scrape_bookmark_storage)
+        .backend(import_bookmarks_storage.clone())
+        .build_fn(import_bookmarks::run);
+    let import_bookmarks_storage = Arc::new(Mutex::new(import_bookmarks_storage));
+
+    let schedule = Schedule::from_str(&app_config.cron_refresh)?;
+
+    let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
+        .data(refresh_feeds::State::new(
+            feed_service.clone(),
+            scrape_feed_storage,
+        ))
+        .backend(CronStream::new(schedule))
+        .build_fn(refresh_feeds::run);
+
+    let monitor = Monitor::new()
+        .register(scrape_feed_worker)
+        .register(scrape_bookmark_worker)
+        .register(import_feeds_worker)
+        .register(import_bookmarks_worker)
+        .register(refresh_feeds_worker)
+        .run();
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
-        BackupState::new(backup_service, import_feeds_queue, import_bookmarks_queue),
+        BackupState::new(
+            backup_service,
+            import_feeds_storage,
+            import_bookmarks_storage,
+        ),
         BookmarkState::new(bookmark_service),
         // CollectionState::new(collection_service),
         FeedState::new(feed_service),
@@ -158,16 +192,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         TagState::new(tag_service),
     );
 
-    let redis = Client::open(app_config.redis_url)?;
     let redis_conn = redis.get_multiplexed_async_connection().await?;
-
     let session_store = RedisStore::new(redis_conn);
 
     let mut api = Api::new(&api_state, &app_config.api_prefix)
         .build()
         .with_state(api_state)
         .layer(
-            SessionManagerLayer::new(session_store.clone())
+            SessionManagerLayer::new(session_store)
                 .with_secure(false)
                 .with_expiry(Expiry::OnInactivity(time::Duration::days(1))),
         )
@@ -195,26 +227,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let listener = TcpListener::bind(format!("{}:{}", app_config.host, app_config.port)).await?;
+    let server = axum::serve(listener, api);
 
-    let server = async { axum::serve(listener, api).await };
-
-    let refresh_task_worker = if app_config.refresh_enabled {
-        Box::pin(run_cron_worker(
-            &app_config.cron_refresh,
-            refresh_feeds_task,
-        ))
-    } else {
-        Box::pin(std::future::ready(())) as Pin<Box<dyn Future<Output = ()> + Send>>
-    };
-
-    let _ = tokio::join!(
-        server,
-        run_task_worker(scrape_feed_receiver, scrape_feed_task),
-        run_task_worker(scrape_bookmark_receiver, scrape_bookmark_task),
-        run_task_worker(import_feeds_receiver, import_feeds_task),
-        run_task_worker(import_bookmarks_receiver, import_bookmarks_task),
-        refresh_task_worker,
-    );
+    let _ = tokio::join!(monitor, server);
 
     Ok(())
 }

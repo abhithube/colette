@@ -4,10 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+apalis.workspace = true
+apalis-redis.workspace = true
+chrono.workspace = true
 colette-core.workspace = true
-colette-queue.workspace = true
 futures.workspace = true
+redis.workspace = true
 serde.workspace = true
-tower.workspace = true
-tracing.workspace = true
+tokio.workspace = true
 url.workspace = true

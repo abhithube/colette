@@ -1,59 +1,52 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::Arc,
-    task::{Context, Poll},
-};
+use std::sync::Arc;
 
-use colette_core::feed::{self, FeedService};
-use colette_queue::Queue;
+use apalis::prelude::{Data, Storage};
+use apalis_redis::RedisStorage;
+use chrono::{DateTime, Utc};
+use colette_core::feed::FeedService;
 use futures::StreamExt;
-use tower::Service;
+use tokio::sync::Mutex;
 use url::Url;
 
 use crate::scrape_feed;
 
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct Job(pub DateTime<Utc>);
+
+impl From<DateTime<Utc>> for Job {
+    fn from(value: DateTime<Utc>) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone)]
-pub struct Task<Q> {
+pub struct State {
     service: Arc<FeedService>,
-    scrape_feed_queue: Q,
+    storage: Arc<Mutex<RedisStorage<scrape_feed::Job>>>,
 }
 
-impl<Q: Queue<Data = scrape_feed::Data>> Task<Q> {
-    pub fn new(service: Arc<FeedService>, scrape_feed_queue: Q) -> Self {
-        Self {
-            service,
-            scrape_feed_queue,
-        }
+impl State {
+    pub fn new(
+        service: Arc<FeedService>,
+        storage: Arc<Mutex<RedisStorage<scrape_feed::Job>>>,
+    ) -> Self {
+        Self { service, storage }
     }
 }
 
-impl<Q: Queue<Data = scrape_feed::Data> + Clone> Service<()> for Task<Q> {
-    type Response = ();
-    type Error = feed::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+pub async fn run(_job: Job, data: Data<State>) -> Result<(), apalis::prelude::Error> {
+    let mut storage = data.storage.lock().await;
 
-    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
+    let mut stream = data.service.stream();
+
+    while let Some(Ok(raw)) = stream.next().await {
+        let url = Url::parse(&raw).unwrap();
+
+        storage
+            .push(scrape_feed::Job::new(url))
+            .await
+            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }
 
-    fn call(&mut self, _req: ()) -> Self::Future {
-        let service = self.service.clone();
-        let scrape_feed_queue = self.scrape_feed_queue.clone();
-
-        Box::pin(async move {
-            let mut stream = service.stream();
-
-            while let Some(Ok(raw)) = stream.next().await {
-                let url = Url::parse(&raw).unwrap();
-
-                scrape_feed_queue
-                    .push(scrape_feed::Data { url })
-                    .await
-                    .unwrap()
-            }
-
-            Ok(())
-        })
-    }
+    Ok(())
 }

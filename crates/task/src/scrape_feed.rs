@@ -1,42 +1,24 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    sync::Arc,
-    task::{Context, Poll},
-};
+use std::sync::Arc;
 
-use colette_core::scraper::{self, FeedCreate, ScraperService};
-use tower::Service;
+use apalis::prelude::Data;
+use colette_core::scraper::{FeedCreate, ScraperService};
 use url::Url;
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct Data {
-    pub url: Url,
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct Job {
+    url: Url,
 }
 
-#[derive(Clone)]
-pub struct Task {
-    service: Arc<ScraperService>,
-}
-
-impl Task {
-    pub fn new(service: Arc<ScraperService>) -> Self {
-        Self { service }
+impl Job {
+    pub fn new(url: Url) -> Self {
+        Self { url }
     }
 }
 
-impl Service<Data> for Task {
-    type Response = ();
-    type Error = scraper::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+pub async fn run(job: Job, data: Data<Arc<ScraperService>>) -> Result<(), apalis::prelude::Error> {
+    data.scrape_feed(FeedCreate { url: job.url })
+        .await
+        .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
 
-    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn call(&mut self, req: Data) -> Self::Future {
-        let service = self.service.clone();
-
-        Box::pin(async move { service.scrape_feed(FeedCreate { url: req.url }).await })
-    }
+    Ok(())
 }

@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use apalis::prelude::Storage;
+use apalis_redis::RedisStorage;
 use axum::{
     extract::State,
     http::{HeaderMap, HeaderValue, StatusCode},
@@ -7,8 +9,8 @@ use axum::{
 };
 use bytes::Bytes;
 use colette_core::backup::BackupService;
-use colette_queue::Queue;
 use colette_task::{import_bookmarks, import_feeds};
+use tokio::sync::Mutex;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -17,20 +19,20 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BackupState {
     backup_service: Arc<BackupService>,
-    import_feeds_queue: Arc<dyn Queue<Data = import_feeds::Data>>,
-    import_bookmarks_queue: Arc<dyn Queue<Data = import_bookmarks::Data>>,
+    import_feeds_storage: Arc<Mutex<RedisStorage<import_feeds::Job>>>,
+    import_bookmarks_storage: Arc<Mutex<RedisStorage<import_bookmarks::Job>>>,
 }
 
 impl BackupState {
     pub fn new(
         backup_service: Arc<BackupService>,
-        import_feeds_queue: Arc<dyn Queue<Data = import_feeds::Data>>,
-        import_bookmarks_queue: Arc<dyn Queue<Data = import_bookmarks::Data>>,
+        import_feeds_storage: Arc<Mutex<RedisStorage<import_feeds::Job>>>,
+        import_bookmarks_storage: Arc<Mutex<RedisStorage<import_bookmarks::Job>>>,
     ) -> Self {
         Self {
             backup_service,
-            import_feeds_queue,
-            import_bookmarks_queue,
+            import_feeds_storage,
+            import_bookmarks_storage,
         }
     }
 }
@@ -69,11 +71,12 @@ pub async fn import_opml(
         .await
     {
         Ok(urls) => {
-            state
-                .import_feeds_queue
-                .push(import_feeds::Data { urls })
+            let mut storage = state.import_feeds_storage.lock().await;
+
+            storage
+                .push(import_feeds::Job::new(urls))
                 .await
-                .map_err(Error::Unknown)?;
+                .map_err(|e| Error::Unknown(e.into()))?;
 
             Ok(ImportResponse::NoContent)
         }
@@ -121,11 +124,12 @@ pub async fn import_netscape(
         .await
     {
         Ok(urls) => {
-            state
-                .import_bookmarks_queue
-                .push(import_bookmarks::Data { urls })
+            let mut storage = state.import_bookmarks_storage.lock().await;
+
+            storage
+                .push(import_bookmarks::Job::new(urls))
                 .await
-                .map_err(Error::Unknown)?;
+                .map_err(|e| Error::Unknown(e.into()))?;
 
             Ok(ImportResponse::NoContent)
         }

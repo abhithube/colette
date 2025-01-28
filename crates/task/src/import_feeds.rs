@@ -1,53 +1,36 @@
-use std::{
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll},
-};
+use std::sync::Arc;
 
-use colette_core::scraper;
-use colette_queue::Queue;
-use tower::Service;
+use apalis::prelude::{Data, Storage};
+use apalis_redis::RedisStorage;
+use redis::aio::MultiplexedConnection;
+use tokio::sync::Mutex;
 use url::Url;
 
 use crate::scrape_feed;
 
-#[derive(Debug, Clone, serde::Serialize)]
-pub struct Data {
-    pub urls: Vec<Url>,
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct Job {
+    urls: Vec<Url>,
 }
 
-#[derive(Clone)]
-pub struct Task<Q> {
-    scrape_feed_queue: Q,
-}
-
-impl<Q: Queue<Data = scrape_feed::Data>> Task<Q> {
-    pub fn new(scrape_feed_queue: Q) -> Self {
-        Self { scrape_feed_queue }
+impl Job {
+    pub fn new(urls: Vec<Url>) -> Self {
+        Self { urls }
     }
 }
 
-impl<Q: Queue<Data = scrape_feed::Data> + Clone> Service<Data> for Task<Q> {
-    type Response = ();
-    type Error = scraper::Error;
-    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+pub async fn run(
+    job: Job,
+    data: Data<Arc<Mutex<RedisStorage<scrape_feed::Job, MultiplexedConnection>>>>,
+) -> Result<(), apalis::prelude::Error> {
+    let mut storage = data.lock().await;
 
-    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        Poll::Ready(Ok(()))
+    for url in job.urls {
+        storage
+            .push(scrape_feed::Job::new(url))
+            .await
+            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }
 
-    fn call(&mut self, req: Data) -> Self::Future {
-        let scrape_feed_queue = self.scrape_feed_queue.clone();
-
-        Box::pin(async move {
-            for url in req.urls {
-                scrape_feed_queue
-                    .push(scrape_feed::Data { url })
-                    .await
-                    .unwrap();
-            }
-
-            Ok(())
-        })
-    }
+    Ok(())
 }
