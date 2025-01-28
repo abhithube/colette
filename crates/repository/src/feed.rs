@@ -7,7 +7,7 @@ use colette_core::{
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sqlx::{postgres::PgRow, types::Json, PgConnection, Pool, Postgres, Row};
+use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -37,11 +37,6 @@ impl Findable for PostgresFeedRepository {
             params.tags,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| FeedSelect::from(e).0)
-                .collect::<Vec<_>>()
-        })
         .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -186,26 +181,6 @@ impl FeedRepository for PostgresFeedRepository {
             .fetch(&self.pool)
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct FeedSelect(pub(crate) Feed);
-
-impl From<PgRow> for FeedSelect {
-    fn from(value: PgRow) -> Self {
-        Self(Feed {
-            id: value.get("id"),
-            link: value.get("link"),
-            title: value.get("title"),
-            xml_url: value.get("xml_url"),
-            original_title: value.get("original_title"),
-            folder_id: value.get("folder_id"),
-            tags: value
-                .get::<Option<Json<Vec<colette_core::Tag>>>, _>("tags")
-                .map(|e| e.0),
-            unread_count: Some(value.get("unread_count")),
-        })
     }
 }
 

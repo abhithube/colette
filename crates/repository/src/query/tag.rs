@@ -1,6 +1,8 @@
-use colette_core::tag::{Cursor, TagType};
-
-use sqlx::{postgres::PgRow, PgExecutor, Postgres, QueryBuilder};
+use colette_core::{
+    tag::{Cursor, TagType},
+    Tag,
+};
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
 pub async fn select<'a>(
@@ -9,48 +11,30 @@ pub async fn select<'a>(
     user_id: Uuid,
     limit: Option<i64>,
     cursor: Option<Cursor>,
-    tag_type: TagType,
-) -> sqlx::Result<Vec<PgRow>> {
-    let mut qb = QueryBuilder::<Postgres>::new(
+    _tag_type: TagType,
+) -> sqlx::Result<Vec<Tag>> {
+    sqlx::query_as!(
+        Tag,
         "
 SELECT t.id, t.title, count(uft.user_feed_id) AS feed_count, count(ubt.user_bookmark_id) AS bookmark_count
 FROM tags t
 LEFT JOIN user_feed_tags uft ON uft.tag_id = t.id
 LEFT JOIN user_bookmark_tags ubt ON ubt.tag_id = t.id
-WHERE t.user_id = ",
-    );
-    qb.push_bind(user_id);
-
-    if let Some(id) = id {
-        qb.push(" AND t.id = ");
-        qb.push_bind(id);
-    }
-
-    if let Some(cursor) = cursor {
-        qb.push(" t.title > ");
-        qb.push_bind(cursor.title);
-    }
-
-    qb.push(" GROUP BY t.id, t.title");
-
-    match tag_type {
-        TagType::Feeds => {
-            qb.push(" HAVING count(uft.user_feed_id) > 0");
-        }
-        TagType::Bookmarks => {
-            qb.push(" HAVING count(ubt.user_bookmark_id) > 0");
-        }
-        _ => {}
-    }
-
-    qb.push(" ORDER BY t.title ASC");
-
-    if let Some(limit) = limit {
-        qb.push(" LIMIT ");
-        qb.push_bind(limit);
-    }
-
-    qb.build().fetch_all(ex).await
+WHERE t.user_id = $1
+AND ($2::bool OR t.id = $3)
+AND ($4::bool OR t.title > $5)
+GROUP BY t.id, t.title
+ORDER BY t.title ASC
+LIMIT $6",
+        user_id,
+        id.is_none(),
+        id,
+        cursor.is_none(),
+        cursor.map(|e| e.title),
+        limit
+    )
+    .fetch_all(ex)
+    .await
 }
 
 pub async fn select_by_title<'a>(
@@ -107,23 +91,21 @@ pub async fn update<'a>(
     user_id: Uuid,
     title: Option<String>,
 ) -> sqlx::Result<()> {
-    let mut qb: QueryBuilder<Postgres> = QueryBuilder::new("UPDATE tags SET ");
-
-    let mut separated = qb.separated(", ");
-
-    if let Some(title) = title {
-        separated.push("title = ");
-        separated.push_bind_unseparated(title);
-    }
-
-    separated.push("updated_at = now()");
-
-    qb.push(" WHERE id = ");
-    qb.push_bind(id);
-    qb.push(" AND user_id = ");
-    qb.push_bind(user_id);
-
-    qb.build().execute(ex).await?;
+    sqlx::query!(
+        "
+UPDATE tags
+SET
+    title = CASE WHEN $3 THEN $4 ELSE title END,
+    updated_at = now()
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id,
+        title.is_some(),
+        title
+    )
+    .execute(ex)
+    .await?;
 
     Ok(())
 }

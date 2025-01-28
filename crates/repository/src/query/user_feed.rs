@@ -1,6 +1,32 @@
-use colette_core::feed::Cursor;
-use sqlx::{postgres::PgRow, PgExecutor, Postgres, QueryBuilder};
+use colette_core::{feed::Cursor, Feed, Tag};
+use sqlx::{types::Json, PgExecutor};
 use uuid::Uuid;
+
+pub struct FeedRow {
+    pub id: Uuid,
+    pub link: String,
+    pub title: Option<String>,
+    pub xml_url: Option<String>,
+    pub original_title: String,
+    pub folder_id: Option<Uuid>,
+    pub tags: Option<Json<Vec<Tag>>>,
+    pub unread_count: Option<i64>,
+}
+
+impl From<FeedRow> for Feed {
+    fn from(value: FeedRow) -> Self {
+        Self {
+            id: value.id,
+            link: value.link,
+            title: value.title,
+            xml_url: value.xml_url,
+            original_title: value.original_title,
+            folder_id: value.folder_id,
+            tags: value.tags.map(|e| e.0),
+            unread_count: value.unread_count,
+        }
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub async fn select<'a>(
@@ -10,13 +36,20 @@ pub async fn select<'a>(
     user_id: Uuid,
     cursor: Option<Cursor>,
     limit: Option<i64>,
-    tag_titles: Option<Vec<String>>,
-) -> sqlx::Result<Vec<PgRow>> {
-    let mut qb = QueryBuilder::<Postgres>::new("
+    tags: Option<Vec<String>>,
+) -> sqlx::Result<Vec<Feed>> {
+    let (has_folder, folder_id) = match folder_id {
+        Some(folder_id) => (true, folder_id),
+        None => (false, None),
+    };
+
+    sqlx::query_as!(
+        FeedRow,
+        r#"
 WITH unread_counts AS (
     SELECT uf.id as uf_id, count(ufe.id) as count
     FROM user_feeds uf
-    INNER JOIN user_feed_entries ufe ON ufe.user_feed_id = uf.id
+    INNER JOIN user_feed_entries ufe ON ufe.user_feed_id = uf.id AND NOT ufe.has_read
     GROUP BY uf.id
 ),
 json_tags AS (
@@ -31,53 +64,35 @@ json_tags AS (
 SELECT
     uf.id, uf.title, uf.folder_id,
     f.link, f.title AS original_title, f.xml_url,
-    jt.tags as tags,
+    jt.tags as "tags: Json<Vec<Tag>>",
     coalesce(uc.count, 0) AS unread_count
 FROM user_feeds uf
 INNER JOIN feeds f ON f.id = uf.feed_id
 LEFT JOIN json_tags jt ON jt.uf_id = uf.id
 LEFT JOIN unread_counts uc ON uc.uf_id = uf.id
-WHERE uf.user_id = ");
-
-    qb.push_bind(user_id);
-
-    if let Some(id) = id {
-        qb.push(" AND uf.id = ");
-        qb.push_bind(id);
-    }
-
-    if let Some(folder_id) = folder_id {
-        if folder_id.is_some() {
-            qb.push(" AND uf.folder_id = ");
-            qb.push_bind(folder_id);
-        } else {
-            qb.push(" AND uf.folder_id IS NULL");
-        }
-    }
-
-    if let Some(tags) = tag_titles {
-        qb.push(" AND EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS(jt.tags) AS t WHERE t ->> 'title' IN )");
-        qb.push_bind(tags);
-    }
-
-    if let Some(cursor) = cursor {
-        qb.push(" AND (coalesce(uf.title, f.title), uf.id) < (");
-
-        let mut separated = qb.separated(", ");
-        separated.push_bind(cursor.title);
-        separated.push_bind(cursor.id);
-
-        separated.push_unseparated(")");
-    }
-
-    qb.push(" ORDER BY coalesce(uf.title, f.title) ASC, uf.id ASC");
-
-    if let Some(limit) = limit {
-        qb.push(" LIMIT ");
-        qb.push_bind(limit);
-    }
-
-    qb.build().fetch_all(ex).await
+WHERE uf.user_id = $1
+AND ($2::bool OR uf.id = $3)
+AND ($4::bool OR CASE WHEN $5::uuid IS NULL THEN uf.folder_id IS NULL ELSE uf.folder_id = $5 END)
+AND ($6::bool OR EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS(jt.tags) AS t WHERE t ->> 'title' = any($7)))
+AND ($8::bool OR (coalesce(uf.title, f.title), uf.id) > ($9, $10))
+ORDER BY coalesce(uf.title, f.title) ASC, uf.id ASC
+LIMIT $11"#,
+        user_id,
+        id.is_none(),
+        id,
+        !has_folder,
+        folder_id,
+        tags.is_none(),
+        &tags.unwrap_or_default(),
+        cursor.is_none(),
+        cursor.as_ref().map(|e| e.title.clone()),
+        cursor.map(|e| e.id),
+        limit
+    )
+    .fetch_all(ex)
+    .await
+    .map(|e| e.into_iter().map(Feed::from)
+    .collect())
 }
 
 pub async fn select_by_unique_index<'a>(
@@ -122,27 +137,33 @@ pub async fn update<'a>(
     title: Option<Option<String>>,
     folder_id: Option<Option<Uuid>>,
 ) -> sqlx::Result<()> {
-    let mut qb = QueryBuilder::<Postgres>::new("UPDATE user_feeds SET ");
+    let (has_title, title) = match title {
+        Some(title) => (true, title),
+        None => (false, None),
+    };
+    let (has_folder, folder_id) = match folder_id {
+        Some(folder_id) => (true, folder_id),
+        None => (false, None),
+    };
 
-    let mut separated = qb.separated(", ");
-
-    if let Some(title) = title {
-        separated.push("title = ");
-        separated.push_bind_unseparated(title);
-    }
-    if let Some(folder_id) = folder_id {
-        separated.push("folder_id = ");
-        separated.push_bind_unseparated(folder_id);
-    }
-
-    separated.push("updated_at = now()");
-
-    qb.push(" WHERE id = ");
-    qb.push_bind(id);
-    qb.push(" AND user_id = ");
-    qb.push_bind(user_id);
-
-    qb.build().execute(ex).await?;
+    sqlx::query!(
+        "
+UPDATE user_feeds
+SET
+    title = CASE WHEN $3 THEN $4 ELSE title END,
+    folder_id = CASE WHEN $5 THEN $6 ELSE folder_id END,
+    updated_at = now()
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id,
+        has_title,
+        title,
+        has_folder,
+        folder_id
+    )
+    .execute(ex)
+    .await?;
 
     Ok(())
 }

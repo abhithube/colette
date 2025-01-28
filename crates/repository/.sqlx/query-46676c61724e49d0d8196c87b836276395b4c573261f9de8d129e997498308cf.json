@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nUPDATE user_feed_entries\nSET\n    has_read = CASE WHEN $3 THEN $4 ELSE has_read END,\n    updated_at = now()\nWHERE id = $1\nAND user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "46676c61724e49d0d8196c87b836276395b4c573261f9de8d129e997498308cf"
+}

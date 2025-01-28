@@ -3,7 +3,7 @@ use colette_core::{
     tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
     Tag,
 };
-use sqlx::{postgres::PgRow, Pool, Postgres, Row};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -32,11 +32,6 @@ impl Findable for PostgresTagRepository {
             params.tag_type,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| TagSelect::from(e).0)
-                .collect::<Vec<_>>()
-        })
         .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -92,17 +87,3 @@ impl Deletable for PostgresTagRepository {
 }
 
 impl TagRepository for PostgresTagRepository {}
-
-#[derive(Debug, Clone)]
-struct TagSelect(Tag);
-
-impl From<PgRow> for TagSelect {
-    fn from(value: PgRow) -> Self {
-        Self(Tag {
-            id: value.get("id"),
-            title: value.get("title"),
-            bookmark_count: Some(value.get("bookmark_count")),
-            feed_count: Some(value.get("feed_count")),
-        })
-    }
-}

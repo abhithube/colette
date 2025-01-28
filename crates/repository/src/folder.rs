@@ -3,7 +3,7 @@ use colette_core::{
     folder::{Error, FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
     Folder,
 };
-use sqlx::{postgres::PgRow, Pool, Postgres, Row};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -32,11 +32,6 @@ impl Findable for PostgresFolderRepository {
             params.cursor,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| FolderSelect::from(e).0)
-                .collect::<Vec<_>>()
-        })
         .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -97,16 +92,3 @@ impl Deletable for PostgresFolderRepository {
 }
 
 impl FolderRepository for PostgresFolderRepository {}
-
-#[derive(Debug, Clone)]
-pub(crate) struct FolderSelect(pub(crate) Folder);
-
-impl From<PgRow> for FolderSelect {
-    fn from(value: PgRow) -> Self {
-        Self(Folder {
-            id: value.get("id"),
-            title: value.get("title"),
-            parent_id: value.get("parent_id"),
-        })
-    }
-}

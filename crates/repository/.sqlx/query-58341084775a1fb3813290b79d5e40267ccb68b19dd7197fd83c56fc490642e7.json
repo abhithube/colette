@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nWITH unread_counts AS (\n    SELECT uf.id as uf_id, count(ufe.id) as count\n    FROM user_feeds uf\n    INNER JOIN user_feed_entries ufe ON ufe.user_feed_id = uf.id AND NOT ufe.has_read\n    GROUP BY uf.id\n),\njson_tags AS (\n    SELECT\n        uf.id AS uf_id,\n        jsonb_agg(jsonb_build_object('id', t.id, 'title', t.title) ORDER BY t.title) FILTER (WHERE t.id IS NOT NULL) as tags\n    FROM user_feeds uf\n    INNER JOIN user_feed_tags uft ON uft.user_feed_id = uf.id\n    INNER JOIN tags t ON t.id = uft.tag_id\n    GROUP BY uf.id\n)\nSELECT\n    uf.id, uf.title, uf.folder_id,\n    f.link, f.title AS original_title, f.xml_url,\n    jt.tags as \"tags: Json<Vec<Tag>>\",\n    coalesce(uc.count, 0) AS unread_count\nFROM user_feeds uf\nINNER JOIN feeds f ON f.id = uf.feed_id\nLEFT JOIN json_tags jt ON jt.uf_id = uf.id\nLEFT JOIN unread_counts uc ON uc.uf_id = uf.id\nWHERE uf.user_id = $1\nAND ($2::bool OR uf.id = $3)\nAND ($4::bool OR CASE WHEN $5::uuid IS NULL THEN uf.folder_id IS NULL ELSE uf.folder_id = $5 END)\nAND ($6::bool OR EXISTS (SELECT 1 FROM JSONB_ARRAY_ELEMENTS(jt.tags) AS t WHERE t ->> 'title' = any($7)))\nAND ($8::bool OR (coalesce(uf.title, f.title), uf.id) > ($9, $10))\nORDER BY coalesce(uf.title, f.title) ASC, uf.id ASC\nLIMIT $11",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "folder_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "original_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "xml_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags: Json<Vec<Tag>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "TextArray",
+        "Bool",
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "58341084775a1fb3813290b79d5e40267ccb68b19dd7197fd83c56fc490642e7"
+}

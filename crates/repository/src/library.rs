@@ -4,8 +4,6 @@ use colette_core::{
 };
 use sqlx::{Pool, Postgres};
 
-use super::{bookmark::BookmarkSelect, feed::FeedSelect, folder::FolderSelect};
-
 #[derive(Debug, Clone)]
 pub struct PostgresLibraryRepository {
     pool: Pool<Postgres>,
@@ -32,11 +30,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| LibraryItem::Folder(FolderSelect::from(e).0))
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(LibraryItem::Folder).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
 
         let mut feeds = crate::query::user_feed::select(
@@ -49,11 +43,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| LibraryItem::Feed(FeedSelect::from(e).0))
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(LibraryItem::Feed).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
 
         let mut bookmarks = crate::query::user_bookmark::select(
@@ -66,11 +56,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| LibraryItem::Bookmark(BookmarkSelect::from(e).0))
-                .collect::<Vec<_>>()
-        })
+        .map(|e| e.into_iter().map(LibraryItem::Bookmark).collect::<Vec<_>>())
         .map_err(|e| Error::Unknown(e.into()))?;
 
         let mut library_items = Vec::new();

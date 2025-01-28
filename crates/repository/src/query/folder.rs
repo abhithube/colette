@@ -1,5 +1,5 @@
 use colette_core::folder::Cursor;
-use sqlx::{postgres::PgRow, PgExecutor, Postgres, QueryBuilder};
+use sqlx::PgExecutor;
 use uuid::Uuid;
 
 pub async fn select<'a>(
@@ -9,37 +9,34 @@ pub async fn select<'a>(
     parent_id: Option<Option<Uuid>>,
     limit: Option<i64>,
     cursor: Option<Cursor>,
-) -> sqlx::Result<Vec<PgRow>> {
-    let mut qb =
-        QueryBuilder::<Postgres>::new("SELECT id, title, parent_id FROM folders WHERE user_id = ");
-    qb.push_bind(user_id);
+) -> sqlx::Result<Vec<colette_core::Folder>> {
+    let (has_parent, parent_id) = match parent_id {
+        Some(parent_id) => (true, parent_id),
+        None => (false, None),
+    };
 
-    if let Some(id) = id {
-        qb.push(" AND id = ");
-        qb.push_bind(id);
-    }
-    if let Some(parent_id) = parent_id {
-        if parent_id.is_some() {
-            qb.push(" AND parent_id = ");
-            qb.push_bind(parent_id);
-        } else {
-            qb.push(" AND parent_id IS NULL");
-        }
-    }
-
-    if let Some(cursor) = cursor {
-        qb.push(" title > ");
-        qb.push_bind(cursor.title);
-    }
-
-    qb.push(" ORDER BY title ASC");
-
-    if let Some(limit) = limit {
-        qb.push(" LIMIT ");
-        qb.push_bind(limit);
-    }
-
-    qb.build().fetch_all(ex).await
+    sqlx::query_as!(
+        colette_core::Folder,
+        "
+SELECT id, title, parent_id
+FROM folders
+WHERE user_id = $1
+AND ($2::bool OR id = $3)
+AND ($4::bool OR CASE WHEN $5::uuid IS NULL THEN parent_id IS NULL ELSE parent_id = $5 END)
+AND ($6::bool OR title > $7)
+ORDER BY title ASC
+LIMIT $8",
+        user_id,
+        id.is_none(),
+        id,
+        !has_parent,
+        parent_id,
+        cursor.is_none(),
+        cursor.map(|e| e.title),
+        limit
+    )
+    .fetch_all(ex)
+    .await
 }
 
 pub async fn insert<'a>(
@@ -65,27 +62,29 @@ pub async fn update<'a>(
     title: Option<String>,
     parent_id: Option<Option<Uuid>>,
 ) -> sqlx::Result<()> {
-    let mut qb = QueryBuilder::<Postgres>::new("UPDATE folders SET ");
+    let (has_parent, parent_id) = match parent_id {
+        Some(parent_id) => (true, parent_id),
+        None => (false, None),
+    };
 
-    let mut separated = qb.separated(", ");
-
-    if let Some(title) = title {
-        separated.push("title = ");
-        separated.push_bind_unseparated(title);
-    }
-    if let Some(parent_id) = parent_id {
-        separated.push("parent_id = ");
-        separated.push_bind_unseparated(parent_id);
-    }
-
-    separated.push("updated_at = now()");
-
-    qb.push(" WHERE id = ");
-    qb.push_bind(id);
-    qb.push(" AND user_id = ");
-    qb.push_bind(user_id);
-
-    qb.build().execute(ex).await?;
+    sqlx::query!(
+        "
+UPDATE folders
+SET
+    title = CASE WHEN $3 THEN $4 ELSE title END,
+    parent_id = CASE WHEN $5 THEN $6 ELSE parent_id END,
+    updated_at = now()
+WHERE id = $1
+AND user_id = $2",
+        id,
+        user_id,
+        title.is_some(),
+        title,
+        has_parent,
+        parent_id
+    )
+    .execute(ex)
+    .await?;
 
     Ok(())
 }

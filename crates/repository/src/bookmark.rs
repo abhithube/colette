@@ -6,7 +6,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
-use sqlx::{postgres::PgRow, types::Json, PgConnection, Pool, Postgres, Row};
+use sqlx::{PgConnection, Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -36,11 +36,6 @@ impl Findable for PostgresBookmarkRepository {
             params.tags,
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| BookmarkSelect::from(e).0)
-                .collect::<Vec<_>>()
-        })
         .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -120,12 +115,12 @@ impl Updatable for PostgresBookmarkRepository {
             crate::query::user_bookmark::update(
                 &mut *tx,
                 params.id,
+                params.user_id,
                 data.title,
                 data.thumbnail_url,
                 data.published_at,
                 data.author,
                 data.folder_id,
-                params.user_id,
             )
             .await
             .map_err(|e| match e {
@@ -176,31 +171,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         .map_err(|e| Error::Unknown(e.into()))?;
 
         Ok(())
-    }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct BookmarkSelect(pub(crate) Bookmark);
-
-impl From<PgRow> for BookmarkSelect {
-    fn from(value: PgRow) -> Self {
-        Self(Bookmark {
-            id: value.get("id"),
-            link: value.get("link"),
-            title: value.get("title"),
-            thumbnail_url: value.get("thumbnail_url"),
-            published_at: value.get("published_at"),
-            author: value.get("author"),
-            original_title: value.get("original_title"),
-            original_thumbnail_url: value.get("original_thumbnail_url"),
-            original_published_at: value.get("original_published_at"),
-            original_author: value.get("original_author"),
-            folder_id: value.get("folder_id"),
-            created_at: value.get("created_at"),
-            tags: value
-                .get::<Option<Json<Vec<colette_core::Tag>>>, _>("tags")
-                .map(|e| e.0),
-        })
     }
 }
 

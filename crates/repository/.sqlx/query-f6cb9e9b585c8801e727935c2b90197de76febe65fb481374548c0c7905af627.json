@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nDELETE FROM user_bookmark_tags\nWHERE user_id = $1\nAND tag_id IN (\n    SELECT id FROM tags WHERE user_id = $1 AND title = any($2)\n)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f6cb9e9b585c8801e727935c2b90197de76febe65fb481374548c0c7905af627"
+}

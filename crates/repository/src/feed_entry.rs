@@ -3,7 +3,7 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     FeedEntry,
 };
-use sqlx::{postgres::PgRow, Pool, Postgres, Row};
+use sqlx::{Pool, Postgres};
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedEntryRepository {
@@ -35,11 +35,6 @@ impl Findable for PostgresFeedEntryRepository {
             // build_case_statement(),
         )
         .await
-        .map(|e| {
-            e.into_iter()
-                .map(|e| FeedEntrySelect::from(e).0)
-                .collect::<Vec<_>>()
-        })
         .map_err(|e| Error::Unknown(e.into()))
     }
 }
@@ -70,22 +65,3 @@ impl Updatable for PostgresFeedEntryRepository {
 }
 
 impl FeedEntryRepository for PostgresFeedEntryRepository {}
-
-#[derive(Debug, Clone)]
-struct FeedEntrySelect(FeedEntry);
-
-impl From<PgRow> for FeedEntrySelect {
-    fn from(value: PgRow) -> Self {
-        Self(FeedEntry {
-            id: value.get("id"),
-            link: value.get("link"),
-            title: value.get("title"),
-            published_at: value.get("published_at"),
-            description: value.get("description"),
-            author: value.get("author"),
-            thumbnail_url: value.get("thumbnail_url"),
-            has_read: value.get("has_read"),
-            feed_id: value.get("user_feed_id"),
-        })
-    }
-}

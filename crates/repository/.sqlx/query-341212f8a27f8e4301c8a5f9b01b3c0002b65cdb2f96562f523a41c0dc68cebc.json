@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT id, title, parent_id\nFROM folders\nWHERE user_id = $1\nAND ($2::bool OR id = $3)\nAND ($4::bool OR CASE WHEN $5::uuid IS NULL THEN parent_id IS NULL ELSE parent_id = $5 END)\nAND ($6::bool OR title > $7)\nORDER BY title ASC\nLIMIT $8",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "341212f8a27f8e4301c8a5f9b01b3c0002b65cdb2f96562f523a41c0dc68cebc"
+}

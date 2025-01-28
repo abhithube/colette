@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\nSELECT\n    ufe.id, ufe.has_read, ufe.user_feed_id AS feed_id,\n    fe.link, fe.title, fe.published_at, fe.description, fe.author, fe.thumbnail_url\nFROM user_feed_entries ufe\nJOIN feed_entries fe ON fe.id = ufe.feed_entry_id\nLEFT JOIN user_feed_tags uft ON $1 AND uft.user_feed_id = ufe.user_feed_id\nLEFT JOIN tags t ON $1 AND t.id = uft.tag_id AND t.title = any($2)\nWHERE NOT $1 OR t.id IS NOT NULL\nAND ufe.user_id = $3\nAND ($4::bool OR ufe.id = $5)\nAND ($6::bool OR ufe.user_feed_id = $7)\nAND ($8::bool OR ufe.has_read = $9)\nAND ($10::bool OR (fe.published_at, ufe.id) > ($11, $12))\nORDER BY fe.published_at DESC, ufe.id DESC\nLIMIT $13",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "has_read",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 2,
+        "name": "feed_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bool",
+        "TextArray",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "0e5f01df72fefbe6a1180450524d663a185fd0cb04a08c6cbb13aba73527f1f2"
+}
