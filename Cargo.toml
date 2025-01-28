@@ -20,7 +20,10 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.95", default-features = false, features = ["std"] }
-apalis = { version = "0.6.4", default-features = false, features = ["tracing"] }
+apalis = { version = "0.6.4", default-features = false, features = [
+  "limit",
+  "tracing",
+] }
 apalis-redis = { version = "0.6.4", default-features = false, features = [
   "tokio-comp",
 ] }

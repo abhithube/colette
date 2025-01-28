@@ -16,6 +16,8 @@ impl Job {
 }
 
 pub async fn run(job: Job, data: Data<Arc<ScraperService>>) -> Result<(), apalis::prelude::Error> {
+    tracing::debug!("Scraping bookmark at URL: {}", job.url.as_str());
+
     data.scrape_bookmark(BookmarkCreate { url: job.url })
         .await
         .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;

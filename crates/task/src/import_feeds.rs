@@ -23,6 +23,8 @@ pub async fn run(
     job: Job,
     data: Data<Arc<Mutex<RedisStorage<scrape_feed::Job, MultiplexedConnection>>>>,
 ) -> Result<(), apalis::prelude::Error> {
+    tracing::debug!("Importing {} feeds", job.urls.len());
+
     let mut storage = data.lock().await;
 
     for url in job.urls {

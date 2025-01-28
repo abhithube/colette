@@ -23,6 +23,8 @@ pub async fn run(
     job: Job,
     data: Data<Arc<Mutex<RedisStorage<scrape_bookmark::Job, MultiplexedConnection>>>>,
 ) -> Result<(), apalis::prelude::Error> {
+    tracing::debug!("Importing {} bookmarks", job.urls.len());
+
     let mut storage = data.lock().await;
 
     for url in job.urls {

@@ -35,6 +35,8 @@ impl State {
 }
 
 pub async fn run(_job: Job, data: Data<State>) -> Result<(), apalis::prelude::Error> {
+    tracing::debug!("Refreshing feeds");
+
     let mut storage = data.storage.lock().await;
 
     let mut stream = data.service.stream();

@@ -1,6 +1,9 @@
 use std::{error::Error, str::FromStr, sync::Arc, time::Duration};
 
-use apalis::prelude::{Monitor, WorkerBuilder, WorkerFactoryFn};
+use apalis::{
+    layers::WorkerBuilderExt,
+    prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
+};
 use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
 use axum::http::{header, HeaderValue, Method};
@@ -131,6 +134,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let scrape_feed_storage = RedisStorage::new(redis_manager.clone());
     let scrape_feed_worker = WorkerBuilder::new("scrape-feed")
+        .enable_tracing()
+        .concurrency(5)
         .data(scraper_service.clone())
         .backend(scrape_feed_storage.clone())
         .build_fn(scrape_feed::run);
@@ -138,6 +143,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let scrape_bookmark_storage = RedisStorage::new(redis_manager.clone());
     let scrape_bookmark_worker = WorkerBuilder::new("scrape-bookmark")
+        .enable_tracing()
+        .concurrency(5)
         .data(scraper_service)
         .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
@@ -145,6 +152,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
     let import_feeds_worker = WorkerBuilder::new("import-feeds")
+        .enable_tracing()
         .data(scrape_feed_storage.clone())
         .backend(import_feeds_storage.clone())
         .build_fn(import_feeds::run);
@@ -152,6 +160,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let import_bookmarks_storage = RedisStorage::new(redis_manager);
     let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
+        .enable_tracing()
         .data(scrape_bookmark_storage)
         .backend(import_bookmarks_storage.clone())
         .build_fn(import_bookmarks::run);
@@ -160,6 +169,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let schedule = Schedule::from_str(&app_config.cron_refresh)?;
 
     let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
+        .enable_tracing()
         .data(refresh_feeds::State::new(
             feed_service.clone(),
             scrape_feed_storage,
