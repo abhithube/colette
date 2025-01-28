@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_feeds (title, folder_id, feed_id, user_id) VALUES (\n    $1, $2, $3, $4\n) RETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0c8a3efb2cf8bbbbf4b9ebeb0b5727520119d1ae28c9691545a100e40c3b58ed"
+}

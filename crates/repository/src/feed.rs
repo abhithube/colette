@@ -1,3 +1,4 @@
+use chrono::NaiveDateTime;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
@@ -27,7 +28,7 @@ impl Findable for PostgresFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::query::user_feed::select(
+        crate::common::select_feeds(
             &self.pool,
             params.id,
             params.folder_id,
@@ -53,7 +54,8 @@ impl Creatable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = crate::query::feed::select_by_url(&mut *tx, data.url.clone())
+        let feed_id = sqlx::query_file_scalar!("queries/feeds/select_by_url.sql", data.url)
+            .fetch_one(&mut *tx)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => {
@@ -63,20 +65,25 @@ impl Creatable for PostgresFeedRepository {
             })?;
 
         let pf_id = {
-            if let Some(id) =
-                crate::query::user_feed::select_by_unique_index(&mut *tx, data.user_id, feed_id)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
+            if let Some(id) = sqlx::query_file_scalar!(
+                "queries/user_feeds/select_by_index.sql",
+                data.user_id,
+                feed_id
+            )
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?
             {
                 id
             } else {
-                crate::query::user_feed::insert(
-                    &mut *tx,
+                sqlx::query_file_scalar!(
+                    "queries/user_feeds/insert.sql",
                     data.title,
                     data.folder_id,
                     feed_id,
-                    data.user_id,
+                    data.user_id
                 )
+                .fetch_one(&mut *tx)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::Database(e) if e.is_unique_violation() => {
@@ -116,14 +123,26 @@ impl Updatable for PostgresFeedRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        if data.title.is_some() {
-            crate::query::user_feed::update(
-                &mut *tx,
+        if data.title.is_some() || data.folder_id.is_some() {
+            let (has_title, title) = match data.title {
+                Some(title) => (true, title),
+                None => (false, None),
+            };
+            let (has_folder, folder_id) = match data.folder_id {
+                Some(folder_id) => (true, folder_id),
+                None => (false, None),
+            };
+
+            sqlx::query_file!(
+                "queries/user_feeds/update.sql",
                 params.id,
                 params.user_id,
-                data.title,
-                data.folder_id,
+                has_title,
+                title,
+                has_folder,
+                folder_id
             )
+            .execute(&mut *tx)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -149,7 +168,8 @@ impl Deletable for PostgresFeedRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        crate::query::user_feed::delete(&self.pool, params.id, params.user_id)
+        sqlx::query_file!("queries/user_feeds/delete.sql", params.id, params.user_id)
+            .execute(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -177,7 +197,7 @@ impl FeedRepository for PostgresFeedRepository {
     }
 
     fn stream(&self) -> BoxStream<Result<String, Error>> {
-        sqlx::query_scalar::<_, String>("SELECT coalesce(xml_url, link) AS url FROM feeds JOIN user_feeds ON user_feeds.feed_id = feeds.id")
+        sqlx::query_file_scalar!("queries/feeds/stream.sql")
             .fetch(&self.pool)
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
@@ -193,24 +213,40 @@ pub(crate) async fn create_feed_with_entries(
         let link = feed.link.to_string();
         let xml_url = if url == link { None } else { Some(url) };
 
-        crate::query::feed::insert(&mut *conn, link, feed.title, xml_url).await?
+        sqlx::query_file_scalar!("queries/feeds/insert.sql", link, feed.title, xml_url)
+            .fetch_one(&mut *conn)
+            .await?
     };
 
     if !feed.entries.is_empty() {
-        let insert_many = feed
-            .entries
-            .into_iter()
-            .map(|e| crate::query::feed_entry::InsertMany {
-                link: e.link.to_string(),
-                title: e.title,
-                published_at: e.published,
-                description: e.description,
-                author: e.author,
-                thumbnail_url: e.thumbnail.map(String::from),
-            })
-            .collect::<Vec<_>>();
+        let mut links = Vec::<String>::new();
+        let mut titles = Vec::<String>::new();
+        let mut published_ats = Vec::<NaiveDateTime>::new();
+        let mut descriptions = Vec::<Option<String>>::new();
+        let mut authors = Vec::<Option<String>>::new();
+        let mut thumbnail_urls = Vec::<Option<String>>::new();
 
-        crate::query::feed_entry::insert_many(&mut *conn, insert_many, feed_id).await?;
+        for item in feed.entries {
+            links.push(item.link.to_string());
+            titles.push(item.title);
+            published_ats.push(item.published.naive_utc());
+            descriptions.push(item.description);
+            authors.push(item.author);
+            thumbnail_urls.push(item.thumbnail.map(String::from));
+        }
+
+        sqlx::query_file_scalar!(
+            "queries/feed_entries/insert_many.sql",
+            &links,
+            &titles,
+            &published_ats,
+            &descriptions as &[Option<String>],
+            &authors as &[Option<String>],
+            &thumbnail_urls as &[Option<String>],
+            feed_id
+        )
+        .execute(&mut *conn)
+        .await?;
     }
 
     Ok(feed_id)
@@ -220,10 +256,18 @@ pub(crate) async fn link_entries_to_users(
     conn: &mut PgConnection,
     feed_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    let fe_ids = crate::query::feed_entry::select_many_by_feed_id(&mut *conn, feed_id).await?;
+    let fe_ids = sqlx::query_file_scalar!("queries/feed_entries/select_by_feed.sql", feed_id)
+        .fetch_all(&mut *conn)
+        .await?;
 
     if !fe_ids.is_empty() {
-        crate::query::user_feed_entry::insert_many(&mut *conn, &fe_ids, feed_id).await?;
+        sqlx::query_file!(
+            "queries/user_feed_entries/insert_many.sql",
+            &fe_ids,
+            feed_id
+        )
+        .execute(&mut *conn)
+        .await?;
     }
 
     Ok(())
@@ -235,11 +279,22 @@ pub(crate) async fn link_tags(
     tags: &[String],
     user_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    crate::query::user_feed_tag::delete_many(&mut *conn, tags, user_id).await?;
+    sqlx::query_file!("queries/user_feed_tags/delete_many.sql", user_id, tags)
+        .execute(&mut *conn)
+        .await?;
 
-    crate::query::tag::insert_many(&mut *conn, tags, user_id).await?;
+    sqlx::query_file_scalar!("queries/tags/insert_many.sql", tags, user_id)
+        .execute(&mut *conn)
+        .await?;
 
-    crate::query::user_feed_tag::insert_many(&mut *conn, user_feed_id, tags, user_id).await?;
+    sqlx::query_file_scalar!(
+        "queries/user_feed_tags/insert_many.sql",
+        user_feed_id,
+        tags,
+        user_id
+    )
+    .execute(&mut *conn)
+    .await?;
 
     Ok(())
 }

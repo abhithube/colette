@@ -1,0 +1,74 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH unread_counts AS (\n    SELECT uf.id AS uf_id, count(ufe.id) AS count\n    FROM user_feeds uf\n    INNER JOIN\n        user_feed_entries ufe\n        ON ufe.user_feed_id = uf.id AND NOT ufe.has_read\n    GROUP BY uf.id\n),\n\njson_tags AS (\n    SELECT\n        uf.id AS uf_id,\n        jsonb_agg(\n            jsonb_build_object('id', t.id, 'title', t.title) ORDER BY t.title\n        ) FILTER (WHERE t.id IS NOT NULL) AS tags\n    FROM user_feeds uf\n    INNER JOIN user_feed_tags uft ON uft.user_feed_id = uf.id\n    INNER JOIN tags t ON t.id = uft.tag_id\n    GROUP BY uf.id\n)\n\nSELECT\n    uf.id,\n    uf.title,\n    uf.folder_id,\n    f.link,\n    f.title AS original_title,\n    f.xml_url,\n    jt.tags AS \"tags: Json<Vec<Tag>>\",\n    coalesce(uc.count, 0) AS unread_count\nFROM user_feeds uf\nINNER JOIN feeds f ON f.id = uf.feed_id\nLEFT JOIN json_tags jt ON jt.uf_id = uf.id\nLEFT JOIN unread_counts uc ON uc.uf_id = uf.id\nWHERE\n    uf.user_id = $1\n    AND ($2::bool OR uf.id = $3)\n    AND (\n        $4::bool\n        OR CASE\n            WHEN $5::uuid IS NULL THEN uf.folder_id IS NULL ELSE\n                uf.folder_id = $5\n        END\n    )\n    AND (\n        $6::bool\n        OR EXISTS (\n            SELECT t.*\n            FROM jsonb_array_elements(jt.tags) t\n            WHERE t ->> 'title' = any($7)\n        )\n    )\n    AND ($8::bool OR (coalesce(uf.title, f.title), uf.id) > ($9, $10))\nORDER BY coalesce(uf.title, f.title) ASC, uf.id ASC\nLIMIT $11\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "folder_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "original_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "xml_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags: Json<Vec<Tag>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "TextArray",
+        "Bool",
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "64ca465aed6cc92df4acd7b17a9344b6acdf41edf0de3dbae99bf26aac4144c3"
+}

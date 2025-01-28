@@ -23,7 +23,7 @@ impl Findable for PostgresFolderRepository {
     type Output = Result<Vec<Folder>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::query::folder::select(
+        crate::common::select_folders(
             &self.pool,
             params.id,
             params.user_id,
@@ -42,9 +42,15 @@ impl Creatable for PostgresFolderRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        crate::query::folder::insert(&self.pool, data.title.clone(), data.parent_id, data.user_id)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))
+        sqlx::query_file_scalar!(
+            "queries/folders/insert.sql",
+            data.title,
+            data.parent_id,
+            data.user_id
+        )
+        .fetch_one(&self.pool)
+        .await
+        .map_err(|e| Error::Unknown(e.into()))
     }
 }
 
@@ -55,14 +61,22 @@ impl Updatable for PostgresFolderRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() {
-            crate::query::folder::update(
-                &self.pool,
+        if data.title.is_some() || data.parent_id.is_some() {
+            let (has_parent, parent_id) = match data.parent_id {
+                Some(parent_id) => (true, parent_id),
+                None => (false, None),
+            };
+
+            sqlx::query_file!(
+                "queries/folders/update.sql",
                 params.id,
                 params.user_id,
+                data.title.is_some(),
                 data.title,
-                data.parent_id,
+                has_parent,
+                parent_id
             )
+            .execute(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -80,7 +94,8 @@ impl Deletable for PostgresFolderRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        crate::query::folder::delete(&self.pool, params.id, params.user_id)
+        sqlx::query_file!("queries/folders/delete.sql", params.id, params.user_id)
+            .execute(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),

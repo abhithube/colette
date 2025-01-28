@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_bookmark_tags (user_bookmark_id, tag_id, user_id)\nSELECT $1 AS user_bookmark_id, id, user_id\nFROM tags\nWHERE user_id = $3 AND title = any($2) ON CONFLICT (\n    user_bookmark_id, tag_id\n) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4f56751daf9883b41e441865b2d82bd12c716be12d03ecf7beb3799fe4e3ef5f"
+}

@@ -24,18 +24,24 @@ impl Findable for PostgresUserRepository {
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         match params {
-            UserFindParams::Id(id) => crate::query::user::select_by_id(&self.pool, id)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
-                    _ => Error::Unknown(e.into()),
-                }),
-            UserFindParams::Email(email) => crate::query::user::select_by_email(&self.pool, &email)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
-                    _ => Error::Unknown(e.into()),
-                }),
+            UserFindParams::Id(id) => {
+                sqlx::query_file_as!(User, "queries/users/select_by_id.sql", id)
+                    .fetch_one(&self.pool)
+                    .await
+                    .map_err(|e| match e {
+                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
+                        _ => Error::Unknown(e.into()),
+                    })
+            }
+            UserFindParams::Email(email) => {
+                sqlx::query_file_as!(User, "queries/users/select_by_email.sql", email)
+                    .fetch_one(&self.pool)
+                    .await
+                    .map_err(|e| match e {
+                        sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
+                        _ => Error::Unknown(e.into()),
+                    })
+            }
         }
     }
 }
@@ -46,7 +52,8 @@ impl Creatable for PostgresUserRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        crate::query::user::insert(&self.pool, data.email.clone(), data.password)
+        sqlx::query_file_scalar!("queries/users/insert.sql", data.email, data.password)
+            .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.email),

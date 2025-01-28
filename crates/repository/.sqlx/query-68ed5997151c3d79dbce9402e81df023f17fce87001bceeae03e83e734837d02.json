@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO feed_entries (\n    link,\n    title,\n    published_at,\n    description,\n    author,\n    thumbnail_url,\n    feed_id,\n    updated_at\n)\nSELECT *, $7::uuid AS feed_id, now() AS updated_at\nFROM\n    unnest(\n        $1::text [],\n        $2::text [],\n        $3::timestamp [],\n        $4::text [],\n        $5::text [],\n        $6::text []\n    )\nON CONFLICT (feed_id, link) DO UPDATE SET title\n= excluded.title,\npublished_at = excluded.published_at,\ndescription = excluded.description,\nauthor = excluded.author,\nthumbnail_url = excluded.thumbnail_url,\nupdated_at = excluded.updated_at\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "TextArray",
+        "TimestampArray",
+        "TextArray",
+        "TextArray",
+        "TextArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "68ed5997151c3d79dbce9402e81df023f17fce87001bceeae03e83e734837d02"
+}

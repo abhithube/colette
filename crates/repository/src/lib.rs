@@ -13,6 +13,7 @@ pub use user::PostgresUserRepository;
 mod backup;
 mod bookmark;
 // mod collection;
+mod common;
 mod feed;
 mod feed_entry;
 mod folder;

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO feeds (link, title, xml_url, updated_at) VALUES (\n    $1, $2, $3, now()\n) ON CONFLICT (link) DO UPDATE SET title\n= excluded.title,\nxml_url = excluded.xml_url,\nupdated_at = excluded.updated_at RETURNING id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d75e54488ae676188b9a5ad292fce86176a06a956d7dcf9fdba9ab4e1324b9b0"
+}

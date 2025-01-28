@@ -26,7 +26,7 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::query::user_bookmark::select(
+        crate::common::select_bookmarks(
             &self.pool,
             params.id,
             params.folder_id,
@@ -52,27 +52,28 @@ impl Creatable for PostgresBookmarkRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let bookmark_id = {
-            crate::query::bookmark::select_by_link(&mut *tx, data.url.clone())
+        let bookmark_id =
+            sqlx::query_file_scalar!("queries/bookmarks/select_by_link.sql", data.url)
+                .fetch_one(&mut *tx)
                 .await
                 .map_err(|e| match e {
                     sqlx::Error::RowNotFound => {
                         Error::Conflict(ConflictError::NotCached(data.url.clone()))
                     }
                     _ => Error::Unknown(e.into()),
-                })?
-        };
+                })?;
 
-        let pb_id = crate::query::user_bookmark::insert(
-            &mut *tx,
+        let pb_id = sqlx::query_file_scalar!(
+            "queries/user_bookmarks/insert.sql",
             data.title,
             data.thumbnail_url,
             data.published_at,
             data.author,
             data.folder_id,
             bookmark_id,
-            data.user_id,
+            data.user_id
         )
+        .fetch_one(&mut *tx)
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => {
@@ -112,16 +113,43 @@ impl Updatable for PostgresBookmarkRepository {
             || data.author.is_some()
             || data.folder_id.is_some()
         {
-            crate::query::user_bookmark::update(
-                &mut *tx,
+            let (has_title, title) = match data.title {
+                Some(title) => (true, title),
+                None => (false, None),
+            };
+            let (has_thumbnail_url, thumbnail_url) = match data.thumbnail_url {
+                Some(thumbnail_url) => (true, thumbnail_url),
+                None => (false, None),
+            };
+            let (has_published_at, published_at) = match data.published_at {
+                Some(published_at) => (true, published_at),
+                None => (false, None),
+            };
+            let (has_author, author) = match data.author {
+                Some(author) => (true, author),
+                None => (false, None),
+            };
+            let (has_folder, folder_id) = match data.folder_id {
+                Some(folder_id) => (true, folder_id),
+                None => (false, None),
+            };
+
+            sqlx::query_file!(
+                "queries/user_bookmarks/update.sql",
                 params.id,
                 params.user_id,
-                data.title,
-                data.thumbnail_url,
-                data.published_at,
-                data.author,
-                data.folder_id,
+                has_title,
+                title,
+                has_thumbnail_url,
+                thumbnail_url,
+                has_published_at,
+                published_at,
+                has_author,
+                author,
+                has_folder,
+                folder_id
             )
+            .execute(&mut *tx)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
@@ -147,26 +175,34 @@ impl Deletable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        crate::query::user_bookmark::delete(&self.pool, params.id, params.user_id)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
-            })
+        sqlx::query_file!(
+            "queries/user_bookmarks/delete.sql",
+            params.id,
+            params.user_id
+        )
+        .execute(&self.pool)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::NotFound(params.id),
+            _ => Error::Unknown(e.into()),
+        })?;
+
+        Ok(())
     }
 }
 
 #[async_trait::async_trait]
 impl BookmarkRepository for PostgresBookmarkRepository {
     async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
-        crate::query::bookmark::insert(
-            &self.pool,
+        sqlx::query_file_scalar!(
+            "queries/bookmarks/insert.sql",
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
             data.bookmark.published,
             data.bookmark.author,
         )
+        .fetch_one(&self.pool)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -180,9 +216,22 @@ pub(crate) async fn link_tags(
     tags: &[String],
     user_id: Uuid,
 ) -> Result<(), sqlx::Error> {
-    crate::query::user_bookmark_tag::delete_many(&mut *conn, tags, user_id).await?;
+    sqlx::query_file!("queries/user_bookmark_tags/delete_many.sql", user_id, tags)
+        .execute(&mut *conn)
+        .await?;
 
-    crate::query::tag::insert_many(&mut *conn, tags, user_id).await?;
+    sqlx::query_file_scalar!("queries/tags/insert_many.sql", tags, user_id)
+        .execute(&mut *conn)
+        .await?;
 
-    crate::query::user_bookmark_tag::insert_many(&mut *conn, user_bookmark_id, tags, user_id).await
+    sqlx::query_file_scalar!(
+        "queries/user_bookmark_tags/insert_many.sql",
+        user_bookmark_id,
+        tags,
+        user_id
+    )
+    .execute(&mut *conn)
+    .await?;
+
+    Ok(())
 }

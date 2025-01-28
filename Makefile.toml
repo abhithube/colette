@@ -40,4 +40,4 @@ args = [
 [tasks.format-sql]
 install_crate = "sqruff"
 command = "sqruff"
-args = ["fix", "schema.sql", "migrations"]
+args = ["fix", "schema.sql", "migrations", "crates/repository/queries"]

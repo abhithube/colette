@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(xml_url, link) AS \"url!\"\nFROM feeds\nJOIN user_feeds ON user_feeds.feed_id = feeds.id\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "url!",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6f692be39e5269e9d0091e51f8cd521a0652fc7bcaeae1e678aa4f77e4e2da48"
+}

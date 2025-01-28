@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::backup::{BackupRepository, Error};
 use colette_netscape::Item;
 use colette_opml::Outline;
@@ -40,13 +41,15 @@ impl BackupRepository for PostgresBackupRepository {
             if outline.outline.is_some() {
                 let tag_id = {
                     if let Some(id) =
-                        crate::query::tag::select_by_title(&mut *tx, title.clone(), user_id)
+                        sqlx::query_file_scalar!("queries/tags/select_by_title.sql", title, user_id)
+                            .fetch_optional(&mut *tx)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::query::tag::insert(&mut *tx, title.clone(), user_id)
+                        sqlx::query_file_scalar!("queries/tags/insert.sql", title, user_id)
+                            .fetch_one(&mut *tx)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -64,21 +67,38 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id = crate::query::feed::insert(&mut *tx, link, title, outline.xml_url)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?;
+                let feed_id = sqlx::query_file_scalar!(
+                    "queries/feeds/insert.sql",
+                    link,
+                    title,
+                    outline.xml_url
+                )
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
 
                 let pf_id = {
-                    if let Some(id) =
-                        crate::query::user_feed::select_by_unique_index(&mut *tx, user_id, feed_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                    if let Some(id) = sqlx::query_file_scalar!(
+                        "queries/user_feeds/select_by_index.sql",
+                        user_id,
+                        feed_id
+                    )
+                    .fetch_optional(&mut *tx)
+                    .await
+                    .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::query::user_feed::insert(&mut *tx, None, None, feed_id, user_id)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
+                        sqlx::query_file_scalar!(
+                            "queries/user_feeds/insert.sql",
+                            Option::<&str>::None,
+                            Option::<Uuid>::None,
+                            feed_id,
+                            user_id
+                        )
+                        .fetch_one(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?
                     }
                 };
 
@@ -122,13 +142,15 @@ impl BackupRepository for PostgresBackupRepository {
 
                 let tag_id = {
                     if let Some(id) =
-                        crate::query::tag::select_by_title(&mut *tx, title.clone(), user_id)
+                        sqlx::query_file_scalar!("queries/tags/select_by_title.sql", title, user_id)
+                            .fetch_optional(&mut *tx)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::query::tag::insert(&mut *tx, title.clone(), user_id)
+                        sqlx::query_file_scalar!("queries/tags/insert.sql", title, user_id)
+                            .fetch_one(&mut *tx)
                             .await
                             .map_err(|e| Error::Unknown(e.into()))?
                     }
@@ -146,33 +168,41 @@ impl BackupRepository for PostgresBackupRepository {
                     }
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id = {
-                    crate::query::bookmark::insert(&mut *tx, link, item.title, None, None, None)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                };
+                let bookmark_id = sqlx::query_file_scalar!(
+                    "queries/bookmarks/insert.sql",
+                    link,
+                    item.title,
+                    Option::<&str>::None,
+                    Option::<DateTime<Utc>>::None,
+                    Option::<&str>::None
+                )
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
 
                 let pb_id = {
-                    if let Some(id) = crate::query::user_bookmark::select_by_unique_index(
-                        &mut *tx,
+                    if let Some(id) = sqlx::query_file_scalar!(
+                        "queries/user_bookmarks/select_by_index.sql",
                         user_id,
-                        bookmark_id,
+                        bookmark_id
                     )
+                    .fetch_optional(&mut *tx)
                     .await
                     .map_err(|e| Error::Unknown(e.into()))?
                     {
                         id
                     } else {
-                        crate::query::user_bookmark::insert(
-                            &mut *tx,
-                            None,
-                            None,
-                            None,
-                            None,
-                            None,
+                        sqlx::query_file_scalar!(
+                            "queries/user_bookmarks/insert.sql",
+                            Option::<&str>::None,
+                            Option::<&str>::None,
+                            Option::<DateTime<Utc>>::None,
+                            Option::<&str>::None,
+                            Option::<Uuid>::None,
                             bookmark_id,
-                            user_id,
+                            user_id
                         )
+                        .fetch_one(&mut *tx)
                         .await
                         .map_err(|e| Error::Unknown(e.into()))?
                     }

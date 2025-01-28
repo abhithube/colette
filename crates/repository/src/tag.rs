@@ -23,14 +23,17 @@ impl Findable for PostgresTagRepository {
     type Output = Result<Vec<Tag>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::query::tag::select(
-            &self.pool,
-            params.id,
+        sqlx::query_file_as!(
+            Tag,
+            "queries/tags/select.sql",
             params.user_id,
-            params.limit,
-            params.cursor,
-            params.tag_type,
+            params.id.is_none(),
+            params.id,
+            params.cursor.is_none(),
+            params.cursor.map(|e| e.title),
+            params.limit
         )
+        .fetch_all(&self.pool)
         .await
         .map_err(|e| Error::Unknown(e.into()))
     }
@@ -42,7 +45,8 @@ impl Creatable for PostgresTagRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        crate::query::tag::insert(&self.pool, data.title.clone(), data.user_id)
+        sqlx::query_file_scalar!("queries/tags/insert.sql", data.title, data.user_id)
+            .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
@@ -59,12 +63,19 @@ impl Updatable for PostgresTagRepository {
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         if data.title.is_some() {
-            crate::query::tag::update(&self.pool, params.id, params.user_id, data.title)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                    _ => Error::Unknown(e.into()),
-                })?;
+            sqlx::query_file!(
+                "queries/tags/update.sql",
+                params.id,
+                params.user_id,
+                data.title.is_some(),
+                data.title
+            )
+            .execute(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
         }
 
         Ok(())
@@ -77,12 +88,15 @@ impl Deletable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        crate::query::tag::delete(&self.pool, params.id, params.user_id)
+        sqlx::query_file!("queries/tags/delete.sql", params.id, params.user_id)
+            .execute(&self.pool)
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
                 _ => Error::Unknown(e.into()),
-            })
+            })?;
+
+        Ok(())
     }
 }
 

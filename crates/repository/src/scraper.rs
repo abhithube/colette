@@ -35,14 +35,15 @@ impl ScraperRepository for PostgresScraperRepository {
     }
 
     async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error> {
-        crate::query::bookmark::insert(
-            &self.pool,
+        sqlx::query_file_scalar!(
+            "queries/bookmarks/insert.sql",
             data.url,
             data.bookmark.title,
             data.bookmark.thumbnail.map(String::from),
             data.bookmark.published,
             data.bookmark.author,
         )
+        .fetch_one(&self.pool)
         .await
         .map_err(|e| Error::Unknown(e.into()))?;
 

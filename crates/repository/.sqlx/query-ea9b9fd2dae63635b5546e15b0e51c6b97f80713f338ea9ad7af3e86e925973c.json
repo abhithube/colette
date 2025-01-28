@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_feed_entries (feed_entry_id, user_feed_id, user_id)\nSELECT feed_entry_id, uf.id, uf.user_id\nFROM unnest($1::uuid []) AS feed_entry_id\nJOIN user_feeds uf ON uf.feed_id = $2 ON CONFLICT (\n    user_feed_id, feed_entry_id\n) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ea9b9fd2dae63635b5546e15b0e51c6b97f80713f338ea9ad7af3e86e925973c"
+}

@@ -1,0 +1,103 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH json_tags AS (\n    SELECT\n        ub.id AS ub_id,\n        jsonb_agg(\n            jsonb_build_object('id', t.id, 'title', t.title) ORDER BY t.title\n        ) FILTER (WHERE t.id IS NOT NULL) AS tags\n    FROM user_bookmarks ub\n    INNER JOIN user_bookmark_tags ubt ON ubt.user_bookmark_id = ub.id\n    INNER JOIN tags t ON t.id = ubt.tag_id\n    GROUP BY ub.id\n)\n\nSELECT\n    ub.id,\n    ub.title,\n    ub.thumbnail_url,\n    ub.published_at,\n    ub.author,\n    ub.folder_id,\n    ub.created_at,\n    b.link,\n    b.title AS original_title,\n    b.thumbnail_url AS original_thumbnail_url,\n    b.published_at AS original_published_at,\n    b.author AS original_author,\n    jt.tags AS \"tags: Json<Vec<Tag>>\"\nFROM user_bookmarks ub\nINNER JOIN bookmarks b ON b.id = ub.bookmark_id\nLEFT JOIN json_tags jt ON jt.ub_id = ub.id\nWHERE\n    ub.user_id = $1\n    AND ($2::bool OR ub.id = $3)\n    AND (\n        $4::bool\n        OR CASE\n            WHEN $5::uuid IS NULL THEN ub.folder_id IS NULL ELSE\n                ub.folder_id = $5\n        END\n    )\n    AND (\n        $6::bool\n        OR EXISTS (\n            SELECT t.*\n            FROM jsonb_array_elements(jt.tags) t\n            WHERE t ->> 'title' = any($7)\n        )\n    )\n    AND ($8::bool OR coalesce(ub.created_at, b.created_at) > $9)\nORDER BY coalesce(ub.published_at, b.created_at) ASC\nLIMIT $10\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "folder_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "link",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "original_title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "original_thumbnail_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "original_published_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "original_author",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "tags: Json<Vec<Tag>>",
+        "type_info": "Jsonb"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "TextArray",
+        "Bool",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "049801cb6d5622b5f77159a3d85d9abf3caa0435cc9b8ea5f22ec75cc8bb30df"
+}
