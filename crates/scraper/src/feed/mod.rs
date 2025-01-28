@@ -5,12 +5,12 @@ use anyhow::anyhow;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
+pub use extractor::{FeedExtractor, FeedExtractorOptions};
+pub use registry::FeedPluginRegistry;
 use reqwest::Client;
 use url::Url;
 
 use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
-pub use extractor::{FeedExtractor, FeedExtractorOptions};
-pub use registry::FeedPluginRegistry;
 
 mod atom;
 mod extractor;

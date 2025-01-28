@@ -2,9 +2,8 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use crate::Error;
-
 use super::{BookmarkScraper, ProcessedBookmark};
+use crate::Error;
 
 pub struct BookmarkPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,

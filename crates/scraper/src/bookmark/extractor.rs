@@ -1,12 +1,11 @@
 use bytes::Bytes;
 use scraper::Html;
 
+use super::ExtractedBookmark;
 use crate::{
     utils::{ExtractorQuery, TextSelector},
     ExtractorError,
 };
-
-use super::ExtractedBookmark;
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkExtractorOptions {

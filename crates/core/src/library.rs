@@ -1,8 +1,9 @@
+use uuid::Uuid;
+
 use crate::{
     common::{Findable, Paginated},
     Bookmark, Feed, Folder,
 };
-use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub enum LibraryItem {

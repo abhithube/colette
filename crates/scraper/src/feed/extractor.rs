@@ -1,12 +1,11 @@
 use bytes::Bytes;
 use scraper::{Html, Selector};
 
+use super::{ExtractedFeed, ExtractedFeedEntry};
 use crate::{
     utils::{ExtractorQuery, TextSelector},
     ExtractorError,
 };
-
-use super::{ExtractedFeed, ExtractedFeedEntry};
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedExtractorOptions {

@@ -5,12 +5,12 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
+pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
+pub use registry::BookmarkPluginRegistry;
 use reqwest::Client;
 use url::Url;
 
 use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
-pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
-pub use registry::BookmarkPluginRegistry;
 
 mod extractor;
 mod registry;
