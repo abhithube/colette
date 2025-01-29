@@ -21,7 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.4",
-    "lucide-react": "^0.473.0",
+    "lucide-react": "*",
     "react": "*",
     "react-dom": "*",
     "tailwind-merge": "^2.6.0"
