@@ -1,1 +1,7 @@
-SELECT id FROM feeds WHERE xml_url = $1 OR link = $1
+SELECT
+  id
+FROM
+  feeds
+WHERE
+  xml_url = $1
+  OR link = $1

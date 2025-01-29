@@ -1,4 +1,4 @@
-use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark,
     feed::{self, ProcessedFeed},
@@ -183,7 +183,7 @@ pub(crate) async fn insert_feed_with_entries<'a>(
 ) -> sqlx::Result<Uuid> {
     let mut links = Vec::<String>::new();
     let mut titles = Vec::<String>::new();
-    let mut published_ats = Vec::<NaiveDateTime>::new();
+    let mut published_ats = Vec::<DateTime<Utc>>::new();
     let mut descriptions = Vec::<Option<String>>::new();
     let mut authors = Vec::<Option<String>>::new();
     let mut thumbnail_urls = Vec::<Option<String>>::new();
@@ -191,7 +191,7 @@ pub(crate) async fn insert_feed_with_entries<'a>(
     for item in feed.entries {
         links.push(item.link.to_string());
         titles.push(item.title);
-        published_ats.push(item.published.naive_utc());
+        published_ats.push(item.published);
         descriptions.push(item.description);
         authors.push(item.author);
         thumbnail_urls.push(item.thumbnail.map(String::from));

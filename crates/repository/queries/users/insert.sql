@@ -1,1 +1,6 @@
-INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id
+INSERT INTO
+  users (email, password)
+VALUES
+  ($1, $2)
+RETURNING
+  id

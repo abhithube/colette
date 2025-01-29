@@ -1,0 +1,45 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  t.id,\n  t.title,\n  count(uft.user_feed_id) AS feed_count,\n  count(ubt.user_bookmark_id) AS bookmark_count\nFROM\n  tags t\n  LEFT JOIN user_feed_tags uft ON uft.tag_id = t.id\n  LEFT JOIN user_bookmark_tags ubt ON ubt.tag_id = t.id\nWHERE\n  t.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR t.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR t.title > $5\n  )\nGROUP BY\n  t.id,\n  t.title\nORDER BY\n  t.title ASC\nLIMIT\n  $6\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "feed_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "bookmark_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "c9c2abb1cb72ea80764291bc6c29ea3a96ee2b8f0b806a84ecb4250463bbbf15"
+}

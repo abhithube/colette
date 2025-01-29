@@ -1,1 +1,8 @@
-SELECT id, email, password FROM users WHERE id = $1
+SELECT
+  id,
+  email,
+  password
+FROM
+  users
+WHERE
+  id = $1

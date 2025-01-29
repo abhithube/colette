@@ -1,1 +1,4 @@
-DELETE FROM folders WHERE id = $1 AND user_id = $2
+DELETE FROM folders
+WHERE
+  id = $1
+  AND user_id = $2

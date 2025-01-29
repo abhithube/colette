@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE folders\nSET\n  title = CASE\n    WHEN $3 THEN $4\n    ELSE title\n  END,\n  parent_id = CASE\n    WHEN $5 THEN $6\n    ELSE parent_id\n  END,\n  updated_at = now()\nWHERE\n  id = $1\n  AND user_id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a3216c7d91ee216b3f9c7634bd21f61e5caf322a8a02e6b87d2f715d2c9c282"
+}
