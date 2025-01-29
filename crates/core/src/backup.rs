@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use bytes::{buf::Reader, Buf, Bytes};
 use colette_backup::BackupManager;
 use colette_netscape::{Item, Netscape};
@@ -10,12 +8,15 @@ use uuid::Uuid;
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
+    folder::{FolderFindParams, FolderRepository},
+    Bookmark, Feed, Folder,
 };
 
 pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
+    folder_repository: Box<dyn FolderRepository>,
     opml_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Opml>>,
     netscape_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Netscape>>,
 }
@@ -25,6 +26,7 @@ impl BackupService {
         backup_repository: impl BackupRepository,
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
+        folder_repository: impl FolderRepository,
         opml_manager: impl BackupManager<Reader<Bytes>, Data = Opml>,
         netscape_manager: impl BackupManager<Reader<Bytes>, Data = Netscape>,
     ) -> Self {
@@ -32,6 +34,7 @@ impl BackupService {
             backup_repository: Box::new(backup_repository),
             feed_repository: Box::new(feed_repository),
             bookmark_repository: Box::new(bookmark_repository),
+            folder_repository: Box::new(folder_repository),
             opml_manager: Box::new(opml_manager),
             netscape_manager: Box::new(netscape_manager),
         }
@@ -58,6 +61,15 @@ impl BackupService {
     }
 
     pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
+        let folders = self
+            .folder_repository
+            .find(FolderFindParams {
+                user_id,
+                ..Default::default()
+            })
+            .await
+            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+
         let feeds = self
             .feed_repository
             .find(FeedFindParams {
@@ -67,39 +79,7 @@ impl BackupService {
             .await
             .map_err(|e| Error::Opml(OpmlError(e.into())))?;
 
-        let mut tag_map: HashMap<Uuid, Outline> = HashMap::new();
-        let mut root_feeds: Vec<Outline> = Vec::new();
-
-        for feed in feeds {
-            let outline = Outline {
-                r#type: Some(OutlineType::default()),
-                title: feed.title.or_else(|| Some(feed.original_title.clone())),
-                text: feed.original_title,
-                xml_url: feed.xml_url,
-                html_url: Some(feed.link),
-                ..Default::default()
-            };
-
-            if let Some(tags) = feed.tags {
-                for tag in tags {
-                    let root_tag = tag_map.entry(tag.id).or_insert_with(|| Outline {
-                        text: tag.title,
-                        ..Default::default()
-                    });
-
-                    root_tag
-                        .outline
-                        .get_or_insert_with(Vec::new)
-                        .push(outline.clone());
-                }
-            } else {
-                root_feeds.push(outline);
-            }
-        }
-
-        let mut outlines = tag_map.into_values().collect::<Vec<_>>();
-        outlines.sort();
-        outlines.append(&mut root_feeds);
+        let outlines = build_opml_hierarchy(&folders, &feeds, None);
 
         let opml = Opml {
             body: Body { outlines },
@@ -135,6 +115,15 @@ impl BackupService {
     }
 
     pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
+        let folders = self
+            .folder_repository
+            .find(FolderFindParams {
+                user_id,
+                ..Default::default()
+            })
+            .await
+            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+
         let bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
@@ -144,36 +133,7 @@ impl BackupService {
             .await
             .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
 
-        let mut tag_map: HashMap<Uuid, Item> = HashMap::new();
-        let mut root_bookmarks: Vec<Item> = Vec::new();
-
-        for bookmark in bookmarks {
-            let item = Item {
-                title: bookmark.title.unwrap_or(bookmark.original_title),
-                href: Some(bookmark.link),
-                ..Default::default()
-            };
-
-            if let Some(tags) = bookmark.tags {
-                for tag in tags {
-                    let root_tag = tag_map.entry(tag.id).or_insert_with(|| Item {
-                        title: tag.title,
-                        ..Default::default()
-                    });
-
-                    root_tag
-                        .item
-                        .get_or_insert_with(Vec::new)
-                        .push(item.clone());
-                }
-            } else {
-                root_bookmarks.push(item);
-            }
-        }
-
-        let mut items = tag_map.into_values().collect::<Vec<_>>();
-        items.sort();
-        items.append(&mut root_bookmarks);
+        let items = build_netscape_hierarchy(&folders, &bookmarks, None);
 
         let netscape = Netscape {
             items,
@@ -195,6 +155,77 @@ pub trait BackupRepository: Send + Sync + 'static {
     async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error>;
 
     async fn import_netscape(&self, outlines: Vec<Item>, user_id: Uuid) -> Result<(), Error>;
+}
+
+fn build_opml_hierarchy(
+    folders: &[Folder],
+    feeds: &[Feed],
+    parent_id: Option<Uuid>,
+) -> Vec<Outline> {
+    let mut outlines = Vec::new();
+
+    for folder in folders.iter().filter(|f| f.parent_id == parent_id) {
+        let child_outlines = build_opml_hierarchy(folders, feeds, Some(folder.id));
+
+        let outline = Outline {
+            text: folder.title.clone(),
+            outline: Some(child_outlines),
+            ..Default::default()
+        };
+        outlines.push(outline);
+    }
+
+    for feed in feeds.iter().filter(|f| f.folder_id == parent_id) {
+        let outline = Outline {
+            r#type: Some(OutlineType::default()),
+            title: feed
+                .title
+                .clone()
+                .or_else(|| Some(feed.original_title.clone())),
+            text: feed.original_title.clone(),
+            xml_url: feed.xml_url.clone(),
+            html_url: Some(feed.link.clone()),
+            ..Default::default()
+        };
+
+        outlines.push(outline);
+    }
+
+    outlines
+}
+
+fn build_netscape_hierarchy(
+    folders: &[Folder],
+    bookmarks: &[Bookmark],
+    parent_id: Option<Uuid>,
+) -> Vec<Item> {
+    let mut items = Vec::new();
+
+    for folder in folders.iter().filter(|f| f.parent_id == parent_id) {
+        let child_items = build_netscape_hierarchy(folders, bookmarks, Some(folder.id));
+
+        let item = Item {
+            title: folder.title.clone(),
+            item: Some(child_items),
+            ..Default::default()
+        };
+        items.push(item);
+    }
+
+    for bookmark in bookmarks.iter().filter(|f| f.folder_id == parent_id) {
+        let item = Item {
+            title: bookmark
+                .title
+                .clone()
+                .unwrap_or(bookmark.original_title.clone()),
+            href: Some(bookmark.link.clone()),
+            ..Default::default()
+        };
+
+        items.push(item);
+    }
+
+    items
 }
 
 #[derive(Debug, thiserror::Error)]

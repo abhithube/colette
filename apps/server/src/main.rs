@@ -71,6 +71,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
     let feed_repository = PostgresFeedRepository::new(pool.clone());
+    let folder_repository = PostgresFolderRepository::new(pool.clone());
 
     let client = ClientBuilder::new()
         .timeout(Duration::from_secs(30))
@@ -94,6 +95,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         PostgresBackupRepository::new(pool.clone()),
         feed_repository.clone(),
         bookmark_repository.clone(),
+        folder_repository.clone(),
         OpmlManager,
         NetscapeManager,
     ));
@@ -113,9 +115,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         PostgresFeedEntryRepository::new(pool.clone()),
         base64_encoder,
     ));
-    let folder_service = Arc::new(FolderService::new(PostgresFolderRepository::new(
-        pool.clone(),
-    )));
+    let folder_service = Arc::new(FolderService::new(folder_repository));
     let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
         pool.clone(),
     )));
