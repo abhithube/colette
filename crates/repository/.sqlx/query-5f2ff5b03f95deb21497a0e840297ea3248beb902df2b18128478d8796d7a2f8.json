@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH new_feed AS (\n    INSERT INTO feeds (link, title, xml_url, updated_at) VALUES (\n        $1, $2, $3, now()\n    ) ON CONFLICT (link) DO UPDATE SET title\n    = excluded.title,\n    xml_url = excluded.xml_url,\n    updated_at = excluded.updated_at RETURNING id\n),\n\nnew_feed_entries AS (\n    INSERT INTO feed_entries (\n        link,\n        title,\n        published_at,\n        description,\n        author,\n        thumbnail_url,\n        feed_id,\n        updated_at\n    )\n    SELECT *, now() AS updated_at\n    FROM\n        unnest(\n            $4::text [],\n            $5::text [],\n            $6::timestamp [],\n            $7::text [],\n            $8::text [],\n            $9::text []\n        ), new_feed\n    ON CONFLICT (feed_id, link) DO UPDATE SET title\n    = excluded.title,\n    published_at = excluded.published_at,\n    description = excluded.description,\n    author = excluded.author,\n    thumbnail_url = excluded.thumbnail_url,\n    updated_at = excluded.updated_at\n)\n\nSELECT id FROM new_feed\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "TextArray",
+        "TextArray",
+        "TimestampArray",
+        "TextArray",
+        "TextArray",
+        "TextArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "5f2ff5b03f95deb21497a0e840297ea3248beb902df2b18128478d8796d7a2f8"
+}

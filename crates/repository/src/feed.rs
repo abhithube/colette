@@ -1,14 +1,13 @@
-use chrono::NaiveDateTime;
 use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
         ConflictError, Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository,
-        FeedUpdateData, ProcessedFeed,
+        FeedUpdateData,
     },
     Feed,
 };
 use futures::{stream::BoxStream, StreamExt, TryStreamExt};
-use sqlx::{PgConnection, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -94,7 +93,8 @@ impl Creatable for PostgresFeedRepository {
             }
         };
 
-        link_entries_to_users(&mut tx, feed_id)
+        sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
+            .execute(&mut *tx)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -195,17 +195,11 @@ impl Deletable for PostgresFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
-        let mut tx = self
-            .pool
-            .begin()
+        crate::common::insert_feed_with_entries(&self.pool, data.url, data.feed)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        create_feed_with_entries(&mut tx, data.url, data.feed)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
-
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+        Ok(())
     }
 
     fn stream(&self) -> BoxStream<Result<String, Error>> {
@@ -214,73 +208,4 @@ impl FeedRepository for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))
             .boxed()
     }
-}
-
-pub(crate) async fn create_feed_with_entries(
-    conn: &mut PgConnection,
-    url: String,
-    feed: ProcessedFeed,
-) -> Result<Uuid, sqlx::Error> {
-    let feed_id = {
-        let link = feed.link.to_string();
-        let xml_url = if url == link { None } else { Some(url) };
-
-        sqlx::query_file_scalar!("queries/feeds/insert.sql", link, feed.title, xml_url)
-            .fetch_one(&mut *conn)
-            .await?
-    };
-
-    if !feed.entries.is_empty() {
-        let mut links = Vec::<String>::new();
-        let mut titles = Vec::<String>::new();
-        let mut published_ats = Vec::<NaiveDateTime>::new();
-        let mut descriptions = Vec::<Option<String>>::new();
-        let mut authors = Vec::<Option<String>>::new();
-        let mut thumbnail_urls = Vec::<Option<String>>::new();
-
-        for item in feed.entries {
-            links.push(item.link.to_string());
-            titles.push(item.title);
-            published_ats.push(item.published.naive_utc());
-            descriptions.push(item.description);
-            authors.push(item.author);
-            thumbnail_urls.push(item.thumbnail.map(String::from));
-        }
-
-        sqlx::query_file_scalar!(
-            "queries/feed_entries/insert_many.sql",
-            &links,
-            &titles,
-            &published_ats,
-            &descriptions as &[Option<String>],
-            &authors as &[Option<String>],
-            &thumbnail_urls as &[Option<String>],
-            feed_id
-        )
-        .execute(&mut *conn)
-        .await?;
-    }
-
-    Ok(feed_id)
-}
-
-pub(crate) async fn link_entries_to_users(
-    conn: &mut PgConnection,
-    feed_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    let fe_ids = sqlx::query_file_scalar!("queries/feed_entries/select_by_feed.sql", feed_id)
-        .fetch_all(&mut *conn)
-        .await?;
-
-    if !fe_ids.is_empty() {
-        sqlx::query_file!(
-            "queries/user_feed_entries/insert_many.sql",
-            &fe_ids,
-            feed_id
-        )
-        .execute(&mut *conn)
-        .await?;
-    }
-
-    Ok(())
 }

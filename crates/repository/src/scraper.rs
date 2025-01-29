@@ -1,8 +1,6 @@
 use colette_core::scraper::{Error, SaveBookmarkData, SaveFeedData, ScraperRepository};
 use sqlx::{Pool, Postgres};
 
-use super::feed::{create_feed_with_entries, link_entries_to_users};
-
 #[derive(Debug, Clone)]
 pub struct PostgresScraperRepository {
     pool: Pool<Postgres>,
@@ -23,11 +21,12 @@ impl ScraperRepository for PostgresScraperRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let feed_id = create_feed_with_entries(&mut tx, data.url, data.feed)
+        let feed_id = crate::common::insert_feed_with_entries(&mut *tx, data.url, data.feed)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        link_entries_to_users(&mut tx, feed_id)
+        sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
+            .execute(&mut *tx)
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 

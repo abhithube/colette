@@ -1,22 +1,26 @@
-use chrono::{DateTime, Utc};
-use colette_core::{bookmark, feed, folder, Bookmark, Feed, Tag};
+use chrono::{DateTime, NaiveDateTime, Utc};
+use colette_core::{
+    bookmark,
+    feed::{self, ProcessedFeed},
+    folder, Bookmark, Feed, Tag,
+};
 use sqlx::{types::Json, PgExecutor};
 use uuid::Uuid;
 
-pub struct BookmarkRow {
-    pub id: Uuid,
-    pub link: String,
-    pub title: Option<String>,
-    pub thumbnail_url: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<String>,
-    pub original_title: String,
-    pub original_thumbnail_url: Option<String>,
-    pub original_published_at: Option<DateTime<Utc>>,
-    pub original_author: Option<String>,
-    pub folder_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub tags: Option<Json<Vec<Tag>>>,
+struct BookmarkRow {
+    id: Uuid,
+    link: String,
+    title: Option<String>,
+    thumbnail_url: Option<String>,
+    published_at: Option<DateTime<Utc>>,
+    author: Option<String>,
+    original_title: String,
+    original_thumbnail_url: Option<String>,
+    original_published_at: Option<DateTime<Utc>>,
+    original_author: Option<String>,
+    folder_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    tags: Option<Json<Vec<Tag>>>,
 }
 
 impl From<BookmarkRow> for Bookmark {
@@ -39,7 +43,7 @@ impl From<BookmarkRow> for Bookmark {
     }
 }
 
-pub async fn select_bookmarks<'a>(
+pub(crate) async fn select_bookmarks<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     folder_id: Option<Option<Uuid>>,
@@ -76,15 +80,15 @@ pub async fn select_bookmarks<'a>(
     .map(|e| e.into_iter().map(Bookmark::from).collect())
 }
 
-pub struct FeedRow {
-    pub id: Uuid,
-    pub link: String,
-    pub title: Option<String>,
-    pub xml_url: Option<String>,
-    pub original_title: String,
-    pub folder_id: Option<Uuid>,
-    pub tags: Option<Json<Vec<Tag>>>,
-    pub unread_count: Option<i64>,
+struct FeedRow {
+    id: Uuid,
+    link: String,
+    title: Option<String>,
+    xml_url: Option<String>,
+    original_title: String,
+    folder_id: Option<Uuid>,
+    tags: Option<Json<Vec<Tag>>>,
+    unread_count: Option<i64>,
 }
 
 impl From<FeedRow> for Feed {
@@ -103,7 +107,7 @@ impl From<FeedRow> for Feed {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub async fn select_feeds<'a>(
+pub(crate) async fn select_feeds<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     folder_id: Option<Option<Uuid>>,
@@ -170,4 +174,48 @@ pub async fn select_folders<'a>(
     )
     .fetch_all(ex)
     .await
+}
+
+pub(crate) async fn insert_feed_with_entries<'a>(
+    ex: impl PgExecutor<'a>,
+    url: String,
+    feed: ProcessedFeed,
+) -> sqlx::Result<Uuid> {
+    let mut links = Vec::<String>::new();
+    let mut titles = Vec::<String>::new();
+    let mut published_ats = Vec::<NaiveDateTime>::new();
+    let mut descriptions = Vec::<Option<String>>::new();
+    let mut authors = Vec::<Option<String>>::new();
+    let mut thumbnail_urls = Vec::<Option<String>>::new();
+
+    for item in feed.entries {
+        links.push(item.link.to_string());
+        titles.push(item.title);
+        published_ats.push(item.published.naive_utc());
+        descriptions.push(item.description);
+        authors.push(item.author);
+        thumbnail_urls.push(item.thumbnail.map(String::from));
+    }
+
+    let feed_id = {
+        let link = feed.link.to_string();
+        let xml_url = if url == link { None } else { Some(url) };
+
+        sqlx::query_file_scalar!(
+            "queries/feeds/insert_with_entries.sql",
+            link,
+            feed.title,
+            xml_url,
+            &links,
+            &titles,
+            &published_ats,
+            &descriptions as &[Option<String>],
+            &authors as &[Option<String>],
+            &thumbnail_urls as &[Option<String>],
+        )
+        .fetch_one(ex)
+        .await?
+    };
+
+    Ok(feed_id)
 }
