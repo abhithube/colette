@@ -63,35 +63,21 @@ impl Creatable for PostgresFeedRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let uf_id = {
-            if let Some(id) = sqlx::query_file_scalar!(
-                "queries/user_feeds/select_by_index.sql",
-                data.user_id,
-                feed_id
-            )
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?
-            {
-                id
-            } else {
-                sqlx::query_file_scalar!(
-                    "queries/user_feeds/insert.sql",
-                    data.title,
-                    data.folder_id,
-                    feed_id,
-                    data.user_id
-                )
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::Database(e) if e.is_unique_violation() => {
-                        Error::Conflict(ConflictError::AlreadyExists(data.url))
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?
+        let uf_id = sqlx::query_file_scalar!(
+            "queries/user_feeds/insert.sql",
+            data.title,
+            data.folder_id,
+            feed_id,
+            data.user_id
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::Database(e) if e.is_unique_violation() => {
+                Error::Conflict(ConflictError::AlreadyExists(data.url))
             }
-        };
+            _ => Error::Unknown(e.into()),
+        })?;
 
         sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
             .execute(&mut *tx)
