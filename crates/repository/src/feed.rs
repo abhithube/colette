@@ -64,7 +64,7 @@ impl Creatable for PostgresFeedRepository {
                 _ => Error::Unknown(e.into()),
             })?;
 
-        let pf_id = {
+        let uf_id = {
             if let Some(id) = sqlx::query_file_scalar!(
                 "queries/user_feeds/select_by_index.sql",
                 data.user_id,
@@ -99,14 +99,20 @@ impl Creatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, pf_id, &tags, data.user_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_file_scalar!(
+                "queries/user_feed_tags/link.sql",
+                uf_id,
+                data.user_id,
+                &tags
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(pf_id)
+        Ok(uf_id)
     }
 }
 
@@ -151,9 +157,15 @@ impl Updatable for PostgresFeedRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, params.id, &tags, params.user_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_file_scalar!(
+                "queries/user_feed_tags/link.sql",
+                params.id,
+                params.user_id,
+                &tags
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
@@ -269,32 +281,6 @@ pub(crate) async fn link_entries_to_users(
         .execute(&mut *conn)
         .await?;
     }
-
-    Ok(())
-}
-
-pub(crate) async fn link_tags(
-    conn: &mut PgConnection,
-    user_feed_id: Uuid,
-    tags: &[String],
-    user_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("queries/user_feed_tags/delete_many.sql", user_id, tags)
-        .execute(&mut *conn)
-        .await?;
-
-    sqlx::query_file_scalar!("queries/tags/insert_many.sql", tags, user_id)
-        .execute(&mut *conn)
-        .await?;
-
-    sqlx::query_file_scalar!(
-        "queries/user_feed_tags/insert_many.sql",
-        user_feed_id,
-        tags,
-        user_id
-    )
-    .execute(&mut *conn)
-    .await?;
 
     Ok(())
 }

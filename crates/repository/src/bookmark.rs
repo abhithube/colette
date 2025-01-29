@@ -6,7 +6,7 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
 };
-use sqlx::{PgConnection, Pool, Postgres};
+use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -63,7 +63,7 @@ impl Creatable for PostgresBookmarkRepository {
                     _ => Error::Unknown(e.into()),
                 })?;
 
-        let pb_id = sqlx::query_file_scalar!(
+        let ub_id = sqlx::query_file_scalar!(
             "queries/user_bookmarks/insert.sql",
             data.title,
             data.thumbnail_url,
@@ -83,14 +83,20 @@ impl Creatable for PostgresBookmarkRepository {
         })?;
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, pb_id, &tags, data.user_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_file_scalar!(
+                "queries/user_bookmark_tags/link.sql",
+                ub_id,
+                data.user_id,
+                &tags
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
 
-        Ok(pb_id)
+        Ok(ub_id)
     }
 }
 
@@ -158,9 +164,15 @@ impl Updatable for PostgresBookmarkRepository {
         }
 
         if let Some(tags) = data.tags {
-            link_tags(&mut tx, params.id, &tags, params.user_id)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_file_scalar!(
+                "queries/user_bookmark_tags/link.sql",
+                params.id,
+                params.user_id,
+                &tags
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
@@ -208,30 +220,4 @@ impl BookmarkRepository for PostgresBookmarkRepository {
 
         Ok(())
     }
-}
-
-pub(crate) async fn link_tags(
-    conn: &mut PgConnection,
-    user_bookmark_id: Uuid,
-    tags: &[String],
-    user_id: Uuid,
-) -> Result<(), sqlx::Error> {
-    sqlx::query_file!("queries/user_bookmark_tags/delete_many.sql", user_id, tags)
-        .execute(&mut *conn)
-        .await?;
-
-    sqlx::query_file_scalar!("queries/tags/insert_many.sql", tags, user_id)
-        .execute(&mut *conn)
-        .await?;
-
-    sqlx::query_file_scalar!(
-        "queries/user_bookmark_tags/insert_many.sql",
-        user_bookmark_id,
-        tags,
-        user_id
-    )
-    .execute(&mut *conn)
-    .await?;
-
-    Ok(())
 }

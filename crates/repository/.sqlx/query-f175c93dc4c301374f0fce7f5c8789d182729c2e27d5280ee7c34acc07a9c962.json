@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH new_tags AS (\n    INSERT INTO tags (title, user_id)\n    SELECT\n        unnest($3::text []) AS title, $2 AS user_id\n        ON CONFLICT (user_id, title) DO NOTHING\n        RETURNING id\n),\n\nall_tags AS (\n    SELECT id FROM new_tags\n    UNION ALL\n    SELECT id\n    FROM tags\n    WHERE user_id = $2 AND title = any($3::text [])\n),\n\ndeleted_ubt AS (\n    DELETE FROM user_bookmark_tags ubt\n    WHERE\n        ubt.user_bookmark_id = $1\n        AND ubt.user_id = $2\n        AND ubt.tag_id NOT IN (SELECT id FROM all_tags)\n)\n\nINSERT INTO user_bookmark_tags (user_bookmark_id, tag_id, user_id)\nSELECT $1 AS user_bookmark_id, all_tags.id, $2 AS user_id\nFROM all_tags\nON CONFLICT (user_bookmark_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f175c93dc4c301374f0fce7f5c8789d182729c2e27d5280ee7c34acc07a9c962"
+}
