@@ -624,7 +624,6 @@ dependencies = [
  "chrono",
  "colette-core",
  "futures",
- "redis",
  "serde",
  "tokio",
  "tracing",

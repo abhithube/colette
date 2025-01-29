@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use apalis::prelude::{Data, Storage};
 use apalis_redis::RedisStorage;
-use redis::aio::MultiplexedConnection;
 use tokio::sync::Mutex;
 use url::Url;
 
@@ -21,7 +20,7 @@ impl Job {
 
 pub async fn run(
     job: Job,
-    data: Data<Arc<Mutex<RedisStorage<scrape_feed::Job, MultiplexedConnection>>>>,
+    data: Data<Arc<Mutex<RedisStorage<scrape_feed::Job>>>>,
 ) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} feeds", job.urls.len());
 
