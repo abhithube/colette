@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH new_folder AS (\n    INSERT INTO folders (title, parent_id, user_id) VALUES (\n        $1, $2, $3\n    ) ON CONFLICT (user_id, parent_id, title) DO NOTHING RETURNING id\n)\n\nSELECT id AS \"id!\" FROM new_folder\nUNION ALL\nSELECT id FROM folders WHERE user_id = $3 AND parent_id = $2 AND title = $1\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "24ea2aa7414f7b9a3668891f89a587949141aaaf21a6cd9c78e1efc27eddb4ce"
+}

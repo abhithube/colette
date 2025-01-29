@@ -16,11 +16,6 @@ impl PostgresBackupRepository {
     }
 }
 
-struct Parent {
-    id: Uuid,
-    title: String,
-}
-
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
     async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
@@ -30,41 +25,27 @@ impl BackupRepository for PostgresBackupRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut stack: Vec<(Option<Parent>, Outline)> = outlines
+        let mut stack: Vec<(Option<Uuid>, Outline)> = outlines
             .into_iter()
             .map(|outline| (None, outline))
             .collect();
 
-        while let Some((parent, mut outline)) = stack.pop() {
+        while let Some((parent_id, outline)) = stack.pop() {
             let title = outline.title.unwrap_or(outline.text);
 
-            if outline.outline.is_some() {
-                let tag_id = {
-                    if let Some(id) =
-                        sqlx::query_file_scalar!("queries/tags/select_by_title.sql", title, user_id)
-                            .fetch_optional(&mut *tx)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    {
-                        id
-                    } else {
-                        sqlx::query_file_scalar!("queries/tags/insert.sql", title, user_id)
-                            .fetch_one(&mut *tx)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    }
-                };
+            if let Some(children) = outline.outline {
+                let folder_id = sqlx::query_file_scalar!(
+                    "queries/folders/upsert.sql",
+                    title,
+                    parent_id,
+                    user_id
+                )
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
 
-                if let Some(children) = outline.outline.take() {
-                    for child in children.into_iter().rev() {
-                        stack.push((
-                            Some(Parent {
-                                id: tag_id,
-                                title: title.clone(),
-                            }),
-                            child,
-                        ));
-                    }
+                for child in children {
+                    stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = outline.html_url {
                 let feed_id = sqlx::query_file_scalar!(
@@ -77,45 +58,16 @@ impl BackupRepository for PostgresBackupRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-                let pf_id = {
-                    if let Some(id) = sqlx::query_file_scalar!(
-                        "queries/user_feeds/select_by_index.sql",
-                        user_id,
-                        feed_id
-                    )
-                    .fetch_optional(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                    {
-                        id
-                    } else {
-                        sqlx::query_file_scalar!(
-                            "queries/user_feeds/insert.sql",
-                            Option::<&str>::None,
-                            Option::<Uuid>::None,
-                            feed_id,
-                            user_id
-                        )
-                        .fetch_one(&mut *tx)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    }
-                };
-
-                // if let Some(tag) = parent {
-                //     let (sql, values) = crate::query::user_feed_tag::insert_many(
-                //         &[crate::query::user_feed_tag::InsertMany {
-                //             user_feed_id: pf_id,
-                //             tag_id: tag.id,
-                //         }],
-                //         user_id,
-                //     )
-                //     .build_sqlx(PostgresQueryBuilder);
-
-                //     tx.execute(&stmt, &values.as_params())
-                //         .await
-                //         .map_err(|e| Error::Unknown(e.into()))?;
-                // }
+                sqlx::query_file_scalar!(
+                    "queries/user_feeds/upsert.sql",
+                    Option::<&str>::None,
+                    parent_id,
+                    feed_id,
+                    user_id
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             }
         }
 
@@ -129,43 +81,23 @@ impl BackupRepository for PostgresBackupRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let mut stack: Vec<(Option<Parent>, Item)> =
+        let mut stack: Vec<(Option<Uuid>, Item)> =
             items.into_iter().map(|item| (None, item)).collect();
 
-        while let Some((parent, mut item)) = stack.pop() {
-            if item.item.is_some() {
-                let title = if let Some(parent) = parent {
-                    format!("{}/{}", parent.title, item.title)
-                } else {
-                    item.title
-                };
+        while let Some((parent_id, item)) = stack.pop() {
+            if let Some(children) = item.item {
+                let folder_id = sqlx::query_file_scalar!(
+                    "queries/folders/upsert.sql",
+                    item.title,
+                    parent_id,
+                    user_id
+                )
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
 
-                let tag_id = {
-                    if let Some(id) =
-                        sqlx::query_file_scalar!("queries/tags/select_by_title.sql", title, user_id)
-                            .fetch_optional(&mut *tx)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    {
-                        id
-                    } else {
-                        sqlx::query_file_scalar!("queries/tags/insert.sql", title, user_id)
-                            .fetch_one(&mut *tx)
-                            .await
-                            .map_err(|e| Error::Unknown(e.into()))?
-                    }
-                };
-
-                if let Some(children) = item.item.take() {
-                    for child in children.into_iter().rev() {
-                        stack.push((
-                            Some(Parent {
-                                id: tag_id,
-                                title: title.clone(),
-                            }),
-                            child,
-                        ));
-                    }
+                for child in children {
+                    stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = item.href {
                 let bookmark_id = sqlx::query_file_scalar!(
@@ -180,48 +112,19 @@ impl BackupRepository for PostgresBackupRepository {
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
-                let pb_id = {
-                    if let Some(id) = sqlx::query_file_scalar!(
-                        "queries/user_bookmarks/select_by_index.sql",
-                        user_id,
-                        bookmark_id
-                    )
-                    .fetch_optional(&mut *tx)
-                    .await
-                    .map_err(|e| Error::Unknown(e.into()))?
-                    {
-                        id
-                    } else {
-                        sqlx::query_file_scalar!(
-                            "queries/user_bookmarks/insert.sql",
-                            Option::<&str>::None,
-                            Option::<&str>::None,
-                            Option::<DateTime<Utc>>::None,
-                            Option::<&str>::None,
-                            Option::<Uuid>::None,
-                            bookmark_id,
-                            user_id
-                        )
-                        .fetch_one(&mut *tx)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?
-                    }
-                };
-
-                // if let Some(tag) = parent {
-                //     let (sql, values) = crate::query::user_bookmark_tag::insert_many(
-                //         &[crate::query::user_bookmark_tag::InsertMany {
-                //             user_bookmark_id: pb_id,
-                //             tag_id: tag.id,
-                //         }],
-                //         user_id,
-                //     )
-                //     .build_sqlx(PostgresQueryBuilder);
-
-                //     tx.execute(&stmt, &values.as_params())
-                //         .await
-                //         .map_err(|e| Error::Unknown(e.into()))?;
-                // }
+                sqlx::query_file_scalar!(
+                    "queries/user_bookmarks/upsert.sql",
+                    Option::<&str>::None,
+                    Option::<&str>::None,
+                    Option::<DateTime<Utc>>::None,
+                    Option::<&str>::None,
+                    parent_id,
+                    bookmark_id,
+                    user_id
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
             }
         }
 
