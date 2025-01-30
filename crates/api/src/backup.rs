@@ -127,7 +127,7 @@ pub async fn import_netscape(
             let mut storage = state.import_bookmarks_storage.lock().await;
 
             storage
-                .push(import_bookmarks::Job::new(urls))
+                .push(import_bookmarks::Job::new(urls, session.user_id))
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 

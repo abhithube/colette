@@ -23,12 +23,12 @@ WITH
       user_id = $2
       AND title = ANY ($3::TEXT[])
   ),
-  deleted_ubt AS (
-    DELETE FROM user_bookmark_tags ubt
+  deleted_bt AS (
+    DELETE FROM bookmark_tags bt
     WHERE
-      ubt.user_bookmark_id = $1
-      AND ubt.user_id = $2
-      AND ubt.tag_id NOT IN (
+      bt.bookmark_id = $1
+      AND bt.user_id = $2
+      AND bt.tag_id NOT IN (
         SELECT
           id
         FROM
@@ -36,11 +36,11 @@ WITH
       )
   )
 INSERT INTO
-  user_bookmark_tags (user_bookmark_id, tag_id, user_id)
+  bookmark_tags (bookmark_id, tag_id, user_id)
 SELECT
   $1,
   all_tags.id,
   $2
 FROM
   all_tags
-ON CONFLICT (user_bookmark_id, tag_id) DO NOTHING
+ON CONFLICT (bookmark_id, tag_id) DO NOTHING

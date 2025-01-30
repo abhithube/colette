@@ -2,11 +2,11 @@ SELECT
   t.id,
   t.title,
   count(uft.user_feed_id) AS feed_count,
-  count(ubt.user_bookmark_id) AS bookmark_count
+  count(bt.bookmark_id) AS bookmark_count
 FROM
   tags t
   LEFT JOIN user_feed_tags uft ON uft.tag_id = t.id
-  LEFT JOIN user_bookmark_tags ubt ON ubt.tag_id = t.id
+  LEFT JOIN bookmark_tags bt ON bt.tag_id = t.id
 WHERE
   t.user_id = $1
   AND (

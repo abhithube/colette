@@ -53,22 +53,13 @@ pub struct Bookmark {
     pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
-    #[schema(required)]
-    pub title: Option<String>,
+    pub title: String,
     #[schema(format = "uri", required)]
     pub thumbnail_url: Option<String>,
     #[schema(required)]
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(required)]
-    pub original_title: String,
-    #[schema(format = "uri", required)]
-    pub original_thumbnail_url: Option<String>,
-    #[schema(required)]
-    pub original_published_at: Option<DateTime<Utc>>,
-    #[schema(required)]
-    pub original_author: Option<String>,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
@@ -85,10 +76,6 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            original_title: value.original_title,
-            original_thumbnail_url: value.original_thumbnail_url,
-            original_published_at: value.original_published_at,
-            original_author: value.original_author,
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }
@@ -100,8 +87,8 @@ impl From<colette_core::Bookmark> for Bookmark {
 pub struct BookmarkCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub title: Option<NonEmptyString>,
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
     #[schema(value_type = Option<String>, min_length = 1)]
     pub thumbnail_url: Option<NonEmptyString>,
     pub published_at: Option<DateTime<Utc>>,
@@ -444,7 +431,7 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
     Created(Box<Bookmark>),
 
-    #[response(status = 409, description = "Bookmark not cached")]
+    #[response(status = 409, description = "Bookmark already exists")]
     Conflict(BaseError),
 
     #[response(status = 422, description = "Invalid input")]

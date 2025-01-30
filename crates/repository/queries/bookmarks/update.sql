@@ -1,4 +1,4 @@
-UPDATE user_bookmarks
+UPDATE bookmarks
 SET
   title = CASE
     WHEN $3 THEN $4

@@ -1,7 +1,6 @@
 use colette_core::{
     bookmark::{
-        BookmarkCacheData, BookmarkCreateData, BookmarkFindParams, BookmarkRepository,
-        BookmarkUpdateData, ConflictError, Error,
+        BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     Bookmark,
@@ -52,46 +51,28 @@ impl Creatable for PostgresBookmarkRepository {
             .await
             .map_err(|e| Error::Unknown(e.into()))?;
 
-        let bookmark_id =
-            sqlx::query_file_scalar!("queries/bookmarks/select_by_link.sql", data.url)
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| match e {
-                    sqlx::Error::RowNotFound => {
-                        Error::Conflict(ConflictError::NotCached(data.url.clone()))
-                    }
-                    _ => Error::Unknown(e.into()),
-                })?;
-
         let ub_id = sqlx::query_file_scalar!(
-            "queries/user_bookmarks/insert.sql",
+            "queries/bookmarks/insert.sql",
+            data.url,
             data.title,
             data.thumbnail_url,
             data.published_at,
             data.author,
             data.folder_id,
-            bookmark_id,
             data.user_id
         )
         .fetch_one(&mut *tx)
         .await
         .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => {
-                Error::Conflict(ConflictError::AlreadyExists(data.url))
-            }
+            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.url),
             _ => Error::Unknown(e.into()),
         })?;
 
         if let Some(tags) = data.tags {
-            sqlx::query_file_scalar!(
-                "queries/user_bookmark_tags/link.sql",
-                ub_id,
-                data.user_id,
-                &tags
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            sqlx::query_file_scalar!("queries/bookmark_tags/link.sql", ub_id, data.user_id, &tags)
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
@@ -141,7 +122,7 @@ impl Updatable for PostgresBookmarkRepository {
             };
 
             sqlx::query_file!(
-                "queries/user_bookmarks/update.sql",
+                "queries/bookmarks/update.sql",
                 params.id,
                 params.user_id,
                 has_title,
@@ -165,7 +146,7 @@ impl Updatable for PostgresBookmarkRepository {
 
         if let Some(tags) = data.tags {
             sqlx::query_file_scalar!(
-                "queries/user_bookmark_tags/link.sql",
+                "queries/bookmark_tags/link.sql",
                 params.id,
                 params.user_id,
                 &tags
@@ -187,37 +168,16 @@ impl Deletable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file!(
-            "queries/user_bookmarks/delete.sql",
-            params.id,
-            params.user_id
-        )
-        .execute(&self.pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::NotFound(params.id),
-            _ => Error::Unknown(e.into()),
-        })?;
+        sqlx::query_file!("queries/bookmarks/delete.sql", params.id, params.user_id)
+            .execute(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(params.id),
+                _ => Error::Unknown(e.into()),
+            })?;
 
         Ok(())
     }
 }
 
-#[async_trait::async_trait]
-impl BookmarkRepository for PostgresBookmarkRepository {
-    async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error> {
-        sqlx::query_file_scalar!(
-            "queries/bookmarks/insert.sql",
-            data.url,
-            data.bookmark.title,
-            data.bookmark.thumbnail.map(String::from),
-            data.bookmark.published,
-            data.bookmark.author,
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))?;
-
-        Ok(())
-    }
-}
+impl BookmarkRepository for PostgresBookmarkRepository {}

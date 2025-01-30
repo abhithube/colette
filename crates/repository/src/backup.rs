@@ -100,26 +100,14 @@ impl BackupRepository for PostgresBackupRepository {
                     stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id = sqlx::query_file_scalar!(
-                    "queries/bookmarks/insert.sql",
+                sqlx::query_file_scalar!(
+                    "queries/bookmarks/upsert.sql",
                     link,
                     item.title,
                     Option::<&str>::None,
                     Option::<DateTime<Utc>>::None,
-                    Option::<&str>::None
-                )
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-                sqlx::query_file_scalar!(
-                    "queries/user_bookmarks/upsert.sql",
-                    Option::<&str>::None,
-                    Option::<&str>::None,
-                    Option::<DateTime<Utc>>::None,
                     Option::<&str>::None,
                     parent_id,
-                    bookmark_id,
                     user_id
                 )
                 .execute(&mut *tx)

@@ -214,10 +214,7 @@ fn build_netscape_hierarchy(
 
     for bookmark in bookmarks.iter().filter(|f| f.folder_id == parent_id) {
         let item = Item {
-            title: bookmark
-                .title
-                .clone()
-                .unwrap_or(bookmark.original_title.clone()),
+            title: bookmark.title.clone(),
             href: Some(bookmark.link.clone()),
             ..Default::default()
         };

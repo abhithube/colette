@@ -6,6 +6,7 @@ use colette_scraper::{
     feed::FeedScraper,
 };
 use url::Url;
+use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct FeedCreate {
@@ -15,6 +16,7 @@ pub struct FeedCreate {
 #[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
+    pub user_id: Uuid,
 }
 
 pub struct ScraperService {
@@ -54,6 +56,7 @@ impl ScraperService {
             .save_bookmark(SaveBookmarkData {
                 url: data.url.to_string(),
                 bookmark,
+                user_id: data.user_id,
             })
             .await
     }
@@ -76,6 +79,7 @@ pub struct SaveFeedData {
 pub struct SaveBookmarkData {
     pub url: String,
     pub bookmark: ProcessedBookmark,
+    pub user_id: Uuid,
 }
 
 #[derive(Debug, thiserror::Error)]

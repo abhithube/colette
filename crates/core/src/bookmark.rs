@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
-use colette_scraper::bookmark::{BookmarkScraper, ProcessedBookmark};
+use colette_scraper::bookmark::BookmarkScraper;
 use colette_util::DataEncoder;
 use url::Url;
 use uuid::Uuid;
@@ -18,14 +18,10 @@ use crate::{
 pub struct Bookmark {
     pub id: Uuid,
     pub link: String,
-    pub title: Option<String>,
+    pub title: String,
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub original_title: String,
-    pub original_thumbnail_url: Option<String>,
-    pub original_published_at: Option<DateTime<Utc>>,
-    pub original_author: Option<String>,
     pub folder_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
@@ -34,7 +30,7 @@ pub struct Bookmark {
 #[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub title: Option<NonEmptyString>,
+    pub title: NonEmptyString,
     pub thumbnail_url: Option<NonEmptyString>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<NonEmptyString>,
@@ -164,7 +160,7 @@ impl BookmarkService {
             .repository
             .create(BookmarkCreateData {
                 url: data.url.into(),
-                title: data.title.map(String::from),
+                title: data.title.into(),
                 thumbnail_url: data.thumbnail_url.map(String::from),
                 published_at: data.published_at,
                 author: data.author.map(String::from),
@@ -212,10 +208,6 @@ impl BookmarkService {
             author: bookmark.author.clone(),
         };
 
-        self.repository
-            .cache(BookmarkCacheData { url, bookmark })
-            .await?;
-
         Ok(scraped)
     }
 }
@@ -230,7 +222,6 @@ pub trait BookmarkRepository:
     + Sync
     + 'static
 {
-    async fn cache(&self, data: BookmarkCacheData) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -246,7 +237,7 @@ pub struct BookmarkFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkCreateData {
     pub url: String,
-    pub title: Option<String>,
+    pub title: String,
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
@@ -280,32 +271,17 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct BookmarkCacheData {
-    pub url: String,
-    pub bookmark: ProcessedBookmark,
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("bookmark not found with id: {0}")]
     NotFound(Uuid),
 
-    #[error(transparent)]
-    Conflict(ConflictError),
+    #[error("bookmark already exists with URL: {0}")]
+    Conflict(String),
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ConflictError {
-    #[error("bookmark not cached with URL: {0}")]
-    NotCached(String),
-
-    #[error("bookmark already exists with URL: {0}")]
-    AlreadyExists(String),
 }

@@ -35,17 +35,6 @@ CREATE TABLE feed_entries (
   UNIQUE (feed_id, link)
 );
 
-CREATE TABLE bookmarks (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  link TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
-  thumbnail_url TEXT,
-  published_at TIMESTAMPTZ,
-  author TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
 CREATE TABLE folders (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title TEXT NOT NULL,
@@ -78,18 +67,18 @@ CREATE TABLE user_feed_entries (
   UNIQUE (user_feed_id, feed_entry_id)
 );
 
-CREATE TABLE user_bookmarks (
+CREATE TABLE bookmarks (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  title TEXT,
+  link TEXT NOT NULL,
+  title TEXT NOT NULL,
   thumbnail_url TEXT,
   published_at TIMESTAMPTZ,
   author TEXT,
   folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, bookmark_id)
+  UNIQUE (user_id, link)
 );
 
 CREATE TABLE tags (
@@ -110,11 +99,11 @@ CREATE TABLE user_feed_tags (
   PRIMARY KEY (user_feed_id, tag_id)
 );
 
-CREATE TABLE user_bookmark_tags (
-  user_bookmark_id uuid NOT NULL REFERENCES user_bookmarks (id) ON DELETE CASCADE,
+CREATE TABLE bookmark_tags (
+  bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
   tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  PRIMARY KEY (user_bookmark_id, tag_id)
+  PRIMARY KEY (bookmark_id, tag_id)
 );
