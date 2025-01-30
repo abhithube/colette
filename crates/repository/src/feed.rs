@@ -85,15 +85,17 @@ impl Creatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if let Some(tags) = data.tags {
-            sqlx::query_file_scalar!(
-                "queries/user_feed_tags/link.sql",
-                uf_id,
-                data.user_id,
-                &tags
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            if !tags.is_empty() {
+                sqlx::query_file_scalar!(
+                    "queries/user_feed_tags/link.sql",
+                    uf_id,
+                    data.user_id,
+                    &tags
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            }
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
@@ -143,15 +145,17 @@ impl Updatable for PostgresFeedRepository {
         }
 
         if let Some(tags) = data.tags {
-            sqlx::query_file_scalar!(
-                "queries/user_feed_tags/link.sql",
-                params.id,
-                params.user_id,
-                &tags
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            if !tags.is_empty() {
+                sqlx::query_file_scalar!(
+                    "queries/user_feed_tags/link.sql",
+                    params.id,
+                    params.user_id,
+                    &tags
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(|e| Error::Unknown(e.into()))?;
+            }
         }
 
         tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;

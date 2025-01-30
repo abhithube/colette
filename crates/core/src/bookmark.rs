@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 use crate::{
     common::{
-        Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated,
-        Updatable, PAGINATION_LIMIT,
+        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+        PAGINATION_LIMIT,
     },
     Tag,
 };
@@ -35,7 +35,7 @@ pub struct BookmarkCreate {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<NonEmptyString>,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<NonEmptyVec<NonEmptyString>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -45,7 +45,7 @@ pub struct BookmarkUpdate {
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<NonEmptyString>>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<NonEmptyVec<NonEmptyString>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -165,9 +165,7 @@ impl BookmarkService {
                 published_at: data.published_at,
                 author: data.author.map(String::from),
                 folder_id: data.folder_id,
-                tags: data
-                    .tags
-                    .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
+                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
                 user_id,
             })
             .await?;
@@ -266,7 +264,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             folder_id: value.folder_id,
             tags: value
                 .tags
-                .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
+                .map(|e| e.into_iter().map(String::from).collect()),
         }
     }
 }

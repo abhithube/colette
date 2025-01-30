@@ -5,9 +5,7 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    common::{
-        Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated, Updatable,
-    },
+    common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
     Tag,
 };
 
@@ -28,14 +26,14 @@ pub struct FeedCreate {
     pub url: Url,
     pub title: Option<NonEmptyString>,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<NonEmptyVec<NonEmptyString>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
     pub title: Option<Option<NonEmptyString>>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<NonEmptyVec<NonEmptyString>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -132,9 +130,7 @@ impl FeedService {
                 url: data.url.to_string(),
                 title: data.title.map(String::from),
                 folder_id: data.folder_id,
-                tags: data
-                    .tags
-                    .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
+                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
                 user_id,
             })
             .await?;
@@ -236,7 +232,7 @@ impl From<FeedUpdate> for FeedUpdateData {
             folder_id: value.folder_id,
             tags: value
                 .tags
-                .map(|e| Vec::from(e).into_iter().map(String::from).collect()),
+                .map(|e| e.into_iter().map(String::from).collect()),
         }
     }
 }

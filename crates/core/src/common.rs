@@ -1,5 +1,3 @@
-use std::vec::IntoIter;
-
 use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;
@@ -23,44 +21,6 @@ impl TryFrom<String> for NonEmptyString {
 impl From<NonEmptyString> for String {
     fn from(value: NonEmptyString) -> Self {
         value.0
-    }
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "Vec<T>", into = "Vec<T>")]
-pub struct NonEmptyVec<T: Clone>(Vec<T>);
-
-impl<T: Clone> TryFrom<Vec<T>> for NonEmptyVec<T> {
-    type Error = ValidationError;
-
-    fn try_from(value: Vec<T>) -> Result<Self, Self::Error> {
-        if value.is_empty() {
-            return Err(ValidationError::Empty);
-        }
-
-        Ok(NonEmptyVec(value))
-    }
-}
-
-impl<T: Clone> From<NonEmptyVec<T>> for Vec<T> {
-    fn from(value: NonEmptyVec<T>) -> Self {
-        value.0
-    }
-}
-
-impl<T: Clone> IntoIterator for NonEmptyVec<T> {
-    type Item = T;
-
-    type IntoIter = IntoIter<T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<T: Clone> FromIterator<T> for NonEmptyVec<T> {
-    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
-        NonEmptyVec(Vec::from_iter(iter))
     }
 }
 
