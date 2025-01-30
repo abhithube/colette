@@ -1,12 +1,11 @@
 WITH
   new_feed AS (
     INSERT INTO
-      feeds (link, title, xml_url, updated_at)
+      feeds (link, xml_url, updated_at)
     VALUES
-      ($1, $2, $3, now())
+      ($1, $2, now())
     ON CONFLICT (link) DO UPDATE
     SET
-      title = excluded.title,
       xml_url = excluded.xml_url,
       updated_at = excluded.updated_at
     RETURNING
@@ -29,12 +28,12 @@ WITH
       now()
     FROM
       unnest(
+        $3::TEXT[],
         $4::TEXT[],
-        $5::TEXT[],
-        $6::TIMESTAMPTZ[],
+        $5::TIMESTAMPTZ[],
+        $6::TEXT[],
         $7::TEXT[],
-        $8::TEXT[],
-        $9::TEXT[]
+        $8::TEXT[]
       ),
       new_feed
     ON CONFLICT (feed_id, link) DO UPDATE

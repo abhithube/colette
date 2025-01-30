@@ -118,10 +118,6 @@ impl Updatable for PostgresFeedRepository {
             .map_err(|e| Error::Unknown(e.into()))?;
 
         if data.title.is_some() || data.folder_id.is_some() {
-            let (has_title, title) = match data.title {
-                Some(title) => (true, title),
-                None => (false, None),
-            };
             let (has_folder, folder_id) = match data.folder_id {
                 Some(folder_id) => (true, folder_id),
                 None => (false, None),
@@ -131,8 +127,8 @@ impl Updatable for PostgresFeedRepository {
                 "queries/user_feeds/update.sql",
                 params.id,
                 params.user_id,
-                has_title,
-                title,
+                data.title.is_some(),
+                data.title,
                 has_folder,
                 folder_id
             )

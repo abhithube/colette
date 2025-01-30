@@ -48,15 +48,11 @@ impl BackupRepository for PostgresBackupRepository {
                     stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id = sqlx::query_file_scalar!(
-                    "queries/feeds/insert.sql",
-                    link,
-                    title,
-                    outline.xml_url
-                )
-                .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                let feed_id =
+                    sqlx::query_file_scalar!("queries/feeds/insert.sql", link, outline.xml_url)
+                        .fetch_one(&mut *tx)
+                        .await
+                        .map_err(|e| Error::Unknown(e.into()))?;
 
                 sqlx::query_file_scalar!(
                     "queries/user_feeds/upsert.sql",

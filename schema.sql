@@ -15,7 +15,6 @@ CREATE TABLE sessions (
 CREATE TABLE feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL UNIQUE,
-  title TEXT NOT NULL,
   xml_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -47,7 +46,7 @@ CREATE TABLE folders (
 
 CREATE TABLE user_feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  title TEXT,
+  title TEXT NOT NULL,
   folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,

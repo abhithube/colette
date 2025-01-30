@@ -33,7 +33,6 @@ SELECT
   uf.title,
   uf.folder_id,
   f.link,
-  f.title AS original_title,
   f.xml_url,
   jt.tags AS "tags: Json<Vec<Tag>>",
   coalesce(uc.count, 0) AS unread_count
@@ -68,10 +67,10 @@ WHERE
   )
   AND (
     $8::BOOLEAN
-    OR (coalesce(uf.title, f.title), uf.id) > ($9, $10)
+    OR (uf.title, uf.id) > ($9, $10)
   )
 ORDER BY
-  coalesce(uf.title, f.title) ASC,
+  uf.title ASC,
   uf.id ASC
 LIMIT
   $11

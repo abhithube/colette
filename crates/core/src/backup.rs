@@ -178,11 +178,8 @@ fn build_opml_hierarchy(
     for feed in feeds.iter().filter(|f| f.folder_id == parent_id) {
         let outline = Outline {
             r#type: Some(OutlineType::default()),
-            title: feed
-                .title
-                .clone()
-                .or_else(|| Some(feed.original_title.clone())),
-            text: feed.original_title.clone(),
+            title: Some(feed.title.clone()),
+            text: feed.title.clone(),
             xml_url: feed.xml_url.clone(),
             html_url: Some(feed.link.clone()),
             ..Default::default()

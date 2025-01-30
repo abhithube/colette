@@ -75,9 +75,8 @@ pub(crate) async fn select_bookmarks<'a>(
 struct FeedRow {
     id: Uuid,
     link: String,
-    title: Option<String>,
+    title: String,
     xml_url: Option<String>,
-    original_title: String,
     folder_id: Option<Uuid>,
     tags: Option<Json<Vec<Tag>>>,
     unread_count: Option<i64>,
@@ -90,7 +89,6 @@ impl From<FeedRow> for Feed {
             link: value.link,
             title: value.title,
             xml_url: value.xml_url,
-            original_title: value.original_title,
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.0),
             unread_count: value.unread_count,
@@ -196,7 +194,6 @@ pub(crate) async fn insert_feed_with_entries<'a>(
         sqlx::query_file_scalar!(
             "queries/feeds/insert_with_entries.sql",
             link,
-            feed.title,
             xml_url,
             &links,
             &titles,

@@ -13,9 +13,8 @@ use crate::{
 pub struct Feed {
     pub id: Uuid,
     pub link: String,
-    pub title: Option<String>,
+    pub title: String,
     pub xml_url: Option<String>,
-    pub original_title: String,
     pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
@@ -24,14 +23,14 @@ pub struct Feed {
 #[derive(Clone, Debug)]
 pub struct FeedCreate {
     pub url: Url,
-    pub title: Option<NonEmptyString>,
+    pub title: NonEmptyString,
     pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
-    pub title: Option<Option<NonEmptyString>>,
+    pub title: Option<NonEmptyString>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<NonEmptyString>>,
 }
@@ -128,7 +127,7 @@ impl FeedService {
             .repository
             .create(FeedCreateData {
                 url: data.url.to_string(),
-                title: data.title.map(String::from),
+                title: data.title.into(),
                 folder_id: data.folder_id,
                 tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
                 user_id,
@@ -206,7 +205,7 @@ pub struct FeedFindParams {
 #[derive(Clone, Debug, Default)]
 pub struct FeedCreateData {
     pub url: String,
-    pub title: Option<String>,
+    pub title: String,
     pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
@@ -220,7 +219,7 @@ pub struct FeedCacheData {
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
-    pub title: Option<Option<String>>,
+    pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
@@ -228,7 +227,7 @@ pub struct FeedUpdateData {
 impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
-            title: value.title.map(|e| e.map(String::from)),
+            title: value.title.map(String::from),
             folder_id: value.folder_id,
             tags: value
                 .tags

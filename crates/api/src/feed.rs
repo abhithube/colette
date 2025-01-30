@@ -61,9 +61,7 @@ pub struct Feed {
     pub id: Uuid,
     #[schema(format = "uri")]
     pub link: String,
-    #[schema(required)]
-    pub title: Option<String>,
-    pub original_title: String,
+    pub title: String,
     #[schema(format = "uri", required)]
     pub xml_url: Option<String>,
     #[schema(required)]
@@ -81,7 +79,6 @@ impl From<colette_core::Feed> for Feed {
             id: value.id,
             link: value.link,
             title: value.title,
-            original_title: value.original_title,
             xml_url: value.xml_url,
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
@@ -95,8 +92,8 @@ impl From<colette_core::Feed> for Feed {
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub title: Option<NonEmptyString>,
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
     pub folder_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
     pub tags: Option<Vec<NonEmptyString>>,
@@ -117,12 +114,7 @@ impl From<FeedCreate> for feed::FeedCreate {
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub title: Option<Option<NonEmptyString>>,
+    pub title: Option<NonEmptyString>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
