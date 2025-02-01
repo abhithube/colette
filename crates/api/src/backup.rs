@@ -72,7 +72,7 @@ pub async fn import_opml(
             let mut storage = state.import_feeds_storage.lock().await;
 
             storage
-                .push(import_feeds::Job::new(urls))
+                .push(import_feeds::Job { urls })
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 
@@ -125,7 +125,10 @@ pub async fn import_netscape(
             let mut storage = state.import_bookmarks_storage.lock().await;
 
             storage
-                .push(import_bookmarks::Job::new(urls, session.user_id))
+                .push(import_bookmarks::Job {
+                    urls,
+                    user_id: session.user_id,
+                })
                 .await
                 .map_err(|e| Error::Unknown(e.into()))?;
 

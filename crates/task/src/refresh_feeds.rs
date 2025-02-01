@@ -44,7 +44,7 @@ pub async fn run(_job: Job, data: Data<State>) -> Result<(), apalis::prelude::Er
         let url = Url::parse(&raw).unwrap();
 
         storage
-            .push(scrape_feed::Job::new(url))
+            .push(scrape_feed::Job { url })
             .await
             .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }

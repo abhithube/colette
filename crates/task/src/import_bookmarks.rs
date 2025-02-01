@@ -9,14 +9,8 @@ use crate::{scrape_bookmark, Storage};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Job {
-    urls: Vec<Url>,
-    user_id: Uuid,
-}
-
-impl Job {
-    pub fn new(urls: Vec<Url>, user_id: Uuid) -> Self {
-        Self { urls, user_id }
-    }
+    pub urls: Vec<Url>,
+    pub user_id: Uuid,
 }
 
 pub async fn run(
@@ -29,7 +23,10 @@ pub async fn run(
 
     for url in job.urls {
         storage
-            .push(scrape_bookmark::Job::new(url, job.user_id))
+            .push(scrape_bookmark::Job {
+                url,
+                user_id: job.user_id,
+            })
             .await
             .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }

@@ -6,13 +6,7 @@ use url::Url;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Job {
-    url: Url,
-}
-
-impl Job {
-    pub fn new(url: Url) -> Self {
-        Self { url }
-    }
+    pub url: Url,
 }
 
 pub async fn run(job: Job, data: Data<Arc<ScraperService>>) -> Result<(), apalis::prelude::Error> {

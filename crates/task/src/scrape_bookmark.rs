@@ -7,14 +7,8 @@ use uuid::Uuid;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Job {
-    url: Url,
-    user_id: Uuid,
-}
-
-impl Job {
-    pub fn new(url: Url, user_id: Uuid) -> Self {
-        Self { url, user_id }
-    }
+    pub url: Url,
+    pub user_id: Uuid,
 }
 
 pub async fn run(job: Job, data: Data<Arc<ScraperService>>) -> Result<(), apalis::prelude::Error> {
