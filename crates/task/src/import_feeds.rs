@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
-use apalis::prelude::{Data, Storage};
-use apalis_redis::RedisStorage;
+use apalis::prelude::Data;
 use tokio::sync::Mutex;
 use url::Url;
 
-use crate::scrape_feed;
+use crate::{scrape_feed, Storage};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Job {
@@ -20,7 +19,7 @@ impl Job {
 
 pub async fn run(
     job: Job,
-    data: Data<Arc<Mutex<RedisStorage<scrape_feed::Job>>>>,
+    data: Data<Arc<Mutex<dyn Storage<Job = scrape_feed::Job>>>>,
 ) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} feeds", job.urls.len());
 

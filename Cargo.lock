@@ -427,8 +427,6 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "apalis",
- "apalis-redis",
  "async-trait",
  "axum",
  "axum-extra",
@@ -619,12 +617,15 @@ dependencies = [
 name = "colette-task"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "apalis",
- "apalis-redis",
+ "apalis-core",
+ "async-trait",
  "chrono",
  "colette-core",
  "futures",
  "serde",
+ "thiserror 2.0.11",
  "tokio",
  "tracing",
  "url",

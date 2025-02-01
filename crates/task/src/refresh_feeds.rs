@@ -1,14 +1,13 @@
 use std::sync::Arc;
 
-use apalis::prelude::{Data, Storage};
-use apalis_redis::RedisStorage;
+use apalis::prelude::Data;
 use chrono::{DateTime, Utc};
 use colette_core::feed::FeedService;
 use futures::StreamExt;
 use tokio::sync::Mutex;
 use url::Url;
 
-use crate::scrape_feed;
+use crate::{scrape_feed, Storage};
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct Job(pub DateTime<Utc>);
@@ -22,13 +21,13 @@ impl From<DateTime<Utc>> for Job {
 #[derive(Clone)]
 pub struct State {
     service: Arc<FeedService>,
-    storage: Arc<Mutex<RedisStorage<scrape_feed::Job>>>,
+    storage: Arc<Mutex<dyn Storage<Job = scrape_feed::Job>>>,
 }
 
 impl State {
     pub fn new(
         service: Arc<FeedService>,
-        storage: Arc<Mutex<RedisStorage<scrape_feed::Job>>>,
+        storage: Arc<Mutex<dyn Storage<Job = scrape_feed::Job>>>,
     ) -> Self {
         Self { service, storage }
     }

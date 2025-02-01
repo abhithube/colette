@@ -6,7 +6,9 @@ edition = "2021"
 [dependencies]
 apalis.workspace = true
 apalis-cron = { version = "0.6.4", default-features = false }
-apalis-redis.workspace = true
+apalis-redis = { version = "0.6.4", default-features = false, features = [
+  "tokio-comp",
+] }
 async-trait.workspace = true
 axum = { workspace = true, features = ["tokio"] }
 axum-embed.workspace = true

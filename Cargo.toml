@@ -24,9 +24,6 @@ apalis = { version = "0.6.4", default-features = false, features = [
   "limit",
   "tracing",
 ] }
-apalis-redis = { version = "0.6.4", default-features = false, features = [
-  "tokio-comp",
-] }
 async-trait = { version = "0.1.85", default-features = false }
 axum = { version = "0.8.1", default-features = false, features = [
   "http1",

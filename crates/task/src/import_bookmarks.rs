@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use apalis::prelude::{Data, Storage};
-use apalis_redis::RedisStorage;
+use apalis::prelude::Data;
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
-use crate::scrape_bookmark;
+use crate::{scrape_bookmark, Storage};
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Job {
@@ -22,7 +21,7 @@ impl Job {
 
 pub async fn run(
     job: Job,
-    data: Data<Arc<Mutex<RedisStorage<scrape_bookmark::Job>>>>,
+    data: Data<Arc<Mutex<dyn Storage<Job = scrape_bookmark::Job>>>>,
 ) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} bookmarks", job.urls.len());
 
