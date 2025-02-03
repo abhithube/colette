@@ -26,7 +26,12 @@ impl Findable for PostgresFeedEntryRepository {
             FeedEntry,
             "queries/user_feed_entries/select.sql",
             params.tags.is_some(),
-            &params.tags.unwrap_or_default(),
+            &params
+                .tags
+                .unwrap_or_default()
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>(),
             params.user_id,
             params.id.is_none(),
             params.id,

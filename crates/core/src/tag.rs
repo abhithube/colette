@@ -91,7 +91,7 @@ impl TagService {
         let id = self
             .repository
             .create(TagCreateData {
-                title: data.title.into(),
+                title: data.title,
                 user_id,
             })
             .await?;
@@ -136,20 +136,18 @@ pub struct TagFindParams {
 
 #[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
-    pub title: String,
+    pub title: NonEmptyString,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct TagUpdateData {
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
 }
 
 impl From<TagUpdate> for TagUpdateData {
     fn from(value: TagUpdate) -> Self {
-        Self {
-            title: value.title.map(String::from),
-        }
+        Self { title: value.title }
     }
 }
 

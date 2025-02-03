@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     bookmark,
+    common::NonEmptyString,
     feed::{self, ProcessedFeed},
     folder, Bookmark, Feed, Tag,
 };
@@ -42,7 +43,7 @@ pub(crate) async fn select_bookmarks<'a>(
     user_id: Uuid,
     cursor: Option<bookmark::Cursor>,
     limit: Option<i64>,
-    tags: Option<Vec<String>>,
+    tags: Option<Vec<NonEmptyString>>,
 ) -> sqlx::Result<Vec<Bookmark>> {
     let (has_folder, folder_id) = match folder_id {
         Some(folder_id) => (true, folder_id),
@@ -62,7 +63,11 @@ pub(crate) async fn select_bookmarks<'a>(
         !has_folder,
         folder_id,
         tags.is_none(),
-        &tags.unwrap_or_default(),
+        &tags
+            .unwrap_or_default()
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>(),
         !has_cursor,
         cursor_created_at,
         limit
@@ -104,7 +109,7 @@ pub(crate) async fn select_feeds<'a>(
     user_id: Uuid,
     cursor: Option<feed::Cursor>,
     limit: Option<i64>,
-    tags: Option<Vec<String>>,
+    tags: Option<Vec<NonEmptyString>>,
 ) -> sqlx::Result<Vec<Feed>> {
     let (has_folder, folder_id) = match folder_id {
         Some(folder_id) => (true, folder_id),
@@ -124,7 +129,11 @@ pub(crate) async fn select_feeds<'a>(
         !has_folder,
         folder_id,
         tags.is_none(),
-        &tags.unwrap_or_default(),
+        &tags
+            .unwrap_or_default()
+            .into_iter()
+            .map(String::from)
+            .collect::<Vec<_>>(),
         !has_cursor,
         cursor_title,
         cursor_id,

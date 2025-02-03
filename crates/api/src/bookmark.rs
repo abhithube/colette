@@ -85,12 +85,10 @@ impl From<colette_core::Bookmark> for Bookmark {
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
-    #[schema(format = "uri")]
     pub url: Url,
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub thumbnail_url: Option<NonEmptyString>,
+    pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     #[schema(value_type = Option<String>, min_length = 1)]
     pub author: Option<NonEmptyString>,
@@ -123,14 +121,14 @@ pub struct BookmarkUpdate {
         with = "serde_with::rust::double_option"
     )]
     pub title: Option<Option<NonEmptyString>>,
-    #[schema(value_type = Option<String>, min_length = 1)]
+    #[schema(value_type = Option<Url>)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub thumbnail_url: Option<Option<NonEmptyString>>,
-    #[schema(value_type = Option<DateTime<Utc>>, min_length = 1)]
+    pub thumbnail_url: Option<Option<Url>>,
+    #[schema(value_type = Option<DateTime<Utc>>)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -176,9 +174,9 @@ pub struct BookmarkListQuery {
     pub folder_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
+    #[param(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

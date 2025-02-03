@@ -90,7 +90,7 @@ impl Creatable for PostgresFeedRepository {
                     "queries/user_feed_tags/link.sql",
                     uf_id,
                     data.user_id,
-                    &tags
+                    &tags.into_iter().map(String::from).collect::<Vec<_>>(),
                 )
                 .execute(&mut *tx)
                 .await
@@ -146,7 +146,7 @@ impl Updatable for PostgresFeedRepository {
                     "queries/user_feed_tags/link.sql",
                     params.id,
                     params.user_id,
-                    &tags
+                    &tags.into_iter().map(String::from).collect::<Vec<_>>(),
                 )
                 .execute(&mut *tx)
                 .await

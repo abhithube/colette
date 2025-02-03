@@ -8,7 +8,10 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use chrono::{DateTime, Utc};
-use colette_core::feed_entry::{self, FeedEntryService};
+use colette_core::{
+    common::NonEmptyString,
+    feed_entry::{self, FeedEntryService},
+};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -99,9 +102,9 @@ pub struct FeedEntryListQuery {
     pub smart_feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
+    #[param(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

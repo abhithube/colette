@@ -39,7 +39,7 @@ impl AuthService {
         let id = self
             .user_repository
             .create(UserCreateData {
-                email: data.email.into(),
+                email: data.email,
                 password: hashed,
             })
             .await

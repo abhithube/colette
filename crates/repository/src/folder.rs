@@ -44,7 +44,7 @@ impl Creatable for PostgresFolderRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         sqlx::query_file_scalar!(
             "queries/folders/insert.sql",
-            data.title,
+            String::from(data.title),
             data.parent_id,
             data.user_id
         )
@@ -72,7 +72,7 @@ impl Updatable for PostgresFolderRepository {
                 params.id,
                 params.user_id,
                 data.title.is_some(),
-                data.title,
+                data.title.map(String::from),
                 has_parent,
                 parent_id
             )

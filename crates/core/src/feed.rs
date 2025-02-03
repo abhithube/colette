@@ -38,7 +38,7 @@ pub struct FeedUpdate {
 #[derive(Clone, Debug, Default)]
 pub struct FeedListQuery {
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug)]
@@ -129,7 +129,7 @@ impl FeedService {
                 url: data.url.to_string(),
                 title: data.title.into(),
                 folder_id: data.folder_id,
-                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
+                tags: data.tags,
                 user_id,
             })
             .await?;
@@ -196,7 +196,7 @@ pub trait FeedRepository:
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
@@ -207,7 +207,7 @@ pub struct FeedCreateData {
     pub url: String,
     pub title: String,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     pub user_id: Uuid,
 }
 
@@ -221,7 +221,7 @@ pub struct FeedCacheData {
 pub struct FeedUpdateData {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<FeedUpdate> for FeedUpdateData {
@@ -229,9 +229,7 @@ impl From<FeedUpdate> for FeedUpdateData {
         Self {
             title: value.title.map(String::from),
             folder_id: value.folder_id,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(String::from).collect()),
+            tags: value.tags,
         }
     }
 }

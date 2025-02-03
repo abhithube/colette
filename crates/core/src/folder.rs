@@ -83,7 +83,7 @@ impl FolderService {
         let id = self
             .repository
             .create(FolderCreateData {
-                title: data.title.into(),
+                title: data.title,
                 parent_id: data.parent_id,
                 user_id,
             })
@@ -133,21 +133,21 @@ pub struct FolderFindParams {
 
 #[derive(Clone, Debug, Default)]
 pub struct FolderCreateData {
-    pub title: String,
+    pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FolderUpdateData {
-    pub title: Option<String>,
+    pub title: Option<NonEmptyString>,
     pub parent_id: Option<Option<Uuid>>,
 }
 
 impl From<FolderUpdate> for FolderUpdateData {
     fn from(value: FolderUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
+            title: value.title,
             parent_id: value.parent_id,
         }
     }

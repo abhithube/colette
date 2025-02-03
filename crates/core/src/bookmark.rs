@@ -31,7 +31,7 @@ pub struct Bookmark {
 pub struct BookmarkCreate {
     pub url: Url,
     pub title: NonEmptyString,
-    pub thumbnail_url: Option<NonEmptyString>,
+    pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<NonEmptyString>,
     pub folder_id: Option<Uuid>,
@@ -41,7 +41,7 @@ pub struct BookmarkCreate {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdate {
     pub title: Option<Option<NonEmptyString>>,
-    pub thumbnail_url: Option<Option<NonEmptyString>>,
+    pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<NonEmptyString>>,
     pub folder_id: Option<Option<Uuid>>,
@@ -51,7 +51,7 @@ pub struct BookmarkUpdate {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkListQuery {
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     pub cursor: Option<String>,
 }
 
@@ -226,7 +226,7 @@ pub trait BookmarkRepository:
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,

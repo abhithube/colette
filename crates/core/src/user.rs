@@ -1,3 +1,4 @@
+use email_address::EmailAddress;
 use uuid::Uuid;
 
 use crate::common::{Creatable, Findable};
@@ -24,9 +25,9 @@ pub enum UserFindParams {
     Email(String),
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct UserCreateData {
-    pub email: String,
+    pub email: EmailAddress,
     pub password: String,
 }
 

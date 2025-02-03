@@ -144,9 +144,9 @@ pub struct FeedListQuery {
     pub folder_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
+    #[param(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<FeedListQuery> for feed::FeedListQuery {
