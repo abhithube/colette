@@ -16,8 +16,12 @@ SET
     WHEN $9 THEN $10
     ELSE author
   END,
-  folder_id = CASE
+  archived_url = CASE
     WHEN $11 THEN $12
+    ELSE archived_url
+  END,
+  folder_id = CASE
+    WHEN $13 THEN $14
     ELSE folder_id
   END,
   updated_at = now()

@@ -60,6 +60,8 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
+    #[schema(format = "uri", required)]
+    pub archived_url: Option<String>,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]
@@ -76,6 +78,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
+            archived_url: value.archived_url,
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }

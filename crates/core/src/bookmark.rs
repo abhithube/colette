@@ -21,6 +21,7 @@ pub struct Bookmark {
     pub title: String,
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
+    pub archived_url: Option<String>,
     pub author: Option<String>,
     pub folder_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
@@ -250,6 +251,7 @@ pub struct BookmarkUpdateData {
     pub thumbnail_url: Option<Option<String>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
+    pub archived_url: Option<Option<String>>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
@@ -261,6 +263,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             thumbnail_url: value.thumbnail_url.map(|e| e.map(String::from)),
             published_at: value.published_at,
             author: value.author.map(|e| e.map(String::from)),
+            archived_url: None,
             folder_id: value.folder_id,
             tags: value
                 .tags

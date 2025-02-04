@@ -123,6 +123,10 @@ impl Updatable for PostgresBookmarkRepository {
                 Some(author) => (true, author),
                 None => (false, None),
             };
+            let (has_archived_url, archived_url) = match data.archived_url {
+                Some(archived_url) => (true, archived_url),
+                None => (false, None),
+            };
             let (has_folder, folder_id) = match data.folder_id {
                 Some(folder_id) => (true, folder_id),
                 None => (false, None),
@@ -140,6 +144,8 @@ impl Updatable for PostgresBookmarkRepository {
                 published_at,
                 has_author,
                 author,
+                has_archived_url,
+                archived_url,
                 has_folder,
                 folder_id
             )

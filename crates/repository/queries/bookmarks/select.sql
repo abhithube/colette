@@ -24,6 +24,7 @@ SELECT
   b.thumbnail_url,
   b.published_at,
   b.author,
+  b.archived_url,
   b.folder_id,
   b.created_at,
   jt.tags AS "tags: Json<Vec<Tag>>"

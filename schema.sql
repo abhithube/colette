@@ -73,6 +73,7 @@ CREATE TABLE bookmarks (
   thumbnail_url TEXT,
   published_at TIMESTAMPTZ,
   author TEXT,
+  archived_url TEXT,
   folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
