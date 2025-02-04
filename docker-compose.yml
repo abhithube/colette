@@ -11,3 +11,10 @@ services:
     restart: unless-stopped
     ports:
       - 6379:6379
+  minio:
+    image: quay.io/minio/minio
+    restart: unless-stopped
+    ports:
+      - 9000:9000
+      - 9001:9001
+    command: server /data --console-address ":9001"
