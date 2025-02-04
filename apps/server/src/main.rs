@@ -13,6 +13,7 @@ use colette_api::{
     feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState, Api,
     ApiState,
 };
+use colette_archiver::ThumbnailArchiver;
 use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
@@ -34,6 +35,7 @@ use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmar
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use redis::Client;
 use reqwest::ClientBuilder;
+use s3::{creds::Credentials, Bucket, Region};
 use sqlx::{Pool, Postgres};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -86,6 +88,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
 
     let base64_encoder = Base64Encoder;
+
+    let bucket = {
+        let region = Region::Custom {
+            region: app_config.aws_region.into_owned(),
+            endpoint: app_config.bucket_endpoint_url.into(),
+        };
+        let credentials = Credentials::new(
+            Some(&app_config.aws_access_key_id),
+            Some(&app_config.aws_secret_access_key),
+            None,
+            None,
+            None,
+        )?;
+
+        Bucket::new(&app_config.bucket_name, region, credentials)?.with_path_style()
+    };
+    let _thumbnail_archiver = ThumbnailArchiver::new(client.clone(), bucket);
 
     let auth_service = Arc::new(AuthService::new(
         PostgresUserRepository::new(pool.clone()),

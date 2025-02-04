@@ -2,6 +2,7 @@
 members = [
   "apps/server",
   "crates/api",
+  "crates/archiver",
   "crates/backup",
   "crates/config",
   "crates/core",
@@ -43,6 +44,7 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "std",
 ] }
 colette-api.path = "crates/api"
+colette-archiver.path = "crates/archiver"
 colette-backup.path = "crates/backup"
 colette-config.path = "crates/config"
 colette-core.path = "crates/core"
@@ -71,6 +73,9 @@ reqwest = { version = "0.12.12", default-features = false, features = [
 ] }
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
+] }
+rust-s3 = { version = "0.36.0-beta.2", default-features = false, features = [
+  "with-tokio",
 ] }
 scraper = { version = "0.22.0", default-features = false }
 serde = { version = "1.0.217", default-features = false }

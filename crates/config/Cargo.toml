@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 envy = { version = "0.4.2", default-features = false }
 serde.workspace = true
+url.workspace = true
