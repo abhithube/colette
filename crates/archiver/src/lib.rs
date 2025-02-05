@@ -1,3 +1,4 @@
+use image::ImageError;
 use s3::error::S3Error;
 pub use thumbnail::{ThumbnailArchiver, ThumbnailData};
 
@@ -17,4 +18,7 @@ pub enum Error {
 
     #[error(transparent)]
     Storage(#[from] S3Error),
+
+    #[error(transparent)]
+    Image(#[from] ImageError),
 }

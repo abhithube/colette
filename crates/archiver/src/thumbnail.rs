@@ -35,7 +35,10 @@ impl Archiver<ThumbnailData> for ThumbnailArchiver {
 
         let raw = resp.bytes().await?;
 
-        let object_path = format!("{}/{}", BASE_DIR, data.file_name);
+        let format = image::guess_format(&raw)?;
+        let extension = format.extensions_str()[0];
+
+        let object_path = format!("{}/{}.{}", BASE_DIR, data.file_name, extension);
 
         self.bucket.put_object(&object_path, &raw).await?;
 

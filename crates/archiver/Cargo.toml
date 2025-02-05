@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 async-trait.workspace = true
+image = { version = "0.25.5", default-features = false }
 reqwest.workspace = true
 rust-s3.workspace = true
 thiserror.workspace = true
