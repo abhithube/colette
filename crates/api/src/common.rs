@@ -23,11 +23,11 @@ pub const LIBRARY_TAG: &str = "Library";
 // pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
 pub const TAGS_TAG: &str = "Tags";
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
 pub struct Id(pub Uuid);
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: utoipa::ToSchema> {
     pub data: Vec<T>,

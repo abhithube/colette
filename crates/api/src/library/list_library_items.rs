@@ -6,58 +6,15 @@ use axum::{
     Json,
 };
 use colette_core::library::{self, LibraryService};
-use utoipa::OpenApi;
-use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
+use super::LibraryItem;
 use crate::{
-    bookmark::Bookmark,
     common::{Error, Session, LIBRARY_TAG},
-    feed::Feed,
-    folder::Folder,
     Paginated,
 };
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct LibraryState {
-    service: Arc<LibraryService>,
-}
-
-impl LibraryState {
-    pub fn new(service: Arc<LibraryService>) -> Self {
-        Self { service }
-    }
-}
-
-#[derive(OpenApi)]
-#[openapi(components(schemas(LibraryItem, Paginated<LibraryItem>)))]
-pub struct LibraryApi;
-
-impl LibraryApi {
-    pub fn router() -> OpenApiRouter<LibraryState> {
-        OpenApiRouter::with_openapi(LibraryApi::openapi()).routes(routes!(list_library_items))
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase", tag = "type", content = "data")]
-pub enum LibraryItem {
-    Folder(Folder),
-    Feed(Feed),
-    Bookmark(Bookmark),
-}
-
-impl From<colette_core::LibraryItem> for LibraryItem {
-    fn from(value: colette_core::LibraryItem) -> Self {
-        match value {
-            colette_core::LibraryItem::Folder(folder) => Self::Folder(folder.into()),
-            colette_core::LibraryItem::Feed(feed) => Self::Feed(feed.into()),
-            colette_core::LibraryItem::Bookmark(bookmark) => Self::Bookmark(bookmark.into()),
-        }
-    }
-}
-
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct LibraryItemListQuery {
@@ -85,7 +42,7 @@ impl From<LibraryItemListQuery> for library::LibraryItemListQuery {
     tag = LIBRARY_TAG
 )]
 #[axum::debug_handler]
-pub async fn list_library_items(
+pub async fn handler(
     State(service): State<Arc<LibraryService>>,
     Query(query): Query<LibraryItemListQuery>,
     session: Session,
