@@ -44,11 +44,15 @@ fn write_items<W: Write>(
         let indent_str = " ".repeat(4).repeat(level);
 
         if let Some(children) = &item.item {
-            writeln!(
-                writer,
-                "{}<DT><H3 {}>{}</H3>",
-                indent_str, attributes_str, item.title
-            )?;
+            if attributes_str.is_empty() {
+                writeln!(writer, "{}<DT><H3>{}</H3>", indent_str, item.title)?;
+            } else {
+                writeln!(
+                    writer,
+                    "{}<DT><H3 {}>{}</H3>",
+                    indent_str, attributes_str, item.title
+                )?;
+            }
             writeln!(writer, "{}<DL><p>", indent_str)?;
 
             write_items(writer, children, level + 1)?;
