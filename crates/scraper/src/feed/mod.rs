@@ -1,5 +1,5 @@
 use core::str;
-use std::io::{BufRead, BufReader};
+use std::io::BufReader;
 
 use bytes::Buf;
 use chrono::{DateTime, Utc};
@@ -213,10 +213,8 @@ impl FeedDetector for DefaultFeedDetector {
     async fn detect(&self, url: Url) -> Result<DetectorResponse, Error> {
         let (_, body) = self.client.get(&url).await?;
         let mut reader = BufReader::new(body.reader());
-        let buffer = reader.fill_buf()?;
 
-        let raw = str::from_utf8(buffer)?;
-
+        let raw = str::from_utf8(reader.peek(14)?)?;
         match raw {
             raw if raw.contains("<!DOCTYPE html") => {
                 let metadata =
@@ -227,7 +225,7 @@ impl FeedDetector for DefaultFeedDetector {
                 Ok(DetectorResponse::Detected(feeds))
             }
             raw if raw.contains("<?xml") => {
-                let feed = colette_feed::from_reader(BufReader::new(reader))
+                let feed = colette_feed::from_reader(reader)
                     .map(ExtractedFeed::from)
                     .map_err(|e| Error::Parse(e.into()))?;
 

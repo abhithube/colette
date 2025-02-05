@@ -1,3 +1,4 @@
+#![feature(bufreader_peek)]
 use std::str::Utf8Error;
 
 pub mod bookmark;
