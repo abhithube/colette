@@ -616,7 +616,6 @@ dependencies = [
  "colette-plugins",
  "colette-repository",
  "colette-scraper",
- "colette-session",
  "colette-task",
  "colette-util",
  "envy",
@@ -625,25 +624,14 @@ dependencies = [
  "rust-embed",
  "rust-s3",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
  "tower",
  "tower-http",
  "tower-sessions",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "colette-session"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "redis",
- "serde_json",
- "sqlx",
- "tokio",
  "tower-sessions-core",
+ "tracing-subscriber",
 ]
 
 [[package]]

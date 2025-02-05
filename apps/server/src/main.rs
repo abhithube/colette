@@ -30,7 +30,6 @@ use colette_scraper::{
     bookmark::DefaultBookmarkScraper,
     feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
-use colette_session::RedisStore;
 use colette_task::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
@@ -38,11 +37,14 @@ use redis::Client;
 use reqwest::{ClientBuilder, Url};
 use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
 use serde::{Deserialize, Deserializer};
+use session::RedisStore;
 use sqlx::{Pool, Postgres};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{cookie::time, Expiry, SessionManagerLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+mod session;
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]

@@ -19,7 +19,6 @@ colette-core.workspace = true
 colette-plugins.workspace = true
 colette-repository.workspace = true
 colette-scraper.workspace = true
-colette-session.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true
 envy = { version = "0.4.2", default-features = false }
@@ -28,9 +27,11 @@ reqwest.workspace = true
 rust-embed.workspace = true
 rust-s3.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
+tower-sessions-core = { version = "0.14.0", default-features = false }
 tracing-subscriber.workspace = true

@@ -12,7 +12,6 @@ members = [
   "crates/plugins",
   "crates/repository",
   "crates/scraper",
-  "crates/session",
   "crates/task",
   "crates/util",
 ]
@@ -53,7 +52,6 @@ colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-repository = { path = "crates/repository", default-features = false }
 colette-scraper.path = "crates/scraper"
-colette-session = { path = "crates/session", default-features = false }
 colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 console_error_panic_hook = { version = "0.1.7", default-features = false }
