@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_util::DataEncoder;
+use colette_util::base64;
 use uuid::Uuid;
 
 use crate::common::{Findable, IdParams, NonEmptyString, Paginated, Updatable, PAGINATION_LIMIT};
@@ -39,17 +39,12 @@ pub struct Cursor {
 
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,
-    base64_encoder: Box<dyn DataEncoder<Cursor>>,
 }
 
 impl FeedEntryService {
-    pub fn new(
-        repository: impl FeedEntryRepository,
-        base64_encoder: impl DataEncoder<Cursor>,
-    ) -> Self {
+    pub fn new(repository: impl FeedEntryRepository) -> Self {
         Self {
             repository: Box::new(repository),
-            base64_encoder: Box::new(base64_encoder),
         }
     }
 
@@ -58,9 +53,7 @@ impl FeedEntryService {
         query: FeedEntryListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        let cursor = query
-            .cursor
-            .and_then(|e| self.base64_encoder.decode(&e).ok());
+        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
 
         let mut feed_entries = self
             .repository
@@ -86,7 +79,7 @@ impl FeedEntryService {
                     id: last.id,
                     published_at: last.published_at,
                 };
-                let encoded = self.base64_encoder.encode(&c)?;
+                let encoded = base64::encode(&c)?;
 
                 cursor = Some(encoded);
             }

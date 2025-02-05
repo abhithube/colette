@@ -1,4 +1,4 @@
-use colette_util::PasswordHasher;
+use colette_util::password;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
@@ -22,19 +22,17 @@ pub struct Login {
 
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
-    password_hasher: Box<dyn PasswordHasher>,
 }
 
 impl AuthService {
-    pub fn new(user_repository: impl UserRepository, password_hasher: impl PasswordHasher) -> Self {
+    pub fn new(user_repository: impl UserRepository) -> Self {
         Self {
             user_repository: Box::new(user_repository),
-            password_hasher: Box::new(password_hasher),
         }
     }
 
     pub async fn register(&self, data: Register) -> Result<User, Error> {
-        let hashed = self.password_hasher.hash(&String::from(data.password))?;
+        let hashed = password::hash(&String::from(data.password));
 
         let id = self
             .user_repository
@@ -61,9 +59,7 @@ impl AuthService {
                 _ => e.into(),
             })?;
 
-        let valid = self
-            .password_hasher
-            .verify(&String::from(data.password), &user.password)?;
+        let valid = password::verify(&String::from(data.password), &user.password);
         if !valid {
             return Err(Error::NotAuthenticated);
         }

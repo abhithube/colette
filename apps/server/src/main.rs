@@ -34,7 +34,6 @@ use colette_session::RedisStore;
 use colette_task::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
-use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use redis::Client;
 use reqwest::ClientBuilder;
 use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
@@ -89,8 +88,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         DefaultBookmarkScraper::new(client.clone()),
     ));
 
-    let base64_encoder = Base64Encoder;
-
     let bucket = {
         let region = Region::Custom {
             region: app_config.aws_region.into_owned(),
@@ -124,10 +121,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bucket
     };
 
-    let auth_service = Arc::new(AuthService::new(
-        PostgresUserRepository::new(pool.clone()),
-        ArgonHasher,
-    ));
+    let auth_service = Arc::new(AuthService::new(PostgresUserRepository::new(pool.clone())));
     let backup_service = Arc::new(BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
         feed_repository.clone(),
@@ -140,7 +134,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_repository,
         bookmark_plugin_registry.clone(),
         ThumbnailArchiver::new(client.clone(), bucket),
-        base64_encoder.clone(),
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
     //     pool.clone(),
@@ -149,10 +142,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository,
         Box::new(DefaultFeedDetector::new(client)),
     ));
-    let feed_entry_service = Arc::new(FeedEntryService::new(
-        PostgresFeedEntryRepository::new(pool.clone()),
-        base64_encoder,
-    ));
+    let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
+        pool.clone(),
+    )));
     let folder_service = Arc::new(FolderService::new(folder_repository));
     let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
         pool.clone(),

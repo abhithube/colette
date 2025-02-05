@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use colette_archiver::{Archiver, ThumbnailData};
 use colette_scraper::bookmark::BookmarkScraper;
-use colette_util::{thumbnail::generate_filename, DataEncoder};
+use colette_util::{base64, thumbnail};
 use url::Url;
 use uuid::Uuid;
 
@@ -85,7 +85,6 @@ pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     scraper: Arc<dyn BookmarkScraper>,
     archiver: Box<dyn Archiver<ThumbnailData, Output = Url>>,
-    base64_encoder: Box<dyn DataEncoder<Cursor>>,
 }
 
 impl BookmarkService {
@@ -93,13 +92,11 @@ impl BookmarkService {
         repository: impl BookmarkRepository,
         scraper: Arc<dyn BookmarkScraper>,
         archiver: impl Archiver<ThumbnailData, Output = Url>,
-        base64_encoder: impl DataEncoder<Cursor>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
             scraper,
             archiver: Box::new(archiver),
-            base64_encoder: Box::new(base64_encoder),
         }
     }
 
@@ -108,9 +105,7 @@ impl BookmarkService {
         query: BookmarkListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query
-            .cursor
-            .and_then(|e| self.base64_encoder.decode(&e).ok());
+        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
 
         let mut bookmarks = self
             .repository
@@ -133,7 +128,7 @@ impl BookmarkService {
                 let c = Cursor {
                     created_at: last.created_at,
                 };
-                let encoded = self.base64_encoder.encode(&c)?;
+                let encoded = base64::encode(&c)?;
 
                 cursor = Some(encoded);
             }
@@ -225,7 +220,7 @@ impl BookmarkService {
         data: ThumbnailArchive,
         user_id: Uuid,
     ) -> Result<(), Error> {
-        let file_name = generate_filename(&data.thumbnail_url);
+        let file_name = thumbnail::generate_filename(&data.thumbnail_url);
 
         let archived_url = self
             .archiver
