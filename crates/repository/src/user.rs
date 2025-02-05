@@ -1,7 +1,7 @@
 use colette_core::{
+    User,
     common::{Creatable, Findable},
     user::{Error, NotFoundError, UserCreateData, UserFindParams, UserRepository},
-    User,
 };
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;

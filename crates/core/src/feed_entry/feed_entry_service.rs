@@ -2,10 +2,10 @@ use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
-    feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     Cursor, Error, FeedEntry,
+    feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
 };
-use crate::common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT};
+use crate::common::{IdParams, NonEmptyString, PAGINATION_LIMIT, Paginated};
 
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,

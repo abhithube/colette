@@ -3,8 +3,8 @@ use colette_scraper::{
     utils::{ExtractorQuery, Node},
 };
 use reqwest::{
-    header::{self, HeaderValue},
     Client,
+    header::{self, HeaderValue},
 };
 use scraper::Selector;
 use url::Url;

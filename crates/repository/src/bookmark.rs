@@ -1,9 +1,9 @@
 use colette_core::{
+    Bookmark,
     bookmark::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
-    Bookmark,
 };
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;

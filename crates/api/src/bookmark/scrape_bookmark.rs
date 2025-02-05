@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::{self, BookmarkService};
 use url::Url;
 
-use crate::common::{BaseError, Error, BOOKMARKS_TAG};
+use crate::common::{BOOKMARKS_TAG, BaseError, Error};
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]

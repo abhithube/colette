@@ -7,7 +7,7 @@ use axum::{
 };
 use colette_core::folder::{self, FolderService};
 
-use crate::common::{BaseError, Error, Id, Session, FOLDERS_TAG};
+use crate::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
 
 #[utoipa::path(
     delete,

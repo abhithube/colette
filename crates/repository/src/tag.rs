@@ -1,7 +1,7 @@
 use colette_core::{
+    Tag,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
-    Tag,
 };
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;

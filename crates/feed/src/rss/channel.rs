@@ -1,11 +1,11 @@
 use std::{collections::HashMap, io::BufRead};
 
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 use crate::{
-    rss::item::{self, RssItem},
-    util::{handle_properties, parse_value, Value},
     Error,
+    rss::item::{self, RssItem},
+    util::{Value, handle_properties, parse_value},
 };
 
 #[derive(Debug, Clone, Default)]

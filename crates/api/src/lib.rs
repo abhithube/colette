@@ -1,7 +1,7 @@
 use std::ops::RangeFull;
 
 use auth::AuthState;
-use axum::{extract::FromRef, routing, Router};
+use axum::{Router, extract::FromRef, routing};
 use backup::BackupState;
 use bookmark::BookmarkState;
 pub use common::{Paginated, Session};
@@ -10,7 +10,7 @@ use feed_entry::FeedEntryState;
 use folder::{FolderApi, FolderState};
 use library::{LibraryApi, LibraryState};
 use tag::TagState;
-use utoipa::{openapi::Server, OpenApi};
+use utoipa::{OpenApi, openapi::Server};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 

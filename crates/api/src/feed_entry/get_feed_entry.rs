@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::feed_entry::{self, FeedEntryService};
 
 use super::FeedEntry;
-use crate::common::{BaseError, Error, Id, Session, FEED_ENTRIES_TAG};
+use crate::common::{BaseError, Error, FEED_ENTRIES_TAG, Id, Session};
 
 #[utoipa::path(
     get,

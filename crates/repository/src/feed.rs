@@ -1,12 +1,12 @@
 use colette_core::{
+    Feed,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
         ConflictError, Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository,
         FeedUpdateData,
     },
-    Feed,
 };
-use futures::{stream::BoxStream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 

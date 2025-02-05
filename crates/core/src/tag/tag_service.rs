@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    tag_repository::{TagCreateData, TagFindParams, TagRepository, TagUpdateData},
     Error, Tag, TagType,
+    tag_repository::{TagCreateData, TagFindParams, TagRepository, TagUpdateData},
 };
 use crate::common::{IdParams, NonEmptyString, Paginated};
 

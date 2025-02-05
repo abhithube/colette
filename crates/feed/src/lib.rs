@@ -2,8 +2,8 @@ use std::{io::BufRead, num::ParseIntError};
 
 use atom::AtomFeed;
 use quick_xml::{
-    events::{attributes::AttrError, Event},
     Reader,
+    events::{Event, attributes::AttrError},
 };
 use rss::RssFeed;
 

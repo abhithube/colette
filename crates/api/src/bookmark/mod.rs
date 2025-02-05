@@ -6,7 +6,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::{tag::Tag, Paginated};
+use crate::{Paginated, tag::Tag};
 
 mod create_bookmark;
 mod delete_bookmark;

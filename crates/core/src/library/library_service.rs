@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    library_repository::{LibraryItemFindParams, LibraryRepository},
     Error, LibraryItem,
+    library_repository::{LibraryItemFindParams, LibraryRepository},
 };
 use crate::common::Paginated;
 

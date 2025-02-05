@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::bookmark::{self, BookmarkService};
 
 use super::Bookmark;
 use crate::{
-    common::{BaseError, Error, Id, BOOKMARKS_TAG},
     Session,
+    common::{BOOKMARKS_TAG, BaseError, Error, Id},
 };
 
 #[utoipa::path(

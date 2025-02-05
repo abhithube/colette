@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::auth::AuthService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use crate::common::{Error, Session, AUTH_TAG};
+use crate::common::{AUTH_TAG, Error, Session};
 
 mod login;
 mod logout;

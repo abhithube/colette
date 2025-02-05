@@ -10,13 +10,13 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
+    Bookmark, Cursor, Error,
     bookmark_repository::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },
-    Bookmark, Cursor, Error,
 };
 use crate::{
-    common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT},
+    common::{IdParams, NonEmptyString, PAGINATION_LIMIT, Paginated},
     storage::Storage,
 };
 
@@ -211,13 +211,10 @@ impl BookmarkService {
             .await?;
 
         self.repository
-            .update(
-                IdParams::new(bookmark_id, user_id),
-                BookmarkUpdateData {
-                    archived_url: Some(Some(archived_url.to_string())),
-                    ..Default::default()
-                },
-            )
+            .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
+                archived_url: Some(Some(archived_url.to_string())),
+                ..Default::default()
+            })
             .await?;
 
         Ok(())

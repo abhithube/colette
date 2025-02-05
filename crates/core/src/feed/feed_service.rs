@@ -10,10 +10,10 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
+    Error, Feed,
     feed_repository::{
         FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
     },
-    Error, Feed,
 };
 use crate::{
     common::{IdParams, NonEmptyString, Paginated},

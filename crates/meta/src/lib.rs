@@ -3,10 +3,10 @@ use std::{io::Read, str::Utf8Error};
 
 use html5gum::{IoReader, Token, Tokenizer};
 use open_graph::handle_open_graph;
-use rss::{handle_rss, Feed};
+use rss::{Feed, handle_rss};
 use schema_org::{
-    handle_json_ld, handle_microdata, Article, ImageObject, Person, SchemaObject,
-    SchemaObjectOrValue, VideoObject, WebPage, WebSite,
+    Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, VideoObject, WebPage, WebSite,
+    handle_json_ld, handle_microdata,
 };
 
 use crate::{basic::Basic, open_graph::OpenGraph, util::Value};

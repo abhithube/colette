@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use chrono::{DateTime, Utc};
 use colette_core::{
@@ -16,8 +16,8 @@ use uuid::Uuid;
 
 use super::Bookmark;
 use crate::{
-    common::{BaseError, Error, Id, BOOKMARKS_TAG},
     Session,
+    common::{BOOKMARKS_TAG, BaseError, Error, Id},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]

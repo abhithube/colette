@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::{
     auth::{self, AuthService},
@@ -14,7 +14,7 @@ use colette_core::{
 use email_address::EmailAddress;
 
 use super::User;
-use crate::common::{BaseError, Error, AUTH_TAG};
+use crate::common::{AUTH_TAG, BaseError, Error};
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]

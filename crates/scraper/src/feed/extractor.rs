@@ -5,8 +5,8 @@ use scraper::{Html, Selector};
 
 use super::{ExtractedFeed, ExtractedFeedEntry};
 use crate::{
-    utils::{ExtractorQuery, TextSelector},
     Error,
+    utils::{ExtractorQuery, TextSelector},
 };
 
 #[derive(Clone, Debug, Default)]

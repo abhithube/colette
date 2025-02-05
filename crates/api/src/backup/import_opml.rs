@@ -8,7 +8,7 @@ use axum::{
 use bytes::Bytes;
 use colette_core::backup::BackupService;
 
-use crate::common::{Error, Session, BACKUPS_TAG};
+use crate::common::{BACKUPS_TAG, Error, Session};
 
 #[utoipa::path(
   post,

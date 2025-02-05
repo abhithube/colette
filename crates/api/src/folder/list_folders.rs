@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     response::{IntoResponse, Response},
-    Json,
 };
 use axum_extra::extract::Query;
 use colette_core::folder::{self, FolderService};
@@ -11,8 +11,8 @@ use uuid::Uuid;
 
 use super::Folder;
 use crate::{
-    common::{Error, Session, FOLDERS_TAG},
     Paginated,
+    common::{Error, FOLDERS_TAG, Session},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

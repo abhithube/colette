@@ -7,7 +7,7 @@ use axum::{
 };
 use colette_core::feed::{self, FeedService};
 
-use crate::common::{BaseError, Error, Id, Session, FEEDS_TAG};
+use crate::common::{BaseError, Error, FEEDS_TAG, Id, Session};
 
 #[utoipa::path(
     delete,

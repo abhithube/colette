@@ -1,7 +1,7 @@
 use colette_core::{
+    FeedEntry,
     common::{Findable, IdParams, Updatable},
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
-    FeedEntry,
 };
 use sqlx::{Pool, Postgres};
 

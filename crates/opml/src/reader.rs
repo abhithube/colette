@@ -1,8 +1,8 @@
 use std::io::BufRead;
 
 use quick_xml::{
-    events::{BytesStart, Event},
     Reader,
+    events::{BytesStart, Event},
 };
 
 use crate::{Error, Opml, Outline};

@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    bookmark,
+    Bookmark, Feed, Tag, bookmark,
     common::NonEmptyString,
     feed::{self, ProcessedFeed},
-    folder, Bookmark, Feed, Tag,
+    folder,
 };
-use sqlx::{types::Json, PgExecutor};
+use sqlx::{PgExecutor, types::Json};
 use uuid::Uuid;
 
 struct BookmarkRow {

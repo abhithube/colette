@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::{
     common::NonEmptyString,
@@ -13,7 +13,7 @@ use colette_core::{
 use uuid::Uuid;
 
 use super::Folder;
-use crate::common::{BaseError, Error, Session, FOLDERS_TAG};
+use crate::common::{BaseError, Error, FOLDERS_TAG, Session};
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]

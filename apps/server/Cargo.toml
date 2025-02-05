@@ -1,7 +1,7 @@
 [package]
 name = "colette-server"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 apalis = { version = "0.6.4", default-features = false, features = [
@@ -34,6 +34,5 @@ tokio.workspace = true
 tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
-tower-sessions-core = { version = "0.14.0", default-features = false }
 tracing.workspace = true
 tracing-subscriber.workspace = true

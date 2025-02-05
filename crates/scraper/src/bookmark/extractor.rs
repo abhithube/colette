@@ -5,8 +5,8 @@ use scraper::Html;
 
 use super::ExtractedBookmark;
 use crate::{
-    utils::{ExtractorQuery, TextSelector},
     Error,
+    utils::{ExtractorQuery, TextSelector},
 };
 
 #[derive(Clone, Debug, Default)]

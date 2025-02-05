@@ -2,11 +2,11 @@ use std::{collections::HashMap, io::BufRead};
 
 pub use channel::RssChannel;
 pub use item::RssItem;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 use crate::{
-    util::{handle_properties, Value},
     Error,
+    util::{Value, handle_properties},
 };
 
 mod channel;

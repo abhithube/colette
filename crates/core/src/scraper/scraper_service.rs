@@ -5,8 +5,8 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    scraper_repository::{SaveBookmarkData, SaveFeedData, ScraperRepository},
     Error,
+    scraper_repository::{SaveBookmarkData, SaveFeedData, ScraperRepository},
 };
 
 pub struct ScraperService {

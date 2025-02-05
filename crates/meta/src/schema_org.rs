@@ -177,7 +177,7 @@ pub(crate) fn handle_microdata(
     content: String,
 ) {
     match schema_org {
-        SchemaObjectOrValue::SchemaObject(schema_obj) => match schema_obj {
+        SchemaObjectOrValue::SchemaObject(schema_obj) => match *schema_obj {
             SchemaObject::Article(ref mut article) => update_article(article, itemprop, content),
             SchemaObject::ImageObject(ref mut image_object) => {
                 update_image_object(image_object, itemprop, content)

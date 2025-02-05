@@ -6,12 +6,11 @@ use apalis::{
 };
 use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
-use axum::http::{header, HeaderValue, Method};
+use axum::http::{HeaderValue, Method, header};
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::{
-    auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState, Api,
-    ApiState,
+    Api, ApiState, auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
+    feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState,
 };
 use colette_archiver::ThumbnailArchiver;
 use colette_core::{
@@ -34,13 +33,13 @@ use job::{
 };
 use redis::Client;
 use reqwest::{ClientBuilder, Url};
-use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
+use s3::{Bucket, BucketConfiguration, Region, creds::Credentials};
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
 use sqlx::{Pool, Postgres};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{cookie::time, Expiry, SessionManagerLayer};
+use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod job;

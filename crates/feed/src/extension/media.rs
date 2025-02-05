@@ -1,13 +1,13 @@
 use std::{collections::HashMap, io::BufRead};
 
 use quick_xml::{
-    events::{BytesStart, Event},
     Reader,
+    events::{BytesStart, Event},
 };
 
 use crate::{
-    util::{handle_properties, parse_value, Value},
     Error, ParseError,
+    util::{Value, handle_properties, parse_value},
 };
 
 #[derive(Debug, Clone, Default)]

@@ -1,15 +1,15 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::folder::{self, FolderService};
 
 use super::Folder;
-use crate::common::{BaseError, Error, Id, Session, FOLDERS_TAG};
+use crate::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
 
 #[utoipa::path(
     get,

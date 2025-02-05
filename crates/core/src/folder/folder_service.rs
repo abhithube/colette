@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
     Error, Folder,
+    folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
 };
 use crate::common::{IdParams, NonEmptyString, Paginated};
 

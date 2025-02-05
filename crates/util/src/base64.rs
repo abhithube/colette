@@ -1,7 +1,7 @@
 use core::str;
 use std::str::Utf8Error;
 
-use base64::{engine::general_purpose, DecodeError, Engine};
+use base64::{DecodeError, Engine, engine::general_purpose};
 use serde::{Deserialize, Serialize};
 
 pub fn encode<T: Serialize>(data: &T) -> Result<String, Error> {

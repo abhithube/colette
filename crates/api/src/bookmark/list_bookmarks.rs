@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     response::{IntoResponse, Response},
-    Json,
 };
 use axum_extra::extract::Query;
 use colette_core::{
@@ -14,8 +14,8 @@ use uuid::Uuid;
 
 use super::Bookmark;
 use crate::{
-    common::{Error, BOOKMARKS_TAG},
     Paginated, Session,
+    common::{BOOKMARKS_TAG, Error},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

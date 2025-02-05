@@ -4,9 +4,9 @@ use uuid::Uuid;
 
 use super::Error;
 use crate::{
+    User,
     common::NonEmptyString,
     user::{self, UserCreateData, UserFindParams, UserRepository},
-    User,
 };
 
 pub struct AuthService {

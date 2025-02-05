@@ -4,13 +4,13 @@ use std::{collections::HashMap, io::BufRead, str::FromStr};
 pub use entry::AtomEntry;
 pub use person::AtomPerson;
 use quick_xml::{
-    events::{BytesStart, Event},
     Reader,
+    events::{BytesStart, Event},
 };
 
 use crate::{
-    util::{handle_properties, parse_value, Value},
     Error,
+    util::{Value, handle_properties, parse_value},
 };
 
 mod entry;

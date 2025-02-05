@@ -8,13 +8,13 @@ use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
-use super::{backup_repository::BackupRepository, Error};
+use super::{Error, backup_repository::BackupRepository};
 use crate::{
+    Bookmark, Feed, Folder,
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
     folder::{FolderFindParams, FolderRepository},
     storage::Storage,
-    Bookmark, Feed, Folder,
 };
 
 pub struct BackupService {

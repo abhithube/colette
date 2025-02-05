@@ -1,15 +1,15 @@
 use std::{collections::HashMap, io::BufRead};
 
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
-use super::{handle_link, handle_text, person, AtomLink, AtomPerson, AtomText};
+use super::{AtomLink, AtomPerson, AtomText, handle_link, handle_text, person};
 use crate::{
-    extension::{
-        media::{self, handle_media_thumbnail, MediaGroup},
-        Extension,
-    },
-    util::{handle_properties, parse_value, Value},
     Error,
+    extension::{
+        Extension,
+        media::{self, MediaGroup, handle_media_thumbnail},
+    },
+    util::{Value, handle_properties, parse_value},
 };
 
 #[derive(Debug, Clone, Default)]

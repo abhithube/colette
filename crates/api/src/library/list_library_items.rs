@@ -1,17 +1,17 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Query, State},
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::library::{self, LibraryService};
 use uuid::Uuid;
 
 use super::LibraryItem;
 use crate::{
-    common::{Error, Session, LIBRARY_TAG},
     Paginated,
+    common::{Error, LIBRARY_TAG, Session},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

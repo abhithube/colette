@@ -1,7 +1,7 @@
 use colette_core::{
+    Folder,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     folder::{Error, FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
-    Folder,
 };
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;

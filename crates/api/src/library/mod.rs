@@ -4,7 +4,7 @@ use colette_core::library::LibraryService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use crate::{bookmark::Bookmark, feed::Feed, folder::Folder, Paginated};
+use crate::{Paginated, bookmark::Bookmark, feed::Feed, folder::Folder};
 
 mod list_library_items;
 

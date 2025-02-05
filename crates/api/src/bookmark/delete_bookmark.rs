@@ -8,8 +8,8 @@ use axum::{
 use colette_core::bookmark::{self, BookmarkService};
 
 use crate::{
-    common::{BaseError, Error, Id, BOOKMARKS_TAG},
     Session,
+    common::{BOOKMARKS_TAG, BaseError, Error, Id},
 };
 
 #[utoipa::path(

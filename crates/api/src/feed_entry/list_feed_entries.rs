@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::State,
     response::{IntoResponse, Response},
-    Json,
 };
 use axum_extra::extract::Query;
 use colette_core::{
@@ -14,8 +14,8 @@ use uuid::Uuid;
 
 use super::FeedEntry;
 use crate::{
-    common::{Error, Session, FEED_ENTRIES_TAG},
     Paginated,
+    common::{Error, FEED_ENTRIES_TAG, Session},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

@@ -3,7 +3,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use crate::common::{BaseError, Error, AUTH_TAG};
+use crate::common::{AUTH_TAG, BaseError, Error};
 
 #[utoipa::path(
   post,

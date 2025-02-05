@@ -1,10 +1,10 @@
 use std::{collections::HashMap, io::BufRead};
 
-use quick_xml::{events::Event, Reader};
+use quick_xml::{Reader, events::Event};
 
 use crate::{
-    util::{handle_properties, parse_value, Value},
     Error,
+    util::{Value, handle_properties, parse_value},
 };
 
 #[derive(Debug, Clone, Default)]

@@ -1,16 +1,16 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Query, State},
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::tag::{self, TagService};
 
 use super::Tag;
 use crate::{
-    common::{Error, Session, TAGS_TAG},
     Paginated,
+    common::{Error, Session, TAGS_TAG},
 };
 
 #[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]

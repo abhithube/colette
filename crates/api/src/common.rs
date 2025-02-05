@@ -1,11 +1,11 @@
 use axum::{
-    extract::{
-        rejection::{JsonRejection, QueryRejection},
-        FromRequestParts,
-    },
-    http::{request::Parts, StatusCode},
-    response::{IntoResponse, Response},
     Json,
+    extract::{
+        FromRequestParts,
+        rejection::{JsonRejection, QueryRejection},
+    },
+    http::{StatusCode, request::Parts},
+    response::{IntoResponse, Response},
 };
 use colette_core::{auth, common};
 use tower_sessions::session;
