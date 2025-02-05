@@ -29,6 +29,7 @@ axum = { version = "0.8.1", default-features = false, features = [
   "json",
   "query",
   "macros",
+  "tokio",
 ] }
 axum-embed = { version = "0.1.0", default-features = false }
 axum-extra = { version = "0.10.0", default-features = false, features = [
@@ -88,7 +89,10 @@ sqlx = { version = "0.8.3", features = [
   "uuid",
 ] }
 thiserror = { version = "2.0.11", default-features = false }
-tokio = { version = "1.43.0", default-features = false, features = ["macros"] }
+tokio = { version = "1.43.0", default-features = false, features = [
+  "macros",
+  "rt-multi-thread",
+] }
 tower = { version = "0.5.2", default-features = false, features = [
   "limit",
   "tracing",
