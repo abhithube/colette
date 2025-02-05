@@ -1,10 +1,10 @@
 use std::io::Write;
 
-use crate::{Opml, Outline};
+use crate::{Error, Opml, Outline};
 
 const HEADER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>"#;
 
-pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), anyhow::Error> {
+pub fn to_writer<W: Write>(mut writer: W, opml: Opml) -> Result<(), Error> {
     writeln!(writer, "{}", HEADER)?;
 
     writeln!(writer, r#"<opml version="{}">"#, opml.version)?;
@@ -33,7 +33,7 @@ fn write_outlines<W: Write>(
     writer: &mut W,
     outlines: &[Outline],
     level: usize,
-) -> Result<(), anyhow::Error> {
+) -> Result<(), Error> {
     for outline in outlines {
         let mut attributes: Vec<String> = Vec::new();
         if let Some(r#type) = &outline.r#type {

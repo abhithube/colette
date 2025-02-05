@@ -5,9 +5,9 @@ use url::Url;
 use uuid::Uuid;
 
 use crate::{
-    bookmark::{BookmarkFindParams, BookmarkRepository},
-    feed::{FeedFindParams, FeedRepository},
-    folder::{FolderFindParams, FolderRepository},
+    bookmark::{self, BookmarkFindParams, BookmarkRepository},
+    feed::{self, FeedFindParams, FeedRepository},
+    folder::{self, FolderFindParams, FolderRepository},
     Bookmark, Feed, Folder,
 };
 
@@ -58,7 +58,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| Error::Repository(e.into()))?;
 
         let feeds = self
             .feed_repository
@@ -67,7 +67,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| Error::Repository(e.into()))?;
 
         let outlines = build_opml_hierarchy(&folders, &feeds, None);
 
@@ -107,7 +107,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| Error::Repository(e.into()))?;
 
         let bookmarks = self
             .bookmark_repository
@@ -116,7 +116,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+            .map_err(|e| Error::Repository(e.into()))?;
 
         let items = build_netscape_hierarchy(&folders, &bookmarks, None);
 
@@ -208,8 +208,26 @@ fn build_netscape_hierarchy(
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Opml(#[from] colette_opml::Error),
 
     #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
+    Netscape(#[from] colette_netscape::Error),
+
+    #[error(transparent)]
+    Repository(#[from] RepositoryError),
+
+    #[error(transparent)]
+    Database(#[from] sqlx::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum RepositoryError {
+    #[error(transparent)]
+    Folder(#[from] folder::Error),
+
+    #[error(transparent)]
+    Feed(#[from] feed::Error),
+
+    #[error(transparent)]
+    Bookmark(#[from] bookmark::Error),
 }

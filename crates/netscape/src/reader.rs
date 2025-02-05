@@ -1,8 +1,9 @@
+use core::str;
 use std::{collections::BTreeMap, io::Read};
 
 use html5gum::{HtmlString, IoReader, Token, Tokenizer};
 
-use crate::{Item, Netscape};
+use crate::{Error, Item, Netscape, ParseError};
 
 #[derive(Debug, Clone)]
 enum StartTag {
@@ -12,7 +13,7 @@ enum StartTag {
     A,
 }
 
-pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, anyhow::Error> {
+pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, Error> {
     let mut netscape = Netscape::default();
 
     let mut tag_stack: Vec<StartTag> = Vec::new();
@@ -40,7 +41,8 @@ pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, anyhow::Error> {
                 _ => {}
             },
             Token::String(text) => {
-                let text = String::from_utf8(text.0)?
+                let text = str::from_utf8(&text.0)
+                    .map_err(ParseError::Utf)?
                     .split_whitespace()
                     .filter(|s| !s.is_empty())
                     .collect::<Vec<_>>()
@@ -85,15 +87,42 @@ pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, anyhow::Error> {
     Ok(netscape)
 }
 
-fn parse_attributes(attributes: BTreeMap<HtmlString, HtmlString>) -> Result<Item, anyhow::Error> {
+fn parse_attributes(attributes: BTreeMap<HtmlString, HtmlString>) -> Result<Item, Error> {
     let mut item = Item::default();
 
     for (key, value) in attributes {
         match key.0.as_slice() {
-            b"href" => item.href = Some(String::from_utf8(value.0)?),
-            b"add_date" => item.add_date = Some(String::from_utf8(value.0)?.parse()?),
-            b"last_visit" => item.last_visit = Some(String::from_utf8(value.0)?.parse()?),
-            b"last_modified" => item.last_modified = Some(String::from_utf8(value.0)?.parse()?),
+            b"href" => {
+                item.href = Some(
+                    String::from_utf8(value.0)
+                        .map_err(|e| e.utf8_error())
+                        .map_err(ParseError::Utf)?,
+                )
+            }
+            b"add_date" => {
+                item.add_date = Some(
+                    str::from_utf8(&value.0)
+                        .map_err(ParseError::Utf)?
+                        .parse()
+                        .map_err(ParseError::Int)?,
+                )
+            }
+            b"last_visit" => {
+                item.last_visit = Some(
+                    str::from_utf8(&value.0)
+                        .map_err(ParseError::Utf)?
+                        .parse()
+                        .map_err(ParseError::Int)?,
+                )
+            }
+            b"last_modified" => {
+                item.last_modified = Some(
+                    str::from_utf8(&value.0)
+                        .map_err(ParseError::Utf)?
+                        .parse()
+                        .map_err(ParseError::Int)?,
+                )
+            }
             _ => {}
         }
     }

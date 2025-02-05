@@ -1,10 +1,12 @@
+use core::str;
+
 use bytes::Bytes;
 use scraper::Html;
 
 use super::ExtractedBookmark;
 use crate::{
     utils::{ExtractorQuery, TextSelector},
-    ExtractorError,
+    Error,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -25,10 +27,10 @@ impl BookmarkExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, ExtractorError> {
-        let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
-
-        let html = Html::parse_document(&raw);
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, Error> {
+        let raw = Vec::<u8>::from(body);
+        let raw = str::from_utf8(&raw)?;
+        let html = Html::parse_document(raw);
 
         let bookmark = ExtractedBookmark {
             title: html.select_text(&self.options.title_queries),

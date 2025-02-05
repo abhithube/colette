@@ -5,6 +5,8 @@ use quick_xml::{
     Reader,
 };
 
+use crate::Error;
+
 #[derive(Debug, Clone, Default)]
 pub enum Value {
     #[default]
@@ -19,7 +21,7 @@ pub(crate) fn parse_value<R: BufRead>(
     buf: &mut Vec<u8>,
     initial_tag: String,
     initial_value: Value,
-) -> Result<Value, anyhow::Error> {
+) -> Result<Value, Error> {
     let mut tag_stack: Vec<String> = vec![initial_tag];
     let mut value_stack: Vec<Value> = vec![initial_value];
 
@@ -72,10 +74,10 @@ pub(crate) fn parse_value<R: BufRead>(
 pub(crate) fn handle_properties<'a, R: BufRead>(
     reader: &'a Reader<R>,
     e: &'a BytesStart<'a>,
-) -> Result<Value, anyhow::Error> {
+) -> Result<Value, Error> {
     let mut properties = HashMap::new();
     for attribute in e.attributes() {
-        let attribute = attribute?;
+        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
         let k = String::from_utf8_lossy(attribute.key.0).into_owned();
         let v = attribute

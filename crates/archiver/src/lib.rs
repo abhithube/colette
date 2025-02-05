@@ -13,11 +13,8 @@ pub trait Archiver<Data>: Send + Sync + 'static {
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Reqwest(#[from] reqwest::Error),
+    Http(#[from] reqwest::Error),
 
     #[error(transparent)]
     Storage(#[from] S3Error),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
 }

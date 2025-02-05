@@ -25,7 +25,7 @@ impl<S: BookmarkScraper> BookmarkPluginRegistry<S> {
 #[async_trait::async_trait]
 impl<S: BookmarkScraper + Clone> BookmarkScraper for BookmarkPluginRegistry<S> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
+        let host = url.host_str().unwrap();
 
         match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(url).await,

@@ -1,5 +1,5 @@
 use core::str;
-use std::io::Read;
+use std::{io::Read, str::Utf8Error};
 
 use html5gum::{IoReader, Token, Tokenizer};
 use open_graph::handle_open_graph;
@@ -25,7 +25,7 @@ pub struct Metadata {
     pub schema_org: Vec<SchemaObjectOrValue>,
 }
 
-pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
+pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
     let mut metadata = Metadata::default();
 
     let mut in_json_ld = false;
@@ -39,16 +39,20 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
             Token::StartTag(mut tag) => {
                 if let Some(name) = tag.attributes.remove("name".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        let name = str::from_utf8(&name)?;
-                        let content = String::from_utf8(content.0)?;
+                        let name = str::from_utf8(&name).map_err(ParseError::Utf)?;
+                        let content = String::from_utf8(content.0)
+                            .map_err(|e| e.utf8_error())
+                            .map_err(ParseError::Utf)?;
 
                         metadata.handle_basic(name, content);
                     }
                 } else if let Some(property) = tag.attributes.remove("property".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
                         if property.as_slice().starts_with(b"og:") {
-                            let property = str::from_utf8(&property)?;
-                            let content = String::from_utf8(content.0)?;
+                            let property = str::from_utf8(&property).map_err(ParseError::Utf)?;
+                            let content = String::from_utf8(content.0)
+                                .map_err(|e| e.utf8_error())
+                                .map_err(ParseError::Utf)?;
 
                             let open_graph =
                                 metadata.open_graph.get_or_insert_with(OpenGraph::default);
@@ -62,8 +66,12 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                             tag.attributes.remove("title".as_bytes()),
                             tag.attributes.remove("href".as_bytes()),
                         ) {
-                            let title = String::from_utf8(title.0)?;
-                            let href = String::from_utf8(href.0)?;
+                            let title = String::from_utf8(title.0)
+                                .map_err(|e| e.utf8_error())
+                                .map_err(ParseError::Utf)?;
+                            let href = String::from_utf8(href.0)
+                                .map_err(|e| e.utf8_error())
+                                .map_err(ParseError::Utf)?;
 
                             handle_rss(&mut metadata.feeds, title, href);
                         }
@@ -71,7 +79,7 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                         in_json_ld = true;
                     }
                 } else if let Some(itemtype) = tag.attributes.remove("itemtype".as_bytes()) {
-                    let url = str::from_utf8(itemtype.as_slice())?;
+                    let url = str::from_utf8(itemtype.as_slice()).map_err(ParseError::Utf)?;
                     let schema = match url.split("/").last() {
                         Some("Article") => SchemaObjectOrValue::SchemaObject(
                             SchemaObject::Article(Article::default()),
@@ -97,8 +105,12 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
                     schema_stack.push(schema);
                 } else if let Some(itemprop) = tag.attributes.remove("itemprop".as_bytes()) {
                     if let Some(content) = tag.attributes.remove("content".as_bytes()) {
-                        let itemprop = String::from_utf8(itemprop.0)?;
-                        let content = String::from_utf8(content.0)?;
+                        let itemprop = String::from_utf8(itemprop.0)
+                            .map_err(|e| e.utf8_error())
+                            .map_err(ParseError::Utf)?;
+                        let content = String::from_utf8(content.0)
+                            .map_err(|e| e.utf8_error())
+                            .map_err(ParseError::Utf)?;
 
                         current_itemprop = Some(itemprop.clone());
                         if let Some(schema_org) = schema_stack.last_mut() {
@@ -109,7 +121,9 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
             }
             Token::String(text) => {
                 if in_json_ld {
-                    let json_ld = String::from_utf8(text.0)?;
+                    let json_ld = String::from_utf8(text.0)
+                        .map_err(|e| e.utf8_error())
+                        .map_err(ParseError::Utf)?;
 
                     handle_json_ld(&mut metadata.schema_org, json_ld);
                 }
@@ -234,4 +248,16 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, anyhow::Error> {
     }
 
     Ok(metadata)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error(transparent)]
+    Utf(#[from] Utf8Error),
 }

@@ -62,7 +62,7 @@ impl Creatable for PostgresBookmarkRepository {
         .await
         .map_err(|e| match e {
             sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.url),
-            _ => Error::Unknown(e.into()),
+            _ => Error::Database(e),
         })?;
 
         if let Some(tags) = data.tags {
@@ -146,7 +146,7 @@ impl Updatable for PostgresBookmarkRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
         }
 
@@ -180,7 +180,7 @@ impl Deletable for PostgresBookmarkRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
 
         Ok(())

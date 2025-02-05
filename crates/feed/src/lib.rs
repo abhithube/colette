@@ -1,8 +1,10 @@
-use std::io::BufRead;
+use std::{io::BufRead, num::ParseIntError};
 
-use anyhow::anyhow;
 use atom::AtomFeed;
-use quick_xml::{events::Event, Reader};
+use quick_xml::{
+    events::{attributes::AttrError, Event},
+    Reader,
+};
 use rss::RssFeed;
 
 pub mod atom;
@@ -16,7 +18,7 @@ pub enum Feed {
     Rss(RssFeed),
 }
 
-pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
+pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, Error> {
     let mut reader = Reader::from_reader(reader);
     reader.config_mut().trim_text(true);
 
@@ -42,5 +44,26 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Feed, anyhow::Error> {
         buf.clear();
     }
 
-    Err(anyhow!("feed not supported"))
+    Err(Error::Unsupported)
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("feed type not supported")]
+    Unsupported,
+
+    #[error(transparent)]
+    Xml(#[from] quick_xml::Error),
+
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error(transparent)]
+    Int(#[from] ParseIntError),
+
+    #[error(transparent)]
+    Attribute(#[from] AttrError),
 }

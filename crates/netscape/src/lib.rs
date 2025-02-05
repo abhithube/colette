@@ -1,3 +1,5 @@
+use std::{num::ParseIntError, str::Utf8Error};
+
 pub use reader::from_reader;
 pub use writer::to_writer;
 
@@ -31,4 +33,22 @@ pub struct Item {
     pub href: Option<String>,
     pub last_visit: Option<i64>,
     pub item: Option<Vec<Item>>,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error(transparent)]
+    Utf(#[from] Utf8Error),
+
+    #[error(transparent)]
+    Int(#[from] ParseIntError),
 }

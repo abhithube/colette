@@ -30,7 +30,7 @@ impl Findable for PostgresUserRepository {
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Id(id)),
-                        _ => Error::Unknown(e.into()),
+                        _ => Error::Database(e),
                     })
             }
             UserFindParams::Email(email) => {
@@ -39,7 +39,7 @@ impl Findable for PostgresUserRepository {
                     .await
                     .map_err(|e| match e {
                         sqlx::Error::RowNotFound => Error::NotFound(NotFoundError::Email(email)),
-                        _ => Error::Unknown(e.into()),
+                        _ => Error::Database(e),
                     })
             }
         }
@@ -59,7 +59,7 @@ impl Creatable for PostgresUserRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(email),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })
     }
 }

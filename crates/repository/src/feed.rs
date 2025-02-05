@@ -57,7 +57,7 @@ impl Creatable for PostgresFeedRepository {
                 sqlx::Error::RowNotFound => {
                     Error::Conflict(ConflictError::NotCached(data.url.clone()))
                 }
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
 
         let uf_id = sqlx::query_file_scalar!(
@@ -73,7 +73,7 @@ impl Creatable for PostgresFeedRepository {
             sqlx::Error::Database(e) if e.is_unique_violation() => {
                 Error::Conflict(ConflictError::AlreadyExists(data.url))
             }
-            _ => Error::Unknown(e.into()),
+            _ => Error::Database(e),
         })?;
 
         sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
@@ -127,7 +127,7 @@ impl Updatable for PostgresFeedRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
         }
 
@@ -161,7 +161,7 @@ impl Deletable for PostgresFeedRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
 
         Ok(())
@@ -179,7 +179,7 @@ impl FeedRepository for PostgresFeedRepository {
     fn stream(&self) -> BoxStream<Result<String, Error>> {
         sqlx::query_file_scalar!("queries/feeds/stream.sql")
             .fetch(&self.pool)
-            .map_err(|e| Error::Unknown(e.into()))
+            .map_err(Error::Database)
             .boxed()
     }
 }

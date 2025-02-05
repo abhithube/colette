@@ -4,7 +4,10 @@ pub use channel::RssChannel;
 pub use item::RssItem;
 use quick_xml::{events::Event, Reader};
 
-use crate::util::{handle_properties, Value};
+use crate::{
+    util::{handle_properties, Value},
+    Error,
+};
 
 mod channel;
 mod item;
@@ -19,7 +22,7 @@ pub struct RssFeed {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<RssFeed, anyhow::Error> {
+) -> Result<RssFeed, Error> {
     let mut feed = RssFeed::default();
 
     loop {

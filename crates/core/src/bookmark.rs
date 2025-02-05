@@ -320,8 +320,8 @@ pub enum Error {
     Archiver(#[from] colette_archiver::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
+    Database(#[from] sqlx::Error),
 }

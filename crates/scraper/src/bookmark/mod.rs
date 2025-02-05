@@ -1,4 +1,3 @@
-use anyhow::anyhow;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_meta::{
@@ -10,7 +9,7 @@ pub use registry::BookmarkPluginRegistry;
 use reqwest::Client;
 use url::Url;
 
-use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
+use crate::{Error, PostprocessorError};
 
 mod extractor;
 mod registry;
@@ -39,9 +38,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 
     fn try_from(mut value: ExtractedBookmark) -> Result<Self, Self::Error> {
         let Some(title) = value.title else {
-            return Err(PostprocessorError(anyhow!(
-                "could not process bookmark title"
-            )));
+            return Err(PostprocessorError::Title);
         };
 
         if let Some(t) = &value.thumbnail {
@@ -87,15 +84,11 @@ impl DefaultBookmarkScraper {
 #[async_trait::async_trait]
 impl BookmarkScraper for DefaultBookmarkScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let resp = self
-            .client
-            .get(url.as_str())
-            .send()
-            .await
-            .map_err(|e| DownloaderError(e.into()))?;
-        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
+        let resp = self.client.get(url.as_str()).send().await?;
+        let body = resp.bytes().await?;
 
-        let metadata = colette_meta::parse_metadata(body.reader()).map_err(ExtractorError)?;
+        let metadata =
+            colette_meta::parse_metadata(body.reader()).map_err(|e| Error::Parse(e.into()))?;
 
         let mut bookmark = ExtractedBookmark {
             title: metadata.basic.title,

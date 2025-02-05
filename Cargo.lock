@@ -478,7 +478,6 @@ dependencies = [
 name = "colette-archiver"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "reqwest",
  "rust-s3",
@@ -490,7 +489,6 @@ dependencies = [
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "bytes",
  "chrono",
@@ -512,35 +510,35 @@ dependencies = [
 name = "colette-feed"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "quick-xml 0.37.2",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "html5gum",
  "ordered-float",
  "serde",
  "serde_json",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "colette-netscape"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "html5gum",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
 name = "colette-opml"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "quick-xml 0.37.2",
+ "thiserror 2.0.11",
 ]
 
 [[package]]
@@ -577,7 +575,6 @@ dependencies = [
 name = "colette-scraper"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "async-trait",
  "bytes",
  "chrono",
@@ -647,7 +644,6 @@ dependencies = [
 name = "colette-util"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "base64",
  "chrono",
  "hex",
@@ -655,6 +651,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "thiserror 2.0.11",
  "url",
 ]
 

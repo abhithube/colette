@@ -23,7 +23,7 @@ impl<S: FeedScraper> FeedPluginRegistry<S> {
 #[async_trait::async_trait]
 impl<S: FeedScraper + Clone> FeedScraper for FeedPluginRegistry<S> {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let host = url.host_str().ok_or(Error::Parse)?;
+        let host = url.host_str().unwrap();
 
         match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(url).await,

@@ -161,7 +161,4 @@ pub enum Error {
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
 }

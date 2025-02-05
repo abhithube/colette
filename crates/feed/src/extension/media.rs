@@ -5,7 +5,10 @@ use quick_xml::{
     Reader,
 };
 
-use crate::util::{handle_properties, parse_value, Value};
+use crate::{
+    util::{handle_properties, parse_value, Value},
+    Error, ParseError,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct MediaGroup {
@@ -32,7 +35,7 @@ enum MediaGroupTag {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<MediaGroup, anyhow::Error> {
+) -> Result<MediaGroup, Error> {
     let mut media_group = MediaGroup::default();
 
     let mut tag_stack: Vec<MediaGroupTag> = Vec::new();
@@ -109,11 +112,11 @@ pub(crate) fn from_reader<R: BufRead>(
 pub(crate) fn handle_media_thumbnail<'a, R: BufRead>(
     reader: &'a Reader<R>,
     e: &'a BytesStart<'a>,
-) -> Result<MediaThumbnail, anyhow::Error> {
+) -> Result<MediaThumbnail, Error> {
     let mut media_thumbnail = MediaThumbnail::default();
 
     for attribute in e.attributes() {
-        let attribute = attribute?;
+        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
         let value = attribute
             .decode_and_unescape_value(reader.decoder())?
@@ -121,8 +124,16 @@ pub(crate) fn handle_media_thumbnail<'a, R: BufRead>(
 
         match attribute.key.local_name().into_inner() {
             b"url" => media_thumbnail.url = value,
-            b"width" => media_thumbnail.width = value.parse()?,
-            b"height" => media_thumbnail.height = value.parse()?,
+            b"width" => {
+                media_thumbnail.width = value
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::Int(e)))?
+            }
+            b"height" => {
+                media_thumbnail.height = value
+                    .parse()
+                    .map_err(|e| Error::Parse(ParseError::Int(e)))?
+            }
             _ => {}
         }
     }

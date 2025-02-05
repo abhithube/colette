@@ -5,6 +5,7 @@ use quick_xml::{events::Event, Reader};
 use crate::{
     rss::item::{self, RssItem},
     util::{handle_properties, parse_value, Value},
+    Error,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -29,7 +30,7 @@ enum ChannelTag {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<RssChannel, anyhow::Error> {
+) -> Result<RssChannel, Error> {
     let mut channel = RssChannel::default();
 
     let mut tag_stack: Vec<ChannelTag> = Vec::new();

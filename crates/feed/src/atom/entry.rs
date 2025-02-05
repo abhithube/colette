@@ -9,6 +9,7 @@ use crate::{
         Extension,
     },
     util::{handle_properties, parse_value, Value},
+    Error,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -36,7 +37,7 @@ enum EntryTag {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<AtomEntry, anyhow::Error> {
+) -> Result<AtomEntry, Error> {
     let mut entry = AtomEntry::default();
 
     let mut tag_stack: Vec<EntryTag> = Vec::new();

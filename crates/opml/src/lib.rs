@@ -1,6 +1,6 @@
 use std::{fmt, str::FromStr};
 
-use anyhow::anyhow;
+use quick_xml::events::attributes::AttrError;
 pub use reader::from_reader;
 pub use writer::to_writer;
 
@@ -23,14 +23,14 @@ pub enum Version {
 }
 
 impl FromStr for Version {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "1.0" => Ok(Self::V1),
             "1.1" => Ok(Self::V1_1),
             "2.0" => Ok(Self::V2),
-            _ => Err(anyhow!("OPML version not supported")),
+            _ => Err(Error::Parse(ParseError::Version)),
         }
     }
 }
@@ -82,12 +82,12 @@ pub enum OutlineType {
 }
 
 impl FromStr for OutlineType {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
             "rss" => Ok(Self::Rss),
-            _ => Err(anyhow!("outline type not supported")),
+            _ => Err(Error::Parse(ParseError::OutlineType)),
         }
     }
 }
@@ -100,4 +100,28 @@ impl fmt::Display for OutlineType {
 
         write!(f, "{}", raw)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Xml(#[from] quick_xml::Error),
+
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error("OPML version not supported")]
+    Version,
+
+    #[error("outline type not supported")]
+    OutlineType,
+
+    #[error(transparent)]
+    Attribute(#[from] AttrError),
 }

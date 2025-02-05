@@ -1,10 +1,12 @@
+use core::str;
+
 use bytes::Bytes;
 use scraper::{Html, Selector};
 
 use super::{ExtractedFeed, ExtractedFeedEntry};
 use crate::{
     utils::{ExtractorQuery, TextSelector},
-    ExtractorError,
+    Error,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -30,10 +32,10 @@ impl FeedExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, ExtractorError> {
-        let raw = String::from_utf8(body.into()).map_err(|e| ExtractorError(e.into()))?;
-
-        let html = Html::parse_document(&raw);
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, Error> {
+        let raw = Vec::<u8>::from(body);
+        let raw = str::from_utf8(&raw)?;
+        let html = Html::parse_document(raw);
 
         let entries = self
             .options

@@ -8,7 +8,10 @@ use quick_xml::{
     Reader,
 };
 
-use crate::util::{handle_properties, parse_value, Value};
+use crate::{
+    util::{handle_properties, parse_value, Value},
+    Error,
+};
 
 mod entry;
 mod person;
@@ -39,7 +42,7 @@ pub enum AtomRel {
 }
 
 impl FromStr for AtomRel {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -65,7 +68,7 @@ pub enum AtomTextType {
 }
 
 impl FromStr for AtomTextType {
-    type Err = anyhow::Error;
+    type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
@@ -85,7 +88,7 @@ enum FeedTag {
 pub fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<AtomFeed, anyhow::Error> {
+) -> Result<AtomFeed, Error> {
     let mut feed = AtomFeed::default();
 
     let mut tag_stack: Vec<FeedTag> = Vec::new();
@@ -170,11 +173,11 @@ pub fn from_reader<R: BufRead>(
 fn handle_link<'a, R: BufRead>(
     reader: &'a Reader<R>,
     e: &'a BytesStart<'a>,
-) -> Result<AtomLink, anyhow::Error> {
+) -> Result<AtomLink, Error> {
     let mut link = AtomLink::default();
 
     for attribute in e.attributes() {
-        let attribute = attribute?;
+        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
         let value = attribute
             .decode_and_unescape_value(reader.decoder())?
@@ -194,11 +197,11 @@ fn handle_link<'a, R: BufRead>(
 fn handle_text<'a, R: BufRead>(
     reader: &'a Reader<R>,
     e: &'a BytesStart<'a>,
-) -> Result<AtomText, anyhow::Error> {
+) -> Result<AtomText, Error> {
     let mut text = AtomText::default();
 
     for attribute in e.attributes() {
-        let attribute = attribute?;
+        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
         let value = attribute
             .decode_and_unescape_value(reader.decoder())?

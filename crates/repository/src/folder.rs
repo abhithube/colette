@@ -82,7 +82,7 @@ impl Updatable for PostgresFolderRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
         }
 
@@ -101,7 +101,7 @@ impl Deletable for PostgresFolderRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
 
         Ok(())

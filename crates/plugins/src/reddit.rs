@@ -1,7 +1,6 @@
 use colette_scraper::{
     bookmark::{BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark},
     utils::{ExtractorQuery, Node},
-    DownloaderError,
 };
 use reqwest::{
     header::{self, HeaderValue},
@@ -56,9 +55,8 @@ impl BookmarkScraper for RedditBookmarkPlugin {
             .get(url.as_str())
             .header(header::USER_AGENT, HeaderValue::from_static("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"))
             .send()
-            .await
-            .map_err(|e| DownloaderError(e.into()))?;
-        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
+            .await?;
+        let body = resp.bytes().await?;
 
         let bookmark = self.extractor.extract(body)?;
 

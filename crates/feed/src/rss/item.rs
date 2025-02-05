@@ -2,7 +2,10 @@ use std::{collections::HashMap, io::BufRead};
 
 use quick_xml::{events::Event, Reader};
 
-use crate::util::{handle_properties, parse_value, Value};
+use crate::{
+    util::{handle_properties, parse_value, Value},
+    Error,
+};
 
 #[derive(Debug, Clone, Default)]
 pub struct RssItem {
@@ -27,7 +30,7 @@ enum ItemTag {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<RssItem, anyhow::Error> {
+) -> Result<RssItem, Error> {
     let mut item = RssItem::default();
 
     let mut tag_stack: Vec<ItemTag> = Vec::new();

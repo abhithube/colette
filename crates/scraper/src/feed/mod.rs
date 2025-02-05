@@ -1,7 +1,6 @@
 use core::str;
 use std::io::{BufRead, BufReader};
 
-use anyhow::anyhow;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
@@ -10,7 +9,7 @@ pub use registry::FeedPluginRegistry;
 use reqwest::Client;
 use url::Url;
 
-use crate::{DownloaderError, Error, ExtractorError, PostprocessorError};
+use crate::{Error, PostprocessorError};
 
 mod atom;
 mod extractor;
@@ -78,13 +77,13 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
 
     fn try_from(value: ExtractedFeed) -> Result<Self, Self::Error> {
         let Some(Ok(link)) = value.link.as_ref().map(|e| Url::parse(e)) else {
-            return Err(PostprocessorError(anyhow!("could not process feed link")));
+            return Err(PostprocessorError::Link);
         };
         let Some(title) = value.title else {
-            return Err(PostprocessorError(anyhow!("could not process feed title")));
+            return Err(PostprocessorError::Title);
         };
         if title.is_empty() {
-            return Err(PostprocessorError(anyhow!("could not process feed title")));
+            return Err(PostprocessorError::Title);
         }
 
         let mut entries: Vec<ProcessedFeedEntry> = Vec::new();
@@ -108,13 +107,13 @@ impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
 
     fn try_from(value: ExtractedFeedEntry) -> Result<Self, Self::Error> {
         let Some(Ok(link)) = value.link.as_ref().map(|e| Url::parse(e)) else {
-            return Err(PostprocessorError(anyhow!("could not process value link")));
+            return Err(PostprocessorError::Link);
         };
         let Some(title) = value.title else {
-            return Err(PostprocessorError(anyhow!("could not process value title")));
+            return Err(PostprocessorError::Title);
         };
         if title.is_empty() {
-            return Err(PostprocessorError(anyhow!("could not process value title")));
+            return Err(PostprocessorError::Title);
         }
 
         let Some(published) = value.published.as_ref().and_then(|e| {
@@ -124,9 +123,7 @@ impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
                 .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
                 .map(|f| f.to_utc())
         }) else {
-            return Err(PostprocessorError(anyhow!(
-                "could not process entry publish date"
-            )));
+            return Err(PostprocessorError::Published);
         };
         let thumbnail = value
             .thumbnail
@@ -191,17 +188,12 @@ impl DefaultFeedScraper {
 #[async_trait::async_trait]
 impl FeedScraper for DefaultFeedScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let resp = self
-            .client
-            .get(url.as_str())
-            .send()
-            .await
-            .map_err(|e| DownloaderError(e.into()))?;
-        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
+        let resp = self.client.get(url.as_str()).send().await?;
+        let body = resp.bytes().await?;
 
         let feed = colette_feed::from_reader(BufReader::new(body.reader()))
             .map(ExtractedFeed::from)
-            .map_err(ExtractorError)?;
+            .map_err(|e| Error::Parse(e.into()))?;
 
         Ok(feed.try_into()?)
     }
@@ -221,24 +213,18 @@ impl DefaultFeedDetector {
 #[async_trait::async_trait]
 impl FeedDetector for DefaultFeedDetector {
     async fn detect(&self, url: Url) -> Result<DetectorResponse, Error> {
-        let resp = self
-            .client
-            .get(url.as_str())
-            .send()
-            .await
-            .map_err(|e| DownloaderError(e.into()))?;
-        let body = resp.bytes().await.map_err(|e| DownloaderError(e.into()))?;
+        let resp = self.client.get(url.as_str()).send().await?;
+        let body = resp.bytes().await?;
 
         let mut reader = BufReader::new(body.reader());
-        let buffer = reader
-            .fill_buf()
-            .map_err(|e| Error::Extract(ExtractorError(e.into())))?;
+        let buffer = reader.fill_buf()?;
 
-        let raw = str::from_utf8(buffer).map_err(|_| Error::Parse)?;
+        let raw = str::from_utf8(buffer)?;
 
         match raw {
             raw if raw.contains("<!DOCTYPE html") => {
-                let metadata = colette_meta::parse_metadata(reader).map_err(|_| Error::Parse)?;
+                let metadata =
+                    colette_meta::parse_metadata(reader).map_err(|e| Error::Parse(e.into()))?;
 
                 let feeds = metadata.feeds.into_iter().map(DetectedFeed::from).collect();
 
@@ -247,11 +233,11 @@ impl FeedDetector for DefaultFeedDetector {
             raw if raw.contains("<?xml") => {
                 let feed = colette_feed::from_reader(BufReader::new(reader))
                     .map(ExtractedFeed::from)
-                    .map_err(ExtractorError)?;
+                    .map_err(|e| Error::Parse(e.into()))?;
 
                 Ok(DetectorResponse::Processed(feed.try_into()?))
             }
-            _ => Err(Error::Parse),
+            _ => Err(Error::Unsupported),
         }
     }
 }

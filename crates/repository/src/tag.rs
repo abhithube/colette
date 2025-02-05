@@ -53,7 +53,7 @@ impl Creatable for PostgresTagRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(title),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })
     }
 }
@@ -77,7 +77,7 @@ impl Updatable for PostgresTagRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
         }
 
@@ -96,7 +96,7 @@ impl Deletable for PostgresTagRepository {
             .await
             .map_err(|e| match e {
                 sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Unknown(e.into()),
+                _ => Error::Database(e),
             })?;
 
         Ok(())

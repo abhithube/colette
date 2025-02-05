@@ -5,7 +5,7 @@ use quick_xml::{
     Reader,
 };
 
-use crate::{Opml, Outline};
+use crate::{Error, Opml, Outline};
 
 #[derive(Debug, Clone)]
 enum StartTag {
@@ -16,7 +16,7 @@ enum StartTag {
     Outline,
 }
 
-pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
+pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, Error> {
     let mut opml = Opml::default();
 
     let mut tag_stack: Vec<StartTag> = Vec::new();
@@ -37,7 +37,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
                 }
                 b"opml" => {
                     for attribute in e.attributes() {
-                        let attribute = attribute?;
+                        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
                         let value = attribute.decode_and_unescape_value(reader.decoder())?;
 
@@ -97,14 +97,11 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, anyhow::Error> {
     Ok(opml)
 }
 
-fn handle_outline<R: BufRead>(
-    reader: &Reader<R>,
-    tag: BytesStart,
-) -> Result<Outline, anyhow::Error> {
+fn handle_outline<R: BufRead>(reader: &Reader<R>, tag: BytesStart) -> Result<Outline, Error> {
     let mut outline = Outline::default();
 
     for attribute in tag.attributes() {
-        let attribute = attribute?;
+        let attribute = attribute.map_err(|e| Error::Parse(e.into()))?;
 
         let value = attribute.decode_and_unescape_value(reader.decoder())?;
         match attribute.key.local_name().into_inner() {

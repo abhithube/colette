@@ -2,6 +2,8 @@ use std::io::BufRead;
 
 use quick_xml::{events::Event, Reader};
 
+use crate::Error;
+
 #[derive(Debug, Clone, Default)]
 pub struct AtomPerson {
     pub name: String,
@@ -17,7 +19,7 @@ enum PersonTag {
 pub(crate) fn from_reader<R: BufRead>(
     reader: &mut Reader<R>,
     buf: &mut Vec<u8>,
-) -> Result<AtomPerson, anyhow::Error> {
+) -> Result<AtomPerson, Error> {
     let mut person = AtomPerson::default();
 
     let mut tag_stack: Vec<PersonTag> = Vec::new();

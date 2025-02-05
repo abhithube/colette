@@ -1,11 +1,11 @@
 use std::io::Write;
 
-use crate::{Item, Netscape};
+use crate::{Error, Item, Netscape};
 
 const DOCTYPE: &str = r#"<!DOCTYPE NETSCAPE-Bookmark-file-1>"#;
 const CONTENT_TYPE: &str = r#"<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">"#;
 
-pub fn to_writer<W: Write>(mut writer: W, netscape: Netscape) -> Result<(), anyhow::Error> {
+pub fn to_writer<W: Write>(mut writer: W, netscape: Netscape) -> Result<(), Error> {
     writeln!(writer, "{}", DOCTYPE)?;
     writeln!(writer, "{}", CONTENT_TYPE)?;
 
@@ -20,11 +20,7 @@ pub fn to_writer<W: Write>(mut writer: W, netscape: Netscape) -> Result<(), anyh
     Ok(())
 }
 
-fn write_items<W: Write>(
-    writer: &mut W,
-    items: &[Item],
-    level: usize,
-) -> Result<(), anyhow::Error> {
+fn write_items<W: Write>(writer: &mut W, items: &[Item], level: usize) -> Result<(), Error> {
     for item in items {
         let mut attributes: Vec<String> = Vec::new();
         if let Some(add_date) = item.add_date {
