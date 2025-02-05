@@ -1,23 +1,13 @@
 use std::sync::Arc;
 
-pub use colette_scraper::feed::ProcessedFeed;
-use colette_scraper::{
-    bookmark::{BookmarkScraper, ProcessedBookmark},
-    feed::FeedScraper,
-};
+use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use url::Url;
 use uuid::Uuid;
 
-#[derive(Clone, Debug)]
-pub struct FeedCreate {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug)]
-pub struct BookmarkCreate {
-    pub url: Url,
-    pub user_id: Uuid,
-}
+use super::{
+    scraper_repository::{SaveBookmarkData, SaveFeedData, ScraperRepository},
+    Error,
+};
 
 pub struct ScraperService {
     repository: Box<dyn ScraperRepository>,
@@ -62,31 +52,13 @@ impl ScraperService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait ScraperRepository: Send + Sync + 'static {
-    async fn save_feed(&self, data: SaveFeedData) -> Result<(), Error>;
-
-    async fn save_bookmark(&self, data: SaveBookmarkData) -> Result<(), Error>;
+#[derive(Clone, Debug)]
+pub struct FeedCreate {
+    pub url: Url,
 }
 
 #[derive(Clone, Debug)]
-pub struct SaveFeedData {
-    pub url: String,
-    pub feed: ProcessedFeed,
-}
-
-#[derive(Clone, Debug)]
-pub struct SaveBookmarkData {
-    pub url: String,
-    pub bookmark: ProcessedBookmark,
+pub struct BookmarkCreate {
+    pub url: Url,
     pub user_id: Uuid,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
 }

@@ -1,44 +1,10 @@
 use uuid::Uuid;
 
-use crate::common::{
-    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+use super::{
+    tag_repository::{TagCreateData, TagFindParams, TagRepository, TagUpdateData},
+    Error, Tag, TagType,
 };
-
-#[derive(Clone, Debug, Default, serde::Deserialize)]
-pub struct Tag {
-    pub id: Uuid,
-    pub title: String,
-    pub bookmark_count: Option<i64>,
-    pub feed_count: Option<i64>,
-}
-
-#[derive(Clone, Debug)]
-pub struct TagCreate {
-    pub title: NonEmptyString,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct TagUpdate {
-    pub title: Option<NonEmptyString>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct TagListQuery {
-    pub tag_type: TagType,
-}
-
-#[derive(Clone, Debug, Default)]
-pub enum TagType {
-    #[default]
-    All,
-    Bookmarks,
-    Feeds,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub title: String,
-}
+use crate::common::{IdParams, NonEmptyString, Paginated};
 
 pub struct TagService {
     repository: Box<dyn TagRepository>,
@@ -112,37 +78,9 @@ impl TagService {
     }
 }
 
-pub trait TagRepository:
-    Findable<Params = TagFindParams, Output = Result<Vec<Tag>, Error>>
-    + Creatable<Data = TagCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = TagUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct TagFindParams {
-    pub id: Option<Uuid>,
+pub struct TagListQuery {
     pub tag_type: TagType,
-    pub feed_id: Option<Uuid>,
-    pub bookmark_id: Option<Uuid>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<Cursor>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct TagCreateData {
-    pub title: NonEmptyString,
-    pub user_id: Uuid,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct TagUpdateData {
-    pub title: Option<NonEmptyString>,
 }
 
 impl From<TagUpdate> for TagUpdateData {
@@ -151,14 +89,12 @@ impl From<TagUpdate> for TagUpdateData {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("tag not found with ID: {0}")]
-    NotFound(Uuid),
+#[derive(Clone, Debug)]
+pub struct TagCreate {
+    pub title: NonEmptyString,
+}
 
-    #[error("tag already exists with title: {0}")]
-    Conflict(String),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
+#[derive(Clone, Debug, Default)]
+pub struct TagUpdate {
+    pub title: Option<NonEmptyString>,
 }

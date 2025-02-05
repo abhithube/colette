@@ -1,33 +1,12 @@
-use email_address::EmailAddress;
+pub use user_repository::*;
 use uuid::Uuid;
 
-use crate::common::{Creatable, Findable};
+mod user_repository;
 
 #[derive(Clone, Debug, Default, serde::Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
-    pub password: String,
-}
-
-pub trait UserRepository:
-    Findable<Params = UserFindParams, Output = Result<User, Error>>
-    + Creatable<Data = UserCreateData, Output = Result<Uuid, Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
-#[derive(Clone, Debug)]
-pub enum UserFindParams {
-    Id(Uuid),
-    Email(String),
-}
-
-#[derive(Clone, Debug)]
-pub struct UserCreateData {
-    pub email: EmailAddress,
     pub password: String,
 }
 

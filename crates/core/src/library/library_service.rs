@@ -1,22 +1,10 @@
 use uuid::Uuid;
 
-use crate::{
-    common::{Findable, Paginated},
-    Bookmark, Feed, Folder,
+use super::{
+    library_repository::{LibraryItemFindParams, LibraryRepository},
+    Error, LibraryItem,
 };
-
-#[derive(Clone, Debug)]
-pub enum LibraryItem {
-    Folder(Folder),
-    Feed(Feed),
-    Bookmark(Bookmark),
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct LibraryItemListQuery {
-    pub folder_id: Option<Uuid>,
-    pub cursor: Option<String>,
-}
+use crate::common::Paginated;
 
 pub struct LibraryService {
     repository: Box<dyn LibraryRepository>,
@@ -50,24 +38,8 @@ impl LibraryService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait LibraryRepository:
-    Findable<Params = LibraryItemFindParams, Output = Result<Vec<LibraryItem>, Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct LibraryItemFindParams {
+pub struct LibraryItemListQuery {
     pub folder_id: Option<Uuid>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    pub cursor: Option<String>,
 }

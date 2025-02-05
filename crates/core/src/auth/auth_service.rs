@@ -2,23 +2,12 @@ use colette_util::password;
 use email_address::EmailAddress;
 use uuid::Uuid;
 
+use super::Error;
 use crate::{
     common::NonEmptyString,
     user::{self, UserCreateData, UserFindParams, UserRepository},
     User,
 };
-
-#[derive(Clone, Debug)]
-pub struct Register {
-    pub email: EmailAddress,
-    pub password: NonEmptyString,
-}
-
-#[derive(Clone, Debug)]
-pub struct Login {
-    pub email: EmailAddress,
-    pub password: NonEmptyString,
-}
 
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
@@ -75,14 +64,14 @@ impl AuthService {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Users(#[from] user::Error),
+#[derive(Clone, Debug)]
+pub struct Register {
+    pub email: EmailAddress,
+    pub password: NonEmptyString,
+}
 
-    #[error("user not authenticated")]
-    NotAuthenticated,
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
+#[derive(Clone, Debug)]
+pub struct Login {
+    pub email: EmailAddress,
+    pub password: NonEmptyString,
 }

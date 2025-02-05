@@ -4,10 +4,11 @@ use colette_opml::{Body, Opml, Outline, OutlineType};
 use url::Url;
 use uuid::Uuid;
 
+use super::{backup_repository::BackupRepository, Error};
 use crate::{
-    bookmark::{self, BookmarkFindParams, BookmarkRepository},
-    feed::{self, FeedFindParams, FeedRepository},
-    folder::{self, FolderFindParams, FolderRepository},
+    bookmark::{BookmarkFindParams, BookmarkRepository},
+    feed::{FeedFindParams, FeedRepository},
+    folder::{FolderFindParams, FolderRepository},
     Bookmark, Feed, Folder,
 };
 
@@ -133,13 +134,6 @@ impl BackupService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait BackupRepository: Send + Sync + 'static {
-    async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error>;
-
-    async fn import_netscape(&self, outlines: Vec<Item>, user_id: Uuid) -> Result<(), Error>;
-}
-
 fn build_opml_hierarchy(
     folders: &[Folder],
     feeds: &[Feed],
@@ -203,31 +197,4 @@ fn build_netscape_hierarchy(
     }
 
     items
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Opml(#[from] colette_opml::Error),
-
-    #[error(transparent)]
-    Netscape(#[from] colette_netscape::Error),
-
-    #[error(transparent)]
-    Repository(#[from] RepositoryError),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RepositoryError {
-    #[error(transparent)]
-    Folder(#[from] folder::Error),
-
-    #[error(transparent)]
-    Feed(#[from] feed::Error),
-
-    #[error(transparent)]
-    Bookmark(#[from] bookmark::Error),
 }

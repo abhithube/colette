@@ -4,74 +4,13 @@ use futures::stream::BoxStream;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable},
-    Tag,
+use super::{
+    feed_repository::{
+        FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
+    },
+    Error, Feed,
 };
-
-#[derive(Clone, Debug, Default)]
-pub struct Feed {
-    pub id: Uuid,
-    pub link: String,
-    pub title: String,
-    pub xml_url: Option<String>,
-    pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<Tag>>,
-    pub unread_count: Option<i64>,
-}
-
-#[derive(Clone, Debug)]
-pub struct FeedCreate {
-    pub url: Url,
-    pub title: NonEmptyString,
-    pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<NonEmptyString>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedUpdate {
-    pub title: Option<NonEmptyString>,
-    pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedListQuery {
-    pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct FeedDetect {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedDetected {
-    pub url: String,
-    pub title: String,
-}
-
-impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
-    fn from(value: colette_scraper::feed::DetectedFeed) -> Self {
-        Self {
-            url: value.url,
-            title: value.title,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum DetectedResponse {
-    Detected(Vec<FeedDetected>),
-    Processed(ProcessedFeed),
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub id: Uuid,
-    pub title: String,
-}
+use crate::common::{IdParams, NonEmptyString, Paginated};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -177,49 +116,23 @@ impl FeedService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait FeedRepository:
-    Findable<Params = FeedFindParams, Output = Result<Vec<Feed>, Error>>
-    + Creatable<Data = FeedCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = FeedUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-    async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
-
-    fn stream(&self) -> BoxStream<Result<String, Error>>;
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct FeedFindParams {
-    pub id: Option<Uuid>,
+pub struct FeedListQuery {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<NonEmptyString>>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<Cursor>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedCreateData {
-    pub url: String,
-    pub title: String,
-    pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<NonEmptyString>>,
-    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]
-pub struct FeedCacheData {
-    pub url: String,
-    pub feed: ProcessedFeed,
+pub struct FeedCreate {
+    pub url: Url,
+    pub title: NonEmptyString,
+    pub folder_id: Option<Uuid>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct FeedUpdateData {
-    pub title: Option<String>,
+pub struct FeedUpdate {
+    pub title: Option<NonEmptyString>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<NonEmptyString>>,
 }
@@ -234,26 +147,28 @@ impl From<FeedUpdate> for FeedUpdateData {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed not found with id: {0}")]
-    NotFound(Uuid),
-
-    #[error(transparent)]
-    Conflict(ConflictError),
-
-    #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
+#[derive(Clone, Debug)]
+pub struct FeedDetect {
+    pub url: Url,
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum ConflictError {
-    #[error("feed not cached with URL: {0}")]
-    NotCached(String),
+#[derive(Clone, Debug, Default)]
+pub struct FeedDetected {
+    pub url: String,
+    pub title: String,
+}
 
-    #[error("feed already exists with URL: {0}")]
-    AlreadyExists(String),
+impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
+    fn from(value: colette_scraper::feed::DetectedFeed) -> Self {
+        Self {
+            url: value.url,
+            title: value.title,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum DetectedResponse {
+    Detected(Vec<FeedDetected>),
+    Processed(ProcessedFeed),
 }

@@ -1,37 +1,10 @@
 use uuid::Uuid;
 
-use crate::common::{
-    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+use super::{
+    folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
+    Error, Folder,
 };
-
-#[derive(Clone, Debug, Default, serde::Deserialize)]
-pub struct Folder {
-    pub id: Uuid,
-    pub title: String,
-    pub parent_id: Option<Uuid>,
-}
-
-#[derive(Clone, Debug)]
-pub struct FolderCreate {
-    pub title: NonEmptyString,
-    pub parent_id: Option<Uuid>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FolderUpdate {
-    pub title: Option<NonEmptyString>,
-    pub parent_id: Option<Option<Uuid>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FolderListQuery {
-    pub parent_id: Option<Option<Uuid>>,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub title: String,
-}
+use crate::common::{IdParams, NonEmptyString, Paginated};
 
 pub struct FolderService {
     repository: Box<dyn FolderRepository>,
@@ -110,36 +83,19 @@ impl FolderService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait FolderRepository:
-    Findable<Params = FolderFindParams, Output = Result<Vec<Folder>, Error>>
-    + Creatable<Data = FolderCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = FolderUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct FolderFindParams {
-    pub id: Option<Uuid>,
+pub struct FolderListQuery {
     pub parent_id: Option<Option<Uuid>>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct FolderCreateData {
+#[derive(Clone, Debug)]
+pub struct FolderCreate {
     pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
-    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct FolderUpdateData {
+pub struct FolderUpdate {
     pub title: Option<NonEmptyString>,
     pub parent_id: Option<Option<Uuid>>,
 }
@@ -151,16 +107,4 @@ impl From<FolderUpdate> for FolderUpdateData {
             parent_id: value.parent_id,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("folder not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error("folder already exists with title: {0}")]
-    Conflict(String),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
 }

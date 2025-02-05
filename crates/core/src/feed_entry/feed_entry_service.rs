@@ -1,41 +1,11 @@
-use chrono::{DateTime, Utc};
 use colette_util::base64;
 use uuid::Uuid;
 
-use crate::common::{Findable, IdParams, NonEmptyString, Paginated, Updatable, PAGINATION_LIMIT};
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedEntry {
-    pub id: Uuid,
-    pub link: String,
-    pub title: String,
-    pub published_at: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<String>,
-    pub has_read: bool,
-    pub feed_id: Uuid,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedEntryUpdate {
-    pub has_read: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct FeedEntryListQuery {
-    pub feed_id: Option<Uuid>,
-    pub smart_feed_id: Option<Uuid>,
-    pub has_read: Option<bool>,
-    pub tags: Option<Vec<NonEmptyString>>,
-    pub cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub id: Uuid,
-    pub published_at: DateTime<Utc>,
-}
+use super::{
+    feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
+    Cursor, Error, FeedEntry,
+};
+use crate::common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT};
 
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,
@@ -121,29 +91,17 @@ impl FeedEntryService {
     }
 }
 
-pub trait FeedEntryRepository:
-    Findable<Params = FeedEntryFindParams, Output = Result<Vec<FeedEntry>, Error>>
-    + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct FeedEntryFindParams {
-    pub id: Option<Uuid>,
+pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<NonEmptyString>>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<Cursor>,
+    pub cursor: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct FeedEntryUpdateData {
+pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }
 
@@ -153,16 +111,4 @@ impl From<FeedEntryUpdate> for FeedEntryUpdateData {
             has_read: value.has_read,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("feed entry not found with id: {0}")]
-    NotFound(Uuid),
-
-    #[error(transparent)]
-    Base64(#[from] base64::Error),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
 }

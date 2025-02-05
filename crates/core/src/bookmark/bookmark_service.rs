@@ -7,79 +7,13 @@ use colette_util::{base64, thumbnail};
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    common::{
-        Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
-        PAGINATION_LIMIT,
+use super::{
+    bookmark_repository::{
+        BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },
-    Tag,
+    Bookmark, Cursor, Error,
 };
-
-#[derive(Clone, Debug, Default)]
-pub struct Bookmark {
-    pub id: Uuid,
-    pub link: String,
-    pub title: String,
-    pub thumbnail_url: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub archived_url: Option<String>,
-    pub author: Option<String>,
-    pub folder_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub tags: Option<Vec<Tag>>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BookmarkCreate {
-    pub url: Url,
-    pub title: NonEmptyString,
-    pub thumbnail_url: Option<Url>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<NonEmptyString>,
-    pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<NonEmptyString>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkUpdate {
-    pub title: Option<Option<NonEmptyString>>,
-    pub thumbnail_url: Option<Option<Url>>,
-    pub published_at: Option<Option<DateTime<Utc>>>,
-    pub author: Option<Option<NonEmptyString>>,
-    pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkListQuery {
-    pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
-    pub cursor: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct BookmarkScrape {
-    pub url: Url,
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkScraped {
-    pub link: String,
-    pub title: String,
-    pub thumbnail_url: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct ThumbnailArchive {
-    pub thumbnail_url: Url,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub created_at: DateTime<Utc>,
-}
+use crate::common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT};
 
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
@@ -244,49 +178,32 @@ impl BookmarkService {
     }
 }
 
-#[async_trait::async_trait]
-pub trait BookmarkRepository:
-    Findable<Params = BookmarkFindParams, Output = Result<Vec<Bookmark>, Error>>
-    + Creatable<Data = BookmarkCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-}
-
 #[derive(Clone, Debug, Default)]
-pub struct BookmarkFindParams {
-    pub id: Option<Uuid>,
+pub struct BookmarkListQuery {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<NonEmptyString>>,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<Cursor>,
+    pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct BookmarkCreateData {
-    pub url: String,
-    pub title: String,
-    pub thumbnail_url: Option<String>,
+#[derive(Clone, Debug)]
+pub struct BookmarkCreate {
+    pub url: Url,
+    pub title: NonEmptyString,
+    pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<String>,
+    pub author: Option<NonEmptyString>,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<String>>,
-    pub user_id: Uuid,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct BookmarkUpdateData {
-    pub title: Option<Option<String>>,
-    pub thumbnail_url: Option<Option<String>>,
+pub struct BookmarkUpdate {
+    pub title: Option<Option<NonEmptyString>>,
+    pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
-    pub author: Option<Option<String>>,
-    pub archived_url: Option<Option<String>>,
+    pub author: Option<Option<NonEmptyString>>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
@@ -305,23 +222,21 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("bookmark not found with id: {0}")]
-    NotFound(Uuid),
+#[derive(Clone, Debug)]
+pub struct BookmarkScrape {
+    pub url: Url,
+}
 
-    #[error("bookmark already exists with URL: {0}")]
-    Conflict(String),
+#[derive(Clone, Debug, Default)]
+pub struct BookmarkScraped {
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub author: Option<String>,
+}
 
-    #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
-
-    #[error(transparent)]
-    Archiver(#[from] colette_archiver::Error),
-
-    #[error(transparent)]
-    Base64(#[from] base64::Error),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
+#[derive(Clone, Debug)]
+pub struct ThumbnailArchive {
+    pub thumbnail_url: Url,
 }
