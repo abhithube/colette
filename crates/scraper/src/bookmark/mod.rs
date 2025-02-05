@@ -1,12 +1,12 @@
 use bytes::Buf;
 use chrono::{DateTime, Utc};
+use colette_http::{HttpClient, HyperClient};
 use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
 pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
 pub use registry::BookmarkPluginRegistry;
-use reqwest::Client;
 use url::Url;
 
 use crate::{Error, PostprocessorError};
@@ -72,11 +72,11 @@ pub trait BookmarkScraper: Send + Sync + 'static {
 
 #[derive(Clone)]
 pub struct DefaultBookmarkScraper {
-    client: Client,
+    client: HyperClient,
 }
 
 impl DefaultBookmarkScraper {
-    pub fn new(client: Client) -> Self {
+    pub fn new(client: HyperClient) -> Self {
         Self { client }
     }
 }
@@ -84,9 +84,7 @@ impl DefaultBookmarkScraper {
 #[async_trait::async_trait]
 impl BookmarkScraper for DefaultBookmarkScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
-        let resp = self.client.get(url.as_str()).send().await?;
-        let body = resp.bytes().await?;
-
+        let (_, body) = self.client.get(url).await?;
         let metadata =
             colette_meta::parse_metadata(body.reader()).map_err(|e| Error::Parse(e.into()))?;
 

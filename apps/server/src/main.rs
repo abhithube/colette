@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, str::FromStr, sync::Arc, time::Duration};
+use std::{borrow::Cow, error::Error, str::FromStr, sync::Arc};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -18,6 +18,7 @@ use colette_core::{
     feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
     scraper::ScraperService, tag::TagService,
 };
+use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
@@ -31,8 +32,6 @@ use colette_scraper::{
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
-use redis::Client;
-use reqwest::{ClientBuilder, Url};
 use s3::{Bucket, BucketConfiguration, Region, creds::Credentials};
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
@@ -41,6 +40,7 @@ use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use url::Url;
 
 mod job;
 mod session;
@@ -67,6 +67,8 @@ pub struct AppConfig {
     pub bucket_endpoint_url: Url,
     #[serde(deserialize_with = "string_to_vec", default = "default_origin_urls")]
     pub origin_urls: Vec<String>,
+    pub user_agent: Option<String>,
+    pub proxy_url: Option<Url>,
     #[serde(default = "default_refresh_enabled")]
     pub refresh_enabled: bool,
     #[serde(default = "default_cron_refresh")]
@@ -150,16 +152,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_repository = PostgresFeedRepository::new(pool.clone());
     let folder_repository = PostgresFolderRepository::new(pool.clone());
 
-    let client = ClientBuilder::new()
-        .timeout(Duration::from_secs(30))
-        .build()?;
+    let http_client = {
+        use hyper_rustls::HttpsConnectorBuilder;
+        use hyper_util::rt::TokioExecutor;
+
+        let https = HttpsConnectorBuilder::new()
+            .with_webpki_roots()
+            .https_only()
+            .enable_http2()
+            .build();
+        let client = hyper_util::client::legacy::Client::builder(TokioExecutor::new()).build(https);
+
+        HyperClient::new(client)
+    };
+
     let feed_plugin_registry = Arc::new(register_feed_plugins(
-        client.clone(),
-        DefaultFeedScraper::new(client.clone()),
+        http_client.clone(),
+        DefaultFeedScraper::new(http_client.clone()),
     ));
     let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
-        client.clone(),
-        DefaultBookmarkScraper::new(client.clone()),
+        http_client.clone(),
+        DefaultBookmarkScraper::new(http_client.clone()),
     ));
 
     let bucket = {
@@ -195,7 +208,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bucket
     };
 
-    let redis = Client::open(app_config.redis_url)?;
+    let redis = redis::Client::open(app_config.redis_url)?;
     let redis_manager = redis.get_connection_manager().await?;
 
     let scrape_feed_storage = RedisStorage::new(redis_manager.clone());
@@ -228,7 +241,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
         bookmark_plugin_registry.clone(),
-        ThumbnailArchiver::new(client.clone(), bucket),
+        ThumbnailArchiver::new(http_client.clone(), bucket),
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
@@ -236,7 +249,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        Box::new(DefaultFeedDetector::new(client)),
+        Box::new(DefaultFeedDetector::new(http_client)),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
         pool.clone(),

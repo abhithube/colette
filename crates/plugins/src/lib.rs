@@ -1,9 +1,9 @@
+use colette_http::HyperClient;
 use colette_scraper::{
     bookmark::{BookmarkPluginRegistry, BookmarkScraper},
     feed::{FeedPluginRegistry, FeedScraper},
 };
 use reddit::RedditBookmarkPlugin;
-use reqwest::Client;
 use youtube::YouTubeFeedPlugin;
 
 mod custom;
@@ -11,7 +11,7 @@ mod reddit;
 mod youtube;
 
 pub fn register_feed_plugins<S: FeedScraper + Clone>(
-    client: Client,
+    client: HyperClient,
     default_scraper: S,
 ) -> FeedPluginRegistry<S> {
     let mut plugins: Vec<(&'static str, Box<dyn FeedScraper>)> = vec![(
@@ -25,7 +25,7 @@ pub fn register_feed_plugins<S: FeedScraper + Clone>(
 }
 
 pub fn register_bookmark_plugins<S: BookmarkScraper + Clone>(
-    client: Client,
+    client: HyperClient,
     default_scraper: S,
 ) -> BookmarkPluginRegistry<S> {
     let mut plugins: Vec<(&'static str, Box<dyn BookmarkScraper>)> = vec![(

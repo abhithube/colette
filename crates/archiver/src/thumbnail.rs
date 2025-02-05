@@ -1,4 +1,4 @@
-use reqwest::Client;
+use colette_http::{HttpClient, HyperClient};
 use s3::Bucket;
 use url::Url;
 
@@ -8,7 +8,7 @@ const BASE_DIR: &str = "colette";
 
 #[derive(Clone)]
 pub struct ThumbnailArchiver {
-    client: Client,
+    client: HyperClient,
     bucket: Box<Bucket>,
 }
 
@@ -18,7 +18,7 @@ pub struct ThumbnailData {
 }
 
 impl ThumbnailArchiver {
-    pub fn new(http: Client, bucket: Box<Bucket>) -> Self {
+    pub fn new(http: HyperClient, bucket: Box<Bucket>) -> Self {
         Self {
             client: http,
             bucket,
@@ -31,16 +31,14 @@ impl Archiver<ThumbnailData> for ThumbnailArchiver {
     type Output = Url;
 
     async fn archive(&self, data: ThumbnailData) -> Result<Self::Output, crate::Error> {
-        let resp = self.client.get(data.url.as_str()).send().await?;
+        let (_, body) = self.client.get(&data.url).await?;
 
-        let raw = resp.bytes().await?;
-
-        let format = image::guess_format(&raw)?;
+        let format = image::guess_format(&body)?;
         let extension = format.extensions_str()[0];
 
         let object_path = format!("{}/{}.{}", BASE_DIR, data.file_name, extension);
 
-        self.bucket.put_object(&object_path, &raw).await?;
+        self.bucket.put_object(&object_path, &body).await?;
 
         let url = Url::parse(&format!("{}/{}", self.bucket.url(), object_path)).unwrap();
 

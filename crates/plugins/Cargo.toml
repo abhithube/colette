@@ -7,9 +7,11 @@ edition = "2024"
 async-trait.workspace = true
 bytes.workspace = true
 chrono.workspace = true
+colette-http.workspace = true
 colette-meta.workspace = true
 colette-scraper.workspace = true
-reqwest.workspace = true
+http.workspace = true
+http-body-util.workspace = true
 scraper.workspace = true
 url.workspace = true
 lazy-regex = { version = "3.4.1", default-features = false, features = [

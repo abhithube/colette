@@ -16,7 +16,7 @@ pub enum Error {
     Postprocess(#[from] PostprocessorError),
 
     #[error(transparent)]
-    Http(#[from] reqwest::Error),
+    Http(#[from] colette_http::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

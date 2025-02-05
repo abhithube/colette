@@ -4,9 +4,9 @@ use std::io::{BufRead, BufReader};
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
+use colette_http::{HttpClient, HyperClient};
 pub use extractor::{FeedExtractor, FeedExtractorOptions};
 pub use registry::FeedPluginRegistry;
-use reqwest::Client;
 use url::Url;
 
 use crate::{Error, PostprocessorError};
@@ -176,11 +176,11 @@ pub trait FeedDetector: Send + Sync {
 
 #[derive(Clone)]
 pub struct DefaultFeedScraper {
-    client: Client,
+    client: HyperClient,
 }
 
 impl DefaultFeedScraper {
-    pub fn new(client: Client) -> Self {
+    pub fn new(client: HyperClient) -> Self {
         Self { client }
     }
 }
@@ -188,9 +188,7 @@ impl DefaultFeedScraper {
 #[async_trait::async_trait]
 impl FeedScraper for DefaultFeedScraper {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
-        let resp = self.client.get(url.as_str()).send().await?;
-        let body = resp.bytes().await?;
-
+        let (_, body) = self.client.get(url).await?;
         let feed = colette_feed::from_reader(BufReader::new(body.reader()))
             .map(ExtractedFeed::from)
             .map_err(|e| Error::Parse(e.into()))?;
@@ -201,11 +199,11 @@ impl FeedScraper for DefaultFeedScraper {
 
 #[derive(Clone)]
 pub struct DefaultFeedDetector {
-    client: Client,
+    client: HyperClient,
 }
 
 impl DefaultFeedDetector {
-    pub fn new(client: Client) -> Self {
+    pub fn new(client: HyperClient) -> Self {
         Self { client }
     }
 }
@@ -213,9 +211,7 @@ impl DefaultFeedDetector {
 #[async_trait::async_trait]
 impl FeedDetector for DefaultFeedDetector {
     async fn detect(&self, url: Url) -> Result<DetectorResponse, Error> {
-        let resp = self.client.get(url.as_str()).send().await?;
-        let body = resp.bytes().await?;
-
+        let (_, body) = self.client.get(&url).await?;
         let mut reader = BufReader::new(body.reader());
         let buffer = reader.fill_buf()?;
 
