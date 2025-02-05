@@ -11,16 +11,15 @@ members = [
   "crates/plugins",
   "crates/repository",
   "crates/scraper",
-  "crates/task",
   "crates/util",
 ]
 resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.95", default-features = false, features = ["std"] }
-apalis = { version = "0.6.4", default-features = false, features = [
-  "limit",
-  "tracing",
+apalis-core = { version = "0.6.4", default-features = false }
+apalis-redis = { version = "0.6.4", default-features = false, features = [
+  "tokio-comp",
 ] }
 async-trait = { version = "0.1.85", default-features = false }
 axum = { version = "0.8.1", default-features = false, features = [
@@ -51,7 +50,6 @@ colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-repository = { path = "crates/repository", default-features = false }
 colette-scraper.path = "crates/scraper"
-colette-task.path = "crates/task"
 colette-util.path = "crates/util"
 console_error_panic_hook = { version = "0.1.7", default-features = false }
 email_address = { version = "0.2.9", default-features = false, features = [

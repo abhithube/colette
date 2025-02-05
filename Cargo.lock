@@ -464,19 +464,15 @@ name = "colette-api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-trait",
  "axum",
  "axum-extra",
  "bytes",
  "chrono",
  "colette-core",
- "colette-task",
  "email_address",
  "serde",
- "serde_json",
  "serde_with",
  "thiserror 2.0.11",
- "tokio",
  "tower-sessions",
  "tracing",
  "url",
@@ -502,6 +498,8 @@ dependencies = [
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
+ "apalis-core",
+ "apalis-redis",
  "async-trait",
  "bytes",
  "chrono",
@@ -515,6 +513,7 @@ dependencies = [
  "serde",
  "sqlx",
  "thiserror 2.0.11",
+ "tokio",
  "url",
  "uuid",
 ]
@@ -604,6 +603,7 @@ name = "colette-server"
 version = "0.1.0"
 dependencies = [
  "apalis",
+ "apalis-core",
  "apalis-cron",
  "apalis-redis",
  "async-trait",
@@ -615,9 +615,9 @@ dependencies = [
  "colette-plugins",
  "colette-repository",
  "colette-scraper",
- "colette-task",
  "colette-util",
  "envy",
+ "futures",
  "redis",
  "reqwest",
  "rust-embed",
@@ -630,27 +630,8 @@ dependencies = [
  "tower-http",
  "tower-sessions",
  "tower-sessions-core",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "colette-task"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "apalis",
- "apalis-core",
- "async-trait",
- "chrono",
- "colette-archiver",
- "colette-core",
- "futures",
- "serde",
- "thiserror 2.0.11",
- "tokio",
  "tracing",
- "url",
- "uuid",
+ "tracing-subscriber",
 ]
 
 [[package]]

@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use apalis_redis::{RedisContext, RedisError};
 use chrono::{DateTime, Utc};
 use colette_archiver::{Archiver, ThumbnailData};
 use colette_scraper::bookmark::BookmarkScraper;
 use colette_util::{base64, thumbnail};
+use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -13,12 +15,18 @@ use super::{
     },
     Bookmark, Cursor, Error,
 };
-use crate::common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT};
+use crate::{
+    common::{IdParams, NonEmptyString, Paginated, PAGINATION_LIMIT},
+    storage::Storage,
+};
 
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     scraper: Arc<dyn BookmarkScraper>,
     archiver: Box<dyn Archiver<ThumbnailData, Output = Url>>,
+    archive_thumbnail_storage: Arc<
+        Mutex<dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>>,
+    >,
 }
 
 impl BookmarkService {
@@ -26,11 +34,17 @@ impl BookmarkService {
         repository: impl BookmarkRepository,
         scraper: Arc<dyn BookmarkScraper>,
         archiver: impl Archiver<ThumbnailData, Output = Url>,
+        archive_thumbnail_storage: Arc<
+            Mutex<
+                dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>,
+            >,
+        >,
     ) -> Self {
         Self {
             repository: Box::new(repository),
             scraper,
             archiver: Box::new(archiver),
+            archive_thumbnail_storage,
         }
     }
 
@@ -109,7 +123,23 @@ impl BookmarkService {
             })
             .await?;
 
-        self.get_bookmark(id, user_id).await
+        let bookmark = self.get_bookmark(id, user_id).await?;
+
+        if let (Some(thumbnail_url), None) = (&bookmark.thumbnail_url, &bookmark.archived_url) {
+            let mut storage = self.archive_thumbnail_storage.lock().await;
+
+            let url = thumbnail_url.parse().unwrap();
+            storage
+                .push(ArchiveThumbnailJob {
+                    url,
+                    bookmark_id: bookmark.id,
+                    user_id,
+                })
+                .await
+                .unwrap();
+        }
+
+        Ok(bookmark)
     }
 
     pub async fn update_bookmark(
@@ -122,7 +152,23 @@ impl BookmarkService {
             .update(IdParams::new(id, user_id), data.into())
             .await?;
 
-        self.get_bookmark(id, user_id).await
+        let bookmark = self.get_bookmark(id, user_id).await?;
+
+        if let (Some(thumbnail_url), None) = (&bookmark.thumbnail_url, &bookmark.archived_url) {
+            let mut storage = self.archive_thumbnail_storage.lock().await;
+
+            let url = thumbnail_url.parse().unwrap();
+            storage
+                .push(ArchiveThumbnailJob {
+                    url,
+                    bookmark_id: bookmark.id,
+                    user_id,
+                })
+                .await
+                .unwrap();
+        }
+
+        Ok(bookmark)
     }
 
     pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
@@ -239,4 +285,20 @@ pub struct BookmarkScraped {
 #[derive(Clone, Debug)]
 pub struct ThumbnailArchive {
     pub thumbnail_url: Url,
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ScrapeBookmarkJob {
+    pub url: Url,
+    pub user_id: Uuid,
+}
+
+pub type ScrapeBookmarkStorage =
+    Arc<Mutex<dyn Storage<Job = ScrapeBookmarkJob, Context = RedisContext, Error = RedisError>>>;
+
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct ArchiveThumbnailJob {
+    pub url: Url,
+    pub bookmark_id: Uuid,
+    pub user_id: Uuid,
 }

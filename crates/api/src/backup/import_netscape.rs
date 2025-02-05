@@ -1,12 +1,13 @@
+use std::sync::Arc;
+
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use colette_task::import_bookmarks;
+use colette_core::backup::BackupService;
 
-use super::BackupState;
 use crate::common::{Error, Session, BACKUPS_TAG};
 
 #[utoipa::path(
@@ -20,28 +21,12 @@ use crate::common::{Error, Session, BACKUPS_TAG};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<BackupState>,
+    State(service): State<Arc<BackupService>>,
     session: Session,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    match state
-        .backup_service
-        .import_netscape(bytes, session.user_id)
-        .await
-    {
-        Ok(urls) => {
-            let mut storage = state.import_bookmarks_storage.lock().await;
-
-            storage
-                .push(import_bookmarks::Job {
-                    urls,
-                    user_id: session.user_id,
-                })
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
-
-            Ok(ImportResponse::NoContent)
-        }
+    match service.import_netscape(bytes, session.user_id).await {
+        Ok(_) => Ok(ImportResponse::NoContent),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }

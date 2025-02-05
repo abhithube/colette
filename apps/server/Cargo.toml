@@ -4,11 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-apalis.workspace = true
-apalis-cron = { version = "0.6.4", default-features = false }
-apalis-redis = { version = "0.6.4", default-features = false, features = [
-  "tokio-comp",
+apalis = { version = "0.6.4", default-features = false, features = [
+  "limit",
+  "tracing",
 ] }
+apalis-core.workspace = true
+apalis-cron = { version = "0.6.4", default-features = false }
+apalis-redis.workspace = true
 async-trait.workspace = true
 axum.workspace = true
 axum-embed.workspace = true
@@ -18,9 +20,9 @@ colette-core.workspace = true
 colette-plugins.workspace = true
 colette-repository.workspace = true
 colette-scraper.workspace = true
-colette-task.workspace = true
 colette-util.workspace = true
 envy = { version = "0.4.2", default-features = false }
+futures.workspace = true
 redis.workspace = true
 reqwest.workspace = true
 rust-embed.workspace = true
@@ -33,4 +35,5 @@ tower.workspace = true
 tower-http.workspace = true
 tower-sessions.workspace = true
 tower-sessions-core = { version = "0.14.0", default-features = false }
+tracing.workspace = true
 tracing-subscriber.workspace = true

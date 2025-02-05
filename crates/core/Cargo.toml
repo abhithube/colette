@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+apalis-core.workspace = true
+apalis-redis.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 chrono.workspace = true
@@ -17,5 +19,6 @@ futures.workspace = true
 serde.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
+tokio.workspace = true
 url.workspace = true
 uuid.workspace = true

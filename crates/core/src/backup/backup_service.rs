@@ -1,6 +1,10 @@
+use std::sync::Arc;
+
+use apalis_redis::{RedisContext, RedisError};
 use bytes::{Buf, Bytes};
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
+use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -9,6 +13,7 @@ use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
     folder::{FolderFindParams, FolderRepository},
+    storage::Storage,
     Bookmark, Feed, Folder,
 };
 
@@ -17,6 +22,11 @@ pub struct BackupService {
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
     folder_repository: Box<dyn FolderRepository>,
+    import_feeds_storage:
+        Arc<Mutex<dyn Storage<Job = ImportFeedsJob, Context = RedisContext, Error = RedisError>>>,
+    import_bookmarks_storage: Arc<
+        Mutex<dyn Storage<Job = ImportBookmarksJob, Context = RedisContext, Error = RedisError>>,
+    >,
 }
 
 impl BackupService {
@@ -25,16 +35,26 @@ impl BackupService {
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
         folder_repository: impl FolderRepository,
+        import_feeds_storage: Arc<
+            Mutex<dyn Storage<Job = ImportFeedsJob, Context = RedisContext, Error = RedisError>>,
+        >,
+        import_bookmarks_storage: Arc<
+            Mutex<
+                dyn Storage<Job = ImportBookmarksJob, Context = RedisContext, Error = RedisError>,
+            >,
+        >,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
             feed_repository: Box::new(feed_repository),
             bookmark_repository: Box::new(bookmark_repository),
             folder_repository: Box::new(folder_repository),
+            import_feeds_storage,
+            import_bookmarks_storage,
         }
     }
 
-    pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
+    pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let opml = colette_opml::from_reader(raw.reader())?;
 
         let urls = opml
@@ -44,11 +64,15 @@ impl BackupService {
             .filter_map(|e| e.xml_url.as_deref().and_then(|e| Url::parse(e).ok()))
             .collect::<Vec<Url>>();
 
+        let mut storage = self.import_feeds_storage.lock().await;
+
+        storage.push(ImportFeedsJob { urls }).await?;
+
         self.backup_repository
             .import_opml(opml.body.outlines, user_id)
             .await?;
 
-        Ok(urls)
+        Ok(())
     }
 
     pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
@@ -84,7 +108,7 @@ impl BackupService {
         Ok(raw.into())
     }
 
-    pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
+    pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let netscape = colette_netscape::from_reader(raw.reader())?;
 
         let urls = netscape
@@ -93,11 +117,15 @@ impl BackupService {
             .filter_map(|e| e.href.as_deref().and_then(|e| Url::parse(e).ok()))
             .collect::<Vec<Url>>();
 
+        let mut storage = self.import_bookmarks_storage.lock().await;
+
+        storage.push(ImportBookmarksJob { urls, user_id }).await?;
+
         self.backup_repository
             .import_netscape(netscape.items, user_id)
             .await?;
 
-        Ok(urls)
+        Ok(())
     }
 
     pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
@@ -197,4 +225,15 @@ fn build_netscape_hierarchy(
     }
 
     items
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ImportFeedsJob {
+    pub urls: Vec<Url>,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ImportBookmarksJob {
+    pub urls: Vec<Url>,
+    pub user_id: Uuid,
 }

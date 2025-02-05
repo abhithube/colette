@@ -1,3 +1,4 @@
+use apalis_redis::RedisError;
 pub use backup_repository::*;
 pub use backup_service::*;
 
@@ -16,6 +17,9 @@ pub enum Error {
 
     #[error(transparent)]
     Repository(#[from] RepositoryError),
+
+    #[error(transparent)]
+    Storage(#[from] RedisError),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

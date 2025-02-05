@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -5,12 +7,14 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Utc};
-use colette_core::{bookmark, common::NonEmptyString};
-use colette_task::archive_thumbnail;
+use colette_core::{
+    bookmark::{self, BookmarkService},
+    common::NonEmptyString,
+};
 use url::Url;
 use uuid::Uuid;
 
-use super::{Bookmark, BookmarkState};
+use super::Bookmark;
 use crate::{
     common::{BaseError, Error, Id, BOOKMARKS_TAG},
     Session,
@@ -82,35 +86,16 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<BookmarkState>,
+    State(service): State<Arc<BookmarkService>>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match state
-        .service
+    match service
         .update_bookmark(id, body.into(), session.user_id)
         .await
     {
-        Ok(data) => {
-            println!("{:?}", data);
-
-            if let (Some(thumbnail_url), None) = (&data.thumbnail_url, &data.archived_url) {
-                let mut storage = state.archive_thumbnail_storage.lock().await;
-
-                let url = thumbnail_url.parse().unwrap();
-                storage
-                    .push(archive_thumbnail::Job {
-                        url,
-                        bookmark_id: data.id,
-                        user_id: session.user_id,
-                    })
-                    .await
-                    .unwrap();
-            }
-
-            Ok(UpdateResponse::Ok(Box::new(data.into())))
-        }
+        Ok(data) => Ok(UpdateResponse::Ok(Box::new(data.into()))),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

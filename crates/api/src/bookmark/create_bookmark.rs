@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{
     extract::State,
     http::StatusCode,
@@ -5,12 +7,14 @@ use axum::{
     Json,
 };
 use chrono::{DateTime, Utc};
-use colette_core::{bookmark, common::NonEmptyString};
-use colette_task::archive_thumbnail;
+use colette_core::{
+    bookmark::{self, BookmarkService},
+    common::NonEmptyString,
+};
 use url::Url;
 use uuid::Uuid;
 
-use super::{Bookmark, BookmarkState};
+use super::Bookmark;
 use crate::{
     common::{BaseError, Error, BOOKMARKS_TAG},
     Session,
@@ -56,32 +60,12 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<BookmarkState>,
+    State(service): State<Arc<BookmarkService>>,
     session: Session,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<CreateResponse, Error> {
-    match state
-        .service
-        .create_bookmark(body.into(), session.user_id)
-        .await
-    {
-        Ok(data) => {
-            if let (Some(thumbnail_url), None) = (&data.thumbnail_url, &data.archived_url) {
-                let mut storage = state.archive_thumbnail_storage.lock().await;
-
-                let url = thumbnail_url.parse().unwrap();
-                storage
-                    .push(archive_thumbnail::Job {
-                        url,
-                        bookmark_id: data.id,
-                        user_id: session.user_id,
-                    })
-                    .await
-                    .unwrap();
-            }
-
-            Ok(CreateResponse::Created(Box::new(data.into())))
-        }
+    match service.create_bookmark(body.into(), session.user_id).await {
+        Ok(data) => Ok(CreateResponse::Created(Box::new(data.into()))),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),

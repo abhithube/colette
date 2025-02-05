@@ -1,6 +1,11 @@
+use std::sync::Arc;
+
+use apalis_redis::{RedisContext, RedisError};
+use chrono::{DateTime, Utc};
 pub use colette_scraper::feed::ProcessedFeed;
 use colette_scraper::feed::{DetectorResponse, FeedDetector};
 use futures::stream::BoxStream;
+use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -10,7 +15,10 @@ use super::{
     },
     Error, Feed,
 };
-use crate::common::{IdParams, NonEmptyString, Paginated};
+use crate::{
+    common::{IdParams, NonEmptyString, Paginated},
+    storage::Storage,
+};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -171,4 +179,21 @@ impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),
     Processed(ProcessedFeed),
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ScrapeFeedJob {
+    pub url: Url,
+}
+
+pub type ScrapeFeedStorage =
+    Arc<Mutex<dyn Storage<Job = ScrapeFeedJob, Context = RedisContext, Error = RedisError>>>;
+
+#[derive(Clone, serde::Serialize, serde::Deserialize)]
+pub struct RefreshFeedsJob(pub DateTime<Utc>);
+
+impl From<DateTime<Utc>> for RefreshFeedsJob {
+    fn from(value: DateTime<Utc>) -> Self {
+        Self(value)
+    }
 }
