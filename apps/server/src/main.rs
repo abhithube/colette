@@ -31,11 +31,13 @@ use colette_scraper::{
     feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
 use colette_session::RedisStore;
-use colette_task::{import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed};
+use colette_task::{
+    archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
+};
 use colette_util::{base64::Base64Encoder, password::ArgonHasher};
 use redis::Client;
 use reqwest::ClientBuilder;
-use s3::{creds::Credentials, Bucket, Region};
+use s3::{creds::Credentials, Bucket, BucketConfiguration, Region};
 use sqlx::{Pool, Postgres};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
@@ -92,7 +94,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bucket = {
         let region = Region::Custom {
             region: app_config.aws_region.into_owned(),
-            endpoint: app_config.bucket_endpoint_url.into(),
+            endpoint: app_config
+                .bucket_endpoint_url
+                .origin()
+                .ascii_serialization(),
         };
         let credentials = Credentials::new(
             Some(&app_config.aws_access_key_id),
@@ -102,9 +107,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
             None,
         )?;
 
-        Bucket::new(&app_config.bucket_name, region, credentials)?.with_path_style()
+        let bucket = Bucket::new(&app_config.bucket_name, region.clone(), credentials.clone())?
+            .with_path_style();
+
+        let exists = bucket.exists().await?;
+        if !exists {
+            Bucket::create_with_path_style(
+                &app_config.bucket_name,
+                region,
+                credentials,
+                BucketConfiguration::private(),
+            )
+            .await?;
+        }
+
+        bucket
     };
-    let _thumbnail_archiver = ThumbnailArchiver::new(client.clone(), bucket);
 
     let auth_service = Arc::new(AuthService::new(
         PostgresUserRepository::new(pool.clone()),
@@ -121,6 +139,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
         bookmark_plugin_registry.clone(),
+        ThumbnailArchiver::new(client.clone(), bucket),
         base64_encoder.clone(),
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
@@ -158,7 +177,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .data(scraper_service.clone())
         .backend(scrape_feed_storage.clone())
         .build_fn(scrape_feed::run);
-    let scrape_feed_storage = Arc::new(Mutex::new(scrape_feed_storage));
 
     let scrape_bookmark_storage = RedisStorage::new(redis_manager.clone());
     let scrape_bookmark_worker = WorkerBuilder::new("scrape-bookmark")
@@ -167,7 +185,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .data(scraper_service)
         .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
-    let scrape_bookmark_storage = Arc::new(Mutex::new(scrape_bookmark_storage));
 
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
     let import_feeds_worker = WorkerBuilder::new("import-feeds")
@@ -175,15 +192,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .data(scrape_feed_storage.clone())
         .backend(import_feeds_storage.clone())
         .build_fn(import_feeds::run);
-    let import_feeds_storage = Arc::new(Mutex::new(import_feeds_storage));
 
-    let import_bookmarks_storage = RedisStorage::new(redis_manager);
+    let import_bookmarks_storage = RedisStorage::new(redis_manager.clone());
     let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
         .enable_tracing()
         .data(scrape_bookmark_storage)
         .backend(import_bookmarks_storage.clone())
         .build_fn(import_bookmarks::run);
-    let import_bookmarks_storage = Arc::new(Mutex::new(import_bookmarks_storage));
 
     let schedule = Schedule::from_str(&app_config.cron_refresh)?;
 
@@ -191,10 +206,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .enable_tracing()
         .data(refresh_feeds::State::new(
             feed_service.clone(),
-            scrape_feed_storage,
+            Arc::new(Mutex::new(scrape_feed_storage)),
         ))
         .backend(CronStream::new(schedule))
         .build_fn(refresh_feeds::run);
+
+    let archive_thumbnail_storage = RedisStorage::new(redis_manager);
+    let archive_thumbnail_worker = WorkerBuilder::new("archive_thumbnail")
+        .enable_tracing()
+        .concurrency(5)
+        .data(bookmark_service.clone())
+        .backend(archive_thumbnail_storage.clone())
+        .build_fn(archive_thumbnail::run);
 
     let monitor = Monitor::new()
         .register(scrape_feed_worker)
@@ -202,16 +225,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .register(import_feeds_worker)
         .register(import_bookmarks_worker)
         .register(refresh_feeds_worker)
+        .register(archive_thumbnail_worker)
         .run();
 
     let api_state = ApiState::new(
         AuthState::new(auth_service),
         BackupState::new(
             backup_service,
-            import_feeds_storage,
-            import_bookmarks_storage,
+            Arc::new(Mutex::new(import_feeds_storage)),
+            Arc::new(Mutex::new(import_bookmarks_storage)),
         ),
-        BookmarkState::new(bookmark_service),
+        BookmarkState::new(
+            bookmark_service,
+            Arc::new(Mutex::new(archive_thumbnail_storage)),
+        ),
         // CollectionState::new(collection_service),
         FeedState::new(feed_service),
         FeedEntryState::new(feed_entry_service),

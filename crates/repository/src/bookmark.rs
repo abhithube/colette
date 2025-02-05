@@ -105,6 +105,7 @@ impl Updatable for PostgresBookmarkRepository {
             || data.thumbnail_url.is_some()
             || data.published_at.is_some()
             || data.author.is_some()
+            || data.archived_url.is_some()
             || data.folder_id.is_some()
         {
             let (has_title, title) = match data.title {

@@ -1,5 +1,6 @@
 pub mod base64;
 pub mod password;
+pub mod thumbnail;
 
 pub trait PasswordHasher: Send + Sync + 'static {
     fn hash(&self, password: &str) -> Result<String, anyhow::Error>;

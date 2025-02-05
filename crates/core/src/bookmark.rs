@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use colette_archiver::{Archiver, ThumbnailData};
 use colette_scraper::bookmark::BookmarkScraper;
-use colette_util::DataEncoder;
+use colette_util::{thumbnail::generate_filename, DataEncoder};
 use url::Url;
 use uuid::Uuid;
 
@@ -70,6 +71,11 @@ pub struct BookmarkScraped {
     pub author: Option<String>,
 }
 
+#[derive(Clone, Debug)]
+pub struct ThumbnailArchive {
+    pub thumbnail_url: Url,
+}
+
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub created_at: DateTime<Utc>,
@@ -78,6 +84,7 @@ pub struct Cursor {
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     scraper: Arc<dyn BookmarkScraper>,
+    archiver: Box<dyn Archiver<ThumbnailData, Output = Url>>,
     base64_encoder: Box<dyn DataEncoder<Cursor>>,
 }
 
@@ -85,11 +92,13 @@ impl BookmarkService {
     pub fn new(
         repository: impl BookmarkRepository,
         scraper: Arc<dyn BookmarkScraper>,
+        archiver: impl Archiver<ThumbnailData, Output = Url>,
         base64_encoder: impl DataEncoder<Cursor>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
             scraper,
+            archiver: Box::new(archiver),
             base64_encoder: Box::new(base64_encoder),
         }
     }
@@ -209,6 +218,35 @@ impl BookmarkService {
 
         Ok(scraped)
     }
+
+    pub async fn archive_thumbnail(
+        &self,
+        bookmark_id: Uuid,
+        data: ThumbnailArchive,
+        user_id: Uuid,
+    ) -> Result<(), Error> {
+        let file_name = generate_filename(&data.thumbnail_url);
+
+        let archived_url = self
+            .archiver
+            .archive(ThumbnailData {
+                url: data.thumbnail_url,
+                file_name,
+            })
+            .await?;
+
+        self.repository
+            .update(
+                IdParams::new(bookmark_id, user_id),
+                BookmarkUpdateData {
+                    archived_url: Some(Some(archived_url.to_string())),
+                    ..Default::default()
+                },
+            )
+            .await?;
+
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
@@ -282,6 +320,9 @@ pub enum Error {
 
     #[error(transparent)]
     Scraper(#[from] colette_scraper::Error),
+
+    #[error(transparent)]
+    Archiver(#[from] colette_archiver::Error),
 
     #[error(transparent)]
     Unknown(#[from] anyhow::Error),

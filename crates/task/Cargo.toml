@@ -9,6 +9,7 @@ apalis.workspace = true
 apalis-core = { version = "0.6.4", default-features = false }
 async-trait.workspace = true
 chrono.workspace = true
+colette-archiver.workspace = true
 colette-core.workspace = true
 futures.workspace = true
 serde.workspace = true

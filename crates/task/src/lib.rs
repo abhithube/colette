@@ -1,6 +1,7 @@
 use apalis::prelude::Storage as ApalisStorage;
 use apalis_core::request::Parts;
 
+pub mod archive_thumbnail;
 pub mod import_bookmarks;
 pub mod import_feeds;
 pub mod refresh_feeds;

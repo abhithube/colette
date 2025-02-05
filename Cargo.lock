@@ -502,6 +502,7 @@ version = "0.1.0"
 dependencies = [
  "envy",
  "serde",
+ "url",
 ]
 
 [[package]]
@@ -512,6 +513,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
+ "colette-archiver",
  "colette-backup",
  "colette-netscape",
  "colette-opml",
@@ -617,6 +619,7 @@ dependencies = [
  "axum",
  "axum-embed",
  "colette-api",
+ "colette-archiver",
  "colette-backup",
  "colette-config",
  "colette-core",
@@ -629,6 +632,7 @@ dependencies = [
  "redis",
  "reqwest",
  "rust-embed",
+ "rust-s3",
  "sqlx",
  "tokio",
  "tower",
@@ -659,6 +663,7 @@ dependencies = [
  "apalis-core",
  "async-trait",
  "chrono",
+ "colette-archiver",
  "colette-core",
  "futures",
  "serde",
@@ -675,9 +680,13 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base64",
+ "chrono",
+ "hex",
  "password-auth",
  "serde",
  "serde_json",
+ "sha2",
+ "url",
 ]
 
 [[package]]
