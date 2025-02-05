@@ -457,7 +457,6 @@ dependencies = [
  "axum-extra",
  "bytes",
  "chrono",
- "colette-backup",
  "colette-core",
  "colette-task",
  "email_address",
@@ -488,15 +487,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-backup"
-version = "0.1.0"
-dependencies = [
- "colette-netscape",
- "colette-opml",
- "thiserror 2.0.11",
-]
-
-[[package]]
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
@@ -505,7 +495,6 @@ dependencies = [
  "bytes",
  "chrono",
  "colette-archiver",
- "colette-backup",
  "colette-netscape",
  "colette-opml",
  "colette-scraper",
@@ -611,7 +600,6 @@ dependencies = [
  "axum-embed",
  "colette-api",
  "colette-archiver",
- "colette-backup",
  "colette-core",
  "colette-plugins",
  "colette-repository",

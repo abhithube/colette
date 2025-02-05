@@ -14,7 +14,6 @@ use colette_api::{
     ApiState,
 };
 use colette_archiver::ThumbnailArchiver;
-use colette_backup::{netscape::NetscapeManager, opml::OpmlManager};
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
     feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
@@ -202,8 +201,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         bookmark_repository.clone(),
         folder_repository.clone(),
-        OpmlManager,
-        NetscapeManager,
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,

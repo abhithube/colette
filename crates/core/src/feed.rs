@@ -246,9 +246,6 @@ pub enum Error {
     Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
-    Backup(#[from] colette_backup::Error),
-
-    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
 

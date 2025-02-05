@@ -3,7 +3,6 @@ members = [
   "apps/server",
   "crates/api",
   "crates/archiver",
-  "crates/backup",
   "crates/core",
   "crates/feed",
   "crates/meta",
@@ -44,7 +43,6 @@ chrono = { version = "0.4.39", default-features = false, features = [
 ] }
 colette-api.path = "crates/api"
 colette-archiver.path = "crates/archiver"
-colette-backup.path = "crates/backup"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-meta.path = "crates/meta"

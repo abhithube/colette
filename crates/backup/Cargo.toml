@@ -1,9 +1,0 @@
-[package]
-name = "colette-backup"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-colette-netscape.workspace = true
-colette-opml.workspace = true
-thiserror.workspace = true

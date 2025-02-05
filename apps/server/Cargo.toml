@@ -14,7 +14,6 @@ axum.workspace = true
 axum-embed.workspace = true
 colette-api.workspace = true
 colette-archiver.workspace = true
-colette-backup.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
 colette-repository.workspace = true

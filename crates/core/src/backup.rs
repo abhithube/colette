@@ -1,5 +1,4 @@
-use bytes::{buf::Reader, Buf, Bytes};
-use colette_backup::BackupManager;
+use bytes::{Buf, Bytes};
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use url::Url;
@@ -17,8 +16,6 @@ pub struct BackupService {
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
     folder_repository: Box<dyn FolderRepository>,
-    opml_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Opml>>,
-    netscape_manager: Box<dyn BackupManager<Reader<Bytes>, Data = Netscape>>,
 }
 
 impl BackupService {
@@ -27,24 +24,17 @@ impl BackupService {
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
         folder_repository: impl FolderRepository,
-        opml_manager: impl BackupManager<Reader<Bytes>, Data = Opml>,
-        netscape_manager: impl BackupManager<Reader<Bytes>, Data = Netscape>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
             feed_repository: Box::new(feed_repository),
             bookmark_repository: Box::new(bookmark_repository),
             folder_repository: Box::new(folder_repository),
-            opml_manager: Box::new(opml_manager),
-            netscape_manager: Box::new(netscape_manager),
         }
     }
 
     pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
-        let opml = self
-            .opml_manager
-            .import(raw.reader())
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+        let opml = colette_opml::from_reader(raw.reader())?;
 
         let urls = opml
             .body
@@ -68,7 +58,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         let feeds = self
             .feed_repository
@@ -77,7 +67,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         let outlines = build_opml_hierarchy(&folders, &feeds, None);
 
@@ -88,18 +78,13 @@ impl BackupService {
 
         let mut raw = Vec::<u8>::new();
 
-        self.opml_manager
-            .export(&mut raw, opml)
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+        colette_opml::to_writer(&mut raw, opml)?;
 
         Ok(raw.into())
     }
 
     pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<Vec<Url>, Error> {
-        let netscape = self
-            .netscape_manager
-            .import(raw.reader())
-            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
+        let netscape = colette_netscape::from_reader(raw.reader())?;
 
         let urls = netscape
             .items
@@ -122,7 +107,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Opml(OpmlError(e.into())))?;
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         let bookmarks = self
             .bookmark_repository
@@ -131,7 +116,7 @@ impl BackupService {
                 ..Default::default()
             })
             .await
-            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
+            .map_err(|e| Error::Unknown(e.into()))?;
 
         let items = build_netscape_hierarchy(&folders, &bookmarks, None);
 
@@ -142,9 +127,7 @@ impl BackupService {
 
         let mut raw = Vec::<u8>::new();
 
-        self.netscape_manager
-            .export(&mut raw, netscape)
-            .map_err(|e| Error::Netscape(NetscapeError(e.into())))?;
+        colette_netscape::to_writer(&mut raw, netscape)?;
 
         Ok(raw.into())
     }
@@ -225,19 +208,5 @@ fn build_netscape_hierarchy(
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
-    Opml(#[from] OpmlError),
-
-    #[error(transparent)]
-    Netscape(#[from] NetscapeError),
-
-    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct OpmlError(#[from] anyhow::Error);
-
-#[derive(Debug, thiserror::Error)]
-#[error(transparent)]
-pub struct NetscapeError(#[from] anyhow::Error);
