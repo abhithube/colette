@@ -99,6 +99,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum DetectResponse {
     #[response(status = 200, description = "Detected feeds")]

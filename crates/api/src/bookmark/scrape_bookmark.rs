@@ -74,6 +74,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ScrapeResponse {
     #[response(status = 201, description = "Scraped bookmark")]

@@ -61,6 +61,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum RegisterResponse {
     #[response(status = 201, description = "Registered user")]

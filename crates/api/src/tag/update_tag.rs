@@ -55,6 +55,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated tag")]

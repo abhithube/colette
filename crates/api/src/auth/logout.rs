@@ -20,6 +20,7 @@ pub async fn handler(session_store: tower_sessions::Session) -> Result<LogoutRes
     Ok(LogoutResponse::NoContent)
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum LogoutResponse {
     #[response(status = 204, description = "Successfully logged out")]

@@ -65,6 +65,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]

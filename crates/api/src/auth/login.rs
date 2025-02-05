@@ -64,6 +64,7 @@ pub async fn handler(
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum LoginResponse {
     #[response(status = 200, description = "Logged in user")]
