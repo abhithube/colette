@@ -22,7 +22,7 @@ impl Findable for PostgresFeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file_as!(
+        let feed_entries = sqlx::query_file_as!(
             FeedEntry,
             "queries/user_feed_entries/select.sql",
             params.tags.is_some(),
@@ -45,8 +45,9 @@ impl Findable for PostgresFeedEntryRepository {
             params.limit,
         )
         .fetch_all(&self.pool)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .await?;
+
+        Ok(feed_entries)
     }
 }
 

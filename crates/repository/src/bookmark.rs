@@ -25,7 +25,7 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::common::select_bookmarks(
+        let bookmarks = crate::common::select_bookmarks(
             &self.pool,
             params.id,
             params.folder_id,
@@ -34,8 +34,9 @@ impl Findable for PostgresBookmarkRepository {
             params.limit,
             params.tags,
         )
-        .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .await?;
+
+        Ok(bookmarks)
     }
 }
 
@@ -45,11 +46,7 @@ impl Creatable for PostgresBookmarkRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let mut tx = self.pool.begin().await?;
 
         let ub_id = sqlx::query_file_scalar!(
             "queries/bookmarks/insert.sql",
@@ -77,12 +74,11 @@ impl Creatable for PostgresBookmarkRepository {
                     &tags
                 )
                 .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
             }
         }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+        tx.commit().await?;
 
         Ok(ub_id)
     }
@@ -95,11 +91,7 @@ impl Updatable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let mut tx = self.pool.begin().await?;
 
         if data.title.is_some()
             || data.thumbnail_url.is_some()
@@ -167,12 +159,11 @@ impl Updatable for PostgresBookmarkRepository {
                     &tags
                 )
                 .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
             }
         }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))?;
+        tx.commit().await?;
 
         Ok(())
     }

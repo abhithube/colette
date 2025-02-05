@@ -23,7 +23,7 @@ impl Findable for PostgresTagRepository {
     type Output = Result<Vec<Tag>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file_as!(
+        let tags = sqlx::query_file_as!(
             Tag,
             "queries/tags/select.sql",
             params.user_id,
@@ -34,8 +34,9 @@ impl Findable for PostgresTagRepository {
             params.limit
         )
         .fetch_all(&self.pool)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .await?;
+
+        Ok(tags)
     }
 }
 

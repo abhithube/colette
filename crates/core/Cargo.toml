@@ -16,6 +16,7 @@ colette-util.workspace = true
 email_address.workspace = true
 futures.workspace = true
 serde.workspace = true
+sqlx.workspace = true
 thiserror.workspace = true
 url.workspace = true
 uuid.workspace = true

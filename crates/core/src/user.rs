@@ -40,6 +40,9 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
+    Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }
 

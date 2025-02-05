@@ -23,7 +23,7 @@ impl Findable for PostgresFolderRepository {
     type Output = Result<Vec<Folder>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        crate::common::select_folders(
+        let folders = crate::common::select_folders(
             &self.pool,
             params.id,
             params.user_id,
@@ -31,8 +31,9 @@ impl Findable for PostgresFolderRepository {
             params.limit,
             params.cursor,
         )
-        .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .await?;
+
+        Ok(folders)
     }
 }
 
@@ -42,15 +43,16 @@ impl Creatable for PostgresFolderRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        sqlx::query_file_scalar!(
+        let id = sqlx::query_file_scalar!(
             "queries/folders/insert.sql",
             String::from(data.title),
             data.parent_id,
             data.user_id
         )
         .fetch_one(&self.pool)
-        .await
-        .map_err(|e| Error::Unknown(e.into()))
+        .await?;
+
+        Ok(id)
     }
 }
 

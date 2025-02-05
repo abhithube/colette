@@ -88,5 +88,8 @@ pub enum Error {
     Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
+    Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }

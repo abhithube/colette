@@ -19,11 +19,7 @@ impl PostgresBackupRepository {
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
     async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, Outline)> = outlines
             .into_iter()
@@ -41,8 +37,7 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id
                 )
                 .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
 
                 for child in children {
                     stack.push((Some(folder_id), child));
@@ -51,8 +46,7 @@ impl BackupRepository for PostgresBackupRepository {
                 let feed_id =
                     sqlx::query_file_scalar!("queries/feeds/insert.sql", link, outline.xml_url)
                         .fetch_one(&mut *tx)
-                        .await
-                        .map_err(|e| Error::Unknown(e.into()))?;
+                        .await?;
 
                 sqlx::query_file_scalar!(
                     "queries/user_feeds/upsert.sql",
@@ -62,20 +56,17 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id
                 )
                 .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
             }
         }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+        tx.commit().await?;
+
+        Ok(())
     }
 
     async fn import_netscape(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
-        let mut tx = self
-            .pool
-            .begin()
-            .await
-            .map_err(|e| Error::Unknown(e.into()))?;
+        let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, Item)> =
             items.into_iter().map(|item| (None, item)).collect();
@@ -89,8 +80,7 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id
                 )
                 .fetch_one(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
 
                 for child in children {
                     stack.push((Some(folder_id), child));
@@ -107,11 +97,12 @@ impl BackupRepository for PostgresBackupRepository {
                     user_id
                 )
                 .execute(&mut *tx)
-                .await
-                .map_err(|e| Error::Unknown(e.into()))?;
+                .await?;
             }
         }
 
-        tx.commit().await.map_err(|e| Error::Unknown(e.into()))
+        tx.commit().await?;
+
+        Ok(())
     }
 }

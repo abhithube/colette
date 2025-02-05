@@ -84,5 +84,8 @@ pub enum Error {
     NotAuthenticated,
 
     #[error(transparent)]
+    Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }

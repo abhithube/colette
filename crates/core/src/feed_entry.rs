@@ -161,5 +161,8 @@ pub enum Error {
     NotFound(Uuid),
 
     #[error(transparent)]
+    Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
     Unknown(#[from] anyhow::Error),
 }

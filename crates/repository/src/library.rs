@@ -30,8 +30,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Folder).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+        .map(|e| e.into_iter().map(LibraryItem::Folder).collect::<Vec<_>>())?;
 
         let mut feeds = crate::common::select_feeds(
             &self.pool,
@@ -43,8 +42,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Feed).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+        .map(|e| e.into_iter().map(LibraryItem::Feed).collect::<Vec<_>>())?;
 
         let mut bookmarks = crate::common::select_bookmarks(
             &self.pool,
@@ -56,8 +54,7 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Bookmark).collect::<Vec<_>>())
-        .map_err(|e| Error::Unknown(e.into()))?;
+        .map(|e| e.into_iter().map(LibraryItem::Bookmark).collect::<Vec<_>>())?;
 
         let mut library_items = Vec::new();
         library_items.append(&mut folders);
