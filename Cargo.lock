@@ -497,15 +497,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-config"
-version = "0.1.0"
-dependencies = [
- "envy",
- "serde",
- "url",
-]
-
-[[package]]
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
@@ -621,7 +612,6 @@ dependencies = [
  "colette-api",
  "colette-archiver",
  "colette-backup",
- "colette-config",
  "colette-core",
  "colette-plugins",
  "colette-repository",
@@ -629,10 +619,12 @@ dependencies = [
  "colette-session",
  "colette-task",
  "colette-util",
+ "envy",
  "redis",
  "reqwest",
  "rust-embed",
  "rust-s3",
+ "serde",
  "sqlx",
  "tokio",
  "tower",

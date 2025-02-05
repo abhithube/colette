@@ -15,7 +15,6 @@ axum-embed.workspace = true
 colette-api.workspace = true
 colette-archiver.workspace = true
 colette-backup.workspace = true
-colette-config.workspace = true
 colette-core.workspace = true
 colette-plugins.workspace = true
 colette-repository.workspace = true
@@ -23,10 +22,12 @@ colette-scraper.workspace = true
 colette-session.workspace = true
 colette-task.workspace = true
 colette-util.workspace = true
+envy = { version = "0.4.2", default-features = false }
 redis.workspace = true
 reqwest.workspace = true
 rust-embed.workspace = true
 rust-s3.workspace = true
+serde.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tower.workspace = true
