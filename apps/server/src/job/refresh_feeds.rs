@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use apalis_core::layers::extensions::Data;
+use apalis::prelude::Data;
 use colette_core::feed::{FeedService, RefreshFeedsJob, ScrapeFeedJob, ScrapeFeedStorage};
 use futures::StreamExt;
 
@@ -16,10 +16,7 @@ impl State {
     }
 }
 
-pub async fn run(
-    _job: RefreshFeedsJob,
-    data: Data<State>,
-) -> Result<(), apalis_core::error::Error> {
+pub async fn run(_job: RefreshFeedsJob, data: Data<State>) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Refreshing feeds");
 
     let mut storage = data.storage.lock().await;
@@ -32,7 +29,7 @@ pub async fn run(
                 url: raw.parse().unwrap(),
             })
             .await
-            .map_err(|e| apalis_core::error::Error::Failed(Arc::new(Box::new(e))))?;
+            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }
 
     Ok(())

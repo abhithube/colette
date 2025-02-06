@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use apalis_core::layers::extensions::Data;
+use apalis::prelude::Data;
 use colette_core::{
     backup::ImportFeedsJob,
     feed::{ScrapeFeedJob, ScrapeFeedStorage},
@@ -9,7 +9,7 @@ use colette_core::{
 pub async fn run(
     job: ImportFeedsJob,
     data: Data<ScrapeFeedStorage>,
-) -> Result<(), apalis_core::error::Error> {
+) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} feeds", job.urls.len());
 
     let mut storage = data.lock().await;
@@ -18,7 +18,7 @@ pub async fn run(
         storage
             .push(ScrapeFeedJob { url })
             .await
-            .map_err(|e| apalis_core::error::Error::Failed(Arc::new(Box::new(e))))?;
+            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }
 
     Ok(())

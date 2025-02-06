@@ -8,7 +8,6 @@ apalis = { version = "0.6.4", default-features = false, features = [
   "limit",
   "tracing",
 ] }
-apalis-core.workspace = true
 apalis-cron = { version = "0.6.4", default-features = false }
 apalis-redis.workspace = true
 async-trait.workspace = true

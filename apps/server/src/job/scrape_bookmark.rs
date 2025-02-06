@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use apalis_core::layers::extensions::Data;
+use apalis::prelude::Data;
 use colette_core::{
     bookmark::ScrapeBookmarkJob,
     scraper::{BookmarkCreate, ScraperService},
@@ -9,7 +9,7 @@ use colette_core::{
 pub async fn run(
     job: ScrapeBookmarkJob,
     data: Data<Arc<ScraperService>>,
-) -> Result<(), apalis_core::error::Error> {
+) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Scraping bookmark at URL: {}", job.url.as_str());
 
     data.scrape_bookmark(BookmarkCreate {
@@ -17,7 +17,7 @@ pub async fn run(
         user_id: job.user_id,
     })
     .await
-    .map_err(|e| apalis_core::error::Error::Failed(Arc::new(Box::new(e))))?;
+    .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
 
     Ok(())
 }

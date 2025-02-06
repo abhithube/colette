@@ -642,7 +642,6 @@ name = "colette-server"
 version = "0.1.0"
 dependencies = [
  "apalis",
- "apalis-core",
  "apalis-cron",
  "apalis-redis",
  "async-trait",

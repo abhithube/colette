@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use apalis_core::layers::extensions::Data;
+use apalis::prelude::Data;
 use colette_core::{
     backup::ImportBookmarksJob,
     bookmark::{ScrapeBookmarkJob, ScrapeBookmarkStorage},
@@ -9,7 +9,7 @@ use colette_core::{
 pub async fn run(
     job: ImportBookmarksJob,
     data: Data<ScrapeBookmarkStorage>,
-) -> Result<(), apalis_core::error::Error> {
+) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} bookmarks", job.urls.len());
 
     let mut storage = data.lock().await;
@@ -21,7 +21,7 @@ pub async fn run(
                 user_id: job.user_id,
             })
             .await
-            .map_err(|e| apalis_core::error::Error::Failed(Arc::new(Box::new(e))))?;
+            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }
 
     Ok(())
