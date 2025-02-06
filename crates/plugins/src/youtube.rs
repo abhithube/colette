@@ -1,4 +1,4 @@
-use colette_scraper::feed::{FeedScraper, ProcessedFeed};
+use colette_core::feed::{FeedScraper, ProcessedFeed, ScraperError};
 use lazy_regex::regex_captures;
 use url::Url;
 
@@ -15,7 +15,7 @@ impl<S: FeedScraper> YouTubeFeedPlugin<S> {
 
 #[async_trait::async_trait]
 impl<S: FeedScraper + Clone> FeedScraper for YouTubeFeedPlugin<S> {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, colette_scraper::Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError> {
         if let Some((_, channel_id)) = regex_captures!(r#"/channel/(UC[\w_-]+)"#, url.as_str()) {
             url.set_query(Some(&format!("channel_id={}", channel_id)));
             url.set_path("feeds/videos.xml");

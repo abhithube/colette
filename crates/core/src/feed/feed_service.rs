@@ -2,18 +2,17 @@ use std::sync::Arc;
 
 use apalis_redis::{RedisContext, RedisError};
 use chrono::{DateTime, Utc};
-pub use colette_scraper::feed::ProcessedFeed;
-use colette_scraper::feed::{DetectorResponse, FeedDetector};
 use futures::stream::BoxStream;
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Error, Feed,
+    DetectedFeed, DetectorResponse, Error, Feed, FeedDetector,
     feed_repository::{
         FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
     },
+    feed_scraper::ProcessedFeed,
 };
 use crate::{
     common::{IdParams, NonEmptyString, Paginated},
@@ -166,8 +165,8 @@ pub struct FeedDetected {
     pub title: String,
 }
 
-impl From<colette_scraper::feed::DetectedFeed> for FeedDetected {
-    fn from(value: colette_scraper::feed::DetectedFeed) -> Self {
+impl From<DetectedFeed> for FeedDetected {
+    fn from(value: DetectedFeed) -> Self {
         Self {
             url: value.url,
             title: value.title,

@@ -1,4 +1,5 @@
 pub use bookmark_repository::*;
+pub use bookmark_scraper::*;
 pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::base64;
@@ -8,6 +9,7 @@ use uuid::Uuid;
 use crate::Tag;
 
 mod bookmark_repository;
+mod bookmark_scraper;
 mod bookmark_service;
 
 #[derive(Clone, Debug, Default)]
@@ -47,7 +49,7 @@ pub enum Error {
     Storage(#[from] object_store::Error),
 
     #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
+    Scraper(#[from] ScraperError),
 
     #[error(transparent)]
     Base64(#[from] base64::Error),

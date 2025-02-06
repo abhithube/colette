@@ -1,5 +1,5 @@
+use colette_core::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_http::HyperClient;
-use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 
 #[allow(unused_variables)]
 pub fn feeds<S: FeedScraper + Clone>(

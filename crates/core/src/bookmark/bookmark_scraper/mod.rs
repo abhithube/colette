@@ -1,3 +1,7 @@
+use std::str::Utf8Error;
+
+pub use bookmark_extractor::{BookmarkExtractor, BookmarkExtractorOptions};
+pub use bookmark_registry::BookmarkPluginRegistry;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_http::{HttpClient, HyperClient};
@@ -5,14 +9,10 @@ use colette_meta::{
     open_graph,
     schema_org::{SchemaObject, SchemaObjectOrValue},
 };
-pub use extractor::{BookmarkExtractor, BookmarkExtractorOptions};
-pub use registry::BookmarkPluginRegistry;
 use url::Url;
 
-use crate::{Error, PostprocessorError};
-
-mod extractor;
-mod registry;
+mod bookmark_extractor;
+mod bookmark_registry;
 
 const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
 const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
@@ -67,7 +67,7 @@ impl TryFrom<ExtractedBookmark> for ProcessedBookmark {
 
 #[async_trait::async_trait]
 pub trait BookmarkScraper: Send + Sync + 'static {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error>;
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError>;
 }
 
 #[derive(Clone)]
@@ -83,10 +83,9 @@ impl DefaultBookmarkScraper {
 
 #[async_trait::async_trait]
 impl BookmarkScraper for DefaultBookmarkScraper {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError> {
         let (_, body) = self.client.get(url).await?;
-        let metadata =
-            colette_meta::parse_metadata(body.reader()).map_err(|e| Error::Parse(e.into()))?;
+        let metadata = colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
 
         let mut bookmark = ExtractedBookmark {
             title: metadata.basic.title,
@@ -166,4 +165,37 @@ impl BookmarkScraper for DefaultBookmarkScraper {
 
         Ok(bookmark.try_into()?)
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ScraperError {
+    #[error("document type not supported")]
+    Unsupported,
+
+    #[error(transparent)]
+    Parse(#[from] colette_meta::Error),
+
+    #[error(transparent)]
+    Postprocess(#[from] PostprocessorError),
+
+    #[error(transparent)]
+    Http(#[from] colette_http::Error),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Utf(#[from] Utf8Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PostprocessorError {
+    #[error("could not process link")]
+    Link,
+
+    #[error("could not process title")]
+    Title,
+
+    #[error("could not process published date")]
+    Published,
 }

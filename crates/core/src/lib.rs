@@ -1,3 +1,4 @@
+#![feature(bufreader_peek)]
 pub use bookmark::Bookmark;
 // pub use collection::Collection;
 pub use feed::Feed;

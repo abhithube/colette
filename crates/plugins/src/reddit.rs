@@ -1,8 +1,8 @@
-use colette_http::{HttpClient, HyperClient};
-use colette_scraper::{
-    bookmark::{BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark},
-    utils::{ExtractorQuery, Node},
+use colette_core::bookmark::{
+    BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark, ScraperError,
 };
+use colette_http::{HttpClient, HyperClient};
+use colette_util::html::{ExtractorQuery, Node};
 use http::{HeaderValue, Request, header};
 use http_body_util::BodyExt;
 use scraper::Selector;
@@ -46,7 +46,7 @@ impl RedditBookmarkPlugin {
 
 #[async_trait::async_trait]
 impl BookmarkScraper for RedditBookmarkPlugin {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, colette_scraper::Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError> {
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }

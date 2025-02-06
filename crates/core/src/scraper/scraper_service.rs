@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use url::Url;
 use uuid::Uuid;
 
@@ -8,6 +7,7 @@ use super::{
     Error,
     scraper_repository::{SaveBookmarkData, SaveFeedData, ScraperRepository},
 };
+use crate::{bookmark::BookmarkScraper, feed::FeedScraper};
 
 pub struct ScraperService {
     repository: Box<dyn ScraperRepository>,
@@ -29,7 +29,11 @@ impl ScraperService {
     }
 
     pub async fn scrape_feed(&self, mut data: FeedCreate) -> Result<(), Error> {
-        let feed = self.feed_scraper.scrape(&mut data.url).await?;
+        let feed = self
+            .feed_scraper
+            .scrape(&mut data.url)
+            .await
+            .map_err(|e| Error::Scraper(e.into()))?;
 
         self.repository
             .save_feed(SaveFeedData {
@@ -40,7 +44,11 @@ impl ScraperService {
     }
 
     pub async fn scrape_bookmark(&self, mut data: BookmarkCreate) -> Result<(), Error> {
-        let bookmark = self.bookmark_scraper.scrape(&mut data.url).await?;
+        let bookmark = self
+            .bookmark_scraper
+            .scrape(&mut data.url)
+            .await
+            .map_err(|e| Error::Scraper(e.into()))?;
 
         self.repository
             .save_bookmark(SaveBookmarkData {

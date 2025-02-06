@@ -513,15 +513,17 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
+ "colette-feed",
  "colette-http",
+ "colette-meta",
  "colette-netscape",
  "colette-opml",
- "colette-scraper",
  "colette-util",
  "email_address",
  "futures",
  "image",
  "object_store",
+ "scraper",
  "serde",
  "sqlx",
  "thiserror 2.0.11",
@@ -587,9 +589,10 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
+ "colette-core",
  "colette-http",
  "colette-meta",
- "colette-scraper",
+ "colette-util",
  "http",
  "http-body-util",
  "lazy-regex",
@@ -613,21 +616,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-scraper"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "bytes",
- "chrono",
- "colette-feed",
- "colette-http",
- "colette-meta",
- "scraper",
- "thiserror 2.0.11",
- "url",
-]
-
-[[package]]
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
@@ -642,7 +630,6 @@ dependencies = [
  "colette-http",
  "colette-plugins",
  "colette-repository",
- "colette-scraper",
  "colette-util",
  "envy",
  "futures",
@@ -672,6 +659,7 @@ dependencies = [
  "chrono",
  "hex",
  "password-auth",
+ "scraper",
  "serde",
  "serde_json",
  "sha2",

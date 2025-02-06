@@ -1,13 +1,10 @@
 use core::str;
 
 use bytes::Bytes;
+use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::Html;
 
-use super::ExtractedBookmark;
-use crate::{
-    Error,
-    utils::{ExtractorQuery, TextSelector},
-};
+use super::{ExtractedBookmark, ScraperError};
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkExtractorOptions {
@@ -27,7 +24,7 @@ impl BookmarkExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, Error> {
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, ScraperError> {
         let raw = Vec::<u8>::from(body);
         let raw = str::from_utf8(&raw)?;
         let html = Html::parse_document(raw);

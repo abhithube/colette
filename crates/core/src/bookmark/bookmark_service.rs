@@ -3,7 +3,6 @@ use std::sync::Arc;
 use apalis_redis::{RedisContext, RedisError};
 use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
-use colette_scraper::bookmark::BookmarkScraper;
 use colette_util::{base64, thumbnail};
 use object_store::{ObjectStore, path::Path};
 use tokio::sync::Mutex;
@@ -11,7 +10,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, Cursor, Error,
+    Bookmark, BookmarkScraper, Cursor, Error,
     bookmark_repository::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },

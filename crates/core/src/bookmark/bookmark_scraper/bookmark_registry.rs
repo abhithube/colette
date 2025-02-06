@@ -2,8 +2,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use super::{BookmarkScraper, ProcessedBookmark};
-use crate::Error;
+use super::{BookmarkScraper, ProcessedBookmark, ScraperError};
 
 pub struct BookmarkPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
@@ -24,7 +23,7 @@ impl<S: BookmarkScraper> BookmarkPluginRegistry<S> {
 
 #[async_trait::async_trait]
 impl<S: BookmarkScraper + Clone> BookmarkScraper for BookmarkPluginRegistry<S> {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError> {
         let host = url.host_str().unwrap();
 
         match self.plugins.get(host) {

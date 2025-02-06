@@ -1,8 +1,7 @@
-use colette_scraper::bookmark::ProcessedBookmark;
-pub use colette_scraper::feed::ProcessedFeed;
 use uuid::Uuid;
 
 use super::Error;
+use crate::{bookmark::ProcessedBookmark, feed::ProcessedFeed};
 
 #[async_trait::async_trait]
 pub trait ScraperRepository: Send + Sync + 'static {

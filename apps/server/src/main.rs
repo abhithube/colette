@@ -13,9 +13,15 @@ use colette_api::{
     feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState,
 };
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
-    scraper::ScraperService, tag::TagService,
+    auth::AuthService,
+    backup::BackupService,
+    bookmark::{BookmarkService, DefaultBookmarkScraper},
+    feed::{DefaultFeedDetector, DefaultFeedScraper, FeedService},
+    feed_entry::FeedEntryService,
+    folder::FolderService,
+    library::LibraryService,
+    scraper::ScraperService,
+    tag::TagService,
 };
 use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -23,10 +29,6 @@ use colette_repository::{
     PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
     PostgresFeedRepository, PostgresFolderRepository, PostgresLibraryRepository,
     PostgresScraperRepository, PostgresTagRepository, PostgresUserRepository,
-};
-use colette_scraper::{
-    bookmark::DefaultBookmarkScraper,
-    feed::{DefaultFeedDetector, DefaultFeedScraper},
 };
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,

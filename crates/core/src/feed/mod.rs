@@ -1,11 +1,12 @@
-pub use colette_scraper::feed::ProcessedFeed;
 pub use feed_repository::*;
+pub use feed_scraper::*;
 pub use feed_service::*;
 use uuid::Uuid;
 
 use crate::Tag;
 
 mod feed_repository;
+mod feed_scraper;
 mod feed_service;
 
 #[derive(Clone, Debug, Default)]
@@ -34,7 +35,7 @@ pub enum Error {
     Conflict(ConflictError),
 
     #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
+    Scraper(#[from] ScraperError),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

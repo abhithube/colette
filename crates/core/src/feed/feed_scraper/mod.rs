@@ -1,19 +1,17 @@
 use core::str;
-use std::io::BufReader;
+use std::{io::BufReader, str::Utf8Error};
 
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::Feed;
 use colette_http::{HttpClient, HyperClient};
-pub use extractor::{FeedExtractor, FeedExtractorOptions};
-pub use registry::FeedPluginRegistry;
+pub use feed_extractor::{FeedExtractor, FeedExtractorOptions};
+pub use feed_registry::FeedPluginRegistry;
 use url::Url;
 
-use crate::{Error, PostprocessorError};
-
 mod atom;
-mod extractor;
-mod registry;
+mod feed_extractor;
+mod feed_registry;
 mod rss;
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
@@ -166,12 +164,12 @@ impl From<Feed> for ExtractedFeed {
 
 #[async_trait::async_trait]
 pub trait FeedScraper: Send + Sync + 'static {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error>;
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError>;
 }
 
 #[async_trait::async_trait]
 pub trait FeedDetector: Send + Sync {
-    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, Error>;
+    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, ScraperError>;
 }
 
 #[derive(Clone)]
@@ -187,11 +185,11 @@ impl DefaultFeedScraper {
 
 #[async_trait::async_trait]
 impl FeedScraper for DefaultFeedScraper {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError> {
         let (_, body) = self.client.get(url).await?;
         let feed = colette_feed::from_reader(BufReader::new(body.reader()))
             .map(ExtractedFeed::from)
-            .map_err(|e| Error::Parse(e.into()))?;
+            .map_err(|e| ScraperError::Parse(e.into()))?;
 
         Ok(feed.try_into()?)
     }
@@ -210,15 +208,15 @@ impl DefaultFeedDetector {
 
 #[async_trait::async_trait]
 impl FeedDetector for DefaultFeedDetector {
-    async fn detect(&self, url: Url) -> Result<DetectorResponse, Error> {
+    async fn detect(&self, url: Url) -> Result<DetectorResponse, ScraperError> {
         let (_, body) = self.client.get(&url).await?;
         let mut reader = BufReader::new(body.reader());
 
         let raw = str::from_utf8(reader.peek(14)?)?;
         match raw {
             raw if raw.contains("<!DOCTYPE html") => {
-                let metadata =
-                    colette_meta::parse_metadata(reader).map_err(|e| Error::Parse(e.into()))?;
+                let metadata = colette_meta::parse_metadata(reader)
+                    .map_err(|e| ScraperError::Parse(e.into()))?;
 
                 let feeds = metadata.feeds.into_iter().map(DetectedFeed::from).collect();
 
@@ -227,11 +225,53 @@ impl FeedDetector for DefaultFeedDetector {
             raw if raw.contains("<?xml") => {
                 let feed = colette_feed::from_reader(reader)
                     .map(ExtractedFeed::from)
-                    .map_err(|e| Error::Parse(e.into()))?;
+                    .map_err(|e| ScraperError::Parse(e.into()))?;
 
                 Ok(DetectorResponse::Processed(feed.try_into()?))
             }
-            _ => Err(Error::Unsupported),
+            _ => Err(ScraperError::Unsupported),
         }
     }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ScraperError {
+    #[error("document type not supported")]
+    Unsupported,
+
+    #[error(transparent)]
+    Parse(#[from] ParseError),
+
+    #[error(transparent)]
+    Postprocess(#[from] PostprocessorError),
+
+    #[error(transparent)]
+    Http(#[from] colette_http::Error),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Utf(#[from] Utf8Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ParseError {
+    #[error(transparent)]
+    Feed(#[from] colette_feed::Error),
+
+    #[error(transparent)]
+    Meta(#[from] colette_meta::Error),
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum PostprocessorError {
+    #[error("could not process link")]
+    Link,
+
+    #[error("could not process title")]
+    Title,
+
+    #[error("could not process published date")]
+    Published,
 }

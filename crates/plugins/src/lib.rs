@@ -1,8 +1,8 @@
-use colette_http::HyperClient;
-use colette_scraper::{
+use colette_core::{
     bookmark::{BookmarkPluginRegistry, BookmarkScraper},
     feed::{FeedPluginRegistry, FeedScraper},
 };
+use colette_http::HyperClient;
 use reddit::RedditBookmarkPlugin;
 use youtube::YouTubeFeedPlugin;
 

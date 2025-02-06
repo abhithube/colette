@@ -1,13 +1,10 @@
 use core::str;
 
 use bytes::Bytes;
+use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::{Html, Selector};
 
-use super::{ExtractedFeed, ExtractedFeedEntry};
-use crate::{
-    Error,
-    utils::{ExtractorQuery, TextSelector},
-};
+use super::{ExtractedFeed, ExtractedFeedEntry, ScraperError};
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedExtractorOptions {
@@ -32,7 +29,7 @@ impl FeedExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, Error> {
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, ScraperError> {
         let raw = Vec::<u8>::from(body);
         let raw = str::from_utf8(&raw)?;
         let html = Html::parse_document(raw);

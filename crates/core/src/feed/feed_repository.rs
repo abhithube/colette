@@ -1,8 +1,7 @@
-pub use colette_scraper::feed::ProcessedFeed;
 use futures::stream::BoxStream;
 use uuid::Uuid;
 
-use super::{Cursor, Error, Feed};
+use super::{Cursor, Error, Feed, ProcessedFeed};
 use crate::common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Updatable};
 
 #[async_trait::async_trait]

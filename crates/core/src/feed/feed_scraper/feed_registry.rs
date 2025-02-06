@@ -3,8 +3,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use super::{FeedScraper, ProcessedFeed};
-use crate::Error;
+use super::{ScraperError, FeedScraper, ProcessedFeed};
 
 pub struct FeedPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
@@ -22,7 +21,7 @@ impl<S: FeedScraper> FeedPluginRegistry<S> {
 
 #[async_trait::async_trait]
 impl<S: FeedScraper + Clone> FeedScraper for FeedPluginRegistry<S> {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, Error> {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError> {
         let host = url.host_str().unwrap();
 
         match self.plugins.get(host) {
