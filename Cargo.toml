@@ -15,7 +15,6 @@ resolver = "2"
 
 [workspace.dependencies]
 anyhow = { version = "1.0.95", default-features = false, features = ["std"] }
-apalis-core = { version = "0.6.4", default-features = false }
 apalis-redis = { version = "0.6.4", default-features = false, features = [
   "tokio-comp",
 ] }
@@ -26,11 +25,6 @@ axum = { version = "0.8.1", default-features = false, features = [
   "query",
   "macros",
   "tokio",
-] }
-axum-embed = { version = "0.1.0", default-features = false }
-axum-extra = { version = "0.10.0", default-features = false, features = [
-  "query",
-  "tracing",
 ] }
 bytes = { version = "1.9.0", default-features = false }
 chrono = { version = "0.4.39", default-features = false, features = [
@@ -47,7 +41,6 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-util.path = "crates/util"
-console_error_panic_hook = { version = "0.1.7", default-features = false }
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
@@ -69,16 +62,6 @@ object_store = { version = "0.11.2", default-features = false, features = [
   "tls-webpki-roots",
 ] }
 quick-xml = { version = "0.37.2", default-features = false }
-redis = { version = "0.27.6", default-features = false, features = [
-  "tokio-rustls-comp",
-  "tls-rustls-webpki-roots",
-] }
-rust-embed = { version = "8.5.0", default-features = false, features = [
-  "interpolate-folder-path",
-] }
-rust-s3 = { version = "0.36.0-beta.2", default-features = false, features = [
-  "tokio-rustls-tls",
-] }
 scraper = { version = "0.22.0", default-features = false }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [
@@ -99,24 +82,10 @@ tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
-tower = { version = "0.5.2", default-features = false, features = [
-  "limit",
-  "tracing",
-] }
-tower-http = { version = "0.6.2", default-features = false, features = [
-  "cors",
-  "fs",
-  "trace",
-] }
 tower-sessions = { version = "0.14.0", default-features = false, features = [
   "axum-core",
 ] }
 tracing = { version = "0.1.41", default-features = false }
-tracing-subscriber = { version = "0.3.19", default-features = false, features = [
-  "ansi",
-  "env-filter",
-  "tracing-log",
-] }
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 uuid = { version = "1.11.1", default-features = false, features = [
   "serde",

@@ -6,7 +6,10 @@ edition = "2024"
 [dependencies]
 anyhow.workspace = true
 axum.workspace = true
-axum-extra.workspace = true
+axum-extra = { version = "0.10.0", default-features = false, features = [
+  "query",
+  "tracing",
+] }
 bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true

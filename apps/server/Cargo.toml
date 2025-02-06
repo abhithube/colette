@@ -12,7 +12,7 @@ apalis-cron = { version = "0.6.4", default-features = false }
 apalis-redis.workspace = true
 async-trait.workspace = true
 axum.workspace = true
-axum-embed.workspace = true
+axum-embed = { version = "0.1.0", default-features = false }
 chrono.workspace = true
 colette-api.workspace = true
 colette-core.workspace = true
@@ -26,17 +26,32 @@ futures.workspace = true
 hyper-rustls.workspace = true
 hyper-util.workspace = true
 object_store.workspace = true
-redis.workspace = true
-rust-embed.workspace = true
-rust-s3.workspace = true
+redis = { version = "0.27.6", default-features = false, features = [
+  "tokio-rustls-comp",
+  "tls-rustls-webpki-roots",
+] }
+rust-embed = { version = "8.5.0", default-features = false, features = [
+  "interpolate-folder-path",
+] }
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
-tower.workspace = true
-tower-http.workspace = true
+tower = { version = "0.5.2", default-features = false, features = [
+  "limit",
+  "tracing",
+] }
+tower-http = { version = "0.6.2", default-features = false, features = [
+  "cors",
+  "fs",
+  "trace",
+] }
 tower-sessions.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
+tracing-subscriber = { version = "0.3.19", default-features = false, features = [
+  "ansi",
+  "env-filter",
+  "tracing-log",
+] }
 url.workspace = true
 uuid.workspace = true
