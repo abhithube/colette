@@ -1,3 +1,5 @@
+use std::str::Utf8Error;
+
 pub use feed_repository::*;
 pub use feed_scraper::*;
 pub use feed_service::*;
@@ -33,6 +35,15 @@ pub enum Error {
 
     #[error(transparent)]
     Conflict(ConflictError),
+
+    #[error(transparent)]
+    Http(#[from] colette_http::Error),
+
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+
+    #[error(transparent)]
+    Utf(#[from] Utf8Error),
 
     #[error(transparent)]
     Scraper(#[from] ScraperError),

@@ -1,14 +1,17 @@
-use std::sync::Arc;
+use core::str;
+use std::{collections::HashMap, io::BufReader, sync::Arc};
 
 use apalis_redis::{RedisContext, RedisError};
+use bytes::Buf;
 use chrono::{DateTime, Utc};
+use colette_http::HttpClient;
 use futures::stream::BoxStream;
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
 use super::{
-    DetectedFeed, DetectorResponse, Error, Feed, FeedDetector, FeedScraper,
+    Error, ExtractedFeed, Feed, FeedScraper, ScraperError,
     feed_repository::{
         FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData, FeedUpdateData,
     },
@@ -21,20 +24,20 @@ use crate::{
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
-    detector: Box<dyn FeedDetector>,
-    scraper: Arc<dyn FeedScraper>,
+    client: Box<dyn HttpClient>,
+    plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
 }
 
 impl FeedService {
     pub fn new(
         repository: impl FeedRepository,
-        detector: impl FeedDetector,
-        scraper: Arc<dyn FeedScraper>,
+        client: impl HttpClient,
+        plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
-            detector: Box::new(detector),
-            scraper,
+            client: Box::new(client),
+            plugins,
         }
     }
 
@@ -107,11 +110,12 @@ impl FeedService {
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {
-        match self.detector.detect(&mut data.url).await? {
-            DetectorResponse::Detected(feeds) => Ok(DetectedResponse::Detected(
-                feeds.into_iter().map(Into::into).collect(),
-            )),
-            DetectorResponse::Processed(feed) => {
+        let host = data.url.host_str().unwrap();
+
+        match self.plugins.get(host) {
+            Some(plugin) => {
+                let feed = plugin.scrape(&mut data.url).await?;
+
                 self.repository
                     .save_scraped(FeedScrapedData {
                         url: data.url.to_string(),
@@ -122,15 +126,63 @@ impl FeedService {
 
                 Ok(DetectedResponse::Processed(feed))
             }
+            None => {
+                let (_, body) = self.client.get(&data.url).await?;
+
+                let mut reader = BufReader::new(body.reader());
+
+                let raw = str::from_utf8(reader.peek(14)?)?;
+                match raw {
+                    raw if raw.contains("<!DOCTYPE html") => {
+                        let metadata = colette_meta::parse_metadata(reader)
+                            .map_err(|e| ScraperError::Parse(e.into()))?;
+
+                        let feeds = metadata
+                            .feeds
+                            .into_iter()
+                            .map(FeedDetected::from)
+                            .collect::<Vec<_>>();
+
+                        Ok(DetectedResponse::Detected(feeds))
+                    }
+                    raw if raw.contains("<?xml") => {
+                        let feed = colette_feed::from_reader(reader)
+                            .map(ExtractedFeed::from)
+                            .map_err(|e| ScraperError::Parse(e.into()))?;
+
+                        let feed =
+                            ProcessedFeed::try_from(feed).map_err(|e| Error::Scraper(e.into()))?;
+
+                        self.repository
+                            .save_scraped(FeedScrapedData {
+                                url: data.url.to_string(),
+                                feed: feed.clone(),
+                                link_to_users: false,
+                            })
+                            .await?;
+
+                        Ok(DetectedResponse::Processed(feed))
+                    }
+                    _ => Err(Error::Scraper(ScraperError::Unsupported)),
+                }
+            }
         }
     }
 
     pub async fn scrape_and_persist_feed(&self, mut data: FeedPersist) -> Result<(), Error> {
-        let feed = self
-            .scraper
-            .scrape(&mut data.url)
-            .await
-            .map_err(Error::Scraper)?;
+        let host = data.url.host_str().unwrap();
+
+        let feed = match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(&mut data.url).await,
+            None => {
+                let (_, body) = self.client.get(&data.url).await?;
+                let feed = colette_feed::from_reader(BufReader::new(body.reader()))
+                    .map(ExtractedFeed::from)
+                    .map_err(|e| ScraperError::Parse(e.into()))?;
+
+                Ok(feed.try_into().map_err(ScraperError::Postprocess)?)
+            }
+        }?;
 
         self.repository
             .save_scraped(FeedScrapedData {
@@ -188,10 +240,10 @@ pub struct FeedDetected {
     pub title: String,
 }
 
-impl From<DetectedFeed> for FeedDetected {
-    fn from(value: DetectedFeed) -> Self {
+impl From<colette_meta::rss::Feed> for FeedDetected {
+    fn from(value: colette_meta::rss::Feed) -> Self {
         Self {
-            url: value.url,
+            url: value.href,
             title: value.title,
         }
     }

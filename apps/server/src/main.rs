@@ -23,14 +23,8 @@ use axum::{
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
-    auth::AuthService,
-    backup::BackupService,
-    bookmark::{BookmarkService, DefaultBookmarkScraper},
-    feed::{DefaultFeedDetector, DefaultFeedScraper, FeedService},
-    feed_entry::FeedEntryService,
-    folder::FolderService,
-    library::LibraryService,
-    tag::TagService,
+    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
+    feed_entry::FeedEntryService, folder::FolderService, library::LibraryService, tag::TagService,
 };
 use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -186,15 +180,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         HyperClient::new(client)
     };
 
-    let feed_plugin_registry = Arc::new(register_feed_plugins(
-        http_client.clone(),
-        DefaultFeedScraper::new(http_client.clone()),
-    ));
-    let bookmark_plugin_registry = Arc::new(register_bookmark_plugins(
-        http_client.clone(),
-        DefaultBookmarkScraper::new(http_client.clone()),
-    ));
-
     let bucket_url = app_config
         .bucket_endpoint_url
         .origin()
@@ -241,10 +226,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
-        bookmark_plugin_registry.clone(),
         http_client.clone(),
         bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
+        register_bookmark_plugins(http_client.clone()),
         bucket_url,
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
@@ -252,8 +237,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        DefaultFeedDetector::new(http_client),
-        feed_plugin_registry,
+        http_client.clone(),
+        register_feed_plugins(http_client),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
         pool.clone(),

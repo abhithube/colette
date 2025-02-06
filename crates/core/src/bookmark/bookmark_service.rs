@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use apalis_redis::{RedisContext, RedisError};
+use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use colette_util::{base64, thumbnail};
@@ -10,7 +11,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkScrapedData, BookmarkScraper, Cursor, Error,
+    Bookmark, BookmarkScrapedData, BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
     bookmark_repository::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },
@@ -24,19 +25,18 @@ const BASE_DIR: &str = "colette";
 
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
-    scraper: Arc<dyn BookmarkScraper>,
-    http_client: Box<dyn HttpClient>,
+    client: Box<dyn HttpClient>,
     object_store: Box<dyn ObjectStore>,
     archive_thumbnail_storage: Arc<
         Mutex<dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>>,
     >,
+    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     bucket_url: String,
 }
 
 impl BookmarkService {
     pub fn new(
         repository: impl BookmarkRepository,
-        scraper: Arc<dyn BookmarkScraper>,
         http_client: impl HttpClient,
         object_store: impl ObjectStore,
         archive_thumbnail_storage: Arc<
@@ -44,14 +44,15 @@ impl BookmarkService {
                 dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>,
             >,
         >,
+        plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
         bucket_url: String,
     ) -> Self {
         Self {
             repository: Box::new(repository),
-            scraper,
-            http_client: Box::new(http_client),
+            client: Box::new(http_client),
             object_store: Box::new(object_store),
             archive_thumbnail_storage,
+            plugins,
             bucket_url,
         }
     }
@@ -185,16 +186,27 @@ impl BookmarkService {
         &self,
         mut data: BookmarkScrape,
     ) -> Result<BookmarkScraped, Error> {
-        let bookmark = self.scraper.scrape(&mut data.url).await?;
+        let host = data.url.host_str().unwrap();
 
-        let url = data.url.to_string();
+        let bookmark = match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(&mut data.url).await,
+            None => {
+                let (_, body) = self.client.get(&data.url).await?;
+                let metadata =
+                    colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
+
+                let bookmark = ExtractedBookmark::from(metadata);
+
+                bookmark.try_into().map_err(ScraperError::Postprocess)
+            }
+        }?;
 
         let scraped = BookmarkScraped {
-            link: url.clone(),
-            title: bookmark.title.clone(),
-            thumbnail_url: bookmark.thumbnail.clone().map(String::from),
+            link: data.url.to_string(),
+            title: bookmark.title,
+            thumbnail_url: bookmark.thumbnail.map(String::from),
             published_at: bookmark.published,
-            author: bookmark.author.clone(),
+            author: bookmark.author,
         };
 
         Ok(scraped)
@@ -204,11 +216,20 @@ impl BookmarkService {
         &self,
         mut data: BookmarkPersist,
     ) -> Result<(), Error> {
-        let bookmark = self
-            .scraper
-            .scrape(&mut data.url)
-            .await
-            .map_err(Error::Scraper)?;
+        let host = data.url.host_str().unwrap();
+
+        let bookmark = match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(&mut data.url).await,
+            None => {
+                let (_, body) = self.client.get(&data.url).await?;
+                let metadata =
+                    colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
+
+                let bookmark = ExtractedBookmark::from(metadata);
+
+                bookmark.try_into().map_err(ScraperError::Postprocess)
+            }
+        }?;
 
         self.repository
             .save_scraped(BookmarkScrapedData {
@@ -227,7 +248,7 @@ impl BookmarkService {
     ) -> Result<(), Error> {
         let file_name = thumbnail::generate_filename(&data.thumbnail_url);
 
-        let (_, body) = self.http_client.get(&data.thumbnail_url).await?;
+        let (_, body) = self.client.get(&data.thumbnail_url).await?;
 
         let format = image::guess_format(&body)?;
         let extension = format.extensions_str()[0];

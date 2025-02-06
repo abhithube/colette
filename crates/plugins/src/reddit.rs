@@ -1,12 +1,12 @@
-use colette_core::bookmark::{
-    BookmarkExtractor, BookmarkExtractorOptions, BookmarkScraper, ProcessedBookmark, ScraperError,
-};
+use colette_core::bookmark::{BookmarkScraper, ProcessedBookmark, ScraperError};
 use colette_http::{HttpClient, HyperClient};
 use colette_util::html::{ExtractorQuery, Node};
 use http::{HeaderValue, Request, header};
 use http_body_util::BodyExt;
 use scraper::Selector;
 use url::Url;
+
+use crate::common::{BookmarkExtractor, BookmarkExtractorOptions};
 
 const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 

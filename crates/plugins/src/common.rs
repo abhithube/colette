@@ -1,10 +1,12 @@
 use core::str;
 
 use bytes::Bytes;
+use colette_core::{
+    bookmark::{self, ExtractedBookmark},
+    feed::{self, ExtractedFeed, ExtractedFeedEntry},
+};
 use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::{Html, Selector};
-
-use super::{ExtractedFeed, ExtractedFeedEntry, ScraperError};
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedExtractorOptions {
@@ -29,10 +31,8 @@ impl FeedExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, ScraperError> {
-        let raw = Vec::<u8>::from(body);
-        let raw = str::from_utf8(&raw)?;
-        let html = Html::parse_document(raw);
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, feed::ScraperError> {
+        let html = Html::parse_document(str::from_utf8(&body)?);
 
         let entries = self
             .options
@@ -67,5 +67,37 @@ impl FeedExtractor {
         };
 
         Ok(feed)
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct BookmarkExtractorOptions {
+    pub title_queries: Vec<ExtractorQuery>,
+    pub published_queries: Vec<ExtractorQuery>,
+    pub author_queries: Vec<ExtractorQuery>,
+    pub thumbnail_queries: Vec<ExtractorQuery>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkExtractor {
+    options: BookmarkExtractorOptions,
+}
+
+impl BookmarkExtractor {
+    pub fn new(options: BookmarkExtractorOptions) -> Self {
+        Self { options }
+    }
+
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, bookmark::ScraperError> {
+        let html = Html::parse_document(str::from_utf8(&body)?);
+
+        let bookmark = ExtractedBookmark {
+            title: html.select_text(&self.options.title_queries),
+            thumbnail: html.select_text(&self.options.thumbnail_queries),
+            published: html.select_text(&self.options.published_queries),
+            author: html.select_text(&self.options.author_queries),
+        };
+
+        Ok(bookmark)
     }
 }
