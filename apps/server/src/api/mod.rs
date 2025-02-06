@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod backup;
 pub mod bookmark;
 // pub mod collection;
@@ -6,8 +7,5 @@ pub mod feed;
 pub mod feed_entry;
 pub mod folder;
 pub mod library;
-pub mod scraper;
 // pub mod smart_feed;
-pub mod query;
 pub mod tag;
-pub mod user;

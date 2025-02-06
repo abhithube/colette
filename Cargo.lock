@@ -48,12 +48,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anyhow"
-version = "1.0.95"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34ac096ce696dc2fcabef30516bb13c0a68a11d30131d3df6f04711467681b04"
-
-[[package]]
 name = "apalis"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -441,29 +435,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-api"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum-extra",
- "bytes",
- "chrono",
- "colette-core",
- "email_address",
- "serde",
- "serde_with",
- "thiserror 2.0.11",
- "tower-sessions",
- "tracing",
- "url",
- "utoipa",
- "utoipa-axum",
- "utoipa-scalar",
- "uuid",
-]
-
-[[package]]
 name = "colette-core"
 version = "0.1.0"
 dependencies = [
@@ -569,14 +540,16 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-embed",
+ "axum-extra",
+ "bytes",
  "chrono",
- "colette-api",
  "colette-core",
  "colette-http",
  "colette-netscape",
  "colette-opml",
  "colette-plugins",
  "colette-util",
+ "email_address",
  "envy",
  "futures",
  "hyper-rustls",
@@ -586,7 +559,9 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_json",
+ "serde_with",
  "sqlx",
+ "thiserror 2.0.11",
  "tokio",
  "tower",
  "tower-http",
@@ -594,6 +569,9 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "utoipa",
+ "utoipa-axum",
+ "utoipa-scalar",
  "uuid",
 ]
 

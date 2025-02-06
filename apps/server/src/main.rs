@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, str::FromStr, sync::Arc};
+use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -6,12 +6,22 @@ use apalis::{
 };
 use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
-use axum::http::{HeaderValue, Method, header};
-use axum_embed::{FallbackBehavior, ServeEmbed};
-use colette_api::{
-    Api, ApiState, auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
-    feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState,
+use api::{
+    auth::{AuthApi, AuthState},
+    backup::{BackupApi, BackupState},
+    bookmark::{BookmarkApi, BookmarkState},
+    common::BaseError,
+    feed::{FeedApi, FeedState},
+    feed_entry::{FeedEntryApi, FeedEntryState},
+    folder::{FolderApi, FolderState},
+    library::{LibraryApi, LibraryState},
+    tag::{TagApi, TagState},
 };
+use axum::{
+    http::{HeaderValue, Method, header},
+    routing,
+};
+use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
     auth::AuthService,
     backup::BackupService,
@@ -29,7 +39,12 @@ use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
 use object_store::aws::AmazonS3Builder;
-use repository::*;
+use repository::{
+    backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
+    feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
+    folder::PostgresFolderRepository, library::PostgresLibraryRepository,
+    scraper::PostgresScraperRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
+};
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
 use sqlx::{Pool, Postgres};
@@ -38,7 +53,11 @@ use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
+use utoipa::{OpenApi, openapi::Server};
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_scalar::{Scalar, Servable};
 
+mod api;
 mod job;
 mod repository;
 mod session;
@@ -46,6 +65,10 @@ mod session;
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
 struct Asset;
+
+#[derive(utoipa::OpenApi)]
+#[openapi(components(schemas(BaseError)))]
+struct ApiDoc;
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct AppConfig {
@@ -290,25 +313,55 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .register(archive_thumbnail_worker)
         .run();
 
-    let api_state = ApiState::new(
-        AuthState::new(auth_service),
-        BackupState::new(backup_service),
-        BookmarkState::new(bookmark_service),
-        // CollectionState::new(collection_service),
-        FeedState::new(feed_service),
-        FeedEntryState::new(feed_entry_service),
-        FolderState::new(folder_service),
-        LibraryState::new(library_service),
-        // SmartFeedState::new(smart_feed_service),
-        TagState::new(tag_service),
-    );
-
     let redis_conn = redis.get_multiplexed_async_connection().await?;
     let session_store = RedisStore::new(redis_conn);
 
-    let mut api = Api::new(&api_state, &app_config.api_prefix)
-        .build()
-        .with_state(api_state)
+    let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        .nest(
+            &app_config.api_prefix,
+            OpenApiRouter::new()
+                .nest("/auth", AuthApi::router())
+                .with_state(AuthState::new(auth_service))
+                .nest("/backups", BackupApi::router())
+                .with_state(BackupState::new(backup_service))
+                .nest("/bookmarks", BookmarkApi::router())
+                .with_state(BookmarkState::new(bookmark_service))
+                // .nest("/collections", CollectionApi::router())
+                // .with_state(CollectionState::new(collection_service))
+                .nest("/feedEntries", FeedEntryApi::router())
+                .with_state(FeedEntryState::new(feed_entry_service))
+                .nest("/feeds", FeedApi::router())
+                .with_state(FeedState::new(feed_service))
+                .nest("/folders", FolderApi::router())
+                .with_state(FolderState::new(folder_service))
+                .nest("/library", LibraryApi::router())
+                .with_state(LibraryState::new(library_service))
+                // .nest("/smartFeeds", SmartFeedApi::router())
+                // .with_state(SmartFeedState::new(smart_feed_service))
+                .nest("/tags", TagApi::router())
+                .with_state(TagState::new(tag_service)),
+        )
+        .split_for_parts();
+
+    openapi.info.title = "Colette API".to_owned();
+    openapi.servers = Some(vec![Server::new(&app_config.api_prefix)]);
+
+    openapi.paths.paths = openapi
+        .paths
+        .paths
+        .drain(RangeFull)
+        .map(|(k, v)| (k.replace(&app_config.api_prefix, ""), v))
+        .collect();
+
+    let mut api = api
+        .merge(Scalar::with_url(
+            format!("{}/doc", &app_config.api_prefix),
+            openapi.clone(),
+        ))
+        .route(
+            &format!("{}/openapi.json", &app_config.api_prefix),
+            routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
+        )
         .layer(
             SessionManagerLayer::new(session_store)
                 .with_secure(false)

@@ -11,16 +11,27 @@ apalis = { version = "0.6.4", default-features = false, features = [
 apalis-cron = { version = "0.6.4", default-features = false }
 apalis-redis.workspace = true
 async-trait.workspace = true
-axum.workspace = true
+axum = { version = "0.8.1", default-features = false, features = [
+  "http1",
+  "json",
+  "query",
+  "macros",
+  "tokio",
+] }
 axum-embed = { version = "0.1.0", default-features = false }
+axum-extra = { version = "0.10.0", default-features = false, features = [
+  "query",
+  "tracing",
+] }
+bytes.workspace = true
 chrono.workspace = true
-colette-api.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-util.workspace = true
+email_address.workspace = true
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 hyper-rustls.workspace = true
@@ -35,7 +46,9 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
 ] }
 serde.workspace = true
 serde_json.workspace = true
+serde_with = { version = "3.12.0", default-features = false }
 sqlx.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
 tower = { version = "0.5.2", default-features = false, features = [
   "limit",
@@ -46,12 +59,26 @@ tower-http = { version = "0.6.2", default-features = false, features = [
   "fs",
   "trace",
 ] }
-tower-sessions.workspace = true
-tracing.workspace = true
+tower-sessions = { version = "0.14.0", default-features = false, features = [
+  "axum-core",
+] }
+tracing = { version = "0.1.41", default-features = false }
 tracing-subscriber = { version = "0.3.19", default-features = false, features = [
   "ansi",
   "env-filter",
   "tracing-log",
 ] }
 url.workspace = true
+utoipa = { version = "5.3.1", default-features = false, features = [
+  "chrono",
+  "macros",
+  "preserve_order",
+  "preserve_path_order",
+  "url",
+  "uuid",
+] }
+utoipa-axum = { version = "0.2.0", default-features = false }
+utoipa-scalar = { version = "0.3.0", default-features = false, features = [
+  "axum",
+] }
 uuid.workspace = true

@@ -1,7 +1,6 @@
 [workspace]
 members = [
   "apps/server",
-  "crates/api",
   "crates/core",
   "crates/feed",
   "crates/http",
@@ -14,25 +13,16 @@ members = [
 resolver = "2"
 
 [workspace.dependencies]
-anyhow = { version = "1.0.95", default-features = false, features = ["std"] }
 apalis-redis = { version = "0.6.4", default-features = false, features = [
   "tokio-comp",
 ] }
 async-trait = { version = "0.1.85", default-features = false }
-axum = { version = "0.8.1", default-features = false, features = [
-  "http1",
-  "json",
-  "query",
-  "macros",
-  "tokio",
-] }
 bytes = { version = "1.9.0", default-features = false }
 chrono = { version = "0.4.39", default-features = false, features = [
   "clock",
   "serde",
   "std",
 ] }
-colette-api.path = "crates/api"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
@@ -82,10 +72,6 @@ tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
   "rt-multi-thread",
 ] }
-tower-sessions = { version = "0.14.0", default-features = false, features = [
-  "axum-core",
-] }
-tracing = { version = "0.1.41", default-features = false }
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 uuid = { version = "1.11.1", default-features = false, features = [
   "serde",
