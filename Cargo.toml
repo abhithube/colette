@@ -2,7 +2,6 @@
 members = [
   "apps/server",
   "crates/api",
-  "crates/archiver",
   "crates/core",
   "crates/feed",
   "crates/http",
@@ -42,7 +41,6 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "std",
 ] }
 colette-api.path = "crates/api"
-colette-archiver.path = "crates/archiver"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
@@ -69,6 +67,10 @@ http-body-util = { version = "0.1.2", default-features = false }
 hyper-util = { version = "0.1.10", default-features = false, features = [
   "client-legacy",
   "http2",
+] }
+object_store = { version = "0.11.2", default-features = false, features = [
+  "aws",
+  "tls-webpki-roots",
 ] }
 quick-xml = { version = "0.37.2", default-features = false }
 redis = { version = "0.27.6", default-features = false, features = [

@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use apalis_redis::{RedisContext, RedisError};
 use chrono::{DateTime, Utc};
-use colette_archiver::{Archiver, ThumbnailData};
+use colette_http::HttpClient;
 use colette_scraper::bookmark::BookmarkScraper;
 use colette_util::{base64, thumbnail};
+use object_store::{ObjectStore, path::Path};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
@@ -20,31 +21,39 @@ use crate::{
     storage::Storage,
 };
 
+const BASE_DIR: &str = "colette";
+
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     scraper: Arc<dyn BookmarkScraper>,
-    archiver: Box<dyn Archiver<ThumbnailData, Output = Url>>,
+    http_client: Box<dyn HttpClient>,
+    object_store: Box<dyn ObjectStore>,
     archive_thumbnail_storage: Arc<
         Mutex<dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>>,
     >,
+    bucket_url: String,
 }
 
 impl BookmarkService {
     pub fn new(
         repository: impl BookmarkRepository,
         scraper: Arc<dyn BookmarkScraper>,
-        archiver: impl Archiver<ThumbnailData, Output = Url>,
+        http_client: impl HttpClient,
+        object_store: impl ObjectStore,
         archive_thumbnail_storage: Arc<
             Mutex<
                 dyn Storage<Job = ArchiveThumbnailJob, Context = RedisContext, Error = RedisError>,
             >,
         >,
+        bucket_url: String,
     ) -> Self {
         Self {
             repository: Box::new(repository),
             scraper,
-            archiver: Box::new(archiver),
+            http_client: Box::new(http_client),
+            object_store: Box::new(object_store),
             archive_thumbnail_storage,
+            bucket_url,
         }
     }
 
@@ -202,13 +211,18 @@ impl BookmarkService {
     ) -> Result<(), Error> {
         let file_name = thumbnail::generate_filename(&data.thumbnail_url);
 
-        let archived_url = self
-            .archiver
-            .archive(ThumbnailData {
-                url: data.thumbnail_url,
-                file_name,
-            })
+        let (_, body) = self.http_client.get(&data.thumbnail_url).await?;
+
+        let format = image::guess_format(&body)?;
+        let extension = format.extensions_str()[0];
+
+        let object_path = format!("{}/{}.{}", BASE_DIR, file_name, extension);
+
+        self.object_store
+            .put(&Path::parse(&object_path).unwrap(), body.into())
             .await?;
+
+        let archived_url = Url::parse(&format!("{}/{}", self.bucket_url, object_path)).unwrap();
 
         self.repository
             .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {

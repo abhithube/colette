@@ -14,7 +14,6 @@ async-trait.workspace = true
 axum.workspace = true
 axum-embed.workspace = true
 colette-api.workspace = true
-colette-archiver.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-plugins.workspace = true
@@ -25,6 +24,7 @@ envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 hyper-rustls.workspace = true
 hyper-util.workspace = true
+object_store.workspace = true
 redis.workspace = true
 rust-embed.workspace = true
 rust-s3.workspace = true

@@ -7,7 +7,7 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use url::Url;
 
 #[async_trait::async_trait]
-pub trait HttpClient: Clone + Send + Sync + 'static {
+pub trait HttpClient: Send + Sync + 'static {
     async fn send(&self, request: Request<Bytes>) -> Result<Response<Incoming>, Error>;
 
     async fn get(&self, url: &Url) -> Result<(Parts, Bytes), Error> {

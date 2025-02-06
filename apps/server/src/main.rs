@@ -12,7 +12,6 @@ use colette_api::{
     Api, ApiState, auth::AuthState, backup::BackupState, bookmark::BookmarkState, feed::FeedState,
     feed_entry::FeedEntryState, folder::FolderState, library::LibraryState, tag::TagState,
 };
-use colette_archiver::ThumbnailArchiver;
 use colette_core::{
     auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
     feed_entry::FeedEntryService, folder::FolderService, library::LibraryService,
@@ -32,7 +31,7 @@ use colette_scraper::{
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
-use s3::{Bucket, BucketConfiguration, Region, creds::Credentials};
+use object_store::aws::AmazonS3Builder;
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
 use sqlx::{Pool, Postgres};
@@ -175,38 +174,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         DefaultBookmarkScraper::new(http_client.clone()),
     ));
 
-    let bucket = {
-        let region = Region::Custom {
-            region: app_config.aws_region.into_owned(),
-            endpoint: app_config
-                .bucket_endpoint_url
-                .origin()
-                .ascii_serialization(),
-        };
-        let credentials = Credentials::new(
-            Some(&app_config.aws_access_key_id),
-            Some(&app_config.aws_secret_access_key),
-            None,
-            None,
-            None,
-        )?;
+    let bucket_url = app_config
+        .bucket_endpoint_url
+        .origin()
+        .ascii_serialization();
 
-        let bucket = Bucket::new(&app_config.bucket_name, region.clone(), credentials.clone())?
-            .with_path_style();
-
-        let exists = bucket.exists().await?;
-        if !exists {
-            Bucket::create_with_path_style(
-                &app_config.bucket_name,
-                region,
-                credentials,
-                BucketConfiguration::private(),
-            )
-            .await?;
-        }
-
-        bucket
-    };
+    let bucket = AmazonS3Builder::new()
+        .with_region(app_config.aws_region)
+        .with_endpoint(&bucket_url)
+        .with_bucket_name(app_config.bucket_name)
+        .with_access_key_id(app_config.aws_access_key_id)
+        .with_secret_access_key(app_config.aws_secret_access_key)
+        .with_allow_http(true)
+        .build()?;
 
     let redis = redis::Client::open(app_config.redis_url)?;
     let redis_manager = redis.get_connection_manager().await?;
@@ -241,8 +221,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
         bookmark_plugin_registry.clone(),
-        ThumbnailArchiver::new(http_client.clone(), bucket),
+        http_client.clone(),
+        bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
+        bucket_url,
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
     //     pool.clone(),

@@ -2,6 +2,7 @@ pub use bookmark_repository::*;
 pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::base64;
+use image::ImageError;
 use uuid::Uuid;
 
 use crate::Tag;
@@ -37,10 +38,16 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Scraper(#[from] colette_scraper::Error),
+    Http(#[from] colette_http::Error),
 
     #[error(transparent)]
-    Archiver(#[from] colette_archiver::Error),
+    Image(#[from] ImageError),
+
+    #[error(transparent)]
+    Storage(#[from] object_store::Error),
+
+    #[error(transparent)]
+    Scraper(#[from] colette_scraper::Error),
 
     #[error(transparent)]
     Base64(#[from] base64::Error),
