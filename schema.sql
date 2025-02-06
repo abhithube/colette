@@ -6,12 +6,6 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE sessions (
-  id TEXT NOT NULL PRIMARY KEY,
-  data bytea NOT NULL,
-  expiry_date TIMESTAMPTZ NOT NULL
-);
-
 CREATE TABLE feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL UNIQUE,
