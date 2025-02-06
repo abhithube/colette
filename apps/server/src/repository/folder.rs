@@ -6,6 +6,8 @@ use colette_core::{
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use super::common;
+
 #[derive(Debug, Clone)]
 pub struct PostgresFolderRepository {
     pool: Pool<Postgres>,
@@ -23,7 +25,7 @@ impl Findable for PostgresFolderRepository {
     type Output = Result<Vec<Folder>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let folders = crate::common::select_folders(
+        let folders = common::select_folders(
             &self.pool,
             params.id,
             params.user_id,

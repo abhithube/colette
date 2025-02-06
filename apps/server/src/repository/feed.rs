@@ -10,6 +10,8 @@ use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use super::common;
+
 #[derive(Debug, Clone)]
 pub struct PostgresFeedRepository {
     pool: Pool<Postgres>,
@@ -27,7 +29,7 @@ impl Findable for PostgresFeedRepository {
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let feeds = crate::common::select_feeds(
+        let feeds = common::select_feeds(
             &self.pool,
             params.id,
             params.folder_id,
@@ -171,7 +173,7 @@ impl Deletable for PostgresFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
     async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
-        crate::common::insert_feed_with_entries(&self.pool, data.url, data.feed).await?;
+        common::insert_feed_with_entries(&self.pool, data.url, data.feed).await?;
 
         Ok(())
     }

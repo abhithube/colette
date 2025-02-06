@@ -601,21 +601,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-repository"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "chrono",
- "colette-core",
- "colette-netscape",
- "colette-opml",
- "futures",
- "sqlx",
- "thiserror 2.0.11",
- "uuid",
-]
-
-[[package]]
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
@@ -625,11 +610,13 @@ dependencies = [
  "async-trait",
  "axum",
  "axum-embed",
+ "chrono",
  "colette-api",
  "colette-core",
  "colette-http",
+ "colette-netscape",
+ "colette-opml",
  "colette-plugins",
- "colette-repository",
  "colette-util",
  "envy",
  "futures",
@@ -649,6 +636,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "url",
+ "uuid",
 ]
 
 [[package]]

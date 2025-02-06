@@ -25,15 +25,11 @@ use colette_core::{
 };
 use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_repository::{
-    PostgresBackupRepository, PostgresBookmarkRepository, PostgresFeedEntryRepository,
-    PostgresFeedRepository, PostgresFolderRepository, PostgresLibraryRepository,
-    PostgresScraperRepository, PostgresTagRepository, PostgresUserRepository,
-};
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
 use object_store::aws::AmazonS3Builder;
+use repository::*;
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
 use sqlx::{Pool, Postgres};
@@ -44,6 +40,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
 
 mod job;
+mod repository;
 mod session;
 
 #[derive(Clone, rust_embed::Embed)]

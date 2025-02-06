@@ -25,7 +25,7 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let bookmarks = crate::common::select_bookmarks(
+        let bookmarks = super::common::select_bookmarks(
             &self.pool,
             params.id,
             params.folder_id,

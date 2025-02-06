@@ -4,6 +4,8 @@ use colette_core::{
 };
 use sqlx::{Pool, Postgres};
 
+use super::common;
+
 #[derive(Debug, Clone)]
 pub struct PostgresLibraryRepository {
     pool: Pool<Postgres>,
@@ -21,7 +23,7 @@ impl Findable for PostgresLibraryRepository {
     type Output = Result<Vec<LibraryItem>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut folders = crate::common::select_folders(
+        let mut folders = common::select_folders(
             &self.pool,
             None,
             params.user_id,
@@ -32,7 +34,7 @@ impl Findable for PostgresLibraryRepository {
         .await
         .map(|e| e.into_iter().map(LibraryItem::Folder).collect::<Vec<_>>())?;
 
-        let mut feeds = crate::common::select_feeds(
+        let mut feeds = common::select_feeds(
             &self.pool,
             None,
             Some(params.folder_id),
@@ -44,7 +46,7 @@ impl Findable for PostgresLibraryRepository {
         .await
         .map(|e| e.into_iter().map(LibraryItem::Feed).collect::<Vec<_>>())?;
 
-        let mut bookmarks = crate::common::select_bookmarks(
+        let mut bookmarks = common::select_bookmarks(
             &self.pool,
             None,
             Some(params.folder_id),
