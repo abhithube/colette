@@ -129,9 +129,6 @@ pub enum CoreError {
     Library(#[from] colette_core::library::Error),
 
     #[error(transparent)]
-    Scraper(#[from] colette_core::scraper::Error),
-
-    #[error(transparent)]
     Tag(#[from] colette_core::tag::Error),
 
     #[error(transparent)]

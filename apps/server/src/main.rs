@@ -30,7 +30,6 @@ use colette_core::{
     feed_entry::FeedEntryService,
     folder::FolderService,
     library::LibraryService,
-    scraper::ScraperService,
     tag::TagService,
 };
 use colette_http::HyperClient;
@@ -43,7 +42,7 @@ use repository::{
     backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
     feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
     folder::PostgresFolderRepository, library::PostgresLibraryRepository,
-    scraper::PostgresScraperRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
+    tag::PostgresTagRepository, user::PostgresUserRepository,
 };
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
@@ -253,7 +252,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
-        Box::new(DefaultFeedDetector::new(http_client)),
+        DefaultFeedDetector::new(http_client),
+        feed_plugin_registry,
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
         pool.clone(),
@@ -262,11 +262,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
         pool.clone(),
     )));
-    let scraper_service = Arc::new(ScraperService::new(
-        PostgresScraperRepository::new(pool.clone()),
-        feed_plugin_registry,
-        bookmark_plugin_registry,
-    ));
     // let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
     //     pool.clone(),
     // )));
@@ -275,14 +270,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let scrape_feed_worker = WorkerBuilder::new("scrape-feed")
         .enable_tracing()
         .concurrency(5)
-        .data(scraper_service.clone())
+        .data(feed_service.clone())
         .backend(scrape_feed_storage.clone())
         .build_fn(scrape_feed::run);
 
     let scrape_bookmark_worker = WorkerBuilder::new("scrape-bookmark")
         .enable_tracing()
         .concurrency(5)
-        .data(scraper_service)
+        .data(bookmark_service.clone())
         .backend(scrape_bookmark_storage)
         .build_fn(scrape_bookmark::run);
 

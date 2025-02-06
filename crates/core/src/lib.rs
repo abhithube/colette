@@ -18,7 +18,6 @@ pub mod feed;
 pub mod feed_entry;
 pub mod folder;
 pub mod library;
-pub mod scraper;
 pub mod storage;
 // pub mod smart_feed;
 pub mod tag;

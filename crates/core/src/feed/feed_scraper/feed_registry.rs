@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use url::Url;
 
-use super::{ScraperError, FeedScraper, ProcessedFeed};
+use super::{FeedScraper, ProcessedFeed, ScraperError};
 
 pub struct FeedPluginRegistry<S> {
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,

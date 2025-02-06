@@ -168,8 +168,8 @@ pub trait FeedScraper: Send + Sync + 'static {
 }
 
 #[async_trait::async_trait]
-pub trait FeedDetector: Send + Sync {
-    async fn detect(&self, mut url: Url) -> Result<DetectorResponse, ScraperError>;
+pub trait FeedDetector: Send + Sync + 'static {
+    async fn detect(&self, url: &mut Url) -> Result<DetectorResponse, ScraperError>;
 }
 
 #[derive(Clone)]
@@ -208,8 +208,8 @@ impl DefaultFeedDetector {
 
 #[async_trait::async_trait]
 impl FeedDetector for DefaultFeedDetector {
-    async fn detect(&self, url: Url) -> Result<DetectorResponse, ScraperError> {
-        let (_, body) = self.client.get(&url).await?;
+    async fn detect(&self, url: &mut Url) -> Result<DetectorResponse, ScraperError> {
+        let (_, body) = self.client.get(url).await?;
         let mut reader = BufReader::new(body.reader());
 
         let raw = str::from_utf8(reader.peek(14)?)?;

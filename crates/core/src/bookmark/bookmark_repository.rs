@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
-use super::{Bookmark, Cursor, Error};
+use super::{Bookmark, Cursor, Error, ProcessedBookmark};
 use crate::common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Updatable};
 
 #[async_trait::async_trait]
@@ -14,6 +14,7 @@ pub trait BookmarkRepository:
     + Sync
     + 'static
 {
+    async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -47,4 +48,11 @@ pub struct BookmarkUpdateData {
     pub archived_url: Option<Option<String>>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BookmarkScrapedData {
+    pub url: String,
+    pub bookmark: ProcessedBookmark,
+    pub user_id: Uuid,
 }

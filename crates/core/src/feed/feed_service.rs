@@ -8,9 +8,9 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    DetectedFeed, DetectorResponse, Error, Feed, FeedDetector,
+    DetectedFeed, DetectorResponse, Error, Feed, FeedDetector, FeedScraper,
     feed_repository::{
-        FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository, FeedUpdateData,
+        FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData, FeedUpdateData,
     },
     feed_scraper::ProcessedFeed,
 };
@@ -22,13 +22,19 @@ use crate::{
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
     detector: Box<dyn FeedDetector>,
+    scraper: Arc<dyn FeedScraper>,
 }
 
 impl FeedService {
-    pub fn new(repository: impl FeedRepository, detector: Box<dyn FeedDetector>) -> Self {
+    pub fn new(
+        repository: impl FeedRepository,
+        detector: impl FeedDetector,
+        scraper: Arc<dyn FeedScraper>,
+    ) -> Self {
         Self {
             repository: Box::new(repository),
-            detector,
+            detector: Box::new(detector),
+            scraper,
         }
     }
 
@@ -100,16 +106,17 @@ impl FeedService {
         self.repository.delete(IdParams::new(id, user_id)).await
     }
 
-    pub async fn detect_feeds(&self, data: FeedDetect) -> Result<DetectedResponse, Error> {
-        match self.detector.detect(data.url.clone()).await? {
+    pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {
+        match self.detector.detect(&mut data.url).await? {
             DetectorResponse::Detected(feeds) => Ok(DetectedResponse::Detected(
                 feeds.into_iter().map(Into::into).collect(),
             )),
             DetectorResponse::Processed(feed) => {
                 self.repository
-                    .cache(FeedCacheData {
+                    .save_scraped(FeedScrapedData {
                         url: data.url.to_string(),
                         feed: feed.clone(),
+                        link_to_users: false,
                     })
                     .await?;
 
@@ -118,8 +125,24 @@ impl FeedService {
         }
     }
 
+    pub async fn scrape_and_persist_feed(&self, mut data: FeedPersist) -> Result<(), Error> {
+        let feed = self
+            .scraper
+            .scrape(&mut data.url)
+            .await
+            .map_err(Error::Scraper)?;
+
+        self.repository
+            .save_scraped(FeedScrapedData {
+                url: data.url.to_string(),
+                feed,
+                link_to_users: true,
+            })
+            .await
+    }
+
     pub fn stream(&self) -> BoxStream<Result<String, Error>> {
-        self.repository.stream()
+        self.repository.stream_urls()
     }
 }
 
@@ -178,6 +201,11 @@ impl From<DetectedFeed> for FeedDetected {
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),
     Processed(ProcessedFeed),
+}
+
+#[derive(Clone, Debug)]
+pub struct FeedPersist {
+    pub url: Url,
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]

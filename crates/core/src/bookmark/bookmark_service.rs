@@ -10,7 +10,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkScraper, Cursor, Error,
+    Bookmark, BookmarkScrapedData, BookmarkScraper, Cursor, Error,
     bookmark_repository::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },
@@ -202,6 +202,25 @@ impl BookmarkService {
         Ok(scraped)
     }
 
+    pub async fn scrape_and_persist_bookmark(
+        &self,
+        mut data: BookmarkPersist,
+    ) -> Result<(), Error> {
+        let bookmark = self
+            .scraper
+            .scrape(&mut data.url)
+            .await
+            .map_err(Error::Scraper)?;
+
+        self.repository
+            .save_scraped(BookmarkScrapedData {
+                url: data.url.to_string(),
+                bookmark,
+                user_id: data.user_id,
+            })
+            .await
+    }
+
     pub async fn archive_thumbnail(
         &self,
         bookmark_id: Uuid,
@@ -290,6 +309,12 @@ pub struct BookmarkScraped {
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
+}
+
+#[derive(Clone, Debug)]
+pub struct BookmarkPersist {
+    pub url: Url,
+    pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug)]

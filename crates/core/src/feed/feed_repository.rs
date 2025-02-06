@@ -14,9 +14,9 @@ pub trait FeedRepository:
     + Sync
     + 'static
 {
-    async fn cache(&self, data: FeedCacheData) -> Result<(), Error>;
+    async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error>;
 
-    fn stream(&self) -> BoxStream<Result<String, Error>>;
+    fn stream_urls(&self) -> BoxStream<Result<String, Error>>;
 }
 
 #[derive(Clone, Debug, Default)]
@@ -38,15 +38,16 @@ pub struct FeedCreateData {
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
-pub struct FeedCacheData {
-    pub url: String,
-    pub feed: ProcessedFeed,
-}
-
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdateData {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<NonEmptyString>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct FeedScrapedData {
+    pub url: String,
+    pub feed: ProcessedFeed,
+    pub link_to_users: bool,
 }

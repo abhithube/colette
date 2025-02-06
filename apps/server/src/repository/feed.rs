@@ -2,7 +2,7 @@ use colette_core::{
     Feed,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
-        ConflictError, Error, FeedCacheData, FeedCreateData, FeedFindParams, FeedRepository,
+        ConflictError, Error, FeedScrapedData, FeedCreateData, FeedFindParams, FeedRepository,
         FeedUpdateData,
     },
 };
@@ -172,13 +172,25 @@ impl Deletable for PostgresFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for PostgresFeedRepository {
-    async fn cache(&self, data: FeedCacheData) -> Result<(), Error> {
-        common::insert_feed_with_entries(&self.pool, data.url, data.feed).await?;
+    async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error> {
+        if data.link_to_users {
+            let mut tx = self.pool.begin().await?;
+
+            let feed_id = common::insert_feed_with_entries(&mut *tx, data.url, data.feed).await?;
+
+            sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
+                .execute(&mut *tx)
+                .await?;
+
+            tx.commit().await?;
+        } else {
+            common::insert_feed_with_entries(&self.pool, data.url, data.feed).await?;
+        }
 
         Ok(())
     }
 
-    fn stream(&self) -> BoxStream<Result<String, Error>> {
+    fn stream_urls(&self) -> BoxStream<Result<String, Error>> {
         sqlx::query_file_scalar!("queries/feeds/stream.sql")
             .fetch(&self.pool)
             .map_err(Error::Database)

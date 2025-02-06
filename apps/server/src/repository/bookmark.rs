@@ -1,7 +1,8 @@
 use colette_core::{
     Bookmark,
     bookmark::{
-        BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData, Error,
+        BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkScrapedData,
+        BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
@@ -187,4 +188,22 @@ impl Deletable for PostgresBookmarkRepository {
     }
 }
 
-impl BookmarkRepository for PostgresBookmarkRepository {}
+#[async_trait::async_trait]
+impl BookmarkRepository for PostgresBookmarkRepository {
+    async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error> {
+        sqlx::query_file_scalar!(
+            "queries/bookmarks/upsert.sql",
+            data.url,
+            data.bookmark.title,
+            data.bookmark.thumbnail.map(String::from),
+            data.bookmark.published,
+            data.bookmark.author,
+            Option::<Uuid>::None,
+            data.user_id
+        )
+        .execute(&self.pool)
+        .await?;
+
+        Ok(())
+    }
+}

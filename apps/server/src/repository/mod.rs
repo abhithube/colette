@@ -6,7 +6,6 @@ pub mod feed;
 pub mod feed_entry;
 pub mod folder;
 pub mod library;
-pub mod scraper;
 // pub mod smart_feed;
 pub mod query;
 pub mod tag;
