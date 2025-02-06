@@ -13,6 +13,7 @@ WORKDIR /app
 ARG TARGET
 RUN apk add --no-cache musl-dev
 RUN rustup target add $TARGET
+RUN rustup default nightly
 RUN cargo install cargo-chef
 
 FROM base AS prepare
