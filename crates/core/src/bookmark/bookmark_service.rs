@@ -143,8 +143,7 @@ impl BookmarkService {
                     bookmark_id: bookmark.id,
                     user_id,
                 })
-                .await
-                .unwrap();
+                .await?;
         }
 
         Ok(bookmark)
@@ -172,8 +171,7 @@ impl BookmarkService {
                     bookmark_id: bookmark.id,
                     user_id,
                 })
-                .await
-                .unwrap();
+                .await?;
         }
 
         Ok(bookmark)

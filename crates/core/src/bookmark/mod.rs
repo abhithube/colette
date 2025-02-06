@@ -1,3 +1,4 @@
+use apalis_redis::RedisError;
 pub use bookmark_repository::*;
 pub use bookmark_scraper::*;
 pub use bookmark_service::*;
@@ -56,4 +57,7 @@ pub enum Error {
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    Redis(#[from] RedisError),
 }

@@ -19,10 +19,10 @@ pub enum Error {
     Repository(#[from] RepositoryError),
 
     #[error(transparent)]
-    Storage(#[from] RedisError),
+    Database(#[from] sqlx::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Redis(#[from] RedisError),
 }
 
 #[derive(Debug, thiserror::Error)]
