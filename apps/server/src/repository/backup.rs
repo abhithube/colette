@@ -1,5 +1,8 @@
 use chrono::{DateTime, Utc};
-use colette_core::backup::{BackupRepository, Error};
+use colette_core::{
+    Folder,
+    backup::{BackupRepository, Error, FolderType},
+};
 use colette_netscape::Item;
 use colette_opml::Outline;
 use sqlx::{Pool, Postgres};
@@ -18,7 +21,7 @@ impl PostgresBackupRepository {
 
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
-    async fn import_opml(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
+    async fn import_feeds(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, Outline)> = outlines
@@ -65,7 +68,7 @@ impl BackupRepository for PostgresBackupRepository {
         Ok(())
     }
 
-    async fn import_netscape(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
+    async fn import_bookmarks(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, Item)> =
@@ -104,5 +107,23 @@ impl BackupRepository for PostgresBackupRepository {
         tx.commit().await?;
 
         Ok(())
+    }
+
+    async fn export_folders(
+        &self,
+        r#type: FolderType,
+        user_id: Uuid,
+    ) -> Result<Vec<Folder>, Error> {
+        let folders = sqlx::query_file_as!(
+            Folder,
+            "queries/folders/select_populated.sql",
+            user_id,
+            r#type == FolderType::Feeds,
+            r#type == FolderType::Bookmarks
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        Ok(folders)
     }
 }

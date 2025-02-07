@@ -208,7 +208,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         PostgresBackupRepository::new(pool.clone()),
         feed_repository.clone(),
         bookmark_repository.clone(),
-        folder_repository.clone(),
         Arc::new(Mutex::new(import_feeds_storage.clone())),
         Arc::new(Mutex::new(import_bookmarks_storage.clone())),
     ));

@@ -12,7 +12,6 @@ use crate::{
     Bookmark, Feed, Folder,
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
-    folder::{FolderFindParams, FolderRepository},
     storage::DynStorage,
 };
 
@@ -20,7 +19,6 @@ pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
-    folder_repository: Box<dyn FolderRepository>,
     import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
     import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
 }
@@ -30,7 +28,6 @@ impl BackupService {
         backup_repository: impl BackupRepository,
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
-        folder_repository: impl FolderRepository,
         import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
         import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
     ) -> Self {
@@ -38,7 +35,6 @@ impl BackupService {
             backup_repository: Box::new(backup_repository),
             feed_repository: Box::new(feed_repository),
             bookmark_repository: Box::new(bookmark_repository),
-            folder_repository: Box::new(folder_repository),
             import_feeds_storage,
             import_bookmarks_storage,
         }
@@ -54,26 +50,21 @@ impl BackupService {
             .filter_map(|e| e.xml_url.as_deref().and_then(|e| Url::parse(e).ok()))
             .collect::<Vec<Url>>();
 
-        let mut storage = self.import_feeds_storage.lock().await;
-
-        storage.push(ImportFeedsJob { urls }).await?;
-
         self.backup_repository
-            .import_opml(opml.body.outlines, user_id)
+            .import_feeds(opml.body.outlines, user_id)
             .await?;
+
+        let mut storage = self.import_feeds_storage.lock().await;
+        storage.push(ImportFeedsJob { urls }).await?;
 
         Ok(())
     }
 
     pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
-            .folder_repository
-            .find(FolderFindParams {
-                user_id,
-                ..Default::default()
-            })
-            .await
-            .map_err(|e| Error::Repository(e.into()))?;
+            .backup_repository
+            .export_folders(FolderType::Feeds, user_id)
+            .await?;
 
         let feeds = self
             .feed_repository
@@ -107,26 +98,21 @@ impl BackupService {
             .filter_map(|e| e.href.as_deref().and_then(|e| Url::parse(e).ok()))
             .collect::<Vec<Url>>();
 
-        let mut storage = self.import_bookmarks_storage.lock().await;
-
-        storage.push(ImportBookmarksJob { urls, user_id }).await?;
-
         self.backup_repository
-            .import_netscape(netscape.items, user_id)
+            .import_bookmarks(netscape.items, user_id)
             .await?;
+
+        let mut storage = self.import_bookmarks_storage.lock().await;
+        storage.push(ImportBookmarksJob { urls, user_id }).await?;
 
         Ok(())
     }
 
     pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
-            .folder_repository
-            .find(FolderFindParams {
-                user_id,
-                ..Default::default()
-            })
-            .await
-            .map_err(|e| Error::Repository(e.into()))?;
+            .backup_repository
+            .export_folders(FolderType::Bookmarks, user_id)
+            .await?;
 
         let bookmarks = self
             .bookmark_repository
@@ -215,6 +201,12 @@ fn build_netscape_hierarchy(
     }
 
     items
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum FolderType {
+    Feeds,
+    Bookmarks,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
