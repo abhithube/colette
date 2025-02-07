@@ -5,7 +5,7 @@ use uuid::Uuid;
 mod tag_repository;
 mod tag_service;
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
@@ -13,7 +13,7 @@ pub struct Tag {
     pub feed_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub enum TagType {
     #[default]
     All,
@@ -21,7 +21,7 @@ pub enum TagType {
     Feeds,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }

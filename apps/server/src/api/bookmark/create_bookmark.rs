@@ -14,7 +14,7 @@ use uuid::Uuid;
 use super::Bookmark;
 use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Session};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
     pub url: Url,

@@ -14,7 +14,7 @@ use colette_core::{
 use super::User;
 use crate::api::common::{AUTH_TAG, BaseError, Error};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
     #[schema(format = "email")]

@@ -309,14 +309,14 @@ impl BookmarkService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkListQuery {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkCreate {
     pub url: Url,
     pub title: String,
@@ -327,7 +327,7 @@ pub struct BookmarkCreate {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkUpdate {
     pub title: Option<Option<String>>,
     pub thumbnail_url: Option<Option<Url>>,
@@ -351,12 +351,12 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkScrape {
     pub url: Url,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkScraped {
     pub link: Url,
     pub title: String,
@@ -365,31 +365,31 @@ pub struct BookmarkScraped {
     pub author: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkPersist {
     pub url: Url,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ThumbnailArchive {
     pub operation: ThumbnailOperation,
     pub archived_url: Option<Url>,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum ThumbnailOperation {
     Upload(Url),
     Delete,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScrapeBookmarkJob {
     pub url: Url,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveThumbnailJob {
     pub operation: ThumbnailOperation,
     pub archived_url: Option<Url>,

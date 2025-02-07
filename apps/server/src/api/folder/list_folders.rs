@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::Folder;
 use crate::api::common::{Error, FOLDERS_TAG, Paginated, Session};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct FolderListQuery {

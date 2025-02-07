@@ -5,14 +5,14 @@ use uuid::Uuid;
 mod folder_repository;
 mod folder_service;
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
     pub parent_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }

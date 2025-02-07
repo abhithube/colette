@@ -2,19 +2,13 @@ use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;
 
-#[derive(Debug, thiserror::Error)]
-pub enum ValidationError {
-    #[error("cannot be empty")]
-    Empty,
-}
-
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Paginated<T> {
     pub data: Vec<T>,
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct IdParams {
     pub id: Uuid,
     pub user_id: Uuid,
@@ -57,4 +51,10 @@ pub trait Deletable {
     type Output;
 
     async fn delete(&self, params: Self::Params) -> Self::Output;
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ValidationError {
+    #[error("cannot be empty")]
+    Empty,
 }

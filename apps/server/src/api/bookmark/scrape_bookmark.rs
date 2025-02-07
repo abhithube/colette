@@ -12,7 +12,7 @@ use url::Url;
 
 use crate::api::common::{BOOKMARKS_TAG, BaseError, Error};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkScrape {
     #[schema(format = "uri")]
@@ -25,7 +25,7 @@ impl From<BookmarkScrape> for bookmark::BookmarkScrape {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkScraped {
     pub link: Url,

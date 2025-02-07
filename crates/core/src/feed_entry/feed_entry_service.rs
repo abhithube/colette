@@ -91,7 +91,7 @@ impl FeedEntryService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
@@ -100,7 +100,7 @@ pub struct FeedEntryListQuery {
     pub cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
 }

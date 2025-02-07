@@ -38,7 +38,7 @@ impl LibraryService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LibraryItemListQuery {
     pub folder_id: Option<Uuid>,
     pub cursor: Option<String>,

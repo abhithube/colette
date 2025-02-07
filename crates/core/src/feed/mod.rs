@@ -12,7 +12,7 @@ mod feed_repository;
 mod feed_scraper;
 mod feed_service;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Feed {
     pub id: Uuid,
     pub link: Url,
@@ -23,7 +23,7 @@ pub struct Feed {
     pub unread_count: Option<i64>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub id: Uuid,
     pub title: String,

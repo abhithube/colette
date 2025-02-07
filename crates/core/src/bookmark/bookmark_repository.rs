@@ -18,7 +18,7 @@ pub trait BookmarkRepository:
     async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error>;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
     pub folder_id: Option<Option<Uuid>>,
@@ -28,7 +28,7 @@ pub struct BookmarkFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkCreateData {
     pub url: Url,
     pub title: String,
@@ -40,7 +40,7 @@ pub struct BookmarkCreateData {
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkUpdateData {
     pub title: Option<Option<String>>,
     pub thumbnail_url: Option<Option<Url>>,
@@ -51,7 +51,7 @@ pub struct BookmarkUpdateData {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BookmarkScrapedData {
     pub url: Url,
     pub bookmark: ProcessedBookmark,

@@ -10,7 +10,7 @@ use colette_core::tag::{self, TagService};
 use super::Tag;
 use crate::api::common::{Error, Paginated, Session, TAGS_TAG};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct TagListQuery {
@@ -27,7 +27,7 @@ impl From<TagListQuery> for tag::TagListQuery {
     }
 }
 
-#[derive(Clone, Debug, Default, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, Default, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum TagType {
     #[default]

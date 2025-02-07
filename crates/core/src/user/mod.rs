@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 mod user_repository;
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct User {
     pub id: Uuid,
     pub email: String,

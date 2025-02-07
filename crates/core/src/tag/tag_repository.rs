@@ -14,7 +14,7 @@ pub trait TagRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TagFindParams {
     pub id: Option<Uuid>,
     pub tag_type: TagType,
@@ -25,13 +25,13 @@ pub struct TagFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TagCreateData {
     pub title: String,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TagUpdateData {
     pub title: Option<String>,
 }

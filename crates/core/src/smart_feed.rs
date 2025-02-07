@@ -5,26 +5,26 @@ use crate::common::{
     Creatable, Deletable, Findable, IdParams, NonEmptyString, NonEmptyVec, Paginated, Updatable,
 };
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct SmartFeed {
     pub id: Uuid,
     pub title: String,
     pub unread_count: Option<i64>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct SmartFeedCreate {
     pub title: NonEmptyString,
     pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SmartFeedUpdate {
     pub title: Option<NonEmptyString>,
     pub filters: Option<NonEmptyVec<SmartFeedFilter>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum SmartFeedFilter {
     Link(TextOperation),
     Title(TextOperation),
@@ -34,7 +34,7 @@ pub enum SmartFeedFilter {
     HasRead(BooleanOperation),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum TextOperation {
     Equals(String),
     DoesNotEqual(String),
@@ -42,12 +42,12 @@ pub enum TextOperation {
     DoesNotContain(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct BooleanOperation {
     pub value: bool,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum DateOperation {
     Equals(DateTime<Utc>),
     GreaterThan(DateTime<Utc>),
@@ -55,7 +55,7 @@ pub enum DateOperation {
     InLast(i64),
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }
@@ -148,7 +148,7 @@ pub trait SmartFeedRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SmartFeedFindParams {
     pub id: Option<Uuid>,
     pub user_id: Uuid,
@@ -156,14 +156,14 @@ pub struct SmartFeedFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SmartFeedCreateData {
     pub title: String,
     pub filters: Option<Vec<SmartFeedFilter>>,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct SmartFeedUpdateData {
     pub title: Option<String>,
     pub filters: Option<Vec<SmartFeedFilter>>,

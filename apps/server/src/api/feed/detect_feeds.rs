@@ -11,7 +11,7 @@ use url::Url;
 
 use crate::api::common::{BaseError, Error, FEEDS_TAG};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetect {
     #[schema(format = "uri")]
@@ -24,7 +24,7 @@ impl From<FeedDetect> for feed::FeedDetect {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedDetected {
     #[schema(format = "uri")]
@@ -41,7 +41,7 @@ impl From<feed::FeedDetected> for FeedDetected {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedProcessed {
     #[schema(format = "uri")]
@@ -58,7 +58,7 @@ impl From<feed::ProcessedFeed> for FeedProcessed {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),

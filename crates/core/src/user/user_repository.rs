@@ -12,13 +12,13 @@ pub trait UserRepository:
 {
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum UserFindParams {
     Id(Uuid),
     Email(String),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct UserCreateData {
     pub email: String,
     pub password: String,

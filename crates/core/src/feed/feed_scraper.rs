@@ -16,14 +16,14 @@ pub trait FeedScraper: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError>;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ExtractedFeed {
     pub link: Option<String>,
     pub title: Option<String>,
     pub entries: Vec<ExtractedFeedEntry>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ExtractedFeedEntry {
     pub link: Option<String>,
     pub title: Option<String>,
@@ -33,14 +33,14 @@ pub struct ExtractedFeedEntry {
     pub thumbnail: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessedFeed {
     pub link: Url,
     pub title: String,
     pub entries: Vec<ProcessedFeedEntry>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ProcessedFeedEntry {
     pub link: Url,
     pub title: String,

@@ -15,7 +15,7 @@ pub trait FolderRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FolderFindParams {
     pub id: Option<Uuid>,
     pub parent_id: Option<Option<Uuid>>,
@@ -24,14 +24,14 @@ pub struct FolderFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FolderCreateData {
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FolderUpdateData {
     pub title: Option<String>,
     pub parent_id: Option<Option<Uuid>>,

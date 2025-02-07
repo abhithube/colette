@@ -20,7 +20,7 @@ pub trait FeedRepository:
     fn stream_urls(&self) -> BoxStream<Result<String, Error>>;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
     pub folder_id: Option<Option<Uuid>>,
@@ -30,7 +30,7 @@ pub struct FeedFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedCreateData {
     pub url: Url,
     pub title: String,
@@ -39,14 +39,14 @@ pub struct FeedCreateData {
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedUpdateData {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedScrapedData {
     pub url: Url,
     pub feed: ProcessedFeed,

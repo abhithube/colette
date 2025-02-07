@@ -14,7 +14,7 @@ mod bookmark_repository;
 mod bookmark_scraper;
 mod bookmark_service;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Bookmark {
     pub id: Uuid,
     pub link: Url,
@@ -28,7 +28,7 @@ pub struct Bookmark {
     pub tags: Option<Vec<Tag>>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub created_at: DateTime<Utc>,
 }

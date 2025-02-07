@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use colette_core::{
     collection::{self, CollectionService},
@@ -15,8 +15,8 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, Id, Session, COLLECTIONS_TAG},
     Paginated,
+    common::{BaseError, COLLECTIONS_TAG, Error, Id, Session},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -46,7 +46,7 @@ impl CollectionApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Collection {
     pub id: Uuid,
@@ -62,7 +62,7 @@ impl From<colette_core::Collection> for Collection {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionCreate {
     #[schema(value_type = String, min_length = 1)]
@@ -75,7 +75,7 @@ impl From<CollectionCreate> for collection::CollectionCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]

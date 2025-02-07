@@ -13,7 +13,7 @@ use uuid::Uuid;
 use super::Feed;
 use crate::api::common::{BaseError, Error, FEEDS_TAG, Session};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
     #[schema(format = "uri")]

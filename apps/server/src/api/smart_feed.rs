@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
-    Json,
 };
 use chrono::{DateTime, Utc};
 use colette_core::{
@@ -16,8 +16,8 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::{
-    common::{BaseError, Error, Id, Session, SMART_FEEDS_TAG},
     Paginated,
+    common::{BaseError, Error, Id, SMART_FEEDS_TAG, Session},
 };
 
 #[derive(Clone, axum::extract::FromRef)]
@@ -56,7 +56,7 @@ impl SmartFeedApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeed {
     pub id: Uuid,
@@ -75,7 +75,7 @@ impl From<colette_core::SmartFeed> for SmartFeed {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeedCreate {
     #[schema(value_type = String, min_length = 1)]
@@ -95,7 +95,7 @@ impl From<SmartFeedCreate> for smart_feed::SmartFeedCreate {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SmartFeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
@@ -115,7 +115,7 @@ impl From<SmartFeedUpdate> for smart_feed::SmartFeedUpdate {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "field", content = "operation")]
 pub enum SmartFeedFilter {
     Link(TextOperation),
@@ -139,7 +139,7 @@ impl From<SmartFeedFilter> for smart_feed::SmartFeedFilter {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum TextOperation {
     Equals(String),
@@ -159,7 +159,7 @@ impl From<TextOperation> for smart_feed::TextOperation {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BooleanOperation {
     pub value: bool,
@@ -171,7 +171,7 @@ impl From<BooleanOperation> for smart_feed::BooleanOperation {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "value")]
 pub enum DateOperation {
     Equals(DateTime<Utc>),

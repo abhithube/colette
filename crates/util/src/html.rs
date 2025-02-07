@@ -1,12 +1,12 @@
 use scraper::{ElementRef, Html, Selector};
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum Node {
     Text,
     Attr(&'static str),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct ExtractorQuery {
     pub selector: Selector,
     pub node: Node,

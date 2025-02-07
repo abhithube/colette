@@ -12,7 +12,7 @@ pub trait LibraryRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct LibraryItemFindParams {
     pub folder_id: Option<Uuid>,
     pub user_id: Uuid,

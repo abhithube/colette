@@ -62,13 +62,13 @@ impl AuthService {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Register {
     pub email: String,
     pub password: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Login {
     pub email: String,
     pub password: String,

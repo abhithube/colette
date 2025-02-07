@@ -6,7 +6,7 @@ pub use writer::to_writer;
 mod reader;
 mod writer;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Netscape {
     pub title: String,
     pub h1: String,
@@ -25,7 +25,7 @@ impl Default for Netscape {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Item {
     pub title: String,
     pub add_date: Option<i64>,

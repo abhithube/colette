@@ -78,7 +78,7 @@ impl TagService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
     pub tag_type: TagType,
 }
@@ -89,12 +89,12 @@ impl From<TagUpdate> for TagUpdateData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct TagCreate {
     pub title: String,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TagUpdate {
     pub title: Option<String>,
 }

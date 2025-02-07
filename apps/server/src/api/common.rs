@@ -22,11 +22,11 @@ pub const LIBRARY_TAG: &str = "Library";
 // pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
 pub const TAGS_TAG: &str = "Tags";
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
 pub struct Id(pub Uuid);
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: utoipa::ToSchema> {
     pub data: Vec<T>,
@@ -49,7 +49,7 @@ where
 
 pub const SESSION_KEY: &str = "session";
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Session {
     pub user_id: Uuid,
 }
@@ -75,7 +75,7 @@ where
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[schema(title = "Error")]
 pub struct BaseError {
     pub message: String,

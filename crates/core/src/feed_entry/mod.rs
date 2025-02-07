@@ -8,7 +8,7 @@ use uuid::Uuid;
 mod feed_entry_repository;
 mod feed_entry_service;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedEntry {
     pub id: Uuid,
     pub link: Url,
@@ -21,7 +21,7 @@ pub struct FeedEntry {
     pub feed_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub id: Uuid,
     pub published_at: DateTime<Utc>,

@@ -11,7 +11,7 @@ use colette_core::tag::{self, TagService};
 use super::Tag;
 use crate::api::common::{BaseError, Error, Id, Session, TAGS_TAG};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagUpdate {
     #[schema(min_length = 1, nullable = false)]

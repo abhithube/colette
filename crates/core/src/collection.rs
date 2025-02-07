@@ -4,23 +4,23 @@ use crate::common::{
     Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
 };
 
-#[derive(Clone, Debug, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 pub struct Collection {
     pub id: Uuid,
     pub title: String,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct CollectionCreate {
     pub title: NonEmptyString,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CollectionUpdate {
     pub title: Option<NonEmptyString>,
 }
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub title: String,
 }
@@ -112,7 +112,7 @@ pub trait CollectionRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CollectionFindParams {
     pub id: Option<Uuid>,
     pub user_id: Uuid,
@@ -120,13 +120,13 @@ pub struct CollectionFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CollectionCreateData {
     pub title: String,
     pub user_id: Uuid,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct CollectionUpdateData {
     pub title: Option<String>,
 }

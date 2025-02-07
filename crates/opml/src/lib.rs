@@ -7,14 +7,14 @@ pub use writer::to_writer;
 mod reader;
 mod writer;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Opml {
     pub version: Version,
     pub head: Head,
     pub body: Body,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub enum Version {
     V1,
     V1_1,
@@ -47,7 +47,7 @@ impl fmt::Display for Version {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct Head {
     pub title: String,
 }
@@ -60,12 +60,12 @@ impl Default for Head {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Body {
     pub outlines: Vec<Outline>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct Outline {
     pub r#type: Option<OutlineType>,
     pub text: String,
@@ -75,7 +75,7 @@ pub struct Outline {
     pub outline: Option<Vec<Outline>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Default)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum OutlineType {
     #[default]
     Rss,

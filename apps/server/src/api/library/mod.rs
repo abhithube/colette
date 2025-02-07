@@ -30,7 +30,7 @@ impl LibraryApi {
     }
 }
 
-#[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "data")]
 pub enum LibraryItem {
     Folder(Folder),

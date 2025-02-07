@@ -83,18 +83,18 @@ impl FolderService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FolderListQuery {
     pub parent_id: Option<Option<Uuid>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FolderCreate {
     pub title: String,
     pub parent_id: Option<Uuid>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FolderUpdate {
     pub title: Option<String>,
     pub parent_id: Option<Option<Uuid>>,

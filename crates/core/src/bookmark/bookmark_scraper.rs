@@ -20,7 +20,7 @@ pub trait BookmarkScraper: Send + Sync + 'static {
     async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError>;
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ExtractedBookmark {
     pub title: Option<String>,
     pub thumbnail: Option<String>,
@@ -28,7 +28,7 @@ pub struct ExtractedBookmark {
     pub author: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ProcessedBookmark {
     pub title: String,
     pub thumbnail: Option<Url>,

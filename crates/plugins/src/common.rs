@@ -8,7 +8,7 @@ use colette_core::{
 use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::{Html, Selector};
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedExtractorOptions {
     pub feed_link_queries: Vec<ExtractorQuery>,
     pub feed_title_queries: Vec<ExtractorQuery>,
@@ -70,7 +70,7 @@ impl FeedExtractor {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkExtractorOptions {
     pub title_queries: Vec<ExtractorQuery>,
     pub published_queries: Vec<ExtractorQuery>,

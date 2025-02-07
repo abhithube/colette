@@ -193,13 +193,13 @@ impl FeedService {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedListQuery {
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedCreate {
     pub url: Url,
     pub title: String,
@@ -207,7 +207,7 @@ pub struct FeedCreate {
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedUpdate {
     pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
@@ -224,12 +224,12 @@ impl From<FeedUpdate> for FeedUpdateData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedDetect {
     pub url: Url,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedDetected {
     pub url: String,
     pub title: String,
@@ -244,13 +244,13 @@ impl From<colette_meta::rss::Feed> for FeedDetected {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),
     Processed(ProcessedFeed),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub struct FeedPersist {
     pub url: Url,
 }

@@ -6,7 +6,7 @@ use crate::{Bookmark, Feed, Folder};
 mod library_repository;
 mod library_service;
 
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
 pub enum LibraryItem {
     Folder(Folder),
     Feed(Feed),

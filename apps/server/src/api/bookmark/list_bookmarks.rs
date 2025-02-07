@@ -12,7 +12,7 @@ use uuid::Uuid;
 use super::Bookmark;
 use crate::api::common::{BOOKMARKS_TAG, Error, Paginated, Session};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::IntoParams)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {

@@ -63,7 +63,7 @@ struct Asset;
 #[openapi(components(schemas(BaseError)))]
 struct ApiDoc;
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct AppConfig {
     #[serde(default = "default_host")]
     pub host: String,

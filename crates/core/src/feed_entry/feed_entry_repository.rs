@@ -12,7 +12,7 @@ pub trait FeedEntryRepository:
 {
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedEntryFindParams {
     pub id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
@@ -24,7 +24,7 @@ pub struct FeedEntryFindParams {
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FeedEntryUpdateData {
     pub has_read: Option<bool>,
 }

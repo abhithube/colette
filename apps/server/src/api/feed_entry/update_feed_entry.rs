@@ -11,7 +11,7 @@ use colette_core::feed_entry::{self, FeedEntryService};
 use super::FeedEntry;
 use crate::api::common::{BaseError, Error, FEED_ENTRIES_TAG, Id, Session};
 
-#[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedEntryUpdate {
     pub has_read: Option<bool>,
