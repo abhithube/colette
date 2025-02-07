@@ -8,10 +8,8 @@ use axum::{
 };
 use colette_core::{
     auth::{self, AuthService},
-    common::NonEmptyString,
     user,
 };
-use email_address::EmailAddress;
 
 use super::User;
 use crate::api::common::{AUTH_TAG, BaseError, Error};
@@ -19,10 +17,10 @@ use crate::api::common::{AUTH_TAG, BaseError, Error};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
-    #[schema(value_type = String, format = "email")]
-    pub email: EmailAddress,
+    #[schema(format = "email")]
+    pub email: String,
     #[schema(value_type = String, min_length = 1)]
-    pub password: NonEmptyString,
+    pub password: String,
 }
 
 impl From<Register> for auth::Register {

@@ -4,7 +4,7 @@ use super::{
     Error, Tag, TagType,
     tag_repository::{TagCreateData, TagFindParams, TagRepository, TagUpdateData},
 };
-use crate::common::{IdParams, NonEmptyString, Paginated};
+use crate::common::{IdParams, Paginated};
 
 pub struct TagService {
     repository: Box<dyn TagRepository>,
@@ -91,10 +91,10 @@ impl From<TagUpdate> for TagUpdateData {
 
 #[derive(Clone, Debug)]
 pub struct TagCreate {
-    pub title: NonEmptyString,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct TagUpdate {
-    pub title: Option<NonEmptyString>,
+    pub title: Option<String>,
 }

@@ -2,28 +2,6 @@ use uuid::Uuid;
 
 pub const PAGINATION_LIMIT: u64 = 24;
 
-#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
-#[serde(try_from = "String", into = "String")]
-pub struct NonEmptyString(String);
-
-impl TryFrom<String> for NonEmptyString {
-    type Error = ValidationError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.is_empty() {
-            return Err(ValidationError::Empty);
-        }
-
-        Ok(NonEmptyString(value))
-    }
-}
-
-impl From<NonEmptyString> for String {
-    fn from(value: NonEmptyString) -> Self {
-        value.0
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum ValidationError {
     #[error("cannot be empty")]

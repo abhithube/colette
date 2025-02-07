@@ -7,10 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    bookmark::{self, BookmarkService},
-    common::NonEmptyString,
-};
+use colette_core::bookmark::{self, BookmarkService};
 use url::Url;
 use uuid::Uuid;
 
@@ -21,15 +18,15 @@ use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Session};
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkCreate {
     pub url: Url,
-    #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    #[schema(min_length = 1)]
+    pub title: String,
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub author: Option<NonEmptyString>,
+    #[schema(min_length = 1)]
+    pub author: Option<String>,
     pub folder_id: Option<Uuid>,
-    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    #[schema(nullable = false, min_length = 1)]
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {

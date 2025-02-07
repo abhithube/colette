@@ -1,21 +1,52 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Feed, Tag, bookmark,
-    common::NonEmptyString,
     feed::{self, ProcessedFeed},
     folder,
 };
-use sqlx::{PgExecutor, types::Json};
+use sqlx::{
+    Database, Decode, Encode, PgExecutor, Postgres, Type,
+    encode::IsNull,
+    error::BoxDynError,
+    postgres::{PgTypeInfo, PgValueRef},
+    types::Json,
+};
+use url::Url;
 use uuid::Uuid;
+
+#[derive(Debug, Clone)]
+pub struct DbUrl(pub Url);
+
+impl Type<Postgres> for DbUrl {
+    fn type_info() -> PgTypeInfo {
+        PgTypeInfo::with_name("TEXT")
+    }
+}
+
+impl Encode<'_, Postgres> for DbUrl {
+    fn encode_by_ref(
+        &self,
+        buf: &mut <Postgres as Database>::ArgumentBuffer<'_>,
+    ) -> Result<IsNull, BoxDynError> {
+        <&str as Encode<'_, Postgres>>::encode_by_ref(&self.0.as_str(), buf)
+    }
+}
+
+impl Decode<'_, Postgres> for DbUrl {
+    fn decode(value: PgValueRef<'_>) -> Result<Self, BoxDynError> {
+        let url_str = <String as Decode<Postgres>>::decode(value)?;
+        Ok(DbUrl(Url::parse(&url_str)?))
+    }
+}
 
 struct BookmarkRow {
     id: Uuid,
-    link: String,
+    link: DbUrl,
     title: String,
-    thumbnail_url: Option<String>,
+    thumbnail_url: Option<DbUrl>,
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
-    archived_url: Option<String>,
+    archived_url: Option<DbUrl>,
     folder_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     tags: Option<Json<Vec<Tag>>>,
@@ -25,12 +56,12 @@ impl From<BookmarkRow> for Bookmark {
     fn from(value: BookmarkRow) -> Self {
         Self {
             id: value.id,
-            link: value.link,
+            link: value.link.0,
             title: value.title,
-            thumbnail_url: value.thumbnail_url,
+            thumbnail_url: value.thumbnail_url.map(|e| e.0),
             published_at: value.published_at,
             author: value.author,
-            archived_url: value.archived_url,
+            archived_url: value.archived_url.map(|e| e.0),
             folder_id: value.folder_id,
             created_at: value.created_at,
             tags: value.tags.map(|e| e.0),
@@ -45,7 +76,7 @@ pub(crate) async fn select_bookmarks<'a>(
     user_id: Uuid,
     cursor: Option<bookmark::Cursor>,
     limit: Option<i64>,
-    tags: Option<Vec<NonEmptyString>>,
+    tags: Option<Vec<String>>,
 ) -> sqlx::Result<Vec<Bookmark>> {
     let (has_folder, folder_id) = match folder_id {
         Some(folder_id) => (true, folder_id),
@@ -81,9 +112,9 @@ pub(crate) async fn select_bookmarks<'a>(
 
 struct FeedRow {
     id: Uuid,
-    link: String,
+    link: DbUrl,
     title: String,
-    xml_url: Option<String>,
+    xml_url: Option<DbUrl>,
     folder_id: Option<Uuid>,
     tags: Option<Json<Vec<Tag>>>,
     unread_count: Option<i64>,
@@ -93,9 +124,9 @@ impl From<FeedRow> for Feed {
     fn from(value: FeedRow) -> Self {
         Self {
             id: value.id,
-            link: value.link,
+            link: value.link.0,
             title: value.title,
-            xml_url: value.xml_url,
+            xml_url: value.xml_url.map(|e| e.0),
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.0),
             unread_count: value.unread_count,
@@ -103,7 +134,6 @@ impl From<FeedRow> for Feed {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) async fn select_feeds<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
@@ -111,7 +141,7 @@ pub(crate) async fn select_feeds<'a>(
     user_id: Uuid,
     cursor: Option<feed::Cursor>,
     limit: Option<i64>,
-    tags: Option<Vec<NonEmptyString>>,
+    tags: Option<Vec<String>>,
 ) -> sqlx::Result<Vec<Feed>> {
     let (has_folder, folder_id) = match folder_id {
         Some(folder_id) => (true, folder_id),
@@ -131,11 +161,7 @@ pub(crate) async fn select_feeds<'a>(
         !has_folder,
         folder_id,
         tags.is_none(),
-        &tags
-            .unwrap_or_default()
-            .into_iter()
-            .map(String::from)
-            .collect::<Vec<_>>(),
+        &tags.unwrap_or_default(),
         !has_cursor,
         cursor_title,
         cursor_id,
@@ -179,7 +205,7 @@ pub async fn select_folders<'a>(
 
 pub(crate) async fn insert_feed_with_entries<'a>(
     ex: impl PgExecutor<'a>,
-    url: String,
+    url: Url,
     feed: ProcessedFeed,
 ) -> sqlx::Result<Uuid> {
     let mut links = Vec::<String>::new();
@@ -199,13 +225,13 @@ pub(crate) async fn insert_feed_with_entries<'a>(
     }
 
     let feed_id = {
-        let link = feed.link.to_string();
-        let xml_url = if url == link { None } else { Some(url) };
+        let link = feed.link;
+        let xml_url = if url == link { None } else { Some(DbUrl(url)) };
 
         sqlx::query_file_scalar!(
             "queries/feeds/insert_with_entries.sql",
-            link,
-            xml_url,
+            DbUrl(link) as DbUrl,
+            xml_url as Option<DbUrl>,
             &links,
             &titles,
             &published_ats,

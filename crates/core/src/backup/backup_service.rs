@@ -175,8 +175,8 @@ fn build_opml_hierarchy(
             r#type: Some(OutlineType::default()),
             title: Some(feed.title.clone()),
             text: feed.title.clone(),
-            xml_url: feed.xml_url.clone(),
-            html_url: Some(feed.link.clone()),
+            xml_url: feed.xml_url.as_ref().map(|e| e.to_string()),
+            html_url: Some(feed.link.to_string()),
             ..Default::default()
         };
 
@@ -207,7 +207,7 @@ fn build_netscape_hierarchy(
     for bookmark in bookmarks.iter().filter(|f| f.folder_id == parent_id) {
         let item = Item {
             title: bookmark.title.clone(),
-            href: Some(bookmark.link.clone()),
+            href: Some(bookmark.link.to_string()),
             ..Default::default()
         };
 

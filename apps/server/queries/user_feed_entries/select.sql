@@ -2,12 +2,12 @@ SELECT
   ufe.id,
   ufe.has_read,
   ufe.user_feed_id AS feed_id,
-  fe.link,
+  fe.link AS "link: DbUrl",
   fe.title,
   fe.published_at,
   fe.description,
   fe.author,
-  fe.thumbnail_url
+  fe.thumbnail_url AS "thumbnail_url: DbUrl"
 FROM
   user_feed_entries ufe
   JOIN feed_entries fe ON fe.id = ufe.feed_entry_id

@@ -3,6 +3,7 @@ use std::str::Utf8Error;
 pub use feed_repository::*;
 pub use feed_scraper::*;
 pub use feed_service::*;
+use url::Url;
 use uuid::Uuid;
 
 use crate::Tag;
@@ -11,12 +12,12 @@ mod feed_repository;
 mod feed_scraper;
 mod feed_service;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct Feed {
     pub id: Uuid,
-    pub link: String,
+    pub link: Url,
     pub title: String,
-    pub xml_url: Option<String>,
+    pub xml_url: Option<Url>,
     pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
@@ -55,8 +56,8 @@ pub enum Error {
 #[derive(Debug, thiserror::Error)]
 pub enum ConflictError {
     #[error("feed not cached with URL: {0}")]
-    NotCached(String),
+    NotCached(Url),
 
     #[error("feed already exists with URL: {0}")]
-    AlreadyExists(String),
+    AlreadyExists(Url),
 }

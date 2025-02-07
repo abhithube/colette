@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use colette_core::feed::FeedService;
+use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -55,11 +56,10 @@ impl FeedApi {
 #[serde(rename_all = "camelCase")]
 pub struct Feed {
     pub id: Uuid,
-    #[schema(format = "uri")]
-    pub link: String,
+    pub link: Url,
     pub title: String,
-    #[schema(format = "uri", required)]
-    pub xml_url: Option<String>,
+    #[schema(required)]
+    pub xml_url: Option<Url>,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]

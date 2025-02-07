@@ -46,13 +46,11 @@ impl Creatable for PostgresTagRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let title = String::from(data.title);
-
-        sqlx::query_file_scalar!("queries/tags/insert.sql", title, data.user_id)
+        sqlx::query_file_scalar!("queries/tags/insert.sql", data.title, data.user_id)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(title),
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
                 _ => Error::Database(e),
             })
     }

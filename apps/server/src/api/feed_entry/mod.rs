@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use colette_core::feed_entry::FeedEntryService;
+use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -39,16 +40,15 @@ impl FeedEntryApi {
 #[serde(rename_all = "camelCase")]
 pub struct FeedEntry {
     pub id: Uuid,
-    #[schema(format = "uri")]
-    pub link: String,
+    pub link: Url,
     pub title: String,
     pub published_at: DateTime<Utc>,
     #[schema(required)]
     pub description: Option<String>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(format = "uri", required)]
-    pub thumbnail_url: Option<String>,
+    #[schema(required)]
+    pub thumbnail_url: Option<Url>,
     pub has_read: bool,
     pub feed_id: Uuid,
 }

@@ -6,10 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    common::NonEmptyString,
-    folder::{self, FolderService},
-};
+use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
 use super::Folder;
@@ -18,8 +15,8 @@ use crate::api::common::{BaseError, Error, FOLDERS_TAG, Session};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderCreate {
-    #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    #[schema(min_length = 1)]
+    pub title: String,
     pub parent_id: Option<Uuid>,
 }
 

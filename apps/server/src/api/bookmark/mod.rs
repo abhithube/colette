@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 use colette_core::bookmark::BookmarkService;
+use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -48,17 +49,16 @@ impl BookmarkApi {
 #[serde(rename_all = "camelCase")]
 pub struct Bookmark {
     pub id: Uuid,
-    #[schema(format = "uri")]
-    pub link: String,
+    pub link: Url,
     pub title: String,
-    #[schema(format = "uri", required)]
-    pub thumbnail_url: Option<String>,
+    #[schema(required)]
+    pub thumbnail_url: Option<Url>,
     #[schema(required)]
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
     pub author: Option<String>,
-    #[schema(format = "uri", required)]
-    pub archived_url: Option<String>,
+    #[schema(required)]
+    pub archived_url: Option<Url>,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
     #[schema(nullable = false)]

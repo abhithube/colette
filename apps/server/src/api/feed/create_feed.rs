@@ -6,10 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    common::NonEmptyString,
-    feed::{self, FeedService},
-};
+use colette_core::feed::{self, FeedService};
 use url::Url;
 use uuid::Uuid;
 
@@ -21,11 +18,11 @@ use crate::api::common::{BaseError, Error, FEEDS_TAG, Session};
 pub struct FeedCreate {
     #[schema(format = "uri")]
     pub url: Url,
-    #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    #[schema(min_length = 1)]
+    pub title: String,
     pub folder_id: Option<Uuid>,
-    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    #[schema(min_length = 1, nullable = false)]
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
@@ -65,7 +62,7 @@ pub async fn handler(
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created feed")]

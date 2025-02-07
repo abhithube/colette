@@ -6,10 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::{
-    bookmark::{self, BookmarkService},
-    common::NonEmptyString,
-};
+use colette_core::bookmark::{self, BookmarkService};
 use uuid::Uuid;
 
 use super::Bookmark;
@@ -24,9 +21,9 @@ pub struct BookmarkListQuery {
     pub folder_id: Option<Uuid>,
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[param(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
+    #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

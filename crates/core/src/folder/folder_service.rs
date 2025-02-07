@@ -4,7 +4,7 @@ use super::{
     Error, Folder,
     folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
 };
-use crate::common::{IdParams, NonEmptyString, Paginated};
+use crate::common::{IdParams, Paginated};
 
 pub struct FolderService {
     repository: Box<dyn FolderRepository>,
@@ -90,13 +90,13 @@ pub struct FolderListQuery {
 
 #[derive(Clone, Debug)]
 pub struct FolderCreate {
-    pub title: NonEmptyString,
+    pub title: String,
     pub parent_id: Option<Uuid>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FolderUpdate {
-    pub title: Option<NonEmptyString>,
+    pub title: Option<String>,
     pub parent_id: Option<Option<Uuid>>,
 }
 

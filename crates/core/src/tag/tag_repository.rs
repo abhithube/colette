@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, Tag, TagType};
-use crate::common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Updatable};
+use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
 
 pub trait TagRepository:
     Findable<Params = TagFindParams, Output = Result<Vec<Tag>, Error>>
@@ -27,11 +27,11 @@ pub struct TagFindParams {
 
 #[derive(Clone, Debug, Default)]
 pub struct TagCreateData {
-    pub title: NonEmptyString,
+    pub title: String,
     pub user_id: Uuid,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct TagUpdateData {
-    pub title: Option<NonEmptyString>,
+    pub title: Option<String>,
 }

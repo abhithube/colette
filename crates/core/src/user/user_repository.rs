@@ -1,4 +1,3 @@
-use email_address::EmailAddress;
 use uuid::Uuid;
 
 use super::{Error, User};
@@ -21,6 +20,6 @@ pub enum UserFindParams {
 
 #[derive(Clone, Debug)]
 pub struct UserCreateData {
-    pub email: EmailAddress,
+    pub email: String,
     pub password: String,
 }

@@ -28,11 +28,10 @@ impl From<BookmarkScrape> for bookmark::BookmarkScrape {
 #[derive(Clone, Debug, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkScraped {
-    #[schema(format = "uri")]
-    pub link: String,
+    pub link: Url,
     pub title: String,
-    #[schema(format = "uri", required)]
-    pub thumbnail_url: Option<String>,
+    #[schema(required)]
+    pub thumbnail_url: Option<Url>,
     #[schema(required)]
     pub published_at: Option<DateTime<Utc>>,
     #[schema(required)]
@@ -74,7 +73,7 @@ pub async fn handler(
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ScrapeResponse {
     #[response(status = 201, description = "Scraped bookmark")]

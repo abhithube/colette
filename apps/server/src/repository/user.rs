@@ -52,13 +52,11 @@ impl Creatable for PostgresUserRepository {
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let email = String::from(data.email);
-
-        sqlx::query_file_scalar!("queries/users/insert.sql", email, data.password)
+        sqlx::query_file_scalar!("queries/users/insert.sql", data.email, data.password)
             .fetch_one(&self.pool)
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(email),
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.email),
                 _ => Error::Database(e),
             })
     }

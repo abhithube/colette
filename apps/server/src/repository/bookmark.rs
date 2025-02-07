@@ -9,6 +9,8 @@ use colette_core::{
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use crate::repository::common::DbUrl;
+
 #[derive(Debug, Clone)]
 pub struct PostgresBookmarkRepository {
     pool: Pool<Postgres>,
@@ -51,9 +53,9 @@ impl Creatable for PostgresBookmarkRepository {
 
         let ub_id = sqlx::query_file_scalar!(
             "queries/bookmarks/insert.sql",
-            data.url,
+            DbUrl(data.url.clone()) as DbUrl,
             data.title,
-            data.thumbnail_url,
+            data.thumbnail_url.map(DbUrl) as Option<DbUrl>,
             data.published_at,
             data.author,
             data.folder_id,
@@ -106,7 +108,7 @@ impl Updatable for PostgresBookmarkRepository {
                 None => (false, None),
             };
             let (has_thumbnail_url, thumbnail_url) = match data.thumbnail_url {
-                Some(thumbnail_url) => (true, thumbnail_url),
+                Some(thumbnail_url) => (true, thumbnail_url.map(DbUrl)),
                 None => (false, None),
             };
             let (has_published_at, published_at) = match data.published_at {
@@ -118,7 +120,7 @@ impl Updatable for PostgresBookmarkRepository {
                 None => (false, None),
             };
             let (has_archived_url, archived_url) = match data.archived_url {
-                Some(archived_url) => (true, archived_url),
+                Some(archived_url) => (true, archived_url.map(DbUrl)),
                 None => (false, None),
             };
             let (has_folder, folder_id) = match data.folder_id {
@@ -133,13 +135,13 @@ impl Updatable for PostgresBookmarkRepository {
                 has_title,
                 title,
                 has_thumbnail_url,
-                thumbnail_url,
+                thumbnail_url as Option<DbUrl>,
                 has_published_at,
                 published_at,
                 has_author,
                 author,
                 has_archived_url,
-                archived_url,
+                archived_url as Option<DbUrl>,
                 has_folder,
                 folder_id
             )
@@ -193,9 +195,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error> {
         sqlx::query_file_scalar!(
             "queries/bookmarks/upsert.sql",
-            data.url,
+            DbUrl(data.url) as DbUrl,
             data.bookmark.title,
-            data.bookmark.thumbnail.map(String::from),
+            data.bookmark.thumbnail.map(DbUrl) as Option<DbUrl>,
             data.bookmark.published,
             data.bookmark.author,
             Option::<Uuid>::None,

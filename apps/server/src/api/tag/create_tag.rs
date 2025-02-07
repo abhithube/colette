@@ -6,10 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    common::NonEmptyString,
-    tag::{self, TagService},
-};
+use colette_core::tag::{self, TagService};
 
 use super::Tag;
 use crate::api::common::{BaseError, Error, Session, TAGS_TAG};
@@ -17,8 +14,8 @@ use crate::api::common::{BaseError, Error, Session, TAGS_TAG};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagCreate {
-    #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    #[schema(min_length = 1)]
+    pub title: String,
 }
 
 impl From<TagCreate> for tag::TagCreate {

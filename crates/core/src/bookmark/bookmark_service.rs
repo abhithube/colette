@@ -16,7 +16,7 @@ use super::{
     },
 };
 use crate::{
-    common::{IdParams, NonEmptyString, PAGINATION_LIMIT, Paginated},
+    common::{IdParams, PAGINATION_LIMIT, Paginated},
     storage::DynStorage,
 };
 
@@ -114,25 +114,25 @@ impl BookmarkService {
         let id = self
             .repository
             .create(BookmarkCreateData {
-                url: data.url.into(),
-                title: data.title.into(),
-                thumbnail_url: data.thumbnail_url.map(String::from),
+                url: data.url,
+                title: data.title,
+                thumbnail_url: data.thumbnail_url,
                 published_at: data.published_at,
-                author: data.author.map(String::from),
+                author: data.author,
                 folder_id: data.folder_id,
-                tags: data.tags.map(|e| e.into_iter().map(String::from).collect()),
+                tags: data.tags,
                 user_id,
             })
             .await?;
 
         let bookmark = self.get_bookmark(id, user_id).await?;
 
-        if let Some(ref thumbnail_url) = bookmark.thumbnail_url {
+        if let Some(thumbnail_url) = bookmark.thumbnail_url.clone() {
             let mut storage = self.archive_thumbnail_storage.lock().await;
 
             storage
                 .push(ArchiveThumbnailJob {
-                    operation: ThumbnailOperation::Upload(thumbnail_url.parse().unwrap()),
+                    operation: ThumbnailOperation::Upload(thumbnail_url),
                     archived_url: None,
                     bookmark_id: bookmark.id,
                     user_id,
@@ -158,7 +158,7 @@ impl BookmarkService {
         let bookmark = self.get_bookmark(id, user_id).await?;
 
         if let Some(thumbnail_url) = thumbnail_url {
-            if thumbnail_url.as_ref().map(|e| e.as_str()) == bookmark.thumbnail_url.as_deref() {
+            if thumbnail_url == bookmark.thumbnail_url {
                 let mut storage = self.archive_thumbnail_storage.lock().await;
 
                 storage
@@ -168,7 +168,7 @@ impl BookmarkService {
                         } else {
                             ThumbnailOperation::Delete
                         },
-                        archived_url: bookmark.archived_url.as_ref().map(|e| e.parse().unwrap()),
+                        archived_url: bookmark.archived_url.clone(),
                         bookmark_id: bookmark.id,
                         user_id,
                     })
@@ -189,7 +189,7 @@ impl BookmarkService {
         storage
             .push(ArchiveThumbnailJob {
                 operation: ThumbnailOperation::Delete,
-                archived_url: bookmark.archived_url.map(|e| e.parse().unwrap()),
+                archived_url: bookmark.archived_url,
                 bookmark_id: bookmark.id,
                 user_id,
             })
@@ -218,9 +218,9 @@ impl BookmarkService {
         }?;
 
         let scraped = BookmarkScraped {
-            link: data.url.to_string(),
+            link: data.url,
             title: bookmark.title,
-            thumbnail_url: bookmark.thumbnail.map(String::from),
+            thumbnail_url: bookmark.thumbnail,
             published_at: bookmark.published,
             author: bookmark.author,
         };
@@ -249,7 +249,7 @@ impl BookmarkService {
 
         self.repository
             .save_scraped(BookmarkScrapedData {
-                url: data.url.to_string(),
+                url: data.url,
                 bookmark,
                 user_id: data.user_id,
             })
@@ -282,7 +282,7 @@ impl BookmarkService {
 
                 self.repository
                     .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
-                        archived_url: Some(Some(archived_url.to_string())),
+                        archived_url: Some(Some(archived_url)),
                         ..Default::default()
                     })
                     .await?;
@@ -312,43 +312,41 @@ impl BookmarkService {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkListQuery {
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
 
 #[derive(Clone, Debug)]
 pub struct BookmarkCreate {
     pub url: Url,
-    pub title: NonEmptyString,
+    pub title: String,
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
-    pub author: Option<NonEmptyString>,
+    pub author: Option<String>,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdate {
-    pub title: Option<Option<NonEmptyString>>,
+    pub title: Option<Option<String>>,
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
-    pub author: Option<Option<NonEmptyString>>,
+    pub author: Option<Option<String>>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            title: value.title.map(|e| e.map(String::from)),
-            thumbnail_url: value.thumbnail_url.map(|e| e.map(String::from)),
+            title: value.title,
+            thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
-            author: value.author.map(|e| e.map(String::from)),
+            author: value.author,
             archived_url: None,
             folder_id: value.folder_id,
-            tags: value
-                .tags
-                .map(|e| e.into_iter().map(String::from).collect()),
+            tags: value.tags,
         }
     }
 }
@@ -358,11 +356,11 @@ pub struct BookmarkScrape {
     pub url: Url,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct BookmarkScraped {
-    pub link: String,
+    pub link: Url,
     pub title: String,
-    pub thumbnail_url: Option<String>,
+    pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
 }

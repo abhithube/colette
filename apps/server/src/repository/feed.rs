@@ -2,7 +2,7 @@ use colette_core::{
     Feed,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
-        ConflictError, Error, FeedScrapedData, FeedCreateData, FeedFindParams, FeedRepository,
+        ConflictError, Error, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
         FeedUpdateData,
     },
 };
@@ -11,6 +11,7 @@ use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
 use super::common;
+use crate::repository::common::DbUrl;
 
 #[derive(Debug, Clone)]
 pub struct PostgresFeedRepository {
@@ -52,15 +53,16 @@ impl Creatable for PostgresFeedRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let mut tx = self.pool.begin().await?;
 
-        let feed_id = sqlx::query_file_scalar!("queries/feeds/select_by_url.sql", data.url)
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => {
-                    Error::Conflict(ConflictError::NotCached(data.url.clone()))
-                }
-                _ => Error::Database(e),
-            })?;
+        let feed_id = sqlx::query_file_scalar!(
+            "queries/feeds/select_by_url.sql",
+            DbUrl(data.url.clone()) as DbUrl
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|e| match e {
+            sqlx::Error::RowNotFound => Error::Conflict(ConflictError::NotCached(data.url.clone())),
+            _ => Error::Database(e),
+        })?;
 
         let uf_id = sqlx::query_file_scalar!(
             "queries/user_feeds/insert.sql",

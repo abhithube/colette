@@ -1,11 +1,9 @@
 use colette_util::password;
-use email_address::EmailAddress;
 use uuid::Uuid;
 
 use super::Error;
 use crate::{
     User,
-    common::NonEmptyString,
     user::{self, UserCreateData, UserFindParams, UserRepository},
 };
 
@@ -21,7 +19,7 @@ impl AuthService {
     }
 
     pub async fn register(&self, data: Register) -> Result<User, Error> {
-        let hashed = password::hash(&String::from(data.password));
+        let hashed = password::hash(&data.password);
 
         let id = self
             .user_repository
@@ -41,14 +39,14 @@ impl AuthService {
     pub async fn login(&self, data: Login) -> Result<User, Error> {
         let user = self
             .user_repository
-            .find(UserFindParams::Email(String::from(data.email)))
+            .find(UserFindParams::Email(data.email))
             .await
             .map_err(|e| match e {
                 user::Error::NotFound(_) => Error::NotAuthenticated,
                 _ => e.into(),
             })?;
 
-        let valid = password::verify(&String::from(data.password), &user.password);
+        let valid = password::verify(&data.password, &user.password);
         if !valid {
             return Err(Error::NotAuthenticated);
         }
@@ -66,12 +64,12 @@ impl AuthService {
 
 #[derive(Clone, Debug)]
 pub struct Register {
-    pub email: EmailAddress,
-    pub password: NonEmptyString,
+    pub email: String,
+    pub password: String,
 }
 
 #[derive(Clone, Debug)]
 pub struct Login {
-    pub email: EmailAddress,
-    pub password: NonEmptyString,
+    pub email: String,
+    pub password: String,
 }

@@ -6,10 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::{
-    common::NonEmptyString,
-    feed_entry::{self, FeedEntryService},
-};
+use colette_core::feed_entry::{self, FeedEntryService};
 use uuid::Uuid;
 
 use super::FeedEntry;
@@ -25,9 +22,9 @@ pub struct FeedEntryListQuery {
     pub smart_feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
-    #[param(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
+    #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

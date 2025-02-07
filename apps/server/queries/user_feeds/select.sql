@@ -32,8 +32,8 @@ SELECT
   uf.id,
   uf.title,
   uf.folder_id,
-  f.link,
-  f.xml_url,
+  f.link AS "link: DbUrl",
+  f.xml_url AS "xml_url: DbUrl",
   jt.tags AS "tags: Json<Vec<Tag>>",
   coalesce(uc.count, 0) AS unread_count
 FROM

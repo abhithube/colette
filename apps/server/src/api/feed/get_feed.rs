@@ -37,6 +37,7 @@ pub async fn handler(
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Feed by ID")]

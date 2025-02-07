@@ -6,10 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    common::NonEmptyString,
-    feed::{self, FeedService},
-};
+use colette_core::feed::{self, FeedService};
 use uuid::Uuid;
 
 use super::Feed;
@@ -18,16 +15,16 @@ use crate::api::common::{BaseError, Error, FEEDS_TAG, Id, Session};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedUpdate {
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub title: Option<NonEmptyString>,
+    #[schema(min_length = 1)]
+    pub title: Option<String>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
     pub folder_id: Option<Option<Uuid>>,
-    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    #[schema(min_length = 1, nullable = false)]
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<FeedUpdate> for feed::FeedUpdate {
@@ -68,7 +65,7 @@ pub async fn handler(
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated feed")]

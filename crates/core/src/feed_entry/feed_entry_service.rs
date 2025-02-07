@@ -5,7 +5,7 @@ use super::{
     Cursor, Error, FeedEntry,
     feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
 };
-use crate::common::{IdParams, NonEmptyString, PAGINATION_LIMIT, Paginated};
+use crate::common::{IdParams, PAGINATION_LIMIT, Paginated};
 
 pub struct FeedEntryService {
     repository: Box<dyn FeedEntryRepository>,
@@ -96,7 +96,7 @@ pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
 

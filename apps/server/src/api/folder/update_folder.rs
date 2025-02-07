@@ -6,10 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    common::NonEmptyString,
-    folder::{self, FolderService},
-};
+use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
 use super::Folder;
@@ -18,8 +15,8 @@ use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderUpdate {
-    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
-    pub title: Option<NonEmptyString>,
+    #[schema(min_length = 1, nullable = false)]
+    pub title: Option<String>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",

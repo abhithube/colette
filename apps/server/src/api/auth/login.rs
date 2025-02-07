@@ -6,11 +6,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    auth::{self, AuthService},
-    common::NonEmptyString,
-};
-use email_address::EmailAddress;
+use colette_core::auth::{self, AuthService};
 
 use super::User;
 use crate::api::common::{AUTH_TAG, BaseError, Error, SESSION_KEY, Session};
@@ -18,10 +14,10 @@ use crate::api::common::{AUTH_TAG, BaseError, Error, SESSION_KEY, Session};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Login {
-    #[schema(value_type = String, format = "email")]
-    pub email: EmailAddress,
-    #[schema(value_type = String, min_length = 1)]
-    pub password: NonEmptyString,
+    #[schema(format = "email")]
+    pub email: String,
+    #[schema(min_length = 1)]
+    pub password: String,
 }
 
 impl From<Login> for auth::Login {

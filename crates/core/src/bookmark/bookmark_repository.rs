@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
+use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, Cursor, Error, ProcessedBookmark};
-use crate::common::{Creatable, Deletable, Findable, IdParams, NonEmptyString, Updatable};
+use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository:
@@ -21,17 +22,17 @@ pub trait BookmarkRepository:
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct BookmarkCreateData {
-    pub url: String,
+    pub url: Url,
     pub title: String,
-    pub thumbnail_url: Option<String>,
+    pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
     pub folder_id: Option<Uuid>,
@@ -42,17 +43,17 @@ pub struct BookmarkCreateData {
 #[derive(Clone, Debug, Default)]
 pub struct BookmarkUpdateData {
     pub title: Option<Option<String>>,
-    pub thumbnail_url: Option<Option<String>>,
+    pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub archived_url: Option<Option<String>>,
+    pub archived_url: Option<Option<Url>>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct BookmarkScrapedData {
-    pub url: String,
+    pub url: Url,
     pub bookmark: ProcessedBookmark,
     pub user_id: Uuid,
 }

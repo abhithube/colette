@@ -7,10 +7,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::{
-    bookmark::{self, BookmarkService},
-    common::NonEmptyString,
-};
+use colette_core::bookmark::{self, BookmarkService};
 use url::Url;
 use uuid::Uuid;
 
@@ -20,13 +17,13 @@ use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
 #[derive(Clone, Debug, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(value_type = Option<String>, min_length = 1)]
+    #[schema(min_length = 1)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub title: Option<Option<NonEmptyString>>,
+    pub title: Option<Option<String>>,
     #[schema(value_type = Option<Url>)]
     #[serde(
         default,
@@ -41,21 +38,21 @@ pub struct BookmarkUpdate {
         with = "serde_with::rust::double_option"
     )]
     pub published_at: Option<Option<DateTime<Utc>>>,
-    #[schema(value_type = Option<String>, min_length = 1)]
+    #[schema(min_length = 1)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub author: Option<Option<NonEmptyString>>,
+    pub author: Option<Option<String>>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
     pub folder_id: Option<Option<Uuid>>,
-    #[schema(value_type = Option<Vec<String>>, nullable = false, min_length = 1)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    #[schema(nullable = false, min_length = 1)]
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {

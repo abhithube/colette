@@ -31,9 +31,6 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-util.path = "crates/util"
-email_address = { version = "0.2.9", default-features = false, features = [
-  "serde_support",
-] }
 futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 hyper-rustls = { version = "0.27.5", default-features = false, features = [

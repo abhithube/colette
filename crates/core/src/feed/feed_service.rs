@@ -15,7 +15,7 @@ use super::{
     },
     feed_scraper::ProcessedFeed,
 };
-use crate::common::{IdParams, NonEmptyString, Paginated};
+use crate::common::{IdParams, Paginated};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -52,7 +52,7 @@ impl FeedService {
 
         Ok(Paginated {
             data: feeds,
-            ..Default::default()
+            cursor: None,
         })
     }
 
@@ -76,8 +76,8 @@ impl FeedService {
         let id = self
             .repository
             .create(FeedCreateData {
-                url: data.url.to_string(),
-                title: data.title.into(),
+                url: data.url,
+                title: data.title,
                 folder_id: data.folder_id,
                 tags: data.tags,
                 user_id,
@@ -113,7 +113,7 @@ impl FeedService {
 
                 self.repository
                     .save_scraped(FeedScrapedData {
-                        url: data.url.to_string(),
+                        url: data.url,
                         feed: feed.clone(),
                         link_to_users: false,
                     })
@@ -150,7 +150,7 @@ impl FeedService {
 
                         self.repository
                             .save_scraped(FeedScrapedData {
-                                url: data.url.to_string(),
+                                url: data.url,
                                 feed: feed.clone(),
                                 link_to_users: false,
                             })
@@ -181,7 +181,7 @@ impl FeedService {
 
         self.repository
             .save_scraped(FeedScrapedData {
-                url: data.url.to_string(),
+                url: data.url,
                 feed,
                 link_to_users: true,
             })
@@ -196,28 +196,28 @@ impl FeedService {
 #[derive(Clone, Debug, Default)]
 pub struct FeedListQuery {
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug)]
 pub struct FeedCreate {
     pub url: Url,
-    pub title: NonEmptyString,
+    pub title: String,
     pub folder_id: Option<Uuid>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct FeedUpdate {
-    pub title: Option<NonEmptyString>,
+    pub title: Option<String>,
     pub folder_id: Option<Option<Uuid>>,
-    pub tags: Option<Vec<NonEmptyString>>,
+    pub tags: Option<Vec<String>>,
 }
 
 impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
+            title: value.title,
             folder_id: value.folder_id,
             tags: value.tags,
         }
