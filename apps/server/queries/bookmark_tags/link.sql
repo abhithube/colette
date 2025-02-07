@@ -3,7 +3,7 @@ WITH
     INSERT INTO
       tags (title, user_id)
     SELECT
-      unnest($3::TEXT[]),
+      unnest($1::TEXT[]),
       $2
     ON CONFLICT (user_id, title) DO NOTHING
     RETURNING
@@ -21,12 +21,12 @@ WITH
       tags
     WHERE
       user_id = $2
-      AND title = ANY ($3::TEXT[])
+      AND title = ANY ($1::TEXT[])
   ),
   deleted_bt AS (
     DELETE FROM bookmark_tags bt
     WHERE
-      bt.bookmark_id = $1
+      bt.bookmark_id = $3
       AND bt.user_id = $2
       AND bt.tag_id NOT IN (
         SELECT
@@ -38,7 +38,7 @@ WITH
 INSERT INTO
   bookmark_tags (bookmark_id, tag_id, user_id)
 SELECT
-  $1,
+  $3,
   all_tags.id,
   $2
 FROM

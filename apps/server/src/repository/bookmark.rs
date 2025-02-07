@@ -72,9 +72,9 @@ impl Creatable for PostgresBookmarkRepository {
             if !tags.is_empty() {
                 sqlx::query_file_scalar!(
                     "queries/bookmark_tags/link.sql",
-                    ub_id,
+                    &tags,
                     data.user_id,
-                    &tags
+                    ub_id
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -157,9 +157,9 @@ impl Updatable for PostgresBookmarkRepository {
             if !tags.is_empty() {
                 sqlx::query_file_scalar!(
                     "queries/bookmark_tags/link.sql",
-                    params.id,
+                    &tags,
                     params.user_id,
-                    &tags
+                    params.id
                 )
                 .execute(&mut *tx)
                 .await?;

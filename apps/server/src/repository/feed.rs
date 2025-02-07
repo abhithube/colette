@@ -88,9 +88,9 @@ impl Creatable for PostgresFeedRepository {
             if !tags.is_empty() {
                 sqlx::query_file_scalar!(
                     "queries/user_feed_tags/link.sql",
-                    uf_id,
+                    &tags,
                     data.user_id,
-                    &tags.into_iter().map(String::from).collect::<Vec<_>>(),
+                    uf_id,
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -139,9 +139,9 @@ impl Updatable for PostgresFeedRepository {
             if !tags.is_empty() {
                 sqlx::query_file_scalar!(
                     "queries/user_feed_tags/link.sql",
-                    params.id,
+                    &tags,
                     params.user_id,
-                    &tags.into_iter().map(String::from).collect::<Vec<_>>(),
+                    params.id
                 )
                 .execute(&mut *tx)
                 .await?;

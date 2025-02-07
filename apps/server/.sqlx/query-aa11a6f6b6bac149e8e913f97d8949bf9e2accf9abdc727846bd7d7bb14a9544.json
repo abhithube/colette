@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  new_tags AS (\n    INSERT INTO\n      tags (title, user_id)\n    SELECT\n      unnest($1::TEXT[]),\n      $2\n    ON CONFLICT (user_id, title) DO NOTHING\n    RETURNING\n      id\n  ),\n  all_tags AS (\n    SELECT\n      id\n    FROM\n      new_tags\n    UNION ALL\n    SELECT\n      id\n    FROM\n      tags\n    WHERE\n      user_id = $2\n      AND title = ANY ($1::TEXT[])\n  ),\n  deleted_uft AS (\n    DELETE FROM user_feed_tags uft\n    WHERE\n      uft.user_id = $2\n      AND uft.user_feed_id = $3\n      AND uft.tag_id NOT IN (\n        SELECT\n          id\n        FROM\n          all_tags\n      )\n  )\nINSERT INTO\n  user_feed_tags (user_feed_id, tag_id, user_id)\nSELECT\n  $3,\n  all_tags.id,\n  $2\nFROM\n  all_tags\nON CONFLICT (user_feed_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "TextArray",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aa11a6f6b6bac149e8e913f97d8949bf9e2accf9abdc727846bd7d7bb14a9544"
+}

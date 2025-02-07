@@ -17,8 +17,10 @@ FROM
   AND t.id = uft.tag_id
   AND t.title = ANY ($2)
 WHERE
-  NOT $1
-  OR t.id IS NOT NULL
+  (
+    NOT $1
+    OR t.id IS NOT NULL
+  )
   AND ufe.user_id = $3
   AND (
     $4::BOOLEAN
