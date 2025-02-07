@@ -5,6 +5,7 @@ use apalis_core::{
     storage::Storage as ApalisStorage,
     task::task_id::TaskId,
 };
+use apalis_redis::{RedisContext, RedisError};
 
 /// Represents a [Storage] that can persist a request.
 #[async_trait::async_trait]
@@ -70,6 +71,8 @@ pub trait Storage: Send {
     /// Vacuum the storage, removes done and killed jobs
     async fn vacuum(&mut self) -> Result<usize, Self::Error>;
 }
+
+pub type DynStorage<T> = dyn Storage<Job = T, Context = RedisContext, Error = RedisError>;
 
 #[async_trait::async_trait]
 impl<T: ApalisStorage + Send> Storage for T

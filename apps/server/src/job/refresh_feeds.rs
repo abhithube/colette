@@ -1,17 +1,21 @@
 use std::sync::Arc;
 
 use apalis::prelude::Data;
-use colette_core::feed::{FeedService, RefreshFeedsJob, ScrapeFeedJob, ScrapeFeedStorage};
+use colette_core::{
+    feed::{FeedService, RefreshFeedsJob, ScrapeFeedJob},
+    storage::DynStorage,
+};
 use futures::StreamExt;
+use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct State {
     service: Arc<FeedService>,
-    storage: ScrapeFeedStorage,
+    storage: Arc<Mutex<DynStorage<ScrapeFeedJob>>>,
 }
 
 impl State {
-    pub fn new(service: Arc<FeedService>, storage: ScrapeFeedStorage) -> Self {
+    pub fn new(service: Arc<FeedService>, storage: Arc<Mutex<DynStorage<ScrapeFeedJob>>>) -> Self {
         Self { service, storage }
     }
 }

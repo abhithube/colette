@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use apalis_redis::{RedisContext, RedisError};
 use bytes::{Buf, Bytes};
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
@@ -14,7 +13,7 @@ use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
     folder::{FolderFindParams, FolderRepository},
-    storage::Storage,
+    storage::DynStorage,
 };
 
 pub struct BackupService {
@@ -22,11 +21,8 @@ pub struct BackupService {
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
     folder_repository: Box<dyn FolderRepository>,
-    import_feeds_storage:
-        Arc<Mutex<dyn Storage<Job = ImportFeedsJob, Context = RedisContext, Error = RedisError>>>,
-    import_bookmarks_storage: Arc<
-        Mutex<dyn Storage<Job = ImportBookmarksJob, Context = RedisContext, Error = RedisError>>,
-    >,
+    import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
+    import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
 }
 
 impl BackupService {
@@ -35,14 +31,8 @@ impl BackupService {
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
         folder_repository: impl FolderRepository,
-        import_feeds_storage: Arc<
-            Mutex<dyn Storage<Job = ImportFeedsJob, Context = RedisContext, Error = RedisError>>,
-        >,
-        import_bookmarks_storage: Arc<
-            Mutex<
-                dyn Storage<Job = ImportBookmarksJob, Context = RedisContext, Error = RedisError>,
-            >,
-        >,
+        import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
+        import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),

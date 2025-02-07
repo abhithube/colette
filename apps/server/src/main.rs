@@ -200,20 +200,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let scrape_feed_storage = RedisStorage::new(redis_manager.clone());
     let scrape_bookmark_storage = RedisStorage::new(redis_manager.clone());
     let archive_thumbnail_storage = RedisStorage::new(redis_manager.clone());
-
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
-    let import_feeds_worker = WorkerBuilder::new("import-feeds")
-        .enable_tracing()
-        .data(scrape_feed_storage.clone())
-        .backend(import_feeds_storage.clone())
-        .build_fn(import_feeds::run);
-
     let import_bookmarks_storage = RedisStorage::new(redis_manager);
-    let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
-        .enable_tracing()
-        .data(scrape_bookmark_storage.clone())
-        .backend(import_bookmarks_storage.clone())
-        .build_fn(import_bookmarks::run);
 
     let auth_service = Arc::new(AuthService::new(PostgresUserRepository::new(pool.clone())));
     let backup_service = Arc::new(BackupService::new(
@@ -221,8 +209,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         feed_repository.clone(),
         bookmark_repository.clone(),
         folder_repository.clone(),
-        Arc::new(Mutex::new(import_feeds_storage)),
-        Arc::new(Mutex::new(import_bookmarks_storage)),
+        Arc::new(Mutex::new(import_feeds_storage.clone())),
+        Arc::new(Mutex::new(import_bookmarks_storage.clone())),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository,
@@ -263,7 +251,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .enable_tracing()
         .concurrency(5)
         .data(bookmark_service.clone())
-        .backend(scrape_bookmark_storage)
+        .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
 
     let schedule = Schedule::from_str(&app_config.cron_refresh)?;
@@ -272,7 +260,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .enable_tracing()
         .data(refresh_feeds::State::new(
             feed_service.clone(),
-            Arc::new(Mutex::new(scrape_feed_storage)),
+            Arc::new(Mutex::new(scrape_feed_storage.clone())),
         ))
         .backend(CronStream::new(schedule))
         .build_fn(refresh_feeds::run);
@@ -284,13 +272,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .backend(archive_thumbnail_storage)
         .build_fn(archive_thumbnail::run);
 
+    let import_feeds_worker = WorkerBuilder::new("import-feeds")
+        .enable_tracing()
+        .data(scrape_feed_storage)
+        .backend(import_feeds_storage)
+        .build_fn(import_feeds::run);
+
+    let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
+        .enable_tracing()
+        .data(scrape_bookmark_storage)
+        .backend(import_bookmarks_storage)
+        .build_fn(import_bookmarks::run);
+
     let monitor = Monitor::new()
         .register(scrape_feed_worker)
         .register(scrape_bookmark_worker)
-        .register(import_feeds_worker)
-        .register(import_bookmarks_worker)
         .register(refresh_feeds_worker)
         .register(archive_thumbnail_worker)
+        .register(import_feeds_worker)
+        .register(import_bookmarks_worker)
         .run();
 
     let redis_conn = redis.get_multiplexed_async_connection().await?;

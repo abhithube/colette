@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use apalis::prelude::Data;
-use colette_core::{
-    backup::ImportFeedsJob,
-    feed::{ScrapeFeedJob, ScrapeFeedStorage},
-};
+use colette_core::{backup::ImportFeedsJob, feed::ScrapeFeedJob, storage::DynStorage};
+use tokio::sync::Mutex;
 
 pub async fn run(
     job: ImportFeedsJob,
-    data: Data<ScrapeFeedStorage>,
+    data: Data<Arc<Mutex<DynStorage<ScrapeFeedJob>>>>,
 ) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} feeds", job.urls.len());
 

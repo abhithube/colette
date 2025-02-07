@@ -1,18 +1,26 @@
 use std::sync::Arc;
 
 use apalis::prelude::Data;
-use colette_core::bookmark::{ArchiveThumbnailJob, BookmarkService, ThumbnailArchive};
+use colette_core::bookmark::{
+    ArchiveThumbnailJob, BookmarkService, ThumbnailArchive, ThumbnailOperation,
+};
 
 pub async fn run(
     job: ArchiveThumbnailJob,
     data: Data<Arc<BookmarkService>>,
 ) -> Result<(), apalis::prelude::Error> {
-    tracing::debug!("Archiving thumbnail URL: {}", job.url.as_str());
+    if let ThumbnailOperation::Upload(ref thumbnail_url) = job.operation {
+        tracing::debug!("Archiving thumbnail URL: {}", thumbnail_url.as_str());
+    }
+    if let Some(ref archived_url) = job.archived_url {
+        tracing::debug!("Archiving archived URL: {}", archived_url.as_str());
+    }
 
     data.archive_thumbnail(
         job.bookmark_id,
         ThumbnailArchive {
-            thumbnail_url: job.url,
+            operation: job.operation,
+            archived_url: job.archived_url,
         },
         job.user_id,
     )

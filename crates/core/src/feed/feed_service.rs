@@ -1,12 +1,10 @@
 use core::str;
-use std::{collections::HashMap, io::BufReader, sync::Arc};
+use std::{collections::HashMap, io::BufReader};
 
-use apalis_redis::{RedisContext, RedisError};
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use futures::stream::BoxStream;
-use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
@@ -17,10 +15,7 @@ use super::{
     },
     feed_scraper::ProcessedFeed,
 };
-use crate::{
-    common::{IdParams, NonEmptyString, Paginated},
-    storage::Storage,
-};
+use crate::common::{IdParams, NonEmptyString, Paginated};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -264,9 +259,6 @@ pub struct FeedPersist {
 pub struct ScrapeFeedJob {
     pub url: Url,
 }
-
-pub type ScrapeFeedStorage =
-    Arc<Mutex<dyn Storage<Job = ScrapeFeedJob, Context = RedisContext, Error = RedisError>>>;
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct RefreshFeedsJob(pub DateTime<Utc>);
