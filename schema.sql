@@ -1,3 +1,8 @@
+CREATE FUNCTION set_updated_at () returns trigger AS $$ begin
+  NEW.updated_at := now();
+  return NEW;
+end; $$ language plpgsql;
+
 CREATE TABLE users (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   email TEXT NOT NULL UNIQUE,
@@ -6,6 +11,10 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+CREATE TRIGGER set_updated_at_users before
+UPDATE ON users FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL UNIQUE,
@@ -13,6 +22,10 @@ CREATE TABLE feeds (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TRIGGER set_updated_at_feeds before
+UPDATE ON feeds FOR each ROW
+EXECUTE procedure set_updated_at ();
 
 CREATE TABLE feed_entries (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
@@ -28,6 +41,10 @@ CREATE TABLE feed_entries (
   UNIQUE (feed_id, link)
 );
 
+CREATE TRIGGER set_updated_at_feed_entries before
+UPDATE ON feed_entries FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE folders (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title TEXT NOT NULL,
@@ -37,6 +54,10 @@ CREATE TABLE folders (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, parent_id, title)
 );
+
+CREATE TRIGGER set_updated_at_folders before
+UPDATE ON folders FOR each ROW
+EXECUTE procedure set_updated_at ();
 
 CREATE TABLE user_feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
@@ -49,6 +70,10 @@ CREATE TABLE user_feeds (
   UNIQUE (user_id, feed_id)
 );
 
+CREATE TRIGGER set_updated_at_user_feeds before
+UPDATE ON user_feeds FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE user_feed_entries (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   has_read BOOLEAN NOT NULL DEFAULT FALSE,
@@ -59,6 +84,10 @@ CREATE TABLE user_feed_entries (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_feed_id, feed_entry_id)
 );
+
+CREATE TRIGGER set_updated_at_user_feed_entries before
+UPDATE ON user_feed_entries FOR each ROW
+EXECUTE procedure set_updated_at ();
 
 CREATE TABLE bookmarks (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
@@ -75,6 +104,10 @@ CREATE TABLE bookmarks (
   UNIQUE (user_id, link)
 );
 
+CREATE TRIGGER set_updated_at_bookmarks before
+UPDATE ON bookmarks FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE tags (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title TEXT NOT NULL,
@@ -83,6 +116,10 @@ CREATE TABLE tags (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
 );
+
+CREATE TRIGGER set_updated_at_tags before
+UPDATE ON tags FOR each ROW
+EXECUTE procedure set_updated_at ();
 
 CREATE TABLE user_feed_tags (
   user_feed_id uuid NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
@@ -93,6 +130,10 @@ CREATE TABLE user_feed_tags (
   PRIMARY KEY (user_feed_id, tag_id)
 );
 
+CREATE TRIGGER set_updated_at_user_feed_tags before
+UPDATE ON user_feed_tags FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE bookmark_tags (
   bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
   tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
@@ -101,3 +142,7 @@ CREATE TABLE bookmark_tags (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (bookmark_id, tag_id)
 );
+
+CREATE TRIGGER set_updated_at_bookmark_tags before
+UPDATE ON bookmark_tags FOR each ROW
+EXECUTE procedure set_updated_at ();

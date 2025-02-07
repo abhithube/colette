@@ -1,13 +1,12 @@
 WITH
   new_feed AS (
     INSERT INTO
-      feeds (link, xml_url, updated_at)
+      feeds (link, xml_url)
     VALUES
-      ($1, $2, now())
+      ($1, $2)
     ON CONFLICT (link) DO UPDATE
     SET
-      xml_url = excluded.xml_url,
-      updated_at = excluded.updated_at
+      xml_url = excluded.xml_url
     RETURNING
       id
   ),
@@ -20,12 +19,10 @@ WITH
         description,
         author,
         thumbnail_url,
-        feed_id,
-        updated_at
+        feed_id
       )
     SELECT
-      *,
-      now()
+      *
     FROM
       unnest(
         $3::TEXT[],
@@ -42,8 +39,7 @@ WITH
       published_at = excluded.published_at,
       description = excluded.description,
       author = excluded.author,
-      thumbnail_url = excluded.thumbnail_url,
-      updated_at = excluded.updated_at
+      thumbnail_url = excluded.thumbnail_url
   )
 SELECT
   id

@@ -23,8 +23,7 @@ SET
   folder_id = CASE
     WHEN $13 THEN $14
     ELSE folder_id
-  END,
-  updated_at = now()
+  END
 WHERE
   id = $1
   AND user_id = $2
