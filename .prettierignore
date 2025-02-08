@@ -1,4 +1,3 @@
 dist/
-/apps/solid/
 /apps/web/src/components/ui/
 /packages/core/lib/openapi.gen.ts
