@@ -1,5 +1,5 @@
-import { formatRelativeDate } from '../../../lib/utils'
 import type { FeedEntry } from '@colette/core'
+import { formatRelativeDate } from '@colette/util'
 import type { FC } from 'react'
 import { Favicon } from '~/components/favicon'
 import {

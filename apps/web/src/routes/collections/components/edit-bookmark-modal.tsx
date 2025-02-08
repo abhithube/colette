@@ -1,7 +1,7 @@
 import { TagsInput } from '../../../components/tags-input'
-import { useAPI } from '../../../lib/api-context'
 import type { Bookmark } from '@colette/core'
 import { updateBookmarkOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'

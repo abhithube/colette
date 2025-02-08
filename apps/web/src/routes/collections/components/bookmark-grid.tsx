@@ -1,8 +1,8 @@
-import { useAPI } from '../../../lib/api-context'
-import { useIntersectionObserver } from '../../../lib/use-intersection-observer'
 import { BookmarkCard } from './bookmark-card'
 import type { Bookmark, BookmarkListQuery } from '@colette/core'
 import { listBookmarksOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
+import { useIntersectionObserver } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
 

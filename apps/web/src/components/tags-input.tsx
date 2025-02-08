@@ -1,5 +1,5 @@
-import { useAPI } from '../lib/api-context'
 import { listTagsOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import type { FieldState, Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'

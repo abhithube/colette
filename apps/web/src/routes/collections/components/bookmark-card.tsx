@@ -1,6 +1,6 @@
-import { formatRelativeDate } from '../../../lib/utils'
 import { EditBookmarkModal } from './edit-bookmark-modal'
 import type { Bookmark } from '@colette/core'
+import { formatRelativeDate } from '@colette/util'
 import { ExternalLink, Pencil } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { Favicon } from '~/components/favicon'

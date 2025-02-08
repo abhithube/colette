@@ -1,6 +1,6 @@
-import { useAPI } from '../../../lib/api-context'
 import type { DetectedResponse } from '@colette/core'
 import { detectFeedsOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'

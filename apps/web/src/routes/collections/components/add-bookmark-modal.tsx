@@ -1,5 +1,5 @@
-import { useAPI } from '../../../lib/api-context'
 import { createBookmarkOptions, scrapeBookmarkOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'

@@ -1,6 +1,6 @@
-import { useAPI } from './lib/api-context'
 import { AppSidebar } from './sidebar'
 import { getActiveOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
 import { type FC, type PropsWithChildren, useEffect } from 'react'
 import { useLocation } from 'wouter'

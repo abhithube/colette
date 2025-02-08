@@ -1,6 +1,6 @@
-import { useAPI } from '../lib/api-context'
 import type { User as AppUser } from '@colette/core'
 import { logoutOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronsUpDown, User } from 'lucide-react'
 import type { FC } from 'react'

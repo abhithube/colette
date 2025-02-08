@@ -1,6 +1,6 @@
-import { useAPI } from '../../lib/api-context'
 import { FeedItem } from './feed-item'
 import { listFeedsOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
 

@@ -1,0 +1,15 @@
+{
+  "name": "@colette/util",
+  "type": "module",
+  "module": "./lib/index.ts",
+  "exports": [
+    "./lib/index.ts"
+  ],
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "react": "*"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  }
+}
