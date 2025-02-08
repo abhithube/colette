@@ -321,7 +321,7 @@ pub struct BookmarkCreate {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkUpdate {
-    pub title: Option<Option<String>>,
+    pub title: Option<String>,
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,

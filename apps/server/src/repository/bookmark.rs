@@ -103,10 +103,6 @@ impl Updatable for PostgresBookmarkRepository {
             || data.archived_path.is_some()
             || data.folder_id.is_some()
         {
-            let (has_title, title) = match data.title {
-                Some(title) => (true, title),
-                None => (false, None),
-            };
             let (has_thumbnail_url, thumbnail_url) = match data.thumbnail_url {
                 Some(thumbnail_url) => (true, thumbnail_url.map(DbUrl)),
                 None => (false, None),
@@ -132,8 +128,8 @@ impl Updatable for PostgresBookmarkRepository {
                 "queries/bookmarks/update.sql",
                 params.id,
                 params.user_id,
-                has_title,
-                title,
+                data.title.is_some(),
+                data.title,
                 has_thumbnail_url,
                 thumbnail_url as Option<DbUrl>,
                 has_published_at,

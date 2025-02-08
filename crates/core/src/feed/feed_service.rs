@@ -229,16 +229,16 @@ pub struct FeedDetect {
     pub url: Url,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct FeedDetected {
-    pub url: String,
+    pub url: Url,
     pub title: String,
 }
 
 impl From<colette_meta::rss::Feed> for FeedDetected {
     fn from(value: colette_meta::rss::Feed) -> Self {
         Self {
-            url: value.href,
+            url: value.href.parse().unwrap(),
             title: value.title,
         }
     }

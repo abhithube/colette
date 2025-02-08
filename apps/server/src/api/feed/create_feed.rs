@@ -16,7 +16,6 @@ use crate::api::common::{BaseError, Error, FEEDS_TAG, Session};
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
-    #[schema(format = "uri")]
     pub url: Url,
     #[schema(min_length = 1)]
     pub title: String,

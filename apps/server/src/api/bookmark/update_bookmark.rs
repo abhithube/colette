@@ -15,13 +15,8 @@ use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(min_length = 1)]
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub title: Option<Option<String>>,
+    #[schema(min_length = 1, nullable = false)]
+    pub title: Option<String>,
     #[schema(value_type = Option<Url>)]
     #[serde(
         default,
