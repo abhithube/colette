@@ -13,7 +13,6 @@ import { Input } from '@colette/react-ui/components/ui/input'
 import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { RotateCcw } from 'lucide-react'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
@@ -32,14 +31,9 @@ export const EditStep: FC<{
       title: props.feed.title,
     },
     onSubmit: ({ value }) => {
-      let title: string | undefined = value.title
-      if (title === props.feed.title) {
-        title = undefined
-      }
-
       mutation.mutate({
         url: props.feed.link,
-        title,
+        title: value.title,
       })
     },
   })
@@ -83,12 +77,6 @@ export const EditStep: FC<{
                   value={field.state.value}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-                <Button
-                  variant="outline"
-                  onClick={() => field.setValue(props.feed.title)}
-                >
-                  <RotateCcw />
-                </Button>
               </div>
               <FormMessage>
                 {field.state.meta.errors[0]?.toString()}

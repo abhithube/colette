@@ -4,6 +4,7 @@ import type {
   Folder,
   FolderCreate,
   FolderList,
+  FolderListQuery,
   FolderUpdate,
 } from '@colette/core'
 import type { QueryClient } from '@tanstack/query-core'
@@ -13,12 +14,13 @@ const FOLDERS_PREFIX = 'Folders'
 type ListFoldersOptions = BaseQueryOptions<FolderList>
 
 export const listFoldersOptions = (
+  query: FolderListQuery,
   api: API,
   options: Omit<ListFoldersOptions, 'queryKey' | 'queryFn'> = {},
 ): ListFoldersOptions => ({
   ...options,
   queryKey: [FOLDERS_PREFIX],
-  queryFn: () => api.folders.list(),
+  queryFn: () => api.folders.list(query),
 })
 
 type GetFolderOptions = BaseQueryOptions<Folder>

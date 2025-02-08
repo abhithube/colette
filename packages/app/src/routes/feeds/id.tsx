@@ -32,9 +32,7 @@ export const FeedPage: FC = () => {
   return (
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
-        <h1 className="line-clamp-1 text-3xl font-medium">
-          {feed.title ?? feed.originalTitle}
-        </h1>
+        <h1 className="line-clamp-1 text-3xl font-medium">{feed.title}</h1>
         <div className="flex gap-2">
           <Button asChild variant="secondary">
             <a href={feed.link} target="_blank" rel="noreferrer">

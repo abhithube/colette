@@ -38,9 +38,7 @@ export const UnsubscribeAlert: FC<{
     <AlertDialogContent>
       <AlertDialogTitle>
         Unsubscribe from{' '}
-        <span className="text-orange-500">
-          {props.feed.title ?? props.feed.originalTitle}
-        </span>
+        <span className="text-orange-500">{props.feed.title}</span>
       </AlertDialogTitle>
       <AlertDialogDescription>
         Are you sure you want to unsubscribe? This action cannot be undone.

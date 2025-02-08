@@ -3,14 +3,19 @@ import {
   Folder,
   FolderCreate,
   FolderUpdate,
+  get_ListFolders,
   Paginated_Folder,
 } from './openapi.gen'
+import { z } from 'zod'
+
+export const FolderListQuery = get_ListFolders.parameters.shape.query
+export type FolderListQuery = z.infer<typeof FolderListQuery>
 
 export type FolderList = Paginated_Folder
 export const FolderList = Paginated_Folder
 
 export interface FolderAPI {
-  list(): Promise<FolderList>
+  list(query: FolderListQuery): Promise<FolderList>
 
   get(id: string): Promise<Folder>
 
@@ -24,8 +29,12 @@ export interface FolderAPI {
 export class HTTPFolderAPI implements FolderAPI {
   constructor(private client: ApiClient) {}
 
-  list(): Promise<FolderList> {
-    return this.client.get('/folders').then(FolderList.parse)
+  list(query: FolderListQuery): Promise<FolderList> {
+    return this.client
+      .get('/folders', {
+        query: FolderListQuery.parse(query),
+      })
+      .then(FolderList.parse)
   }
 
   get(id: string): Promise<Folder> {

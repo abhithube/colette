@@ -27,21 +27,10 @@ export const EditFeedModal: FC<{
 
   const form = useForm({
     defaultValues: {
-      title: props.feed.title ?? props.feed.originalTitle,
+      title: props.feed.title,
       tags: props.feed.tags?.map((tag) => tag.title) ?? [],
     },
     onSubmit: ({ value }) => {
-      let title: string | null | undefined = value.title
-      if (title === props.feed.title) {
-        title = undefined
-      } else if (title === props.feed.originalTitle) {
-        if (!props.feed.title) {
-          title = undefined
-        } else {
-          title = null
-        }
-      }
-
       let tags: string[] | undefined = value.tags
       if (props.feed.tags) {
         const current = props.feed.tags
@@ -57,14 +46,14 @@ export const EditFeedModal: FC<{
         tags = undefined
       }
 
-      if (title === undefined && tags === undefined) {
+      if (value.title === props.feed.title && tags === undefined) {
         return props.close()
       }
 
       updateFeed({
         id: props.feed.id,
         body: {
-          title,
+          title: value.title,
           tags,
         },
       })
@@ -94,7 +83,7 @@ export const EditFeedModal: FC<{
       >
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
-            Edit {props.feed.title ?? props.feed.originalTitle}
+            Edit {props.feed.title}
           </DialogTitle>
           <DialogDescription>Edit a feed&apos;s data.</DialogDescription>
         </DialogHeader>

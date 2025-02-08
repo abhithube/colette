@@ -12,30 +12,36 @@ import {
 import { Input } from '@colette/react-ui/components/ui/input'
 import { Label } from '@colette/react-ui/components/ui/label'
 import { useForm } from '@tanstack/react-form'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
 
 export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
   const api = useAPI()
+  const queryClient = useQueryClient()
   const [, navigate] = useLocation()
 
   const form = useForm({
     defaultValues: {
       url: '',
+      title: '',
     },
     onSubmit: async ({ value }) => {
       const scraped = await scrapeBookmark(value)
       await createBookmark({
         url: scraped.link,
+        title: scraped.title,
+        thumbnailUrl: scraped.thumbnailUrl,
+        publishedAt: scraped.publishedAt,
+        author: scraped.author,
       })
     },
   })
 
   const { mutateAsync: createBookmark, isPending: isPending1 } = useMutation(
-    createBookmarkOptions(api, {
-      onSuccess: async () => {
+    createBookmarkOptions(api, queryClient, {
+      onSuccess: () => {
         form.reset()
         props.close()
 
@@ -46,7 +52,7 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
 
   const { mutateAsync: scrapeBookmark, isPending: isPending2 } = useMutation(
     scrapeBookmarkOptions(api, {
-      onSuccess: async () => {
+      onSuccess: () => {
         form.reset()
         props.close()
 
@@ -84,6 +90,27 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
                 />
                 <FormDescription>URL of the bookmark</FormDescription>
                 <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+              </div>
+            )}
+          </form.Field>
+          <form.Field
+            name="title"
+            validators={{
+              onSubmit: z.string().min(1, 'Title cannot be empty'),
+            }}
+          >
+            {(field) => (
+              <div className="space-y-1">
+                <Label>Title</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={field.state.value}
+                    onChange={(ev) => field.handleChange(ev.target.value)}
+                  />
+                </div>
+                <FormMessage>
+                  {field.state.meta.errors[0]?.toString()}
+                </FormMessage>
               </div>
             )}
           </form.Field>

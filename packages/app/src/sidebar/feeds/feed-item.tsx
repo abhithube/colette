@@ -35,7 +35,7 @@ export const FeedItem: FC<{ feed: Feed }> = (props) => {
         <Link className="justify-between" to={`/feeds/${props.feed.id}`}>
           <div className="flex items-center gap-2">
             <Favicon url={props.feed.link} />
-            {props.feed.title ?? props.feed.originalTitle}
+            {props.feed.title}
           </div>
           {props.feed.unreadCount && (
             <Badge className="justify-self-end" variant="outline">
