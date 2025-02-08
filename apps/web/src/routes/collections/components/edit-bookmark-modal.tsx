@@ -80,7 +80,7 @@ export const EditBookmarkModal: FC<{
           <DialogTitle className="line-clamp-1">
             Edit {props.bookmark.title}
           </DialogTitle>
-          <DialogDescription>Edit a feed&apos;s data.</DialogDescription>
+          <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field name="tags">

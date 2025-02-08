@@ -92,7 +92,7 @@ export const TagsInner: FC<{
             }
           >
             <Plus />
-            Create new tag &quot;{search}&quot;
+            {`Create new tag "${search}"`}
           </CommandItem>
         </CommandGroup>
         <CommandGroup heading="Results">
