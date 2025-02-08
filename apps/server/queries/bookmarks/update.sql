@@ -16,9 +16,9 @@ SET
     WHEN $9 THEN $10
     ELSE author
   END,
-  archived_url = CASE
+  archived_path = CASE
     WHEN $11 THEN $12
-    ELSE archived_url
+    ELSE archived_path
   END,
   folder_id = CASE
     WHEN $13 THEN $14

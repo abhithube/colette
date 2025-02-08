@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH\n  json_tags AS (\n    SELECT\n      b.id AS bookmark_id,\n      jsonb_agg(\n        jsonb_build_object('id', t.id, 'title', t.title)\n        ORDER BY\n          t.title\n      ) FILTER (\n        WHERE\n          t.id IS NOT NULL\n      ) AS tags\n    FROM\n      bookmarks b\n      INNER JOIN bookmark_tags bt ON bt.bookmark_id = b.id\n      INNER JOIN tags t ON t.id = bt.tag_id\n    GROUP BY\n      b.id\n  )\nSELECT\n  b.id,\n  b.link AS \"link: DbUrl\",\n  b.title,\n  b.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  b.published_at,\n  b.author,\n  b.archived_url AS \"archived_url: DbUrl\",\n  b.folder_id,\n  b.created_at,\n  jt.tags AS \"tags: Json<Vec<Tag>>\"\nFROM\n  bookmarks b\n  LEFT JOIN json_tags jt ON jt.bookmark_id = b.id\nWHERE\n  b.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR b.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR CASE\n      WHEN $5::uuid IS NULL THEN b.folder_id IS NULL\n      ELSE b.folder_id = $5\n    END\n  )\n  AND (\n    $6::BOOLEAN\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        jsonb_array_elements(jt.tags) t\n      WHERE\n        t ->> 'title' = ANY ($7)\n    )\n  )\n  AND (\n    $8::BOOLEAN\n    OR b.created_at > $9\n  )\nORDER BY\n  b.created_at ASC\nLIMIT\n  $10\n",
+  "query": "WITH\n  json_tags AS (\n    SELECT\n      b.id AS bookmark_id,\n      jsonb_agg(\n        jsonb_build_object('id', t.id, 'title', t.title)\n        ORDER BY\n          t.title\n      ) FILTER (\n        WHERE\n          t.id IS NOT NULL\n      ) AS tags\n    FROM\n      bookmarks b\n      INNER JOIN bookmark_tags bt ON bt.bookmark_id = b.id\n      INNER JOIN tags t ON t.id = bt.tag_id\n    GROUP BY\n      b.id\n  )\nSELECT\n  b.id,\n  b.link AS \"link: DbUrl\",\n  b.title,\n  b.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  b.published_at,\n  b.author,\n  b.archived_path,\n  b.folder_id,\n  b.created_at,\n  jt.tags AS \"tags: Json<Vec<Tag>>\"\nFROM\n  bookmarks b\n  LEFT JOIN json_tags jt ON jt.bookmark_id = b.id\nWHERE\n  b.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR b.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR CASE\n      WHEN $5::uuid IS NULL THEN b.folder_id IS NULL\n      ELSE b.folder_id = $5\n    END\n  )\n  AND (\n    $6::BOOLEAN\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        jsonb_array_elements(jt.tags) t\n      WHERE\n        t ->> 'title' = ANY ($7)\n    )\n  )\n  AND (\n    $8::BOOLEAN\n    OR b.created_at > $9\n  )\nORDER BY\n  b.created_at ASC\nLIMIT\n  $10\n",
   "describe": {
     "columns": [
       {
@@ -35,7 +35,7 @@
       },
       {
         "ordinal": 6,
-        "name": "archived_url: DbUrl",
+        "name": "archived_path",
         "type_info": "Text"
       },
       {
@@ -81,5 +81,5 @@
       null
     ]
   },
-  "hash": "8625376bf1600a2da8e60e0f5f7c7eaadf9e86013ec4dc4147306993b7ae99b5"
+  "hash": "c5d72a83cf23c1e9ae881f24562a102471ecc54db65815874261dbb91a600a29"
 }

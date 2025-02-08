@@ -20,7 +20,7 @@ use crate::{
     storage::DynStorage,
 };
 
-const BASE_DIR: &str = "colette";
+const BOOKMARKS_DIR: &str = "bookmarks";
 
 pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
@@ -28,7 +28,6 @@ pub struct BookmarkService {
     object_store: Box<dyn ObjectStore>,
     archive_thumbnail_storage: Arc<Mutex<DynStorage<ArchiveThumbnailJob>>>,
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-    bucket_url: String,
 }
 
 impl BookmarkService {
@@ -38,7 +37,6 @@ impl BookmarkService {
         object_store: impl ObjectStore,
         archive_thumbnail_storage: Arc<Mutex<DynStorage<ArchiveThumbnailJob>>>,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
-        bucket_url: String,
     ) -> Self {
         Self {
             repository: Box::new(repository),
@@ -46,7 +44,6 @@ impl BookmarkService {
             object_store: Box::new(object_store),
             archive_thumbnail_storage,
             plugins,
-            bucket_url,
         }
     }
 
@@ -133,7 +130,7 @@ impl BookmarkService {
             storage
                 .push(ArchiveThumbnailJob {
                     operation: ThumbnailOperation::Upload(thumbnail_url),
-                    archived_url: None,
+                    archived_path: None,
                     bookmark_id: bookmark.id,
                     user_id,
                 })
@@ -168,7 +165,7 @@ impl BookmarkService {
                         } else {
                             ThumbnailOperation::Delete
                         },
-                        archived_url: bookmark.archived_url.clone(),
+                        archived_path: bookmark.archived_path.clone(),
                         bookmark_id: bookmark.id,
                         user_id,
                     })
@@ -189,7 +186,7 @@ impl BookmarkService {
         storage
             .push(ArchiveThumbnailJob {
                 operation: ThumbnailOperation::Delete,
-                archived_url: bookmark.archived_url,
+                archived_path: bookmark.archived_path,
                 bookmark_id: bookmark.id,
                 user_id,
             })
@@ -271,18 +268,15 @@ impl BookmarkService {
                 let format = image::guess_format(&body)?;
                 let extension = format.extensions_str()[0];
 
-                let object_path = format!("{}/{}.{}", BASE_DIR, file_name, extension);
+                let object_path = format!("{}/{}.{}", BOOKMARKS_DIR, file_name, extension);
 
                 self.object_store
                     .put(&Path::parse(&object_path).unwrap(), body.into())
                     .await?;
 
-                let archived_url =
-                    Url::parse(&format!("{}/{}", self.bucket_url, object_path)).unwrap();
-
                 self.repository
                     .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
-                        archived_url: Some(Some(archived_url)),
+                        archived_path: Some(Some(object_path)),
                         ..Default::default()
                     })
                     .await?;
@@ -290,16 +284,14 @@ impl BookmarkService {
             ThumbnailOperation::Delete => {}
         }
 
-        if let Some(archived_url) = data.archived_url {
-            let object_path = archived_url.as_str().replace(&self.bucket_url, "");
-
+        if let Some(archived_path) = data.archived_path {
             self.object_store
-                .delete(&Path::parse(&object_path).unwrap())
+                .delete(&Path::parse(&archived_path).unwrap())
                 .await?;
 
             self.repository
                 .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
-                    archived_url: Some(None),
+                    archived_path: Some(None),
                     ..Default::default()
                 })
                 .await?;
@@ -344,7 +336,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            archived_url: None,
+            archived_path: None,
             folder_id: value.folder_id,
             tags: value.tags,
         }
@@ -374,7 +366,7 @@ pub struct BookmarkPersist {
 #[derive(Debug, Clone)]
 pub struct ThumbnailArchive {
     pub operation: ThumbnailOperation,
-    pub archived_url: Option<Url>,
+    pub archived_path: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -392,7 +384,7 @@ pub struct ScrapeBookmarkJob {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ArchiveThumbnailJob {
     pub operation: ThumbnailOperation,
-    pub archived_url: Option<Url>,
+    pub archived_path: Option<String>,
     pub bookmark_id: Uuid,
     pub user_id: Uuid,
 }

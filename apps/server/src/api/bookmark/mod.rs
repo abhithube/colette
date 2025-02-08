@@ -20,11 +20,15 @@ mod update_bookmark;
 #[derive(Clone, axum::extract::FromRef)]
 pub struct BookmarkState {
     service: Arc<BookmarkService>,
+    bucket_url: Url,
 }
 
 impl BookmarkState {
-    pub fn new(service: Arc<BookmarkService>) -> Self {
-        Self { service }
+    pub fn new(service: Arc<BookmarkService>, bucket_url: Url) -> Self {
+        Self {
+            service,
+            bucket_url,
+        }
     }
 }
 
@@ -66,8 +70,8 @@ pub struct Bookmark {
     pub tags: Option<Vec<Tag>>,
 }
 
-impl From<colette_core::Bookmark> for Bookmark {
-    fn from(value: colette_core::Bookmark) -> Self {
+impl From<(colette_core::Bookmark, Url)> for Bookmark {
+    fn from((value, bucket_url): (colette_core::Bookmark, Url)) -> Self {
         Self {
             id: value.id,
             link: value.link,
@@ -75,7 +79,7 @@ impl From<colette_core::Bookmark> for Bookmark {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author,
-            archived_url: value.archived_url,
+            archived_url: value.archived_path.map(|e| bucket_url.join(&e).unwrap()),
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
         }

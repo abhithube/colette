@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use colette_core::library::LibraryService;
+use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
@@ -11,11 +12,15 @@ mod list_library_items;
 #[derive(Clone, axum::extract::FromRef)]
 pub struct LibraryState {
     service: Arc<LibraryService>,
+    bucket_url: Url,
 }
 
 impl LibraryState {
-    pub fn new(service: Arc<LibraryService>) -> Self {
-        Self { service }
+    pub fn new(service: Arc<LibraryService>, bucket_url: Url) -> Self {
+        Self {
+            service,
+            bucket_url,
+        }
     }
 }
 
@@ -38,12 +43,14 @@ pub enum LibraryItem {
     Bookmark(Bookmark),
 }
 
-impl From<colette_core::LibraryItem> for LibraryItem {
-    fn from(value: colette_core::LibraryItem) -> Self {
+impl From<(colette_core::LibraryItem, Url)> for LibraryItem {
+    fn from((value, bucket_url): (colette_core::LibraryItem, Url)) -> Self {
         match value {
             colette_core::LibraryItem::Folder(folder) => Self::Folder(folder.into()),
             colette_core::LibraryItem::Feed(feed) => Self::Feed(feed.into()),
-            colette_core::LibraryItem::Bookmark(bookmark) => Self::Bookmark(bookmark.into()),
+            colette_core::LibraryItem::Bookmark(bookmark) => {
+                Self::Bookmark((bookmark, bucket_url).into())
+            }
         }
     }
 }

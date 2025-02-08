@@ -46,7 +46,7 @@ pub struct BookmarkUpdateData {
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub archived_url: Option<Option<Url>>,
+    pub archived_path: Option<Option<String>>,
     pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }

@@ -100,7 +100,7 @@ impl Updatable for PostgresBookmarkRepository {
             || data.thumbnail_url.is_some()
             || data.published_at.is_some()
             || data.author.is_some()
-            || data.archived_url.is_some()
+            || data.archived_path.is_some()
             || data.folder_id.is_some()
         {
             let (has_title, title) = match data.title {
@@ -119,8 +119,8 @@ impl Updatable for PostgresBookmarkRepository {
                 Some(author) => (true, author),
                 None => (false, None),
             };
-            let (has_archived_url, archived_url) = match data.archived_url {
-                Some(archived_url) => (true, archived_url.map(DbUrl)),
+            let (has_archived_path, archived_path) = match data.archived_path {
+                Some(archived_path) => (true, archived_path),
                 None => (false, None),
             };
             let (has_folder, folder_id) = match data.folder_id {
@@ -140,8 +140,8 @@ impl Updatable for PostgresBookmarkRepository {
                 published_at,
                 has_author,
                 author,
-                has_archived_url,
-                archived_url as Option<DbUrl>,
+                has_archived_path,
+                archived_path,
                 has_folder,
                 folder_id
             )

@@ -182,12 +182,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let bucket_url = app_config
         .bucket_endpoint_url
-        .origin()
-        .ascii_serialization();
+        .join(&format!("{}/", app_config.bucket_name))
+        .unwrap();
 
     let bucket = AmazonS3Builder::new()
         .with_region(app_config.aws_region)
-        .with_endpoint(&bucket_url)
+        .with_endpoint(
+            app_config
+                .bucket_endpoint_url
+                .origin()
+                .ascii_serialization(),
+        )
         .with_bucket_name(app_config.bucket_name)
         .with_access_key_id(app_config.aws_access_key_id)
         .with_secret_access_key(app_config.aws_secret_access_key)
@@ -217,7 +222,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
         register_bookmark_plugins(http_client.clone()),
-        bucket_url,
     ));
     // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
     //     pool.clone(),
@@ -304,7 +308,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/backups", BackupApi::router())
                 .with_state(BackupState::new(backup_service))
                 .nest("/bookmarks", BookmarkApi::router())
-                .with_state(BookmarkState::new(bookmark_service))
+                .with_state(BookmarkState::new(bookmark_service, bucket_url.clone()))
                 // .nest("/collections", CollectionApi::router())
                 // .with_state(CollectionState::new(collection_service))
                 .nest("/feedEntries", FeedEntryApi::router())
@@ -314,7 +318,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/folders", FolderApi::router())
                 .with_state(FolderState::new(folder_service))
                 .nest("/library", LibraryApi::router())
-                .with_state(LibraryState::new(library_service))
+                .with_state(LibraryState::new(library_service, bucket_url))
                 // .nest("/smartFeeds", SmartFeedApi::router())
                 // .with_state(SmartFeedState::new(smart_feed_service))
                 .nest("/tags", TagApi::router())

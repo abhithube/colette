@@ -21,7 +21,7 @@ pub struct Bookmark {
     pub title: String,
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
-    pub archived_url: Option<Url>,
+    pub archived_path: Option<String>,
     pub author: Option<String>,
     pub folder_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,

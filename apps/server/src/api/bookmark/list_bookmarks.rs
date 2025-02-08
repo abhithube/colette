@@ -1,15 +1,13 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::bookmark::{self, BookmarkService};
+use colette_core::bookmark;
 use uuid::Uuid;
 
-use super::Bookmark;
+use super::{Bookmark, BookmarkState};
 use crate::api::common::{BOOKMARKS_TAG, Error, Paginated, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
@@ -57,12 +55,23 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<BookmarkService>>,
+    State(state): State<BookmarkState>,
     Query(query): Query<BookmarkListQuery>,
     session: Session,
 ) -> Result<ListResponse, Error> {
-    match service.list_bookmarks(query.into(), session.user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
+    match state
+        .service
+        .list_bookmarks(query.into(), session.user_id)
+        .await
+    {
+        Ok(data) => Ok(ListResponse::Ok(Paginated {
+            data: data
+                .data
+                .into_iter()
+                .map(|e| (e, state.bucket_url.clone()).into())
+                .collect(),
+            cursor: data.cursor,
+        })),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }

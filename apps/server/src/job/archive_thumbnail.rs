@@ -12,7 +12,7 @@ pub async fn run(
     if let ThumbnailOperation::Upload(ref thumbnail_url) = job.operation {
         tracing::debug!("Archiving thumbnail URL: {}", thumbnail_url.as_str());
     }
-    if let Some(ref archived_url) = job.archived_url {
+    if let Some(ref archived_url) = job.archived_path {
         tracing::debug!("Archiving archived URL: {}", archived_url.as_str());
     }
 
@@ -20,7 +20,7 @@ pub async fn run(
         job.bookmark_id,
         ThumbnailArchive {
             operation: job.operation,
-            archived_url: job.archived_url,
+            archived_path: job.archived_path,
         },
         job.user_id,
     )

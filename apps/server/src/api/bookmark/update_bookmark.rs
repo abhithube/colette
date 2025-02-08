@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Path, State},
@@ -7,11 +5,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{self, BookmarkService};
+use colette_core::bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use super::Bookmark;
+use super::{Bookmark, BookmarkState};
 use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
@@ -80,16 +78,19 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<BookmarkService>>,
+    State(state): State<BookmarkState>,
     Path(Id(id)): Path<Id>,
     session: Session,
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service
+    match state
+        .service
         .update_bookmark(id, body.into(), session.user_id)
         .await
     {
-        Ok(data) => Ok(UpdateResponse::Ok(Box::new(data.into()))),
+        Ok(data) => Ok(UpdateResponse::Ok(Box::new(
+            (data, state.bucket_url.clone()).into(),
+        ))),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

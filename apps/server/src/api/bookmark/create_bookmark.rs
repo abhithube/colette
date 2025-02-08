@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
@@ -7,11 +5,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{self, BookmarkService};
+use colette_core::bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use super::Bookmark;
+use super::{Bookmark, BookmarkState};
 use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
@@ -54,12 +52,18 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<BookmarkService>>,
+    State(state): State<BookmarkState>,
     session: Session,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service.create_bookmark(body.into(), session.user_id).await {
-        Ok(data) => Ok(CreateResponse::Created(Box::new(data.into()))),
+    match state
+        .service
+        .create_bookmark(body.into(), session.user_id)
+        .await
+    {
+        Ok(data) => Ok(CreateResponse::Created(Box::new(
+            (data, state.bucket_url.clone()).into(),
+        ))),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),

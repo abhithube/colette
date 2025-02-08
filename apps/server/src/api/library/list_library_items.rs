@@ -1,14 +1,12 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Query, State},
     response::{IntoResponse, Response},
 };
-use colette_core::library::{self, LibraryService};
+use colette_core::library;
 use uuid::Uuid;
 
-use super::LibraryItem;
+use super::{LibraryItem, LibraryState};
 use crate::api::common::{Error, LIBRARY_TAG, Paginated, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
@@ -40,15 +38,23 @@ impl From<LibraryItemListQuery> for library::LibraryItemListQuery {
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<LibraryService>>,
+    State(state): State<LibraryState>,
     Query(query): Query<LibraryItemListQuery>,
     session: Session,
 ) -> Result<impl IntoResponse, Error> {
-    match service
+    match state
+        .service
         .list_library_items(query.into(), session.user_id)
         .await
     {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
+        Ok(data) => Ok(ListResponse::Ok(Paginated {
+            data: data
+                .data
+                .into_iter()
+                .map(|e| (e, state.bucket_url.clone()).into())
+                .collect(),
+            cursor: data.cursor,
+        })),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }

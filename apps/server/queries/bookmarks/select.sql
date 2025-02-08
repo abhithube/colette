@@ -24,7 +24,7 @@ SELECT
   b.thumbnail_url AS "thumbnail_url: DbUrl",
   b.published_at,
   b.author,
-  b.archived_url AS "archived_url: DbUrl",
+  b.archived_path,
   b.folder_id,
   b.created_at,
   jt.tags AS "tags: Json<Vec<Tag>>"
