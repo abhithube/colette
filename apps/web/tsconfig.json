@@ -7,7 +7,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["../../packages/react-ui/src/*"]
+      "~/*": ["./src/*"]
     }
   }
 }
