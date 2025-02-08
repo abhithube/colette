@@ -72,7 +72,7 @@ pub struct Outline {
     pub xml_url: Option<String>,
     pub title: Option<String>,
     pub html_url: Option<String>,
-    pub outline: Option<Vec<Outline>>,
+    pub outline: Vec<Outline>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default)]

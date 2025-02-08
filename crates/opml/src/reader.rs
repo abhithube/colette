@@ -65,7 +65,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, Error> {
                     let outline = handle_outline(&reader, e)?;
 
                     if let Some(parent) = outline_stack.last_mut() {
-                        parent.outline.get_or_insert_with(Vec::new).push(outline);
+                        parent.outline.push(outline);
                     } else {
                         opml.body.outlines.push(outline);
                     }
@@ -80,7 +80,7 @@ pub fn from_reader<R: BufRead>(reader: R) -> Result<Opml, Error> {
                 if e.name().as_ref() == b"outline" {
                     if let Some(outline) = outline_stack.pop() {
                         if let Some(parent) = outline_stack.last_mut() {
-                            parent.outline.get_or_insert_with(Vec::new).push(outline);
+                            parent.outline.push(outline);
                         } else {
                             opml.body.outlines.push(outline);
                         }

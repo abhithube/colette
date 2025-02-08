@@ -72,7 +72,7 @@ pub fn from_reader<R: Read>(reader: R) -> Result<Netscape, Error> {
                 b"a" | b"dl" => {
                     if let Some(item) = item_stack.pop() {
                         if let Some(parent) = item_stack.last_mut() {
-                            parent.item.get_or_insert_with(Vec::new).push(item);
+                            parent.item.push(item);
                         } else {
                             netscape.items.push(item);
                         }

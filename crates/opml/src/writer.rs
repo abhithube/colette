@@ -53,10 +53,10 @@ fn write_outlines<W: Write>(
         let attributes_str = attributes.join(" ");
         let indent_str = " ".repeat(4).repeat(level);
 
-        if let Some(children) = &outline.outline {
+        if !outline.outline.is_empty() {
             writeln!(writer, "{}<outline {}>", indent_str, attributes_str)?;
 
-            write_outlines(writer, children, level + 1)?;
+            write_outlines(writer, &outline.outline, level + 1)?;
 
             writeln!(writer, "{}</outline>", indent_str)?;
         } else {

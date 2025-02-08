@@ -32,7 +32,7 @@ impl BackupRepository for PostgresBackupRepository {
         while let Some((parent_id, outline)) = stack.pop() {
             let title = outline.title.unwrap_or(outline.text);
 
-            if let Some(children) = outline.outline {
+            if !outline.outline.is_empty() {
                 let folder_id = sqlx::query_file_scalar!(
                     "queries/folders/upsert.sql",
                     title,
@@ -42,7 +42,7 @@ impl BackupRepository for PostgresBackupRepository {
                 .fetch_one(&mut *tx)
                 .await?;
 
-                for child in children {
+                for child in outline.outline {
                     stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = outline.html_url {
@@ -75,7 +75,7 @@ impl BackupRepository for PostgresBackupRepository {
             items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
-            if let Some(children) = item.item {
+            if !item.item.is_empty() {
                 let folder_id = sqlx::query_file_scalar!(
                     "queries/folders/upsert.sql",
                     item.title,
@@ -85,7 +85,7 @@ impl BackupRepository for PostgresBackupRepository {
                 .fetch_one(&mut *tx)
                 .await?;
 
-                for child in children {
+                for child in item.item {
                     stack.push((Some(folder_id), child));
                 }
             } else if let Some(link) = item.href {

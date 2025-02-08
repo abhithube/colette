@@ -39,7 +39,7 @@ fn write_items<W: Write>(writer: &mut W, items: &[Item], level: usize) -> Result
         let attributes_str = attributes.join(" ");
         let indent_str = " ".repeat(4).repeat(level);
 
-        if let Some(children) = &item.item {
+        if !item.item.is_empty() {
             if attributes_str.is_empty() {
                 writeln!(writer, "{}<DT><H3>{}</H3>", indent_str, item.title)?;
             } else {
@@ -51,7 +51,7 @@ fn write_items<W: Write>(writer: &mut W, items: &[Item], level: usize) -> Result
             }
             writeln!(writer, "{}<DL><p>", indent_str)?;
 
-            write_items(writer, children, level + 1)?;
+            write_items(writer, &item.item, level + 1)?;
 
             writeln!(writer, "{}</DL><p>", indent_str)?;
         } else {

@@ -150,7 +150,7 @@ fn build_opml_hierarchy(
 
         let outline = Outline {
             text: folder.title.clone(),
-            outline: Some(child_outlines),
+            outline: child_outlines,
             ..Default::default()
         };
         outlines.push(outline);
@@ -184,7 +184,7 @@ fn build_netscape_hierarchy(
 
         let item = Item {
             title: folder.title.clone(),
-            item: Some(child_items),
+            item: child_items,
             ..Default::default()
         };
         items.push(item);
