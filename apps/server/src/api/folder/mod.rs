@@ -45,7 +45,7 @@ impl FolderApi {
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
-    #[schema(nullable = false)]
+    #[schema(required)]
     pub parent_id: Option<Uuid>,
 }
 

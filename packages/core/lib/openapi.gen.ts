@@ -129,7 +129,7 @@ export type Folder = z.infer<typeof Folder>;
 export const Folder = z.object({
   id: z.string(),
   title: z.string(),
-  parentId: z.union([z.string(), z.undefined()]).optional(),
+  parentId: z.union([z.string(), z.null()]),
 });
 
 export type FolderCreate = z.infer<typeof FolderCreate>;
@@ -224,7 +224,7 @@ export const Paginated_Folder = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
-      parentId: z.union([z.string(), z.undefined()]).optional(),
+      parentId: z.union([z.string(), z.null()]),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
