@@ -7,6 +7,7 @@ export * from './error'
 export * from './feed'
 export * from './feed-entry'
 export * from './folder'
+export * from './library'
 export {
   BaseError,
   Bookmark,

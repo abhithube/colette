@@ -13,6 +13,7 @@ import {
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
 import { FolderAPI, HTTPFolderAPI } from './folder'
+import { HTTPLibraryAPI, LibraryAPI } from './library'
 import { BaseError, createApiClient } from './openapi.gen'
 // import { HTTPSmartFeedAPI, type SmartFeedAPI } from './smart-feed'
 import { HTTPTagAPI, type TagAPI } from './tag'
@@ -25,6 +26,7 @@ export interface API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   folders: FolderAPI
+  library: LibraryAPI
   // smartFeeds: SmartFeedAPI
   tags: TagAPI
 }
@@ -41,6 +43,7 @@ export class HttpAPI implements API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   folders: FolderAPI
+  library: LibraryAPI
   // smartFeeds: SmartFeedAPI
   tags: TagAPI
 
@@ -99,6 +102,7 @@ export class HttpAPI implements API {
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
     this.folders = new HTTPFolderAPI(client)
+    this.library = new HTTPLibraryAPI(client)
     // this.smartFeeds = new HTTPSmartFeedAPI(client)
     this.tags = new HTTPTagAPI(client)
   }

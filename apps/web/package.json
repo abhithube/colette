@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@colette/core": "*",
+    "@colette/query": "*",
     "@colette/util": "*",
     "@radix-ui/react-alert-dialog": "^1.1.7-rc.3",
     "@radix-ui/react-dialog": "^1.1.7-rc.3",
