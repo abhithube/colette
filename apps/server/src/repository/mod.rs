@@ -7,6 +7,7 @@ pub mod feed_entry;
 pub mod folder;
 pub mod library;
 // pub mod smart_feed;
+pub mod api_key;
 pub mod query;
 pub mod tag;
 pub mod user;

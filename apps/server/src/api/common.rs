@@ -11,6 +11,7 @@ use colette_core::{auth, common};
 use tower_sessions::session;
 use uuid::Uuid;
 
+pub const API_KEYS_TAG: &str = "API Keys";
 pub const AUTH_TAG: &str = "Auth";
 pub const BACKUPS_TAG: &str = "Backups";
 // pub const COLLECTIONS_TAG: &str = "Collections";
@@ -135,6 +136,9 @@ pub enum Error {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CoreError {
+    #[error(transparent)]
+    ApiKey(#[from] colette_core::api_key::Error),
+
     #[error(transparent)]
     Auth(#[from] colette_core::auth::Error),
 

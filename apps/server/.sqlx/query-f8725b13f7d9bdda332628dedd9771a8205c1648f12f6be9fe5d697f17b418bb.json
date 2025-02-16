@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE api_keys\nSET\n  title = CASE\n    WHEN $3 THEN $4\n    ELSE title\n  END\nWHERE\n  id = $1\n  AND user_id = $2\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f8725b13f7d9bdda332628dedd9771a8205c1648f12f6be9fe5d697f17b418bb"
+}

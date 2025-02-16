@@ -1,0 +1,51 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  value_hash,\n  value_preview,\n  title,\n  created_at\nFROM\n  api_keys\nWHERE\n  user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR created_at > $5\n  )\nORDER BY\n  created_at ASC\nLIMIT\n  $6\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "value_hash",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "value_preview",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Timestamptz",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "d1accf2e60b0328344020379154405253ef493e7a151e14236ed1a8184ec47eb"
+}

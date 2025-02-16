@@ -1,4 +1,5 @@
 #![feature(bufreader_peek)]
+pub use api_key::ApiKey;
 pub use bookmark::Bookmark;
 // pub use collection::Collection;
 pub use feed::Feed;
@@ -9,6 +10,7 @@ pub use library::LibraryItem;
 pub use tag::Tag;
 pub use user::User;
 
+pub mod api_key;
 pub mod auth;
 pub mod backup;
 pub mod bookmark;

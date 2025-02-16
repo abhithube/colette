@@ -7,6 +7,7 @@ use apalis::{
 use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
 use api::{
+    api_key::{ApiKeyApi, ApiKeyState},
     auth::{AuthApi, AuthState},
     backup::{BackupApi, BackupState},
     bookmark::{BookmarkApi, BookmarkState},
@@ -23,8 +24,9 @@ use axum::{
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
-    auth::AuthService, backup::BackupService, bookmark::BookmarkService, feed::FeedService,
-    feed_entry::FeedEntryService, folder::FolderService, library::LibraryService, tag::TagService,
+    api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    feed::FeedService, feed_entry::FeedEntryService, folder::FolderService,
+    library::LibraryService, tag::TagService,
 };
 use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -33,10 +35,10 @@ use job::{
 };
 use object_store::aws::AmazonS3Builder;
 use repository::{
-    backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
-    feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
-    folder::PostgresFolderRepository, library::PostgresLibraryRepository,
-    tag::PostgresTagRepository, user::PostgresUserRepository,
+    api_key::PostgresApiKeyRepository, backup::PostgresBackupRepository,
+    bookmark::PostgresBookmarkRepository, feed::PostgresFeedRepository,
+    feed_entry::PostgresFeedEntryRepository, folder::PostgresFolderRepository,
+    library::PostgresLibraryRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
 };
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
@@ -208,6 +210,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
     let import_bookmarks_storage = RedisStorage::new(redis_manager);
 
+    let api_key_service = Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
+        pool.clone(),
+    )));
     let auth_service = Arc::new(AuthService::new(PostgresUserRepository::new(pool.clone())));
     let backup_service = Arc::new(BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
@@ -303,6 +308,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .nest(
             &app_config.api_prefix,
             OpenApiRouter::new()
+                .nest("/apiKeys", ApiKeyApi::router())
+                .with_state(ApiKeyState::new(api_key_service))
                 .nest("/auth", AuthApi::router())
                 .with_state(AuthState::new(auth_service))
                 .nest("/backups", BackupApi::router())

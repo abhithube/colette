@@ -15,6 +15,20 @@ CREATE TRIGGER set_updated_at_users before
 UPDATE ON users FOR each ROW
 EXECUTE procedure set_updated_at ();
 
+CREATE TABLE api_keys (
+  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  value_hash TEXT NOT NULL UNIQUE,
+  value_preview TEXT NOT NULL,
+  title TEXT NOT NULL,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TRIGGER set_updated_at_api_keys before
+UPDATE ON api_keys FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL UNIQUE,
