@@ -10,8 +10,34 @@ use colette_core::feed::{self, FeedService};
 use url::Url;
 use uuid::Uuid;
 
-use super::Feed;
-use crate::api::common::{BaseError, Error, FEEDS_TAG, NonEmptyString, Session};
+use super::{FEEDS_TAG, Feed};
+use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+
+#[utoipa::path(
+    post,
+    path = "",
+    request_body = FeedCreate,
+    responses(CreateResponse),
+    operation_id = "createFeed",
+    description = "Subscribe to a web feed",
+    tag = FEEDS_TAG
+  )]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<FeedService>>,
+    AuthUser(user_id): AuthUser,
+    Json(body): Json<FeedCreate>,
+) -> Result<CreateResponse, Error> {
+    match service.create_feed(body.into(), user_id).await {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
+        Err(e) => match e {
+            feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown(e.into())),
+        },
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -32,32 +58,6 @@ impl From<FeedCreate> for feed::FeedCreate {
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "",
-    request_body = FeedCreate,
-    responses(CreateResponse),
-    operation_id = "createFeed",
-    description = "Subscribe to a web feed",
-    tag = FEEDS_TAG
-  )]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<FeedService>>,
-    session: Session,
-    Json(body): Json<FeedCreate>,
-) -> Result<CreateResponse, Error> {
-    match service.create_feed(body.into(), session.user_id).await {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
-        Err(e) => match e {
-            feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown(e.into())),
-        },
     }
 }
 

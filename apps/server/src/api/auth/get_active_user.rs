@@ -7,8 +7,8 @@ use axum::{
 };
 use colette_core::auth::AuthService;
 
-use super::User;
-use crate::api::common::{AUTH_TAG, Error, Session};
+use super::{AUTH_TAG, User};
+use crate::api::common::{AuthUser, Error};
 
 #[utoipa::path(
   get,
@@ -21,9 +21,9 @@ use crate::api::common::{AUTH_TAG, Error, Session};
 #[axum::debug_handler]
 pub async fn handler(
     State(service): State<Arc<AuthService>>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<GetActiveResponse, Error> {
-    match service.get_active(session.user_id).await {
+    match service.get_active(user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

@@ -9,26 +9,8 @@ use axum::{
 use colette_core::auth::{self, AuthService};
 use email_address::EmailAddress;
 
-use super::User;
-use crate::api::common::{AUTH_TAG, BaseError, Error, NonEmptyString, SESSION_KEY, Session};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Login {
-    #[schema(value_type = String, format = "email")]
-    pub email: EmailAddress,
-    #[schema(value_type = String, min_length = 1)]
-    pub password: NonEmptyString,
-}
-
-impl From<Login> for auth::Login {
-    fn from(value: Login) -> Self {
-        Self {
-            email: value.email.into(),
-            password: value.password.into(),
-        }
-    }
-}
+use super::{AUTH_TAG, User};
+use crate::api::common::{BaseError, Error, NonEmptyString, SESSION_KEY};
 
 #[utoipa::path(
   post,
@@ -47,8 +29,7 @@ pub async fn handler(
 ) -> Result<LoginResponse, Error> {
     match service.login(body.into()).await {
         Ok(data) => {
-            let session = Session { user_id: data.id };
-            session_store.insert(SESSION_KEY, session).await?;
+            session_store.insert(SESSION_KEY, data.id).await?;
 
             Ok(LoginResponse::Ok(data.into()))
         }
@@ -58,6 +39,24 @@ pub async fn handler(
             })),
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Login {
+    #[schema(value_type = String, format = "email")]
+    pub email: EmailAddress,
+    #[schema(value_type = String, min_length = 1)]
+    pub password: NonEmptyString,
+}
+
+impl From<Login> for auth::Login {
+    fn from(value: Login) -> Self {
+        Self {
+            email: value.email.into(),
+            password: value.password.into(),
+        }
     }
 }
 

@@ -13,16 +13,7 @@ mod get_folder;
 mod list_folders;
 mod update_folder;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FolderState {
-    service: Arc<FolderService>,
-}
-
-impl FolderState {
-    pub fn new(service: Arc<FolderService>) -> Self {
-        Self { service }
-    }
-}
+pub const FOLDERS_TAG: &str = "Folders";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Folder, Paginated<Folder>, create_folder::FolderCreate, update_folder::FolderUpdate)))]
@@ -38,6 +29,11 @@ impl FolderApi {
                 delete_folder::handler
             ))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct FolderState {
+    pub service: Arc<FolderService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

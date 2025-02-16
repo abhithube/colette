@@ -9,8 +9,29 @@ use axum_extra::extract::Query;
 use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
-use super::Folder;
-use crate::api::common::{Error, FOLDERS_TAG, Paginated, Session};
+use super::{FOLDERS_TAG, Folder};
+use crate::api::common::{AuthUser, Error, Paginated};
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(FolderListQuery),
+    responses(ListResponse),
+    operation_id = "listFolders",
+    description = "List user folders",
+    tag = FOLDERS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<FolderService>>,
+    Query(query): Query<FolderListQuery>,
+    AuthUser(user_id): AuthUser,
+) -> Result<impl IntoResponse, Error> {
+    match service.list_folders(query.into(), user_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -30,27 +51,6 @@ impl From<FolderListQuery> for folder::FolderListQuery {
                 None
             },
         }
-    }
-}
-
-#[utoipa::path(
-    get,
-    path = "",
-    params(FolderListQuery),
-    responses(ListResponse),
-    operation_id = "listFolders",
-    description = "List user folders",
-    tag = FOLDERS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<FolderService>>,
-    Query(query): Query<FolderListQuery>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    match service.list_folders(query.into(), session.user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

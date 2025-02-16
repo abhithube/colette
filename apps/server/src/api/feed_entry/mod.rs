@@ -13,16 +13,7 @@ mod get_feed_entry;
 mod list_feed_entries;
 mod update_feed_entry;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FeedEntryState {
-    service: Arc<FeedEntryService>,
-}
-
-impl FeedEntryState {
-    pub fn new(service: Arc<FeedEntryService>) -> Self {
-        Self { service }
-    }
-}
+pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(FeedEntry, Paginated<FeedEntry>, update_feed_entry::FeedEntryUpdate)))]
@@ -34,6 +25,11 @@ impl FeedEntryApi {
             .routes(routes!(list_feed_entries::handler))
             .routes(routes!(get_feed_entry::handler, update_feed_entry::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct FeedEntryState {
+    pub service: Arc<FeedEntryService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

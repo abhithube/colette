@@ -7,8 +7,36 @@ use axum_extra::extract::Query;
 use colette_core::bookmark;
 use uuid::Uuid;
 
-use super::{Bookmark, BookmarkState};
-use crate::api::common::{BOOKMARKS_TAG, Error, Paginated, Session};
+use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
+use crate::api::common::{AuthUser, Error, Paginated};
+
+#[utoipa::path(
+  get,
+  path = "",
+  params(BookmarkListQuery),
+  responses(ListResponse),
+  operation_id = "listBookmarks",
+  description = "List user bookmarks",
+  tag = BOOKMARKS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(state): State<BookmarkState>,
+    Query(query): Query<BookmarkListQuery>,
+    AuthUser(user_id): AuthUser,
+) -> Result<ListResponse, Error> {
+    match state.service.list_bookmarks(query.into(), user_id).await {
+        Ok(data) => Ok(ListResponse::Ok(Paginated {
+            data: data
+                .data
+                .into_iter()
+                .map(|e| (e, state.bucket_url.clone()).into())
+                .collect(),
+            cursor: data.cursor,
+        })),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -41,38 +69,6 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
             },
             cursor: value.cursor,
         }
-    }
-}
-
-#[utoipa::path(
-  get,
-  path = "",
-  params(BookmarkListQuery),
-  responses(ListResponse),
-  operation_id = "listBookmarks",
-  description = "List user bookmarks",
-  tag = BOOKMARKS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(state): State<BookmarkState>,
-    Query(query): Query<BookmarkListQuery>,
-    session: Session,
-) -> Result<ListResponse, Error> {
-    match state
-        .service
-        .list_bookmarks(query.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(ListResponse::Ok(Paginated {
-            data: data
-                .data
-                .into_iter()
-                .map(|e| (e, state.bucket_url.clone()).into())
-                .collect(),
-            cursor: data.cursor,
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

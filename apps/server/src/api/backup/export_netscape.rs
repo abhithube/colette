@@ -7,7 +7,8 @@ use axum::{
 };
 use colette_core::backup::BackupService;
 
-use crate::api::common::{BACKUPS_TAG, Error, Session};
+use super::BACKUPS_TAG;
+use crate::api::common::{AuthUser, Error};
 
 #[utoipa::path(
   post,
@@ -20,9 +21,9 @@ use crate::api::common::{BACKUPS_TAG, Error, Session};
 #[axum::debug_handler]
 pub async fn handler(
     State(service): State<Arc<BackupService>>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<ExportNetscapeResponse, Error> {
-    match service.export_netscape(session.user_id).await {
+    match service.export_netscape(user_id).await {
         Ok(data) => Ok(ExportNetscapeResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

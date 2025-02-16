@@ -8,23 +8,8 @@ use axum::{
 };
 use colette_core::tag::{self, TagService};
 
-use super::Tag;
-use crate::api::common::{BaseError, Error, Id, NonEmptyString, Session, TAGS_TAG};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TagUpdate {
-    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
-    pub title: Option<NonEmptyString>,
-}
-
-impl From<TagUpdate> for tag::TagUpdate {
-    fn from(value: TagUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-        }
-    }
-}
+use super::{TAGS_TAG, Tag};
+use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
 
 #[utoipa::path(
     patch,
@@ -40,10 +25,10 @@ impl From<TagUpdate> for tag::TagUpdate {
 pub async fn handler(
     State(service): State<Arc<TagService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
     Json(body): Json<TagUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service.update_tag(id, body.into(), session.user_id).await {
+    match service.update_tag(id, body.into(), user_id).await {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -51,6 +36,21 @@ pub async fn handler(
             })),
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TagUpdate {
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
+    pub title: Option<NonEmptyString>,
+}
+
+impl From<TagUpdate> for tag::TagUpdate {
+    fn from(value: TagUpdate) -> Self {
+        Self {
+            title: value.title.map(Into::into),
+        }
     }
 }
 

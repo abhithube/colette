@@ -11,17 +11,7 @@ use colette_core::{auth, common};
 use tower_sessions::session;
 use uuid::Uuid;
 
-pub const API_KEYS_TAG: &str = "API Keys";
-pub const AUTH_TAG: &str = "Auth";
-pub const BACKUPS_TAG: &str = "Backups";
-// pub const COLLECTIONS_TAG: &str = "Collections";
-pub const BOOKMARKS_TAG: &str = "Bookmarks";
-pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
-pub const FEEDS_TAG: &str = "Feeds";
-pub const FOLDERS_TAG: &str = "Folders";
-pub const LIBRARY_TAG: &str = "Library";
-// pub const SMART_FEEDS_TAG: &str = "Smart Feeds";
-pub const TAGS_TAG: &str = "Tags";
+pub const SESSION_KEY: &str = "session";
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
@@ -76,14 +66,10 @@ where
     }
 }
 
-pub const SESSION_KEY: &str = "session";
+#[derive(Debug, Clone)]
+pub struct AuthUser(pub Uuid);
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct Session {
-    pub user_id: Uuid,
-}
-
-impl<S> FromRequestParts<S> for Session
+impl<S> FromRequestParts<S> for AuthUser
 where
     S: Send + Sync,
 {
@@ -94,13 +80,13 @@ where
             .await
             .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
 
-        let session = session_store
-            .get::<Session>(SESSION_KEY)
+        let user_id = session_store
+            .get::<Uuid>(SESSION_KEY)
             .await
             .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?
             .ok_or(Error::Auth(auth::Error::NotAuthenticated))?;
 
-        Ok(session)
+        Ok(AuthUser(user_id))
     }
 }
 

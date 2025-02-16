@@ -9,16 +9,7 @@ mod export_opml;
 mod import_netscape;
 mod import_opml;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct BackupState {
-    backup_service: Arc<BackupService>,
-}
-
-impl BackupState {
-    pub fn new(backup_service: Arc<BackupService>) -> Self {
-        Self { backup_service }
-    }
-}
+pub const BACKUPS_TAG: &str = "Backups";
 
 #[derive(OpenApi)]
 pub struct BackupApi;
@@ -31,4 +22,9 @@ impl BackupApi {
             .routes(routes!(import_netscape::handler))
             .routes(routes!(export_netscape::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct BackupState {
+    pub service: Arc<BackupService>,
 }

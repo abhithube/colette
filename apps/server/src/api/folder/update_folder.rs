@@ -9,8 +9,36 @@ use axum::{
 use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
-use super::Folder;
-use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, NonEmptyString, Session};
+use super::{FOLDERS_TAG, Folder};
+use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
+
+#[utoipa::path(
+    patch,
+    path = "/{id}",
+    params(Id),
+    request_body = FolderUpdate,
+    responses(UpdateResponse),
+    operation_id = "updateFolder",
+    description = "Update a folder by ID",
+    tag = FOLDERS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<FolderService>>,
+    Path(Id(id)): Path<Id>,
+    AuthUser(user_id): AuthUser,
+    Json(body): Json<FolderUpdate>,
+) -> Result<impl IntoResponse, Error> {
+    match service.update_folder(id, body.into(), user_id).await {
+        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
+        Err(e) => match e {
+            folder::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            e => Err(Error::Unknown(e.into())),
+        },
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -31,37 +59,6 @@ impl From<FolderUpdate> for folder::FolderUpdate {
             title: value.title.map(Into::into),
             parent_id: value.parent_id,
         }
-    }
-}
-
-#[utoipa::path(
-    patch,
-    path = "/{id}",
-    params(Id),
-    request_body = FolderUpdate,
-    responses(UpdateResponse),
-    operation_id = "updateFolder",
-    description = "Update a folder by ID",
-    tag = FOLDERS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<FolderService>>,
-    Path(Id(id)): Path<Id>,
-    session: Session,
-    Json(body): Json<FolderUpdate>,
-) -> Result<impl IntoResponse, Error> {
-    match service
-        .update_folder(id, body.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
-        Err(e) => match e {
-            folder::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
-        },
     }
 }
 

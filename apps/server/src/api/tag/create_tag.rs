@@ -8,23 +8,8 @@ use axum::{
 };
 use colette_core::tag::{self, TagService};
 
-use super::Tag;
-use crate::api::common::{BaseError, Error, NonEmptyString, Session, TAGS_TAG};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct TagCreate {
-    #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
-}
-
-impl From<TagCreate> for tag::TagCreate {
-    fn from(value: TagCreate) -> Self {
-        Self {
-            title: value.title.into(),
-        }
-    }
-}
+use super::{TAGS_TAG, Tag};
+use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
 
 #[utoipa::path(
   post,
@@ -38,10 +23,10 @@ impl From<TagCreate> for tag::TagCreate {
 #[axum::debug_handler]
 pub async fn handler(
     State(service): State<Arc<TagService>>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
     Json(body): Json<TagCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service.create_tag(body.into(), session.user_id).await {
+    match service.create_tag(body.into(), user_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
@@ -49,6 +34,21 @@ pub async fn handler(
             })),
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TagCreate {
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
+}
+
+impl From<TagCreate> for tag::TagCreate {
+    fn from(value: TagCreate) -> Self {
+        Self {
+            title: value.title.into(),
+        }
     }
 }
 

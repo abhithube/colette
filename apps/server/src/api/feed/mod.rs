@@ -15,16 +15,7 @@ mod get_feed;
 mod list_feeds;
 mod update_feed;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FeedState {
-    service: Arc<FeedService>,
-}
-
-impl FeedState {
-    pub fn new(service: Arc<FeedService>) -> Self {
-        Self { service }
-    }
-}
+pub const FEEDS_TAG: &str = "Feeds";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(
@@ -50,6 +41,11 @@ impl FeedApi {
             ))
             .routes(routes!(detect_feeds::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct FeedState {
+    pub service: Arc<FeedService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

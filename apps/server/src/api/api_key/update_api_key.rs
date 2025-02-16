@@ -8,23 +8,8 @@ use axum::{
 };
 use colette_core::api_key::{self, ApiKeyService};
 
-use super::ApiKey;
-use crate::api::common::{API_KEYS_TAG, BaseError, Error, Id, NonEmptyString, Session};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct ApiKeyUpdate {
-    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
-    pub title: Option<NonEmptyString>,
-}
-
-impl From<ApiKeyUpdate> for api_key::ApiKeyUpdate {
-    fn from(value: ApiKeyUpdate) -> Self {
-        Self {
-            title: value.title.map(Into::into),
-        }
-    }
-}
+use super::{API_KEYS_TAG, ApiKey};
+use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
 
 #[utoipa::path(
     patch,
@@ -40,13 +25,10 @@ impl From<ApiKeyUpdate> for api_key::ApiKeyUpdate {
 pub async fn handler(
     State(service): State<Arc<ApiKeyService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
     Json(body): Json<ApiKeyUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    match service
-        .update_api_key(id, body.into(), session.user_id)
-        .await
-    {
+    match service.update_api_key(id, body.into(), user_id).await {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             api_key::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -54,6 +36,21 @@ pub async fn handler(
             })),
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiKeyUpdate {
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
+    pub title: Option<NonEmptyString>,
+}
+
+impl From<ApiKeyUpdate> for api_key::ApiKeyUpdate {
+    fn from(value: ApiKeyUpdate) -> Self {
+        Self {
+            title: value.title.map(Into::into),
+        }
     }
 }
 

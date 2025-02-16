@@ -9,20 +9,7 @@ use super::{bookmark::Bookmark, common::Paginated, feed::Feed, folder::Folder};
 
 mod list_library_items;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct LibraryState {
-    service: Arc<LibraryService>,
-    bucket_url: Url,
-}
-
-impl LibraryState {
-    pub fn new(service: Arc<LibraryService>, bucket_url: Url) -> Self {
-        Self {
-            service,
-            bucket_url,
-        }
-    }
-}
+pub const LIBRARY_TAG: &str = "Library";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(LibraryItem, Paginated<LibraryItem>)))]
@@ -33,6 +20,12 @@ impl LibraryApi {
         OpenApiRouter::with_openapi(LibraryApi::openapi())
             .routes(routes!(list_library_items::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct LibraryState {
+    pub service: Arc<LibraryService>,
+    pub bucket_url: Url,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

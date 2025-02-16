@@ -12,26 +12,8 @@ use colette_core::{
 };
 use email_address::EmailAddress;
 
-use super::User;
-use crate::api::common::{AUTH_TAG, BaseError, Error, NonEmptyString};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct Register {
-    #[schema(value_type = String, format = "email")]
-    pub email: EmailAddress,
-    #[schema(value_type = String, min_length = 1)]
-    pub password: NonEmptyString,
-}
-
-impl From<Register> for auth::Register {
-    fn from(value: Register) -> Self {
-        Self {
-            email: value.email.into(),
-            password: value.password.into(),
-        }
-    }
-}
+use super::{AUTH_TAG, User};
+use crate::api::common::{BaseError, Error, NonEmptyString};
 
 #[utoipa::path(
     post,
@@ -57,6 +39,24 @@ pub async fn handler(
             }
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct Register {
+    #[schema(value_type = String, format = "email")]
+    pub email: EmailAddress,
+    #[schema(value_type = String, min_length = 1)]
+    pub password: NonEmptyString,
+}
+
+impl From<Register> for auth::Register {
+    fn from(value: Register) -> Self {
+        Self {
+            email: value.email.into(),
+            password: value.password.into(),
+        }
     }
 }
 

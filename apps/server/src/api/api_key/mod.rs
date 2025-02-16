@@ -14,16 +14,7 @@ mod get_api_key;
 mod list_api_keys;
 mod update_api_key;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct ApiKeyState {
-    service: Arc<ApiKeyService>,
-}
-
-impl ApiKeyState {
-    pub fn new(service: Arc<ApiKeyService>) -> Self {
-        Self { service }
-    }
-}
+pub const API_KEYS_TAG: &str = "API Keys";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(ApiKey, Paginated<ApiKey>, create_api_key::ApiKeyCreate, create_api_key::ApiKeyCreated, update_api_key::ApiKeyUpdate)))]
@@ -39,6 +30,11 @@ impl ApiKeyApi {
                 delete_api_key::handler
             ))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct ApiKeyState {
+    pub service: Arc<ApiKeyService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

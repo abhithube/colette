@@ -7,8 +7,29 @@ use axum::{
 };
 use colette_core::tag::{self, TagService};
 
-use super::Tag;
-use crate::api::common::{Error, Paginated, Session, TAGS_TAG};
+use super::{TAGS_TAG, Tag};
+use crate::api::common::{AuthUser, Error, Paginated};
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(TagListQuery),
+    responses(ListResponse),
+    operation_id = "listTags",
+    description = "List user tags",
+    tag = TAGS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<TagService>>,
+    Query(query): Query<TagListQuery>,
+    AuthUser(user_id): AuthUser,
+) -> Result<ListResponse, Error> {
+    match service.list_tags(query.into(), user_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -43,27 +64,6 @@ impl From<TagType> for tag::TagType {
             TagType::Bookmarks => Self::Bookmarks,
             TagType::Feeds => Self::Feeds,
         }
-    }
-}
-
-#[utoipa::path(
-    get,
-    path = "",
-    params(TagListQuery),
-    responses(ListResponse),
-    operation_id = "listTags",
-    description = "List user tags",
-    tag = TAGS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<TagService>>,
-    Query(query): Query<TagListQuery>,
-    session: Session,
-) -> Result<ListResponse, Error> {
-    match service.list_tags(query.into(), session.user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

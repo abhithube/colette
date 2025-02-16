@@ -13,16 +13,7 @@ mod get_tag;
 mod list_tags;
 mod update_tag;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct TagState {
-    service: Arc<TagService>,
-}
-
-impl TagState {
-    pub fn new(service: Arc<TagService>) -> Self {
-        Self { service }
-    }
-}
+pub const TAGS_TAG: &str = "Tags";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Tag, Paginated<Tag>, create_tag::TagCreate, update_tag::TagUpdate)))]
@@ -38,6 +29,11 @@ impl TagApi {
                 delete_tag::handler
             ))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct TagState {
+    pub service: Arc<TagService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

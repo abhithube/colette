@@ -9,8 +9,36 @@ use colette_core::bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use super::{Bookmark, BookmarkState};
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, NonEmptyString, Session};
+use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
+use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+
+#[utoipa::path(
+  post,
+  path = "",
+  request_body = BookmarkCreate,
+  responses(CreateResponse),
+  operation_id = "createBookmark",
+  description = "Add a bookmark",
+  tag = BOOKMARKS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(state): State<BookmarkState>,
+    AuthUser(user_id): AuthUser,
+    Json(body): Json<BookmarkCreate>,
+) -> Result<CreateResponse, Error> {
+    match state.service.create_bookmark(body.into(), user_id).await {
+        Ok(data) => Ok(CreateResponse::Created(
+            (data, state.bucket_url.clone()).into(),
+        )),
+        Err(e) => match e {
+            bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
+            _ => Err(Error::Unknown(e.into())),
+        },
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -38,38 +66,6 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
             folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
-    }
-}
-
-#[utoipa::path(
-  post,
-  path = "",
-  request_body = BookmarkCreate,
-  responses(CreateResponse),
-  operation_id = "createBookmark",
-  description = "Add a bookmark",
-  tag = BOOKMARKS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(state): State<BookmarkState>,
-    session: Session,
-    Json(body): Json<BookmarkCreate>,
-) -> Result<CreateResponse, Error> {
-    match state
-        .service
-        .create_bookmark(body.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(CreateResponse::Created(
-            (data, state.bucket_url.clone()).into(),
-        )),
-        Err(e) => match e {
-            bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown(e.into())),
-        },
     }
 }
 

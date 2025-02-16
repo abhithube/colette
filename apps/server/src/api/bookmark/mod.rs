@@ -17,20 +17,7 @@ mod list_bookmarks;
 mod scrape_bookmark;
 mod update_bookmark;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct BookmarkState {
-    service: Arc<BookmarkService>,
-    bucket_url: Url,
-}
-
-impl BookmarkState {
-    pub fn new(service: Arc<BookmarkService>, bucket_url: Url) -> Self {
-        Self {
-            service,
-            bucket_url,
-        }
-    }
-}
+pub const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Bookmark, Paginated<Bookmark>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped)))]
@@ -47,6 +34,12 @@ impl BookmarkApi {
             ))
             .routes(routes!(scrape_bookmark::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct BookmarkState {
+    pub service: Arc<BookmarkService>,
+    pub bucket_url: Url,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

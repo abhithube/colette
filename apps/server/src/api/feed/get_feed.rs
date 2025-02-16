@@ -8,8 +8,8 @@ use axum::{
 };
 use colette_core::feed::{self, FeedService};
 
-use super::Feed;
-use crate::api::common::{BaseError, Error, FEEDS_TAG, Id, Session};
+use super::{FEEDS_TAG, Feed};
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     get,
@@ -24,9 +24,9 @@ use crate::api::common::{BaseError, Error, FEEDS_TAG, Id, Session};
 pub async fn handler(
     State(service): State<Arc<FeedService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match service.get_feed(id, session.user_id).await {
+    match service.get_feed(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {

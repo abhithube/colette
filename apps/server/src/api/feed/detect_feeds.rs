@@ -9,7 +9,31 @@ use axum::{
 use colette_core::feed::{self, FeedService};
 use url::Url;
 
-use crate::api::common::{BaseError, Error, FEEDS_TAG};
+use super::FEEDS_TAG;
+use crate::api::common::{BaseError, Error};
+
+#[utoipa::path(
+    post,
+    path = "/detect",
+    request_body = FeedDetect,
+    responses(DetectResponse),
+    operation_id = "detectFeeds",
+    description = "Detects web feeds on a page",
+    tag = FEEDS_TAG
+  )]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<FeedService>>,
+    Json(body): Json<FeedDetect>,
+) -> Result<DetectResponse, Error> {
+    match service.detect_feeds(body.into()).await {
+        Ok(data) => Ok(DetectResponse::Ok(data.into())),
+        Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
+            message: e.to_string(),
+        })),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -70,29 +94,6 @@ impl From<feed::DetectedResponse> for DetectedResponse {
             }
             feed::DetectedResponse::Processed(feed) => Self::Processed(feed.into()),
         }
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/detect",
-    request_body = FeedDetect,
-    responses(DetectResponse),
-    operation_id = "detectFeeds",
-    description = "Detects web feeds on a page",
-    tag = FEEDS_TAG
-  )]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<FeedService>>,
-    Json(body): Json<FeedDetect>,
-) -> Result<DetectResponse, Error> {
-    match service.detect_feeds(body.into()).await {
-        Ok(data) => Ok(DetectResponse::Ok(data.into())),
-        Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

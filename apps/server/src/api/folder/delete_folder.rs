@@ -7,7 +7,8 @@ use axum::{
 };
 use colette_core::folder::{self, FolderService};
 
-use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
+use super::FOLDERS_TAG;
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     delete,
@@ -22,9 +23,9 @@ use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
 pub async fn handler(
     State(service): State<Arc<FolderService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete_folder(id, session.user_id).await {
+    match service.delete_folder(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

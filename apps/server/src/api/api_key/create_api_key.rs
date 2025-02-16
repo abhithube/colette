@@ -10,7 +10,34 @@ use chrono::{DateTime, Utc};
 use colette_core::api_key::{self, ApiKeyService};
 use uuid::Uuid;
 
-use crate::api::common::{API_KEYS_TAG, BaseError, Error, NonEmptyString, Session};
+use super::API_KEYS_TAG;
+use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+
+#[utoipa::path(
+  post,
+  path = "",
+  request_body = ApiKeyCreate,
+  responses(CreateResponse),
+  operation_id = "createApiKey",
+  description = "Create a API key",
+  tag = API_KEYS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<ApiKeyService>>,
+    AuthUser(user_id): AuthUser,
+    Json(body): Json<ApiKeyCreate>,
+) -> Result<impl IntoResponse, Error> {
+    match service.create_api_key(body.into(), user_id).await {
+        Ok(data) => Ok(CreateResponse::Created(data.into())),
+        Err(e) => match e {
+            api_key::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+                message: e.to_string(),
+            })),
+            e => Err(Error::Unknown(e.into())),
+        },
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -44,32 +71,6 @@ impl From<api_key::ApiKeyCreated> for ApiKeyCreated {
             title: value.title,
             created_at: value.created_at,
         }
-    }
-}
-
-#[utoipa::path(
-  post,
-  path = "",
-  request_body = ApiKeyCreate,
-  responses(CreateResponse),
-  operation_id = "createApiKey",
-  description = "Create a API key",
-  tag = API_KEYS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<ApiKeyService>>,
-    session: Session,
-    Json(body): Json<ApiKeyCreate>,
-) -> Result<impl IntoResponse, Error> {
-    match service.create_api_key(body.into(), session.user_id).await {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
-        Err(e) => match e {
-            api_key::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
-        },
     }
 }
 

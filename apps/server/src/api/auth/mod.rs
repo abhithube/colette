@@ -10,16 +10,7 @@ mod login;
 mod logout;
 mod register;
 
-#[derive(Clone, axum::extract::FromRef)]
-pub struct AuthState {
-    auth_service: Arc<AuthService>,
-}
-
-impl AuthState {
-    pub fn new(auth_service: Arc<AuthService>) -> Self {
-        Self { auth_service }
-    }
-}
+pub const AUTH_TAG: &str = "Auth";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(register::Register, login::Login, User)))]
@@ -33,6 +24,11 @@ impl AuthApi {
             .routes(routes!(get_active_user::handler))
             .routes(routes!(logout::handler))
     }
+}
+
+#[derive(Clone, axum::extract::FromRef)]
+pub struct AuthState {
+    pub service: Arc<AuthService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

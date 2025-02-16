@@ -9,8 +9,29 @@ use axum_extra::extract::Query;
 use colette_core::feed_entry::{self, FeedEntryService};
 use uuid::Uuid;
 
-use super::FeedEntry;
-use crate::api::common::{Error, FEED_ENTRIES_TAG, Paginated, Session};
+use super::{FEED_ENTRIES_TAG, FeedEntry};
+use crate::api::common::{AuthUser, Error, Paginated};
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(FeedEntryListQuery),
+    responses(ListResponse),
+    operation_id = "listFeedEntries",
+    description = "List feed entries",
+    tag = FEED_ENTRIES_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<FeedEntryService>>,
+    Query(query): Query<FeedEntryListQuery>,
+    AuthUser(user_id): AuthUser,
+) -> Result<ListResponse, Error> {
+    match service.list_feed_entries(query.into(), user_id).await {
+        Ok(data) => Ok(ListResponse::Ok(data.into())),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -38,30 +59,6 @@ impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
             tags: value.tags,
             cursor: value.cursor,
         }
-    }
-}
-
-#[utoipa::path(
-    get,
-    path = "",
-    params(FeedEntryListQuery),
-    responses(ListResponse),
-    operation_id = "listFeedEntries",
-    description = "List feed entries",
-    tag = FEED_ENTRIES_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<FeedEntryService>>,
-    Query(query): Query<FeedEntryListQuery>,
-    session: Session,
-) -> Result<ListResponse, Error> {
-    match service
-        .list_feed_entries(query.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

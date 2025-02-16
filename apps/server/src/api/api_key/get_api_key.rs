@@ -8,8 +8,8 @@ use axum::{
 };
 use colette_core::api_key::{self, ApiKeyService};
 
-use super::ApiKey;
-use crate::api::common::{API_KEYS_TAG, BaseError, Error, Id, Session};
+use super::{API_KEYS_TAG, ApiKey};
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     get,
@@ -24,9 +24,9 @@ use crate::api::common::{API_KEYS_TAG, BaseError, Error, Id, Session};
 pub async fn handler(
     State(service): State<Arc<ApiKeyService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get_api_key(id, session.user_id).await {
+    match service.get_api_key(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             api_key::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {

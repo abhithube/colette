@@ -7,7 +7,8 @@ use axum::{
 };
 use colette_core::bookmark::{self, BookmarkService};
 
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
+use super::BOOKMARKS_TAG;
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
   delete,
@@ -22,9 +23,9 @@ use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
 pub async fn handler(
     State(service): State<Arc<BookmarkService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_bookmark(id, session.user_id).await {
+    match service.delete_bookmark(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

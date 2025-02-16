@@ -8,22 +8,8 @@ use axum::{
 };
 use colette_core::feed_entry::{self, FeedEntryService};
 
-use super::FeedEntry;
-use crate::api::common::{BaseError, Error, FEED_ENTRIES_TAG, Id, Session};
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedEntryUpdate {
-    pub has_read: Option<bool>,
-}
-
-impl From<FeedEntryUpdate> for feed_entry::FeedEntryUpdate {
-    fn from(value: FeedEntryUpdate) -> Self {
-        Self {
-            has_read: value.has_read,
-        }
-    }
-}
+use super::{FEED_ENTRIES_TAG, FeedEntry};
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     patch,
@@ -39,13 +25,10 @@ impl From<FeedEntryUpdate> for feed_entry::FeedEntryUpdate {
 pub async fn handler(
     State(service): State<Arc<FeedEntryService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
     Json(body): Json<FeedEntryUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service
-        .update_feed_entry(id, body.into(), session.user_id)
-        .await
-    {
+    match service.update_feed_entry(id, body.into(), user_id).await {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
@@ -53,6 +36,20 @@ pub async fn handler(
             })),
             e => Err(Error::Unknown(e.into())),
         },
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct FeedEntryUpdate {
+    pub has_read: Option<bool>,
+}
+
+impl From<FeedEntryUpdate> for feed_entry::FeedEntryUpdate {
+    fn from(value: FeedEntryUpdate) -> Self {
+        Self {
+            has_read: value.has_read,
+        }
     }
 }
 

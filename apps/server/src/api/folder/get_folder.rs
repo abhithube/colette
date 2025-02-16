@@ -8,8 +8,8 @@ use axum::{
 };
 use colette_core::folder::{self, FolderService};
 
-use super::Folder;
-use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
+use super::{FOLDERS_TAG, Folder};
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     get,
@@ -24,9 +24,9 @@ use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
 pub async fn handler(
     State(service): State<Arc<FolderService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
-    match service.get_folder(id, session.user_id).await {
+    match service.get_folder(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {

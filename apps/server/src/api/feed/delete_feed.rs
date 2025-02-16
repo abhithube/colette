@@ -7,7 +7,8 @@ use axum::{
 };
 use colette_core::feed::{self, FeedService};
 
-use crate::api::common::{BaseError, Error, FEEDS_TAG, Id, Session};
+use super::FEEDS_TAG;
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     delete,
@@ -22,9 +23,9 @@ use crate::api::common::{BaseError, Error, FEEDS_TAG, Id, Session};
 pub async fn handler(
     State(service): State<Arc<FeedService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_feed(id, session.user_id).await {
+    match service.delete_feed(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

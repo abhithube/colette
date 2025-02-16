@@ -6,8 +6,40 @@ use axum::{
 use colette_core::library;
 use uuid::Uuid;
 
-use super::{LibraryItem, LibraryState};
-use crate::api::common::{Error, LIBRARY_TAG, Paginated, Session};
+use super::{LIBRARY_TAG, LibraryItem, LibraryState};
+use crate::api::common::{AuthUser, Error, Paginated};
+
+#[utoipa::path(
+    get,
+    path = "",
+    params(LibraryItemListQuery),
+    responses(ListResponse),
+    operation_id = "listLibraryItems",
+    description = "List user library items, consisting of folders, feeds, and bookmarks",
+    tag = LIBRARY_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(state): State<LibraryState>,
+    Query(query): Query<LibraryItemListQuery>,
+    AuthUser(user_id): AuthUser,
+) -> Result<impl IntoResponse, Error> {
+    match state
+        .service
+        .list_library_items(query.into(), user_id)
+        .await
+    {
+        Ok(data) => Ok(ListResponse::Ok(Paginated {
+            data: data
+                .data
+                .into_iter()
+                .map(|e| (e, state.bucket_url.clone()).into())
+                .collect(),
+            cursor: data.cursor,
+        })),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
@@ -27,37 +59,6 @@ impl From<LibraryItemListQuery> for library::LibraryItemListQuery {
     }
 }
 
-#[utoipa::path(
-    get,
-    path = "",
-    params(LibraryItemListQuery),
-    responses(ListResponse),
-    operation_id = "listLibraryItems",
-    description = "List user library items, consisting of folders, feeds, and bookmarks",
-    tag = LIBRARY_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(state): State<LibraryState>,
-    Query(query): Query<LibraryItemListQuery>,
-    session: Session,
-) -> Result<impl IntoResponse, Error> {
-    match state
-        .service
-        .list_library_items(query.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(ListResponse::Ok(Paginated {
-            data: data
-                .data
-                .into_iter()
-                .map(|e| (e, state.bucket_url.clone()).into())
-                .collect(),
-            cursor: data.cursor,
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
-    }
-}
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of folders")]

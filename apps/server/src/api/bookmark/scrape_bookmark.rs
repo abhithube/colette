@@ -10,7 +10,31 @@ use chrono::{DateTime, Utc};
 use colette_core::bookmark::{self, BookmarkService};
 use url::Url;
 
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error};
+use super::BOOKMARKS_TAG;
+use crate::api::common::{BaseError, Error};
+
+#[utoipa::path(
+    post,
+    path = "/scrape",
+    request_body = BookmarkScrape,
+    responses(ScrapeResponse),
+    operation_id = "scrapeBookmark",
+    description = "Scrape bookmark from a webpage",
+    tag = BOOKMARKS_TAG
+  )]
+#[axum::debug_handler]
+pub async fn handler(
+    State(service): State<Arc<BookmarkService>>,
+    Json(body): Json<BookmarkScrape>,
+) -> Result<ScrapeResponse, Error> {
+    match service.scrape_bookmark(body.into()).await {
+        Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
+        Err(bookmark::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
+            message: e.to_string(),
+        })),
+        Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -46,29 +70,6 @@ impl From<bookmark::BookmarkScraped> for BookmarkScraped {
             published_at: value.published_at,
             author: value.author,
         }
-    }
-}
-
-#[utoipa::path(
-    post,
-    path = "/scrape",
-    request_body = BookmarkScrape,
-    responses(ScrapeResponse),
-    operation_id = "scrapeBookmark",
-    description = "Scrape bookmark from a webpage",
-    tag = BOOKMARKS_TAG
-  )]
-#[axum::debug_handler]
-pub async fn handler(
-    State(service): State<Arc<BookmarkService>>,
-    Json(body): Json<BookmarkScrape>,
-) -> Result<ScrapeResponse, Error> {
-    match service.scrape_bookmark(body.into()).await {
-        Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
-        Err(bookmark::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 

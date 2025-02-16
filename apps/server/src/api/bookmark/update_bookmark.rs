@@ -9,8 +9,40 @@ use colette_core::bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use super::{Bookmark, BookmarkState};
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, NonEmptyString, Session};
+use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
+use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
+
+#[utoipa::path(
+  patch,
+  path = "/{id}",
+  params(Id),
+  request_body = BookmarkUpdate,
+  responses(UpdateResponse),
+  operation_id = "updateBookmark",
+  description = "Update a bookmark by ID",
+  tag = BOOKMARKS_TAG
+)]
+#[axum::debug_handler]
+pub async fn handler(
+    State(state): State<BookmarkState>,
+    Path(Id(id)): Path<Id>,
+    AuthUser(user_id): AuthUser,
+    Json(body): Json<BookmarkUpdate>,
+) -> Result<UpdateResponse, Error> {
+    match state
+        .service
+        .update_bookmark(id, body.into(), user_id)
+        .await
+    {
+        Ok(data) => Ok(UpdateResponse::Ok((data, state.bucket_url.clone()).into())),
+        Err(e) => match e {
+            bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+                message: e.to_string(),
+            })),
+            e => Err(Error::Unknown(e.into())),
+        },
+    }
+}
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
@@ -58,38 +90,6 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
             folder_id: value.folder_id,
             tags: value.tags,
         }
-    }
-}
-
-#[utoipa::path(
-  patch,
-  path = "/{id}",
-  params(Id),
-  request_body = BookmarkUpdate,
-  responses(UpdateResponse),
-  operation_id = "updateBookmark",
-  description = "Update a bookmark by ID",
-  tag = BOOKMARKS_TAG
-)]
-#[axum::debug_handler]
-pub async fn handler(
-    State(state): State<BookmarkState>,
-    Path(Id(id)): Path<Id>,
-    session: Session,
-    Json(body): Json<BookmarkUpdate>,
-) -> Result<UpdateResponse, Error> {
-    match state
-        .service
-        .update_bookmark(id, body.into(), session.user_id)
-        .await
-    {
-        Ok(data) => Ok(UpdateResponse::Ok((data, state.bucket_url.clone()).into())),
-        Err(e) => match e {
-            bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
-        },
     }
 }
 

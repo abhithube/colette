@@ -7,7 +7,8 @@ use axum::{
 };
 use colette_core::tag::{self, TagService};
 
-use crate::api::common::{BaseError, Error, Id, Session, TAGS_TAG};
+use super::TAGS_TAG;
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
     delete,
@@ -22,9 +23,9 @@ use crate::api::common::{BaseError, Error, Id, Session, TAGS_TAG};
 pub async fn handler(
     State(service): State<Arc<TagService>>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_tag(id, session.user_id).await {
+    match service.delete_tag(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             tag::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

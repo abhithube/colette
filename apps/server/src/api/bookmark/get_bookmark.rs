@@ -6,8 +6,8 @@ use axum::{
 };
 use colette_core::bookmark;
 
-use super::{Bookmark, BookmarkState};
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
+use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
+use crate::api::common::{AuthUser, BaseError, Error, Id};
 
 #[utoipa::path(
   get,
@@ -22,9 +22,9 @@ use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
 pub async fn handler(
     State(state): State<BookmarkState>,
     Path(Id(id)): Path<Id>,
-    session: Session,
+    AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match state.service.get_bookmark(id, session.user_id).await {
+    match state.service.get_bookmark(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok((data, state.bucket_url.clone()).into())),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
