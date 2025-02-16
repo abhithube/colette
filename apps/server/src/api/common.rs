@@ -26,6 +26,34 @@ pub const TAGS_TAG: &str = "Tags";
 #[into_params(names("id"))]
 pub struct Id(pub Uuid);
 
+#[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
+#[serde(try_from = "String", into = "String")]
+pub struct NonEmptyString(String);
+
+impl TryFrom<String> for NonEmptyString {
+    type Error = ValidationError;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.is_empty() {
+            return Err(ValidationError::Empty);
+        }
+
+        Ok(NonEmptyString(value))
+    }
+}
+
+impl From<NonEmptyString> for String {
+    fn from(value: NonEmptyString) -> Self {
+        value.0
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ValidationError {
+    #[error("cannot be empty")]
+    Empty,
+}
+
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Paginated<T: utoipa::ToSchema> {

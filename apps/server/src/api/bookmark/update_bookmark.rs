@@ -10,34 +10,34 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, BookmarkState};
-use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, Session};
+use crate::api::common::{BOOKMARKS_TAG, BaseError, Error, Id, NonEmptyString, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct BookmarkUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    pub title: Option<String>,
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
+    pub title: Option<NonEmptyString>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
     #[schema(value_type = Option<Url>)]
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
     pub thumbnail_url: Option<Option<Url>>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "serde_with::rust::double_option"
+    )]
     #[schema(value_type = Option<DateTime<Utc>>)]
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
     pub published_at: Option<Option<DateTime<Utc>>>,
-    #[schema(min_length = 1)]
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub author: Option<Option<String>>,
+    #[schema(value_type = Option<Option<String>>, min_length = 1)]
+    pub author: Option<Option<NonEmptyString>>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -51,10 +51,10 @@ pub struct BookmarkUpdate {
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
     fn from(value: BookmarkUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(Into::into),
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
-            author: value.author,
+            author: value.author.map(|e| e.map(Into::into)),
             folder_id: value.folder_id,
             tags: value.tags,
         }

@@ -31,6 +31,9 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-util.workspace = true
+email_address = { version = "0.2.9", default-features = false, features = [
+  "serde_support",
+] }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 hyper-rustls.workspace = true

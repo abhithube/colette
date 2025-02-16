@@ -10,13 +10,13 @@ use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
 use super::Folder;
-use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, Session};
+use crate::api::common::{BaseError, Error, FOLDERS_TAG, Id, NonEmptyString, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderUpdate {
-    #[schema(min_length = 1, nullable = false)]
-    pub title: Option<String>,
+    #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
+    pub title: Option<NonEmptyString>,
     #[serde(
         default,
         skip_serializing_if = "Option::is_none",
@@ -28,7 +28,7 @@ pub struct FolderUpdate {
 impl From<FolderUpdate> for folder::FolderUpdate {
     fn from(value: FolderUpdate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.map(Into::into),
             parent_id: value.parent_id,
         }
     }

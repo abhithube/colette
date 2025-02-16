@@ -11,26 +11,26 @@ use url::Url;
 use uuid::Uuid;
 
 use super::Feed;
-use crate::api::common::{BaseError, Error, FEEDS_TAG, Session};
+use crate::api::common::{BaseError, Error, FEEDS_TAG, NonEmptyString, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FeedCreate {
     pub url: Url,
-    #[schema(min_length = 1)]
-    pub title: String,
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
     pub folder_id: Option<Uuid>,
-    #[schema(min_length = 1, nullable = false)]
-    pub tags: Option<Vec<String>>,
+    #[schema(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
+    pub tags: Option<Vec<NonEmptyString>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
     fn from(value: FeedCreate) -> Self {
         Self {
             url: value.url,
-            title: value.title,
+            title: value.title.into(),
             folder_id: value.folder_id,
-            tags: value.tags,
+            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }
 }

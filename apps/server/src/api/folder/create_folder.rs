@@ -10,20 +10,20 @@ use colette_core::folder::{self, FolderService};
 use uuid::Uuid;
 
 use super::Folder;
-use crate::api::common::{BaseError, Error, FOLDERS_TAG, Session};
+use crate::api::common::{BaseError, Error, FOLDERS_TAG, NonEmptyString, Session};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct FolderCreate {
-    #[schema(min_length = 1)]
-    pub title: String,
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
     pub parent_id: Option<Uuid>,
 }
 
 impl From<FolderCreate> for folder::FolderCreate {
     fn from(value: FolderCreate) -> Self {
         Self {
-            title: value.title,
+            title: value.title.into(),
             parent_id: value.parent_id,
         }
     }

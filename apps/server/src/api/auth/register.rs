@@ -10,24 +10,25 @@ use colette_core::{
     auth::{self, AuthService},
     user,
 };
+use email_address::EmailAddress;
 
 use super::User;
-use crate::api::common::{AUTH_TAG, BaseError, Error};
+use crate::api::common::{AUTH_TAG, BaseError, Error, NonEmptyString};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct Register {
-    #[schema(format = "email")]
-    pub email: String,
+    #[schema(value_type = String, format = "email")]
+    pub email: EmailAddress,
     #[schema(value_type = String, min_length = 1)]
-    pub password: String,
+    pub password: NonEmptyString,
 }
 
 impl From<Register> for auth::Register {
     fn from(value: Register) -> Self {
         Self {
-            email: value.email,
-            password: value.password,
+            email: value.email.into(),
+            password: value.password.into(),
         }
     }
 }

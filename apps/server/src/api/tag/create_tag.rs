@@ -9,18 +9,20 @@ use axum::{
 use colette_core::tag::{self, TagService};
 
 use super::Tag;
-use crate::api::common::{BaseError, Error, Session, TAGS_TAG};
+use crate::api::common::{BaseError, Error, NonEmptyString, Session, TAGS_TAG};
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct TagCreate {
-    #[schema(min_length = 1)]
-    pub title: String,
+    #[schema(value_type = String, min_length = 1)]
+    pub title: NonEmptyString,
 }
 
 impl From<TagCreate> for tag::TagCreate {
     fn from(value: TagCreate) -> Self {
-        Self { title: value.title }
+        Self {
+            title: value.title.into(),
+        }
     }
 }
 
