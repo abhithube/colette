@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use axum::{
     Json,
     extract::{
-        FromRequestParts,
+        FromRef, FromRequestParts, OptionalFromRequestParts,
         rejection::{JsonRejection, QueryRejection},
     },
     http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
 };
-use colette_core::{auth, common};
+use colette_core::{api_key::ApiKeyService, auth, common};
 use tower_sessions::session;
 use uuid::Uuid;
 
@@ -67,24 +69,66 @@ where
 }
 
 #[derive(Debug, Clone)]
+pub struct ApiKey(String);
+
+impl<S> OptionalFromRequestParts<S> for ApiKey
+where
+    Arc<ApiKeyService>: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = StatusCode;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        _state: &S,
+    ) -> Result<Option<Self>, Self::Rejection> {
+        let Some(header) = parts.headers.get("X-Api-Key") else {
+            return Ok(None);
+        };
+
+        let header_raw = header
+            .to_str()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(Some(ApiKey(header_raw.into())))
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct AuthUser(pub Uuid);
 
 impl<S> FromRequestParts<S> for AuthUser
 where
+    Arc<ApiKeyService>: FromRef<S>,
     S: Send + Sync,
 {
     type Rejection = Error;
 
-    async fn from_request_parts(req: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session_store = tower_sessions::Session::from_request_parts(req, state)
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let session_store = tower_sessions::Session::from_request_parts(parts, state)
             .await
-            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
+            .unwrap();
 
         let user_id = session_store
             .get::<Uuid>(SESSION_KEY)
             .await
+            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
+
+        if let Some(user_id) = user_id {
+            return Ok(AuthUser(user_id));
+        }
+
+        let api_key = ApiKey::from_request_parts(parts, state)
+            .await
             .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?
-            .ok_or(Error::Auth(auth::Error::NotAuthenticated))?;
+            .ok_or_else(|| Error::Auth(auth::Error::NotAuthenticated))?;
+
+        let service = Arc::<ApiKeyService>::from_ref(state);
+
+        let user_id = service
+            .validate_api_key(api_key.0)
+            .await
+            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
 
         Ok(AuthUser(user_id))
     }
