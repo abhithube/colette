@@ -17,9 +17,10 @@ EXECUTE procedure set_updated_at ();
 
 CREATE TABLE api_keys (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  value_hash TEXT NOT NULL UNIQUE,
-  value_preview TEXT NOT NULL,
+  lookup_hash TEXT NOT NULL UNIQUE,
+  verification_hash TEXT NOT NULL,
   title TEXT NOT NULL,
+  preview TEXT NOT NULL,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

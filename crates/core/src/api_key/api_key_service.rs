@@ -56,9 +56,10 @@ impl ApiKeyService {
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
         let value = api_key::generate();
-        let value_hash = password::hash(&value)?;
+        let lookup_hash = api_key::hash(&value);
+        let verification_hash = password::hash(&value)?;
 
-        let value_preview = format!(
+        let preview = format!(
             "{}...{}",
             &value[0..8],
             &value[value.len() - 4..value.len()]
@@ -67,9 +68,10 @@ impl ApiKeyService {
         let id = self
             .repository
             .create(ApiKeyCreateData {
+                lookup_hash,
+                verification_hash,
                 title: data.title,
-                value_hash,
-                value_preview,
+                preview,
                 user_id,
             })
             .await?;
@@ -124,4 +126,10 @@ pub struct ApiKeyCreated {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyUpdate {
     pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ApiKeySearched {
+    pub verification_hash: String,
+    pub user_id: String,
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  api_keys (value_hash, value_preview, title, user_id)\nVALUES\n  ($1, $2, $3, $4)\nRETURNING\n  id\n",
+  "query": "INSERT INTO\n  api_keys (\n    lookup_hash,\n    verification_hash,\n    title,\n    preview,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5)\nRETURNING\n  id\n",
   "describe": {
     "columns": [
       {
@@ -14,6 +14,7 @@
         "Text",
         "Text",
         "Text",
+        "Text",
         "Uuid"
       ]
     },
@@ -21,5 +22,5 @@
       false
     ]
   },
-  "hash": "6448c0daef1ef0ec99201884abf3dd9ac73e2e22ff75d4e060ae795147b6a692"
+  "hash": "1268cc8d4caabcc26c979ed1a96ab2225c46f774f479506c1444aca861a657a0"
 }

@@ -10,9 +10,8 @@ mod api_key_service;
 #[derive(Debug, Clone, Default)]
 pub struct ApiKey {
     pub id: Uuid,
-    pub value_hash: String,
-    pub value_preview: String,
     pub title: String,
+    pub preview: String,
     pub created_at: DateTime<Utc>,
 }
 

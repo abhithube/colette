@@ -41,8 +41,8 @@ pub struct ApiKeyState {
 #[serde(rename_all = "camelCase")]
 pub struct ApiKey {
     pub id: Uuid,
-    pub value_preview: String,
     pub title: String,
+    pub preview: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -50,8 +50,8 @@ impl From<colette_core::ApiKey> for ApiKey {
     fn from(value: colette_core::ApiKey) -> Self {
         Self {
             id: value.id,
-            value_preview: value.value_preview,
             title: value.title,
+            preview: value.preview,
             created_at: value.created_at,
         }
     }

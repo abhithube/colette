@@ -1,8 +1,7 @@
 SELECT
   id,
-  value_hash,
-  value_preview,
   title,
+  preview,
   created_at
 FROM
   api_keys

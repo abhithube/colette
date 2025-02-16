@@ -1,6 +1,9 @@
 use colette_core::{
     ApiKey,
-    api_key::{ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeyUpdateData, Error},
+    api_key::{
+        ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams, ApiKeySearched,
+        ApiKeyUpdateData, Error,
+    },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
 use sqlx::{Pool, Postgres};
@@ -48,9 +51,10 @@ impl Creatable for PostgresApiKeyRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         sqlx::query_file_scalar!(
             "queries/api_keys/insert.sql",
-            data.value_hash,
-            data.value_preview,
+            data.lookup_hash,
+            data.verification_hash,
             data.title,
+            data.preview,
             data.user_id
         )
         .fetch_one(&self.pool)
@@ -107,4 +111,14 @@ impl Deletable for PostgresApiKeyRepository {
     }
 }
 
-impl ApiKeyRepository for PostgresApiKeyRepository {}
+#[async_trait::async_trait]
+impl ApiKeyRepository for PostgresApiKeyRepository {
+    async fn search(&self, params: ApiKeySearchParams) -> Result<Vec<ApiKeySearched>, Error> {
+        let api_keys =
+            sqlx::query_file_as!(ApiKeySearched, "queries/api_keys/search.sql", params.value)
+                .fetch_all(&self.pool)
+                .await?;
+
+        Ok(api_keys)
+    }
+}

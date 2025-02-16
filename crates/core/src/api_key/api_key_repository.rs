@@ -1,8 +1,9 @@
 use uuid::Uuid;
 
-use super::{ApiKey, Cursor, Error};
+use super::{ApiKey, ApiKeySearched, Cursor, Error};
 use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
 
+#[async_trait::async_trait]
 pub trait ApiKeyRepository:
     Findable<Params = ApiKeyFindParams, Output = Result<Vec<ApiKey>, Error>>
     + Creatable<Data = ApiKeyCreateData, Output = Result<Uuid, Error>>
@@ -12,6 +13,7 @@ pub trait ApiKeyRepository:
     + Sync
     + 'static
 {
+    async fn search(&self, params: ApiKeySearchParams) -> Result<Vec<ApiKeySearched>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -24,13 +26,19 @@ pub struct ApiKeyFindParams {
 
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyCreateData {
+    pub lookup_hash: String,
+    pub verification_hash: String,
     pub title: String,
-    pub value_hash: String,
-    pub value_preview: String,
+    pub preview: String,
     pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyUpdateData {
     pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ApiKeySearchParams {
+    pub value: String,
 }
