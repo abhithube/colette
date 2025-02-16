@@ -83,9 +83,7 @@ pub async fn handler(
         .update_bookmark(id, body.into(), session.user_id)
         .await
     {
-        Ok(data) => Ok(UpdateResponse::Ok(Box::new(
-            (data, state.bucket_url.clone()).into(),
-        ))),
+        Ok(data) => Ok(UpdateResponse::Ok((data, state.bucket_url.clone()).into())),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
@@ -95,11 +93,11 @@ pub async fn handler(
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
     #[response(status = 200, description = "Updated bookmark")]
-    Ok(Box<Bookmark>),
+    Ok(Bookmark),
 
     #[response(status = 404, description = "Bookmark not found")]
     NotFound(BaseError),

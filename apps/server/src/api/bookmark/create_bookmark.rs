@@ -61,9 +61,9 @@ pub async fn handler(
         .create_bookmark(body.into(), session.user_id)
         .await
     {
-        Ok(data) => Ok(CreateResponse::Created(Box::new(
+        Ok(data) => Ok(CreateResponse::Created(
             (data, state.bucket_url.clone()).into(),
-        ))),
+        )),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
@@ -73,11 +73,11 @@ pub async fn handler(
     }
 }
 
-#[allow(dead_code)]
+#[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
     #[response(status = 201, description = "Created bookmark")]
-    Created(Box<Bookmark>),
+    Created(Bookmark),
 
     #[response(status = 409, description = "Bookmark already exists")]
     Conflict(BaseError),
