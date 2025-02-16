@@ -1,4 +1,5 @@
 pub use auth_service::*;
+use colette_util::password;
 
 use crate::user;
 
@@ -11,6 +12,9 @@ pub enum Error {
 
     #[error("user not authenticated")]
     NotAuthenticated,
+
+    #[error(transparent)]
+    Hash(#[from] password::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

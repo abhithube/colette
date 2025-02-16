@@ -579,10 +579,10 @@ dependencies = [
 name = "colette-util"
 version = "0.1.0"
 dependencies = [
+ "argon2",
  "base64",
  "chrono",
  "hex",
- "password-auth",
  "scraper",
  "serde",
  "serde_json",
@@ -1909,18 +1909,6 @@ dependencies = [
  "redox_syscall",
  "smallvec",
  "windows-targets 0.52.6",
-]
-
-[[package]]
-name = "password-auth"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a2a4764cc1f8d961d802af27193c6f4f0124bd0e76e8393cf818e18880f0524"
-dependencies = [
- "argon2",
- "getrandom 0.2.15",
- "password-hash",
- "rand_core",
 ]
 
 [[package]]

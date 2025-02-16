@@ -19,7 +19,7 @@ impl AuthService {
     }
 
     pub async fn register(&self, data: Register) -> Result<User, Error> {
-        let hashed = password::hash(&data.password);
+        let hashed = password::hash(&data.password)?;
 
         let id = self
             .user_repository
@@ -46,7 +46,7 @@ impl AuthService {
                 _ => e.into(),
             })?;
 
-        let valid = password::verify(&data.password, &user.password);
+        let valid = password::verify(&data.password, &user.password)?;
         if !valid {
             return Err(Error::NotAuthenticated);
         }
