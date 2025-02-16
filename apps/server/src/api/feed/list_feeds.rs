@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::feed::{self, FeedService};
+use colette_core::feed;
 use uuid::Uuid;
 
 use super::{FEEDS_TAG, Feed};
-use crate::api::common::{AuthUser, Error, Paginated};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error, Paginated},
+};
 
 #[utoipa::path(
     get,
@@ -23,11 +24,11 @@ use crate::api::common::{AuthUser, Error, Paginated};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FeedService>>,
+    State(state): State<ApiState>,
     Query(query): Query<FeedListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
-    match service.list_feeds(query.into(), user_id).await {
+    match state.feed_service.list_feeds(query.into(), user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

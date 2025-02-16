@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
@@ -7,11 +5,14 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::api_key::{self, ApiKeyService};
+use colette_core::api_key;
 use uuid::Uuid;
 
 use super::API_KEYS_TAG;
-use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, NonEmptyString},
+};
 
 #[utoipa::path(
   post,
@@ -24,11 +25,15 @@ use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<ApiKeyService>>,
+    State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<ApiKeyCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.create_api_key(body.into(), user_id).await {
+    match state
+        .api_key_service
+        .create_api_key(body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             api_key::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {

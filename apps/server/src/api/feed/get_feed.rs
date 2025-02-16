@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed::{self, FeedService};
+use colette_core::feed;
 
 use super::{FEEDS_TAG, Feed};
-use crate::api::common::{AuthUser, BaseError, Error, Id};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id},
+};
 
 #[utoipa::path(
     get,
@@ -22,11 +23,11 @@ use crate::api::common::{AuthUser, BaseError, Error, Id};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FeedService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match service.get_feed(id, user_id).await {
+    match state.feed_service.get_feed(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {

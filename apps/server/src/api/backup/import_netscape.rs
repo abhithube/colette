@@ -1,15 +1,15 @@
-use std::sync::Arc;
-
 use axum::{
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use bytes::Bytes;
-use colette_core::backup::BackupService;
 
 use super::BACKUPS_TAG;
-use crate::api::common::{AuthUser, Error};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error},
+};
 
 #[utoipa::path(
   post,
@@ -22,11 +22,11 @@ use crate::api::common::{AuthUser, Error};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<BackupService>>,
+    State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     bytes: Bytes,
 ) -> Result<ImportResponse, Error> {
-    match service.import_netscape(bytes, user_id).await {
+    match state.backup_service.import_netscape(bytes, user_id).await {
         Ok(_) => Ok(ImportResponse::NoContent),
         Err(e) => Err(Error::Unknown(e.into())),
     }

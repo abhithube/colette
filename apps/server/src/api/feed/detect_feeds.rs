@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed::{self, FeedService};
+use colette_core::feed;
 use url::Url;
 
 use super::FEEDS_TAG;
-use crate::api::common::{BaseError, Error};
+use crate::api::{
+    ApiState,
+    common::{BaseError, Error},
+};
 
 #[utoipa::path(
     post,
@@ -23,10 +24,10 @@ use crate::api::common::{BaseError, Error};
   )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FeedService>>,
+    State(state): State<ApiState>,
     Json(body): Json<FeedDetect>,
 ) -> Result<DetectResponse, Error> {
-    match service.detect_feeds(body.into()).await {
+    match state.feed_service.detect_feeds(body.into()).await {
         Ok(data) => Ok(DetectResponse::Ok(data.into())),
         Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
             message: e.to_string(),

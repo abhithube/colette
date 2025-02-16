@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::folder::{self, FolderService};
+use colette_core::folder;
 use uuid::Uuid;
 
 use super::{FOLDERS_TAG, Folder};
-use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, NonEmptyString},
+};
 
 #[utoipa::path(
   post,
@@ -23,11 +24,15 @@ use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FolderService>>,
+    State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<FolderCreate>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.create_folder(body.into(), user_id).await {
+    match state
+        .folder_service
+        .create_folder(body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             folder::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {

@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::BookmarkService;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::tag::Tag;
+use super::{ApiState, tag::Tag};
 use crate::api::common::Paginated;
 
 mod create_bookmark;
@@ -24,7 +21,7 @@ pub const BOOKMARKS_TAG: &str = "Bookmarks";
 pub struct BookmarkApi;
 
 impl BookmarkApi {
-    pub fn router() -> OpenApiRouter<BookmarkState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(BookmarkApi::openapi())
             .routes(routes!(list_bookmarks::handler, create_bookmark::handler))
             .routes(routes!(
@@ -34,12 +31,6 @@ impl BookmarkApi {
             ))
             .routes(routes!(scrape_bookmark::handler))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct BookmarkState {
-    pub service: Arc<BookmarkService>,
-    pub bucket_url: Url,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

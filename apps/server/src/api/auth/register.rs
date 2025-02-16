@@ -1,19 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{
-    auth::{self, AuthService},
-    user,
-};
+use colette_core::{auth, user};
 use email_address::EmailAddress;
 
 use super::{AUTH_TAG, User};
-use crate::api::common::{BaseError, Error, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{BaseError, Error, NonEmptyString},
+};
 
 #[utoipa::path(
     post,
@@ -26,10 +24,10 @@ use crate::api::common::{BaseError, Error, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<AuthService>>,
+    State(state): State<ApiState>,
     Json(body): Json<Register>,
 ) -> Result<RegisterResponse, Error> {
-    match service.register(body.into()).await {
+    match state.auth_service.register(body.into()).await {
         Ok(data) => Ok(RegisterResponse::Created(data.into())),
         Err(e) => match e {
             auth::Error::Users(user::Error::Conflict(_)) => {

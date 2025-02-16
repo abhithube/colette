@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
-use colette_core::folder::FolderService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::common::Paginated;
+use super::{ApiState, common::Paginated};
 
 mod create_folder;
 mod delete_folder;
@@ -20,7 +17,7 @@ pub const FOLDERS_TAG: &str = "Folders";
 pub struct FolderApi;
 
 impl FolderApi {
-    pub fn router() -> OpenApiRouter<FolderState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(FolderApi::openapi())
             .routes(routes!(list_folders::handler, create_folder::handler))
             .routes(routes!(
@@ -29,11 +26,6 @@ impl FolderApi {
                 delete_folder::handler
             ))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FolderState {
-    pub service: Arc<FolderService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

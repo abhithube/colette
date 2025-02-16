@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key::{self, ApiKeyService};
+use colette_core::api_key;
 
 use super::{API_KEYS_TAG, ApiKey};
-use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id, NonEmptyString},
+};
 
 #[utoipa::path(
     patch,
@@ -23,12 +24,16 @@ use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<ApiKeyService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<ApiKeyUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.update_api_key(id, body.into(), user_id).await {
+    match state
+        .api_key_service
+        .update_api_key(id, body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             api_key::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {

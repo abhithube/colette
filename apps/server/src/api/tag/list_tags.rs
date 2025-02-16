@@ -1,14 +1,15 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Query, State},
     response::{IntoResponse, Response},
 };
-use colette_core::tag::{self, TagService};
+use colette_core::tag;
 
 use super::{TAGS_TAG, Tag};
-use crate::api::common::{AuthUser, Error, Paginated};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error, Paginated},
+};
 
 #[utoipa::path(
     get,
@@ -21,11 +22,11 @@ use crate::api::common::{AuthUser, Error, Paginated};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<TagService>>,
+    State(state): State<ApiState>,
     Query(query): Query<TagListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
-    match service.list_tags(query.into(), user_id).await {
+    match state.tag_service.list_tags(query.into(), user_id).await {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

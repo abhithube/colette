@@ -1,12 +1,9 @@
-use std::sync::Arc;
-
-use colette_core::feed::FeedService;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::{common::Paginated, tag::Tag};
+use super::{ApiState, common::Paginated, tag::Tag};
 
 mod create_feed;
 mod delete_feed;
@@ -31,7 +28,7 @@ pub const FEEDS_TAG: &str = "Feeds";
 pub struct FeedApi;
 
 impl FeedApi {
-    pub fn router() -> OpenApiRouter<FeedState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(FeedApi::openapi())
             .routes(routes!(list_feeds::handler, create_feed::handler))
             .routes(routes!(
@@ -41,11 +38,6 @@ impl FeedApi {
             ))
             .routes(routes!(detect_feeds::handler))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FeedState {
-    pub service: Arc<FeedService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

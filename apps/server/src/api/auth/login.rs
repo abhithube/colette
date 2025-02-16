@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::auth::{self, AuthService};
+use colette_core::auth;
 use email_address::EmailAddress;
 
 use super::{AUTH_TAG, User};
-use crate::api::common::{BaseError, Error, NonEmptyString, SESSION_KEY};
+use crate::api::{
+    ApiState,
+    common::{BaseError, Error, NonEmptyString, SESSION_KEY},
+};
 
 #[utoipa::path(
   post,
@@ -23,11 +24,11 @@ use crate::api::common::{BaseError, Error, NonEmptyString, SESSION_KEY};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<AuthService>>,
+    State(state): State<ApiState>,
     session_store: tower_sessions::Session,
     Json(body): Json<Login>,
 ) -> Result<LoginResponse, Error> {
-    match service.login(body.into()).await {
+    match state.auth_service.login(body.into()).await {
         Ok(data) => {
             session_store.insert(SESSION_KEY, data.id).await?;
 

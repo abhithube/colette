@@ -7,16 +7,9 @@ use apalis::{
 use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
 use api::{
-    api_key::{ApiKeyApi, ApiKeyState},
-    auth::{AuthApi, AuthState},
-    backup::{BackupApi, BackupState},
-    bookmark::{BookmarkApi, BookmarkState},
-    common::BaseError,
-    feed::{FeedApi, FeedState},
-    feed_entry::{FeedEntryApi, FeedEntryState},
-    folder::{FolderApi, FolderState},
-    library::{LibraryApi, LibraryState},
-    tag::{TagApi, TagState},
+    ApiState, api_key::ApiKeyApi, auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi,
+    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, folder::FolderApi,
+    library::LibraryApi, tag::TagApi,
 };
 use axum::{
     http::{HeaderValue, Method, header},
@@ -304,53 +297,38 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let redis_conn = redis.get_multiplexed_async_connection().await?;
     let session_store = RedisStore::new(redis_conn);
 
+    let api_state = ApiState {
+        api_key_service,
+        auth_service,
+        backup_service,
+        bookmark_service,
+        feed_service,
+        feed_entry_service,
+        folder_service,
+        library_service,
+        tag_service,
+        bucket_url,
+    };
+
     let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest(
             &app_config.api_prefix,
             OpenApiRouter::new()
                 .nest("/apiKeys", ApiKeyApi::router())
-                .with_state(ApiKeyState {
-                    service: api_key_service,
-                })
                 .nest("/auth", AuthApi::router())
-                .with_state(AuthState {
-                    service: auth_service,
-                })
                 .nest("/backups", BackupApi::router())
-                .with_state(BackupState {
-                    service: backup_service,
-                })
                 .nest("/bookmarks", BookmarkApi::router())
-                .with_state(BookmarkState {
-                    service: bookmark_service,
-                    bucket_url: bucket_url.clone(),
-                })
                 // .nest("/collections", CollectionApi::router())
                 // .with_state(CollectionState::new(collection_service))
                 .nest("/feedEntries", FeedEntryApi::router())
-                .with_state(FeedEntryState {
-                    service: feed_entry_service,
-                })
                 .nest("/feeds", FeedApi::router())
-                .with_state(FeedState {
-                    service: feed_service,
-                })
                 .nest("/folders", FolderApi::router())
-                .with_state(FolderState {
-                    service: folder_service,
-                })
                 .nest("/library", LibraryApi::router())
-                .with_state(LibraryState {
-                    service: library_service,
-                    bucket_url,
-                })
                 // .nest("/smartFeeds", SmartFeedApi::router())
                 // .with_state(SmartFeedState::new(smart_feed_service))
-                .nest("/tags", TagApi::router())
-                .with_state(TagState {
-                    service: tag_service,
-                }),
+                .nest("/tags", TagApi::router()),
         )
+        .with_state(api_state)
         .split_for_parts();
 
     openapi.info.title = "Colette API".to_owned();

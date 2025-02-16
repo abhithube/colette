@@ -1,14 +1,15 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::api_key::{self, ApiKeyService};
+use colette_core::api_key;
 
 use super::API_KEYS_TAG;
-use crate::api::common::{AuthUser, BaseError, Error, Id};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id},
+};
 
 #[utoipa::path(
     delete,
@@ -21,11 +22,11 @@ use crate::api::common::{AuthUser, BaseError, Error, Id};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<ApiKeyService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
-    match service.delete_api_key(id, user_id).await {
+    match state.api_key_service.delete_api_key(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             api_key::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

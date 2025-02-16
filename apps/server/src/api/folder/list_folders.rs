@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::folder::{self, FolderService};
+use colette_core::folder;
 use uuid::Uuid;
 
 use super::{FOLDERS_TAG, Folder};
-use crate::api::common::{AuthUser, Error, Paginated};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error, Paginated},
+};
 
 #[utoipa::path(
     get,
@@ -23,11 +24,15 @@ use crate::api::common::{AuthUser, Error, Paginated};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FolderService>>,
+    State(state): State<ApiState>,
     Query(query): Query<FolderListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
-    match service.list_folders(query.into(), user_id).await {
+    match state
+        .folder_service
+        .list_folders(query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

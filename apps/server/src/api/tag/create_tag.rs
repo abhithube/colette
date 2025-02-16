@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag::{self, TagService};
+use colette_core::tag;
 
 use super::{TAGS_TAG, Tag};
-use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, NonEmptyString},
+};
 
 #[utoipa::path(
   post,
@@ -22,11 +23,11 @@ use crate::api::common::{AuthUser, BaseError, Error, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<TagService>>,
+    State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<TagCreate>,
 ) -> Result<CreateResponse, Error> {
-    match service.create_tag(body.into(), user_id).await {
+    match state.tag_service.create_tag(body.into(), user_id).await {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {

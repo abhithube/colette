@@ -1,13 +1,10 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
-use colette_core::feed_entry::FeedEntryService;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::common::Paginated;
+use super::{ApiState, common::Paginated};
 
 mod get_feed_entry;
 mod list_feed_entries;
@@ -20,16 +17,11 @@ pub const FEED_ENTRIES_TAG: &str = "Feed Entries";
 pub struct FeedEntryApi;
 
 impl FeedEntryApi {
-    pub fn router() -> OpenApiRouter<FeedEntryState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(FeedEntryApi::openapi())
             .routes(routes!(list_feed_entries::handler))
             .routes(routes!(get_feed_entry::handler, update_feed_entry::handler))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct FeedEntryState {
-    pub service: Arc<FeedEntryService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

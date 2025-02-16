@@ -6,8 +6,11 @@ use axum::{
 use colette_core::library;
 use uuid::Uuid;
 
-use super::{LIBRARY_TAG, LibraryItem, LibraryState};
-use crate::api::common::{AuthUser, Error, Paginated};
+use super::{LIBRARY_TAG, LibraryItem};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error, Paginated},
+};
 
 #[utoipa::path(
     get,
@@ -20,12 +23,12 @@ use crate::api::common::{AuthUser, Error, Paginated};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<LibraryState>,
+    State(state): State<ApiState>,
     Query(query): Query<LibraryItemListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
     match state
-        .service
+        .library_service
         .list_library_items(query.into(), user_id)
         .await
     {

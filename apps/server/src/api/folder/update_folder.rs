@@ -1,16 +1,17 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::folder::{self, FolderService};
+use colette_core::folder;
 use uuid::Uuid;
 
 use super::{FOLDERS_TAG, Folder};
-use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id, NonEmptyString},
+};
 
 #[utoipa::path(
     patch,
@@ -24,12 +25,16 @@ use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FolderService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<FolderUpdate>,
 ) -> Result<impl IntoResponse, Error> {
-    match service.update_folder(id, body.into(), user_id).await {
+    match state
+        .folder_service
+        .update_folder(id, body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             folder::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {

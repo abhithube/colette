@@ -1,14 +1,14 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
     response::{IntoResponse, Response},
 };
-use colette_core::auth::AuthService;
 
 use super::{AUTH_TAG, User};
-use crate::api::common::{AuthUser, Error};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error},
+};
 
 #[utoipa::path(
   get,
@@ -20,10 +20,10 @@ use crate::api::common::{AuthUser, Error};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<AuthService>>,
+    State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetActiveResponse, Error> {
-    match service.get_active(user_id).await {
+    match state.auth_service.get_active(user_id).await {
         Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }

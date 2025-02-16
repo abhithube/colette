@@ -1,12 +1,9 @@
-use std::sync::Arc;
-
 use chrono::{DateTime, Utc};
-use colette_core::api_key::ApiKeyService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::common::Paginated;
+use super::{ApiState, common::Paginated};
 
 mod create_api_key;
 mod delete_api_key;
@@ -21,7 +18,7 @@ pub const API_KEYS_TAG: &str = "API Keys";
 pub struct ApiKeyApi;
 
 impl ApiKeyApi {
-    pub fn router() -> OpenApiRouter<ApiKeyState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(ApiKeyApi::openapi())
             .routes(routes!(list_api_keys::handler, create_api_key::handler))
             .routes(routes!(
@@ -30,11 +27,6 @@ impl ApiKeyApi {
                 delete_api_key::handler
             ))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct ApiKeyState {
-    pub service: Arc<ApiKeyService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

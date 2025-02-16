@@ -9,8 +9,11 @@ use colette_core::bookmark;
 use url::Url;
 use uuid::Uuid;
 
-use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
-use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
+use super::{BOOKMARKS_TAG, Bookmark};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id, NonEmptyString},
+};
 
 #[utoipa::path(
   patch,
@@ -24,13 +27,13 @@ use crate::api::common::{AuthUser, BaseError, Error, Id, NonEmptyString};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<BookmarkState>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<UpdateResponse, Error> {
     match state
-        .service
+        .bookmark_service
         .update_bookmark(id, body.into(), user_id)
         .await
     {

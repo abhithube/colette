@@ -1,14 +1,15 @@
-use std::sync::Arc;
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed::{self, FeedService};
+use colette_core::feed;
 
 use super::FEEDS_TAG;
-use crate::api::common::{AuthUser, BaseError, Error, Id};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id},
+};
 
 #[utoipa::path(
     delete,
@@ -21,11 +22,11 @@ use crate::api::common::{AuthUser, BaseError, Error, Id};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FeedService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
 ) -> Result<DeleteResponse, Error> {
-    match service.delete_feed(id, user_id).await {
+    match state.feed_service.delete_feed(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
             feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {

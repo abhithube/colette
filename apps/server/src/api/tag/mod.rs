@@ -1,10 +1,8 @@
-use std::sync::Arc;
-
-use colette_core::tag::TagService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
+use super::ApiState;
 use crate::api::common::Paginated;
 
 mod create_tag;
@@ -20,7 +18,7 @@ pub const TAGS_TAG: &str = "Tags";
 pub struct TagApi;
 
 impl TagApi {
-    pub fn router() -> OpenApiRouter<TagState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(TagApi::openapi())
             .routes(routes!(list_tags::handler, create_tag::handler))
             .routes(routes!(
@@ -29,11 +27,6 @@ impl TagApi {
                 delete_tag::handler
             ))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct TagState {
-    pub service: Arc<TagService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

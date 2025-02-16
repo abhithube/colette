@@ -7,8 +7,11 @@ use axum_extra::extract::Query;
 use colette_core::bookmark;
 use uuid::Uuid;
 
-use super::{BOOKMARKS_TAG, Bookmark, BookmarkState};
-use crate::api::common::{AuthUser, Error, Paginated};
+use super::{BOOKMARKS_TAG, Bookmark};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, Error, Paginated},
+};
 
 #[utoipa::path(
   get,
@@ -21,11 +24,15 @@ use crate::api::common::{AuthUser, Error, Paginated};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(state): State<BookmarkState>,
+    State(state): State<ApiState>,
     Query(query): Query<BookmarkListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
-    match state.service.list_bookmarks(query.into(), user_id).await {
+    match state
+        .bookmark_service
+        .list_bookmarks(query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(ListResponse::Ok(Paginated {
             data: data
                 .data

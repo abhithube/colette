@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed_entry::{self, FeedEntryService};
+use colette_core::feed_entry;
 
 use super::{FEED_ENTRIES_TAG, FeedEntry};
-use crate::api::common::{AuthUser, BaseError, Error, Id};
+use crate::api::{
+    ApiState,
+    common::{AuthUser, BaseError, Error, Id},
+};
 
 #[utoipa::path(
     patch,
@@ -23,12 +24,16 @@ use crate::api::common::{AuthUser, BaseError, Error, Id};
 )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<FeedEntryService>>,
+    State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<FeedEntryUpdate>,
 ) -> Result<UpdateResponse, Error> {
-    match service.update_feed_entry(id, body.into(), user_id).await {
+    match state
+        .feed_entry_service
+        .update_feed_entry(id, body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {

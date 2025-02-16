@@ -1,9 +1,8 @@
-use std::sync::Arc;
-
-use colette_core::auth::AuthService;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
+
+use super::ApiState;
 
 mod get_active_user;
 mod login;
@@ -17,18 +16,13 @@ pub const AUTH_TAG: &str = "Auth";
 pub struct AuthApi;
 
 impl AuthApi {
-    pub fn router() -> OpenApiRouter<AuthState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(AuthApi::openapi())
             .routes(routes!(register::handler))
             .routes(routes!(login::handler))
             .routes(routes!(get_active_user::handler))
             .routes(routes!(logout::handler))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct AuthState {
-    pub service: Arc<AuthService>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

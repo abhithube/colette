@@ -1,11 +1,8 @@
-use std::sync::Arc;
-
-use colette_core::library::LibraryService;
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use super::{bookmark::Bookmark, common::Paginated, feed::Feed, folder::Folder};
+use super::{ApiState, bookmark::Bookmark, common::Paginated, feed::Feed, folder::Folder};
 
 mod list_library_items;
 
@@ -16,16 +13,10 @@ pub const LIBRARY_TAG: &str = "Library";
 pub struct LibraryApi;
 
 impl LibraryApi {
-    pub fn router() -> OpenApiRouter<LibraryState> {
+    pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(LibraryApi::openapi())
             .routes(routes!(list_library_items::handler))
     }
-}
-
-#[derive(Clone, axum::extract::FromRef)]
-pub struct LibraryState {
-    pub service: Arc<LibraryService>,
-    pub bucket_url: Url,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     Json,
     extract::State,
@@ -7,11 +5,14 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{self, BookmarkService};
+use colette_core::bookmark;
 use url::Url;
 
 use super::BOOKMARKS_TAG;
-use crate::api::common::{BaseError, Error};
+use crate::api::{
+    ApiState,
+    common::{BaseError, Error},
+};
 
 #[utoipa::path(
     post,
@@ -24,10 +25,10 @@ use crate::api::common::{BaseError, Error};
   )]
 #[axum::debug_handler]
 pub async fn handler(
-    State(service): State<Arc<BookmarkService>>,
+    State(state): State<ApiState>,
     Json(body): Json<BookmarkScrape>,
 ) -> Result<ScrapeResponse, Error> {
-    match service.scrape_bookmark(body.into()).await {
+    match state.bookmark_service.scrape_bookmark(body.into()).await {
         Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
         Err(bookmark::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
             message: e.to_string(),
