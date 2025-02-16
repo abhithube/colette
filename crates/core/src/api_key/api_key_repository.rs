@@ -13,7 +13,7 @@ pub trait ApiKeyRepository:
     + Sync
     + 'static
 {
-    async fn search(&self, params: ApiKeySearchParams) -> Result<Vec<ApiKeySearched>, Error>;
+    async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -40,5 +40,5 @@ pub struct ApiKeyUpdateData {
 
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeySearchParams {
-    pub value: String,
+    pub lookup_hash: String,
 }

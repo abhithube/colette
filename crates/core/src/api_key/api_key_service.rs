@@ -3,10 +3,13 @@ use colette_util::{api_key, password};
 use uuid::Uuid;
 
 use super::{
-    ApiKey, Error,
+    ApiKey, ApiKeySearchParams, Error,
     api_key_repository::{ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeyUpdateData},
 };
-use crate::common::{IdParams, Paginated};
+use crate::{
+    auth,
+    common::{IdParams, Paginated},
+};
 
 pub struct ApiKeyService {
     repository: Box<dyn ApiKeyRepository>,
@@ -34,6 +37,24 @@ impl ApiKeyService {
         })
     }
 
+    pub async fn validate_api_key(&self, value: String) -> Result<Uuid, Error> {
+        let lookup_hash = api_key::hash(&value);
+
+        let api_key = self
+            .repository
+            .search(ApiKeySearchParams { lookup_hash })
+            .await?;
+
+        if let Some(api_key) = api_key {
+            let valid = password::verify(&value, &api_key.verification_hash)?;
+            if valid {
+                return Ok(api_key.user_id);
+            }
+        }
+
+        Err(Error::Auth(auth::Error::NotAuthenticated))
+    }
+
     pub async fn get_api_key(&self, id: Uuid, user_id: Uuid) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
@@ -56,22 +77,18 @@ impl ApiKeyService {
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
         let value = api_key::generate();
-        let lookup_hash = api_key::hash(&value);
-        let verification_hash = password::hash(&value)?;
-
-        let preview = format!(
-            "{}...{}",
-            &value[0..8],
-            &value[value.len() - 4..value.len()]
-        );
 
         let id = self
             .repository
             .create(ApiKeyCreateData {
-                lookup_hash,
-                verification_hash,
+                lookup_hash: api_key::hash(&value),
+                verification_hash: password::hash(&value)?,
                 title: data.title,
-                preview,
+                preview: format!(
+                    "{}...{}",
+                    &value[0..8],
+                    &value[value.len() - 4..value.len()]
+                ),
                 user_id,
             })
             .await?;
@@ -131,5 +148,5 @@ pub struct ApiKeyUpdate {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeySearched {
     pub verification_hash: String,
-    pub user_id: String,
+    pub user_id: Uuid,
 }

@@ -113,12 +113,15 @@ impl Deletable for PostgresApiKeyRepository {
 
 #[async_trait::async_trait]
 impl ApiKeyRepository for PostgresApiKeyRepository {
-    async fn search(&self, params: ApiKeySearchParams) -> Result<Vec<ApiKeySearched>, Error> {
-        let api_keys =
-            sqlx::query_file_as!(ApiKeySearched, "queries/api_keys/search.sql", params.value)
-                .fetch_all(&self.pool)
-                .await?;
+    async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error> {
+        let api_key = sqlx::query_file_as!(
+            ApiKeySearched,
+            "queries/api_keys/search.sql",
+            params.lookup_hash
+        )
+        .fetch_optional(&self.pool)
+        .await?;
 
-        Ok(api_keys)
+        Ok(api_key)
     }
 }

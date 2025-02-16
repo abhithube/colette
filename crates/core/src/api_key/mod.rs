@@ -4,6 +4,8 @@ use chrono::{DateTime, Utc};
 use colette_util::password;
 use uuid::Uuid;
 
+use crate::auth;
+
 mod api_key_repository;
 mod api_key_service;
 
@@ -30,6 +32,9 @@ pub enum Error {
 
     #[error(transparent)]
     Hash(#[from] password::Error),
+
+    #[error(transparent)]
+    Auth(#[from] auth::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),
