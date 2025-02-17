@@ -9,6 +9,8 @@ use colette_core::{
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
+use super::common;
+
 #[derive(Debug, Clone)]
 pub struct PostgresCollectionRepository {
     pool: Pool<Postgres>,
@@ -26,24 +28,14 @@ impl Findable for PostgresCollectionRepository {
     type Output = Result<Vec<Collection>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (has_folder, folder_id) = match params.folder_id {
-            Some(folder_id) => (true, folder_id),
-            None => (false, None),
-        };
-
-        let collections = sqlx::query_file_as!(
-            Collection,
-            "queries/collections/select.sql",
-            params.user_id,
-            params.id.is_none(),
+        let collections = common::select_collections(
+            &self.pool,
             params.id,
-            !has_folder,
-            folder_id,
-            params.cursor.is_none(),
-            params.cursor.map(|e| e.title),
-            params.limit
+            params.folder_id,
+            params.user_id,
+            params.limit,
+            params.cursor,
         )
-        .fetch_all(&self.pool)
         .await?;
 
         Ok(collections)

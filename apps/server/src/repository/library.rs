@@ -1,10 +1,9 @@
-use colette_core::{
-    common::Findable,
-    library::{Error, LibraryItem, LibraryItemFindParams, LibraryRepository},
+use colette_core::library::{
+    CollectionTreeItem, Error, FeedTreeItem, LibraryRepository, TreeFindParams,
 };
 use sqlx::{Pool, Postgres};
 
-use super::common;
+use super::{common, folder::FolderType};
 
 #[derive(Debug, Clone)]
 pub struct PostgresLibraryRepository {
@@ -18,21 +17,19 @@ impl PostgresLibraryRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresLibraryRepository {
-    type Params = LibraryItemFindParams;
-    type Output = Result<Vec<LibraryItem>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
-        let mut folders = common::select_folders(
+impl LibraryRepository for PostgresLibraryRepository {
+    async fn find_feed_tree(&self, params: TreeFindParams) -> Result<Vec<FeedTreeItem>, Error> {
+        let mut feed_tree_items = common::select_folders(
             &self.pool,
             None,
             params.user_id,
+            Some(FolderType::Feeds),
             Some(params.folder_id),
             params.limit,
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Folder).collect::<Vec<_>>())?;
+        .map(|e| e.into_iter().map(FeedTreeItem::Folder).collect::<Vec<_>>())?;
 
         let mut feeds = common::select_feeds(
             &self.pool,
@@ -44,27 +41,50 @@ impl Findable for PostgresLibraryRepository {
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Feed).collect::<Vec<_>>())?;
+        .map(|e| e.into_iter().map(FeedTreeItem::Feed).collect::<Vec<_>>())?;
 
-        let mut bookmarks = common::select_bookmarks(
+        feed_tree_items.append(&mut feeds);
+
+        Ok(feed_tree_items)
+    }
+
+    async fn find_collection_tree(
+        &self,
+        params: TreeFindParams,
+    ) -> Result<Vec<CollectionTreeItem>, Error> {
+        let mut collection_tree_items = common::select_folders(
             &self.pool,
             None,
-            Some(params.folder_id),
             params.user_id,
-            None,
+            Some(FolderType::Collections),
+            Some(params.folder_id),
             params.limit,
             None,
         )
         .await
-        .map(|e| e.into_iter().map(LibraryItem::Bookmark).collect::<Vec<_>>())?;
+        .map(|e| {
+            e.into_iter()
+                .map(CollectionTreeItem::Folder)
+                .collect::<Vec<_>>()
+        })?;
 
-        let mut library_items = Vec::new();
-        library_items.append(&mut folders);
-        library_items.append(&mut feeds);
-        library_items.append(&mut bookmarks);
+        let mut bookmarks = common::select_collections(
+            &self.pool,
+            None,
+            Some(params.folder_id),
+            params.user_id,
+            params.limit,
+            None,
+        )
+        .await
+        .map(|e| {
+            e.into_iter()
+                .map(CollectionTreeItem::Collection)
+                .collect::<Vec<_>>()
+        })?;
 
-        Ok(library_items)
+        collection_tree_items.append(&mut bookmarks);
+
+        Ok(collection_tree_items)
     }
 }
-
-impl LibraryRepository for PostgresLibraryRepository {}

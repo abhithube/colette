@@ -29,6 +29,7 @@ impl Findable for PostgresFolderRepository {
             &self.pool,
             params.id,
             params.user_id,
+            None,
             params.parent_id,
             params.limit,
             params.cursor,
@@ -113,6 +114,7 @@ impl Deletable for PostgresFolderRepository {
 impl FolderRepository for PostgresFolderRepository {}
 
 #[derive(Debug, PartialEq, sqlx::Type)]
+#[sqlx(type_name = "folder_type", rename_all = "lowercase")]
 pub enum FolderType {
     Feeds,
     Collections,

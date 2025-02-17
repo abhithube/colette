@@ -1,12 +1,13 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark,
+    Bookmark, Tag,
     bookmark::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkScrapedData,
         BookmarkUpdateData, Error,
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, types::Json};
 use uuid::Uuid;
 
 use crate::repository::common::DbUrl;
@@ -28,16 +29,38 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let bookmarks = super::common::select_bookmarks(
-            &self.pool,
-            params.id,
-            params.collection_id,
+        let (has_collection, collection_id) = match params.collection_id {
+            Some(collection_id) => (true, collection_id),
+            None => (false, None),
+        };
+
+        let (has_cursor, cursor_created_at) = params
+            .cursor
+            .map(|e| (true, Some(e.created_at)))
+            .unwrap_or_default();
+
+        let bookmarks = sqlx::query_file_as!(
+            BookmarkRow,
+            "queries/bookmarks/select.sql",
             params.user_id,
-            params.cursor,
-            params.limit,
-            params.tags,
+            params.id.is_none(),
+            params.id,
+            has_collection,
+            collection_id,
+            params.tags.is_none(),
+            &params
+                .tags
+                .unwrap_or_default()
+                .into_iter()
+                .map(String::from)
+                .collect::<Vec<_>>(),
+            !has_cursor,
+            cursor_created_at,
+            params.limit
         )
-        .await?;
+        .fetch_all(&self.pool)
+        .await
+        .map(|e| e.into_iter().map(Bookmark::from).collect())?;
 
         Ok(bookmarks)
     }
@@ -202,5 +225,37 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         .await?;
 
         Ok(())
+    }
+}
+
+struct BookmarkRow {
+    id: Uuid,
+    link: DbUrl,
+    title: String,
+    thumbnail_url: Option<DbUrl>,
+    published_at: Option<DateTime<Utc>>,
+    author: Option<String>,
+    archived_path: Option<String>,
+    collection_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    tags: Option<Json<Vec<Tag>>>,
+}
+
+impl From<BookmarkRow> for Bookmark {
+    fn from(value: BookmarkRow) -> Self {
+        Self {
+            id: value.id,
+            link: value.link.0,
+            title: value.title,
+            thumbnail_url: value.thumbnail_url.map(|e| e.0),
+            published_at: value.published_at,
+            author: value.author,
+            archived_path: value.archived_path,
+            collection_id: value.collection_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            tags: value.tags.map(|e| e.0),
+        }
     }
 }

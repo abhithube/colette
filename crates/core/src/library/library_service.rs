@@ -1,8 +1,7 @@
 use uuid::Uuid;
 
 use super::{
-    Error, LibraryItem,
-    library_repository::{LibraryItemFindParams, LibraryRepository},
+    CollectionTreeItem, Error, FeedTreeItem, TreeFindParams, library_repository::LibraryRepository,
 };
 use crate::common::Paginated;
 
@@ -17,14 +16,14 @@ impl LibraryService {
         }
     }
 
-    pub async fn list_library_items(
+    pub async fn list_feed_tree(
         &self,
         query: LibraryItemListQuery,
         user_id: Uuid,
-    ) -> Result<Paginated<LibraryItem>, Error> {
-        let library_items = self
+    ) -> Result<Paginated<FeedTreeItem>, Error> {
+        let items = self
             .repository
-            .find(LibraryItemFindParams {
+            .find_feed_tree(TreeFindParams {
                 folder_id: query.folder_id,
                 user_id,
                 ..Default::default()
@@ -32,7 +31,27 @@ impl LibraryService {
             .await?;
 
         Ok(Paginated {
-            data: library_items,
+            data: items,
+            cursor: None,
+        })
+    }
+
+    pub async fn list_collection_tree(
+        &self,
+        query: LibraryItemListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<CollectionTreeItem>, Error> {
+        let items = self
+            .repository
+            .find_collection_tree(TreeFindParams {
+                folder_id: query.folder_id,
+                user_id,
+                ..Default::default()
+            })
+            .await?;
+
+        Ok(Paginated {
+            data: items,
             cursor: None,
         })
     }

@@ -6,7 +6,7 @@ use axum::{
 use colette_core::library;
 use uuid::Uuid;
 
-use super::{LIBRARY_TAG, LibraryItem};
+use super::{FeedTreeItem, LIBRARY_TAG};
 use crate::api::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -14,11 +14,11 @@ use crate::api::{
 
 #[utoipa::path(
     get,
-    path = "",
+    path = "/feedTree",
     params(LibraryItemListQuery),
     responses(ListResponse),
-    operation_id = "listLibraryItems",
-    description = "List user library items, consisting of folders, feeds, and bookmarks",
+    operation_id = "listFeedTree",
+    description = "List user feed tree, consisting of folders and feeds",
     tag = LIBRARY_TAG
 )]
 #[axum::debug_handler]
@@ -29,15 +29,11 @@ pub async fn handler(
 ) -> Result<impl IntoResponse, Error> {
     match state
         .library_service
-        .list_library_items(query.into(), user_id)
+        .list_feed_tree(query.into(), user_id)
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(Paginated {
-            data: data
-                .data
-                .into_iter()
-                .map(|e| (e, state.bucket_url.clone()).into())
-                .collect(),
+            data: data.data.into_iter().map(Into::into).collect(),
             cursor: data.cursor,
         })),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -64,8 +60,8 @@ impl From<LibraryItemListQuery> for library::LibraryItemListQuery {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of folders")]
-    Ok(Paginated<LibraryItem>),
+    #[response(status = 200, description = "Paginated list of folders and feeds")]
+    Ok(Paginated<FeedTreeItem>),
 }
 
 impl IntoResponse for ListResponse {

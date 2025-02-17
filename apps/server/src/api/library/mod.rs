@@ -1,39 +1,57 @@
-use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use super::{ApiState, bookmark::Bookmark, common::Paginated, feed::Feed, folder::Folder};
+use super::{ApiState, collection::Collection, common::Paginated, feed::Feed, folder::Folder};
 
-mod list_library_items;
+mod list_collection_tree;
+mod list_feed_tree;
 
 pub const LIBRARY_TAG: &str = "Library";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(LibraryItem, Paginated<LibraryItem>)))]
+#[openapi(components(schemas(FeedTreeItem, Paginated<FeedTreeItem>, CollectionTreeItem, Paginated<CollectionTreeItem>)))]
 pub struct LibraryApi;
 
 impl LibraryApi {
     pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(LibraryApi::openapi())
-            .routes(routes!(list_library_items::handler))
+            .routes(routes!(list_feed_tree::handler))
+            .routes(routes!(list_collection_tree::handler))
+    }
+}
+
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", tag = "type", content = "data")]
+pub enum FeedTreeItem {
+    Folder(Folder),
+    Feed(Feed),
+}
+
+impl From<colette_core::library::FeedTreeItem> for FeedTreeItem {
+    fn from(value: colette_core::library::FeedTreeItem) -> Self {
+        match value {
+            colette_core::library::FeedTreeItem::Folder(folder) => Self::Folder(folder.into()),
+            colette_core::library::FeedTreeItem::Feed(feed) => Self::Feed(feed.into()),
+        }
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase", tag = "type", content = "data")]
-pub enum LibraryItem {
+pub enum CollectionTreeItem {
     Folder(Folder),
-    Feed(Feed),
-    Bookmark(Bookmark),
+    Collection(Collection),
 }
 
-impl From<(colette_core::LibraryItem, Url)> for LibraryItem {
-    fn from((value, bucket_url): (colette_core::LibraryItem, Url)) -> Self {
+impl From<colette_core::library::CollectionTreeItem> for CollectionTreeItem {
+    fn from(value: colette_core::library::CollectionTreeItem) -> Self {
         match value {
-            colette_core::LibraryItem::Folder(folder) => Self::Folder(folder.into()),
-            colette_core::LibraryItem::Feed(feed) => Self::Feed(feed.into()),
-            colette_core::LibraryItem::Bookmark(bookmark) => {
-                Self::Bookmark((bookmark, bucket_url).into())
+            colette_core::library::CollectionTreeItem::Folder(folder) => {
+                Self::Folder(folder.into())
+            }
+            colette_core::library::CollectionTreeItem::Collection(feed) => {
+                Self::Collection(feed.into())
             }
         }
     }

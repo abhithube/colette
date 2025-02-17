@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark, Feed, Folder, Tag, bookmark,
+    Collection, Feed, Folder, Tag, collection,
     feed::{self, ProcessedFeed},
     folder,
 };
@@ -41,77 +41,33 @@ impl Decode<'_, Postgres> for DbUrl {
     }
 }
 
-struct BookmarkRow {
-    id: Uuid,
-    link: DbUrl,
-    title: String,
-    thumbnail_url: Option<DbUrl>,
-    published_at: Option<DateTime<Utc>>,
-    author: Option<String>,
-    archived_path: Option<String>,
-    collection_id: Option<Uuid>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-    tags: Option<Json<Vec<Tag>>>,
-}
-
-impl From<BookmarkRow> for Bookmark {
-    fn from(value: BookmarkRow) -> Self {
-        Self {
-            id: value.id,
-            link: value.link.0,
-            title: value.title,
-            thumbnail_url: value.thumbnail_url.map(|e| e.0),
-            published_at: value.published_at,
-            author: value.author,
-            archived_path: value.archived_path,
-            collection_id: value.collection_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            tags: value.tags.map(|e| e.0),
-        }
-    }
-}
-
-pub(crate) async fn select_bookmarks<'a>(
+pub(crate) async fn select_collections<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
-    collection_id: Option<Option<Uuid>>,
+    folder_id: Option<Option<Uuid>>,
     user_id: Uuid,
-    cursor: Option<bookmark::Cursor>,
     limit: Option<i64>,
-    tags: Option<Vec<String>>,
-) -> sqlx::Result<Vec<Bookmark>> {
-    let (has_collection, collection_id) = match collection_id {
-        Some(collection_id) => (true, collection_id),
+    cursor: Option<collection::Cursor>,
+) -> sqlx::Result<Vec<Collection>> {
+    let (has_folder, folder_id) = match folder_id {
+        Some(folder_id) => (true, folder_id),
         None => (false, None),
     };
 
-    let (has_cursor, cursor_created_at) = cursor
-        .map(|e| (true, Some(e.created_at)))
-        .unwrap_or_default();
-
     sqlx::query_file_as!(
-        BookmarkRow,
-        "queries/bookmarks/select.sql",
+        Collection,
+        "queries/collections/select.sql",
         user_id,
         id.is_none(),
         id,
-        has_collection,
-        collection_id,
-        tags.is_none(),
-        &tags
-            .unwrap_or_default()
-            .into_iter()
-            .map(String::from)
-            .collect::<Vec<_>>(),
-        !has_cursor,
-        cursor_created_at,
+        !has_folder,
+        folder_id,
+        cursor.is_none(),
+        cursor.map(|e| e.title),
         limit
     )
     .fetch_all(ex)
     .await
-    .map(|e| e.into_iter().map(Bookmark::from).collect())
 }
 
 struct FeedRow {
@@ -206,6 +162,7 @@ pub async fn select_folders<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
+    folder_type: Option<FolderType>,
     parent_id: Option<Option<Uuid>>,
     limit: Option<i64>,
     cursor: Option<folder::Cursor>,
@@ -223,6 +180,8 @@ pub async fn select_folders<'a>(
         user_id,
         id.is_none(),
         id,
+        folder_type.is_none(),
+        folder_type as Option<FolderType>,
         !has_parent,
         parent_id,
         !has_cursor,
