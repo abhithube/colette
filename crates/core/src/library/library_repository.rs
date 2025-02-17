@@ -1,7 +1,6 @@
 use uuid::Uuid;
 
 use super::{CollectionTreeItem, Error, FeedTreeItem};
-use crate::folder::FolderType;
 
 #[async_trait::async_trait]
 pub trait LibraryRepository: Send + Sync + 'static {
@@ -11,14 +10,6 @@ pub trait LibraryRepository: Send + Sync + 'static {
         &self,
         params: TreeFindParams,
     ) -> Result<Vec<CollectionTreeItem>, Error>;
-}
-
-#[derive(Debug, Clone)]
-pub struct LibraryItemFindParams {
-    pub folder_id: Option<Uuid>,
-    pub folder_type: FolderType,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default)]

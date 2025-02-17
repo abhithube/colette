@@ -3,19 +3,18 @@ use axum::{
     extract::{Query, State},
     response::{IntoResponse, Response},
 };
-use colette_core::library;
-use uuid::Uuid;
 
 use super::{FeedTreeItem, LIBRARY_TAG};
 use crate::api::{
     ApiState,
     common::{AuthUser, Error, Paginated},
+    library::TreeListQuery,
 };
 
 #[utoipa::path(
     get,
     path = "/feedTree",
-    params(LibraryItemListQuery),
+    params(TreeListQuery),
     responses(ListResponse),
     operation_id = "listFeedTree",
     description = "List user feed tree, consisting of folders and feeds",
@@ -24,7 +23,7 @@ use crate::api::{
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    Query(query): Query<LibraryItemListQuery>,
+    Query(query): Query<TreeListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
     match state
@@ -37,24 +36,6 @@ pub async fn handler(
             cursor: data.cursor,
         })),
         Err(e) => Err(Error::Unknown(e.into())),
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
-#[serde(rename_all = "camelCase")]
-#[into_params(parameter_in = Query)]
-pub struct LibraryItemListQuery {
-    pub folder_id: Option<Uuid>,
-    #[param(nullable = false)]
-    pub cursor: Option<String>,
-}
-
-impl From<LibraryItemListQuery> for library::LibraryItemListQuery {
-    fn from(value: LibraryItemListQuery) -> Self {
-        Self {
-            folder_id: value.folder_id,
-            cursor: value.cursor,
-        }
     }
 }
 

@@ -18,7 +18,7 @@ impl LibraryService {
 
     pub async fn list_feed_tree(
         &self,
-        query: LibraryItemListQuery,
+        query: TreeListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<FeedTreeItem>, Error> {
         let items = self
@@ -38,7 +38,7 @@ impl LibraryService {
 
     pub async fn list_collection_tree(
         &self,
-        query: LibraryItemListQuery,
+        query: TreeListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<CollectionTreeItem>, Error> {
         let items = self
@@ -58,7 +58,7 @@ impl LibraryService {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct LibraryItemListQuery {
+pub struct TreeListQuery {
     pub folder_id: Option<Uuid>,
     pub cursor: Option<String>,
 }

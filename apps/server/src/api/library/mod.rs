@@ -1,5 +1,7 @@
+use colette_core::library;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
+use uuid::Uuid;
 
 use super::{ApiState, collection::Collection, common::Paginated, feed::Feed, folder::Folder};
 
@@ -53,6 +55,24 @@ impl From<colette_core::library::CollectionTreeItem> for CollectionTreeItem {
             colette_core::library::CollectionTreeItem::Collection(feed) => {
                 Self::Collection(feed.into())
             }
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct TreeListQuery {
+    pub folder_id: Option<Uuid>,
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
+}
+
+impl From<TreeListQuery> for library::TreeListQuery {
+    fn from(value: TreeListQuery) -> Self {
+        Self {
+            folder_id: value.folder_id,
+            cursor: value.cursor,
         }
     }
 }
