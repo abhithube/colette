@@ -57,7 +57,7 @@ pub struct BookmarkCreate {
     pub published_at: Option<DateTime<Utc>>,
     #[schema(value_type = String, min_length = 1)]
     pub author: Option<NonEmptyString>,
-    pub folder_id: Option<Uuid>,
+    pub collection_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
@@ -70,7 +70,7 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author.map(Into::into),
-            folder_id: value.folder_id,
+            collection_id: value.collection_id,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }

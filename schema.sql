@@ -60,14 +60,17 @@ CREATE TRIGGER set_updated_at_feed_entries before
 UPDATE ON feed_entries FOR each ROW
 EXECUTE procedure set_updated_at ();
 
+CREATE TYPE folder_type AS ENUM('feeds', 'collections');
+
 CREATE TABLE folders (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title TEXT NOT NULL,
+  folder_type folder_type NOT NULL,
   parent_id uuid REFERENCES folders (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, parent_id, title)
+  UNIQUE nulls NOT DISTINCT (user_id, parent_id, title)
 );
 
 CREATE TRIGGER set_updated_at_folders before
@@ -126,7 +129,7 @@ CREATE TABLE bookmarks (
   published_at TIMESTAMPTZ,
   author TEXT,
   archived_path TEXT,
-  folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
+  collection_id uuid REFERENCES collections (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),

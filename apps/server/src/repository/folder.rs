@@ -47,7 +47,8 @@ impl Creatable for PostgresFolderRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = sqlx::query_file_scalar!(
             "queries/folders/insert.sql",
-            String::from(data.title),
+            data.title,
+            FolderType::from(data.folder_type) as FolderType,
             data.parent_id,
             data.user_id
         )
@@ -76,7 +77,7 @@ impl Updatable for PostgresFolderRepository {
                 params.id,
                 params.user_id,
                 data.title.is_some(),
-                data.title.map(String::from),
+                data.title,
                 has_parent,
                 parent_id
             )
@@ -98,16 +99,39 @@ impl Deletable for PostgresFolderRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file!("queries/folders/delete.sql", params.id, params.user_id)
+        let result = sqlx::query_file!("queries/folders/delete.sql", params.id, params.user_id)
             .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(Error::NotFound(params.id));
+        }
 
         Ok(())
     }
 }
 
 impl FolderRepository for PostgresFolderRepository {}
+
+#[derive(Debug, PartialEq, sqlx::Type)]
+pub enum FolderType {
+    Feeds,
+    Collections,
+}
+
+impl From<colette_core::folder::FolderType> for FolderType {
+    fn from(value: colette_core::folder::FolderType) -> Self {
+        match value {
+            colette_core::folder::FolderType::Feeds => FolderType::Feeds,
+            colette_core::folder::FolderType::Collections => FolderType::Collections,
+        }
+    }
+}
+
+impl From<FolderType> for colette_core::folder::FolderType {
+    fn from(value: FolderType) -> Self {
+        match value {
+            FolderType::Feeds => colette_core::folder::FolderType::Feeds,
+            FolderType::Collections => colette_core::folder::FolderType::Collections,
+        }
+    }
+}

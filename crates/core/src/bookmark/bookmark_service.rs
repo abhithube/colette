@@ -57,7 +57,7 @@ impl BookmarkService {
         let mut bookmarks = self
             .repository
             .find(BookmarkFindParams {
-                folder_id: query.folder_id,
+                collection_id: query.collection_id,
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
@@ -116,7 +116,7 @@ impl BookmarkService {
                 thumbnail_url: data.thumbnail_url,
                 published_at: data.published_at,
                 author: data.author,
-                folder_id: data.folder_id,
+                collection_id: data.collection_id,
                 tags: data.tags,
                 user_id,
             })
@@ -275,10 +275,13 @@ impl BookmarkService {
                     .await?;
 
                 self.repository
-                    .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
-                        archived_path: Some(Some(object_path)),
-                        ..Default::default()
-                    })
+                    .update(
+                        IdParams::new(bookmark_id, user_id),
+                        BookmarkUpdateData {
+                            archived_path: Some(Some(object_path)),
+                            ..Default::default()
+                        },
+                    )
                     .await?;
             }
             ThumbnailOperation::Delete => {}
@@ -290,10 +293,13 @@ impl BookmarkService {
                 .await?;
 
             self.repository
-                .update(IdParams::new(bookmark_id, user_id), BookmarkUpdateData {
-                    archived_path: Some(None),
-                    ..Default::default()
-                })
+                .update(
+                    IdParams::new(bookmark_id, user_id),
+                    BookmarkUpdateData {
+                        archived_path: Some(None),
+                        ..Default::default()
+                    },
+                )
                 .await?;
         }
 
@@ -303,7 +309,7 @@ impl BookmarkService {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkListQuery {
-    pub folder_id: Option<Option<Uuid>>,
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
@@ -315,7 +321,7 @@ pub struct BookmarkCreate {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub folder_id: Option<Uuid>,
+    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -325,7 +331,7 @@ pub struct BookmarkUpdate {
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub folder_id: Option<Option<Uuid>>,
+    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -337,7 +343,7 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             published_at: value.published_at,
             author: value.author,
             archived_path: None,
-            folder_id: value.folder_id,
+            collection_id: value.collection_id,
             tags: value.tags,
         }
     }

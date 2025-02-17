@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  bookmarks (\n    link,\n    title,\n    thumbnail_url,\n    published_at,\n    author,\n    collection_id,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5, $6, $7)\nON CONFLICT (user_id, link) DO UPDATE\nSET\n  title = excluded.title,\n  thumbnail_url = excluded.thumbnail_url,\n  published_at = excluded.published_at,\n  author = excluded.author\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "468362002fd6df91369e1482cf44e62bfa9d0b89eec37a06eac2000213b4c887"
+}

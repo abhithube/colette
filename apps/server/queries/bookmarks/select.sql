@@ -25,7 +25,7 @@ SELECT
   b.published_at,
   b.author,
   b.archived_path,
-  b.folder_id,
+  b.collection_id,
   b.created_at,
   b.updated_at,
   jt.tags AS "tags: Json<Vec<Tag>>"
@@ -41,8 +41,8 @@ WHERE
   AND (
     $4::BOOLEAN
     OR CASE
-      WHEN $5::uuid IS NULL THEN b.folder_id IS NULL
-      ELSE b.folder_id = $5
+      WHEN $5::uuid IS NULL THEN b.collection_id IS NULL
+      ELSE b.collection_id = $5
     END
   )
   AND (

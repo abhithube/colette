@@ -31,7 +31,7 @@ impl Findable for PostgresBookmarkRepository {
         let bookmarks = super::common::select_bookmarks(
             &self.pool,
             params.id,
-            params.folder_id,
+            params.collection_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -58,7 +58,7 @@ impl Creatable for PostgresBookmarkRepository {
             data.thumbnail_url.map(DbUrl) as Option<DbUrl>,
             data.published_at,
             data.author,
-            data.folder_id,
+            data.collection_id,
             data.user_id
         )
         .fetch_one(&mut *tx)
@@ -101,7 +101,7 @@ impl Updatable for PostgresBookmarkRepository {
             || data.published_at.is_some()
             || data.author.is_some()
             || data.archived_path.is_some()
-            || data.folder_id.is_some()
+            || data.collection_id.is_some()
         {
             let (has_thumbnail_url, thumbnail_url) = match data.thumbnail_url {
                 Some(thumbnail_url) => (true, thumbnail_url.map(DbUrl)),
@@ -119,8 +119,8 @@ impl Updatable for PostgresBookmarkRepository {
                 Some(archived_path) => (true, archived_path),
                 None => (false, None),
             };
-            let (has_folder, folder_id) = match data.folder_id {
-                Some(folder_id) => (true, folder_id),
+            let (has_collection, collection_id) = match data.collection_id {
+                Some(collection_id) => (true, collection_id),
                 None => (false, None),
             };
 
@@ -138,8 +138,8 @@ impl Updatable for PostgresBookmarkRepository {
                 author,
                 has_archived_path,
                 archived_path,
-                has_folder,
-                folder_id
+                has_collection,
+                collection_id
             )
             .execute(&mut *tx)
             .await
@@ -174,13 +174,12 @@ impl Deletable for PostgresBookmarkRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file!("queries/bookmarks/delete.sql", params.id, params.user_id)
+        let result = sqlx::query_file!("queries/bookmarks/delete.sql", params.id, params.user_id)
             .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(Error::NotFound(params.id));
+        }
 
         Ok(())
     }

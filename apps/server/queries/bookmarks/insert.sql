@@ -5,7 +5,7 @@ INSERT INTO
     thumbnail_url,
     published_at,
     author,
-    folder_id,
+    collection_id,
     user_id
   )
 VALUES

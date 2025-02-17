@@ -7,7 +7,7 @@ use axum_extra::extract::Query;
 use colette_core::folder;
 use uuid::Uuid;
 
-use super::{FOLDERS_TAG, Folder};
+use super::{FOLDERS_TAG, Folder, FolderType};
 use crate::api::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -43,6 +43,8 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct FolderListQuery {
     #[param(nullable = false)]
+    pub folder_type: Option<FolderType>,
+    #[param(nullable = false)]
     pub filter_by_parent: Option<bool>,
     pub parent_id: Option<Uuid>,
 }
@@ -50,6 +52,7 @@ pub struct FolderListQuery {
 impl From<FolderListQuery> for folder::FolderListQuery {
     fn from(value: FolderListQuery) -> Self {
         Self {
+            folder_type: value.folder_type.map(Into::into),
             parent_id: if value.filter_by_parent.unwrap_or(value.parent_id.is_some()) {
                 Some(value.parent_id)
             } else {

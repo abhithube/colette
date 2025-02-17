@@ -1,6 +1,7 @@
 SELECT
   id,
   title,
+  folder_type AS "folder_type: FolderType",
   parent_id,
   created_at,
   updated_at

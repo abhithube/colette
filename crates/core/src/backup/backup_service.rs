@@ -12,6 +12,7 @@ use crate::{
     Bookmark, Feed, Folder,
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
+    folder::FolderType,
     storage::DynStorage,
 };
 
@@ -111,7 +112,7 @@ impl BackupService {
     pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let folders = self
             .backup_repository
-            .export_folders(FolderType::Bookmarks, user_id)
+            .export_folders(FolderType::Collections, user_id)
             .await?;
 
         let bookmarks = self
@@ -190,7 +191,7 @@ fn build_netscape_hierarchy(
         items.push(item);
     }
 
-    for bookmark in bookmarks.iter().filter(|f| f.folder_id == parent_id) {
+    for bookmark in bookmarks.iter().filter(|f| f.collection_id == parent_id) {
         let item = Item {
             title: bookmark.title.clone(),
             href: Some(bookmark.link.to_string()),
@@ -201,12 +202,6 @@ fn build_netscape_hierarchy(
     }
 
     items
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum FolderType {
-    Feeds,
-    Bookmarks,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

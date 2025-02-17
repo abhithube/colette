@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{
-    Error, Folder,
+    Error, Folder, FolderType,
     folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
 };
 use crate::common::{IdParams, Paginated};
@@ -32,7 +32,7 @@ impl FolderService {
             .await?;
         Ok(Paginated {
             data: folders,
-            ..Default::default()
+            cursor: None,
         })
     }
 
@@ -57,6 +57,7 @@ impl FolderService {
             .repository
             .create(FolderCreateData {
                 title: data.title,
+                folder_type: data.folder_type,
                 parent_id: data.parent_id,
                 user_id,
             })
@@ -85,12 +86,14 @@ impl FolderService {
 
 #[derive(Debug, Clone, Default)]
 pub struct FolderListQuery {
+    pub folder_type: Option<FolderType>,
     pub parent_id: Option<Option<Uuid>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FolderCreate {
     pub title: String,
+    pub folder_type: FolderType,
     pub parent_id: Option<Uuid>,
 }
 

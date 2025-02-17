@@ -1,0 +1,69 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n  id,\n  title,\n  folder_type AS \"folder_type: FolderType\",\n  parent_id,\n  created_at,\n  updated_at\nFROM\n  folders\nWHERE\n  user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR CASE\n      WHEN $5::uuid IS NULL THEN parent_id IS NULL\n      ELSE parent_id = $5\n    END\n  )\n  AND (\n    $6::BOOLEAN\n    OR title > $7\n  )\nORDER BY\n  title ASC\nLIMIT\n  $8\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "folder_type: FolderType",
+        "type_info": {
+          "Custom": {
+            "name": "folder_type",
+            "kind": {
+              "Enum": [
+                "feeds",
+                "collections"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "fa1fb590d0b1edd9ad8160666e093ddbc921f1594bb00dccf3dcd5e42ea99445"
+}

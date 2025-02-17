@@ -20,9 +20,9 @@ SET
     WHEN $11 THEN $12
     ELSE archived_path
   END,
-  folder_id = CASE
+  collection_id = CASE
     WHEN $13 THEN $14
-    ELSE folder_id
+    ELSE collection_id
   END
 WHERE
   id = $1

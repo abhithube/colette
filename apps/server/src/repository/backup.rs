@@ -1,12 +1,15 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Folder,
-    backup::{BackupRepository, Error, FolderType},
+    backup::{BackupRepository, Error},
 };
 use colette_netscape::Item;
 use colette_opml::Outline;
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
+
+use super::folder::FolderType;
+use crate::repository::common::FolderRow;
 
 #[derive(Debug, Clone)]
 pub struct PostgresBackupRepository {
@@ -111,18 +114,21 @@ impl BackupRepository for PostgresBackupRepository {
 
     async fn export_folders(
         &self,
-        r#type: FolderType,
+        folder_type: colette_core::folder::FolderType,
         user_id: Uuid,
     ) -> Result<Vec<Folder>, Error> {
+        let folder_type = FolderType::from(folder_type);
+
         let folders = sqlx::query_file_as!(
-            Folder,
+            FolderRow,
             "queries/folders/select_populated.sql",
             user_id,
-            r#type == FolderType::Feeds,
-            r#type == FolderType::Bookmarks
+            folder_type == FolderType::Feeds,
+            folder_type == FolderType::Collections
         )
         .fetch_all(&self.pool)
-        .await?;
+        .await
+        .map(|e| e.into_iter().map(Folder::from).collect())?;
 
         Ok(folders)
     }

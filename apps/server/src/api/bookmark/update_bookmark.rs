@@ -78,7 +78,7 @@ pub struct BookmarkUpdate {
         skip_serializing_if = "Option::is_none",
         with = "serde_with::rust::double_option"
     )]
-    pub folder_id: Option<Option<Uuid>>,
+    pub collection_id: Option<Option<Uuid>>,
     #[schema(nullable = false, min_length = 1)]
     pub tags: Option<Vec<String>>,
 }
@@ -90,7 +90,7 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author.map(|e| e.map(Into::into)),
-            folder_id: value.folder_id,
+            collection_id: value.collection_id,
             tags: value.tags,
         }
     }

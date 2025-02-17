@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Bookmark, Feed, Tag, bookmark,
+    Bookmark, Feed, Folder, Tag, bookmark,
     feed::{self, ProcessedFeed},
     folder,
 };
@@ -13,6 +13,8 @@ use sqlx::{
 };
 use url::Url;
 use uuid::Uuid;
+
+use super::folder::FolderType;
 
 #[derive(Debug, Clone)]
 pub struct DbUrl(pub Url);
@@ -47,7 +49,7 @@ struct BookmarkRow {
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
     archived_path: Option<String>,
-    folder_id: Option<Uuid>,
+    collection_id: Option<Uuid>,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
     tags: Option<Json<Vec<Tag>>>,
@@ -63,7 +65,7 @@ impl From<BookmarkRow> for Bookmark {
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
-            folder_id: value.folder_id,
+            collection_id: value.collection_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),
@@ -74,14 +76,14 @@ impl From<BookmarkRow> for Bookmark {
 pub(crate) async fn select_bookmarks<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
-    folder_id: Option<Option<Uuid>>,
+    collection_id: Option<Option<Uuid>>,
     user_id: Uuid,
     cursor: Option<bookmark::Cursor>,
     limit: Option<i64>,
     tags: Option<Vec<String>>,
 ) -> sqlx::Result<Vec<Bookmark>> {
-    let (has_folder, folder_id) = match folder_id {
-        Some(folder_id) => (true, folder_id),
+    let (has_collection, collection_id) = match collection_id {
+        Some(collection_id) => (true, collection_id),
         None => (false, None),
     };
 
@@ -95,8 +97,8 @@ pub(crate) async fn select_bookmarks<'a>(
         user_id,
         id.is_none(),
         id,
-        !has_folder,
-        folder_id,
+        has_collection,
+        collection_id,
         tags.is_none(),
         &tags
             .unwrap_or_default()
@@ -178,6 +180,28 @@ pub(crate) async fn select_feeds<'a>(
     .map(|e| e.into_iter().map(Feed::from).collect())
 }
 
+pub(crate) struct FolderRow {
+    pub(crate) id: Uuid,
+    pub(crate) title: String,
+    pub(crate) folder_type: FolderType,
+    pub(crate) parent_id: Option<Uuid>,
+    pub(crate) created_at: DateTime<Utc>,
+    pub(crate) updated_at: DateTime<Utc>,
+}
+
+impl From<FolderRow> for Folder {
+    fn from(value: FolderRow) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            folder_type: value.folder_type.into(),
+            parent_id: value.parent_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+        }
+    }
+}
+
 pub async fn select_folders<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
@@ -185,7 +209,7 @@ pub async fn select_folders<'a>(
     parent_id: Option<Option<Uuid>>,
     limit: Option<i64>,
     cursor: Option<folder::Cursor>,
-) -> sqlx::Result<Vec<colette_core::Folder>> {
+) -> sqlx::Result<Vec<Folder>> {
     let (has_parent, parent_id) = match parent_id {
         Some(parent_id) => (true, parent_id),
         None => (false, None),
@@ -194,7 +218,7 @@ pub async fn select_folders<'a>(
     let (has_cursor, cursor_title) = cursor.map(|e| (true, Some(e.title))).unwrap_or_default();
 
     sqlx::query_file_as!(
-        colette_core::Folder,
+        FolderRow,
         "queries/folders/select.sql",
         user_id,
         id.is_none(),
@@ -207,6 +231,7 @@ pub async fn select_folders<'a>(
     )
     .fetch_all(ex)
     .await
+    .map(|e| e.into_iter().map(Folder::from).collect())
 }
 
 pub(crate) async fn insert_feed_with_entries<'a>(
