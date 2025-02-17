@@ -47,21 +47,21 @@ export class HTTPFolderAPI implements FolderAPI {
       .then(Folder.parse)
   }
 
-  create(body: FolderCreate): Promise<Folder> {
+  create(data: FolderCreate): Promise<Folder> {
     return this.client
       .post('/folders', {
-        body: FolderCreate.parse(body),
+        body: FolderCreate.parse(data),
       })
       .then(Folder.parse)
   }
 
-  update(id: string, body: FolderUpdate): Promise<Folder> {
+  update(id: string, data: FolderUpdate): Promise<Folder> {
     return this.client
       .patch('/folders/{id}', {
         path: {
           id,
         },
-        body: FolderUpdate.parse(body),
+        body: FolderUpdate.parse(data),
       })
       .then(Folder.parse)
   }

@@ -47,21 +47,21 @@ export class HTTPTagAPI implements TagAPI {
       .then(Tag.parse)
   }
 
-  create(body: TagCreate): Promise<Tag> {
+  create(data: TagCreate): Promise<Tag> {
     return this.client
       .post('/tags', {
-        body: TagCreate.parse(body),
+        body: TagCreate.parse(data),
       })
       .then(Tag.parse)
   }
 
-  update(id: string, body: TagUpdate): Promise<Tag> {
+  update(id: string, data: TagUpdate): Promise<Tag> {
     return this.client
       .patch('/tags/{id}', {
         path: {
           id,
         },
-        body: TagUpdate.parse(body),
+        body: TagUpdate.parse(data),
       })
       .then(Tag.parse)
   }
