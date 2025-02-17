@@ -1,29 +1,12 @@
 use uuid::Uuid;
 
-use crate::common::{
-    Creatable, Deletable, Findable, IdParams, NonEmptyString, Paginated, Updatable,
+use super::{
+    Collection, Error,
+    collection_repository::{
+        CollectionCreateData, CollectionFindParams, CollectionRepository, CollectionUpdateData,
+    },
 };
-
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub struct Collection {
-    pub id: Uuid,
-    pub title: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct CollectionCreate {
-    pub title: NonEmptyString,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct CollectionUpdate {
-    pub title: Option<NonEmptyString>,
-}
-
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct Cursor {
-    pub title: String,
-}
+use crate::common::{IdParams, Paginated};
 
 pub struct CollectionService {
     repository: Box<dyn CollectionRepository>,
@@ -36,15 +19,19 @@ impl CollectionService {
         }
     }
 
-    pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {
+    pub async fn list_collections(
+        &self,
+        query: CollectionListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repository
             .find(CollectionFindParams {
+                folder_id: query.folder_id,
                 user_id,
                 ..Default::default()
             })
             .await?;
-
         Ok(Paginated {
             data: collections,
             ..Default::default()
@@ -75,7 +62,8 @@ impl CollectionService {
         let id = self
             .repository
             .create(CollectionCreateData {
-                title: data.title.into(),
+                title: data.title,
+                folder_id: data.folder_id,
                 user_id,
             })
             .await?;
@@ -101,49 +89,28 @@ impl CollectionService {
     }
 }
 
-pub trait CollectionRepository:
-    Findable<Params = CollectionFindParams, Output = Result<Vec<Collection>, Error>>
-    + Creatable<Data = CollectionCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = CollectionUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+#[derive(Debug, Clone, Default)]
+pub struct CollectionListQuery {
+    pub folder_id: Option<Option<Uuid>>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct CollectionFindParams {
-    pub id: Option<Uuid>,
-    pub user_id: Uuid,
-    pub limit: Option<u64>,
-    pub cursor: Option<Cursor>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct CollectionCreateData {
+#[derive(Debug, Clone)]
+pub struct CollectionCreate {
     pub title: String,
-    pub user_id: Uuid,
+    pub folder_id: Option<Uuid>,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct CollectionUpdateData {
+pub struct CollectionUpdate {
     pub title: Option<String>,
+    pub folder_id: Option<Option<Uuid>>,
 }
 
 impl From<CollectionUpdate> for CollectionUpdateData {
     fn from(value: CollectionUpdate) -> Self {
         Self {
-            title: value.title.map(String::from),
+            title: value.title,
+            folder_id: value.folder_id,
         }
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error("collection not found with ID: {0}")]
-    NotFound(Uuid),
-
-    #[error(transparent)]
-    Unknown(#[from] anyhow::Error),
 }

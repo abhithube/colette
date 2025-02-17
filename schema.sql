@@ -104,6 +104,20 @@ CREATE TRIGGER set_updated_at_user_feed_entries before
 UPDATE ON user_feed_entries FOR each ROW
 EXECUTE procedure set_updated_at ();
 
+CREATE TABLE collections (
+  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  title TEXT NOT NULL,
+  folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE nulls NOT DISTINCT (user_id, folder_id, title)
+);
+
+CREATE TRIGGER set_updated_at_collections before
+UPDATE ON collections FOR each ROW
+EXECUTE procedure set_updated_at ();
+
 CREATE TABLE bookmarks (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL,

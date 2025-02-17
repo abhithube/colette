@@ -8,8 +8,8 @@ use apalis_cron::{CronStream, Schedule};
 use apalis_redis::RedisStorage;
 use api::{
     ApiState, api_key::ApiKeyApi, auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi,
-    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, folder::FolderApi,
-    library::LibraryApi, tag::TagApi,
+    collection::CollectionApi, common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi,
+    folder::FolderApi, library::LibraryApi, tag::TagApi,
 };
 use axum::{
     http::{HeaderValue, Method, header},
@@ -18,8 +18,8 @@ use axum::{
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
-    feed::FeedService, feed_entry::FeedEntryService, folder::FolderService,
-    library::LibraryService, tag::TagService,
+    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
+    folder::FolderService, library::LibraryService, tag::TagService,
 };
 use colette_http::HyperClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -29,9 +29,10 @@ use job::{
 use object_store::aws::AmazonS3Builder;
 use repository::{
     api_key::PostgresApiKeyRepository, backup::PostgresBackupRepository,
-    bookmark::PostgresBookmarkRepository, feed::PostgresFeedRepository,
-    feed_entry::PostgresFeedEntryRepository, folder::PostgresFolderRepository,
-    library::PostgresLibraryRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
+    bookmark::PostgresBookmarkRepository, collection::PostgresCollectionRepository,
+    feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
+    folder::PostgresFolderRepository, library::PostgresLibraryRepository,
+    tag::PostgresTagRepository, user::PostgresUserRepository,
 };
 use serde::{Deserialize, Deserializer};
 use session::RedisStore;
@@ -221,9 +222,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
         register_bookmark_plugins(http_client.clone()),
     ));
-    // let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
-    //     pool.clone(),
-    // )));
+    let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
+        pool.clone(),
+    )));
     let feed_service = Arc::new(FeedService::new(
         feed_repository,
         http_client.clone(),
@@ -302,6 +303,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_service,
         backup_service,
         bookmark_service,
+        collection_service,
         feed_service,
         feed_entry_service,
         folder_service,
@@ -318,8 +320,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/auth", AuthApi::router())
                 .nest("/backups", BackupApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
-                // .nest("/collections", CollectionApi::router())
-                // .with_state(CollectionState::new(collection_service))
+                .nest("/collections", CollectionApi::router())
                 .nest("/feedEntries", FeedEntryApi::router())
                 .nest("/feeds", FeedApi::router())
                 .nest("/folders", FolderApi::router())

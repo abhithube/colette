@@ -179,6 +179,9 @@ pub enum CoreError {
     Bookmark(#[from] colette_core::bookmark::Error),
 
     #[error(transparent)]
+    Collection(#[from] colette_core::collection::Error),
+
+    #[error(transparent)]
     Feed(#[from] colette_core::feed::Error),
 
     #[error(transparent)]
