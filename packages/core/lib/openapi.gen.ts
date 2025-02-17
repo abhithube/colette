@@ -63,7 +63,7 @@ export const BookmarkCreate = z.object({
   title: z.string(),
   thumbnailUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
   publishedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-  author: z.string(),
+  author: z.union([z.string(), z.null(), z.undefined()]).optional(),
   collectionId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
@@ -106,6 +106,31 @@ export const CollectionCreate = z.object({
   title: z.string(),
   folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
+
+export type FolderType = z.infer<typeof FolderType>;
+export const FolderType = z.union([z.literal("feeds"), z.literal("collections")]);
+
+export type Folder = z.infer<typeof Folder>;
+export const Folder = z.object({
+  id: z.string(),
+  title: z.string(),
+  folderType: FolderType,
+  parentId: z.union([z.string(), z.null()]),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type CollectionTreeItem = z.infer<typeof CollectionTreeItem>;
+export const CollectionTreeItem = z.union([
+  z.object({
+    data: Folder,
+    type: z.literal("folder"),
+  }),
+  z.object({
+    data: Collection,
+    type: z.literal("collection"),
+  }),
+]);
 
 export type CollectionUpdate = z.infer<typeof CollectionUpdate>;
 export const CollectionUpdate = z.object({
@@ -174,24 +199,23 @@ export const FeedEntryUpdate = z.object({
   hasRead: z.union([z.boolean(), z.null()]).optional(),
 });
 
+export type FeedTreeItem = z.infer<typeof FeedTreeItem>;
+export const FeedTreeItem = z.union([
+  z.object({
+    data: Folder,
+    type: z.literal("folder"),
+  }),
+  z.object({
+    data: Feed,
+    type: z.literal("feed"),
+  }),
+]);
+
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
   folderId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
-});
-
-export type FolderType = z.infer<typeof FolderType>;
-export const FolderType = z.union([z.literal("feeds"), z.literal("collections")]);
-
-export type Folder = z.infer<typeof Folder>;
-export const Folder = z.object({
-  id: z.string(),
-  title: z.string(),
-  folderType: FolderType,
-  parentId: z.union([z.string(), z.null()]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
 });
 
 export type FolderCreate = z.infer<typeof FolderCreate>;
@@ -206,22 +230,6 @@ export const FolderUpdate = z.object({
   title: z.string().optional(),
   parentId: z.union([z.string(), z.null()]).optional(),
 });
-
-export type LibraryItem = z.infer<typeof LibraryItem>;
-export const LibraryItem = z.union([
-  z.object({
-    data: Folder,
-    type: z.literal("folder"),
-  }),
-  z.object({
-    data: Feed,
-    type: z.literal("feed"),
-  }),
-  z.object({
-    data: Bookmark,
-    type: z.literal("bookmark"),
-  }),
-]);
 
 export type Login = z.infer<typeof Login>;
 export const Login = z.object({
@@ -277,6 +285,23 @@ export const Paginated_Collection = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
+export type Paginated_CollectionTreeItem = z.infer<typeof Paginated_CollectionTreeItem>;
+export const Paginated_CollectionTreeItem = z.object({
+  data: z.array(
+    z.union([
+      z.object({
+        data: Folder,
+        type: z.literal("folder"),
+      }),
+      z.object({
+        data: Collection,
+        type: z.literal("collection"),
+      }),
+    ]),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
 export type Paginated_Feed = z.infer<typeof Paginated_Feed>;
 export const Paginated_Feed = z.object({
   data: z.array(
@@ -315,6 +340,23 @@ export const Paginated_FeedEntry = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
+export type Paginated_FeedTreeItem = z.infer<typeof Paginated_FeedTreeItem>;
+export const Paginated_FeedTreeItem = z.object({
+  data: z.array(
+    z.union([
+      z.object({
+        data: Folder,
+        type: z.literal("folder"),
+      }),
+      z.object({
+        data: Feed,
+        type: z.literal("feed"),
+      }),
+    ]),
+  ),
+  cursor: z.union([z.string(), z.undefined()]).optional(),
+});
+
 export type Paginated_Folder = z.infer<typeof Paginated_Folder>;
 export const Paginated_Folder = z.object({
   data: z.array(
@@ -326,27 +368,6 @@ export const Paginated_Folder = z.object({
       createdAt: z.string(),
       updatedAt: z.string(),
     }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_LibraryItem = z.infer<typeof Paginated_LibraryItem>;
-export const Paginated_LibraryItem = z.object({
-  data: z.array(
-    z.union([
-      z.object({
-        data: Folder,
-        type: z.literal("folder"),
-      }),
-      z.object({
-        data: Feed,
-        type: z.literal("feed"),
-      }),
-      z.object({
-        data: Bookmark,
-        type: z.literal("bookmark"),
-      }),
-    ]),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
@@ -862,10 +883,10 @@ export const patch_UpdateFolder = {
   response: Folder,
 };
 
-export type get_ListLibraryItems = typeof get_ListLibraryItems;
-export const get_ListLibraryItems = {
+export type get_ListFeedTree = typeof get_ListFeedTree;
+export const get_ListFeedTree = {
   method: z.literal("GET"),
-  path: z.literal("/library"),
+  path: z.literal("/library/feedTree"),
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
@@ -873,7 +894,21 @@ export const get_ListLibraryItems = {
       cursor: z.string().optional(),
     }),
   }),
-  response: Paginated_LibraryItem,
+  response: Paginated_FeedTreeItem,
+};
+
+export type get_ListCollectionTree = typeof get_ListCollectionTree;
+export const get_ListCollectionTree = {
+  method: z.literal("GET"),
+  path: z.literal("/library/collectionTree"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    query: z.object({
+      folderId: z.string().optional(),
+      cursor: z.string().optional(),
+    }),
+  }),
+  response: Paginated_CollectionTreeItem,
 };
 
 export type get_ListTags = typeof get_ListTags;
@@ -956,7 +991,8 @@ export const EndpointByMethod = {
     "/feeds/{id}": get_GetFeed,
     "/folders": get_ListFolders,
     "/folders/{id}": get_GetFolder,
-    "/library": get_ListLibraryItems,
+    "/library/feedTree": get_ListFeedTree,
+    "/library/collectionTree": get_ListCollectionTree,
     "/tags": get_ListTags,
     "/tags/{id}": get_GetTag,
   },

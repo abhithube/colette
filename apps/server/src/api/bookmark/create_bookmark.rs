@@ -55,7 +55,7 @@ pub struct BookmarkCreate {
     pub title: NonEmptyString,
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
-    #[schema(value_type = String, min_length = 1)]
+    #[schema(value_type = Option<String>, min_length = 1)]
     pub author: Option<NonEmptyString>,
     pub collection_id: Option<Uuid>,
     #[schema(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
