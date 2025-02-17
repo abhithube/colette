@@ -1,7 +1,8 @@
-import { createBookmarkOptions, scrapeBookmarkOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import {
+  useCreateBookmarkMutation,
+  useScrapeBookmarkMutation,
+} from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
@@ -18,8 +19,6 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
   const [, navigate] = useLocation()
 
   const form = useForm({
@@ -28,38 +27,38 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
       title: '',
     },
     onSubmit: async ({ value }) => {
-      const scraped = await scrapeBookmark(value)
-      await createBookmark({
-        url: scraped.link,
-        title: scraped.title,
-        thumbnailUrl: scraped.thumbnailUrl,
-        publishedAt: scraped.publishedAt,
-        author: scraped.author,
+      const scraped = await scrapeBookmark.mutateAsync(value, {
+        onSuccess: () => {
+          form.reset()
+          props.close()
+
+          navigate('/bookmarks')
+        },
       })
+
+      createBookmark.mutate(
+        {
+          url: scraped.link,
+          title: scraped.title,
+          thumbnailUrl: scraped.thumbnailUrl,
+          publishedAt: scraped.publishedAt,
+          author: scraped.author,
+        },
+        {
+          onSuccess: () => {
+            form.reset()
+            props.close()
+
+            navigate('/stash')
+          },
+        },
+      )
     },
   })
 
-  const { mutateAsync: createBookmark, isPending: isPending1 } = useMutation(
-    createBookmarkOptions(api, queryClient, {
-      onSuccess: () => {
-        form.reset()
-        props.close()
+  const createBookmark = useCreateBookmarkMutation()
 
-        navigate('/stash')
-      },
-    }),
-  )
-
-  const { mutateAsync: scrapeBookmark, isPending: isPending2 } = useMutation(
-    scrapeBookmarkOptions(api, {
-      onSuccess: () => {
-        form.reset()
-        props.close()
-
-        navigate('/bookmarks')
-      },
-    }),
-  )
+  const scrapeBookmark = useScrapeBookmarkMutation()
 
   return (
     <DialogContent className="p-6">
@@ -115,7 +114,11 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
             )}
           </form.Field>
           <DialogFooter>
-            <Button disabled={isPending1 || isPending2}>Submit</Button>
+            <Button
+              disabled={scrapeBookmark.isPending || createBookmark.isPending}
+            >
+              Submit
+            </Button>
           </DialogFooter>
         </div>
       </form>

@@ -1,113 +1,77 @@
-import type { BaseInfiniteQueryOptions, BaseMutationOptions } from './common'
 import type {
   API,
-  Bookmark,
   BookmarkCreate,
-  BookmarkList,
   BookmarkListQuery,
   BookmarkScrape,
-  BookmarkScraped,
   BookmarkUpdate,
 } from '@colette/core'
-import type { QueryClient } from '@tanstack/query-core'
+import { useAPI } from '@colette/util'
+import {
+  infiniteQueryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query'
 
 const BOOKMARKS_PREFIX = 'bookmarks'
 
-type ListBookmarksOptions = BaseInfiniteQueryOptions<
-  BookmarkList,
-  string | undefined
->
+export const listBookmarksOptions = (api: API, query?: BookmarkListQuery) =>
+  infiniteQueryOptions({
+    queryKey: [BOOKMARKS_PREFIX, query],
+    queryFn: ({ pageParam }) =>
+      api.bookmarks.list({
+        ...query,
+        cursor: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor,
+  })
 
-export const listBookmarksOptions = (
-  query: BookmarkListQuery,
-  api: API,
-  options: Omit<
-    ListBookmarksOptions,
-    'queryKey' | 'queryFn' | 'initialPageParam' | 'getNextPageParam'
-  > = {},
-): ListBookmarksOptions => ({
-  ...options,
-  queryKey: [BOOKMARKS_PREFIX, query],
-  queryFn: ({ pageParam }) =>
-    api.bookmarks.list({
-      ...query,
-      cursor: pageParam,
-    }),
-  initialPageParam: undefined,
-  getNextPageParam: (lastPage) => lastPage.cursor,
-})
+export const useCreateBookmarkMutation = () => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
 
-type CreateBookmarkOptions = BaseMutationOptions<Bookmark, BookmarkCreate>
+  return useMutation({
+    mutationFn: (data: BookmarkCreate) => api.bookmarks.create(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [BOOKMARKS_PREFIX],
+      })
+    },
+  })
+}
 
-export const createBookmarkOptions = (
-  api: API,
-  queryClient: QueryClient,
-  options: Omit<CreateBookmarkOptions, 'mutationFn'> = {},
-): CreateBookmarkOptions => ({
-  ...options,
-  mutationFn: (body) => api.bookmarks.create(body),
-  onSuccess: async (...args) => {
-    await queryClient.invalidateQueries({
-      queryKey: [BOOKMARKS_PREFIX],
-    })
+export const useUpdateBookmarkMutation = (id: string) => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
 
-    if (options.onSuccess) {
-      await options.onSuccess(...args)
-    }
-  },
-})
+  return useMutation({
+    mutationFn: (data: BookmarkUpdate) => api.bookmarks.update(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [BOOKMARKS_PREFIX],
+      })
+    },
+  })
+}
 
-type UpdateBookmarkOptions = BaseMutationOptions<
-  Bookmark,
-  { id: string; body: BookmarkUpdate }
->
+export const useDeleteBookmarkMutation = (id: string) => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
 
-export const updateBookmarkOptions = (
-  api: API,
-  queryClient: QueryClient,
-  options: Omit<UpdateBookmarkOptions, 'mutationFn'> = {},
-): UpdateBookmarkOptions => ({
-  ...options,
-  mutationFn: ({ id, body }) => api.bookmarks.update(id, body),
-  onSuccess: async (...args) => {
-    await queryClient.invalidateQueries({
-      queryKey: [BOOKMARKS_PREFIX],
-    })
+  return useMutation({
+    mutationFn: () => api.bookmarks.delete(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [BOOKMARKS_PREFIX],
+      })
+    },
+  })
+}
 
-    if (options.onSuccess) {
-      await options.onSuccess(...args)
-    }
-  },
-})
+export const useScrapeBookmarkMutation = () => {
+  const api = useAPI()
 
-export const deleteBookmarkOptions = (
-  id: string,
-  api: API,
-  queryClient: QueryClient,
-  options: Omit<BaseMutationOptions, 'mutationFn'> = {},
-): BaseMutationOptions => ({
-  ...options,
-  mutationFn: () => api.bookmarks.delete(id),
-  onSuccess: async (...args) => {
-    await queryClient.invalidateQueries({
-      queryKey: [BOOKMARKS_PREFIX],
-    })
-
-    if (options.onSuccess) {
-      await options.onSuccess(...args)
-    }
-  },
-})
-
-type ScrapeBookmarkOptions = BaseMutationOptions<
-  BookmarkScraped,
-  BookmarkScrape
->
-
-export const scrapeBookmarkOptions = (
-  api: API,
-  options: Omit<ScrapeBookmarkOptions, 'mutationFn'> = {},
-): ScrapeBookmarkOptions => ({
-  ...options,
-  mutationFn: (body) => api.bookmarks.scrape(body),
-})
+  return useMutation({
+    mutationFn: (data: BookmarkScrape) => api.bookmarks.scrape(data),
+  })
+}

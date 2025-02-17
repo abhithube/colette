@@ -1,16 +1,13 @@
-import type { BaseQueryOptions } from './common'
-import type { API, LibraryItemList, LibraryItemListQuery } from '@colette/core'
+import type { API, LibraryItemListQuery } from '@colette/core'
+import { queryOptions } from '@tanstack/react-query'
 
 const FOLDERS_PREFIX = 'folders'
 
-type ListLibraryItemsOptions = BaseQueryOptions<LibraryItemList>
-
 export const listLibraryItemsOptions = (
-  query: LibraryItemListQuery,
   api: API,
-  options: Omit<ListLibraryItemsOptions, 'queryKey' | 'queryFn'> = {},
-): ListLibraryItemsOptions => ({
-  ...options,
-  queryKey: [FOLDERS_PREFIX],
-  queryFn: () => api.library.list(query),
-})
+  query?: LibraryItemListQuery,
+) =>
+  queryOptions({
+    queryKey: [FOLDERS_PREFIX],
+    queryFn: () => api.library.list(query ?? {}),
+  })

@@ -1,58 +1,35 @@
-import type { BaseInfiniteQueryOptions, BaseMutationOptions } from './common'
-import type {
-  API,
-  FeedEntry,
-  FeedEntryList,
-  FeedEntryListQuery,
-  FeedEntryUpdate,
-} from '@colette/core'
-import { QueryClient } from '@tanstack/query-core'
+import type { API, FeedEntryListQuery, FeedEntryUpdate } from '@colette/core'
+import { useAPI } from '@colette/util'
+import {
+  infiniteQueryOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query'
 
 const FEED_ENTRIES_PREFIX = 'feedEntries'
 
-type ListFeedEntriesOptions = BaseInfiniteQueryOptions<
-  FeedEntryList,
-  string | undefined
->
+export const listFeedEntriesOptions = (api: API, query?: FeedEntryListQuery) =>
+  infiniteQueryOptions({
+    queryKey: [FEED_ENTRIES_PREFIX, query],
+    queryFn: ({ pageParam }) =>
+      api.feedEntries.list({
+        ...query,
+        cursor: pageParam,
+      }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor,
+  })
 
-export const listFeedEntriesOptions = (
-  query: FeedEntryListQuery,
-  api: API,
-  options: Omit<
-    ListFeedEntriesOptions,
-    'queryKey' | 'queryFn' | 'initialPageParam' | 'getNextPageParam'
-  > = {},
-): ListFeedEntriesOptions => ({
-  ...options,
-  queryKey: [FEED_ENTRIES_PREFIX, query],
-  queryFn: ({ pageParam }) =>
-    api.feedEntries.list({
-      ...query,
-      cursor: pageParam,
-    }),
-  initialPageParam: undefined,
-  getNextPageParam: (lastPage) => lastPage.cursor,
-})
+export const useUpdateFeedEntryMutation = (id: string) => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
 
-type UpdateFeedEntryOptions = BaseMutationOptions<
-  FeedEntry,
-  { id: string; body: FeedEntryUpdate }
->
-
-export const updateFeedEntryOptions = (
-  api: API,
-  queryClient: QueryClient,
-  options: Omit<UpdateFeedEntryOptions, 'mutationFn'> = {},
-): UpdateFeedEntryOptions => ({
-  ...options,
-  mutationFn: (data) => api.feedEntries.update(data.id, data.body),
-  onSuccess: async (...args) => {
-    await queryClient.invalidateQueries({
-      queryKey: [FEED_ENTRIES_PREFIX],
-    })
-
-    if (options.onSuccess) {
-      await options.onSuccess(...args)
-    }
-  },
-})
+  return useMutation({
+    mutationFn: (data: FeedEntryUpdate) => api.feedEntries.update(id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [FEED_ENTRIES_PREFIX],
+      })
+    },
+  })
+}

@@ -1,8 +1,6 @@
 import type { DetectedResponse } from '@colette/core'
-import { detectFeedsOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useDetectFeedsMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
@@ -19,23 +17,20 @@ import { Label } from '~/components/ui/label'
 export const SearchStep: FC<{
   onNext: (res: DetectedResponse) => void
 }> = (props) => {
-  const api = useAPI()
-
   const form = useForm({
     defaultValues: {
       url: '',
     },
-    onSubmit: ({ value }) => mutation.mutate(value),
+    onSubmit: ({ value }) =>
+      detectFeeds.mutate(value, {
+        onSuccess: (res) => {
+          form.reset()
+          props.onNext(res)
+        },
+      }),
   })
 
-  const mutation = useMutation(
-    detectFeedsOptions(api, {
-      onSuccess: (res) => {
-        form.reset()
-        props.onNext(res)
-      },
-    }),
-  )
+  const detectFeeds = useDetectFeedsMutation()
 
   return (
     <>
@@ -70,7 +65,7 @@ export const SearchStep: FC<{
           )}
         </form.Field>
         <DialogFooter className="mt-6">
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={detectFeeds.isPending}>
             Search
           </Button>
         </DialogFooter>

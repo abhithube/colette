@@ -11,7 +11,7 @@ export const EntryList: FC<{ query: FeedEntryListQuery }> = (props) => {
   const api = useAPI()
 
   const { data, isLoading, hasNextPage, fetchNextPage } = useInfiniteQuery(
-    listFeedEntriesOptions(props.query, api),
+    listFeedEntriesOptions(api, props.query),
   )
 
   const target = useIntersectionObserver({

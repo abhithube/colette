@@ -1,7 +1,5 @@
-import { importOpmlOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useImportOPMLMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -14,24 +12,20 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const SettingsModal: FC<{ close: () => void }> = (props) => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
-
   const form = useForm({
     defaultValues: {
       file: undefined as unknown as File,
     },
-    onSubmit: ({ value }) => importOpml(value.file),
+    onSubmit: ({ value }) =>
+      importOPML.mutate(value.file, {
+        onSuccess: () => {
+          form.reset()
+          props.close()
+        },
+      }),
   })
 
-  const { mutateAsync: importOpml, isPending } = useMutation(
-    importOpmlOptions(api, queryClient, {
-      onSuccess: () => {
-        form.reset()
-        props.close()
-      },
-    }),
-  )
+  const importOPML = useImportOPMLMutation()
 
   return (
     <DialogContent className="p-6">
@@ -70,7 +64,7 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
           </form.Field>
         </div>
         <div className="mt-4 flex justify-end">
-          <Button disabled={isPending}>Submit</Button>
+          <Button disabled={importOPML.isPending}>Submit</Button>
         </div>
       </form>
     </DialogContent>

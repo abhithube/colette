@@ -7,7 +7,7 @@ import type { FC } from 'react'
 export const FeedList: FC = () => {
   const api = useAPI()
 
-  const { data: feeds, isLoading } = useQuery(listFeedsOptions({}, api))
+  const { data: feeds, isLoading } = useQuery(listFeedsOptions(api))
 
   if (isLoading || !feeds) return
 

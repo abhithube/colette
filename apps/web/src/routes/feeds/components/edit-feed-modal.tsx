@@ -1,9 +1,7 @@
 import { TagsInput } from '../../../components/tags-input'
 import type { Feed } from '@colette/core'
-import { updateFeedOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useUpdateFeedMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 import { z } from 'zod'
 import { FormDescription, FormMessage } from '~/components/form'
@@ -22,9 +20,6 @@ export const EditFeedModal: FC<{
   feed: Feed
   close: () => void
 }> = (props) => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
-
   const form = useForm({
     defaultValues: {
       title: props.feed.title,
@@ -50,24 +45,22 @@ export const EditFeedModal: FC<{
         return props.close()
       }
 
-      updateFeed({
-        id: props.feed.id,
-        body: {
+      updateFeed.mutate(
+        {
           title: value.title,
           tags,
         },
-      })
+        {
+          onSuccess: () => {
+            form.reset()
+            props.close()
+          },
+        },
+      )
     },
   })
 
-  const { mutateAsync: updateFeed, isPending } = useMutation(
-    updateFeedOptions(api, queryClient, {
-      onSuccess: () => {
-        form.reset()
-        props.close()
-      },
-    }),
-  )
+  const updateFeed = useUpdateFeedMutation(props.feed.id)
 
   useEffect(() => {
     form.reset()
@@ -115,7 +108,7 @@ export const EditFeedModal: FC<{
             )}
           </form.Field>
           <DialogFooter>
-            <Button disabled={isPending}>Submit</Button>
+            <Button disabled={updateFeed.isPending}>Submit</Button>
           </DialogFooter>
         </div>
       </form>

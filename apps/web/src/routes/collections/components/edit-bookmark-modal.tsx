@@ -1,9 +1,7 @@
 import { TagsInput } from '../../../components/tags-input'
 import type { Bookmark } from '@colette/core'
-import { updateBookmarkOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useUpdateBookmarkMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -19,9 +17,6 @@ export const EditBookmarkModal: FC<{
   bookmark: Bookmark
   close: () => void
 }> = (props) => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
-
   const form = useForm({
     defaultValues: {
       tags: props.bookmark.tags?.map((tag) => tag.title) ?? [],
@@ -46,23 +41,21 @@ export const EditBookmarkModal: FC<{
         return props.close()
       }
 
-      updateBookmark({
-        id: props.bookmark.id,
-        body: {
+      updateBookmark.mutate(
+        {
           tags,
         },
-      })
+        {
+          onSuccess: () => {
+            form.reset()
+            props.close()
+          },
+        },
+      )
     },
   })
 
-  const { mutateAsync: updateBookmark, isPending } = useMutation(
-    updateBookmarkOptions(api, queryClient, {
-      onSuccess: () => {
-        form.reset()
-        props.close()
-      },
-    }),
-  )
+  const updateBookmark = useUpdateBookmarkMutation(props.bookmark.id)
 
   useEffect(() => {
     form.reset()
@@ -92,7 +85,7 @@ export const EditBookmarkModal: FC<{
             )}
           </form.Field>
           <DialogFooter>
-            <Button disabled={isPending}>Submit</Button>
+            <Button disabled={updateBookmark.isPending}>Submit</Button>
           </DialogFooter>
         </div>
       </form>

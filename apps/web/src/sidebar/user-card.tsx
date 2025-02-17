@@ -1,7 +1,5 @@
 import type { User as AppUser } from '@colette/core'
-import { logoutOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useLogoutMutation } from '@colette/query'
 import { ChevronsUpDown, User } from 'lucide-react'
 import type { FC } from 'react'
 import {
@@ -17,10 +15,7 @@ import {
 } from '~/components/ui/sidebar'
 
 export const UserCard: FC<{ user: AppUser }> = (props) => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
-
-  const mutation = useMutation(logoutOptions(api, queryClient))
+  const logout = useLogoutMutation()
 
   return (
     <SidebarMenu>
@@ -40,8 +35,8 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[--radix-dropdown-menu-trigger-width]">
-            <DropdownMenuItem onSelect={() => mutation.mutate()}>
+          <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+            <DropdownMenuItem onSelect={() => logout.mutate()}>
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

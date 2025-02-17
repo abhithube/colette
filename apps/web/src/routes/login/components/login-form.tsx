@@ -1,7 +1,5 @@
-import { loginOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useLoginMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
@@ -18,22 +16,18 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const LoginForm: FC = () => {
-  const api = useAPI()
-  const queryClient = useQueryClient()
-
   const form = useForm({
     defaultValues: {
       email: '',
       password: '',
     },
-    onSubmit: ({ value }) => login(value),
+    onSubmit: ({ value }) =>
+      login.mutate(value, {
+        onSuccess: () => form.reset(),
+      }),
   })
 
-  const { mutateAsync: login, isPending } = useMutation(
-    loginOptions(api, queryClient, {
-      onSuccess: () => form.reset(),
-    }),
-  )
+  const login = useLoginMutation()
 
   return (
     <form
@@ -93,7 +87,7 @@ export const LoginForm: FC = () => {
           </form.Field>
         </CardContent>
         <CardFooter>
-          <Button className="flex-1" disabled={isPending}>
+          <Button className="flex-1" disabled={login.isPending}>
             Login
           </Button>
         </CardFooter>

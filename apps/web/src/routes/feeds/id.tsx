@@ -18,7 +18,7 @@ export const FeedPage: FC = () => {
   const [isEditModalOpen, setEditModalOpen] = useState(false)
   const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
-  const { data: feed } = useQuery(getFeedOptions(id, api))
+  const { data: feed } = useQuery(getFeedOptions(api, id))
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -68,7 +68,7 @@ export const FeedPage: FC = () => {
         </div>
       </div>
       <main>
-        <EntryList query={{}} />
+        <EntryList query={{ feedId: id }} />
       </main>
     </>
   )

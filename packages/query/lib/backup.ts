@@ -1,24 +1,17 @@
-import type { BaseMutationOptions } from './common'
 import { FEEDS_PREFIX } from './feed'
-import type { API } from '@colette/core'
-import { QueryClient } from '@tanstack/query-core'
+import { useAPI } from '@colette/util'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-type ImportOpmlOptions = BaseMutationOptions<void, File>
+export const useImportOPMLMutation = () => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
 
-export const importOpmlOptions = (
-  api: API,
-  queryClient: QueryClient,
-  options: Omit<ImportOpmlOptions, 'mutationFn'> = {},
-): ImportOpmlOptions => ({
-  ...options,
-  mutationFn: (body) => api.backups.import(body),
-  onSuccess: async (...args) => {
-    await queryClient.invalidateQueries({
-      queryKey: [FEEDS_PREFIX],
-    })
-
-    if (options.onSuccess) {
-      await options.onSuccess(...args)
-    }
-  },
-})
+  return useMutation({
+    mutationFn: (data: File) => api.backups.import(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [FEEDS_PREFIX],
+      })
+    },
+  })
+}

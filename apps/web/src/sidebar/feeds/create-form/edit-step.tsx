@@ -1,8 +1,6 @@
 import type { FeedProcessed } from '@colette/core'
-import { createFeedOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useCreateFeedMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { useLocation } from 'wouter'
 import { z } from 'zod'
@@ -22,32 +20,31 @@ export const EditStep: FC<{
   onClose: () => void
   onBack: () => void
 }> = (props) => {
-  const api = useAPI()
   const [, navigate] = useLocation()
-  const queryClient = useQueryClient()
 
   const form = useForm({
     defaultValues: {
       title: props.feed.title,
     },
     onSubmit: ({ value }) => {
-      mutation.mutate({
-        url: props.feed.link,
-        title: value.title,
-      })
+      createdFeed.mutate(
+        {
+          url: props.feed.link,
+          title: value.title,
+        },
+        {
+          onSuccess: (feed) => {
+            form.reset()
+            props.onClose()
+
+            navigate(`/feeds/${feed.id}`)
+          },
+        },
+      )
     },
   })
 
-  const mutation = useMutation(
-    createFeedOptions(api, queryClient, {
-      onSuccess: (feed) => {
-        form.reset()
-        props.onClose()
-
-        navigate(`/feeds/${feed.id}`)
-      },
-    }),
-  )
+  const createdFeed = useCreateFeedMutation()
 
   return (
     <>
@@ -88,7 +85,7 @@ export const EditStep: FC<{
           <Button variant="outline" onClick={props.onBack}>
             Back
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={createdFeed.isPending}>
             Submit
           </Button>
         </DialogFooter>

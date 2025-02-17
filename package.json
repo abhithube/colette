@@ -8,6 +8,7 @@
     "packages/util"
   ],
   "dependencies": {
+    "@tanstack/react-query": "^5.66.3",
     "react": "^19.0.0",
     "zod": "^3.24.1"
   },

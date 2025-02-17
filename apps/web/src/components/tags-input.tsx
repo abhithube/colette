@@ -63,7 +63,7 @@ export const TagsInner: FC<{
 }> = (props) => {
   const api = useAPI()
 
-  const { data: tags } = useQuery(listTagsOptions({}, api))
+  const { data: tags } = useQuery(listTagsOptions(api))
 
   const [search, setSearch] = useState('')
 

@@ -1,8 +1,6 @@
 import type { FeedDetected, FeedProcessed } from '@colette/core'
-import { detectFeedsOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import { useDetectFeedsMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
-import { useMutation } from '@tanstack/react-query'
 import type { FC } from 'react'
 import { Favicon } from '~/components/favicon'
 import { Button } from '~/components/ui/button'
@@ -20,26 +18,23 @@ export const SelectStep: FC<{
   onNext: (feed: FeedProcessed) => void
   onBack: () => void
 }> = (props) => {
-  const api = useAPI()
-
   const form = useForm({
     defaultValues: {
       url: '',
     },
-    onSubmit: ({ value }) => mutation.mutate(value),
+    onSubmit: ({ value }) =>
+      detectFeeds.mutate(value, {
+        onSuccess: (res) => {
+          form.reset()
+
+          if ('link' in res) {
+            props.onNext(res)
+          }
+        },
+      }),
   })
 
-  const mutation = useMutation(
-    detectFeedsOptions(api, {
-      onSuccess: (res) => {
-        form.reset()
-
-        if ('link' in res) {
-          props.onNext(res)
-        }
-      },
-    }),
-  )
+  const detectFeeds = useDetectFeedsMutation()
 
   return (
     <>
@@ -89,7 +84,7 @@ export const SelectStep: FC<{
           <Button variant="outline" onClick={props.onBack}>
             Back
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
+          <Button type="submit" disabled={detectFeeds.isPending}>
             Select
           </Button>
         </DialogFooter>

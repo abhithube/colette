@@ -1,38 +1,25 @@
 import type { Feed } from '@colette/core'
-import { deleteFeedOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useDeleteFeedMutation } from '@colette/query'
 import type { FC } from 'react'
 import { useLocation, useParams } from 'wouter'
 import {
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { Button } from '~/components/ui/button'
-import { DialogFooter } from '~/components/ui/dialog'
 
 export const UnsubscribeAlert: FC<{
   feed: Feed
   close: () => void
 }> = (props) => {
-  const api = useAPI()
   const [, navigate] = useLocation()
-  const queryClient = useQueryClient()
 
   const params = useParams<{ id?: string }>()
 
-  const mutation = useMutation(
-    deleteFeedOptions(props.feed.id, api, queryClient, {
-      onSuccess: () => {
-        props.close()
-
-        if (params.id === props.feed.id) {
-          navigate('/feeds')
-        }
-      },
-    }),
-  )
+  const deleteFeed = useDeleteFeedMutation(props.feed.id)
 
   return (
     <AlertDialogContent>
@@ -43,14 +30,25 @@ export const UnsubscribeAlert: FC<{
       <AlertDialogDescription>
         Are you sure you want to unsubscribe? This action cannot be undone.
       </AlertDialogDescription>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => props.close()}>
-          Close
-        </Button>
-        <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction
+          disabled={deleteFeed.isPending}
+          onClick={() =>
+            deleteFeed.mutate(undefined, {
+              onSuccess: () => {
+                props.close()
+
+                if (params.id === props.feed.id) {
+                  navigate('/feeds')
+                }
+              },
+            })
+          }
+        >
           Confirm
-        </Button>
-      </DialogFooter>
+        </AlertDialogAction>
+      </AlertDialogFooter>
     </AlertDialogContent>
   )
 }

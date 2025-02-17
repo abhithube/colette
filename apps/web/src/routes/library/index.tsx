@@ -9,7 +9,7 @@ export const LibraryPage: FC = () => {
   const [folderId] = useState<string | undefined>(undefined)
 
   const { data: libraryItems, isLoading } = useQuery(
-    listLibraryItemsOptions({ folderId }, api),
+    listLibraryItemsOptions(api, { folderId }),
   )
 
   if (isLoading || !libraryItems) return

@@ -13,7 +13,7 @@ export const BookmarkGrid: FC<{
   const api = useAPI()
 
   const { data, isLoading, hasNextPage, fetchNextPage } = useInfiniteQuery(
-    listBookmarksOptions(props.query, api),
+    listBookmarksOptions(api, props.query),
   )
 
   const target = useIntersectionObserver({
