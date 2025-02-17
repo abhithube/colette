@@ -89,13 +89,12 @@ impl Deletable for PostgresTagRepository {
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file!("queries/tags/delete.sql", params.id, params.user_id)
+        let result = sqlx::query_file!("queries/tags/delete.sql", params.id, params.user_id)
             .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+            .await?;
+        if result.rows_affected() == 0 {
+            return Err(Error::NotFound(params.id));
+        }
 
         Ok(())
     }
