@@ -133,7 +133,7 @@ CREATE TABLE bookmarks (
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (user_id, link)
+  UNIQUE nulls NOT DISTINCT (user_id, collection_id, link)
 );
 
 CREATE TRIGGER set_updated_at_bookmarks before
