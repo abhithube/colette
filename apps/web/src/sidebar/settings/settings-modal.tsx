@@ -50,15 +50,18 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
               },
             }}
           >
-            {({ state, handleChange }) => (
+            {(field) => (
               <div className="space-y-1">
                 <Label>OPML file</Label>
                 <Input
                   type="file"
+                  value={field.state.value.name}
                   accept=".opml,text/xml,application/xml"
-                  onChange={(e) => handleChange(e.target.files![0])}
+                  onChange={(e) => field.handleChange(e.target.files![0])}
                 />
-                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+                <FormMessage>
+                  {field.state.meta.errors[0]?.toString()}
+                </FormMessage>
               </div>
             )}
           </form.Field>

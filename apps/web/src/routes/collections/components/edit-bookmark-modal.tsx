@@ -77,10 +77,13 @@ export const EditBookmarkModal: FC<{
         </DialogHeader>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field name="tags">
-            {({ state, handleChange }) => (
+            {(field) => (
               <div className="space-y-1">
                 <Label>Tags</Label>
-                <TagsInput state={state} handleChange={handleChange} />
+                <TagsInput
+                  state={field.state}
+                  handleChange={field.handleChange}
+                />
               </div>
             )}
           </form.Field>

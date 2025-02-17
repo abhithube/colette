@@ -87,23 +87,29 @@ export const EditFeedModal: FC<{
               onBlur: z.string().min(1, "Title can't be empty"),
             }}
           >
-            {({ state, handleChange, handleBlur }) => (
+            {(field) => (
               <div className="space-y-1">
                 <Label>Title</Label>
                 <Input
-                  onChange={(e) => handleChange(e.target.value)}
-                  onBlur={handleBlur}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                 />
                 <FormDescription>Custom title</FormDescription>
-                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+                <FormMessage>
+                  {field.state.meta.errors[0]?.toString()}
+                </FormMessage>
               </div>
             )}
           </form.Field>
           <form.Field name="tags">
-            {({ state, handleChange }) => (
+            {(field) => (
               <div className="space-y-1">
                 <Label>Tags</Label>
-                <TagsInput state={state} handleChange={handleChange} />
+                <TagsInput
+                  state={field.state}
+                  handleChange={field.handleChange}
+                />
               </div>
             )}
           </form.Field>

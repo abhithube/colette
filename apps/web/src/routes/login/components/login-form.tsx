@@ -52,6 +52,8 @@ export const LoginForm: FC = () => {
               <div className="space-y-1">
                 <Label>Email</Label>
                 <Input
+                  type="email"
+                  value={field.state.value}
                   placeholder="user@example.com"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -75,6 +77,7 @@ export const LoginForm: FC = () => {
                 <Label>Password</Label>
                 <Input
                   type="password"
+                  value={field.state.value}
                   placeholder="********"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}

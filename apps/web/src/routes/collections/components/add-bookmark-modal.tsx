@@ -79,16 +79,19 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
               onBlur: z.string().url('Please enter a valid URL'),
             }}
           >
-            {({ state, handleChange, handleBlur }) => (
+            {(field) => (
               <div className="space-y-1">
                 <Label>URL</Label>
                 <Input
+                  value={field.state.value}
                   placeholder="https://www.website.com"
-                  onChange={(e) => handleChange(e.target.value)}
-                  onBlur={handleBlur}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                 />
                 <FormDescription>URL of the bookmark</FormDescription>
-                <FormMessage>{state.meta.errors[0]?.toString()}</FormMessage>
+                <FormMessage>
+                  {field.state.meta.errors[0]?.toString()}
+                </FormMessage>
               </div>
             )}
           </form.Field>
