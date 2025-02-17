@@ -1,56 +1,55 @@
-// import { useAPI } from '../../lib/api-context'
-// import type { Collection } from '@colette/core'
-// import { deleteCollectionOptions } from '@colette/query'
-// import {
-//   AlertDialogContent,
-//   AlertDialogDescription,
-//   AlertDialogTitle,
-// } from '~/components/ui/alert-dialog'
-// import { Button } from '~/components/ui/button'
-// import { DialogFooter } from '~/components/ui/dialog'
-// import { useMutation, useQueryClient } from '@tanstack/react-query'
-// import type { FC } from 'react'
-// import { useLocation, useParams } from 'wouter'
+import type { Collection } from '@colette/core'
+import { useDeleteCollectionMutation } from '@colette/query'
+import type { FC } from 'react'
+import { useLocation, useParams } from 'wouter'
+import {
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
+import { Button } from '~/components/ui/button'
+import { DialogFooter } from '~/components/ui/dialog'
 
-// export const DeleteCollectionAlert: FC<{
-//   collection: Collection
-//   close: () => void
-// }> = (props) => {
-//   const api = useAPI()
-//   const [, navigate] = useLocation()
-//   const params = useParams<{ id?: string }>()
-//   const queryClient = useQueryClient()
+export const DeleteCollectionAlert: FC<{
+  collection: Collection
+  close: () => void
+}> = (props) => {
+  const [, navigate] = useLocation()
+  const params = useParams<{ id?: string }>()
 
-//   const mutation = useMutation(
-//     deleteCollectionOptions(props.collection.id, api, queryClient, {
-//       onSuccess: () => {
-//         props.close()
+  const deleteCollection = useDeleteCollectionMutation(props.collection.id)
 
-//         if (params.id === props.collection.id) {
-//           navigate('/collections')
-//         }
-//       },
-//     }),
-//   )
+  return (
+    <AlertDialogContent>
+      <AlertDialogTitle>
+        Delete <span className="text-orange-500">{props.collection.title}</span>
+      </AlertDialogTitle>
+      <AlertDialogDescription>
+        Deleting a collection also deletes all bookmarks within the collection.
+        Are you sure you want to delete this collection? This action cannot be
+        undone.
+      </AlertDialogDescription>
+      <DialogFooter>
+        <Button variant="outline" onClick={() => props.close()}>
+          Close
+        </Button>
+        <Button
+          disabled={deleteCollection.isPending}
+          onClick={() =>
+            deleteCollection.mutate(undefined, {
+              onSuccess: () => {
+                props.close()
 
-//   return (
-//     <AlertDialogContent>
-//       <AlertDialogTitle>
-//         Delete <span className="text-orange-500">{props.collection.title}</span>
-//       </AlertDialogTitle>
-//       <AlertDialogDescription>
-//         Deleting a collection also deletes all bookmarks within the collection.
-//         Are you sure you want to delete this collection? This action cannot be
-//         undone.
-//       </AlertDialogDescription>
-//       <DialogFooter>
-//         <Button variant="outline" onClick={() => props.close()}>
-//           Close
-//         </Button>
-//         <Button disabled={mutation.isPending} onClick={() => mutation.mutate()}>
-//           Confirm
-//         </Button>
-//       </DialogFooter>
-//     </AlertDialogContent>
-//   )
-// }
+                if (params.id === props.collection.id) {
+                  navigate('/collections')
+                }
+              },
+            })
+          }
+        >
+          Confirm
+        </Button>
+      </DialogFooter>
+    </AlertDialogContent>
+  )
+}

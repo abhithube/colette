@@ -1,10 +1,10 @@
-// import { CollectionList } from './collections/collection-list'
-// import { CreateCollectionModal } from './collections/create-collection-modal'
+import { CollectionList } from './collections/collection-list'
+import { CreateCollectionModal } from './collections/create-collection-modal'
 import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
 import { FeedList } from './feeds/feed-list'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
-import { History, Home, Library } from 'lucide-react'
+import { Archive, History, Home } from 'lucide-react'
 import type { FC } from 'react'
 import { Link } from 'wouter'
 import {
@@ -41,28 +41,20 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/library">
-                    <Library />
-                    Library
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
                   <Link to="/archived">
                     <History />
                     Archived
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-              {/* <SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link to="/stash">
                     <Archive />
                     Stash
                   </Link>
                 </SidebarMenuButton>
-              </SidebarMenuItem> */}
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -75,7 +67,7 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {/* <SidebarGroup>
+        <SidebarGroup>
           <SidebarGroupLabel>Collections</SidebarGroupLabel>
           <CreateCollectionModal />
           <SidebarGroupContent>
@@ -83,7 +75,7 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
               <CollectionList />
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup> */}
+        </SidebarGroup>
       </SidebarContent>
       <SidebarRail />
       <SidebarFooter>
