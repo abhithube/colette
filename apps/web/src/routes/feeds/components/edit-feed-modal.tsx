@@ -76,7 +76,7 @@ export const EditFeedModal: FC<{
       >
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
-            Edit {props.feed.title}
+            Edit <span className="text-primary">{props.feed.title}</span>
           </DialogTitle>
           <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>

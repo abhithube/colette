@@ -22,12 +22,11 @@ export const DeleteCollectionAlert: FC<{
   return (
     <AlertDialogContent>
       <AlertDialogTitle>
-        Delete <span className="text-orange-500">{props.collection.title}</span>
+        Delete <span className="text-primary">{props.collection.title}</span>
       </AlertDialogTitle>
       <AlertDialogDescription>
-        Deleting a collection also deletes all bookmarks within the collection.
-        Are you sure you want to delete this collection? This action cannot be
-        undone.
+        Are you sure you want to delete this collection and all of its
+        bookmarks? This action cannot be undone.
       </AlertDialogDescription>
       <DialogFooter>
         <Button variant="outline" onClick={() => props.close()}>

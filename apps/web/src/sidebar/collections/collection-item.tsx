@@ -28,8 +28,8 @@ export const CollectionItem: FC<{ collection: Collection }> = (props) => {
         isActive={match && props.collection.id === params?.id}
       >
         <Link to={`/collections/${props.collection.id}`}>
-          <Library className="text-orange-500" />
-          {props.collection.title}
+          <Library className="text-primary" />
+          <span className="line-clamp-1">{props.collection.title}</span>
         </Link>
       </SidebarMenuButton>
       <AlertDialog open={isOpen} onOpenChange={setOpen}>
