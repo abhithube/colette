@@ -33,7 +33,7 @@ export const CollectionItem: FC<{ collection: Collection }> = (props) => {
         </Link>
       </SidebarMenuButton>
       <AlertDialog open={isOpen} onOpenChange={setOpen}>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuAction>
               <MoreHorizontal />

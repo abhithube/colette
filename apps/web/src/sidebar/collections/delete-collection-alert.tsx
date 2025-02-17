@@ -3,12 +3,13 @@ import { useDeleteCollectionMutation } from '@colette/query'
 import type { FC } from 'react'
 import { useLocation, useParams } from 'wouter'
 import {
+  AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { Button } from '~/components/ui/button'
-import { DialogFooter } from '~/components/ui/dialog'
 
 export const DeleteCollectionAlert: FC<{
   collection: Collection
@@ -28,11 +29,9 @@ export const DeleteCollectionAlert: FC<{
         Are you sure you want to delete this collection and all of its
         bookmarks? This action cannot be undone.
       </AlertDialogDescription>
-      <DialogFooter>
-        <Button variant="outline" onClick={() => props.close()}>
-          Close
-        </Button>
-        <Button
+      <AlertDialogFooter>
+        <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogAction
           disabled={deleteCollection.isPending}
           onClick={() =>
             deleteCollection.mutate(undefined, {
@@ -47,8 +46,8 @@ export const DeleteCollectionAlert: FC<{
           }
         >
           Confirm
-        </Button>
-      </DialogFooter>
+        </AlertDialogAction>
+      </AlertDialogFooter>
     </AlertDialogContent>
   )
 }

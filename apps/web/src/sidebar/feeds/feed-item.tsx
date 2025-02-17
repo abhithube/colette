@@ -40,7 +40,7 @@ export const FeedItem: FC<{ feed: Feed }> = (props) => {
         </Link>
       </SidebarMenuButton>
       <AlertDialog open={isOpen} onOpenChange={setOpen}>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
             <SidebarMenuAction>
               <MoreHorizontal />
