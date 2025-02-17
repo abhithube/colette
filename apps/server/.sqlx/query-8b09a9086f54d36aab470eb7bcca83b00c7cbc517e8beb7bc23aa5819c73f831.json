@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  title,\n  preview,\n  created_at\nFROM\n  api_keys\nWHERE\n  user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR created_at > $5\n  )\nORDER BY\n  created_at ASC\nLIMIT\n  $6\n",
+  "query": "SELECT\n  id,\n  title,\n  preview,\n  created_at,\n  updated_at\nFROM\n  api_keys\nWHERE\n  user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR created_at > $5\n  )\nORDER BY\n  created_at ASC\nLIMIT\n  $6\n",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,11 @@
         "ordinal": 3,
         "name": "created_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -38,8 +43,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "5fafe668fd0c76f0b2d25383bbbe2904377f2795548f428ea11251dd7f216ed4"
+  "hash": "8b09a9086f54d36aab470eb7bcca83b00c7cbc517e8beb7bc23aa5819c73f831"
 }

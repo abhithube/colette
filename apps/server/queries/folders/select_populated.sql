@@ -3,7 +3,9 @@ WITH RECURSIVE
     SELECT DISTINCT
       f.id,
       f.title,
-      f.parent_id
+      f.parent_id,
+      f.created_at,
+      f.updated_at
     FROM
       folders f
       LEFT JOIN user_feeds uf ON uf.folder_id = f.id
@@ -24,7 +26,9 @@ WITH RECURSIVE
     SELECT
       f.id,
       f.title,
-      f.parent_id
+      f.parent_id,
+      f.created_at,
+      f.updated_at
     FROM
       folders f
       INNER JOIN folder_tree ft ON f.id = ft.parent_id
@@ -34,6 +38,8 @@ WITH RECURSIVE
 SELECT DISTINCT
   id AS "id!",
   title AS "title!",
-  parent_id
+  parent_id,
+  created_at AS "created_at!",
+  updated_at AS "updated_at!"
 FROM
   folder_tree;

@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH RECURSIVE\n  folder_tree AS (\n    SELECT DISTINCT\n      f.id,\n      f.title,\n      f.parent_id,\n      f.created_at,\n      f.updated_at\n    FROM\n      folders f\n      LEFT JOIN user_feeds uf ON uf.folder_id = f.id\n      LEFT JOIN bookmarks b ON b.folder_id = f.id\n    WHERE\n      f.user_id = $1\n      AND (\n        (\n          $2\n          AND uf.id IS NOT NULL\n        )\n        OR (\n          $3\n          AND b.id IS NOT NULL\n        )\n      )\n    UNION\n    SELECT\n      f.id,\n      f.title,\n      f.parent_id,\n      f.created_at,\n      f.updated_at\n    FROM\n      folders f\n      INNER JOIN folder_tree ft ON f.id = ft.parent_id\n    WHERE\n      f.user_id = $1\n  )\nSELECT DISTINCT\n  id AS \"id!\",\n  title AS \"title!\",\n  parent_id,\n  created_at AS \"created_at!\",\n  updated_at AS \"updated_at!\"\nFROM\n  folder_tree;\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title!",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "parent_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at!",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at!",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "dfa226a8e29d6b84ab895dd95c4b25fd18cc1908c448371a78d1bbdcd54e1141"
+}

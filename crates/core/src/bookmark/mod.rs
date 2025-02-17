@@ -25,6 +25,7 @@ pub struct Bookmark {
     pub author: Option<String>,
     pub folder_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }
 

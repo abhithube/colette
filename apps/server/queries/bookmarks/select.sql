@@ -27,6 +27,7 @@ SELECT
   b.archived_path,
   b.folder_id,
   b.created_at,
+  b.updated_at,
   jt.tags AS "tags: Json<Vec<Tag>>"
 FROM
   bookmarks b

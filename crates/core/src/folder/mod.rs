@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 pub use folder_repository::*;
 pub use folder_service::*;
 use uuid::Uuid;
@@ -10,6 +11,8 @@ pub struct Folder {
     pub id: Uuid,
     pub title: String,
     pub parent_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

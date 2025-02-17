@@ -39,6 +39,8 @@ pub struct FeedEntry {
     pub thumbnail_url: Option<Url>,
     pub has_read: bool,
     pub feed_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::FeedEntry> for FeedEntry {
@@ -53,6 +55,8 @@ impl From<colette_core::FeedEntry> for FeedEntry {
             thumbnail_url: value.thumbnail_url,
             has_read: value.has_read,
             feed_id: value.feed_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

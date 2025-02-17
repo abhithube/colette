@@ -36,6 +36,7 @@ pub struct ApiKey {
     pub title: String,
     pub preview: String,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::ApiKey> for ApiKey {
@@ -45,6 +46,7 @@ impl From<colette_core::ApiKey> for ApiKey {
             title: value.title,
             preview: value.preview,
             created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

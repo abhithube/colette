@@ -7,7 +7,9 @@ SELECT
   fe.published_at,
   fe.description,
   fe.author,
-  fe.thumbnail_url AS "thumbnail_url: DbUrl"
+  fe.thumbnail_url AS "thumbnail_url: DbUrl",
+  ufe.created_at,
+  ufe.updated_at
 FROM
   user_feed_entries ufe
   JOIN feed_entries fe ON fe.id = ufe.feed_entry_id

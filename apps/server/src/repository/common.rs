@@ -49,6 +49,7 @@ struct BookmarkRow {
     archived_path: Option<String>,
     folder_id: Option<Uuid>,
     created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
     tags: Option<Json<Vec<Tag>>>,
 }
 
@@ -64,6 +65,7 @@ impl From<BookmarkRow> for Bookmark {
             archived_path: value.archived_path,
             folder_id: value.folder_id,
             created_at: value.created_at,
+            updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),
         }
     }
@@ -116,6 +118,8 @@ struct FeedRow {
     title: String,
     xml_url: Option<DbUrl>,
     folder_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
     tags: Option<Json<Vec<Tag>>>,
     unread_count: Option<i64>,
 }
@@ -128,6 +132,8 @@ impl From<FeedRow> for Feed {
             title: value.title,
             xml_url: value.xml_url.map(|e| e.0),
             folder_id: value.folder_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),
             unread_count: value.unread_count,
         }

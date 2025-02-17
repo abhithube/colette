@@ -80,16 +80,18 @@ impl Updatable for PostgresFeedEntryRepository {
 
 impl FeedEntryRepository for PostgresFeedEntryRepository {}
 
-pub struct FeedEntryRow {
-    pub id: Uuid,
-    pub link: DbUrl,
-    pub title: String,
-    pub published_at: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<DbUrl>,
-    pub has_read: bool,
-    pub feed_id: Uuid,
+struct FeedEntryRow {
+    id: Uuid,
+    link: DbUrl,
+    title: String,
+    published_at: DateTime<Utc>,
+    description: Option<String>,
+    author: Option<String>,
+    thumbnail_url: Option<DbUrl>,
+    has_read: bool,
+    feed_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<FeedEntryRow> for FeedEntry {
@@ -104,6 +106,8 @@ impl From<FeedEntryRow> for FeedEntry {
             thumbnail_url: value.thumbnail_url.map(|e| e.0),
             has_read: value.has_read,
             feed_id: value.feed_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

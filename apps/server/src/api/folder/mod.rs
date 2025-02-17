@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -35,6 +36,8 @@ pub struct Folder {
     pub title: String,
     #[schema(required)]
     pub parent_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::Folder> for Folder {
@@ -43,6 +46,8 @@ impl From<colette_core::Folder> for Folder {
             id: value.id,
             title: value.title,
             parent_id: value.parent_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

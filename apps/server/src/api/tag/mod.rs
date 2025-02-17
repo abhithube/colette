@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -34,6 +35,8 @@ impl TagApi {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,
@@ -47,6 +50,8 @@ impl From<colette_core::Tag> for Tag {
         Self {
             id: value.id,
             title: value.title,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             bookmark_count: value.bookmark_count,
             feed_count: value.feed_count,
         }

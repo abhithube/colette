@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
@@ -31,6 +32,8 @@ pub struct User {
     pub id: Uuid,
     #[schema(format = "email")]
     pub email: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::User> for User {
@@ -38,6 +41,8 @@ impl From<colette_core::User> for User {
         Self {
             id: value.id,
             email: value.email,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

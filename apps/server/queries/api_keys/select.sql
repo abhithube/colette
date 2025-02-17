@@ -2,7 +2,8 @@ SELECT
   id,
   title,
   preview,
-  created_at
+  created_at,
+  updated_at
 FROM
   api_keys
 WHERE

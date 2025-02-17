@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use url::Url;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -50,6 +51,8 @@ pub struct Feed {
     pub xml_url: Option<Url>,
     #[schema(required)]
     pub folder_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -65,6 +68,8 @@ impl From<colette_core::Feed> for Feed {
             title: value.title,
             xml_url: value.xml_url,
             folder_id: value.folder_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
             unread_count: value.unread_count,
         }
