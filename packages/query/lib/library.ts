@@ -1,13 +1,19 @@
-import type { API, LibraryItemListQuery } from '@colette/core'
+import type { API, TreeListQuery } from '@colette/core'
 import { queryOptions } from '@tanstack/react-query'
 
-const FOLDERS_PREFIX = 'folders'
+const TREE_PREFIX = 'tree'
 
-export const listLibraryItemsOptions = (
+export const listFeedTreeItemsOptions = (api: API, query?: TreeListQuery) =>
+  queryOptions({
+    queryKey: [TREE_PREFIX, 'feeds', query],
+    queryFn: () => api.library.listFeedTree(query ?? {}),
+  })
+
+export const listCollectionTreeItemsOptions = (
   api: API,
-  query?: LibraryItemListQuery,
+  query?: TreeListQuery,
 ) =>
   queryOptions({
-    queryKey: [FOLDERS_PREFIX],
-    queryFn: () => api.library.list(query ?? {}),
+    queryKey: [TREE_PREFIX, 'collections', query],
+    queryFn: () => api.library.listCollectionTree(query ?? {}),
   })

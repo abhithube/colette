@@ -11,11 +11,11 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
-const FOLDERS_PREFIX = 'Folders'
+const FOLDERS_PREFIX = 'folders'
 
 export const listFoldersOptions = (api: API, query?: FolderListQuery) =>
   queryOptions({
-    queryKey: [FOLDERS_PREFIX],
+    queryKey: [FOLDERS_PREFIX, query],
     queryFn: () => api.folders.list(query ?? {}),
   })
 
