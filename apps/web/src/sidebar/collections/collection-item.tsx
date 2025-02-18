@@ -3,6 +3,7 @@ import type { Collection } from '@colette/core'
 import { Library, MoreHorizontal } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { Link, useRoute } from 'wouter'
+import { SidebarMenuSubAction } from '~/components/sidebar-menu-sub-action'
 import { AlertDialog, AlertDialogTrigger } from '~/components/ui/alert-dialog'
 import {
   DropdownMenu,
@@ -11,9 +12,8 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import {
-  SidebarMenuAction,
-  SidebarMenuButton,
-  SidebarMenuItem,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
 } from '~/components/ui/sidebar'
 
 export const CollectionItem: FC<{ collection: Collection }> = (props) => {
@@ -22,8 +22,8 @@ export const CollectionItem: FC<{ collection: Collection }> = (props) => {
   const [isOpen, setOpen] = useState(false)
 
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
+    <SidebarMenuSubItem>
+      <SidebarMenuSubButton
         asChild
         isActive={match && props.collection.id === params?.id}
       >
@@ -31,13 +31,13 @@ export const CollectionItem: FC<{ collection: Collection }> = (props) => {
           <Library className="text-primary" />
           <span className="line-clamp-1">{props.collection.title}</span>
         </Link>
-      </SidebarMenuButton>
+      </SidebarMenuSubButton>
       <AlertDialog open={isOpen} onOpenChange={setOpen}>
         <DropdownMenu modal={false}>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuAction>
+            <SidebarMenuSubAction showOnHover>
               <MoreHorizontal />
-            </SidebarMenuAction>
+            </SidebarMenuSubAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="right">
             <AlertDialogTrigger asChild>
@@ -50,6 +50,6 @@ export const CollectionItem: FC<{ collection: Collection }> = (props) => {
           close={() => setOpen(false)}
         />
       </AlertDialog>
-    </SidebarMenuItem>
+    </SidebarMenuSubItem>
   )
 }
