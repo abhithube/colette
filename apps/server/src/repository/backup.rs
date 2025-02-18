@@ -1,15 +1,7 @@
 use chrono::{DateTime, Utc};
-use colette_core::{
-    Folder,
-    backup::{BackupRepository, Error},
-};
-use colette_netscape::Item;
-use colette_opml::Outline;
+use colette_core::backup::{self, BackupRepository, Error};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
-
-use super::folder::FolderType;
-use crate::repository::common::FolderRow;
 
 #[derive(Debug, Clone)]
 pub struct PostgresBackupRepository {
@@ -24,10 +16,14 @@ impl PostgresBackupRepository {
 
 #[async_trait::async_trait]
 impl BackupRepository for PostgresBackupRepository {
-    async fn import_feeds(&self, outlines: Vec<Outline>, user_id: Uuid) -> Result<(), Error> {
+    async fn import_feeds(
+        &self,
+        outlines: Vec<colette_opml::Outline>,
+        user_id: Uuid,
+    ) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
-        let mut stack: Vec<(Option<Uuid>, Outline)> = outlines
+        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = outlines
             .into_iter()
             .map(|outline| (None, outline))
             .collect();
@@ -71,10 +67,14 @@ impl BackupRepository for PostgresBackupRepository {
         Ok(())
     }
 
-    async fn import_bookmarks(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error> {
+    async fn import_bookmarks(
+        &self,
+        items: Vec<colette_netscape::Item>,
+        user_id: Uuid,
+    ) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
-        let mut stack: Vec<(Option<Uuid>, Item)> =
+        let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
             items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
@@ -112,24 +112,19 @@ impl BackupRepository for PostgresBackupRepository {
         Ok(())
     }
 
-    async fn export_folders(
-        &self,
-        folder_type: colette_core::folder::FolderType,
-        user_id: Uuid,
-    ) -> Result<Vec<Folder>, Error> {
-        let folder_type = FolderType::from(folder_type);
+    async fn export_outlines(&self, user_id: Uuid) -> Result<Vec<backup::Outline>, Error> {
+        let outlines = sqlx::query_file_as!(backup::Outline, "queries/backups/opml.sql", user_id)
+            .fetch_all(&self.pool)
+            .await?;
 
-        let folders = sqlx::query_file_as!(
-            FolderRow,
-            "queries/folders/select_populated.sql",
-            user_id,
-            folder_type == FolderType::Feeds,
-            folder_type == FolderType::Collections
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map(|e| e.into_iter().map(Folder::from).collect())?;
+        Ok(outlines)
+    }
 
-        Ok(folders)
+    async fn export_items(&self, user_id: Uuid) -> Result<Vec<backup::Item>, Error> {
+        let outlines = sqlx::query_file_as!(backup::Item, "queries/backups/netscape.sql", user_id)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(outlines)
     }
 }

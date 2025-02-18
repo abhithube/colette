@@ -158,10 +158,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let pool = Pool::<Postgres>::connect(&app_config.database_url).await?;
     sqlx::migrate!("../../migrations").run(&pool).await?;
 
-    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
-    let feed_repository = PostgresFeedRepository::new(pool.clone());
-    let folder_repository = PostgresFolderRepository::new(pool.clone());
-
     let http_client = {
         use hyper_rustls::HttpsConnectorBuilder;
         use hyper_util::rt::TokioExecutor;
@@ -210,13 +206,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let auth_service = Arc::new(AuthService::new(PostgresUserRepository::new(pool.clone())));
     let backup_service = Arc::new(BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
-        feed_repository.clone(),
-        bookmark_repository.clone(),
         Arc::new(Mutex::new(import_feeds_storage.clone())),
         Arc::new(Mutex::new(import_bookmarks_storage.clone())),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
-        bookmark_repository,
+        PostgresBookmarkRepository::new(pool.clone()),
         http_client.clone(),
         bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
@@ -226,14 +220,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
         pool.clone(),
     )));
     let feed_service = Arc::new(FeedService::new(
-        feed_repository,
+        PostgresFeedRepository::new(pool.clone()),
         http_client.clone(),
         register_feed_plugins(http_client),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
         pool.clone(),
     )));
-    let folder_service = Arc::new(FolderService::new(folder_repository));
+    let folder_service = Arc::new(FolderService::new(PostgresFolderRepository::new(
+        pool.clone(),
+    )));
     let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
         pool.clone(),
     )));

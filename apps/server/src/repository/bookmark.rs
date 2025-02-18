@@ -45,7 +45,7 @@ impl Findable for PostgresBookmarkRepository {
             params.user_id,
             params.id.is_none(),
             params.id,
-            has_collection,
+            !has_collection,
             collection_id,
             params.tags.is_none(),
             &params
