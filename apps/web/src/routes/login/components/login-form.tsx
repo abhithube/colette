@@ -1,6 +1,7 @@
 import { useLoginMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
+import { useLocation, useSearchParams } from 'wouter'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -16,6 +17,9 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const LoginForm: FC = () => {
+  const [searchParams] = useSearchParams()
+  const [, navigate] = useLocation()
+
   const form = useForm({
     defaultValues: {
       email: '',
@@ -23,7 +27,16 @@ export const LoginForm: FC = () => {
     },
     onSubmit: ({ value }) =>
       login.mutate(value, {
-        onSuccess: () => form.reset(),
+        onSuccess: () => {
+          form.reset()
+
+          const redirect = searchParams.get('redirect')
+          if (redirect) {
+            navigate(redirect, {
+              replace: true,
+            })
+          }
+        },
       }),
   })
 
