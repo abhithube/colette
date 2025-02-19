@@ -28,7 +28,7 @@ SELECT
   b.collection_id,
   b.created_at,
   b.updated_at,
-  jt.tags AS "tags: Json<Vec<Tag>>"
+  coalesce(jt.tags, '[]'::jsonb) AS "tags: Json<Vec<Tag>>"
 FROM
   bookmarks b
   LEFT JOIN json_tags jt ON jt.bookmark_id = b.id

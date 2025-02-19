@@ -3,8 +3,8 @@ SELECT
   t.title,
   t.created_at,
   t.updated_at,
-  count(uft.user_feed_id) AS feed_count,
-  count(bt.bookmark_id) AS bookmark_count
+  coalesce(count(uft.user_feed_id), 0) AS "feed_count",
+  coalesce(count(bt.bookmark_id), 0) AS "bookmark_count"
 FROM
   tags t
   LEFT JOIN user_feed_tags uft ON uft.tag_id = t.id

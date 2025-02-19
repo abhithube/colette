@@ -36,7 +36,7 @@ SELECT
   f.xml_url AS "xml_url: DbUrl",
   uf.created_at,
   uf.updated_at,
-  jt.tags AS "tags: Json<Vec<Tag>>",
+  coalesce(jt.tags, '[]'::jsonb) AS "tags: Json<Vec<Tag>>",
   coalesce(uc.count, 0) AS unread_count
 FROM
   user_feeds uf
