@@ -7,7 +7,7 @@ use axum::{
 use colette_core::folder;
 use uuid::Uuid;
 
-use super::{FOLDERS_TAG, Folder, FolderType};
+use super::{FOLDERS_TAG, Folder};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, NonEmptyString},
@@ -48,7 +48,6 @@ pub async fn handler(
 pub struct FolderCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    pub folder_type: FolderType,
     pub parent_id: Option<Uuid>,
 }
 
@@ -56,7 +55,6 @@ impl From<FolderCreate> for folder::FolderCreate {
     fn from(value: FolderCreate) -> Self {
         Self {
             title: value.title.into(),
-            folder_type: value.folder_type.into(),
             parent_id: value.parent_id,
         }
     }

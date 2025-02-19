@@ -4,31 +4,31 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use super::{CollectionTreeItem, LIBRARY_TAG};
+use super::{LIBRARY_TAG, LibraryItem};
 use crate::api::{
     ApiState,
     common::{AuthUser, Error, Paginated},
-    library::TreeListQuery,
+    library::LibraryItemListQuery,
 };
 
 #[utoipa::path(
     get,
-    path = "/collectionTree",
-    params(TreeListQuery),
+    path = "",
+    params(LibraryItemListQuery),
     responses(ListResponse),
-    operation_id = "listCollectionTree",
-    description = "List user collection tree, consisting of folders and collections",
+    operation_id = "listLibraryItems",
+    description = "List user library items, consisting of folders, feeds, and collections",
     tag = LIBRARY_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    Query(query): Query<TreeListQuery>,
+    Query(query): Query<LibraryItemListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<impl IntoResponse, Error> {
     match state
         .library_service
-        .list_collection_tree(query.into(), user_id)
+        .list_library_items(query.into(), user_id)
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(Paginated {
@@ -43,9 +43,9 @@ pub async fn handler(
 pub enum ListResponse {
     #[response(
         status = 200,
-        description = "Paginated list of folders and collections"
+        description = "Paginated list of folders, feeds, and collections"
     )]
-    Ok(Paginated<CollectionTreeItem>),
+    Ok(Paginated<LibraryItem>),
 }
 
 impl IntoResponse for ListResponse {

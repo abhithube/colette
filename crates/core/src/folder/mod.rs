@@ -10,16 +10,9 @@ mod folder_service;
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
-    pub folder_type: FolderType,
     pub parent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone)]
-pub enum FolderType {
-    Feeds,
-    Collections,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

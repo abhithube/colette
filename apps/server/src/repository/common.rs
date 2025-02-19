@@ -14,8 +14,6 @@ use sqlx::{
 use url::Url;
 use uuid::Uuid;
 
-use super::folder::FolderType;
-
 #[derive(Debug, Clone)]
 pub struct DbUrl(pub Url);
 
@@ -139,7 +137,6 @@ pub(crate) async fn select_feeds<'a>(
 pub(crate) struct FolderRow {
     pub(crate) id: Uuid,
     pub(crate) title: String,
-    pub(crate) folder_type: FolderType,
     pub(crate) parent_id: Option<Uuid>,
     pub(crate) created_at: DateTime<Utc>,
     pub(crate) updated_at: DateTime<Utc>,
@@ -150,7 +147,6 @@ impl From<FolderRow> for Folder {
         Self {
             id: value.id,
             title: value.title,
-            folder_type: value.folder_type.into(),
             parent_id: value.parent_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
@@ -162,7 +158,6 @@ pub async fn select_folders<'a>(
     ex: impl PgExecutor<'a>,
     id: Option<Uuid>,
     user_id: Uuid,
-    folder_type: Option<FolderType>,
     parent_id: Option<Option<Uuid>>,
     limit: Option<i64>,
     cursor: Option<folder::Cursor>,
@@ -180,8 +175,6 @@ pub async fn select_folders<'a>(
         user_id,
         id.is_none(),
         id,
-        folder_type.is_none(),
-        folder_type as Option<FolderType>,
         !has_parent,
         parent_id,
         !has_cursor,

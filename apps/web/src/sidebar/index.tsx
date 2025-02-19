@@ -1,7 +1,5 @@
-import { CollectionFolderContents } from './collections/collection-folder-contents'
-import { CreateCollectionModal } from './collections/create-collection-modal'
-import { CreateFeedModal } from './feeds/create-form/create-feed-modal'
-import { FeedFolderContents } from './feeds/feed-folder-contents'
+import { CreateFeedModal } from './library/feeds/create-form/create-feed-modal'
+import { FolderContents } from './library/folder-contents'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
 import { Archive, History, Home } from 'lucide-react'
@@ -59,20 +57,11 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel>Feeds</SidebarGroupLabel>
+          <SidebarGroupLabel>Library</SidebarGroupLabel>
           <CreateFeedModal />
           <SidebarGroupContent>
             <SidebarMenu>
-              <FeedFolderContents />
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Collections</SidebarGroupLabel>
-          <CreateCollectionModal />
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <CollectionFolderContents />
+              <FolderContents />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

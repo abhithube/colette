@@ -1,4 +1,4 @@
-import { UnsubscribeAlert } from '../../sidebar/feeds/unsubscribe-alert'
+import { UnsubscribeAlert } from '../../sidebar/library/feeds/unsubscribe-alert'
 import { EditFeedModal } from './components/edit-feed-modal'
 import { EntryList } from './components/entry-list'
 import { getFeedOptions } from '@colette/query'

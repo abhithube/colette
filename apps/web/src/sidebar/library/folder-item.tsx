@@ -1,4 +1,4 @@
-import { CollectionFolderContents } from './collection-folder-contents'
+import { FolderContents } from './folder-contents'
 import { Folder as AppFolder } from '@colette/core'
 import { ChevronRight, Folder, MoreHorizontal } from 'lucide-react'
 import { FC } from 'react'
@@ -21,7 +21,7 @@ import {
   SidebarMenuSubItem,
 } from '~/components/ui/sidebar'
 
-export const CollectionFolderItem: FC<{ folder: AppFolder }> = ({ folder }) => {
+export const FolderItem: FC<{ folder: AppFolder }> = ({ folder }) => {
   return (
     <SidebarMenuSubItem>
       <Collapsible className="group/collapsible [&[data-state=open]>a>svg:first-child]:rotate-90">
@@ -34,7 +34,7 @@ export const CollectionFolderItem: FC<{ folder: AppFolder }> = ({ folder }) => {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <SidebarMenuSub className="mr-0 ml-3.5 pr-0 pl-2.5">
-            <CollectionFolderContents folderId={folder.id} />
+            <FolderContents folderId={folder.id} />
           </SidebarMenuSub>
         </CollapsibleContent>
       </Collapsible>

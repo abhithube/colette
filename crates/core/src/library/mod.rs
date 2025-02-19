@@ -8,14 +8,9 @@ mod library_service;
 
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
-pub enum FeedTreeItem {
+pub enum LibraryItem {
     Folder(Folder),
     Feed(Feed),
-}
-
-#[derive(Debug, Clone)]
-pub enum CollectionTreeItem {
-    Folder(Folder),
     Collection(Collection),
 }
 

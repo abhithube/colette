@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::{Cursor, Error, Folder, FolderType};
+use super::{Cursor, Error, Folder};
 use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
 
 #[async_trait::async_trait]
@@ -18,7 +18,6 @@ pub trait FolderRepository:
 #[derive(Debug, Clone, Default)]
 pub struct FolderFindParams {
     pub id: Option<Uuid>,
-    pub folder_type: Option<FolderType>,
     pub parent_id: Option<Option<Uuid>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
@@ -28,7 +27,6 @@ pub struct FolderFindParams {
 #[derive(Debug, Clone)]
 pub struct FolderCreateData {
     pub title: String,
-    pub folder_type: FolderType,
     pub parent_id: Option<Uuid>,
     pub user_id: Uuid,
 }

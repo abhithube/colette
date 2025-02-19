@@ -5,7 +5,7 @@ pub use collection::Collection;
 pub use feed::Feed;
 pub use feed_entry::FeedEntry;
 pub use folder::Folder;
-pub use library::{CollectionTreeItem, FeedTreeItem};
+pub use library::LibraryItem;
 // pub use smart_feed::SmartFeed;
 pub use tag::Tag;
 pub use user::User;

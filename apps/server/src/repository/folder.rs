@@ -29,7 +29,6 @@ impl Findable for PostgresFolderRepository {
             &self.pool,
             params.id,
             params.user_id,
-            None,
             params.parent_id,
             params.limit,
             params.cursor,
@@ -49,7 +48,6 @@ impl Creatable for PostgresFolderRepository {
         let id = sqlx::query_file_scalar!(
             "queries/folders/insert.sql",
             data.title,
-            FolderType::from(data.folder_type) as FolderType,
             data.parent_id,
             data.user_id
         )
@@ -112,28 +110,3 @@ impl Deletable for PostgresFolderRepository {
 }
 
 impl FolderRepository for PostgresFolderRepository {}
-
-#[derive(Debug, PartialEq, sqlx::Type)]
-#[sqlx(type_name = "folder_type", rename_all = "lowercase")]
-pub enum FolderType {
-    Feeds,
-    Collections,
-}
-
-impl From<colette_core::folder::FolderType> for FolderType {
-    fn from(value: colette_core::folder::FolderType) -> Self {
-        match value {
-            colette_core::folder::FolderType::Feeds => FolderType::Feeds,
-            colette_core::folder::FolderType::Collections => FolderType::Collections,
-        }
-    }
-}
-
-impl From<FolderType> for colette_core::folder::FolderType {
-    fn from(value: FolderType) -> Self {
-        match value {
-            FolderType::Feeds => colette_core::folder::FolderType::Feeds,
-            FolderType::Collections => colette_core::folder::FolderType::Collections,
-        }
-    }
-}

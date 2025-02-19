@@ -12,7 +12,6 @@ WITH RECURSIVE
     WHERE
       user_id = $1
       AND parent_id IS NULL
-      AND folder_type = 'collections'
     UNION ALL
     SELECT
       f.id,
