@@ -20,8 +20,8 @@ pub struct Feed {
     pub title: String,
     pub xml_url: Option<Url>,
     pub folder_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }

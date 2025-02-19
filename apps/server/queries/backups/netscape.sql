@@ -75,8 +75,8 @@ SELECT
   parent_id,
   title AS "title!",
   href,
-  created_at AS "add_date!",
-  updated_at AS "last_modified!"
+  created_at AS add_date,
+  updated_at AS last_modified
 FROM
   items_with_bookmarks
 ORDER BY

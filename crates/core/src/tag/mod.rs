@@ -10,8 +10,8 @@ mod tag_service;
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
 }

@@ -14,8 +14,8 @@ pub struct ApiKey {
     pub id: Uuid,
     pub title: String,
     pub preview: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

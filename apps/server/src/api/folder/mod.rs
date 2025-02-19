@@ -36,8 +36,10 @@ pub struct Folder {
     pub title: String,
     #[schema(required)]
     pub parent_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
     pub path: Vec<FolderPathItem>,
 }
 

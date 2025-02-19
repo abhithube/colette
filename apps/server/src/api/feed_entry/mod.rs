@@ -39,8 +39,10 @@ pub struct FeedEntry {
     pub thumbnail_url: Option<Url>,
     pub has_read: bool,
     pub feed_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl From<colette_core::FeedEntry> for FeedEntry {

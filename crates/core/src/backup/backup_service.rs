@@ -139,8 +139,8 @@ fn build_items(input: &[Item], parent_id: Option<Uuid>) -> Vec<colette_netscape:
         if item.href.is_some() {
             let i = colette_netscape::Item {
                 title: item.title.clone(),
-                add_date: Some(item.add_date.timestamp()),
-                last_modified: Some(item.last_modified.timestamp()),
+                add_date: item.add_date.map(|e| e.timestamp()),
+                last_modified: item.last_modified.map(|e| e.timestamp()),
                 href: item.href.clone(),
                 ..Default::default()
             };
@@ -150,8 +150,8 @@ fn build_items(input: &[Item], parent_id: Option<Uuid>) -> Vec<colette_netscape:
             if !children.is_empty() {
                 let o = colette_netscape::Item {
                     title: item.title.clone(),
-                    add_date: Some(item.add_date.timestamp()),
-                    last_modified: Some(item.last_modified.timestamp()),
+                    add_date: item.add_date.map(|e| e.timestamp()),
+                    last_modified: item.last_modified.map(|e| e.timestamp()),
                     item: children,
                     ..Default::default()
                 };
@@ -178,8 +178,8 @@ pub struct Item {
     pub parent_id: Option<Uuid>,
     pub title: String,
     pub href: Option<String>,
-    pub add_date: DateTime<Utc>,
-    pub last_modified: DateTime<Utc>,
+    pub add_date: Option<DateTime<Utc>>,
+    pub last_modified: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

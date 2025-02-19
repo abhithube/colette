@@ -74,8 +74,8 @@ struct FeedRow {
     title: String,
     xml_url: Option<DbUrl>,
     folder_id: Option<Uuid>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
     tags: Option<Json<Vec<Tag>>>,
     unread_count: Option<i64>,
 }
@@ -138,8 +138,8 @@ struct FolderRow {
     id: Uuid,
     title: String,
     parent_id: Option<Uuid>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
     path: Json<Vec<FolderPathItem>>,
 }
 

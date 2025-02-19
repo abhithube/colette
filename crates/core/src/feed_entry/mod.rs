@@ -19,8 +19,8 @@ pub struct FeedEntry {
     pub thumbnail_url: Option<Url>,
     pub has_read: bool,
     pub feed_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

@@ -237,8 +237,8 @@ struct BookmarkRow {
     author: Option<String>,
     archived_path: Option<String>,
     collection_id: Option<Uuid>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
     tags: Option<Json<Vec<Tag>>>,
 }
 

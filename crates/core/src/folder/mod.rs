@@ -12,8 +12,8 @@ pub struct Folder {
     pub id: Uuid,
     pub title: String,
     pub parent_id: Option<Uuid>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub path: Vec<FolderPathItem>,
 }
 

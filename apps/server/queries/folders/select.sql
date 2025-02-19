@@ -28,8 +28,8 @@ SELECT
   id AS "id!",
   title AS "title!",
   parent_id,
-  created_at AS "created_at!",
-  updated_at AS "updated_at!",
+  created_at,
+  updated_at,
   path AS "path!: Json<Vec<FolderPathItem>>"
 FROM
   folder_tree

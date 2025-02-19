@@ -35,8 +35,10 @@ pub struct ApiKey {
     pub id: Uuid,
     pub title: String,
     pub preview: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub created_at: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_at: Option<DateTime<Utc>>,
 }
 
 impl From<colette_core::ApiKey> for ApiKey {

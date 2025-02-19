@@ -90,8 +90,8 @@ struct FeedEntryRow {
     thumbnail_url: Option<DbUrl>,
     has_read: bool,
     feed_id: Uuid,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
 }
 
 impl From<FeedEntryRow> for FeedEntry {
