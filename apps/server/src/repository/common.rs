@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     Collection, Feed, Folder, Tag, collection,
     feed::{self, ProcessedFeed},
-    folder,
+    folder::{self, FolderPathItem},
 };
 use sqlx::{
     Database, Decode, Encode, PgExecutor, Postgres, Type,
@@ -134,12 +134,13 @@ pub(crate) async fn select_feeds<'a>(
     .map(|e| e.into_iter().map(Feed::from).collect())
 }
 
-pub(crate) struct FolderRow {
-    pub(crate) id: Uuid,
-    pub(crate) title: String,
-    pub(crate) parent_id: Option<Uuid>,
-    pub(crate) created_at: DateTime<Utc>,
-    pub(crate) updated_at: DateTime<Utc>,
+struct FolderRow {
+    id: Uuid,
+    title: String,
+    parent_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    path: Json<Vec<FolderPathItem>>,
 }
 
 impl From<FolderRow> for Folder {
@@ -150,6 +151,7 @@ impl From<FolderRow> for Folder {
             parent_id: value.parent_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
+            path: value.path.0,
         }
     }
 }

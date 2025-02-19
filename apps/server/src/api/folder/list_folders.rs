@@ -45,6 +45,8 @@ pub struct FolderListQuery {
     #[param(nullable = false)]
     pub filter_by_parent: Option<bool>,
     pub parent_id: Option<Uuid>,
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
 }
 
 impl From<FolderListQuery> for folder::FolderListQuery {
@@ -55,6 +57,7 @@ impl From<FolderListQuery> for folder::FolderListQuery {
             } else {
                 None
             },
+            cursor: value.cursor,
         }
     }
 }

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use colette_util::base64;
 pub use folder_repository::*;
 pub use folder_service::*;
 use uuid::Uuid;
@@ -13,6 +14,13 @@ pub struct Folder {
     pub parent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub path: Vec<FolderPathItem>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct FolderPathItem {
+    pub id: Uuid,
+    pub title: String,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
@@ -27,6 +35,9 @@ pub enum Error {
 
     #[error("folder already exists with title: {0}")]
     Conflict(String),
+
+    #[error(transparent)]
+    Base64(#[from] base64::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

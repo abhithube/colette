@@ -1,10 +1,11 @@
+use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
-    Error, Folder,
+    Cursor, Error, Folder,
     folder_repository::{FolderCreateData, FolderFindParams, FolderRepository, FolderUpdateData},
 };
-use crate::common::{IdParams, Paginated};
+use crate::common::{IdParams, PAGINATION_LIMIT, Paginated};
 
 pub struct FolderService {
     repository: Box<dyn FolderRepository>,
@@ -22,17 +23,33 @@ impl FolderService {
         query: FolderListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Folder>, Error> {
-        let folders = self
+        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+
+        let mut folders = self
             .repository
             .find(FolderFindParams {
                 parent_id: query.parent_id,
                 user_id,
+                limit: Some(PAGINATION_LIMIT as i64 + 1),
+                cursor,
                 ..Default::default()
             })
             .await?;
+        let mut cursor: Option<String> = None;
+
+        let limit = PAGINATION_LIMIT as usize;
+        if folders.len() > limit {
+            let last = folders.pop().unwrap();
+
+            let c = Cursor { title: last.title };
+            let encoded = base64::encode(&c)?;
+
+            cursor = Some(encoded);
+        }
+
         Ok(Paginated {
             data: folders,
-            cursor: None,
+            cursor,
         })
     }
 
@@ -86,6 +103,7 @@ impl FolderService {
 #[derive(Debug, Clone, Default)]
 pub struct FolderListQuery {
     pub parent_id: Option<Option<Uuid>>,
+    pub cursor: Option<String>,
 }
 
 #[derive(Debug, Clone)]

@@ -1,14 +1,40 @@
+WITH RECURSIVE
+  folder_tree AS (
+    SELECT
+      id,
+      title,
+      parent_id,
+      created_at,
+      updated_at,
+      '[]'::jsonb AS path
+    FROM
+      folders
+    WHERE
+      user_id = $1
+      AND parent_id IS NULL
+    UNION ALL
+    SELECT
+      f.id,
+      f.title,
+      f.parent_id,
+      f.created_at,
+      f.updated_at,
+      ft.path || jsonb_build_object('id', ft.id, 'title', ft.title)
+    FROM
+      folders f
+      INNER JOIN folder_tree ft ON ft.id = f.parent_id
+  )
 SELECT
-  id,
-  title,
+  id AS "id!",
+  title AS "title!",
   parent_id,
-  created_at,
-  updated_at
+  created_at AS "created_at!",
+  updated_at AS "updated_at!",
+  path AS "path!: Json<Vec<FolderPathItem>>"
 FROM
-  folders
+  folder_tree
 WHERE
-  user_id = $1
-  AND (
+  (
     $2::BOOLEAN
     OR id = $3
   )

@@ -14,7 +14,7 @@ mod update_folder;
 pub const FOLDERS_TAG: &str = "Folders";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Folder, Paginated<Folder>, create_folder::FolderCreate, update_folder::FolderUpdate)))]
+#[openapi(components(schemas(Folder, Paginated<Folder>, FolderPathItem, create_folder::FolderCreate, update_folder::FolderUpdate)))]
 pub struct FolderApi;
 
 impl FolderApi {
@@ -38,6 +38,7 @@ pub struct Folder {
     pub parent_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub path: Vec<FolderPathItem>,
 }
 
 impl From<colette_core::Folder> for Folder {
@@ -48,6 +49,22 @@ impl From<colette_core::Folder> for Folder {
             parent_id: value.parent_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
+            path: value.path.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct FolderPathItem {
+    pub id: Uuid,
+    pub title: String,
+}
+
+impl From<colette_core::folder::FolderPathItem> for FolderPathItem {
+    fn from(value: colette_core::folder::FolderPathItem) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
         }
     }
 }
