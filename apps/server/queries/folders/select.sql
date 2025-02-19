@@ -19,7 +19,14 @@ WITH RECURSIVE
       f.parent_id,
       f.created_at,
       f.updated_at,
-      ft.path || jsonb_build_object('id', ft.id, 'title', ft.title)
+      ft.path || jsonb_build_object(
+        'id',
+        ft.id,
+        'title',
+        ft.title,
+        'parent_id',
+        ft.parent_id
+      )
     FROM
       folders f
       INNER JOIN folder_tree ft ON ft.id = f.parent_id
@@ -30,7 +37,7 @@ SELECT
   parent_id,
   created_at,
   updated_at,
-  path AS "path!: Json<Vec<FolderPathItem>>"
+  path AS "path: Json<Vec<Folder>>"
 FROM
   folder_tree
 WHERE

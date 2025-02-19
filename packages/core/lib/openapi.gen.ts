@@ -5,8 +5,8 @@ export const ApiKey = z.object({
   id: z.string(),
   title: z.string(),
   preview: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export type ApiKeyCreate = z.infer<typeof ApiKeyCreate>;
@@ -19,7 +19,7 @@ export const ApiKeyCreated = z.object({
   id: z.string(),
   value: z.string(),
   title: z.string(),
-  createdAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export type ApiKeyUpdate = z.infer<typeof ApiKeyUpdate>;
@@ -36,8 +36,8 @@ export type Tag = z.infer<typeof Tag>;
 export const Tag = z.object({
   id: z.string(),
   title: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
   feedCount: z.union([z.number(), z.undefined()]).optional(),
 });
@@ -52,8 +52,8 @@ export const Bookmark = z.object({
   author: z.union([z.string(), z.null()]),
   archivedUrl: z.union([z.string(), z.null()]),
   collectionId: z.union([z.string(), z.null()]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
@@ -97,8 +97,8 @@ export const Collection = z.object({
   id: z.string(),
   title: z.string(),
   folderId: z.union([z.string(), z.null()]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export type CollectionCreate = z.infer<typeof CollectionCreate>;
@@ -135,8 +135,8 @@ export const Feed = z.object({
   title: z.string(),
   xmlUrl: z.union([z.string(), z.null()]),
   folderId: z.union([z.string(), z.null()]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
   unreadCount: z.union([z.number(), z.undefined()]).optional(),
 });
@@ -165,8 +165,8 @@ export const FeedEntry = z.object({
   thumbnailUrl: z.union([z.string(), z.null()]),
   hasRead: z.boolean(),
   feedId: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export type FeedEntryUpdate = z.infer<typeof FeedEntryUpdate>;
@@ -181,15 +181,24 @@ export const FeedUpdate = z.object({
   tags: z.array(z.string()).optional(),
 });
 
-export type Folder = z.infer<typeof Folder>;
-export const Folder = z.object({
-  id: z.string(),
-  title: z.string(),
-  parentId: z.union([z.string(), z.null()]),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
+export type Folder = {
+  id: string;
+  title: string;
+  parentId: string | null;
+  createdAt?: string | null | undefined;
+  updatedAt?: string | null | undefined;
+  path?: Array<Folder> | null | undefined;
+};
+export const Folder: z.ZodType<Folder> = z.lazy(() =>
+  z.object({
+    id: z.string(),
+    title: z.string(),
+    parentId: z.union([z.string(), z.null()]),
+    createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+    updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+    path: z.union([z.array(Folder), z.null(), z.undefined()]).optional(),
+  }),
+);
 export type FolderCreate = z.infer<typeof FolderCreate>;
 export const FolderCreate = z.object({
   title: z.string(),
@@ -231,8 +240,8 @@ export const Paginated_ApiKey = z.object({
       id: z.string(),
       title: z.string(),
       preview: z.string(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -250,8 +259,8 @@ export const Paginated_Bookmark = z.object({
       author: z.union([z.string(), z.null()]),
       archivedUrl: z.union([z.string(), z.null()]),
       collectionId: z.union([z.string(), z.null()]),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
     }),
   ),
@@ -265,8 +274,8 @@ export const Paginated_Collection = z.object({
       id: z.string(),
       title: z.string(),
       folderId: z.union([z.string(), z.null()]),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -281,8 +290,8 @@ export const Paginated_Feed = z.object({
       title: z.string(),
       xmlUrl: z.union([z.string(), z.null()]),
       folderId: z.union([z.string(), z.null()]),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
       unreadCount: z.union([z.number(), z.undefined()]).optional(),
     }),
@@ -303,8 +312,8 @@ export const Paginated_FeedEntry = z.object({
       thumbnailUrl: z.union([z.string(), z.null()]),
       hasRead: z.boolean(),
       feedId: z.string(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -317,8 +326,9 @@ export const Paginated_Folder = z.object({
       id: z.string(),
       title: z.string(),
       parentId: z.union([z.string(), z.null()]),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      path: z.union([z.array(Folder), z.null(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -351,8 +361,8 @@ export const Paginated_Tag = z.object({
     z.object({
       id: z.string(),
       title: z.string(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
       feedCount: z.union([z.number(), z.undefined()]).optional(),
     }),
@@ -380,8 +390,8 @@ export type User = z.infer<typeof User>;
 export const User = z.object({
   id: z.string(),
   email: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
+  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
 });
 
 export type get_ListApiKeys = typeof get_ListApiKeys;
@@ -799,6 +809,7 @@ export const get_ListFolders = {
     query: z.object({
       filterByParent: z.boolean().optional(),
       parentId: z.string().optional(),
+      cursor: z.string().optional(),
     }),
   }),
   response: Paginated_Folder,

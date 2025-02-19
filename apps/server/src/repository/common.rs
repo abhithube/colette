@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     Collection, Feed, Folder, Tag, collection,
     feed::{self, ProcessedFeed},
-    folder::{self, FolderPathItem},
+    folder,
 };
 use sqlx::{
     Database, Decode, Encode, PgExecutor, Postgres, Type,
@@ -140,7 +140,7 @@ struct FolderRow {
     parent_id: Option<Uuid>,
     created_at: Option<DateTime<Utc>>,
     updated_at: Option<DateTime<Utc>>,
-    path: Json<Vec<FolderPathItem>>,
+    path: Option<Json<Vec<Folder>>>,
 }
 
 impl From<FolderRow> for Folder {
@@ -151,7 +151,7 @@ impl From<FolderRow> for Folder {
             parent_id: value.parent_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
-            path: value.path.0,
+            path: value.path.map(|e| e.0),
         }
     }
 }

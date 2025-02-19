@@ -7,20 +7,14 @@ use uuid::Uuid;
 mod folder_repository;
 mod folder_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct Folder {
     pub id: Uuid,
     pub title: String,
     pub parent_id: Option<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub path: Vec<FolderPathItem>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct FolderPathItem {
-    pub id: Uuid,
-    pub title: String,
+    pub path: Option<Vec<Folder>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
