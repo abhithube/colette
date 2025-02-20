@@ -1,7 +1,8 @@
 import type { Collection } from '@colette/core'
 import { useDeleteCollectionMutation } from '@colette/query'
 import type { FC } from 'react'
-import { useLocation, useParams } from 'wouter'
+import { useParams } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,7 +16,6 @@ export const DeleteCollectionAlert: FC<{
   collection: Collection
   close: () => void
 }> = (props) => {
-  const [, navigate] = useLocation()
   const params = useParams<{ id?: string }>()
 
   const deleteCollection = useDeleteCollectionMutation(props.collection.id)

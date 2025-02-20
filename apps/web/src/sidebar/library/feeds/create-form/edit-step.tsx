@@ -2,7 +2,7 @@ import type { FeedProcessed } from '@colette/core'
 import { useCreateFeedMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
-import { useLocation } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -20,8 +20,6 @@ export const EditStep: FC<{
   onClose: () => void
   onBack: () => void
 }> = (props) => {
-  const [, navigate] = useLocation()
-
   const form = useForm({
     defaultValues: {
       title: props.feed.title,

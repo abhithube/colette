@@ -2,7 +2,7 @@ import { useCreateCollectionMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
-import { useLocation } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -20,8 +20,6 @@ import { Label } from '~/components/ui/label'
 import { SidebarGroupAction } from '~/components/ui/sidebar'
 
 export const CreateCollectionModal: FC = () => {
-  const [, navigate] = useLocation()
-
   const [isOpen, setOpen] = useState(false)
 
   const form = useForm({

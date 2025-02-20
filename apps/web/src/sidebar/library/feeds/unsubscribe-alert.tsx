@@ -1,7 +1,8 @@
 import type { Feed } from '@colette/core'
 import { useDeleteFeedMutation } from '@colette/query'
 import type { FC } from 'react'
-import { useLocation, useParams } from 'wouter'
+import { useParams } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,8 +16,6 @@ export const UnsubscribeAlert: FC<{
   feed: Feed
   close: () => void
 }> = (props) => {
-  const [, navigate] = useLocation()
-
   const params = useParams<{ id?: string }>()
 
   const deleteFeed = useDeleteFeedMutation(props.feed.id)

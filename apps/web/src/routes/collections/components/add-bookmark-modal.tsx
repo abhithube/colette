@@ -4,7 +4,7 @@ import {
 } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
-import { useLocation } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
 import { FormDescription, FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -19,8 +19,6 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
-  const [, navigate] = useLocation()
-
   const form = useForm({
     defaultValues: {
       url: '',

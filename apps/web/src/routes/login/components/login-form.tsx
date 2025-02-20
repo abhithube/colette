@@ -1,7 +1,8 @@
 import { useLoginMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
-import { useLocation, useSearchParams } from 'wouter'
+import { useSearchParams } from 'wouter'
+import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
@@ -18,7 +19,6 @@ import { Label } from '~/components/ui/label'
 
 export const LoginForm: FC = () => {
   const [searchParams] = useSearchParams()
-  const [, navigate] = useLocation()
 
   const form = useForm({
     defaultValues: {

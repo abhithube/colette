@@ -2,6 +2,7 @@ import type { User as AppUser } from '@colette/core'
 import { useLogoutMutation } from '@colette/query'
 import { ChevronsUpDown, User } from 'lucide-react'
 import type { FC } from 'react'
+import { navigate } from 'wouter/use-browser-location'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +37,16 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-            <DropdownMenuItem onSelect={() => logout.mutate()}>
+            <DropdownMenuItem
+              onSelect={() =>
+                logout.mutate(undefined, {
+                  onSuccess: () =>
+                    navigate('/login', {
+                      replace: true,
+                    }),
+                })
+              }
+            >
               Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
