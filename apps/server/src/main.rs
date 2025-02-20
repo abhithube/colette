@@ -1,10 +1,10 @@
-use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc};
+use std::{borrow::Cow, error::Error, ops::RangeFull, sync::Arc};
 
 use apalis::{
     layers::WorkerBuilderExt,
     prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
 };
-use apalis_cron::{CronStream, Schedule};
+use apalis_cron::CronStream;
 use apalis_redis::RedisStorage;
 use api::{
     ApiState, api_key::ApiKeyApi, auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi,
@@ -34,9 +34,8 @@ use repository::{
     folder::PostgresFolderRepository, library::PostgresLibraryRepository,
     tag::PostgresTagRepository, user::PostgresUserRepository,
 };
-use serde::{Deserialize, Deserializer};
 use session::RedisStore;
-use sqlx::{Pool, Postgres};
+use sqlx::{Pool, Postgres, postgres::PgConnectOptions};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
@@ -62,75 +61,63 @@ struct ApiDoc;
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct AppConfig {
     #[serde(default = "default_host")]
-    pub host: String,
+    pub host: Cow<'static, str>,
     #[serde(default = "default_port")]
-    pub port: u16,
-    pub database_url: String,
+    pub port: u32,
+    pub database_url: Option<Cow<'static, str>>,
     pub redis_url: String,
+    #[serde(default = "default_cron_enabled")]
+    pub cron_enabled: bool,
+    #[serde(default = "default_cron_schedule")]
+    pub cron_schedule: Cow<'static, str>,
     pub aws_access_key_id: Cow<'static, str>,
     pub aws_secret_access_key: Cow<'static, str>,
     #[serde(default = "default_aws_region")]
     pub aws_region: Cow<'static, str>,
-    #[serde(default = "default_bucket_name")]
-    pub bucket_name: Cow<'static, str>,
-    #[serde(default = "default_bucket_endpoint_url")]
-    pub bucket_endpoint_url: Url,
-    #[serde(deserialize_with = "string_to_vec", default = "default_origin_urls")]
-    pub origin_urls: Vec<String>,
-    pub user_agent: Option<String>,
-    pub proxy_url: Option<Url>,
-    #[serde(default = "default_refresh_enabled")]
-    pub refresh_enabled: bool,
-    #[serde(default = "default_cron_refresh")]
-    pub cron_refresh: String,
-    #[serde(default = "default_api_prefix")]
-    pub api_prefix: String,
+    #[serde(default = "default_s3_bucket_name")]
+    pub s3_bucket_name: Cow<'static, str>,
+    #[serde(default = "default_s3_bucket_endpoint_url")]
+    pub s3_bucket_endpoint_url: Url,
+    #[serde(default = "default_cors_enabled")]
+    pub cors_enabled: bool,
+    #[serde(default = "default_origin_urls")]
+    pub origin_urls: Vec<Cow<'static, str>>,
 }
 
-fn default_host() -> String {
-    "0.0.0.0".to_owned()
+fn default_host() -> Cow<'static, str> {
+    "0.0.0.0".into()
 }
 
-fn default_port() -> u16 {
+fn default_port() -> u32 {
     8000
 }
 
-fn default_aws_region() -> Cow<'static, str> {
-    Cow::Borrowed("us-east-1")
-}
-
-fn default_bucket_name() -> Cow<'static, str> {
-    Cow::Borrowed("colette")
-}
-
-fn default_bucket_endpoint_url() -> Url {
-    "http://localhost:9000".parse().unwrap()
-}
-
-pub fn string_to_vec<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value: String = Deserialize::deserialize(deserializer)?;
-    let parsed = value.split(',').map(|s| s.trim().to_owned()).collect();
-
-    Ok(parsed)
-}
-
-fn default_origin_urls() -> Vec<String> {
-    Vec::new()
-}
-
-fn default_refresh_enabled() -> bool {
+fn default_cron_enabled() -> bool {
     true
 }
 
-fn default_cron_refresh() -> String {
-    "0 */15 * * * *".to_owned()
+fn default_cron_schedule() -> Cow<'static, str> {
+    "0 */15 * * * *".into()
 }
 
-fn default_api_prefix() -> String {
-    "/api/v1".to_owned()
+fn default_aws_region() -> Cow<'static, str> {
+    "us-east-1".into()
+}
+
+fn default_s3_bucket_name() -> Cow<'static, str> {
+    "colette".into()
+}
+
+fn default_s3_bucket_endpoint_url() -> Url {
+    "http://localhost:9000".parse().unwrap()
+}
+
+fn default_cors_enabled() -> bool {
+    false
+}
+
+fn default_origin_urls() -> Vec<Cow<'static, str>> {
+    Vec::new()
 }
 
 #[tokio::main]
@@ -155,7 +142,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = envy::from_env::<AppConfig>()?;
 
-    let pool = Pool::<Postgres>::connect(&app_config.database_url).await?;
+    let pool = match app_config.database_url {
+        Some(database_url) => Pool::<Postgres>::connect(&database_url).await,
+        _ => Pool::<Postgres>::connect_with(PgConnectOptions::new()).await,
+    }?;
     sqlx::migrate!("../../migrations").run(&pool).await?;
 
     let http_client = {
@@ -173,19 +163,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let bucket_url = app_config
-        .bucket_endpoint_url
-        .join(&format!("{}/", app_config.bucket_name))
+        .s3_bucket_endpoint_url
+        .join(&format!("{}/", app_config.s3_bucket_name))
         .unwrap();
 
     let bucket = AmazonS3Builder::new()
         .with_region(app_config.aws_region)
         .with_endpoint(
             app_config
-                .bucket_endpoint_url
+                .s3_bucket_endpoint_url
                 .origin()
                 .ascii_serialization(),
         )
-        .with_bucket_name(app_config.bucket_name)
+        .with_bucket_name(app_config.s3_bucket_name)
         .with_access_key_id(app_config.aws_access_key_id)
         .with_secret_access_key(app_config.aws_secret_access_key)
         .with_allow_http(true)
@@ -252,16 +242,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
 
-    let schedule = Schedule::from_str(&app_config.cron_refresh)?;
-
-    let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
-        .enable_tracing()
-        .data(refresh_feeds::State::new(
-            feed_service.clone(),
-            Arc::new(Mutex::new(scrape_feed_storage.clone())),
-        ))
-        .backend(CronStream::new(schedule))
-        .build_fn(refresh_feeds::run);
+    let schedule = app_config.cron_schedule.parse()?;
 
     let archive_thumbnail_worker = WorkerBuilder::new("archive_thumbnail")
         .enable_tracing()
@@ -272,7 +253,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let import_feeds_worker = WorkerBuilder::new("import-feeds")
         .enable_tracing()
-        .data(scrape_feed_storage)
+        .data(scrape_feed_storage.clone())
         .backend(import_feeds_storage)
         .build_fn(import_feeds::run);
 
@@ -282,14 +263,27 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .backend(import_bookmarks_storage)
         .build_fn(import_bookmarks::run);
 
-    let monitor = Monitor::new()
+    let mut monitor = Monitor::new()
         .register(scrape_feed_worker)
         .register(scrape_bookmark_worker)
-        .register(refresh_feeds_worker)
         .register(archive_thumbnail_worker)
         .register(import_feeds_worker)
-        .register(import_bookmarks_worker)
-        .run();
+        .register(import_bookmarks_worker);
+
+    if app_config.cron_enabled {
+        let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
+            .enable_tracing()
+            .data(refresh_feeds::State::new(
+                feed_service.clone(),
+                Arc::new(Mutex::new(scrape_feed_storage)),
+            ))
+            .backend(CronStream::new(schedule))
+            .build_fn(refresh_feeds::run);
+
+        monitor = monitor.register(refresh_feeds_worker)
+    }
+
+    let monitor = monitor.run();
 
     let redis_conn = redis.get_multiplexed_async_connection().await?;
     let session_store = RedisStore::new(redis_conn);
@@ -308,9 +302,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bucket_url,
     };
 
+    let api_prefix = "/api";
+
     let (api, mut openapi) = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .nest(
-            &app_config.api_prefix,
+            api_prefix,
             OpenApiRouter::new()
                 .nest("/apiKeys", ApiKeyApi::router())
                 .nest("/auth", AuthApi::router())
@@ -329,22 +325,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .split_for_parts();
 
     openapi.info.title = "Colette API".to_owned();
-    openapi.servers = Some(vec![Server::new(&app_config.api_prefix)]);
+    openapi.servers = Some(vec![Server::new(api_prefix)]);
 
     openapi.paths.paths = openapi
         .paths
         .paths
         .drain(RangeFull)
-        .map(|(k, v)| (k.replace(&app_config.api_prefix, ""), v))
+        .map(|(k, v)| (k.replace(&format!("{}/", api_prefix), "/"), v))
         .collect();
 
     let mut api = api
         .merge(Scalar::with_url(
-            format!("{}/doc", &app_config.api_prefix),
+            format!("{}/doc", api_prefix),
             openapi.clone(),
         ))
         .route(
-            &format!("{}/openapi.json", &app_config.api_prefix),
+            &format!("{}/openapi.json", api_prefix),
             routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
         )
         .layer(
@@ -359,7 +355,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             None,
         ));
 
-    if !app_config.origin_urls.is_empty() {
+    if app_config.cors_enabled {
         let origins = app_config
             .origin_urls
             .iter()
