@@ -20,6 +20,18 @@ export const UnsubscribeAlert: FC<{
 
   const deleteFeed = useDeleteFeedMutation(props.feed.id)
 
+  function onDelete() {
+    deleteFeed.mutate(undefined, {
+      onSuccess: () => {
+        props.close()
+
+        if (params.id === props.feed.id) {
+          navigate('/feeds')
+        }
+      },
+    })
+  }
+
   return (
     <AlertDialogContent>
       <AlertDialogTitle className="line-clamp-1">
@@ -31,20 +43,7 @@ export const UnsubscribeAlert: FC<{
       </AlertDialogDescription>
       <AlertDialogFooter>
         <AlertDialogCancel>Cancel</AlertDialogCancel>
-        <AlertDialogAction
-          disabled={deleteFeed.isPending}
-          onClick={() =>
-            deleteFeed.mutate(undefined, {
-              onSuccess: () => {
-                props.close()
-
-                if (params.id === props.feed.id) {
-                  navigate('/feeds')
-                }
-              },
-            })
-          }
-        >
+        <AlertDialogAction disabled={deleteFeed.isPending} onClick={onDelete}>
           Confirm
         </AlertDialogAction>
       </AlertDialogFooter>

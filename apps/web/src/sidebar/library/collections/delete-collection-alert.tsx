@@ -20,6 +20,18 @@ export const DeleteCollectionAlert: FC<{
 
   const deleteCollection = useDeleteCollectionMutation(props.collection.id)
 
+  function onDelete() {
+    deleteCollection.mutate(undefined, {
+      onSuccess: () => {
+        props.close()
+
+        if (params.id === props.collection.id) {
+          navigate('/collections')
+        }
+      },
+    })
+  }
+
   return (
     <AlertDialogContent>
       <AlertDialogTitle>
@@ -33,17 +45,7 @@ export const DeleteCollectionAlert: FC<{
         <AlertDialogCancel>Cancel</AlertDialogCancel>
         <AlertDialogAction
           disabled={deleteCollection.isPending}
-          onClick={() =>
-            deleteCollection.mutate(undefined, {
-              onSuccess: () => {
-                props.close()
-
-                if (params.id === props.collection.id) {
-                  navigate('/collections')
-                }
-              },
-            })
-          }
+          onClick={onDelete}
         >
           Confirm
         </AlertDialogAction>

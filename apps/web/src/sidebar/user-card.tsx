@@ -18,6 +18,15 @@ import {
 export const UserCard: FC<{ user: AppUser }> = (props) => {
   const logout = useLogoutMutation()
 
+  function onLogout() {
+    logout.mutate(undefined, {
+      onSuccess: () =>
+        navigate('/login', {
+          replace: true,
+        }),
+    })
+  }
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -37,18 +46,7 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-            <DropdownMenuItem
-              onSelect={() =>
-                logout.mutate(undefined, {
-                  onSuccess: () =>
-                    navigate('/login', {
-                      replace: true,
-                    }),
-                })
-              }
-            >
-              Logout
-            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={onLogout}>Logout</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
