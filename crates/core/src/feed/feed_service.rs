@@ -122,7 +122,7 @@ impl FeedService {
                 Ok(DetectedResponse::Processed(feed))
             }
             None => {
-                let (_, body) = self.client.get(&data.url).await?;
+                let body = self.client.get(&data.url).await?;
 
                 let mut reader = BufReader::new(body.reader());
 
@@ -170,7 +170,7 @@ impl FeedService {
         let feed = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
-                let (_, body) = self.client.get(&data.url).await?;
+                let body = self.client.get(&data.url).await?;
                 let feed = colette_feed::from_reader(BufReader::new(body.reader()))
                     .map(ExtractedFeed::from)
                     .map_err(|e| ScraperError::Parse(e.into()))?;

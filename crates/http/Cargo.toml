@@ -8,8 +8,5 @@ async-trait.workspace = true
 bytes.workspace = true
 http.workspace = true
 http-body-util.workspace = true
-hyper = { version = "1.6.0", default-features = false }
-hyper-rustls.workspace = true
-hyper-util.workspace = true
+reqwest.workspace = true
 thiserror.workspace = true
-url.workspace = true

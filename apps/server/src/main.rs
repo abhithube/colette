@@ -21,7 +21,7 @@ use colette_core::{
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
     folder::FolderService, library::LibraryService, tag::TagService,
 };
-use colette_http::HyperClient;
+use colette_http::ReqwestClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
@@ -148,19 +148,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }?;
     sqlx::migrate!("../../migrations").run(&pool).await?;
 
-    let http_client = {
-        use hyper_rustls::HttpsConnectorBuilder;
-        use hyper_util::rt::TokioExecutor;
-
-        let https = HttpsConnectorBuilder::new()
-            .with_webpki_roots()
-            .https_only()
-            .enable_http2()
-            .build();
-        let client = hyper_util::client::legacy::Client::builder(TokioExecutor::new()).build(https);
-
-        HyperClient::new(client)
-    };
+    let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
+    let http_client = ReqwestClient::new(reqwest_client.clone());
 
     let bucket_url = app_config
         .s3_bucket_endpoint_url
@@ -204,7 +193,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         http_client.clone(),
         bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
-        register_bookmark_plugins(http_client.clone()),
+        register_bookmark_plugins(reqwest_client.clone()),
     ));
     let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
         pool.clone(),
@@ -212,7 +201,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_service = Arc::new(FeedService::new(
         PostgresFeedRepository::new(pool.clone()),
         http_client.clone(),
-        register_feed_plugins(http_client),
+        register_feed_plugins(reqwest_client),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
         pool.clone(),

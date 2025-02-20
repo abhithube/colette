@@ -2,17 +2,16 @@ use std::io::BufReader;
 
 use bytes::Buf;
 use colette_core::feed::{ExtractedFeed, FeedScraper, ProcessedFeed, ScraperError};
-use colette_http::{HttpClient, HyperClient};
 use lazy_regex::regex_captures;
-use url::Url;
+use reqwest::{Client, Url};
 
 #[derive(Clone)]
 pub struct YouTubeFeedPlugin {
-    client: HyperClient,
+    client: Client,
 }
 
 impl YouTubeFeedPlugin {
-    pub fn new(client: HyperClient) -> Self {
+    pub fn new(client: Client) -> Self {
         Self { client }
     }
 }
@@ -25,7 +24,9 @@ impl FeedScraper for YouTubeFeedPlugin {
             url.set_path("feeds/videos.xml");
         }
 
-        let (_, body) = self.client.get(url).await?;
+        let resp = self.client.get(url.to_owned()).send().await?;
+        let body = resp.bytes().await?;
+
         let feed = colette_feed::from_reader(BufReader::new(body.reader()))
             .map(ExtractedFeed::from)
             .map_err(|e| ScraperError::Parse(e.into()))?;

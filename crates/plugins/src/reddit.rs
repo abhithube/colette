@@ -1,8 +1,9 @@
 use colette_core::bookmark::{BookmarkScraper, ProcessedBookmark, ScraperError};
-use colette_http::{HttpClient, HyperClient};
 use colette_util::html::{ExtractorQuery, Node};
-use http::{HeaderValue, Request, header};
-use http_body_util::BodyExt;
+use reqwest::{
+    Client, Method, Request, RequestBuilder,
+    header::{self, HeaderValue},
+};
 use scraper::Selector;
 use url::Url;
 
@@ -12,12 +13,12 @@ const USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleW
 
 #[derive(Clone)]
 pub struct RedditBookmarkPlugin {
-    client: HyperClient,
+    client: Client,
     extractor: BookmarkExtractor,
 }
 
 impl RedditBookmarkPlugin {
-    pub fn new(client: HyperClient) -> Self {
+    pub fn new(client: Client) -> Self {
         let options = BookmarkExtractorOptions {
             title_queries: vec![ExtractorQuery {
                 selector: Selector::parse("shreddit-post").unwrap(),
@@ -51,17 +52,14 @@ impl BookmarkScraper for RedditBookmarkPlugin {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }
 
-        let req = Request::get(url.as_str())
-            .header(header::USER_AGENT, HeaderValue::from_static(USER_AGENT))
-            .body(Default::default())
-            .unwrap();
-
-        let resp = self.client.send(req).await?;
-        let body = resp
-            .collect()
-            .await
-            .map_err(colette_http::Error::Http)?
-            .to_bytes();
+        let resp = RequestBuilder::from_parts(
+            self.client.clone(),
+            Request::new(Method::GET, url.to_owned()),
+        )
+        .header(header::USER_AGENT, HeaderValue::from_static(USER_AGENT))
+        .send()
+        .await?;
+        let body = resp.bytes().await?;
 
         let bookmark = self.extractor.extract(body)?;
 

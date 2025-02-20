@@ -9,11 +9,9 @@ bytes.workspace = true
 chrono.workspace = true
 colette-core.workspace = true
 colette-feed.workspace = true
-colette-http.workspace = true
 colette-meta.workspace = true
 colette-util.workspace = true
-http.workspace = true
-http-body-util.workspace = true
+reqwest.workspace = true
 scraper.workspace = true
 url.workspace = true
 lazy-regex = { version = "3.4.1", default-features = false, features = [

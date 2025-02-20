@@ -36,13 +36,12 @@ email_address = { version = "0.2.9", default-features = false, features = [
 ] }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
-hyper-rustls.workspace = true
-hyper-util.workspace = true
 object_store.workspace = true
 redis = { version = "0.27.6", default-features = false, features = [
   "tokio-rustls-comp",
   "tls-rustls-webpki-roots",
 ] }
+reqwest.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }

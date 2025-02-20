@@ -215,7 +215,7 @@ pub enum ScraperError {
     Postprocess(#[from] PostprocessorError),
 
     #[error(transparent)]
-    Http(#[from] colette_http::Error),
+    Http(#[from] reqwest::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

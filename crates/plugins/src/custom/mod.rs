@@ -1,12 +1,12 @@
 use colette_core::{bookmark::BookmarkScraper, feed::FeedScraper};
-use colette_http::HyperClient;
+use reqwest::Client;
 
 #[allow(unused_variables)]
-pub fn feeds(client: HyperClient) -> Vec<(&'static str, Box<dyn FeedScraper>)> {
+pub fn feeds(client: Client) -> Vec<(&'static str, Box<dyn FeedScraper>)> {
     vec![]
 }
 
 #[allow(unused_variables)]
-pub fn bookmarks(client: HyperClient) -> Vec<(&'static str, Box<dyn BookmarkScraper>)> {
+pub fn bookmarks(client: Client) -> Vec<(&'static str, Box<dyn BookmarkScraper>)> {
     vec![]
 }

@@ -204,7 +204,7 @@ impl BookmarkService {
         let bookmark = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
-                let (_, body) = self.client.get(&data.url).await?;
+                let body = self.client.get(&data.url).await?;
                 let metadata =
                     colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
 
@@ -234,7 +234,7 @@ impl BookmarkService {
         let bookmark = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
-                let (_, body) = self.client.get(&data.url).await?;
+                let body = self.client.get(&data.url).await?;
                 let metadata =
                     colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
 
@@ -263,7 +263,7 @@ impl BookmarkService {
             ThumbnailOperation::Upload(thumbnail_url) => {
                 let file_name = thumbnail::generate_filename(&thumbnail_url);
 
-                let (_, body) = self.client.get(&thumbnail_url).await?;
+                let body = self.client.get(&thumbnail_url).await?;
 
                 let format = image::guess_format(&body)?;
                 let extension = format.extensions_str()[0];
