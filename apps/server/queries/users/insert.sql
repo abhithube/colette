@@ -1,5 +1,5 @@
 INSERT INTO
-  users (email, password)
+  users (email, display_name)
 VALUES
   ($1, $2)
 RETURNING

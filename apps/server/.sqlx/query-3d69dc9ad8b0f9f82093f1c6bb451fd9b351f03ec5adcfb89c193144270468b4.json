@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  id,\n  email,\n  password,\n  created_at,\n  updated_at\nFROM\n  users\nWHERE\n  email = $1\n",
+  "query": "SELECT\n  u.id,\n  u.email,\n  a.provider_id,\n  a.account_id,\n  a.password_hash\nFROM\n  accounts a\n  LEFT JOIN users u ON u.id = a.user_id\nWHERE\n  provider_id = $1\n  AND account_id = $2\n",
   "describe": {
     "columns": [
       {
@@ -15,22 +15,23 @@
       },
       {
         "ordinal": 2,
-        "name": "password",
+        "name": "provider_id",
         "type_info": "Text"
       },
       {
         "ordinal": 3,
-        "name": "created_at",
-        "type_info": "Timestamptz"
+        "name": "account_id",
+        "type_info": "Text"
       },
       {
         "ordinal": 4,
-        "name": "updated_at",
-        "type_info": "Timestamptz"
+        "name": "password_hash",
+        "type_info": "Text"
       }
     ],
     "parameters": {
       "Left": [
+        "Text",
         "Text"
       ]
     },
@@ -39,8 +40,8 @@
       false,
       false,
       false,
-      false
+      true
     ]
   },
-  "hash": "684223253d5d57f9c6cad298a5717c6f33e4ff09ead413d96adbcf4944f51ab6"
+  "hash": "3d69dc9ad8b0f9f82093f1c6bb451fd9b351f03ec5adcfb89c193144270468b4"
 }

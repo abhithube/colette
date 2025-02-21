@@ -1,7 +1,7 @@
 SELECT
   id,
   email,
-  password,
+  display_name,
   created_at,
   updated_at
 FROM

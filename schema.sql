@@ -6,13 +6,27 @@ end; $$ language plpgsql;
 CREATE TABLE users (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
+  display_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TRIGGER set_updated_at_users before
 UPDATE ON users FOR each ROW
+EXECUTE procedure set_updated_at ();
+
+CREATE TABLE accounts (
+  provider_id TEXT NOT NULL,
+  account_id TEXT NOT NULL,
+  password_hash TEXT,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (provider_id, account_id)
+);
+
+CREATE TRIGGER set_updated_at_accounts before
+UPDATE ON accounts FOR each ROW
 EXECUTE procedure set_updated_at ();
 
 CREATE TABLE api_keys (

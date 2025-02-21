@@ -1,25 +1,14 @@
 use uuid::Uuid;
 
 use super::{Error, User};
-use crate::common::{Creatable, Findable};
+use crate::common::Findable;
 
 pub trait UserRepository:
-    Findable<Params = UserFindParams, Output = Result<User, Error>>
-    + Creatable<Data = UserCreateData, Output = Result<Uuid, Error>>
-    + Send
-    + Sync
-    + 'static
+    Findable<Params = UserFindParams, Output = Result<User, Error>> + Send + Sync + 'static
 {
 }
 
 #[derive(Debug, Clone)]
-pub enum UserFindParams {
-    Id(Uuid),
-    Email(String),
-}
-
-#[derive(Debug, Clone)]
-pub struct UserCreateData {
-    pub email: String,
-    pub password: String,
+pub struct UserFindParams {
+    pub id: Uuid,
 }

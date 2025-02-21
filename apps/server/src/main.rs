@@ -28,11 +28,11 @@ use job::{
 };
 use object_store::aws::AmazonS3Builder;
 use repository::{
-    api_key::PostgresApiKeyRepository, backup::PostgresBackupRepository,
-    bookmark::PostgresBookmarkRepository, collection::PostgresCollectionRepository,
-    feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
-    folder::PostgresFolderRepository, library::PostgresLibraryRepository,
-    tag::PostgresTagRepository, user::PostgresUserRepository,
+    accounts::PostgresAccountRepository, api_key::PostgresApiKeyRepository,
+    backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
+    collection::PostgresCollectionRepository, feed::PostgresFeedRepository,
+    feed_entry::PostgresFeedEntryRepository, folder::PostgresFolderRepository,
+    library::PostgresLibraryRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
 };
 use session::RedisStore;
 use sqlx::{Pool, Postgres, postgres::PgConnectOptions};
@@ -182,7 +182,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let api_key_service = Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
         pool.clone(),
     )));
-    let auth_service = Arc::new(AuthService::new(PostgresUserRepository::new(pool.clone())));
+    let auth_service = Arc::new(AuthService::new(
+        PostgresUserRepository::new(pool.clone()),
+        PostgresAccountRepository::new(pool.clone()),
+    ));
     let backup_service = Arc::new(BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
         Arc::new(Mutex::new(import_feeds_storage.clone())),

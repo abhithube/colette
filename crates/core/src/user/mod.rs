@@ -8,28 +8,16 @@ mod user_repository;
 pub struct User {
     pub id: Uuid,
     pub email: String,
-    pub password: String,
+    pub display_name: Option<String>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error(transparent)]
-    NotFound(#[from] NotFoundError),
-
-    #[error("user already exists with email: {0}")]
-    Conflict(String),
+    #[error("user not found with id: {0}")]
+    NotFound(Uuid),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum NotFoundError {
-    #[error("user not found with id: {0}")]
-    Id(Uuid),
-
-    #[error("user not found with email: {0}")]
-    Email(String),
 }
