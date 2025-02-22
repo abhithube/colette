@@ -2,7 +2,7 @@ import { CreateFeedModal } from './library/feeds/create-form/create-feed-modal'
 import { FolderContents } from './library/folder-contents'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
-import { Archive, History, Home } from 'lucide-react'
+import { Archive, History, Home, Rss } from 'lucide-react'
 import type { FC } from 'react'
 import { Link } from 'wouter'
 import {
@@ -34,6 +34,14 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
                   <Link to="/">
                     <Home />
                     Home
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link to="/feeds">
+                    <Rss />
+                    Feeds
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

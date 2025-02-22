@@ -1,7 +1,7 @@
-import { FeedList } from './components/feed-list'
+import { EntryList } from '../feeds/components/entry-list'
 import { type FC, useEffect } from 'react'
 
-export const FeedsPage: FC = () => {
+export const HomePage: FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -12,7 +12,7 @@ export const FeedsPage: FC = () => {
         <h1 className="text-3xl font-medium">All Feeds</h1>
       </div>
       <main>
-        <FeedList />
+        <EntryList query={{ hasRead: false }} />
       </main>
     </>
   )
