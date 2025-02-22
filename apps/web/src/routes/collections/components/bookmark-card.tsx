@@ -5,6 +5,7 @@ import { ExternalLink, Pencil } from 'lucide-react'
 import { type FC } from 'react'
 import { Dialog } from '~/components/dialog'
 import { Favicon } from '~/components/favicon'
+import { Thumbnail } from '~/components/thumbnail'
 import { Button } from '~/components/ui/button'
 import {
   Card,
@@ -19,15 +20,11 @@ import { Separator } from '~/components/ui/separator'
 export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
   return (
     <Card className="overflow-hidden">
-      <img
-        className="bg-background aspect-video object-cover"
+      <Thumbnail
         src={
-          props.bookmark.archivedUrl ??
-          props.bookmark.thumbnailUrl ??
-          'https://placehold.co/320x180/black/black'
+          props.bookmark.archivedUrl ?? props.bookmark.thumbnailUrl ?? undefined
         }
         alt={props.bookmark.title}
-        loading="lazy"
       />
       <div className="flex flex-col pb-2">
         <CardHeader className="py-4">
@@ -60,12 +57,7 @@ export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
       </div>
       <CardFooter className="py-0 pb-4">
         <Button asChild variant="ghost" title="Open in new tab">
-          <a
-            className="text-muted"
-            href={props.bookmark.link}
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a href={props.bookmark.link} target="_blank" rel="noreferrer">
             <ExternalLink />
           </a>
         </Button>
@@ -73,11 +65,7 @@ export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
           {(close) => (
             <>
               <DialogTrigger asChild>
-                <Button
-                  className="text-muted"
-                  variant="ghost"
-                  title="Edit bookmark"
-                >
+                <Button variant="ghost" title="Edit bookmark">
                   <Pencil />
                 </Button>
               </DialogTrigger>

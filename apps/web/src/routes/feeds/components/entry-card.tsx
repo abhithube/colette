@@ -2,6 +2,7 @@ import type { FeedEntry } from '@colette/core'
 import { formatRelativeDate } from '@colette/util'
 import type { FC } from 'react'
 import { Favicon } from '~/components/favicon'
+import { Thumbnail } from '~/components/thumbnail'
 import {
   Card,
   CardContent,
@@ -14,13 +15,9 @@ import { Separator } from '~/components/ui/separator'
 export const EntryCard: FC<{ entry: FeedEntry }> = (props) => {
   return (
     <Card className="flex h-[160px] overflow-hidden">
-      <img
-        className="aspect-video object-cover"
-        src={
-          props.entry.thumbnailUrl ?? 'https://placehold.co/320x180/black/black'
-        }
+      <Thumbnail
+        src={props.entry.thumbnailUrl ?? undefined}
         alt={props.entry.title}
-        loading="lazy"
       />
       <div className="flex grow flex-col gap-0">
         <CardHeader className="py-0 pt-4">
