@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
 import {
+  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -33,7 +34,7 @@ export const SearchStep: FC<{
   const detectFeeds = useDetectFeedsMutation()
 
   return (
-    <>
+    <DialogContent>
       <DialogHeader>
         <DialogTitle>Search Feeds</DialogTitle>
         <DialogDescription>Find a feed by URL</DialogDescription>
@@ -70,6 +71,6 @@ export const SearchStep: FC<{
           </Button>
         </DialogFooter>
       </form>
-    </>
+    </DialogContent>
   )
 }

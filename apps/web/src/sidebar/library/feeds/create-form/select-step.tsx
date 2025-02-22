@@ -5,6 +5,7 @@ import type { FC } from 'react'
 import { Favicon } from '~/components/favicon'
 import { Button } from '~/components/ui/button'
 import {
+  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -37,7 +38,7 @@ export const SelectStep: FC<{
   const detectFeeds = useDetectFeedsMutation()
 
   return (
-    <>
+    <DialogContent>
       <DialogHeader>
         <DialogTitle>Select Feed</DialogTitle>
         <DialogDescription>Select a feed</DialogDescription>
@@ -89,6 +90,6 @@ export const SelectStep: FC<{
           </Button>
         </DialogFooter>
       </form>
-    </>
+    </DialogContent>
   )
 }

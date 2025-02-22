@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { FormMessage } from '~/components/form'
 import { Button } from '~/components/ui/button'
 import {
+  DialogContent,
   DialogDescription,
   DialogFooter,
   DialogHeader,
@@ -45,7 +46,7 @@ export const EditStep: FC<{
   const createdFeed = useCreateFeedMutation()
 
   return (
-    <>
+    <DialogContent>
       <DialogHeader>
         <DialogTitle>Edit Feed</DialogTitle>
         <DialogDescription>
@@ -88,6 +89,6 @@ export const EditStep: FC<{
           </Button>
         </DialogFooter>
       </form>
-    </>
+    </DialogContent>
   )
 }

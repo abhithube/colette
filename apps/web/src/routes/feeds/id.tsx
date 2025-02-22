@@ -4,19 +4,17 @@ import { EntryList } from './components/entry-list'
 import { getFeedOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
-import { CircleX, ExternalLink, ListChecks, Pencil } from 'lucide-react'
-import { type FC, useEffect, useState } from 'react'
+import { ExternalLink, ListChecks, Pencil, Trash2 } from 'lucide-react'
+import { type FC, useEffect } from 'react'
 import { useParams } from 'wouter'
-import { AlertDialog, AlertDialogTrigger } from '~/components/ui/alert-dialog'
+import { AlertDialog, Dialog } from '~/components/dialog'
+import { AlertDialogTrigger } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
-import { Dialog, DialogTrigger } from '~/components/ui/dialog'
+import { DialogTrigger } from '~/components/ui/dialog'
 
 export const FeedPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
-
-  const [isEditModalOpen, setEditModalOpen] = useState(false)
-  const [isUnsubscribeAlertOpen, setUnsubscribeAlertOpen] = useState(false)
 
   const { data: feed } = useQuery(getFeedOptions(api, id))
 
@@ -37,33 +35,35 @@ export const FeedPage: FC = () => {
               Open Link
             </a>
           </Button>
-          <Dialog open={isEditModalOpen} onOpenChange={setEditModalOpen}>
-            <DialogTrigger asChild>
-              <Button variant="secondary">
-                <Pencil />
-                Edit
-              </Button>
-            </DialogTrigger>
-            <EditFeedModal feed={feed} close={() => setEditModalOpen(false)} />
+          <Dialog>
+            {(close) => (
+              <>
+                <DialogTrigger asChild>
+                  <Button variant="secondary">
+                    <Pencil />
+                    Edit
+                  </Button>
+                </DialogTrigger>
+                <EditFeedModal feed={feed} close={close} />
+              </>
+            )}
           </Dialog>
           <Button variant="secondary">
             <ListChecks />
             Mark as Read
           </Button>
-          <AlertDialog
-            open={isUnsubscribeAlertOpen}
-            onOpenChange={setUnsubscribeAlertOpen}
-          >
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">
-                <CircleX />
-                Unsubscribe
-              </Button>
-            </AlertDialogTrigger>
-            <UnsubscribeAlert
-              feed={feed}
-              close={() => setUnsubscribeAlertOpen(false)}
-            />
+          <AlertDialog>
+            {(close) => (
+              <>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive">
+                    <Trash2 />
+                    Unsubscribe
+                  </Button>
+                </AlertDialogTrigger>
+                <UnsubscribeAlert feed={feed} close={close} />
+              </>
+            )}
           </AlertDialog>
         </div>
       </div>

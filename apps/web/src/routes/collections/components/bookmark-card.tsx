@@ -2,7 +2,8 @@ import { EditBookmarkModal } from './edit-bookmark-modal'
 import type { Bookmark } from '@colette/core'
 import { formatRelativeDate } from '@colette/util'
 import { ExternalLink, Pencil } from 'lucide-react'
-import { type FC, useState } from 'react'
+import { type FC } from 'react'
+import { Dialog } from '~/components/dialog'
 import { Favicon } from '~/components/favicon'
 import { Button } from '~/components/ui/button'
 import {
@@ -12,17 +13,16 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/ui/card'
-import { Dialog, DialogTrigger } from '~/components/ui/dialog'
+import { DialogTrigger } from '~/components/ui/dialog'
 import { Separator } from '~/components/ui/separator'
 
 export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
-  const [isOpen, setOpen] = useState(false)
-
   return (
     <Card className="overflow-hidden">
       <img
         className="bg-background aspect-video object-cover"
         src={
+          props.bookmark.archivedUrl ??
           props.bookmark.thumbnailUrl ??
           'https://placehold.co/320x180/black/black'
         }
@@ -69,20 +69,21 @@ export const BookmarkCard: FC<{ bookmark: Bookmark }> = (props) => {
             <ExternalLink />
           </a>
         </Button>
-        <Dialog open={isOpen} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button
-              className="text-muted"
-              variant="ghost"
-              title="Edit bookmark"
-            >
-              <Pencil />
-            </Button>
-          </DialogTrigger>
-          <EditBookmarkModal
-            bookmark={props.bookmark}
-            close={() => setOpen(false)}
-          />
+        <Dialog>
+          {(close) => (
+            <>
+              <DialogTrigger asChild>
+                <Button
+                  className="text-muted"
+                  variant="ghost"
+                  title="Edit bookmark"
+                >
+                  <Pencil />
+                </Button>
+              </DialogTrigger>
+              <EditBookmarkModal bookmark={props.bookmark} close={close} />
+            </>
+          )}
         </Dialog>
       </CardFooter>
     </Card>
