@@ -25,7 +25,6 @@ SELECT
   b.published_at,
   b.author,
   b.archived_path,
-  b.collection_id,
   b.created_at,
   b.updated_at,
   coalesce(jt.tags, '[]'::jsonb) AS "tags: Json<Vec<Tag>>"
@@ -40,27 +39,20 @@ WHERE
   )
   AND (
     $4::BOOLEAN
-    OR CASE
-      WHEN $5::uuid IS NULL THEN b.collection_id IS NULL
-      ELSE b.collection_id = $5
-    END
-  )
-  AND (
-    $6::BOOLEAN
     OR EXISTS (
       SELECT
         1
       FROM
         jsonb_array_elements(jt.tags) t
       WHERE
-        t ->> 'title' = ANY ($7)
+        t ->> 'title' = ANY ($5)
     )
   )
   AND (
-    $8::BOOLEAN
-    OR b.created_at > $9
+    $6::BOOLEAN
+    OR b.created_at > $7
   )
 ORDER BY
   b.created_at ASC
 LIMIT
-  $10
+  $8

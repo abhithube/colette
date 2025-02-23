@@ -57,7 +57,6 @@ impl BookmarkService {
         let mut bookmarks = self
             .repository
             .find(BookmarkFindParams {
-                collection_id: query.collection_id,
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
@@ -116,7 +115,6 @@ impl BookmarkService {
                 thumbnail_url: data.thumbnail_url,
                 published_at: data.published_at,
                 author: data.author,
-                collection_id: data.collection_id,
                 tags: data.tags,
                 user_id,
             })
@@ -309,7 +307,6 @@ impl BookmarkService {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkListQuery {
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub cursor: Option<String>,
 }
@@ -321,7 +318,6 @@ pub struct BookmarkCreate {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -331,7 +327,6 @@ pub struct BookmarkUpdate {
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub collection_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -343,7 +338,6 @@ impl From<BookmarkUpdate> for BookmarkUpdateData {
             published_at: value.published_at,
             author: value.author,
             archived_path: None,
-            collection_id: value.collection_id,
             tags: value.tags,
         }
     }

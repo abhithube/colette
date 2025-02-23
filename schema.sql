@@ -74,24 +74,9 @@ CREATE TRIGGER set_updated_at_feed_entries before
 UPDATE ON feed_entries FOR each ROW
 EXECUTE procedure set_updated_at ();
 
-CREATE TABLE folders (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  title TEXT NOT NULL,
-  parent_id uuid REFERENCES folders (id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE nulls NOT DISTINCT (user_id, parent_id, title)
-);
-
-CREATE TRIGGER set_updated_at_folders before
-UPDATE ON folders FOR each ROW
-EXECUTE procedure set_updated_at ();
-
 CREATE TABLE user_feeds (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   title TEXT NOT NULL,
-  folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -118,20 +103,6 @@ CREATE TRIGGER set_updated_at_user_feed_entries before
 UPDATE ON user_feed_entries FOR each ROW
 EXECUTE procedure set_updated_at ();
 
-CREATE TABLE collections (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  title TEXT NOT NULL,
-  folder_id uuid REFERENCES folders (id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE nulls NOT DISTINCT (user_id, folder_id, title)
-);
-
-CREATE TRIGGER set_updated_at_collections before
-UPDATE ON collections FOR each ROW
-EXECUTE procedure set_updated_at ();
-
 CREATE TABLE bookmarks (
   id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
   link TEXT NOT NULL,
@@ -140,11 +111,10 @@ CREATE TABLE bookmarks (
   published_at TIMESTAMPTZ,
   author TEXT,
   archived_path TEXT,
-  collection_id uuid REFERENCES collections (id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE nulls NOT DISTINCT (user_id, collection_id, link)
+  UNIQUE (user_id, link)
 );
 
 CREATE TRIGGER set_updated_at_bookmarks before

@@ -12,8 +12,4 @@ pub trait BackupRepository: Send + Sync + 'static {
     ) -> Result<(), Error>;
 
     async fn import_bookmarks(&self, items: Vec<Item>, user_id: Uuid) -> Result<(), Error>;
-
-    async fn export_outlines(&self, user_id: Uuid) -> Result<Vec<super::Outline>, Error>;
-
-    async fn export_items(&self, user_id: Uuid) -> Result<Vec<super::Item>, Error>;
 }

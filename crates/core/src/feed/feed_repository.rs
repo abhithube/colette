@@ -23,7 +23,6 @@ pub trait FeedRepository:
 #[derive(Debug, Clone, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
@@ -34,7 +33,6 @@ pub struct FeedFindParams {
 pub struct FeedCreateData {
     pub url: Url,
     pub title: String,
-    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
     pub user_id: Uuid,
 }
@@ -42,7 +40,6 @@ pub struct FeedCreateData {
 #[derive(Debug, Clone, Default)]
 pub struct FeedUpdateData {
     pub title: Option<String>,
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 

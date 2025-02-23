@@ -19,7 +19,6 @@ pub struct Feed {
     pub link: Url,
     pub title: String,
     pub xml_url: Option<Url>,
-    pub folder_id: Option<Uuid>,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<Tag>>,

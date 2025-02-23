@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  user_feed_tags (user_feed_id, tag_id, user_id)\nVALUES\n  ($1, $2, $3)\nON CONFLICT (user_feed_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "8aa49126d3e120428598930bb6854e198cebebb21e63c6b3f11ba5e946f0f6a4"
+}

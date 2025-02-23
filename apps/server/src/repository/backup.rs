@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use colette_core::backup::{self, BackupRepository, Error};
+use colette_core::backup::{BackupRepository, Error};
 use sqlx::{Pool, Postgres};
 use uuid::Uuid;
 
@@ -32,17 +32,12 @@ impl BackupRepository for PostgresBackupRepository {
             let title = outline.title.unwrap_or(outline.text);
 
             if !outline.outline.is_empty() {
-                let folder_id = sqlx::query_file_scalar!(
-                    "queries/folders/upsert.sql",
-                    title,
-                    parent_id,
-                    user_id
-                )
-                .fetch_one(&mut *tx)
-                .await?;
+                let tag_id = sqlx::query_file_scalar!("queries/tags/upsert.sql", title, user_id)
+                    .fetch_one(&mut *tx)
+                    .await?;
 
                 for child in outline.outline {
-                    stack.push((Some(folder_id), child));
+                    stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = outline.html_url {
                 let feed_id =
@@ -50,11 +45,19 @@ impl BackupRepository for PostgresBackupRepository {
                         .fetch_one(&mut *tx)
                         .await?;
 
-                sqlx::query_file_scalar!(
+                let uf_id = sqlx::query_file_scalar!(
                     "queries/user_feeds/upsert.sql",
                     Option::<&str>::None,
-                    parent_id,
                     feed_id,
+                    user_id
+                )
+                .fetch_one(&mut *tx)
+                .await?;
+
+                sqlx::query_file_scalar!(
+                    "queries/user_feed_tags/insert.sql",
+                    uf_id,
+                    parent_id,
                     user_id
                 )
                 .execute(&mut *tx)
@@ -79,26 +82,30 @@ impl BackupRepository for PostgresBackupRepository {
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let folder_id = sqlx::query_file_scalar!(
-                    "queries/folders/upsert.sql",
-                    item.title,
-                    parent_id,
-                    user_id
-                )
-                .fetch_one(&mut *tx)
-                .await?;
+                let tag_id =
+                    sqlx::query_file_scalar!("queries/tags/upsert.sql", item.title, user_id)
+                        .fetch_one(&mut *tx)
+                        .await?;
 
                 for child in item.item {
-                    stack.push((Some(folder_id), child));
+                    stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = item.href {
-                sqlx::query_file_scalar!(
+                let bookmark_id = sqlx::query_file_scalar!(
                     "queries/bookmarks/upsert.sql",
                     link,
                     item.title,
                     Option::<&str>::None,
                     Option::<DateTime<Utc>>::None,
                     Option::<&str>::None,
+                    user_id
+                )
+                .fetch_one(&mut *tx)
+                .await?;
+
+                sqlx::query_file_scalar!(
+                    "queries/bookmark_tags/insert.sql",
+                    bookmark_id,
                     parent_id,
                     user_id
                 )
@@ -110,21 +117,5 @@ impl BackupRepository for PostgresBackupRepository {
         tx.commit().await?;
 
         Ok(())
-    }
-
-    async fn export_outlines(&self, user_id: Uuid) -> Result<Vec<backup::Outline>, Error> {
-        let outlines = sqlx::query_file_as!(backup::Outline, "queries/backups/opml.sql", user_id)
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok(outlines)
-    }
-
-    async fn export_items(&self, user_id: Uuid) -> Result<Vec<backup::Item>, Error> {
-        let outlines = sqlx::query_file_as!(backup::Item, "queries/backups/netscape.sql", user_id)
-            .fetch_all(&self.pool)
-            .await?;
-
-        Ok(outlines)
     }
 }

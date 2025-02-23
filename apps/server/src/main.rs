@@ -8,8 +8,7 @@ use apalis_cron::CronStream;
 use apalis_redis::RedisStorage;
 use api::{
     ApiState, api_key::ApiKeyApi, auth::AuthApi, backup::BackupApi, bookmark::BookmarkApi,
-    collection::CollectionApi, common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi,
-    folder::FolderApi, library::LibraryApi, tag::TagApi,
+    common::BaseError, feed::FeedApi, feed_entry::FeedEntryApi, tag::TagApi,
 };
 use axum::{
     http::{HeaderValue, Method, header},
@@ -18,8 +17,7 @@ use axum::{
 use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    folder::FolderService, library::LibraryService, tag::TagService,
+    feed::FeedService, feed_entry::FeedEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
@@ -30,9 +28,8 @@ use object_store::aws::AmazonS3Builder;
 use repository::{
     accounts::PostgresAccountRepository, api_key::PostgresApiKeyRepository,
     backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
-    collection::PostgresCollectionRepository, feed::PostgresFeedRepository,
-    feed_entry::PostgresFeedEntryRepository, folder::PostgresFolderRepository,
-    library::PostgresLibraryRepository, tag::PostgresTagRepository, user::PostgresUserRepository,
+    feed::PostgresFeedRepository, feed_entry::PostgresFeedEntryRepository,
+    tag::PostgresTagRepository, user::PostgresUserRepository,
 };
 use session::RedisStore;
 use sqlx::{Pool, Postgres, postgres::PgConnectOptions};
@@ -179,6 +176,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
     let import_bookmarks_storage = RedisStorage::new(redis_manager);
 
+    let feed_repository = PostgresFeedRepository::new(pool.clone());
+    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+
     let api_key_service = Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
         pool.clone(),
     )));
@@ -188,31 +188,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let backup_service = Arc::new(BackupService::new(
         PostgresBackupRepository::new(pool.clone()),
+        feed_repository.clone(),
+        bookmark_repository.clone(),
         Arc::new(Mutex::new(import_feeds_storage.clone())),
         Arc::new(Mutex::new(import_bookmarks_storage.clone())),
     ));
     let bookmark_service = Arc::new(BookmarkService::new(
-        PostgresBookmarkRepository::new(pool.clone()),
+        bookmark_repository,
         http_client.clone(),
         bucket,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
         register_bookmark_plugins(reqwest_client.clone()),
     ));
-    let collection_service = Arc::new(CollectionService::new(PostgresCollectionRepository::new(
-        pool.clone(),
-    )));
     let feed_service = Arc::new(FeedService::new(
-        PostgresFeedRepository::new(pool.clone()),
+        feed_repository,
         http_client.clone(),
         register_feed_plugins(reqwest_client),
     ));
     let feed_entry_service = Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
-        pool.clone(),
-    )));
-    let folder_service = Arc::new(FolderService::new(PostgresFolderRepository::new(
-        pool.clone(),
-    )));
-    let library_service = Arc::new(LibraryService::new(PostgresLibraryRepository::new(
         pool.clone(),
     )));
     // let smart_feed_service = Arc::new(SmartFeedService::new(PostgresSmartFeedRepository::new(
@@ -285,11 +278,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_service,
         backup_service,
         bookmark_service,
-        collection_service,
         feed_service,
         feed_entry_service,
-        folder_service,
-        library_service,
         tag_service,
         bucket_url,
     };
@@ -304,11 +294,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/auth", AuthApi::router())
                 .nest("/backups", BackupApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
-                .nest("/collections", CollectionApi::router())
                 .nest("/feedEntries", FeedEntryApi::router())
                 .nest("/feeds", FeedApi::router())
-                .nest("/folders", FolderApi::router())
-                .nest("/library", LibraryApi::router())
                 // .nest("/smartFeeds", SmartFeedApi::router())
                 // .with_state(SmartFeedState::new(smart_feed_service))
                 .nest("/tags", TagApi::router()),

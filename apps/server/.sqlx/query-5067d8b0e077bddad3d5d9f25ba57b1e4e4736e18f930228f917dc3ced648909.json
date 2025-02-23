@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO\n  bookmark_tags (bookmark_id, tag_id, user_id)\nVALUES\n  ($1, $2, $3)\nON CONFLICT (bookmark_id, tag_id) DO NOTHING\n",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5067d8b0e077bddad3d5d9f25ba57b1e4e4736e18f930228f917dc3ced648909"
+}

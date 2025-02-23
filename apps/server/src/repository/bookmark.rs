@@ -29,11 +29,6 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (has_collection, collection_id) = match params.collection_id {
-            Some(collection_id) => (true, collection_id),
-            None => (false, None),
-        };
-
         let (has_cursor, cursor_created_at) = params
             .cursor
             .map(|e| (true, Some(e.created_at)))
@@ -45,8 +40,6 @@ impl Findable for PostgresBookmarkRepository {
             params.user_id,
             params.id.is_none(),
             params.id,
-            !has_collection,
-            collection_id,
             params.tags.is_none(),
             &params
                 .tags
@@ -81,7 +74,6 @@ impl Creatable for PostgresBookmarkRepository {
             data.thumbnail_url.map(DbUrl) as Option<DbUrl>,
             data.published_at,
             data.author,
-            data.collection_id,
             data.user_id
         )
         .fetch_one(&mut *tx)
@@ -124,7 +116,6 @@ impl Updatable for PostgresBookmarkRepository {
             || data.published_at.is_some()
             || data.author.is_some()
             || data.archived_path.is_some()
-            || data.collection_id.is_some()
         {
             let (has_thumbnail_url, thumbnail_url) = match data.thumbnail_url {
                 Some(thumbnail_url) => (true, thumbnail_url.map(DbUrl)),
@@ -142,10 +133,6 @@ impl Updatable for PostgresBookmarkRepository {
                 Some(archived_path) => (true, archived_path),
                 None => (false, None),
             };
-            let (has_collection, collection_id) = match data.collection_id {
-                Some(collection_id) => (true, collection_id),
-                None => (false, None),
-            };
 
             sqlx::query_file!(
                 "queries/bookmarks/update.sql",
@@ -160,9 +147,7 @@ impl Updatable for PostgresBookmarkRepository {
                 has_author,
                 author,
                 has_archived_path,
-                archived_path,
-                has_collection,
-                collection_id
+                archived_path
             )
             .execute(&mut *tx)
             .await
@@ -218,10 +203,9 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             data.bookmark.thumbnail.map(DbUrl) as Option<DbUrl>,
             data.bookmark.published,
             data.bookmark.author,
-            Option::<Uuid>::None,
             data.user_id
         )
-        .execute(&self.pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(())
@@ -236,7 +220,6 @@ struct BookmarkRow {
     published_at: Option<DateTime<Utc>>,
     author: Option<String>,
     archived_path: Option<String>,
-    collection_id: Option<Uuid>,
     created_at: Option<DateTime<Utc>>,
     updated_at: Option<DateTime<Utc>>,
     tags: Option<Json<Vec<Tag>>>,
@@ -252,7 +235,6 @@ impl From<BookmarkRow> for Bookmark {
             published_at: value.published_at,
             author: value.author,
             archived_path: value.archived_path,
-            collection_id: value.collection_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),

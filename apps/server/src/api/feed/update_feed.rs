@@ -5,7 +5,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use colette_core::feed;
-use uuid::Uuid;
 
 use super::{FEEDS_TAG, Feed};
 use crate::api::{
@@ -50,12 +49,6 @@ pub async fn handler(
 pub struct FeedUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
-    pub folder_id: Option<Option<Uuid>>,
     #[schema(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
     pub tags: Option<Vec<NonEmptyString>>,
 }
@@ -64,7 +57,6 @@ impl From<FeedUpdate> for feed::FeedUpdate {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title.map(Into::into),
-            folder_id: value.folder_id,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }

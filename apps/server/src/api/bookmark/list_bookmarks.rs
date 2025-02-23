@@ -5,7 +5,6 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use colette_core::bookmark;
-use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, Bookmark};
 use crate::api::{
@@ -50,9 +49,6 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {
     #[param(nullable = false)]
-    pub filter_by_collection: Option<bool>,
-    pub collection_id: Option<Uuid>,
-    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -64,14 +60,6 @@ pub struct BookmarkListQuery {
 impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     fn from(value: BookmarkListQuery) -> Self {
         Self {
-            collection_id: if value
-                .filter_by_collection
-                .unwrap_or(value.collection_id.is_some())
-            {
-                Some(value.collection_id)
-            } else {
-                None
-            },
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

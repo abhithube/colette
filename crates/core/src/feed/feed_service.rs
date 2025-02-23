@@ -78,7 +78,6 @@ impl FeedService {
             .create(FeedCreateData {
                 url: data.url,
                 title: data.title,
-                folder_id: data.folder_id,
                 tags: data.tags,
                 user_id,
             })
@@ -195,7 +194,6 @@ impl FeedService {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedListQuery {
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -203,14 +201,12 @@ pub struct FeedListQuery {
 pub struct FeedCreate {
     pub url: Url,
     pub title: String,
-    pub folder_id: Option<Uuid>,
     pub tags: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedUpdate {
     pub title: Option<String>,
-    pub folder_id: Option<Option<Uuid>>,
     pub tags: Option<Vec<String>>,
 }
 
@@ -218,7 +214,6 @@ impl From<FeedUpdate> for FeedUpdateData {
     fn from(value: FeedUpdate) -> Self {
         Self {
             title: value.title,
-            folder_id: value.folder_id,
             tags: value.tags,
         }
     }

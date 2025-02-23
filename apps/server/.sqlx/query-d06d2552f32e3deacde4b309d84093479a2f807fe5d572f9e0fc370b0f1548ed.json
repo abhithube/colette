@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  unread_counts AS (\n    SELECT\n      uf.id AS uf_id,\n      count(ufe.id) AS count\n    FROM\n      user_feeds uf\n      INNER JOIN user_feed_entries ufe ON ufe.user_feed_id = uf.id\n      AND NOT ufe.has_read\n    GROUP BY\n      uf.id\n  ),\n  json_tags AS (\n    SELECT\n      uf.id AS uf_id,\n      jsonb_agg(\n        jsonb_build_object('id', t.id, 'title', t.title)\n        ORDER BY\n          t.title\n      ) FILTER (\n        WHERE\n          t.id IS NOT NULL\n      ) AS tags\n    FROM\n      user_feeds uf\n      INNER JOIN user_feed_tags uft ON uft.user_feed_id = uf.id\n      INNER JOIN tags t ON t.id = uft.tag_id\n    GROUP BY\n      uf.id\n  )\nSELECT\n  uf.id,\n  uf.title,\n  f.link AS \"link: DbUrl\",\n  f.xml_url AS \"xml_url: DbUrl\",\n  uf.created_at,\n  uf.updated_at,\n  coalesce(jt.tags, '[]'::jsonb) AS \"tags: Json<Vec<Tag>>\",\n  coalesce(uc.count, 0) AS unread_count\nFROM\n  user_feeds uf\n  INNER JOIN feeds f ON f.id = uf.feed_id\n  LEFT JOIN json_tags jt ON jt.uf_id = uf.id\n  LEFT JOIN unread_counts uc ON uc.uf_id = uf.id\nWHERE\n  uf.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR uf.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR EXISTS (\n      SELECT\n        t.*\n      FROM\n        jsonb_array_elements(jt.tags) t\n      WHERE\n        t ->> 'title' = ANY ($5)\n    )\n  )\n  AND (\n    $6::BOOLEAN\n    OR (uf.title, uf.id) > ($7, $8)\n  )\nORDER BY\n  uf.title ASC,\n  uf.id ASC\nLIMIT\n  $9\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "link: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "xml_url: DbUrl",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "tags: Json<Vec<Tag>>",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 7,
+        "name": "unread_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "TextArray",
+        "Bool",
+        "Text",
+        "Uuid",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "d06d2552f32e3deacde4b309d84093479a2f807fe5d572f9e0fc370b0f1548ed"
+}

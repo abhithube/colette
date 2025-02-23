@@ -1,11 +1,11 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  folders (title, parent_id, user_id)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id\n",
+  "query": "INSERT INTO\n  user_feeds (title, feed_id, user_id)\nVALUES\n  ($1, $2, $3)\nRETURNING\n  id Z\n",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
-        "name": "id",
+        "name": "z",
         "type_info": "Uuid"
       }
     ],
@@ -20,5 +20,5 @@
       false
     ]
   },
-  "hash": "72407477244d609c4663d4e44b546c288bf6696e27e474f804747d530822c656"
+  "hash": "87d84176c1e65a2dff9431eeb6aea9d364898bf89e4c872f7c4854b8470c7909"
 }

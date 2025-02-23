@@ -33,7 +33,6 @@ impl Findable for PostgresFeedRepository {
         let feeds = common::select_feeds(
             &self.pool,
             params.id,
-            params.folder_id,
             params.user_id,
             params.cursor,
             params.limit,
@@ -67,7 +66,6 @@ impl Creatable for PostgresFeedRepository {
         let uf_id = sqlx::query_file_scalar!(
             "queries/user_feeds/insert.sql",
             data.title,
-            data.folder_id,
             feed_id,
             data.user_id
         )
@@ -112,20 +110,13 @@ impl Updatable for PostgresFeedRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let mut tx = self.pool.begin().await?;
 
-        if data.title.is_some() || data.folder_id.is_some() {
-            let (has_folder, folder_id) = match data.folder_id {
-                Some(folder_id) => (true, folder_id),
-                None => (false, None),
-            };
-
+        if data.title.is_some() {
             sqlx::query_file!(
                 "queries/user_feeds/update.sql",
                 params.id,
                 params.user_id,
                 data.title.is_some(),
-                data.title,
-                has_folder,
-                folder_id
+                data.title
             )
             .execute(&mut *tx)
             .await

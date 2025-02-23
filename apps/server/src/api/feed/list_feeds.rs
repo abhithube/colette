@@ -5,7 +5,6 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use colette_core::feed;
-use uuid::Uuid;
 
 use super::{FEEDS_TAG, Feed};
 use crate::api::{
@@ -39,9 +38,6 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct FeedListQuery {
     #[param(nullable = false)]
-    pub filter_by_folder: Option<bool>,
-    pub folder_id: Option<Uuid>,
-    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(min_length = 1, nullable = false)]
     #[serde(rename = "tag[]")]
@@ -51,11 +47,6 @@ pub struct FeedListQuery {
 impl From<FeedListQuery> for feed::FeedListQuery {
     fn from(value: FeedListQuery) -> Self {
         Self {
-            folder_id: if value.filter_by_folder.unwrap_or(value.folder_id.is_some()) {
-                Some(value.folder_id)
-            } else {
-                None
-            },
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

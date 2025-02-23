@@ -179,19 +179,10 @@ pub enum CoreError {
     Bookmark(#[from] colette_core::bookmark::Error),
 
     #[error(transparent)]
-    Collection(#[from] colette_core::collection::Error),
-
-    #[error(transparent)]
     Feed(#[from] colette_core::feed::Error),
 
     #[error(transparent)]
     FeedEntry(#[from] colette_core::feed_entry::Error),
-
-    #[error(transparent)]
-    Folder(#[from] colette_core::folder::Error),
-
-    #[error(transparent)]
-    Library(#[from] colette_core::library::Error),
 
     #[error(transparent)]
     Tag(#[from] colette_core::tag::Error),

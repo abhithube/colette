@@ -31,7 +31,6 @@ WITH
 SELECT
   uf.id,
   uf.title,
-  uf.folder_id,
   f.link AS "link: DbUrl",
   f.xml_url AS "xml_url: DbUrl",
   uf.created_at,
@@ -51,28 +50,21 @@ WHERE
   )
   AND (
     $4::BOOLEAN
-    OR CASE
-      WHEN $5::uuid IS NULL THEN uf.folder_id IS NULL
-      ELSE uf.folder_id = $5
-    END
-  )
-  AND (
-    $6::BOOLEAN
     OR EXISTS (
       SELECT
         t.*
       FROM
         jsonb_array_elements(jt.tags) t
       WHERE
-        t ->> 'title' = ANY ($7)
+        t ->> 'title' = ANY ($5)
     )
   )
   AND (
-    $8::BOOLEAN
-    OR (uf.title, uf.id) > ($9, $10)
+    $6::BOOLEAN
+    OR (uf.title, uf.id) > ($7, $8)
   )
 ORDER BY
   uf.title ASC,
   uf.id ASC
 LIMIT
-  $11
+  $9

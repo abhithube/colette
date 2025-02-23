@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  new_uf AS (\n    INSERT INTO\n      user_feeds (title, feed_id, user_id)\n    VALUES\n      ($1, $2, $3)\n    RETURNING\n      id\n  )\nSELECT\n  id AS \"id!\"\nFROM\n  new_uf\nUNION ALL\nSELECT\n  id\nFROM\n  user_feeds\nWHERE\n  user_id = $3\n  AND feed_id = $2\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "acb25e30f51c7e2eefb6ef62722f0b08f11434d6717599889399f66803ae6909"
+}

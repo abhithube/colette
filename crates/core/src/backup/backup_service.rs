@@ -1,18 +1,23 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use bytes::{Buf, Bytes};
-use chrono::{DateTime, Utc};
-use colette_netscape::Netscape;
-use colette_opml::{Body, Opml, OutlineType};
+use colette_netscape::{Item, Netscape};
+use colette_opml::{Body, Opml, Outline, OutlineType};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
 use super::{Error, backup_repository::BackupRepository};
-use crate::storage::DynStorage;
+use crate::{
+    bookmark::{BookmarkFindParams, BookmarkRepository},
+    feed::{FeedFindParams, FeedRepository},
+    storage::DynStorage,
+};
 
 pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
+    feed_repository: Box<dyn FeedRepository>,
+    bookmark_repository: Box<dyn BookmarkRepository>,
     import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
     import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
 }
@@ -20,11 +25,15 @@ pub struct BackupService {
 impl BackupService {
     pub fn new(
         backup_repository: impl BackupRepository,
+        feed_repository: impl FeedRepository,
+        bookmark_repository: impl BookmarkRepository,
         import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
         import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
+            feed_repository: Box::new(feed_repository),
+            bookmark_repository: Box::new(bookmark_repository),
             import_feeds_storage,
             import_bookmarks_storage,
         }
@@ -51,11 +60,45 @@ impl BackupService {
     }
 
     pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
-        let input = self.backup_repository.export_outlines(user_id).await?;
-        let outlines = build_outlines(&input, None);
+        let mut outline_map = HashMap::<Uuid, Outline>::new();
+
+        let feeds = self
+            .feed_repository
+            .find(FeedFindParams {
+                user_id,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        for feed in feeds {
+            let outline = Outline {
+                r#type: Some(OutlineType::default()),
+                text: feed.title.clone(),
+                xml_url: feed.xml_url.map(Into::into),
+                title: Some(feed.title),
+                html_url: Some(feed.link.into()),
+                ..Default::default()
+            };
+
+            if let Some(tags) = feed.tags {
+                for tag in tags {
+                    outline_map
+                        .entry(tag.id)
+                        .or_insert_with(|| Outline {
+                            text: tag.title,
+                            ..Default::default()
+                        })
+                        .outline
+                        .push(outline.clone());
+                }
+            }
+        }
 
         let opml = Opml {
-            body: Body { outlines },
+            body: Body {
+                outlines: outline_map.into_values().collect(),
+            },
             ..Default::default()
         };
 
@@ -86,11 +129,42 @@ impl BackupService {
     }
 
     pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
-        let input = self.backup_repository.export_items(user_id).await?;
-        let items = build_items(&input, None);
+        let mut item_map = HashMap::<Uuid, Item>::new();
+
+        let bookmarks = self
+            .bookmark_repository
+            .find(BookmarkFindParams {
+                user_id,
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+
+        for bookmark in bookmarks {
+            let item = Item {
+                title: bookmark.title,
+                add_date: bookmark.created_at.map(|e| e.timestamp()),
+                last_modified: bookmark.updated_at.map(|e| e.timestamp()),
+                href: Some(bookmark.link.into()),
+                ..Default::default()
+            };
+
+            if let Some(tags) = bookmark.tags {
+                for tag in tags {
+                    item_map
+                        .entry(tag.id)
+                        .or_insert_with(|| Item {
+                            title: tag.title,
+                            ..Default::default()
+                        })
+                        .item
+                        .push(item.clone());
+                }
+            }
+        }
 
         let netscape = Netscape {
-            items,
+            items: item_map.into_values().collect(),
             ..Default::default()
         };
 
@@ -100,86 +174,6 @@ impl BackupService {
 
         Ok(raw.into())
     }
-}
-
-fn build_outlines(input: &[Outline], parent_id: Option<Uuid>) -> Vec<colette_opml::Outline> {
-    let mut output = Vec::new();
-
-    for outline in input.iter().filter(|f| f.parent_id == parent_id) {
-        if outline.xml_url.is_some() {
-            let o = colette_opml::Outline {
-                r#type: Some(OutlineType::default()),
-                text: outline.text.clone(),
-                title: Some(outline.text.clone()),
-                xml_url: outline.xml_url.clone(),
-                html_url: outline.html_url.clone(),
-                ..Default::default()
-            };
-            output.push(o);
-        } else {
-            let children = build_outlines(input, Some(outline.id));
-            if !children.is_empty() {
-                let o = colette_opml::Outline {
-                    text: outline.text.clone(),
-                    outline: children,
-                    ..Default::default()
-                };
-                output.push(o);
-            }
-        }
-    }
-
-    output
-}
-
-fn build_items(input: &[Item], parent_id: Option<Uuid>) -> Vec<colette_netscape::Item> {
-    let mut output = Vec::new();
-
-    for item in input.iter().filter(|f| f.parent_id == parent_id) {
-        if item.href.is_some() {
-            let i = colette_netscape::Item {
-                title: item.title.clone(),
-                add_date: item.add_date.map(|e| e.timestamp()),
-                last_modified: item.last_modified.map(|e| e.timestamp()),
-                href: item.href.clone(),
-                ..Default::default()
-            };
-            output.push(i);
-        } else {
-            let children = build_items(input, Some(item.id));
-            if !children.is_empty() {
-                let o = colette_netscape::Item {
-                    title: item.title.clone(),
-                    add_date: item.add_date.map(|e| e.timestamp()),
-                    last_modified: item.last_modified.map(|e| e.timestamp()),
-                    item: children,
-                    ..Default::default()
-                };
-                output.push(o);
-            }
-        }
-    }
-
-    output
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Outline {
-    pub id: Uuid,
-    pub parent_id: Option<Uuid>,
-    pub text: String,
-    pub xml_url: Option<String>,
-    pub html_url: Option<String>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct Item {
-    pub id: Uuid,
-    pub parent_id: Option<Uuid>,
-    pub title: String,
-    pub href: Option<String>,
-    pub add_date: Option<DateTime<Utc>>,
-    pub last_modified: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

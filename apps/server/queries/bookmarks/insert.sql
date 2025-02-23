@@ -5,10 +5,9 @@ INSERT INTO
     thumbnail_url,
     published_at,
     author,
-    collection_id,
     user_id
   )
 VALUES
-  ($1, $2, $3, $4, $5, $6, $7)
+  ($1, $2, $3, $4, $5, $6)
 RETURNING
   id

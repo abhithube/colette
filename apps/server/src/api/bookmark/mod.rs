@@ -47,8 +47,6 @@ pub struct Bookmark {
     pub author: Option<String>,
     #[schema(required)]
     pub archived_url: Option<Url>,
-    #[schema(required)]
-    pub collection_id: Option<Uuid>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -68,7 +66,6 @@ impl From<(colette_core::Bookmark, Url)> for Bookmark {
             published_at: value.published_at,
             author: value.author,
             archived_url: value.archived_path.map(|e| bucket_url.join(&e).unwrap()),
-            collection_id: value.collection_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
             tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),

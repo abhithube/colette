@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO\n  bookmarks (\n    link,\n    title,\n    thumbnail_url,\n    published_at,\n    author,\n    collection_id,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5, $6, $7)\nRETURNING\n  id\n",
+  "query": "INSERT INTO\n  bookmarks (\n    link,\n    title,\n    thumbnail_url,\n    published_at,\n    author,\n    user_id\n  )\nVALUES\n  ($1, $2, $3, $4, $5, $6)\nRETURNING\n  id\n",
   "describe": {
     "columns": [
       {
@@ -16,7 +16,6 @@
         "Text",
         "Timestamptz",
         "Text",
-        "Uuid",
         "Uuid"
       ]
     },
@@ -24,5 +23,5 @@
       false
     ]
   },
-  "hash": "8a4a3a796b274227ab60a9f565f08a3cf81cabc2e08cbbfbbd7ac7478c52181f"
+  "hash": "d4f94542c172e2ef9786ce72d97e859629caa1a923e84bb32f49e83ea83f7b7a"
 }

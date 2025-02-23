@@ -19,10 +19,6 @@ SET
   archived_path = CASE
     WHEN $11 THEN $12
     ELSE archived_path
-  END,
-  collection_id = CASE
-    WHEN $13 THEN $14
-    ELSE collection_id
   END
 WHERE
   id = $1
