@@ -51,7 +51,6 @@ export const Bookmark = z.object({
   publishedAt: z.union([z.string(), z.null()]),
   author: z.union([z.string(), z.null()]),
   archivedUrl: z.union([z.string(), z.null()]),
-  collectionId: z.union([z.string(), z.null()]),
   createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -64,7 +63,6 @@ export const BookmarkCreate = z.object({
   thumbnailUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
   publishedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   author: z.union([z.string(), z.null(), z.undefined()]).optional(),
-  collectionId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -88,29 +86,7 @@ export const BookmarkUpdate = z.object({
   thumbnailUrl: z.union([z.string(), z.null()]).optional(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
   author: z.union([z.string(), z.null()]).optional(),
-  collectionId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
-});
-
-export type Collection = z.infer<typeof Collection>;
-export const Collection = z.object({
-  id: z.string(),
-  title: z.string(),
-  folderId: z.union([z.string(), z.null()]),
-  createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-  updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type CollectionCreate = z.infer<typeof CollectionCreate>;
-export const CollectionCreate = z.object({
-  title: z.string(),
-  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type CollectionUpdate = z.infer<typeof CollectionUpdate>;
-export const CollectionUpdate = z.object({
-  title: z.string().optional(),
-  folderId: z.union([z.string(), z.null()]).optional(),
 });
 
 export type FeedDetected = z.infer<typeof FeedDetected>;
@@ -134,7 +110,6 @@ export const Feed = z.object({
   link: z.string(),
   title: z.string(),
   xmlUrl: z.union([z.string(), z.null()]),
-  folderId: z.union([z.string(), z.null()]),
   createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -145,7 +120,6 @@ export type FeedCreate = z.infer<typeof FeedCreate>;
 export const FeedCreate = z.object({
   url: z.string(),
   title: z.string(),
-  folderId: z.union([z.string(), z.null(), z.undefined()]).optional(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
@@ -177,55 +151,8 @@ export const FeedEntryUpdate = z.object({
 export type FeedUpdate = z.infer<typeof FeedUpdate>;
 export const FeedUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
-  folderId: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
 });
-
-export type Folder = {
-  id: string;
-  title: string;
-  parentId: string | null;
-  createdAt?: string | null | undefined;
-  updatedAt?: string | null | undefined;
-  path?: Array<Folder> | null | undefined;
-};
-export const Folder: z.ZodType<Folder> = z.lazy(() =>
-  z.object({
-    id: z.string(),
-    title: z.string(),
-    parentId: z.union([z.string(), z.null()]),
-    createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-    updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-    path: z.union([z.array(Folder), z.null(), z.undefined()]).optional(),
-  }),
-);
-export type FolderCreate = z.infer<typeof FolderCreate>;
-export const FolderCreate = z.object({
-  title: z.string(),
-  parentId: z.union([z.string(), z.null(), z.undefined()]).optional(),
-});
-
-export type FolderUpdate = z.infer<typeof FolderUpdate>;
-export const FolderUpdate = z.object({
-  title: z.string().optional(),
-  parentId: z.union([z.string(), z.null()]).optional(),
-});
-
-export type LibraryItem = z.infer<typeof LibraryItem>;
-export const LibraryItem = z.union([
-  z.object({
-    data: Folder,
-    type: z.literal("folder"),
-  }),
-  z.object({
-    data: Feed,
-    type: z.literal("feed"),
-  }),
-  z.object({
-    data: Collection,
-    type: z.literal("collection"),
-  }),
-]);
 
 export type Login = z.infer<typeof Login>;
 export const Login = z.object({
@@ -258,24 +185,9 @@ export const Paginated_Bookmark = z.object({
       publishedAt: z.union([z.string(), z.null()]),
       author: z.union([z.string(), z.null()]),
       archivedUrl: z.union([z.string(), z.null()]),
-      collectionId: z.union([z.string(), z.null()]),
       createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_Collection = z.infer<typeof Paginated_Collection>;
-export const Paginated_Collection = z.object({
-  data: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      folderId: z.union([z.string(), z.null()]),
-      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -289,7 +201,6 @@ export const Paginated_Feed = z.object({
       link: z.string(),
       title: z.string(),
       xmlUrl: z.union([z.string(), z.null()]),
-      folderId: z.union([z.string(), z.null()]),
       createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
@@ -315,42 +226,6 @@ export const Paginated_FeedEntry = z.object({
       createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
       updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
     }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_Folder = z.infer<typeof Paginated_Folder>;
-export const Paginated_Folder = z.object({
-  data: z.array(
-    z.object({
-      id: z.string(),
-      title: z.string(),
-      parentId: z.union([z.string(), z.null()]),
-      createdAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-      updatedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
-      path: z.union([z.array(Folder), z.null(), z.undefined()]).optional(),
-    }),
-  ),
-  cursor: z.union([z.string(), z.undefined()]).optional(),
-});
-
-export type Paginated_LibraryItem = z.infer<typeof Paginated_LibraryItem>;
-export const Paginated_LibraryItem = z.object({
-  data: z.array(
-    z.union([
-      z.object({
-        data: Folder,
-        type: z.literal("folder"),
-      }),
-      z.object({
-        data: Feed,
-        type: z.literal("feed"),
-      }),
-      z.object({
-        data: Collection,
-        type: z.literal("collection"),
-      }),
-    ]),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
@@ -541,8 +416,6 @@ export const get_ListBookmarks = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
-      filterByCollection: z.boolean().optional(),
-      collectionId: z.string().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
@@ -613,71 +486,6 @@ export const post_ScrapeBookmark = {
   response: BookmarkScraped,
 };
 
-export type get_ListCollections = typeof get_ListCollections;
-export const get_ListCollections = {
-  method: z.literal("GET"),
-  path: z.literal("/collections"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    query: z.object({
-      filterByFolder: z.boolean().optional(),
-      folderId: z.string().optional(),
-    }),
-  }),
-  response: Paginated_Collection,
-};
-
-export type post_CreateCollection = typeof post_CreateCollection;
-export const post_CreateCollection = {
-  method: z.literal("POST"),
-  path: z.literal("/collections"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: CollectionCreate,
-  }),
-  response: Collection,
-};
-
-export type get_GetCollection = typeof get_GetCollection;
-export const get_GetCollection = {
-  method: z.literal("GET"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: Collection,
-};
-
-export type delete_DeleteCollection = typeof delete_DeleteCollection;
-export const delete_DeleteCollection = {
-  method: z.literal("DELETE"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
-export type patch_UpdateCollection = typeof patch_UpdateCollection;
-export const patch_UpdateCollection = {
-  method: z.literal("PATCH"),
-  path: z.literal("/collections/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: CollectionUpdate,
-  }),
-  response: Collection,
-};
-
 export type get_ListFeedEntries = typeof get_ListFeedEntries;
 export const get_ListFeedEntries = {
   method: z.literal("GET"),
@@ -729,8 +537,6 @@ export const get_ListFeeds = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
-      filterByFolder: z.boolean().optional(),
-      folderId: z.string().optional(),
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
     }),
@@ -798,86 +604,6 @@ export const post_DetectFeeds = {
     body: FeedDetect,
   }),
   response: DetectedResponse,
-};
-
-export type get_ListFolders = typeof get_ListFolders;
-export const get_ListFolders = {
-  method: z.literal("GET"),
-  path: z.literal("/folders"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    query: z.object({
-      filterByParent: z.boolean().optional(),
-      parentId: z.string().optional(),
-      cursor: z.string().optional(),
-    }),
-  }),
-  response: Paginated_Folder,
-};
-
-export type post_CreateFolder = typeof post_CreateFolder;
-export const post_CreateFolder = {
-  method: z.literal("POST"),
-  path: z.literal("/folders"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    body: FolderCreate,
-  }),
-  response: Folder,
-};
-
-export type get_GetFolder = typeof get_GetFolder;
-export const get_GetFolder = {
-  method: z.literal("GET"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: Folder,
-};
-
-export type delete_DeleteFolder = typeof delete_DeleteFolder;
-export const delete_DeleteFolder = {
-  method: z.literal("DELETE"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-  }),
-  response: z.unknown(),
-};
-
-export type patch_UpdateFolder = typeof patch_UpdateFolder;
-export const patch_UpdateFolder = {
-  method: z.literal("PATCH"),
-  path: z.literal("/folders/{id}"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    path: z.object({
-      id: z.string(),
-    }),
-    body: FolderUpdate,
-  }),
-  response: Folder,
-};
-
-export type get_ListLibraryItems = typeof get_ListLibraryItems;
-export const get_ListLibraryItems = {
-  method: z.literal("GET"),
-  path: z.literal("/library"),
-  requestFormat: z.literal("json"),
-  parameters: z.object({
-    query: z.object({
-      folderId: z.string().optional(),
-      cursor: z.string().optional(),
-    }),
-  }),
-  response: Paginated_LibraryItem,
 };
 
 export type get_ListTags = typeof get_ListTags;
@@ -952,15 +678,10 @@ export const EndpointByMethod = {
     "/auth/@me": get_GetActiveUser,
     "/bookmarks": get_ListBookmarks,
     "/bookmarks/{id}": get_GetBookmark,
-    "/collections": get_ListCollections,
-    "/collections/{id}": get_GetCollection,
     "/feedEntries": get_ListFeedEntries,
     "/feedEntries/{id}": get_GetFeedEntry,
     "/feeds": get_ListFeeds,
     "/feeds/{id}": get_GetFeed,
-    "/folders": get_ListFolders,
-    "/folders/{id}": get_GetFolder,
-    "/library": get_ListLibraryItems,
     "/tags": get_ListTags,
     "/tags/{id}": get_GetTag,
   },
@@ -975,27 +696,21 @@ export const EndpointByMethod = {
     "/backups/netscape/export": post_ExportNetscape,
     "/bookmarks": post_CreateBookmark,
     "/bookmarks/scrape": post_ScrapeBookmark,
-    "/collections": post_CreateCollection,
     "/feeds": post_CreateFeed,
     "/feeds/detect": post_DetectFeeds,
-    "/folders": post_CreateFolder,
     "/tags": post_CreateTag,
   },
   delete: {
     "/apiKeys/{id}": delete_DeleteApiKey,
     "/bookmarks/{id}": delete_DeleteBookmark,
-    "/collections/{id}": delete_DeleteCollection,
     "/feeds/{id}": delete_DeleteFeed,
-    "/folders/{id}": delete_DeleteFolder,
     "/tags/{id}": delete_DeleteTag,
   },
   patch: {
     "/apiKeys/{id}": patch_UpdateApiKey,
     "/bookmarks/{id}": patch_UpdateBookmark,
-    "/collections/{id}": patch_UpdateCollection,
     "/feedEntries/{id}": patch_UpdateFeedEntry,
     "/feeds/{id}": patch_UpdateFeed,
-    "/folders/{id}": patch_UpdateFolder,
     "/tags/{id}": patch_UpdateTag,
   },
 };

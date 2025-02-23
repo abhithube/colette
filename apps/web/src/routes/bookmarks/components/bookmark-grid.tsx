@@ -1,5 +1,5 @@
 import { BookmarkCard } from './bookmark-card'
-import type { Bookmark, BookmarkListQuery } from '@colette/core'
+import type { Bookmark } from '@colette/core'
 import { listBookmarksOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useIntersectionObserver } from '@colette/util'
@@ -7,13 +7,12 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
 
 export const BookmarkGrid: FC<{
-  query: BookmarkListQuery
   created?: Bookmark
 }> = (props) => {
   const api = useAPI()
 
   const { data, isLoading, hasNextPage, fetchNextPage } = useInfiniteQuery(
-    listBookmarksOptions(api, props.query),
+    listBookmarksOptions(api),
   )
 
   const target = useIntersectionObserver({

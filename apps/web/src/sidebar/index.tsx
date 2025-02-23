@@ -1,5 +1,3 @@
-import { CreateFeedModal } from './library/feeds/create-form/create-feed-modal'
-import { FolderContents } from './library/folder-contents'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
 import { Archive, History, Home, Rss } from 'lucide-react'
@@ -11,7 +9,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -61,15 +58,6 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Library</SidebarGroupLabel>
-          <CreateFeedModal />
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <FolderContents />
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

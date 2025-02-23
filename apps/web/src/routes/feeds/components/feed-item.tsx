@@ -14,7 +14,7 @@ import {
   CardFooter,
 } from '~/components/ui/card'
 import { DialogTrigger } from '~/components/ui/dialog'
-import { UnsubscribeAlert } from '~/sidebar/library/feeds/unsubscribe-alert'
+import { UnsubscribeAlert } from '~/routes/feeds/components/unsubscribe-alert'
 
 export const FeedItem: FC<{ feed: Feed }> = (props) => {
   return (

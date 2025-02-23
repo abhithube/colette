@@ -2,12 +2,9 @@ export * from './api'
 export * from './auth'
 export * from './backup'
 export * from './bookmark'
-export * from './collection'
 export * from './error'
 export * from './feed'
 export * from './feed-entry'
-export * from './folder'
-export * from './library'
 export {
   BaseError,
   Bookmark,
@@ -15,9 +12,6 @@ export {
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
-  Collection,
-  CollectionCreate,
-  CollectionUpdate,
   DetectedResponse,
   Feed,
   FeedCreate,
@@ -26,11 +20,7 @@ export {
   FeedEntry,
   FeedEntryUpdate,
   FeedProcessed,
-  LibraryItem,
   FeedUpdate,
-  Folder,
-  FolderCreate,
-  FolderUpdate,
   Login,
   Register,
   Tag,

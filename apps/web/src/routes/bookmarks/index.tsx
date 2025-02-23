@@ -9,10 +9,10 @@ export const StashPage: FC = () => {
   return (
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
-        <h1 className="text-3xl font-medium">All Bookmarks</h1>
+        <h1 className="text-3xl font-medium">Stash</h1>
       </div>
       <main>
-        <BookmarkGrid query={{ filterByCollection: true }} />
+        <BookmarkGrid />
       </main>
     </>
   )

@@ -1,6 +1,6 @@
-import { UnsubscribeAlert } from '../../sidebar/library/feeds/unsubscribe-alert'
 import { EditFeedModal } from './components/edit-feed-modal'
 import { EntryList } from './components/entry-list'
+import { UnsubscribeAlert } from './components/unsubscribe-alert'
 import { getFeedOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'

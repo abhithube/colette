@@ -71,8 +71,7 @@ export const EditBookmarkModal: FC<{
       >
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
-            Edit
-            <span className="text-primary">{props.bookmark.title}</span>
+            Edit <span className="text-primary">{props.bookmark.title}</span>
           </DialogTitle>
           <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>
