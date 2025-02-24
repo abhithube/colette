@@ -159,3 +159,33 @@ CREATE TABLE bookmark_tags (
 CREATE TRIGGER set_updated_at_bookmark_tags before
 UPDATE ON bookmark_tags FOR each ROW
 EXECUTE procedure set_updated_at ();
+
+CREATE TABLE streams (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
+  title TEXT NOT NULL,
+  description TEXT,
+  FILTER jsonb NOT NULL,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, title)
+);
+
+CREATE TRIGGER set_updated_at_streams before
+UPDATE ON streams FOR each ROW
+EXECUTE procedure set_updated_at ();
+
+CREATE TABLE collections (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
+  title TEXT NOT NULL,
+  description TEXT,
+  FILTER jsonb NOT NULL,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, title)
+);
+
+CREATE TRIGGER set_updated_at_collections before
+UPDATE ON collections FOR each ROW
+EXECUTE procedure set_updated_at ();

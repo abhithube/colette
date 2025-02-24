@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_core::{
     Feed, Tag,
     feed::{self, ProcessedFeed},
+    filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
 use sqlx::{
     Database, Decode, Encode, PgExecutor, Postgres, Type,
@@ -135,4 +136,70 @@ pub(crate) async fn insert_feed_with_entries<'a>(
     };
 
     Ok(feed_id)
+}
+
+pub(crate) trait ToColumn {
+    fn to_column(&self) -> String;
+}
+
+pub(crate) trait ToSql {
+    fn to_sql(&self) -> String;
+}
+
+impl ToSql for (String, &TextOp) {
+    fn to_sql(&self) -> String {
+        let (column, op) = self;
+
+        match op {
+            TextOp::Equals(value) => format!("{} = '{}'", column, value),
+            TextOp::Contains(value) => format!("{} ILIKE '%{}%'", column, value),
+            TextOp::StartsWith(value) => format!("{} ILIKE '{}%'", column, value),
+            TextOp::EndsWith(value) => format!("{} ILIKE '%{}'", column, value),
+        }
+    }
+}
+
+impl ToSql for (String, &NumberOp) {
+    fn to_sql(&self) -> String {
+        let (column, op) = self;
+
+        match op {
+            NumberOp::Equals(value) => format!("{} = {}", column, value),
+            NumberOp::LessThan(value) => format!("{} < {}", column, value),
+            NumberOp::GreaterThan(value) => format!("{} > {}", column, value),
+            NumberOp::Between(value) => format!(
+                "{} > {} AND {} < {}",
+                column, value.start, column, value.end
+            ),
+        }
+    }
+}
+
+impl ToSql for (String, &BooleanOp) {
+    fn to_sql(&self) -> String {
+        let (column, op) = self;
+
+        match op {
+            BooleanOp::Equals(value) => format!("{} = {}", column, value),
+        }
+    }
+}
+
+impl ToSql for (String, &DateOp) {
+    fn to_sql(&self) -> String {
+        let (column, op) = self;
+
+        match op {
+            DateOp::Before(value) => format!("{} < '{}'", column, value),
+            DateOp::After(value) => format!("{} > '{}'", column, value),
+            DateOp::Between(value) => format!(
+                "{} > '{}' AND {} < '{}'",
+                column, value.start, column, value.end
+            ),
+            DateOp::InLast(value) => format!(
+                "round((extract(epoch FROM now()) - extract(epoch FROM {})) * 1000) < '{}'",
+                column, value
+            ),
+        }
+    }
 }

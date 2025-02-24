@@ -5,11 +5,13 @@ use colette_core::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkScrapedData,
         BookmarkUpdateData, Error,
     },
+    collection::{BookmarkDateField, BookmarkFilter, BookmarkTextField},
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
 use sqlx::{Pool, Postgres, types::Json};
 use uuid::Uuid;
 
+use super::common::{ToColumn, ToSql};
 use crate::repository::common::DbUrl;
 
 #[derive(Debug, Clone)]
@@ -212,7 +214,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     }
 }
 
-struct BookmarkRow {
+#[derive(sqlx::FromRow)]
+pub(crate) struct BookmarkRow {
     id: Uuid,
     link: DbUrl,
     title: String,
@@ -238,6 +241,62 @@ impl From<BookmarkRow> for Bookmark {
             created_at: value.created_at,
             updated_at: value.updated_at,
             tags: value.tags.map(|e| e.0),
+        }
+    }
+}
+
+impl ToColumn for BookmarkTextField {
+    fn to_column(&self) -> String {
+        match self {
+            Self::Link => "b.link",
+            Self::Title => "b.title",
+            Self::Author => "b.author",
+            Self::Tag => "t.title",
+        }
+        .into()
+    }
+}
+
+impl ToColumn for BookmarkDateField {
+    fn to_column(&self) -> String {
+        match self {
+            Self::PublishedAt => "b.published_at",
+            Self::CreatedAt => "b.created_at",
+            Self::UpdatedAt => "b.updated_at",
+        }
+        .into()
+    }
+}
+
+impl ToSql for BookmarkFilter {
+    fn to_sql(&self) -> String {
+        match self {
+            BookmarkFilter::Text { field, op } => {
+                let sql = (field.to_column(), op).to_sql();
+
+                match field {
+                    BookmarkTextField::Tag => {
+                        format!(
+                            "EXISTS (SELECT 1 FROM bookmark_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.bookmark_id = b.id AND {})",
+                            sql
+                        )
+                    }
+                    _ => sql,
+                }
+            }
+            BookmarkFilter::Date { field, op } => (field.to_column(), op).to_sql(),
+            BookmarkFilter::And(filters) => {
+                let conditions = filters.iter().map(|e| e.to_sql()).collect::<Vec<_>>();
+                format!("({})", conditions.join(" AND "))
+            }
+            BookmarkFilter::Or(filters) => {
+                let conditions = filters.iter().map(|f| f.to_sql()).collect::<Vec<_>>();
+                format!("({})", conditions.join(" OR "))
+            }
+            BookmarkFilter::Not(filter) => {
+                format!("NOT ({})", filter.to_sql())
+            }
+            _ => unreachable!(),
         }
     }
 }
