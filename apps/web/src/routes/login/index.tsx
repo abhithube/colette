@@ -8,14 +8,14 @@ import { Redirect } from 'wouter'
 export const LoginPage: FC = () => {
   const api = useAPI()
 
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     ...getActiveOptions(api),
     retry: false,
   })
 
-  if (isLoading) return
+  if (query.isLoading) return
 
-  if (data) {
+  if (query.data) {
     return <Redirect to="/" replace />
   }
 

@@ -17,10 +17,7 @@ export const CollectionPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
-  const { data: collection, isLoading } = useQuery(
-    getCollectionOptions(api, id),
-  )
-
+  const collectionQuery = useQuery(getCollectionOptions(api, id))
   const bookmarksQuery = useInfiniteQuery(
     listCollectionBookmarksOptions(api, id),
   )
@@ -29,11 +26,11 @@ export const CollectionPage: FC = () => {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (!collection) return
+  if (!collectionQuery.data) return
 
   if (
-    isLoading ||
-    !collection ||
+    collectionQuery.isLoading ||
+    !collectionQuery.data ||
     bookmarksQuery.isLoading ||
     !bookmarksQuery.data
   )
@@ -43,7 +40,7 @@ export const CollectionPage: FC = () => {
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
         <h1 className="line-clamp-1 text-3xl font-medium">
-          {collection.title}
+          {collectionQuery.data.title}
         </h1>
         <div className="flex gap-2">
           <Dialog>

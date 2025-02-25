@@ -8,13 +8,13 @@ import { SidebarMenu } from '~/components/ui/sidebar'
 export const CollectionList: FC = () => {
   const api = useAPI()
 
-  const { data: collections, isLoading } = useQuery(listCollectionsOptions(api))
+  const query = useQuery(listCollectionsOptions(api))
 
-  if (isLoading || !collections) return
+  if (query.isLoading || !query.data) return
 
   return (
     <SidebarMenu>
-      {collections.data.map((collection) => (
+      {query.data.data.map((collection) => (
         <CollectionItem key={collection.id} collection={collection} />
       ))}
     </SidebarMenu>

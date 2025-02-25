@@ -7,13 +7,13 @@ import { type FC, useEffect } from 'react'
 export const StashPage: FC = () => {
   const api = useAPI()
 
-  const bookmarksQuery = useInfiniteQuery(listBookmarksOptions(api))
+  const query = useInfiniteQuery(listBookmarksOptions(api))
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
 
-  if (bookmarksQuery.isLoading || !bookmarksQuery.data) return
+  if (query.isLoading || !query.data) return
 
   return (
     <>
@@ -22,9 +22,9 @@ export const StashPage: FC = () => {
       </div>
       <main>
         <BookmarkGrid
-          bookmarks={bookmarksQuery.data.pages.flatMap((page) => page.data)}
-          hasMore={bookmarksQuery.hasNextPage}
-          fetchMore={bookmarksQuery.fetchNextPage}
+          bookmarks={query.data.pages.flatMap((page) => page.data)}
+          hasMore={query.hasNextPage}
+          fetchMore={query.fetchNextPage}
         />
       </main>
     </>

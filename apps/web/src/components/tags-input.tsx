@@ -63,7 +63,7 @@ export const TagsInner: FC<{
 }> = (props) => {
   const api = useAPI()
 
-  const { data: tags } = useQuery(listTagsOptions(api))
+  const query = useQuery(listTagsOptions(api))
 
   const [search, setSearch] = useState('')
 
@@ -81,7 +81,7 @@ export const TagsInner: FC<{
             'hidden',
             search !== '' &&
               !props.state.value.find((tag) => tag === search) &&
-              !tags?.data.find((tag) => tag.title === search) &&
+              !query.data?.data.find((tag) => tag.title === search) &&
               'block',
           )}
         >
@@ -96,7 +96,7 @@ export const TagsInner: FC<{
           </CommandItem>
         </CommandGroup>
         <CommandGroup heading="Results">
-          {tags?.data.map((tag) => (
+          {query.data?.data.map((tag) => (
             <CommandItem
               key={tag.title}
               className="justify-between"

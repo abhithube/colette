@@ -7,13 +7,13 @@ import { FC } from 'react'
 export const FeedList: FC = () => {
   const api = useAPI()
 
-  const { data: feeds, isLoading } = useQuery(listFeedsOptions(api))
+  const query = useQuery(listFeedsOptions(api))
 
-  if (isLoading || !feeds) return
+  if (query.isLoading || !query.data) return
 
   return (
     <div className="flex flex-col gap-4 px-8">
-      {feeds.data.map((feed) => (
+      {query.data.data.map((feed) => (
         <FeedItem key={feed.id} feed={feed} />
       ))}
     </div>

@@ -7,7 +7,7 @@ import { type FC, useEffect } from 'react'
 export const HomePage: FC = () => {
   const api = useAPI()
 
-  const entriesQuery = useInfiniteQuery(
+  const query = useInfiniteQuery(
     listFeedEntriesOptions(api, { hasRead: false }),
   )
 
@@ -15,7 +15,7 @@ export const HomePage: FC = () => {
     window.scrollTo(0, 0)
   }, [])
 
-  if (entriesQuery.isLoading || !entriesQuery.data) return
+  if (query.isLoading || !query.data) return
 
   return (
     <>
@@ -24,9 +24,9 @@ export const HomePage: FC = () => {
       </div>
       <main>
         <EntryList
-          entries={entriesQuery.data.pages.flatMap((page) => page.data)}
-          hasMore={entriesQuery.hasNextPage}
-          fetchMore={entriesQuery.fetchNextPage}
+          entries={query.data.pages.flatMap((page) => page.data)}
+          hasMore={query.hasNextPage}
+          fetchMore={query.fetchNextPage}
         />
       </main>
     </>

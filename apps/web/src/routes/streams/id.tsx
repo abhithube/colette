@@ -14,23 +14,27 @@ export const StreamPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
-  const { data: stream, isLoading } = useQuery(getStreamOptions(api, id))
-
+  const streamQuery = useQuery(getStreamOptions(api, id))
   const entriesQuery = useInfiniteQuery(listStreamEntriesOptions(api, id))
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (!stream) return
-
-  if (isLoading || !stream || entriesQuery.isLoading || !entriesQuery.data)
+  if (
+    streamQuery.isLoading ||
+    !streamQuery.data ||
+    entriesQuery.isLoading ||
+    !entriesQuery.data
+  )
     return
 
   return (
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
-        <h1 className="line-clamp-1 text-3xl font-medium">{stream.title}</h1>
+        <h1 className="line-clamp-1 text-3xl font-medium">
+          {streamQuery.data.title}
+        </h1>
         <div className="flex gap-2">
           <Dialog>
             {() => (

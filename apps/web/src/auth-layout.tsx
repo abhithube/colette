@@ -10,14 +10,14 @@ export const AuthLayout: FC<PropsWithChildren> = (props) => {
   const api = useAPI()
   const [location] = useLocation()
 
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     ...getActiveOptions(api),
     retry: false,
   })
 
-  if (isLoading) return
+  if (query.isLoading) return
 
-  if (!data) {
+  if (!query.data) {
     return (
       <Redirect
         to={`/login?redirect=${encodeURIComponent(location)}`}
@@ -29,7 +29,7 @@ export const AuthLayout: FC<PropsWithChildren> = (props) => {
   return (
     <SidebarProvider>
       <>
-        <AppSidebar user={data} />
+        <AppSidebar user={query.data} />
         <div className="w-full">
           <SidebarTrigger />
           {props.children}

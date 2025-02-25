@@ -8,13 +8,13 @@ import { SidebarMenu } from '~/components/ui/sidebar'
 export const StreamList: FC = () => {
   const api = useAPI()
 
-  const { data: streams, isLoading } = useQuery(listStreamsOptions(api))
+  const query = useQuery(listStreamsOptions(api))
 
-  if (isLoading || !streams) return
+  if (query.isLoading || !query.data) return
 
   return (
     <SidebarMenu>
-      {streams.data.map((stream) => (
+      {query.data.data.map((stream) => (
         <StreamItem key={stream.id} stream={stream} />
       ))}
     </SidebarMenu>

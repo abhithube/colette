@@ -16,8 +16,7 @@ export const FeedPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
-  const { data: feed, isLoading } = useQuery(getFeedOptions(api, id))
-
+  const feedQuery = useQuery(getFeedOptions(api, id))
   const entriesQuery = useInfiniteQuery(
     listFeedEntriesOptions(api, { feedId: id }),
   )
@@ -26,15 +25,23 @@ export const FeedPage: FC = () => {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (isLoading || !feed || entriesQuery.isLoading || !entriesQuery.data) return
+  if (
+    feedQuery.isLoading ||
+    !feedQuery.data ||
+    entriesQuery.isLoading ||
+    !entriesQuery.data
+  )
+    return
 
   return (
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
-        <h1 className="line-clamp-1 text-3xl font-medium">{feed.title}</h1>
+        <h1 className="line-clamp-1 text-3xl font-medium">
+          {feedQuery.data.title}
+        </h1>
         <div className="flex gap-2">
           <Button asChild variant="secondary">
-            <a href={feed.link} target="_blank" rel="noreferrer">
+            <a href={feedQuery.data.link} target="_blank" rel="noreferrer">
               <ExternalLink />
               Open Link
             </a>
@@ -48,7 +55,7 @@ export const FeedPage: FC = () => {
                     Edit
                   </Button>
                 </DialogTrigger>
-                <EditFeedModal feed={feed} close={close} />
+                <EditFeedModal feed={feedQuery.data} close={close} />
               </>
             )}
           </Dialog>
@@ -65,7 +72,7 @@ export const FeedPage: FC = () => {
                     Unsubscribe
                   </Button>
                 </AlertDialogTrigger>
-                <UnsubscribeAlert feed={feed} close={close} />
+                <UnsubscribeAlert feed={feedQuery.data} close={close} />
               </>
             )}
           </AlertDialog>
