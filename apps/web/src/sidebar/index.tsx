@@ -1,3 +1,5 @@
+import { CollectionsSection } from './collections/collections-section'
+import { StreamsSection } from './streams/streams-section'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
 import { Archive, History, Home, Rss } from 'lucide-react'
@@ -61,6 +63,8 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <StreamsSection />
+        <CollectionsSection />
       </SidebarContent>
       <SidebarRail />
       <SidebarFooter>

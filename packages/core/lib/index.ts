@@ -12,6 +12,9 @@ export {
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
+  Collection,
+  CollectionCreate,
+  CollectionUpdate,
   DetectedResponse,
   Feed,
   FeedCreate,
@@ -23,10 +26,12 @@ export {
   FeedUpdate,
   Login,
   Register,
+  Stream,
+  StreamCreate,
+  StreamUpdate,
   Tag,
   TagCreate,
   TagUpdate,
   User,
 } from './openapi.gen'
-// export * from './smart-feed'
 export * from './tag'

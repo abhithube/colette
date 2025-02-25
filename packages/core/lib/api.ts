@@ -1,6 +1,7 @@
 import { type AuthAPI, HTTPAuthAPI } from './auth'
 import { type BackupAPI, HTTPBackupAPI } from './backup'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
+import { CollectionAPI, HTTPCollectionAPI } from './collection'
 import {
   APIError,
   BadGatewayError,
@@ -12,16 +13,17 @@ import {
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
 import { BaseError, createApiClient } from './openapi.gen'
-// import { HTTPSmartFeedAPI, type SmartFeedAPI } from './smart-feed'
+import { HTTPStreamAPI, StreamAPI } from './stream'
 import { HTTPTagAPI, type TagAPI } from './tag'
 
 export interface API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  // smartFeeds: SmartFeedAPI
+  streams: StreamAPI
   tags: TagAPI
 }
 
@@ -33,9 +35,10 @@ export class HttpAPI implements API {
   auth: AuthAPI
   backups: BackupAPI
   bookmarks: BookmarkAPI
+  collections: CollectionAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
-  // smartFeeds: SmartFeedAPI
+  streams: StreamAPI
   tags: TagAPI
 
   constructor({ baseUrl, ...rest }: HttpAPIOptions) {
@@ -89,9 +92,10 @@ export class HttpAPI implements API {
     this.auth = new HTTPAuthAPI(client)
     this.backups = new HTTPBackupAPI(client)
     this.bookmarks = new HTTPBookmarkAPI(client)
+    this.collections = new HTTPCollectionAPI(client)
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
-    // this.smartFeeds = new HTTPSmartFeedAPI(client)
+    this.streams = new HTTPStreamAPI(client)
     this.tags = new HTTPTagAPI(client)
   }
 }
