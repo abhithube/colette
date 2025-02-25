@@ -1,10 +1,12 @@
 import { useLoginMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
+import { UserCheck } from 'lucide-react'
 import type { FC } from 'react'
-import { useSearchParams } from 'wouter'
-import { navigate } from 'wouter/use-browser-location'
+import { Link, useSearchParams } from 'wouter'
+import { navigate, useHistoryState } from 'wouter/use-browser-location'
 import { z } from 'zod'
 import { FormMessage } from '~/components/form'
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import {
   Card,
@@ -19,6 +21,7 @@ import { Label } from '~/components/ui/label'
 
 export const LoginForm: FC = () => {
   const [searchParams] = useSearchParams()
+  const history = useHistoryState<{ registered?: boolean }>()
 
   const form = useForm({
     defaultValues: {
@@ -49,7 +52,14 @@ export const LoginForm: FC = () => {
         form.handleSubmit()
       }}
     >
-      <Card>
+      {history?.registered && (
+        <Alert>
+          <UserCheck />
+          <AlertTitle>Registered!</AlertTitle>
+          <AlertDescription>Your account has been created.</AlertDescription>
+        </Alert>
+      )}
+      <Card className="mt-4">
         <CardHeader>
           <CardTitle>Login</CardTitle>
           <CardDescription>Login to your account</CardDescription>
@@ -102,10 +112,14 @@ export const LoginForm: FC = () => {
             )}
           </form.Field>
         </CardContent>
-        <CardFooter>
-          <Button className="flex-1" disabled={login.isPending}>
-            Login
-          </Button>
+        <CardFooter className="flex-col items-stretch gap-4">
+          <Button disabled={login.isPending}>Login</Button>
+          <div className="self-center text-sm">
+            {"Don't have an account? "}
+            <Link className="underline underline-offset-4" to="/register">
+              Sign up
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </form>
