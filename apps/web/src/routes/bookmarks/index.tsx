@@ -1,10 +1,19 @@
 import { BookmarkGrid } from './components/bookmark-grid'
+import { listBookmarksOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
 
 export const StashPage: FC = () => {
+  const api = useAPI()
+
+  const bookmarksQuery = useInfiniteQuery(listBookmarksOptions(api))
+
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
+
+  if (bookmarksQuery.isLoading || !bookmarksQuery.data) return
 
   return (
     <>
@@ -12,7 +21,11 @@ export const StashPage: FC = () => {
         <h1 className="text-3xl font-medium">Stash</h1>
       </div>
       <main>
-        <BookmarkGrid />
+        <BookmarkGrid
+          bookmarks={bookmarksQuery.data.pages.flatMap((page) => page.data)}
+          hasMore={bookmarksQuery.hasNextPage}
+          fetchMore={bookmarksQuery.fetchNextPage}
+        />
       </main>
     </>
   )

@@ -1,30 +1,21 @@
 import { EntryCard } from './entry-card'
-import type { FeedEntry, FeedEntryListQuery } from '@colette/core'
-import { listFeedEntriesOptions } from '@colette/query'
-import { useAPI } from '@colette/util'
+import type { FeedEntry } from '@colette/core'
 import { useIntersectionObserver } from '@colette/util'
-import { useInfiniteQuery } from '@tanstack/react-query'
 import { type FC } from 'react'
 import { Separator } from '~/components/ui/separator'
 
-export const EntryList: FC<{ query: FeedEntryListQuery }> = (props) => {
-  const api = useAPI()
-
-  const { data, isLoading, hasNextPage, fetchNextPage } = useInfiniteQuery(
-    listFeedEntriesOptions(api, props.query),
-  )
-
+export const EntryList: FC<{
+  entries: FeedEntry[]
+  hasMore: boolean
+  fetchMore: () => void
+}> = (props) => {
   const target = useIntersectionObserver({
     options: {
       rootMargin: '200px',
     },
     onChange: (isIntersecting) =>
-      isIntersecting && hasNextPage && fetchNextPage(),
+      isIntersecting && props.hasMore && props.fetchMore(),
   })
-
-  if (isLoading || !data) return
-
-  const feedEntries = data.pages.flatMap((page) => page.data)
 
   const day = 1000 * 60 * 60 * 24
   const date = Date.now()
@@ -34,7 +25,7 @@ export const EntryList: FC<{ query: FeedEntryListQuery }> = (props) => {
   const lastYear = date - day * 365
 
   const list = Object.entries(
-    Object.groupBy(feedEntries, (item: FeedEntry) => {
+    Object.groupBy(props.entries, (item: FeedEntry) => {
       const publishedAt = Date.parse(item.publishedAt)
       return publishedAt > today
         ? 'Today'

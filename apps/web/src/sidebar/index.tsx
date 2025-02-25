@@ -2,7 +2,7 @@ import { CollectionsSection } from './collections/collections-section'
 import { StreamsSection } from './streams/streams-section'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
-import { Archive, History, Home, Rss } from 'lucide-react'
+import { Archive, Home, Rss } from 'lucide-react'
 import type { FC } from 'react'
 import { Link } from 'wouter'
 import {
@@ -41,14 +41,6 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
                   <Link to="/feeds">
                     <Rss />
                     Feeds
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <Link to="/archived">
-                    <History />
-                    Archived
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

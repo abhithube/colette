@@ -1,9 +1,9 @@
 import { EditFeedModal } from './components/edit-feed-modal'
 import { EntryList } from './components/entry-list'
 import { UnsubscribeAlert } from './components/unsubscribe-alert'
-import { getFeedOptions } from '@colette/query'
+import { getFeedOptions, listFeedEntriesOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
-import { useQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ExternalLink, ListChecks, Pencil, Trash2 } from 'lucide-react'
 import { type FC, useEffect } from 'react'
 import { useParams } from 'wouter'
@@ -16,13 +16,17 @@ export const FeedPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
-  const { data: feed } = useQuery(getFeedOptions(api, id))
+  const { data: feed, isLoading } = useQuery(getFeedOptions(api, id))
+
+  const entriesQuery = useInfiniteQuery(
+    listFeedEntriesOptions(api, { feedId: id }),
+  )
 
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [id])
 
-  if (!feed) return
+  if (isLoading || !feed || entriesQuery.isLoading || !entriesQuery.data) return
 
   return (
     <>
@@ -68,7 +72,11 @@ export const FeedPage: FC = () => {
         </div>
       </div>
       <main>
-        <EntryList query={{ feedId: id }} />
+        <EntryList
+          entries={entriesQuery.data.pages.flatMap((page) => page.data)}
+          hasMore={entriesQuery.hasNextPage}
+          fetchMore={entriesQuery.fetchNextPage}
+        />
       </main>
     </>
   )

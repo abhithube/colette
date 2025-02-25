@@ -1,7 +1,6 @@
 import { AuthLayout } from './auth-layout'
 import { StashPage } from './routes/bookmarks'
 import { FeedsPage } from './routes/feeds'
-import { ArchivedPage } from './routes/feeds/archived'
 import { FeedPage } from './routes/feeds/id'
 import { HomePage } from './routes/home'
 import { LoginPage } from './routes/login'
@@ -17,7 +16,6 @@ export const App: FC = () => {
       <Route path="/" nest>
         <AuthLayout>
           <Route path="/" component={HomePage} />
-          <Route path="/archived" component={ArchivedPage} />
           <Route path="/feeds" component={FeedsPage} />
           <Route path="/stash" component={StashPage} />
           <Route path="/feeds/:id" component={FeedPage} />
