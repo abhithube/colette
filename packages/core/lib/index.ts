@@ -2,6 +2,7 @@ export * from './api'
 export * from './auth'
 export * from './backup'
 export * from './bookmark'
+export * from './collection'
 export * from './error'
 export * from './feed'
 export * from './feed-entry'
@@ -34,4 +35,5 @@ export {
   TagUpdate,
   User,
 } from './openapi.gen'
+export * from './stream'
 export * from './tag'

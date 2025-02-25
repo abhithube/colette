@@ -4,8 +4,16 @@ import {
   Collection,
   CollectionCreate,
   CollectionUpdate,
+  get_ListCollectionBookmarks,
   Paginated_Collection,
 } from './openapi.gen'
+import { z } from 'zod'
+
+export const CollectionBookmarkListQuery =
+  get_ListCollectionBookmarks.parameters.shape.query
+export type CollectionBookmarkListQuery = z.infer<
+  typeof CollectionBookmarkListQuery
+>
 
 export type CollectionList = Paginated_Collection
 export const CollectionList = Paginated_Collection
@@ -21,7 +29,10 @@ export interface CollectionAPI {
 
   delete(id: string): Promise<void>
 
-  listBookmarks(id: string): Promise<BookmarkList>
+  listBookmarks(
+    id: string,
+    query: CollectionBookmarkListQuery,
+  ): Promise<BookmarkList>
 }
 
 export class HTTPCollectionAPI implements CollectionAPI {
@@ -70,12 +81,16 @@ export class HTTPCollectionAPI implements CollectionAPI {
       .then()
   }
 
-  listBookmarks(id: string): Promise<BookmarkList> {
+  listBookmarks(
+    id: string,
+    query: CollectionBookmarkListQuery,
+  ): Promise<BookmarkList> {
     return this.client
       .get('/collections/{id}/bookmarks', {
         path: {
           id,
         },
+        query: CollectionBookmarkListQuery.parse(query),
       })
       .then(BookmarkList.parse)
   }

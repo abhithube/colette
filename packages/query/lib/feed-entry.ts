@@ -8,7 +8,10 @@ import {
 
 const FEED_ENTRIES_PREFIX = 'feedEntries'
 
-export const listFeedEntriesOptions = (api: API, query?: FeedEntryListQuery) =>
+export const listFeedEntriesOptions = (
+  api: API,
+  query: Omit<FeedEntryListQuery, 'cursor'> = {},
+) =>
   infiniteQueryOptions({
     queryKey: [FEED_ENTRIES_PREFIX, query],
     queryFn: ({ pageParam }) =>

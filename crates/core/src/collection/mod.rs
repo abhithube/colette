@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use colette_util::base64;
 pub use collection_repository::*;
 pub use collection_service::*;
 use uuid::Uuid;
@@ -79,6 +80,9 @@ pub enum Error {
 
     #[error("collection already exists with title: {0}")]
     Conflict(String),
+
+    #[error(transparent)]
+    Base64(#[from] base64::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

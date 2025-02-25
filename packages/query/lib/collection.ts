@@ -1,4 +1,9 @@
-import type { API, CollectionCreate, CollectionUpdate } from '@colette/core'
+import type {
+  API,
+  CollectionBookmarkListQuery,
+  CollectionCreate,
+  CollectionUpdate,
+} from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
   infiniteQueryOptions,
@@ -63,10 +68,18 @@ export const useDeleteCollectionMutation = (id: string) => {
   })
 }
 
-export const listCollectionBookmarksOptions = (api: API, id: string) =>
+export const listCollectionBookmarksOptions = (
+  api: API,
+  id: string,
+  query: Omit<CollectionBookmarkListQuery, 'cursor'> = {},
+) =>
   infiniteQueryOptions({
-    queryKey: [COLLECTIONS_PREFIX, id, 'bookmarks'],
-    queryFn: () => api.collections.listBookmarks(id),
+    queryKey: [COLLECTIONS_PREFIX, id, 'bookmarks', query],
+    queryFn: ({ pageParam }) =>
+      api.collections.listBookmarks(id, {
+        ...query,
+        cursor: pageParam,
+      }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.cursor,
   })

@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use colette_util::base64;
 pub use stream_repository::*;
 pub use stream_service::*;
 use uuid::Uuid;
@@ -82,6 +83,9 @@ pub enum Error {
 
     #[error("stream already exists with title: {0}")]
     Conflict(String),
+
+    #[error(transparent)]
+    Base64(#[from] base64::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

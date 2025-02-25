@@ -1,3 +1,4 @@
+use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
@@ -7,8 +8,8 @@ use super::{
     },
 };
 use crate::{
-    Bookmark,
-    common::{IdParams, Paginated},
+    Bookmark, bookmark,
+    common::{IdParams, PAGINATION_LIMIT, Paginated},
 };
 
 pub struct CollectionService {
@@ -53,29 +54,6 @@ impl CollectionService {
         Ok(collections.swap_remove(0))
     }
 
-    pub async fn list_collection_bookmarks(
-        &self,
-        id: Uuid,
-        user_id: Uuid,
-    ) -> Result<Paginated<Bookmark>, Error> {
-        let collection = self.get_collection(id, user_id).await?;
-
-        let bookmarks = self
-            .repository
-            .find_bookmarks(CollectionBookmarkFindParams {
-                filter: collection.filter,
-                user_id,
-                cursor: None,
-                limit: None,
-            })
-            .await?;
-
-        Ok(Paginated {
-            data: bookmarks,
-            cursor: None,
-        })
-    }
-
     pub async fn create_collection(
         &self,
         data: CollectionCreate,
@@ -109,6 +87,47 @@ impl CollectionService {
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         self.repository.delete(IdParams::new(id, user_id)).await
     }
+
+    pub async fn list_collection_bookmarks(
+        &self,
+        id: Uuid,
+        query: CollectionBookmarkListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<Bookmark>, Error> {
+        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+
+        let collection = self.get_collection(id, user_id).await?;
+
+        let mut bookmarks = self
+            .repository
+            .find_bookmarks(CollectionBookmarkFindParams {
+                filter: collection.filter,
+                user_id,
+                limit: Some(PAGINATION_LIMIT as i64 + 1),
+                cursor,
+            })
+            .await?;
+        let mut cursor: Option<String> = None;
+
+        let limit = PAGINATION_LIMIT as usize;
+        if bookmarks.len() > limit {
+            bookmarks = bookmarks.into_iter().take(limit).collect();
+
+            if let Some(last) = bookmarks.last() {
+                let c = bookmark::Cursor {
+                    created_at: last.created_at.unwrap(),
+                };
+                let encoded = base64::encode(&c)?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated {
+            data: bookmarks,
+            cursor,
+        })
+    }
 }
 
 impl From<CollectionUpdate> for CollectionUpdateData {
@@ -130,4 +149,9 @@ pub struct CollectionCreate {
 pub struct CollectionUpdate {
     pub title: Option<String>,
     pub filter: Option<BookmarkFilter>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct CollectionBookmarkListQuery {
+    pub cursor: Option<String>,
 }

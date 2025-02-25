@@ -1,8 +1,9 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::{IntoResponse, Response},
 };
+use colette_core::collection;
 
 use super::COLLECTIONS_TAG;
 use crate::api::{
@@ -14,7 +15,7 @@ use crate::api::{
 #[utoipa::path(
     get,
     path = "/{id}/bookmarks",
-    params(Id),
+    params(Id, CollectionBookmarkListQuery),
     responses(ListResponse),
     operation_id = "listCollectionBookmarks",
     description = "List collection bookmarks",
@@ -24,11 +25,12 @@ use crate::api::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
+    Query(query): Query<CollectionBookmarkListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
     match state
         .collection_service
-        .list_collection_bookmarks(id, user_id)
+        .list_collection_bookmarks(id, query.into(), user_id)
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(Paginated {
@@ -40,6 +42,22 @@ pub async fn handler(
             cursor: data.cursor,
         })),
         Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct CollectionBookmarkListQuery {
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
+}
+
+impl From<CollectionBookmarkListQuery> for collection::CollectionBookmarkListQuery {
+    fn from(value: CollectionBookmarkListQuery) -> Self {
+        Self {
+            cursor: value.cursor,
+        }
     }
 }
 

@@ -8,10 +8,10 @@ import {
 
 const TAGS_PREFIX = 'tags'
 
-export const listTagsOptions = (api: API, query?: TagListQuery) =>
+export const listTagsOptions = (api: API, query: TagListQuery = {}) =>
   queryOptions({
     queryKey: [TAGS_PREFIX, query],
-    queryFn: () => api.tags.list(query ?? {}),
+    queryFn: () => api.tags.list(query),
   })
 
 export const getTagOptions = (api: API, id: string) =>

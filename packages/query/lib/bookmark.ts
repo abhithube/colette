@@ -14,7 +14,10 @@ import {
 
 const BOOKMARKS_PREFIX = 'bookmarks'
 
-export const listBookmarksOptions = (api: API, query?: BookmarkListQuery) =>
+export const listBookmarksOptions = (
+  api: API,
+  query: Omit<BookmarkListQuery, 'cursor'> = {},
+) =>
   infiniteQueryOptions({
     queryKey: [BOOKMARKS_PREFIX, query],
     queryFn: ({ pageParam }) =>

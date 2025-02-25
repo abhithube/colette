@@ -14,10 +14,10 @@ import {
 
 export const FEEDS_PREFIX = 'feeds'
 
-export const listFeedsOptions = (api: API, query?: FeedListQuery) =>
+export const listFeedsOptions = (api: API, query: FeedListQuery = {}) =>
   queryOptions({
     queryKey: [FEEDS_PREFIX, query],
-    queryFn: () => api.feeds.list(query ?? {}),
+    queryFn: () => api.feeds.list(query),
   })
 
 export const getFeedOptions = (api: API, id: string) =>

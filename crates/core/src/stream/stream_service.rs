@@ -1,3 +1,4 @@
+use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
@@ -6,7 +7,8 @@ use super::{
 };
 use crate::{
     FeedEntry,
-    common::{IdParams, Paginated},
+    common::{IdParams, PAGINATION_LIMIT, Paginated},
+    feed_entry,
 };
 
 pub struct StreamService {
@@ -51,29 +53,6 @@ impl StreamService {
         Ok(streams.swap_remove(0))
     }
 
-    pub async fn list_stream_entries(
-        &self,
-        id: Uuid,
-        user_id: Uuid,
-    ) -> Result<Paginated<FeedEntry>, Error> {
-        let stream = self.get_stream(id, user_id).await?;
-
-        let entries = self
-            .repository
-            .find_entries(StreamEntryFindParams {
-                filter: stream.filter,
-                user_id,
-                cursor: None,
-                limit: None,
-            })
-            .await?;
-
-        Ok(Paginated {
-            data: entries,
-            cursor: None,
-        })
-    }
-
     pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
         let id = self
             .repository
@@ -103,6 +82,48 @@ impl StreamService {
     pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         self.repository.delete(IdParams::new(id, user_id)).await
     }
+
+    pub async fn list_stream_entries(
+        &self,
+        id: Uuid,
+        query: StreamEntryListQuery,
+        user_id: Uuid,
+    ) -> Result<Paginated<FeedEntry>, Error> {
+        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+
+        let stream = self.get_stream(id, user_id).await?;
+
+        let mut entries = self
+            .repository
+            .find_entries(StreamEntryFindParams {
+                filter: stream.filter,
+                user_id,
+                limit: Some(PAGINATION_LIMIT as i64 + 1),
+                cursor,
+            })
+            .await?;
+        let mut cursor: Option<String> = None;
+
+        let limit = PAGINATION_LIMIT as usize;
+        if entries.len() > limit {
+            entries = entries.into_iter().take(limit).collect();
+
+            if let Some(last) = entries.last() {
+                let c = feed_entry::Cursor {
+                    published_at: last.published_at,
+                    id: last.id,
+                };
+                let encoded = base64::encode(&c)?;
+
+                cursor = Some(encoded);
+            }
+        }
+
+        Ok(Paginated {
+            data: entries,
+            cursor,
+        })
+    }
 }
 
 impl From<StreamUpdate> for StreamUpdateData {
@@ -124,4 +145,9 @@ pub struct StreamCreate {
 pub struct StreamUpdate {
     pub title: Option<String>,
     pub filter: Option<FeedEntryFilter>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct StreamEntryListQuery {
+    pub cursor: Option<String>,
 }

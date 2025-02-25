@@ -5,7 +5,12 @@ import {
   StreamCreate,
   StreamUpdate,
   Paginated_Stream,
+  get_ListStreamEntries,
 } from './openapi.gen'
+import { z } from 'zod'
+
+export const StreamEntryListQuery = get_ListStreamEntries.parameters.shape.query
+export type StreamEntryListQuery = z.infer<typeof StreamEntryListQuery>
 
 export type StreamList = Paginated_Stream
 export const StreamList = Paginated_Stream
@@ -21,7 +26,7 @@ export interface StreamAPI {
 
   delete(id: string): Promise<void>
 
-  listEntries(id: string): Promise<FeedEntryList>
+  listEntries(id: string, query: StreamEntryListQuery): Promise<FeedEntryList>
 }
 
 export class HTTPStreamAPI implements StreamAPI {
@@ -70,12 +75,13 @@ export class HTTPStreamAPI implements StreamAPI {
       .then()
   }
 
-  listEntries(id: string): Promise<FeedEntryList> {
+  listEntries(id: string, query: StreamEntryListQuery): Promise<FeedEntryList> {
     return this.client
       .get('/streams/{id}/entries', {
         path: {
           id,
         },
+        query: StreamEntryListQuery.parse(query),
       })
       .then(FeedEntryList.parse)
   }

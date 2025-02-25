@@ -850,6 +850,9 @@ export const get_ListCollectionBookmarks = {
   path: z.literal("/collections/{id}/bookmarks"),
   requestFormat: z.literal("json"),
   parameters: z.object({
+    query: z.object({
+      cursor: z.string().optional(),
+    }),
     path: z.object({
       id: z.string(),
     }),
@@ -1043,6 +1046,9 @@ export const get_ListStreamEntries = {
   path: z.literal("/streams/{id}/entries"),
   requestFormat: z.literal("json"),
   parameters: z.object({
+    query: z.object({
+      cursor: z.string().optional(),
+    }),
     path: z.object({
       id: z.string(),
     }),

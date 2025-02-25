@@ -1,8 +1,9 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::{IntoResponse, Response},
 };
+use colette_core::stream;
 
 use super::STREAMS_TAG;
 use crate::api::{
@@ -14,7 +15,7 @@ use crate::api::{
 #[utoipa::path(
     get,
     path = "/{id}/entries",
-    params(Id),
+    params(Id, StreamEntryListQuery),
     responses(ListResponse),
     operation_id = "listStreamEntries",
     description = "List stream entries",
@@ -24,11 +25,32 @@ use crate::api::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
+    Query(query): Query<StreamEntryListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
-    match state.stream_service.list_stream_entries(id, user_id).await {
+    match state
+        .stream_service
+        .list_stream_entries(id, query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct StreamEntryListQuery {
+    #[param(nullable = false)]
+    pub cursor: Option<String>,
+}
+
+impl From<StreamEntryListQuery> for stream::StreamEntryListQuery {
+    fn from(value: StreamEntryListQuery) -> Self {
+        Self {
+            cursor: value.cursor,
+        }
     }
 }
 
