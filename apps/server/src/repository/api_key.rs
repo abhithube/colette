@@ -79,7 +79,7 @@ impl Updatable for PostgresApiKeyRepository {
                 params.id,
                 params.user_id,
                 data.title.is_some(),
-                data.title.map(String::from)
+                data.title
             )
             .execute(&self.pool)
             .await

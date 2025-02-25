@@ -73,9 +73,7 @@ pub(crate) async fn select_feeds<'a>(
     limit: Option<i64>,
     tags: Option<Vec<String>>,
 ) -> sqlx::Result<Vec<Feed>> {
-    let (has_cursor, cursor_title, cursor_id) = cursor
-        .map(|e| (true, Some(e.title), Some(e.id)))
-        .unwrap_or_default();
+    let cursor_id = cursor.as_ref().map(|e| e.id);
 
     sqlx::query_file_as!(
         FeedRow,
@@ -85,14 +83,14 @@ pub(crate) async fn select_feeds<'a>(
         id,
         tags.is_none(),
         &tags.unwrap_or_default(),
-        !has_cursor,
-        cursor_title,
+        cursor.is_none(),
+        cursor.map(|e| e.title),
         cursor_id,
         limit
     )
     .fetch_all(ex)
     .await
-    .map(|e| e.into_iter().map(Feed::from).collect())
+    .map(|e| e.into_iter().map(Into::into).collect())
 }
 
 pub(crate) async fn insert_feed_with_entries<'a>(
@@ -113,7 +111,7 @@ pub(crate) async fn insert_feed_with_entries<'a>(
         published_ats.push(item.published);
         descriptions.push(item.description);
         authors.push(item.author);
-        thumbnail_urls.push(item.thumbnail.map(String::from));
+        thumbnail_urls.push(item.thumbnail.map(Into::into));
     }
 
     let feed_id = {

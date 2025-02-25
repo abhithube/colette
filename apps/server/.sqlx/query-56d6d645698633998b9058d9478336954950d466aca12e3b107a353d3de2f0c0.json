@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "WITH\n  json_tags AS (\n    SELECT\n      b.id AS bookmark_id,\n      jsonb_agg(\n        jsonb_build_object('id', t.id, 'title', t.title)\n        ORDER BY\n          t.title\n      ) FILTER (\n        WHERE\n          t.id IS NOT NULL\n      ) AS tags\n    FROM\n      bookmarks b\n      INNER JOIN bookmark_tags bt ON bt.bookmark_id = b.id\n      INNER JOIN tags t ON t.id = bt.tag_id\n    GROUP BY\n      b.id\n  )\nSELECT\n  b.id,\n  b.link AS \"link: DbUrl\",\n  b.title,\n  b.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  b.published_at,\n  b.author,\n  b.archived_path,\n  b.created_at,\n  b.updated_at,\n  coalesce(jt.tags, '[]'::jsonb) AS \"tags: Json<Vec<Tag>>\"\nFROM\n  bookmarks b\n  LEFT JOIN json_tags jt ON jt.bookmark_id = b.id\nWHERE\n  b.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR b.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        jsonb_array_elements(jt.tags) t\n      WHERE\n        t ->> 'title' = ANY ($5)\n    )\n  )\n  AND (\n    $6::BOOLEAN\n    OR b.created_at > $7\n  )\nORDER BY\n  b.created_at ASC\nLIMIT\n  $8\n",
+  "query": "WITH\n  json_tags AS (\n    SELECT\n      bt.bookmark_id,\n      jsonb_agg(\n        jsonb_build_object('id', t.id, 'title', t.title)\n        ORDER BY\n          t.title\n      ) AS tags\n    FROM\n      bookmark_tags bt\n      JOIN tags t ON t.id = bt.tag_id\n    WHERE\n      bt.user_id = $1\n    GROUP BY\n      bt.bookmark_id\n  )\nSELECT\n  b.id,\n  b.link AS \"link: DbUrl\",\n  b.title,\n  b.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  b.published_at,\n  b.author,\n  b.archived_path,\n  b.created_at,\n  b.updated_at,\n  coalesce(jt.tags, '[]'::jsonb) AS \"tags: Json<Vec<Tag>>\"\nFROM\n  bookmarks b\n  LEFT JOIN json_tags jt ON jt.bookmark_id = b.id\nWHERE\n  b.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR b.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        bookmark_tags bt\n        JOIN tags t ON t.id = bt.tag_id\n      WHERE\n        bt.bookmark_id = b.id\n        AND t.title = ANY ($5)\n    )\n  )\n  AND (\n    $6::BOOLEAN\n    OR b.created_at > $7\n  )\nORDER BY\n  b.created_at ASC\nLIMIT\n  $8\n",
   "describe": {
     "columns": [
       {
@@ -79,5 +79,5 @@
       null
     ]
   },
-  "hash": "8f702aa2e31df1c16b8677a7fb3fc12b8d2f0c3d8f946c32b574723f6a4a2cf1"
+  "hash": "56d6d645698633998b9058d9478336954950d466aca12e3b107a353d3de2f0c0"
 }

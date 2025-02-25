@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  ufe.id,\n  ufe.has_read,\n  ufe.user_feed_id AS feed_id,\n  fe.link AS \"link: DbUrl\",\n  fe.title,\n  fe.published_at,\n  fe.description,\n  fe.author,\n  fe.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  ufe.created_at,\n  ufe.updated_at\nFROM\n  user_feed_entries ufe\n  JOIN feed_entries fe ON fe.id = ufe.feed_entry_id\n  LEFT JOIN user_feed_tags uft ON $1\n  AND uft.user_feed_id = ufe.user_feed_id\n  LEFT JOIN tags t ON $1\n  AND t.id = uft.tag_id\n  AND t.title = ANY ($2)\nWHERE\n  (\n    NOT $1\n    OR t.id IS NOT NULL\n  )\n  AND ufe.user_id = $3\n  AND (\n    $4::BOOLEAN\n    OR ufe.id = $5\n  )\n  AND (\n    $6::BOOLEAN\n    OR ufe.user_feed_id = $7\n  )\n  AND (\n    $8::BOOLEAN\n    OR ufe.has_read = $9\n  )\n  AND (\n    $10::BOOLEAN\n    OR (fe.published_at, ufe.id) > ($11, $12)\n  )\nORDER BY\n  fe.published_at DESC,\n  ufe.id DESC\nLIMIT\n  $13\n",
+  "query": "SELECT\n  ufe.id,\n  ufe.has_read,\n  ufe.user_feed_id AS feed_id,\n  fe.link AS \"link: DbUrl\",\n  fe.title,\n  fe.published_at,\n  fe.description,\n  fe.author,\n  fe.thumbnail_url AS \"thumbnail_url: DbUrl\",\n  ufe.created_at,\n  ufe.updated_at\nFROM\n  user_feed_entries ufe\n  JOIN feed_entries fe ON fe.id = ufe.feed_entry_id\nWHERE\n  ufe.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR ufe.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR ufe.user_feed_id = $5\n  )\n  AND (\n    $6::BOOLEAN\n    OR ufe.has_read = $7\n  )\n  AND (\n    $8::BOOLEAN\n    OR EXISTS (\n      SELECT\n        1\n      FROM\n        user_feed_tags uft\n        JOIN tags t ON t.id = uft.tag_id\n      WHERE\n        uft.user_feed_id = ufe.user_feed_id\n        AND t.title = ANY ($9)\n    )\n  )\n  AND (\n    $10::BOOLEAN\n    OR (fe.published_at, ufe.id) > ($11, $12)\n  )\nORDER BY\n  fe.published_at DESC,\n  ufe.id DESC\nLIMIT\n  $13\n",
   "describe": {
     "columns": [
       {
@@ -61,15 +61,15 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Bool",
         "Bool",
         "TextArray",
-        "Uuid",
-        "Bool",
-        "Uuid",
-        "Bool",
-        "Uuid",
-        "Bool",
-        "Bool",
         "Bool",
         "Timestamptz",
         "Uuid",
@@ -90,5 +90,5 @@
       false
     ]
   },
-  "hash": "6ff9b64b10fd9bacf56e11dd47157b5cc19825691a8c54454b906ce9d0c3f8a0"
+  "hash": "10c82fe3c132a345436db881fac1f8133e848fc8c5c0279297f9212770a7a114"
 }

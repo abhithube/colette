@@ -13,28 +13,32 @@ SELECT
 FROM
   user_feed_entries ufe
   JOIN feed_entries fe ON fe.id = ufe.feed_entry_id
-  LEFT JOIN user_feed_tags uft ON $1
-  AND uft.user_feed_id = ufe.user_feed_id
-  LEFT JOIN tags t ON $1
-  AND t.id = uft.tag_id
-  AND t.title = ANY ($2)
 WHERE
-  (
-    NOT $1
-    OR t.id IS NOT NULL
+  ufe.user_id = $1
+  AND (
+    $2::BOOLEAN
+    OR ufe.id = $3
   )
-  AND ufe.user_id = $3
   AND (
     $4::BOOLEAN
-    OR ufe.id = $5
+    OR ufe.user_feed_id = $5
   )
   AND (
     $6::BOOLEAN
-    OR ufe.user_feed_id = $7
+    OR ufe.has_read = $7
   )
   AND (
     $8::BOOLEAN
-    OR ufe.has_read = $9
+    OR EXISTS (
+      SELECT
+        1
+      FROM
+        user_feed_tags uft
+        JOIN tags t ON t.id = uft.tag_id
+      WHERE
+        uft.user_feed_id = ufe.user_feed_id
+        AND t.title = ANY ($9)
+    )
   )
   AND (
     $10::BOOLEAN

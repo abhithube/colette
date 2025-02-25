@@ -1,21 +1,19 @@
 WITH
   json_tags AS (
     SELECT
-      b.id AS bookmark_id,
+      bt.bookmark_id,
       jsonb_agg(
         jsonb_build_object('id', t.id, 'title', t.title)
         ORDER BY
           t.title
-      ) FILTER (
-        WHERE
-          t.id IS NOT NULL
       ) AS tags
     FROM
-      bookmarks b
-      INNER JOIN bookmark_tags bt ON bt.bookmark_id = b.id
-      INNER JOIN tags t ON t.id = bt.tag_id
+      bookmark_tags bt
+      JOIN tags t ON t.id = bt.tag_id
+    WHERE
+      bt.user_id = $1
     GROUP BY
-      b.id
+      bt.bookmark_id
   )
 SELECT
   b.id,
@@ -43,9 +41,11 @@ WHERE
       SELECT
         1
       FROM
-        jsonb_array_elements(jt.tags) t
+        bookmark_tags bt
+        JOIN tags t ON t.id = bt.tag_id
       WHERE
-        t ->> 'title' = ANY ($5)
+        bt.bookmark_id = b.id
+        AND t.title = ANY ($5)
     )
   )
   AND (

@@ -30,8 +30,6 @@ impl Findable for PostgresFeedEntryRepository {
         let feed_entries = sqlx::query_file_as!(
             FeedEntryRow,
             "queries/user_feed_entries/select.sql",
-            params.tags.is_some(),
-            &params.tags.unwrap_or_default(),
             params.user_id,
             params.id.is_none(),
             params.id,
@@ -39,6 +37,8 @@ impl Findable for PostgresFeedEntryRepository {
             params.feed_id,
             params.has_read.is_none(),
             params.has_read,
+            params.tags.is_none(),
+            &params.tags.unwrap_or_default(),
             params.cursor.is_none(),
             params.cursor.as_ref().map(|e| e.published_at),
             params.cursor.map(|e| e.id),
@@ -46,7 +46,7 @@ impl Findable for PostgresFeedEntryRepository {
         )
         .fetch_all(&self.pool)
         .await
-        .map(|e| e.into_iter().map(FeedEntry::from).collect())?;
+        .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(feed_entries)
     }

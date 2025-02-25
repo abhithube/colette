@@ -31,11 +31,6 @@ impl Findable for PostgresBookmarkRepository {
     type Output = Result<Vec<Bookmark>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let (has_cursor, cursor_created_at) = params
-            .cursor
-            .map(|e| (true, Some(e.created_at)))
-            .unwrap_or_default();
-
         let bookmarks = sqlx::query_file_as!(
             BookmarkRow,
             "queries/bookmarks/select.sql",
@@ -43,19 +38,14 @@ impl Findable for PostgresBookmarkRepository {
             params.id.is_none(),
             params.id,
             params.tags.is_none(),
-            &params
-                .tags
-                .unwrap_or_default()
-                .into_iter()
-                .map(String::from)
-                .collect::<Vec<_>>(),
-            !has_cursor,
-            cursor_created_at,
+            &params.tags.unwrap_or_default(),
+            params.cursor.is_none(),
+            params.cursor.map(|e| e.created_at),
             params.limit
         )
         .fetch_all(&self.pool)
         .await
-        .map(|e| e.into_iter().map(Bookmark::from).collect())?;
+        .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(bookmarks)
     }

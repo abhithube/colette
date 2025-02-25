@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH\n  feed_count AS (\n    SELECT\n      uft.tag_id,\n      coalesce(count(uft.user_feed_id), 0) AS count\n    FROM\n      user_feed_tags uft\n    WHERE\n      uft.user_id = $1\n    GROUP BY\n      uft.tag_id\n  ),\n  bookmark_count AS (\n    SELECT\n      bt.tag_id,\n      coalesce(count(bt.bookmark_id), 0) AS count\n    FROM\n      bookmark_tags bt\n    WHERE\n      bt.user_id = $1\n    GROUP BY\n      bt.tag_id\n  )\nSELECT\n  t.id,\n  t.title,\n  t.created_at,\n  t.updated_at,\n  fc.count AS feed_count,\n  bc.count AS bookmark_count\nFROM\n  tags t\n  LEFT JOIN feed_count fc ON fc.tag_id = t.id\n  LEFT JOIN bookmark_count bc ON bc.tag_id = t.id\nWHERE\n  t.user_id = $1\n  AND (\n    $2::BOOLEAN\n    OR t.id = $3\n  )\n  AND (\n    $4::BOOLEAN\n    OR t.title > $5\n  )\nORDER BY\n  t.title ASC\nLIMIT\n  $6\n",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "title",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 3,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "feed_count",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "bookmark_count",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "5768572a6a9fa6e3028497a891ac2687c1ab72d54d0aed2a81756a4cb1d52cb5"
+}

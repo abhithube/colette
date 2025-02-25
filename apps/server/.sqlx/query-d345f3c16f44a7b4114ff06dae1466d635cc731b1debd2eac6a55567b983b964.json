@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT\n  coalesce(xml_url, link) AS \"url!\"\nFROM\n  feeds\n  JOIN user_feeds ON user_feeds.feed_id = feeds.id\n",
+  "query": "SELECT\n  coalesce(f.xml_url, f.link) AS \"url!\"\nFROM\n  feeds f\n  JOIN user_feeds uf ON uf.feed_id = f.id\n",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       null
     ]
   },
-  "hash": "56d312b76062604847e858d1fc99bc57665c5423d0de78e1a1769c65e0e5009b"
+  "hash": "d345f3c16f44a7b4114ff06dae1466d635cc731b1debd2eac6a55567b983b964"
 }

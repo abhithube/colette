@@ -69,7 +69,7 @@ impl Updatable for PostgresTagRepository {
                 params.id,
                 params.user_id,
                 data.title.is_some(),
-                data.title.map(String::from)
+                data.title
             )
             .execute(&self.pool)
             .await
