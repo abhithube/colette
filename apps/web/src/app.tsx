@@ -5,12 +5,14 @@ import { ArchivedPage } from './routes/feeds/archived'
 import { FeedPage } from './routes/feeds/id'
 import { HomePage } from './routes/home'
 import { LoginPage } from './routes/login'
+import { RegisterPage } from './routes/register'
 import type { FC } from 'react'
 import { Route, Switch } from 'wouter'
 
 export const App: FC = () => {
   return (
     <Switch>
+      <Route path="/register" component={RegisterPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/" nest>
         <AuthLayout>

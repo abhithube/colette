@@ -1,4 +1,4 @@
-import type { API, Login } from '@colette/core'
+import type { API, Login, Register } from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
   queryOptions,
@@ -7,6 +7,14 @@ import {
 } from '@tanstack/react-query'
 
 const AUTH_PREFIX = 'auth'
+
+export const useRegisterMutation = () => {
+  const api = useAPI()
+
+  return useMutation({
+    mutationFn: (data: Register) => api.auth.register(data),
+  })
+}
 
 export const useLoginMutation = () => {
   const api = useAPI()
