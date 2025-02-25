@@ -20,6 +20,8 @@ export interface StreamAPI {
   update(id: string, data: StreamUpdate): Promise<Stream>
 
   delete(id: string): Promise<void>
+
+  listEntries(id: string): Promise<FeedEntryList>
 }
 
 export class HTTPStreamAPI implements StreamAPI {
@@ -75,6 +77,6 @@ export class HTTPStreamAPI implements StreamAPI {
           id,
         },
       })
-      .then()
+      .then(FeedEntryList.parse)
   }
 }

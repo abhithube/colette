@@ -1,6 +1,7 @@
 import type { API, StreamCreate, StreamUpdate } from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
+  infiniteQueryOptions,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -61,3 +62,11 @@ export const useDeleteStreamMutation = (id: string) => {
     },
   })
 }
+
+export const listStreamEntriesOptions = (api: API, id: string) =>
+  infiniteQueryOptions({
+    queryKey: [STREAMS_PREFIX, id, 'entries'],
+    queryFn: () => api.streams.listEntries(id),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.cursor,
+  })

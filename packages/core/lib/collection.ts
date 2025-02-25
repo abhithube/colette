@@ -20,6 +20,8 @@ export interface CollectionAPI {
   update(id: string, data: CollectionUpdate): Promise<Collection>
 
   delete(id: string): Promise<void>
+
+  listBookmarks(id: string): Promise<BookmarkList>
 }
 
 export class HTTPCollectionAPI implements CollectionAPI {
@@ -68,13 +70,13 @@ export class HTTPCollectionAPI implements CollectionAPI {
       .then()
   }
 
-  listEntries(id: string): Promise<BookmarkList> {
+  listBookmarks(id: string): Promise<BookmarkList> {
     return this.client
       .get('/collections/{id}/bookmarks', {
         path: {
           id,
         },
       })
-      .then()
+      .then(BookmarkList.parse)
   }
 }
