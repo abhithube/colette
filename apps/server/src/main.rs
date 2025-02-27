@@ -43,14 +43,15 @@ use repository::{
     tag::SqliteTagRepository, user::SqliteUserRepository,
 };
 use sea_orm::DatabaseConnection;
-use session::RedisStore;
+use session::{AppSessionStore, RedisStore, SqliteStore};
 use sqlx::{
     Pool, Sqlite,
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
+use tower_sessions::{SessionManagerLayer, cookie};
+use tower_sessions_core::{Expiry, session_store::ExpiredDeletion};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
 use utoipa::{OpenApi, openapi::Server};
@@ -77,6 +78,8 @@ pub struct AppConfig {
     #[serde(default = "default_port")]
     pub port: u32,
     pub database_url: Option<Cow<'static, str>>,
+    #[serde(default = "default_redis_enabled")]
+    pub redis_enabled: bool,
     pub redis_url: String,
     #[serde(default = "default_cron_enabled")]
     pub cron_enabled: bool,
@@ -102,6 +105,10 @@ fn default_host() -> Cow<'static, str> {
 
 fn default_port() -> u32 {
     8000
+}
+
+fn default_redis_enabled() -> bool {
+    false
 }
 
 fn default_cron_enabled() -> bool {
@@ -271,9 +278,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let monitor = monitor.run();
 
-    let redis_conn = redis.get_multiplexed_async_connection().await?;
-    let session_store = RedisStore::new(redis_conn);
-
     let api_state = ApiState {
         api_key_service: Arc::new(ApiKeyService::new(SqliteApiKeyRepository::new(
             db_conn.clone(),
@@ -300,7 +304,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         stream_service: Arc::new(StreamService::new(SqliteStreamRepository::new(
             db_conn.clone(),
         ))),
-        tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn))),
+        tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn.clone()))),
         bucket_url,
     };
 
@@ -333,6 +337,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .map(|(k, v)| (k.replace(&format!("{}/", api_prefix), "/"), v))
         .collect();
 
+    let (session_store, deletion_task) = if app_config.redis_enabled {
+        let redis_conn = redis.get_multiplexed_async_connection().await?;
+        (AppSessionStore::Redis(RedisStore::new(redis_conn)), None)
+    } else {
+        let session_store = SqliteStore::new(db_conn);
+
+        (
+            AppSessionStore::Sqlite(session_store.clone()),
+            Some(tokio::task::spawn(
+                session_store.continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+            )),
+        )
+    };
+
     let mut api = api
         .merge(Scalar::with_url(
             format!("{}/doc", api_prefix),
@@ -343,9 +361,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
             routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
         )
         .layer(
-            SessionManagerLayer::new(session_store)
+            SessionManagerLayer::new(session_store.clone())
                 .with_secure(false)
-                .with_expiry(Expiry::OnInactivity(time::Duration::days(1))),
+                .with_expiry(Expiry::OnInactivity(cookie::time::Duration::days(1))),
         )
         .layer(TraceLayer::new_for_http())
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
@@ -374,6 +392,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let server = axum::serve(listener, api);
 
     let _ = tokio::join!(monitor, server);
+
+    if let Some(deletion_task) = deletion_task {
+        deletion_task.await??;
+    }
 
     Ok(())
 }

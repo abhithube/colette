@@ -3,7 +3,7 @@ use std::{fmt::Debug, sync::Arc};
 use async_trait::async_trait;
 use redis::{AsyncCommands, ExistenceCheck, SetExpiry, SetOptions};
 use tokio::sync::Mutex;
-use tower_sessions::{
+use tower_sessions_core::{
     SessionStore,
     session::{Id, Record},
     session_store,

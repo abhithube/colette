@@ -568,6 +568,7 @@ dependencies = [
  "tower",
  "tower-http",
  "tower-sessions",
+ "tower-sessions-core",
  "tracing",
  "tracing-subscriber",
  "url",

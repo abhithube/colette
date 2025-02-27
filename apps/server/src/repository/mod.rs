@@ -8,7 +8,7 @@ pub mod feed;
 pub mod feed_entry;
 #[allow(unused_imports)]
 #[rustfmt::skip]
-mod entity;
+pub(crate) mod entity;
 pub mod stream;
 pub mod tag;
 pub mod user;

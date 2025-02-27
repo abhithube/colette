@@ -10,7 +10,7 @@
     {
       "files": ["*.sql"],
       "options": {
-        "language": "postgresql",
+        "language": "sqlite",
         "keywordCase": "upper",
         "dataTypeCase": "upper",
         "functionCase": "lower"
