@@ -11,10 +11,8 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub user_id: String,
-    #[sea_orm(column_type = "Text")]
-    pub created_at: String,
-    #[sea_orm(column_type = "Text")]
-    pub updated_at: String,
+    pub created_at: i32,
+    pub updated_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

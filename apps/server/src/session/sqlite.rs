@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use chrono::DateTime;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
     QueryFilter, TransactionTrait, prelude::Expr, sea_query::OnConflict,
@@ -29,14 +28,11 @@ impl SqliteStore {
     ) -> session_store::Result<bool> {
         let data =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expires_at = DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
-            .unwrap()
-            .to_rfc3339();
 
         let session = sessions::ActiveModel {
             id: ActiveValue::Set(record.id.to_string()),
             data: ActiveValue::Set(data),
-            expires_at: ActiveValue::Set(expires_at),
+            expires_at: ActiveValue::Set(record.expiry_date.unix_timestamp() as i32),
         };
 
         match session.insert(tx).await {
@@ -70,14 +66,11 @@ impl SessionStore for SqliteStore {
     async fn save(&self, record: &Record) -> session_store::Result<()> {
         let data =
             serde_json::to_vec(record).map_err(|e| session_store::Error::Encode(e.to_string()))?;
-        let expires_at = DateTime::from_timestamp(record.expiry_date.unix_timestamp(), 0)
-            .unwrap()
-            .to_rfc3339();
 
         let session = sessions::ActiveModel {
             id: ActiveValue::Set(record.id.to_string()),
             data: ActiveValue::Set(data),
-            expires_at: ActiveValue::Set(expires_at),
+            expires_at: ActiveValue::Set(record.expiry_date.unix_timestamp() as i32),
         };
 
         sessions::Entity::insert(session)

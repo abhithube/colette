@@ -15,7 +15,7 @@ use sqlx::QueryBuilder;
 use uuid::Uuid;
 
 use super::{
-    common::{ToSql, parse_date},
+    common::{ToSql, parse_timestamp},
     entity::streams,
     feed_entry::FeedEntryRow,
 };
@@ -199,8 +199,8 @@ impl From<streams::Model> for Stream {
             id: value.id.parse().unwrap(),
             title: value.title,
             filter: serde_json::from_str(&value.filter_raw).unwrap(),
-            created_at: parse_date(&value.created_at).ok(),
-            updated_at: parse_date(&value.updated_at).ok(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
         }
     }
 }

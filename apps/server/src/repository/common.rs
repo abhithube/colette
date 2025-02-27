@@ -1,4 +1,4 @@
-use chrono::{DateTime, ParseResult, Utc};
+use chrono::{DateTime, Utc};
 use colette_core::{
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
@@ -45,7 +45,7 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
         .map(|e| feed_entries::ActiveModel {
             link: ActiveValue::Set(e.link.into()),
             title: ActiveValue::Set(e.title),
-            published_at: ActiveValue::Set(e.published.to_rfc3339()),
+            published_at: ActiveValue::Set(e.published.timestamp() as i32),
             description: ActiveValue::Set(e.description),
             thumbnail_url: ActiveValue::Set(e.thumbnail.map(Into::into)),
             author: ActiveValue::Set(e.author),
@@ -139,7 +139,7 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
         link: ActiveValue::Set(link.into()),
         title: ActiveValue::Set(title),
         thumbnail_url: ActiveValue::Set(thumbnail_url.map(Into::into)),
-        published_at: ActiveValue::Set(published_at.map(|e| e.to_rfc3339())),
+        published_at: ActiveValue::Set(published_at.map(|e| e.timestamp() as i32)),
         author: ActiveValue::Set(author),
         user_id: ActiveValue::Set(user_id.into()),
         ..Default::default()
@@ -192,8 +192,8 @@ pub(crate) async fn upsert_tag(
     Ok(tag_id)
 }
 
-pub(crate) fn parse_date(value: &str) -> ParseResult<DateTime<Utc>> {
-    DateTime::parse_from_rfc3339(value).map(|e| e.to_utc())
+pub(crate) fn parse_timestamp(value: i32) -> Option<DateTime<Utc>> {
+    DateTime::from_timestamp(value.into(), 0)
 }
 
 pub(crate) trait ToColumn {

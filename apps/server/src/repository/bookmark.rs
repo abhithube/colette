@@ -117,7 +117,7 @@ impl Creatable for SqliteBookmarkRepository {
             link: ActiveValue::Set(data.url.to_string()),
             title: ActiveValue::Set(data.title.clone()),
             thumbnail_url: ActiveValue::Set(data.thumbnail_url.map(Into::into)),
-            published_at: ActiveValue::Set(data.published_at.map(|e| e.to_rfc3339())),
+            published_at: ActiveValue::Set(data.published_at.map(|e| e.timestamp() as i32)),
             author: ActiveValue::Set(data.author),
             user_id: ActiveValue::Set(user_id.clone()),
             ..Default::default()
@@ -162,7 +162,7 @@ impl Updatable for SqliteBookmarkRepository {
             bookmark.thumbnail_url = ActiveValue::Set(thumbnail_url.map(Into::into));
         }
         if let Some(published_at) = data.published_at {
-            bookmark.published_at = ActiveValue::Set(published_at.map(|e| e.to_rfc3339()));
+            bookmark.published_at = ActiveValue::Set(published_at.map(|e| e.timestamp() as i32));
         }
         if let Some(author) = data.author {
             bookmark.author = ActiveValue::Set(author);

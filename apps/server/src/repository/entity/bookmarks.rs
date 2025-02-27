@@ -13,18 +13,15 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub thumbnail_url: Option<String>,
-    #[sea_orm(column_type = "Text", nullable)]
-    pub published_at: Option<String>,
+    pub published_at: Option<i32>,
     #[sea_orm(column_type = "Text", nullable)]
     pub author: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
     pub archived_path: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub user_id: String,
-    #[sea_orm(column_type = "Text")]
-    pub created_at: String,
-    #[sea_orm(column_type = "Text")]
-    pub updated_at: String,
+    pub created_at: i32,
+    pub updated_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

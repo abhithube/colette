@@ -11,8 +11,7 @@ pub struct Model {
     pub link: String,
     #[sea_orm(column_type = "Text")]
     pub title: String,
-    #[sea_orm(column_type = "Text")]
-    pub published_at: String,
+    pub published_at: i32,
     #[sea_orm(column_type = "Text", nullable)]
     pub description: Option<String>,
     #[sea_orm(column_type = "Text", nullable)]
@@ -20,10 +19,8 @@ pub struct Model {
     #[sea_orm(column_type = "Text", nullable)]
     pub thumbnail_url: Option<String>,
     pub feed_id: i32,
-    #[sea_orm(column_type = "Text")]
-    pub created_at: String,
-    #[sea_orm(column_type = "Text")]
-    pub updated_at: String,
+    pub created_at: i32,
+    pub updated_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

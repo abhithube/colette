@@ -5,7 +5,7 @@ use colette_core::{
 };
 use sea_orm::{DatabaseConnection, EntityTrait};
 
-use super::{common::parse_date, entity};
+use super::{common::parse_timestamp, entity};
 
 #[derive(Debug, Clone)]
 pub struct SqliteUserRepository {
@@ -43,8 +43,8 @@ impl From<entity::users::Model> for User {
             id: value.id.parse().unwrap(),
             email: value.email,
             display_name: value.display_name,
-            created_at: parse_date(&value.created_at).ok(),
-            updated_at: parse_date(&value.updated_at).ok(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
         }
     }
 }

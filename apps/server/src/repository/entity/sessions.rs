@@ -9,8 +9,7 @@ pub struct Model {
     pub id: String,
     #[sea_orm(column_type = "Blob")]
     pub data: Vec<u8>,
-    #[sea_orm(column_type = "Text")]
-    pub expires_at: String,
+    pub expires_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

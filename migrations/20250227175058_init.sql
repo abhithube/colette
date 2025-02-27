@@ -3,8 +3,8 @@ CREATE TABLE `users` (
   `id` TEXT NOT NULL,
   `email` TEXT NOT NULL,
   `display_name` TEXT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`)
 );
 
@@ -15,7 +15,7 @@ CREATE TRIGGER set_updated_at_users AFTER
 UPDATE ON users FOR EACH ROW BEGIN
 UPDATE users
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -27,8 +27,8 @@ CREATE TABLE `accounts` (
   `account_id` TEXT NOT NULL,
   `password_hash` TEXT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`provider_id`, `account_id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -37,7 +37,7 @@ CREATE TRIGGER set_updated_at_accounts AFTER
 UPDATE ON accounts FOR EACH ROW BEGIN
 UPDATE accounts
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -51,8 +51,8 @@ CREATE TABLE `api_keys` (
   `title` TEXT NOT NULL,
   `preview` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -64,7 +64,7 @@ CREATE TRIGGER set_updated_at_api_keys AFTER
 UPDATE ON api_keys FOR EACH ROW BEGIN
 UPDATE api_keys
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -75,8 +75,8 @@ CREATE TABLE `feeds` (
   `id` INTEGER NOT NULL,
   `link` TEXT NOT NULL,
   `xml_url` TEXT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`)
 );
 
@@ -87,7 +87,7 @@ CREATE TRIGGER set_updated_at_feeds AFTER
 UPDATE ON feeds FOR EACH ROW BEGIN
 UPDATE feeds
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -98,13 +98,13 @@ CREATE TABLE `feed_entries` (
   `id` INTEGER NOT NULL,
   `link` TEXT NOT NULL,
   `title` TEXT NOT NULL,
-  `published_at` TEXT NOT NULL,
+  `published_at` INTEGER NOT NULL,
   `description` TEXT NULL,
   `author` TEXT NULL,
   `thumbnail_url` TEXT NULL,
   `feed_id` INTEGER NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`feed_id`) REFERENCES `feeds` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -119,7 +119,7 @@ CREATE TRIGGER set_updated_at_feed_entries AFTER
 UPDATE ON feed_entries FOR EACH ROW BEGIN
 UPDATE feed_entries
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -131,8 +131,8 @@ CREATE TABLE `user_feeds` (
   `title` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
   `feed_id` INTEGER NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`feed_id`) REFERENCES `feeds` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
   CONSTRAINT `1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -145,7 +145,7 @@ CREATE TRIGGER set_updated_at_user_feeds AFTER
 UPDATE ON user_feeds FOR EACH ROW BEGIN
 UPDATE user_feeds
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -158,8 +158,8 @@ CREATE TABLE `user_feed_entries` (
   `user_feed_id` TEXT NOT NULL,
   `feed_entry_id` INTEGER NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT `1` FOREIGN KEY (`feed_entry_id`) REFERENCES `feed_entries` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
@@ -173,7 +173,7 @@ CREATE TRIGGER set_updated_at_user_feed_entries AFTER
 UPDATE ON user_feed_entries FOR EACH ROW BEGIN
 UPDATE user_feed_entries
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -185,12 +185,12 @@ CREATE TABLE `bookmarks` (
   `link` TEXT NOT NULL,
   `title` TEXT NOT NULL,
   `thumbnail_url` TEXT NULL,
-  `published_at` TEXT NULL,
+  `published_at` INTEGER NULL,
   `author` TEXT NULL,
   `archived_path` TEXT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -202,7 +202,7 @@ CREATE TRIGGER set_updated_at_bookmarks AFTER
 UPDATE ON bookmarks FOR EACH ROW BEGIN
 UPDATE bookmarks
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -213,8 +213,8 @@ CREATE TABLE `tags` (
   `id` TEXT NOT NULL,
   `title` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -226,7 +226,7 @@ CREATE TRIGGER set_updated_at_tags AFTER
 UPDATE ON tags FOR EACH ROW BEGIN
 UPDATE tags
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -237,8 +237,8 @@ CREATE TABLE `user_feed_tags` (
   `user_feed_id` TEXT NOT NULL,
   `tag_id` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`user_feed_id`, `tag_id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT `1` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
@@ -249,7 +249,7 @@ CREATE TRIGGER set_updated_at_user_feed_tags AFTER
 UPDATE ON user_feed_tags FOR EACH ROW BEGIN
 UPDATE user_feed_tags
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -260,8 +260,8 @@ CREATE TABLE `bookmark_tags` (
   `bookmark_id` TEXT NOT NULL,
   `tag_id` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`bookmark_id`, `tag_id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT `1` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
@@ -272,7 +272,7 @@ CREATE TRIGGER set_updated_at_bookmark_tags AFTER
 UPDATE ON bookmark_tags FOR EACH ROW BEGIN
 UPDATE bookmark_tags
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -285,8 +285,8 @@ CREATE TABLE `streams` (
   `description` TEXT NULL,
   `filter_raw` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -298,7 +298,7 @@ CREATE TRIGGER set_updated_at_streams AFTER
 UPDATE ON streams FOR EACH ROW BEGIN
 UPDATE streams
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
@@ -311,8 +311,8 @@ CREATE TABLE `collections` (
   `description` TEXT NULL,
   `filter_raw` TEXT NOT NULL,
   `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
+  `created_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+  `updated_at` INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   PRIMARY KEY (`id`),
   CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
 );
@@ -324,8 +324,16 @@ CREATE TRIGGER set_updated_at_collections AFTER
 UPDATE ON collections FOR EACH ROW BEGIN
 UPDATE collections
 SET
-  updated_at = CURRENT_TIMESTAMP
+  updated_at = strftime('%s', 'now')
 WHERE
   id = OLD.id;
 
 END;
+
+-- Create "sessions" table
+CREATE TABLE `sessions` (
+  `id` TEXT NOT NULL,
+  `data` BLOB NOT NULL,
+  `expires_at` INTEGER NOT NULL,
+  PRIMARY KEY (`id`)
+);

@@ -12,7 +12,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use super::{common::parse_date, entity::api_keys};
+use super::{common::parse_timestamp, entity::api_keys};
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -146,8 +146,8 @@ impl From<api_keys::Model> for ApiKey {
             id: value.id.parse().unwrap(),
             title: value.title,
             preview: value.preview,
-            created_at: parse_date(&value.created_at).ok(),
-            updated_at: parse_date(&value.updated_at).ok(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.created_at),
         }
     }
 }
