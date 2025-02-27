@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use sea_orm::DbErr;
 pub use tag_repository::*;
 pub use tag_service::*;
 use uuid::Uuid;
@@ -38,5 +39,5 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }

@@ -20,7 +20,7 @@ args = [
   "--to",
   "file://schema.sql",
   "--dev-url",
-  "docker://postgres/17-alpine/dev",
+  "sqlite://dev?mode=memory",
 ]
 
 [tasks.build-docker]

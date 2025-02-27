@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, ops::RangeFull, sync::Arc};
+use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -36,14 +36,18 @@ use job::{
 };
 use object_store::aws::AmazonS3Builder;
 use repository::{
-    accounts::PostgresAccountRepository, api_key::PostgresApiKeyRepository,
-    backup::PostgresBackupRepository, bookmark::PostgresBookmarkRepository,
-    collection::PostgresCollectionRepository, feed::PostgresFeedRepository,
-    feed_entry::PostgresFeedEntryRepository, stream::PostgresStreamRepository,
-    tag::PostgresTagRepository, user::PostgresUserRepository,
+    accounts::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
+    backup::SqliteBackupRepository, bookmark::SqliteBookmarkRepository,
+    collection::SqliteCollectionRepository, feed::SqliteFeedRepository,
+    feed_entry::SqliteFeedEntryRepository, stream::SqliteStreamRepository,
+    tag::SqliteTagRepository, user::SqliteUserRepository,
 };
+use sea_orm::DatabaseConnection;
 use session::RedisStore;
-use sqlx::{Pool, Postgres, postgres::PgConnectOptions};
+use sqlx::{
+    Pool, Sqlite,
+    sqlite::{SqliteConnectOptions, SqliteJournalMode},
+};
 use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time};
@@ -150,11 +154,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = envy::from_env::<AppConfig>()?;
 
-    let pool = match app_config.database_url {
-        Some(database_url) => Pool::<Postgres>::connect(&database_url).await,
-        _ => Pool::<Postgres>::connect_with(PgConnectOptions::new()).await,
-    }?;
+    let opts = match app_config.database_url {
+        Some(database_url) => SqliteConnectOptions::from_str(&database_url)?,
+        _ => SqliteConnectOptions::new(),
+    };
+    let pool = Pool::<Sqlite>::connect_with(
+        opts.create_if_missing(true)
+            .journal_mode(SqliteJournalMode::Wal), // .extension("uuid"),
+    )
+    .await?;
     sqlx::migrate!("../../migrations").run(&pool).await?;
+
+    let db_conn = DatabaseConnection::from(pool.clone());
 
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
@@ -187,8 +198,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_storage = RedisStorage::new(redis_manager.clone());
     let import_bookmarks_storage = RedisStorage::new(redis_manager);
 
-    let feed_repository = PostgresFeedRepository::new(pool.clone());
-    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+    let feed_repository = SqliteFeedRepository::new(db_conn.clone());
+    let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
@@ -264,32 +275,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let session_store = RedisStore::new(redis_conn);
 
     let api_state = ApiState {
-        api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
-            pool.clone(),
+        api_key_service: Arc::new(ApiKeyService::new(SqliteApiKeyRepository::new(
+            db_conn.clone(),
         ))),
         auth_service: Arc::new(AuthService::new(
-            PostgresUserRepository::new(pool.clone()),
-            PostgresAccountRepository::new(pool.clone()),
+            SqliteUserRepository::new(db_conn.clone()),
+            SqliteAccountRepository::new(db_conn.clone()),
         )),
         backup_service: Arc::new(BackupService::new(
-            PostgresBackupRepository::new(pool.clone()),
+            SqliteBackupRepository::new(db_conn.clone()),
             feed_repository,
             bookmark_repository,
             Arc::new(Mutex::new(import_feeds_storage)),
             Arc::new(Mutex::new(import_bookmarks_storage)),
         )),
         bookmark_service,
-        collection_service: Arc::new(CollectionService::new(PostgresCollectionRepository::new(
-            pool.clone(),
+        collection_service: Arc::new(CollectionService::new(SqliteCollectionRepository::new(
+            db_conn.clone(),
         ))),
         feed_service,
-        feed_entry_service: Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
-            pool.clone(),
+        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(
+            db_conn.clone(),
         ))),
-        stream_service: Arc::new(StreamService::new(PostgresStreamRepository::new(
-            pool.clone(),
+        stream_service: Arc::new(StreamService::new(SqliteStreamRepository::new(
+            db_conn.clone(),
         ))),
-        tag_service: Arc::new(TagService::new(PostgresTagRepository::new(pool))),
+        tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn))),
         bucket_url,
     };
 

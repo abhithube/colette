@@ -1,9 +1,10 @@
 pub use account_repository::*;
+use sea_orm::DbErr;
 use uuid::Uuid;
 
 mod account_repository;
 
-#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct Account {
     pub id: Uuid,
     pub email: String,
@@ -21,5 +22,5 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }

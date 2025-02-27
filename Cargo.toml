@@ -45,6 +45,12 @@ reqwest = { version = "0.12.12", default-features = false, features = [
   "rustls-tls-webpki-roots",
 ] }
 scraper = { version = "0.22.0", default-features = false }
+sea-orm = { version = "1.1.6", default-features = false, features = [
+  "macros",
+  "runtime-tokio-rustls",
+  "sqlite-use-returning-for-3_35",
+  "sqlx-sqlite",
+] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [
   "std",
@@ -54,9 +60,6 @@ sqlx = { version = "0.8.3", features = [
   "json",
   "macros",
   "migrate",
-  "postgres",
-  "runtime-tokio",
-  "tls-rustls-ring-webpki",
   "uuid",
 ] }
 thiserror = { version = "2.0.11", default-features = false }

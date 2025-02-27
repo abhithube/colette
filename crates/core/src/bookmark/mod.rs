@@ -5,6 +5,7 @@ pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::base64;
 use image::ImageError;
+use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
@@ -57,7 +58,7 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 
     #[error(transparent)]
     Redis(#[from] RedisError),

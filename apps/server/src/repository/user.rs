@@ -3,33 +3,48 @@ use colette_core::{
     common::Findable,
     user::{Error, UserFindParams, UserRepository},
 };
-use sqlx::{Pool, Postgres};
+use sea_orm::{DatabaseConnection, EntityTrait};
+
+use super::{common::parse_date, entity};
 
 #[derive(Debug, Clone)]
-pub struct PostgresUserRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteUserRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresUserRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteUserRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresUserRepository {
+impl Findable for SqliteUserRepository {
     type Params = UserFindParams;
     type Output = Result<User, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        sqlx::query_file_as!(User, "queries/users/select.sql", params.id)
-            .fetch_one(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })
+        let Some(user) = entity::users::Entity::find_by_id(params.id.to_string())
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+
+        Ok(user.into())
     }
 }
 
-impl UserRepository for PostgresUserRepository {}
+impl UserRepository for SqliteUserRepository {}
+
+impl From<entity::users::Model> for User {
+    fn from(value: entity::users::Model) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            email: value.email,
+            display_name: value.display_name,
+            created_at: parse_date(&value.created_at).ok(),
+            updated_at: parse_date(&value.updated_at).ok(),
+        }
+    }
+}

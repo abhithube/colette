@@ -4,6 +4,7 @@ use chrono::{DateTime, Utc};
 pub use feed_repository::*;
 pub use feed_scraper::*;
 pub use feed_service::*;
+use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
@@ -52,7 +53,7 @@ pub enum Error {
     Scraper(#[from] ScraperError),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }
 
 #[derive(Debug, thiserror::Error)]

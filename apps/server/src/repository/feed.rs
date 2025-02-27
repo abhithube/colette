@@ -1,5 +1,6 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed,
+    Feed, Tag,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     feed::{
         ConflictError, Error, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
@@ -7,137 +8,260 @@ use colette_core::{
     },
 };
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
-use sqlx::{Pool, Postgres};
-use uuid::Uuid;
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait,
+    IntoActiveModel, ModelTrait, QueryFilter, QuerySelect, RuntimeErr, TransactionTrait,
+    prelude::Expr, sea_query::Func,
+};
+use sqlx::{
+    QueryBuilder,
+    types::{Json, Text},
+};
+use url::Url;
+use uuid::{Uuid, fmt::Hyphenated};
 
-use super::common;
-use crate::repository::common::DbUrl;
+use super::{common, entity};
 
 #[derive(Debug, Clone)]
-pub struct PostgresFeedRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteFeedRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresFeedRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteFeedRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresFeedRepository {
+impl Findable for SqliteFeedRepository {
     type Params = FeedFindParams;
     type Output = Result<Vec<Feed>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let feeds = common::select_feeds(
-            &self.pool,
-            params.id,
-            params.user_id,
-            params.cursor,
-            params.limit,
-            params.tags,
-        )
-        .await?;
+        let initial = format!(
+            r#"WITH unread_count AS (
+  SELECT ufe.user_feed_id, count(ufe.id) AS count
+    FROM user_feed_entries ufe
+   WHERE ufe.user_id = '{0}' AND NOT ufe.has_read
+   GROUP BY ufe.user_feed_id
+),
+json_tags AS (
+  SELECT uft.user_feed_id, json_group_array(json_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
+    FROM user_feed_tags uft
+    JOIN tags t ON t.id = uft.tag_id
+   WHERE uft.user_id = '{0}'
+   GROUP BY uft.user_feed_id
+)
+SELECT uf.id,
+       f.link,
+       uf.title,
+       f.xml_url,
+       uf.created_at,
+       uf.updated_at,
+       coalesce(jt.tags, '[]') AS tags,
+       coalesce(uc.count, 0) AS unread_count
+  FROM user_feeds uf
+ INNER JOIN feeds f ON f.id = uf.feed_id
+  LEFT JOIN json_tags jt ON jt.user_feed_id = uf.id
+  LEFT JOIN unread_count uc ON uc.user_feed_id = uf.id
+ WHERE uf.user_id = '{0}'"#,
+            Hyphenated::from(params.user_id)
+        );
+
+        let mut qb = QueryBuilder::new(initial);
+
+        if let Some(id) = params.id {
+            qb.push("\n   AND ufe.id = ");
+            qb.push_bind(Hyphenated::from(id));
+        }
+        if let Some(cursor) = params.cursor {
+            let mut separated = qb.separated(", ");
+            separated.push_unseparated("\n   AND (uf.title, uf.id) > (");
+            separated.push_bind(cursor.title);
+            separated.push_bind(cursor.id);
+            separated.push_unseparated(")");
+        }
+        if let Some(tags) = params.tags {
+            let mut separated = qb.separated(", ");
+            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM user_feed_tags uft JOIN tags t ON t.id = uft.tag_id WHERE uft.user_feed_id = b.id AND t.title in (");
+            for tag in tags {
+                separated.push_bind(tag);
+            }
+            separated.push(")");
+        }
+
+        qb.push("\n ORDER BY uf.title ASC, uf.id ASC");
+        if let Some(limit) = params.limit {
+            qb.push("\n LIMIT ");
+            qb.push_bind(limit);
+        }
+
+        let query = qb.build_query_as::<FeedRow>();
+
+        let feeds = query
+            .fetch_all(self.db.get_sqlite_connection_pool())
+            .await
+            .map(|e| e.into_iter().map(Into::into).collect())
+            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
+
+        // let user_id = Hyphenated::from(params.user_id);
+        // let id = params.id.map(Hyphenated::from);
+        // let skip_id = id.is_none();
+        // // let skip_tags = tags.is_none();
+
+        // let mut skip_cursor = true;
+        // let mut cursor_title = Option::<String>::None;
+        // let mut cursor_id = Option::<Hyphenated>::None;
+        // if let Some(cursor) = params.cursor {
+        //     skip_cursor = false;
+        //     cursor_title = Some(cursor.title);
+        //     cursor_id = Some(cursor.id.into());
+        // }
+
+        // let feeds = sqlx::query_file_as!(
+        //     FeedRow,
+        //     "queries/user_feeds/select.sql",
+        //     user_id,
+        //     skip_id,
+        //     params.id,
+        //     // skip_tags,
+        //     // &params.tags.unwrap_or_default(),
+        //     skip_cursor,
+        //     cursor_title,
+        //     cursor_id,
+        //     params.limit
+        // )
+        // .fetch_all(self.db.get_sqlite_connection_pool())
+        // .await
+        // .map(|e| e.into_iter().map(Into::into).collect())
+        // .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
         Ok(feeds)
     }
 }
 
 #[async_trait::async_trait]
-impl Creatable for PostgresFeedRepository {
+impl Creatable for SqliteFeedRepository {
     type Data = FeedCreateData;
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.db.begin().await?;
 
-        let feed_id = sqlx::query_file_scalar!(
-            "queries/feeds/select_by_url.sql",
-            DbUrl(data.url.clone()) as DbUrl
-        )
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::RowNotFound => Error::Conflict(ConflictError::NotCached(data.url.clone())),
+        let Some(feed) = entity::feeds::Entity::find()
+            .filter(
+                Condition::any()
+                    .add(entity::feeds::Column::Link.eq(data.url.to_string()))
+                    .add(entity::feeds::Column::XmlUrl.eq(data.url.to_string())),
+            )
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::Conflict(ConflictError::NotCached(data.url)));
+        };
+
+        let id = Uuid::new_v4();
+        let user_feed = entity::user_feeds::ActiveModel {
+            id: ActiveValue::Set(id.into()),
+            title: ActiveValue::Set(data.title),
+            user_id: ActiveValue::Set(data.user_id.into()),
+            feed_id: ActiveValue::Set(feed.id),
+            ..Default::default()
+        };
+        user_feed.insert(&tx).await.map_err(|e| match e {
+            DbErr::RecordNotInserted => Error::Conflict(ConflictError::AlreadyExists(data.url)),
             _ => Error::Database(e),
         })?;
 
-        let uf_id = sqlx::query_file_scalar!(
-            "queries/user_feeds/insert.sql",
-            data.title,
-            feed_id,
-            data.user_id
-        )
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => {
-                Error::Conflict(ConflictError::AlreadyExists(data.url))
-            }
-            _ => Error::Database(e),
-        })?;
+        common::insert_many_user_feed_entries(&tx, feed.id).await?;
 
-        sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
-            .execute(&mut *tx)
-            .await?;
-
-        if let Some(tags) = data.tags {
-            if !tags.is_empty() {
-                sqlx::query_file_scalar!(
-                    "queries/user_feed_tags/link.sql",
-                    &tags,
-                    data.user_id,
-                    uf_id,
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
-        }
+        // if let Some(tags) = data.tags {
+        //     if !tags.is_empty() {
+        //         sqlx::query_file_scalar!(
+        //             "queries/user_feed_tags/link.sql",
+        //             &tags,
+        //             data.user_id,
+        //             uf_id,
+        //         )
+        //         .execute(&mut *tx)
+        //         .await?;
+        //     }
+        // }
 
         tx.commit().await?;
 
-        Ok(uf_id)
+        Ok(id)
     }
 }
 
 #[async_trait::async_trait]
-impl Updatable for PostgresFeedRepository {
+impl Updatable for SqliteFeedRepository {
     type Params = IdParams;
     type Data = FeedUpdateData;
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.db.begin().await?;
 
-        if data.title.is_some() {
-            sqlx::query_file!(
-                "queries/user_feeds/update.sql",
-                params.id,
-                params.user_id,
-                data.title.is_some(),
-                data.title
-            )
-            .execute(&mut *tx)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+        let Some(feed) = entity::user_feeds::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if feed.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
         }
 
-        if let Some(tags) = data.tags {
-            if !tags.is_empty() {
-                sqlx::query_file_scalar!(
-                    "queries/user_feed_tags/link.sql",
-                    &tags,
-                    params.user_id,
-                    params.id
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
+        let mut feed = feed.into_active_model();
+
+        if let Some(title) = data.title {
+            feed.title = ActiveValue::Set(title);
         }
+
+        if feed.is_changed() {
+            feed.update(&tx).await?;
+        }
+
+        tx.commit().await?;
+
+        // if let Some(tags) = data.tags {
+        //     if !tags.is_empty() {
+        //         sqlx::query_file_scalar!(
+        //             "queries/user_feed_tags/link.sql",
+        //             &tags,
+        //             params.user_id,
+        //             params.id
+        //         )
+        //         .execute(&mut *tx)
+        //         .await?;
+        //     }
+        // }
+
+        Ok(())
+    }
+}
+
+#[async_trait::async_trait]
+impl Deletable for SqliteFeedRepository {
+    type Params = IdParams;
+    type Output = Result<(), Error>;
+
+    async fn delete(&self, params: Self::Params) -> Self::Output {
+        let tx = self.db.begin().await?;
+
+        let Some(user_feed) = entity::user_feeds::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if user_feed.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
+        }
+
+        user_feed.delete(&tx).await?;
 
         tx.commit().await?;
 
@@ -146,46 +270,72 @@ impl Updatable for PostgresFeedRepository {
 }
 
 #[async_trait::async_trait]
-impl Deletable for PostgresFeedRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = sqlx::query_file!("queries/user_feeds/delete.sql", params.id, params.user_id)
-            .execute(&self.pool)
-            .await?;
-        if result.rows_affected() == 0 {
-            return Err(Error::NotFound(params.id));
-        }
-
-        Ok(())
-    }
-}
-
-#[async_trait::async_trait]
-impl FeedRepository for PostgresFeedRepository {
+impl FeedRepository for SqliteFeedRepository {
     async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error> {
         if data.link_to_users {
-            let mut tx = self.pool.begin().await?;
+            let tx = self.db.begin().await?;
 
-            let feed_id = common::insert_feed_with_entries(&mut *tx, data.url, data.feed).await?;
+            let feed_id = common::upsert_feed(&tx, data.feed.link, Some(data.url)).await?;
+            common::upsert_entries(&tx, data.feed.entries, feed_id).await?;
 
-            sqlx::query_file!("queries/user_feed_entries/insert_many.sql", feed_id)
-                .execute(&mut *tx)
-                .await?;
+            common::insert_many_user_feed_entries(&tx, feed_id).await?;
 
             tx.commit().await?;
         } else {
-            common::insert_feed_with_entries(&self.pool, data.url, data.feed).await?;
+            let tx = self.db.begin().await?;
+
+            let feed_id = common::upsert_feed(&tx, data.feed.link, Some(data.url)).await?;
+            common::upsert_entries(&tx, data.feed.entries, feed_id).await?;
+
+            tx.commit().await?;
         }
 
         Ok(())
     }
 
-    fn stream_urls(&self) -> BoxStream<Result<String, Error>> {
-        sqlx::query_file_scalar!("queries/feeds/stream.sql")
-            .fetch(&self.pool)
+    async fn stream_urls(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
+        let urls = entity::feeds::Entity::find()
+            .expr_as(
+                Func::coalesce([
+                    Expr::col(entity::feeds::Column::XmlUrl).into(),
+                    Expr::col(entity::feeds::Column::Link).into(),
+                ]),
+                "url",
+            )
+            .inner_join(entity::user_feeds::Entity)
+            .into_tuple::<String>()
+            .stream(&self.db)
+            .await?
             .map_err(Error::Database)
-            .boxed()
+            .boxed();
+
+        Ok(urls)
+    }
+}
+
+#[derive(sqlx::FromRow)]
+struct FeedRow {
+    id: Hyphenated,
+    link: Text<Url>,
+    title: String,
+    xml_url: Option<Text<Url>>,
+    created_at: Option<DateTime<Utc>>,
+    updated_at: Option<DateTime<Utc>>,
+    tags: Option<Json<Vec<Tag>>>,
+    unread_count: Option<i64>,
+}
+
+impl From<FeedRow> for Feed {
+    fn from(value: FeedRow) -> Self {
+        Self {
+            id: value.id.into(),
+            link: value.link.0,
+            title: value.title,
+            xml_url: value.xml_url.map(|e| e.0),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            tags: value.tags.map(|e| e.0),
+            unread_count: value.unread_count,
+        }
     }
 }

@@ -1,10 +1,11 @@
 use chrono::{DateTime, Utc};
+use sea_orm::DbErr;
 pub use user_repository::*;
 use uuid::Uuid;
 
 mod user_repository;
 
-#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[derive(Debug, Clone, Default)]
 pub struct User {
     pub id: Uuid,
     pub email: String,
@@ -19,5 +20,5 @@ pub enum Error {
     NotFound(Uuid),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }

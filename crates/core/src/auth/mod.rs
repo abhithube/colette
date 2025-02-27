@@ -18,7 +18,4 @@ pub enum Error {
 
     #[error(transparent)]
     Hash(#[from] password::Error),
-
-    #[error(transparent)]
-    Database(#[from] sqlx::Error),
 }

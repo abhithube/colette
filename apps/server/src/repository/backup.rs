@@ -1,27 +1,31 @@
-use chrono::{DateTime, Utc};
 use colette_core::backup::{BackupRepository, Error};
-use sqlx::{Pool, Postgres};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
+    TransactionTrait,
+};
 use uuid::Uuid;
 
+use super::{common, entity};
+
 #[derive(Debug, Clone)]
-pub struct PostgresBackupRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteBackupRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresBackupRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteBackupRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl BackupRepository for PostgresBackupRepository {
+impl BackupRepository for SqliteBackupRepository {
     async fn import_feeds(
         &self,
         outlines: Vec<colette_opml::Outline>,
         user_id: Uuid,
     ) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.db.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = outlines
             .into_iter()
@@ -32,36 +36,56 @@ impl BackupRepository for PostgresBackupRepository {
             let title = outline.title.unwrap_or(outline.text);
 
             if !outline.outline.is_empty() {
-                let tag_id = sqlx::query_file_scalar!("queries/tags/upsert.sql", title, user_id)
-                    .fetch_one(&mut *tx)
-                    .await?;
+                let tag_id = common::upsert_tag(&tx, title, user_id).await?;
 
                 for child in outline.outline {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id =
-                    sqlx::query_file_scalar!("queries/feeds/insert.sql", link, outline.xml_url)
-                        .fetch_one(&mut *tx)
+                let feed_id = common::upsert_feed(
+                    &tx,
+                    link.parse().unwrap(),
+                    outline.xml_url.map(|e| e.parse().unwrap()),
+                )
+                .await?;
+
+                let uf_id = {
+                    let user_feed = entity::user_feeds::Entity::find()
+                        .filter(entity::user_feeds::Column::FeedId.eq(feed_id))
+                        .filter(entity::user_feeds::Column::UserId.eq(user_id.to_string()))
+                        .one(&tx)
                         .await?;
 
-                let uf_id = sqlx::query_file_scalar!(
-                    "queries/user_feeds/upsert.sql",
-                    Option::<&str>::None,
-                    feed_id,
-                    user_id
-                )
-                .fetch_one(&mut *tx)
-                .await?;
+                    match user_feed {
+                        Some(tag) => tag.id.parse().unwrap(),
+                        _ => {
+                            let id = Uuid::new_v4();
+                            let user_feed = entity::user_feeds::ActiveModel {
+                                id: ActiveValue::Set(id.into()),
+                                title: ActiveValue::Set(title),
+                                feed_id: ActiveValue::Set(feed_id),
+                                user_id: ActiveValue::Set(user_id.into()),
+                                ..Default::default()
+                            };
+                            user_feed.insert(&tx).await?;
 
-                sqlx::query_file_scalar!(
-                    "queries/user_feed_tags/insert.sql",
-                    uf_id,
-                    parent_id,
-                    user_id
-                )
-                .execute(&mut *tx)
-                .await?;
+                            id
+                        }
+                    }
+                };
+
+                if let Some(tag_id) = parent_id {
+                    let uft = entity::user_feed_tags::ActiveModel {
+                        user_feed_id: ActiveValue::Set(uf_id.into()),
+                        tag_id: ActiveValue::Set(tag_id.into()),
+                        user_id: ActiveValue::Set(user_id.into()),
+                        ..Default::default()
+                    };
+                    entity::user_feed_tags::Entity::insert(uft)
+                        .on_conflict_do_nothing()
+                        .exec(&tx)
+                        .await?;
+                }
             }
         }
 
@@ -75,42 +99,43 @@ impl BackupRepository for PostgresBackupRepository {
         items: Vec<colette_netscape::Item>,
         user_id: Uuid,
     ) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.db.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
             items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let tag_id =
-                    sqlx::query_file_scalar!("queries/tags/upsert.sql", item.title, user_id)
-                        .fetch_one(&mut *tx)
-                        .await?;
+                let tag_id = common::upsert_tag(&tx, item.title, user_id).await?;
 
                 for child in item.item {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id = sqlx::query_file_scalar!(
-                    "queries/bookmarks/upsert.sql",
-                    link,
+                let bookmark_id = common::upsert_bookmark(
+                    &tx,
+                    link.parse().unwrap(),
                     item.title,
-                    Option::<&str>::None,
-                    Option::<DateTime<Utc>>::None,
-                    Option::<&str>::None,
-                    user_id
+                    None,
+                    None,
+                    None,
+                    user_id,
                 )
-                .fetch_one(&mut *tx)
                 .await?;
 
-                sqlx::query_file_scalar!(
-                    "queries/bookmark_tags/insert.sql",
-                    bookmark_id,
-                    parent_id,
-                    user_id
-                )
-                .execute(&mut *tx)
-                .await?;
+                if let Some(tag_id) = parent_id {
+                    let bookmark_tag = entity::bookmark_tags::ActiveModel {
+                        bookmark_id: ActiveValue::Set(bookmark_id.into()),
+                        tag_id: ActiveValue::Set(tag_id.into()),
+                        user_id: ActiveValue::Set(user_id.into()),
+                        ..Default::default()
+                    };
+
+                    entity::bookmark_tags::Entity::insert(bookmark_tag)
+                        .on_conflict_do_nothing()
+                        .exec(&tx)
+                        .await?;
+                }
             }
         }
 

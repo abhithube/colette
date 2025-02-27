@@ -5,91 +5,168 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     stream::{FeedEntryBooleanField, FeedEntryDateField, FeedEntryFilter, FeedEntryTextField},
 };
-use sqlx::{Pool, Postgres};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
+    QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait, prelude::Expr,
+    sea_query::Query,
+};
+use sqlx::types::Text;
+use url::Url;
 use uuid::Uuid;
 
-use super::common::{DbUrl, ToColumn, ToSql};
+use super::{
+    common::{ToColumn, ToSql, parse_date},
+    entity,
+};
 
 #[derive(Debug, Clone)]
-pub struct PostgresFeedEntryRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteFeedEntryRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresFeedEntryRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteFeedEntryRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresFeedEntryRepository {
+impl Findable for SqliteFeedEntryRepository {
     type Params = FeedEntryFindParams;
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let feed_entries = sqlx::query_file_as!(
-            FeedEntryRow,
-            "queries/user_feed_entries/select.sql",
-            params.user_id,
-            params.id.is_none(),
-            params.id,
-            params.feed_id.is_none(),
-            params.feed_id,
-            params.has_read.is_none(),
-            params.has_read,
-            params.tags.is_none(),
-            &params.tags.unwrap_or_default(),
-            params.cursor.is_none(),
-            params.cursor.as_ref().map(|e| e.published_at),
-            params.cursor.map(|e| e.id),
-            params.limit,
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let feed_entries = entity::user_feed_entries::Entity::find()
+            .find_also_related(entity::feed_entries::Entity)
+            .filter(entity::user_feed_entries::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(entity::user_feed_entries::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.has_read, |query, has_read| {
+                query.filter(entity::user_feed_entries::Column::HasRead.eq(has_read))
+            })
+            .apply_if(params.tags, |query, tags| {
+                query.filter(Expr::exists(
+                    Query::select()
+                        .expr(Expr::val(1))
+                        .from(entity::user_feed_tags::Entity)
+                        .inner_join(
+                            entity::tags::Entity,
+                            Expr::col(entity::tags::Column::Id)
+                                .eq(Expr::col(entity::user_feed_tags::Column::TagId)),
+                        )
+                        .and_where(
+                            Expr::col(entity::user_feed_tags::Column::UserFeedId)
+                                .eq(Expr::col(entity::user_feed_entries::Column::UserFeedId)),
+                        )
+                        .and_where(entity::tags::Column::Title.is_in(tags))
+                        .to_owned(),
+                ))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(
+                    Expr::tuple([
+                        Expr::col((
+                            entity::feed_entries::Entity,
+                            entity::feed_entries::Column::PublishedAt,
+                        ))
+                        .into(),
+                        Expr::col((
+                            entity::user_feed_entries::Entity,
+                            entity::user_feed_entries::Column::Id,
+                        ))
+                        .into(),
+                    ])
+                    .lt(Expr::tuple([
+                        Expr::val(cursor.published_at.to_rfc3339()).into(),
+                        Expr::val(cursor.id.to_string()).into(),
+                    ])),
+                )
+            })
+            .order_by_desc(entity::feed_entries::Column::PublishedAt)
+            .order_by_desc(entity::user_feed_entries::Column::Id)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .filter_map(|(ufe, fe)| fe.map(|fe| UfeWithFe { ufe, fe }.into()))
+                    .collect()
+            })?;
 
         Ok(feed_entries)
     }
 }
 
 #[async_trait::async_trait]
-impl Updatable for PostgresFeedEntryRepository {
+impl Updatable for SqliteFeedEntryRepository {
     type Params = IdParams;
     type Data = FeedEntryUpdateData;
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.has_read.is_some() {
-            sqlx::query_file!(
-                "queries/user_feed_entries/update.sql",
-                params.id,
-                params.user_id,
-                data.has_read.is_some(),
-                data.has_read
-            )
-            .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+        let tx = self.db.begin().await?;
+
+        let Some(feed_entry) = entity::user_feed_entries::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if feed_entry.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
         }
+
+        let mut feed_entry = feed_entry.into_active_model();
+
+        if let Some(has_read) = data.has_read {
+            feed_entry.has_read = ActiveValue::Set(has_read.into());
+        }
+
+        if feed_entry.is_changed() {
+            feed_entry.update(&tx).await?;
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
-impl FeedEntryRepository for PostgresFeedEntryRepository {}
+impl FeedEntryRepository for SqliteFeedEntryRepository {}
+
+struct UfeWithFe {
+    ufe: entity::user_feed_entries::Model,
+    fe: entity::feed_entries::Model,
+}
+
+impl From<UfeWithFe> for FeedEntry {
+    fn from(value: UfeWithFe) -> Self {
+        Self {
+            id: value.ufe.id.parse().unwrap(),
+            link: value.fe.link.parse().unwrap(),
+            title: value.fe.title,
+            published_at: parse_date(&value.fe.published_at).unwrap(),
+            description: value.fe.description,
+            author: value.fe.author,
+            thumbnail_url: value.fe.thumbnail_url.and_then(|e| e.parse().ok()),
+            has_read: value.ufe.has_read == 1,
+            feed_id: value.ufe.user_feed_id.parse().unwrap(),
+            created_at: parse_date(&value.ufe.created_at).ok(),
+            updated_at: parse_date(&value.ufe.updated_at).ok(),
+        }
+    }
+}
 
 #[derive(sqlx::FromRow)]
 pub(crate) struct FeedEntryRow {
     id: Uuid,
-    link: DbUrl,
+    link: Text<Url>,
     title: String,
     published_at: DateTime<Utc>,
     description: Option<String>,
     author: Option<String>,
-    thumbnail_url: Option<DbUrl>,
+    thumbnail_url: Option<Text<Url>>,
     has_read: bool,
     feed_id: Uuid,
     created_at: Option<DateTime<Utc>>,

@@ -6,121 +6,163 @@ use colette_core::{
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
-use sqlx::{Pool, Postgres};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
+    ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+};
 use uuid::Uuid;
 
+use super::{common::parse_date, entity};
+
 #[derive(Debug, Clone)]
-pub struct PostgresApiKeyRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteApiKeyRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresApiKeyRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteApiKeyRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresApiKeyRepository {
+impl Findable for SqliteApiKeyRepository {
     type Params = ApiKeyFindParams;
     type Output = Result<Vec<ApiKey>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let api_keys = sqlx::query_file_as!(
-            ApiKey,
-            "queries/api_keys/select.sql",
-            params.user_id,
-            params.id.is_none(),
-            params.id,
-            params.cursor.is_none(),
-            params.cursor.map(|e| e.created_at),
-            params.limit
-        )
-        .fetch_all(&self.pool)
-        .await?;
+        let api_keys = entity::api_keys::Entity::find()
+            .filter(entity::api_keys::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(entity::api_keys::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(entity::api_keys::Column::CreatedAt.gt(cursor.created_at.to_rfc3339()))
+            })
+            .order_by_asc(entity::api_keys::Column::CreatedAt)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await
+            .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(api_keys)
     }
 }
 
 #[async_trait::async_trait]
-impl Creatable for PostgresApiKeyRepository {
+impl Creatable for SqliteApiKeyRepository {
     type Data = ApiKeyCreateData;
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        sqlx::query_file_scalar!(
-            "queries/api_keys/insert.sql",
-            data.lookup_hash,
-            data.verification_hash,
-            data.title,
-            data.preview,
-            data.user_id
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
-            _ => Error::Database(e),
-        })
+        let id = Uuid::new_v4();
+
+        let api_key = entity::api_keys::ActiveModel {
+            id: ActiveValue::Set(id.into()),
+            lookup_hash: ActiveValue::Set(data.lookup_hash),
+            verification_hash: ActiveValue::Set(data.verification_hash),
+            title: ActiveValue::Set(data.title),
+            preview: ActiveValue::Set(data.preview),
+            user_id: ActiveValue::Set(data.user_id.into()),
+            ..Default::default()
+        };
+        api_key.insert(&self.db).await?;
+
+        Ok(id)
     }
 }
 
 #[async_trait::async_trait]
-impl Updatable for PostgresApiKeyRepository {
+impl Updatable for SqliteApiKeyRepository {
     type Params = IdParams;
     type Data = ApiKeyUpdateData;
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() {
-            sqlx::query_file!(
-                "queries/api_keys/update.sql",
-                params.id,
-                params.user_id,
-                data.title.is_some(),
-                data.title
-            )
-            .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+        let tx = self.db.begin().await?;
+
+        let Some(api_key) = entity::api_keys::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if api_key.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
         }
+
+        let mut api_key = api_key.into_active_model();
+
+        if let Some(title) = data.title {
+            api_key.title = ActiveValue::Set(title);
+        }
+
+        if api_key.is_changed() {
+            api_key.update(&tx).await?;
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl Deletable for PostgresApiKeyRepository {
+impl Deletable for SqliteApiKeyRepository {
     type Params = IdParams;
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = sqlx::query_file!("queries/api_keys/delete.sql", params.id, params.user_id)
-            .execute(&self.pool)
-            .await?;
-        if result.rows_affected() == 0 {
+        let tx = self.db.begin().await?;
+
+        let Some(api_key) = entity::api_keys::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if api_key.user_id != params.user_id.to_string() {
             return Err(Error::NotFound(params.id));
         }
+
+        api_key.delete(&tx).await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl ApiKeyRepository for PostgresApiKeyRepository {
+impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error> {
-        let api_key = sqlx::query_file_as!(
-            ApiKeySearched,
-            "queries/api_keys/search.sql",
-            params.lookup_hash
-        )
-        .fetch_optional(&self.pool)
-        .await?;
+        let api_key = entity::api_keys::Entity::find()
+            .filter(entity::api_keys::Column::LookupHash.eq(params.lookup_hash))
+            .one(&self.db)
+            .await
+            .map(|e| e.map(Into::into))?;
 
         Ok(api_key)
+    }
+}
+
+impl From<entity::api_keys::Model> for ApiKey {
+    fn from(value: entity::api_keys::Model) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            preview: value.preview,
+            created_at: parse_date(&value.created_at).ok(),
+            updated_at: parse_date(&value.updated_at).ok(),
+        }
+    }
+}
+
+impl From<entity::api_keys::Model> for ApiKeySearched {
+    fn from(value: entity::api_keys::Model) -> Self {
+        Self {
+            verification_hash: value.verification_hash,
+            user_id: value.user_id.parse().unwrap(),
+        }
     }
 }

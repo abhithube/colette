@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_util::base64;
+use sea_orm::DbErr;
 pub use stream_repository::*;
 pub use stream_service::*;
 use uuid::Uuid;
@@ -88,5 +89,5 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }

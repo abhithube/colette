@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_util::base64;
 pub use collection_repository::*;
 pub use collection_service::*;
+use sea_orm::DbErr;
 use uuid::Uuid;
 
 use crate::filter::{BooleanOp, DateOp, NumberOp, TextOp};
@@ -85,5 +86,5 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] DbErr),
 }

@@ -17,7 +17,7 @@ pub trait FeedRepository:
 {
     async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error>;
 
-    fn stream_urls(&self) -> BoxStream<Result<String, Error>>;
+    async fn stream_urls(&self) -> Result<BoxStream<Result<String, Error>>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]

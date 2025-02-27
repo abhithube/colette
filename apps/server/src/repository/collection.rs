@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Collection,
     collection::{
@@ -7,116 +6,141 @@ use colette_core::{
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
-use serde_json::Value;
-use sqlx::{Pool, Postgres, QueryBuilder, types::Json};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
+    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RuntimeErr,
+    TransactionTrait,
+};
+use sqlx::QueryBuilder;
 use uuid::Uuid;
 
+use super::{common::parse_date, entity};
 use crate::repository::{bookmark::BookmarkRow, common::ToSql};
 
 #[derive(Debug, Clone)]
-pub struct PostgresCollectionRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteCollectionRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresCollectionRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteCollectionRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresCollectionRepository {
+impl Findable for SqliteCollectionRepository {
     type Params = CollectionFindParams;
     type Output = Result<Vec<Collection>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let collections = sqlx::query_file_as!(
-            CollectionRow,
-            "queries/collections/select.sql",
-            params.user_id,
-            params.id.is_none(),
-            params.id,
-            params.cursor.is_none(),
-            params.cursor.map(|e| e.title),
-            params.limit
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let collections = entity::collections::Entity::find()
+            .filter(entity::collections::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(entity::collections::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(entity::collections::Column::Title.gt(cursor.title))
+            })
+            .order_by_asc(entity::collections::Column::Title)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await
+            .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(collections)
     }
 }
 
 #[async_trait::async_trait]
-impl Creatable for PostgresCollectionRepository {
+impl Creatable for SqliteCollectionRepository {
     type Data = CollectionCreateData;
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        sqlx::query_file_scalar!(
-            "queries/collections/insert.sql",
-            data.title,
-            serde_json::to_value(data.filter).unwrap(),
-            data.user_id
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+        let id = Uuid::new_v4();
+        let collection = entity::collections::ActiveModel {
+            id: ActiveValue::Set(id.into()),
+            title: ActiveValue::Set(data.title.clone()),
+            filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
+            user_id: ActiveValue::Set(data.user_id.into()),
+            ..Default::default()
+        };
+        collection.insert(&self.db).await.map_err(|e| match e {
+            DbErr::RecordNotInserted => Error::Conflict(data.title),
             _ => Error::Database(e),
-        })
+        })?;
+
+        Ok(id)
     }
 }
 
 #[async_trait::async_trait]
-impl Updatable for PostgresCollectionRepository {
+impl Updatable for SqliteCollectionRepository {
     type Params = IdParams;
     type Data = CollectionUpdateData;
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() {
-            sqlx::query_file!(
-                "queries/collections/update.sql",
-                params.id,
-                params.user_id,
-                data.title.is_some(),
-                data.title,
-                data.filter.is_some(),
-                data.filter.map(|e| serde_json::to_value(e).unwrap())
-            )
-            .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+        let tx = self.db.begin().await?;
+
+        let Some(collection) = entity::collections::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if collection.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
         }
+
+        let mut collection = collection.into_active_model();
+
+        if let Some(title) = data.title {
+            collection.title = ActiveValue::Set(title);
+        }
+        if let Some(filter) = data.filter {
+            collection.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
+        }
+
+        if collection.is_changed() {
+            collection.update(&tx).await?;
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl Deletable for PostgresCollectionRepository {
+impl Deletable for SqliteCollectionRepository {
     type Params = IdParams;
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = sqlx::query_file!("queries/collections/delete.sql", params.id, params.user_id)
-            .execute(&self.pool)
-            .await?;
-        if result.rows_affected() == 0 {
+        let tx = self.db.begin().await?;
+
+        let Some(collection) = entity::collections::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if collection.user_id != params.user_id.to_string() {
             return Err(Error::NotFound(params.id));
         }
+
+        collection.delete(&tx).await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl CollectionRepository for PostgresCollectionRepository {
+impl CollectionRepository for SqliteCollectionRepository {
     async fn find_bookmarks(
         &self,
         params: CollectionBookmarkFindParams,
@@ -124,7 +148,7 @@ impl CollectionRepository for PostgresCollectionRepository {
         let initial = format!(
             r#"WITH json_tags AS (
   SELECT bt.bookmark_id,
-         jsonb_agg(jsonb_build_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
+         json_group_array(json_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
     FROM bookmark_tags bt
     JOIN tags t ON t.id = bt.tag_id
    WHERE bt.user_id = '{0}'
@@ -169,30 +193,23 @@ SELECT b.id,
         let query = qb.build_query_as::<BookmarkRow>();
 
         let bookmarks = query
-            .fetch_all(&self.pool)
+            .fetch_all(self.db.get_sqlite_connection_pool())
             .await
-            .map(|e| e.into_iter().map(Into::into).collect())?;
+            .map(|e| e.into_iter().map(Into::into).collect())
+            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
         Ok(bookmarks)
     }
 }
 
-struct CollectionRow {
-    id: Uuid,
-    title: String,
-    filter: Json<Value>,
-    created_at: Option<DateTime<Utc>>,
-    updated_at: Option<DateTime<Utc>>,
-}
-
-impl From<CollectionRow> for Collection {
-    fn from(value: CollectionRow) -> Self {
+impl From<entity::collections::Model> for Collection {
+    fn from(value: entity::collections::Model) -> Self {
         Self {
-            id: value.id,
+            id: value.id.parse().unwrap(),
             title: value.title,
-            filter: serde_json::from_value(value.filter.0).unwrap(),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            created_at: parse_date(&value.created_at).ok(),
+            updated_at: parse_date(&value.updated_at).ok(),
         }
     }
 }

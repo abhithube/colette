@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry, Stream,
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
@@ -7,116 +6,144 @@ use colette_core::{
         StreamUpdateData,
     },
 };
-use serde_json::Value;
-use sqlx::{Pool, Postgres, QueryBuilder, types::Json};
+use sea_orm::{
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
+    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RuntimeErr,
+    TransactionTrait,
+};
+use sqlx::QueryBuilder;
 use uuid::Uuid;
 
-use super::{common::ToSql, feed_entry::FeedEntryRow};
+use super::{
+    common::{ToSql, parse_date},
+    entity,
+    feed_entry::FeedEntryRow,
+};
 
 #[derive(Debug, Clone)]
-pub struct PostgresStreamRepository {
-    pool: Pool<Postgres>,
+pub struct SqliteStreamRepository {
+    db: DatabaseConnection,
 }
 
-impl PostgresStreamRepository {
-    pub fn new(pool: Pool<Postgres>) -> Self {
-        Self { pool }
+impl SqliteStreamRepository {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
     }
 }
 
 #[async_trait::async_trait]
-impl Findable for PostgresStreamRepository {
+impl Findable for SqliteStreamRepository {
     type Params = StreamFindParams;
     type Output = Result<Vec<Stream>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let streams = sqlx::query_file_as!(
-            StreamRow,
-            "queries/streams/select.sql",
-            params.user_id,
-            params.id.is_none(),
-            params.id,
-            params.cursor.is_none(),
-            params.cursor.map(|e| e.title),
-            params.limit
-        )
-        .fetch_all(&self.pool)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let streams = entity::streams::Entity::find()
+            .filter(entity::streams::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(entity::streams::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(entity::streams::Column::Title.gt(cursor.title))
+            })
+            .order_by_asc(entity::streams::Column::Title)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await
+            .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(streams)
     }
 }
 
 #[async_trait::async_trait]
-impl Creatable for PostgresStreamRepository {
+impl Creatable for SqliteStreamRepository {
     type Data = StreamCreateData;
     type Output = Result<Uuid, Error>;
 
     async fn create(&self, data: Self::Data) -> Self::Output {
-        sqlx::query_file_scalar!(
-            "queries/streams/insert.sql",
-            data.title,
-            serde_json::to_value(data.filter).unwrap(),
-            data.user_id
-        )
-        .fetch_one(&self.pool)
-        .await
-        .map_err(|e| match e {
-            sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(data.title),
+        let id = Uuid::new_v4();
+        let stream = entity::streams::ActiveModel {
+            id: ActiveValue::Set(id.into()),
+            title: ActiveValue::Set(data.title.clone()),
+            filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
+            user_id: ActiveValue::Set(data.user_id.into()),
+            ..Default::default()
+        };
+        stream.insert(&self.db).await.map_err(|e| match e {
+            DbErr::RecordNotInserted => Error::Conflict(data.title),
             _ => Error::Database(e),
-        })
+        })?;
+
+        Ok(id)
     }
 }
 
 #[async_trait::async_trait]
-impl Updatable for PostgresStreamRepository {
+impl Updatable for SqliteStreamRepository {
     type Params = IdParams;
     type Data = StreamUpdateData;
     type Output = Result<(), Error>;
 
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
-        if data.title.is_some() {
-            sqlx::query_file!(
-                "queries/streams/update.sql",
-                params.id,
-                params.user_id,
-                data.title.is_some(),
-                data.title,
-                data.filter.is_some(),
-                data.filter.map(|e| serde_json::to_value(e).unwrap())
-            )
-            .execute(&self.pool)
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(params.id),
-                _ => Error::Database(e),
-            })?;
+        let tx = self.db.begin().await?;
+
+        let Some(stream) = entity::streams::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if stream.user_id != params.user_id.to_string() {
+            return Err(Error::NotFound(params.id));
         }
+
+        let mut stream = stream.into_active_model();
+
+        if let Some(title) = data.title {
+            stream.title = ActiveValue::Set(title);
+        }
+        if let Some(filter) = data.filter {
+            stream.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
+        }
+
+        if stream.is_changed() {
+            stream.update(&tx).await?;
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl Deletable for PostgresStreamRepository {
+impl Deletable for SqliteStreamRepository {
     type Params = IdParams;
     type Output = Result<(), Error>;
 
     async fn delete(&self, params: Self::Params) -> Self::Output {
-        let result = sqlx::query_file!("queries/streams/delete.sql", params.id, params.user_id)
-            .execute(&self.pool)
-            .await?;
-        if result.rows_affected() == 0 {
+        let tx = self.db.begin().await?;
+
+        let Some(stream) = entity::streams::Entity::find_by_id(params.id)
+            .one(&tx)
+            .await?
+        else {
+            return Err(Error::NotFound(params.id));
+        };
+        if stream.user_id != params.user_id.to_string() {
             return Err(Error::NotFound(params.id));
         }
+
+        stream.delete(&tx).await?;
+
+        tx.commit().await?;
 
         Ok(())
     }
 }
 
 #[async_trait::async_trait]
-impl StreamRepository for PostgresStreamRepository {
+impl StreamRepository for SqliteStreamRepository {
     async fn find_entries(&self, params: StreamEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
         let initial = format!(
             r#"SELECT ufe.id,
@@ -163,30 +190,23 @@ impl StreamRepository for PostgresStreamRepository {
         let query = qb.build_query_as::<FeedEntryRow>();
 
         let entries = query
-            .fetch_all(&self.pool)
+            .fetch_all(self.db.get_sqlite_connection_pool())
             .await
-            .map(|e| e.into_iter().map(Into::into).collect())?;
+            .map(|e| e.into_iter().map(Into::into).collect())
+            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
         Ok(entries)
     }
 }
 
-struct StreamRow {
-    id: Uuid,
-    title: String,
-    filter: Json<Value>,
-    created_at: Option<DateTime<Utc>>,
-    updated_at: Option<DateTime<Utc>>,
-}
-
-impl From<StreamRow> for Stream {
-    fn from(value: StreamRow) -> Self {
+impl From<entity::streams::Model> for Stream {
+    fn from(value: entity::streams::Model) -> Self {
         Self {
-            id: value.id,
+            id: value.id.parse().unwrap(),
             title: value.title,
-            filter: serde_json::from_value(value.filter.0).unwrap(),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            created_at: parse_date(&value.created_at).ok(),
+            updated_at: parse_date(&value.updated_at).ok(),
         }
     }
 }

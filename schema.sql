@@ -1,191 +1,264 @@
-CREATE FUNCTION set_updated_at () returns trigger AS $$ begin
-  NEW.updated_at := now();
-  return NEW;
-end; $$ language plpgsql;
-
 CREATE TABLE users (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   email TEXT NOT NULL UNIQUE,
   display_name TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TRIGGER set_updated_at_users before
-UPDATE ON users FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_users AFTER
+UPDATE ON users FOR EACH ROW BEGIN
+UPDATE users
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE accounts (
   provider_id TEXT NOT NULL,
   account_id TEXT NOT NULL,
   password_hash TEXT,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (provider_id, account_id)
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (provider_id, account_id)
 );
 
-CREATE TRIGGER set_updated_at_accounts before
-UPDATE ON accounts FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_accounts AFTER
+UPDATE ON accounts FOR EACH ROW BEGIN
+UPDATE accounts
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE api_keys (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   lookup_hash TEXT NOT NULL UNIQUE,
   verification_hash TEXT NOT NULL,
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TRIGGER set_updated_at_api_keys before
-UPDATE ON api_keys FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_api_keys AFTER
+UPDATE ON api_keys FOR EACH ROW BEGIN
+UPDATE api_keys
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE feeds (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id INTEGER NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   xml_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TRIGGER set_updated_at_feeds before
-UPDATE ON feeds FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_feeds AFTER
+UPDATE ON feeds FOR EACH ROW BEGIN
+UPDATE feeds
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE feed_entries (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id INTEGER NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   title TEXT NOT NULL,
-  published_at TIMESTAMPTZ NOT NULL,
+  published_at TEXT NOT NULL,
   description TEXT,
   author TEXT,
   thumbnail_url TEXT,
-  feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  feed_id INTEGER NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (feed_id, link)
 );
 
-CREATE TRIGGER set_updated_at_feed_entries before
-UPDATE ON feed_entries FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_feed_entries AFTER
+UPDATE ON feed_entries FOR EACH ROW BEGIN
+UPDATE feed_entries
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE user_feeds (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  feed_id INTEGER NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, feed_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feeds before
-UPDATE ON user_feeds FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_user_feeds AFTER
+UPDATE ON user_feeds FOR EACH ROW BEGIN
+UPDATE user_feeds
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE user_feed_entries (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
-  has_read BOOLEAN NOT NULL DEFAULT FALSE,
-  user_feed_id uuid NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
-  feed_entry_id uuid NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  id TEXT NOT NULL PRIMARY KEY,
+  has_read INTEGER NOT NULL DEFAULT 0,
+  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+  feed_entry_id INTEGER NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_feed_id, feed_entry_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feed_entries before
-UPDATE ON user_feed_entries FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_user_feed_entries AFTER
+UPDATE ON user_feed_entries FOR EACH ROW BEGIN
+UPDATE user_feed_entries
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE bookmarks (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
-  published_at TIMESTAMPTZ,
+  published_at TEXT,
   author TEXT,
   archived_path TEXT,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, link)
 );
 
-CREATE TRIGGER set_updated_at_bookmarks before
-UPDATE ON bookmarks FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_bookmarks AFTER
+UPDATE ON bookmarks FOR EACH ROW BEGIN
+UPDATE bookmarks
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE tags (
-  id uuid NOT NULL PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, title)
 );
 
-CREATE TRIGGER set_updated_at_tags before
-UPDATE ON tags FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_tags AFTER
+UPDATE ON tags FOR EACH ROW BEGIN
+UPDATE tags
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE user_feed_tags (
-  user_feed_id uuid NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
-  tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (user_feed_id, tag_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feed_tags before
-UPDATE ON user_feed_tags FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_user_feed_tags AFTER
+UPDATE ON user_feed_tags FOR EACH ROW BEGIN
+UPDATE user_feed_tags
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE bookmark_tags (
-  bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
-  tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  bookmark_id TEXT NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
+  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (bookmark_id, tag_id)
 );
 
-CREATE TRIGGER set_updated_at_bookmark_tags before
-UPDATE ON bookmark_tags FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_bookmark_tags AFTER
+UPDATE ON bookmark_tags FOR EACH ROW BEGIN
+UPDATE bookmark_tags
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE streams (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  FILTER jsonb NOT NULL,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  filter_raw TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, title)
 );
 
-CREATE TRIGGER set_updated_at_streams before
-UPDATE ON streams FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_streams AFTER
+UPDATE ON streams FOR EACH ROW BEGIN
+UPDATE streams
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;
 
 CREATE TABLE collections (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid (),
+  id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  FILTER jsonb NOT NULL,
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  filter_raw TEXT NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE (user_id, title)
 );
 
-CREATE TRIGGER set_updated_at_collections before
-UPDATE ON collections FOR each ROW
-EXECUTE procedure set_updated_at ();
+CREATE TRIGGER set_updated_at_collections AFTER
+UPDATE ON collections FOR EACH ROW BEGIN
+UPDATE collections
+SET
+  updated_at = CURRENT_TIMESTAMP
+WHERE
+  id = OLD.id;
+
+END;

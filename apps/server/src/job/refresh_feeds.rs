@@ -25,7 +25,11 @@ pub async fn run(_job: RefreshFeedsJob, data: Data<State>) -> Result<(), apalis:
 
     let mut storage = data.storage.lock().await;
 
-    let mut stream = data.service.stream();
+    let mut stream = data
+        .service
+        .stream()
+        .await
+        .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
 
     while let Some(Ok(raw)) = stream.next().await {
         storage

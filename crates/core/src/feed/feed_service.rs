@@ -187,8 +187,8 @@ impl FeedService {
             .await
     }
 
-    pub fn stream(&self) -> BoxStream<Result<String, Error>> {
-        self.repository.stream_urls()
+    pub async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
+        self.repository.stream_urls().await
     }
 }
 
