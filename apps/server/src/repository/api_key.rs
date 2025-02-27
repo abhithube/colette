@@ -12,7 +12,7 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use super::{common::parse_date, entity};
+use super::{common::parse_date, entity::api_keys};
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -31,15 +31,15 @@ impl Findable for SqliteApiKeyRepository {
     type Output = Result<Vec<ApiKey>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let api_keys = entity::api_keys::Entity::find()
-            .filter(entity::api_keys::Column::UserId.eq(params.user_id.to_string()))
+        let api_keys = api_keys::Entity::find()
+            .filter(api_keys::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
-                query.filter(entity::api_keys::Column::Id.eq(id.to_string()))
+                query.filter(api_keys::Column::Id.eq(id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(entity::api_keys::Column::CreatedAt.gt(cursor.created_at.to_rfc3339()))
+                query.filter(api_keys::Column::CreatedAt.gt(cursor.created_at.to_rfc3339()))
             })
-            .order_by_asc(entity::api_keys::Column::CreatedAt)
+            .order_by_asc(api_keys::Column::CreatedAt)
             .limit(params.limit.map(|e| e as u64))
             .all(&self.db)
             .await
@@ -57,7 +57,7 @@ impl Creatable for SqliteApiKeyRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
 
-        let api_key = entity::api_keys::ActiveModel {
+        let api_key = api_keys::ActiveModel {
             id: ActiveValue::Set(id.into()),
             lookup_hash: ActiveValue::Set(data.lookup_hash),
             verification_hash: ActiveValue::Set(data.verification_hash),
@@ -81,10 +81,7 @@ impl Updatable for SqliteApiKeyRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(api_key) = entity::api_keys::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if api_key.user_id != params.user_id.to_string() {
@@ -115,10 +112,7 @@ impl Deletable for SqliteApiKeyRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(api_key) = entity::api_keys::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if api_key.user_id != params.user_id.to_string() {
@@ -136,8 +130,8 @@ impl Deletable for SqliteApiKeyRepository {
 #[async_trait::async_trait]
 impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error> {
-        let api_key = entity::api_keys::Entity::find()
-            .filter(entity::api_keys::Column::LookupHash.eq(params.lookup_hash))
+        let api_key = api_keys::Entity::find()
+            .filter(api_keys::Column::LookupHash.eq(params.lookup_hash))
             .one(&self.db)
             .await
             .map(|e| e.map(Into::into))?;
@@ -146,8 +140,8 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     }
 }
 
-impl From<entity::api_keys::Model> for ApiKey {
-    fn from(value: entity::api_keys::Model) -> Self {
+impl From<api_keys::Model> for ApiKey {
+    fn from(value: api_keys::Model) -> Self {
         Self {
             id: value.id.parse().unwrap(),
             title: value.title,
@@ -158,8 +152,8 @@ impl From<entity::api_keys::Model> for ApiKey {
     }
 }
 
-impl From<entity::api_keys::Model> for ApiKeySearched {
-    fn from(value: entity::api_keys::Model) -> Self {
+impl From<api_keys::Model> for ApiKeySearched {
+    fn from(value: api_keys::Model) -> Self {
         Self {
             verification_hash: value.verification_hash,
             user_id: value.user_id.parse().unwrap(),

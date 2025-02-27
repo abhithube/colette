@@ -21,7 +21,7 @@ use uuid::{Uuid, fmt::Hyphenated};
 
 use super::{
     common::{self, ToColumn, ToSql},
-    entity,
+    entity::{bookmark_tags, bookmarks},
 };
 
 #[derive(Debug, Clone)]
@@ -112,7 +112,7 @@ impl Creatable for SqliteBookmarkRepository {
 
         let id = Uuid::new_v4();
         let user_id = data.user_id.to_string();
-        let bookmark = entity::bookmarks::ActiveModel {
+        let bookmark = bookmarks::ActiveModel {
             id: ActiveValue::Set(id.into()),
             link: ActiveValue::Set(data.url.to_string()),
             title: ActiveValue::Set(data.title.clone()),
@@ -146,10 +146,7 @@ impl Updatable for SqliteBookmarkRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(bookmark) = entity::bookmarks::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if bookmark.user_id != params.user_id.to_string() {
@@ -196,10 +193,7 @@ impl Deletable for SqliteBookmarkRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(bookmark) = entity::bookmarks::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if bookmark.user_id != params.user_id.to_string() {
@@ -242,18 +236,18 @@ async fn link_tags(
     let user_id = user_id.to_string();
     let tag_ids = tags.iter().map(|e| e.to_string());
 
-    entity::bookmark_tags::Entity::delete_many()
-        .filter(entity::bookmark_tags::Column::TagId.is_not_in(tag_ids.clone()))
+    bookmark_tags::Entity::delete_many()
+        .filter(bookmark_tags::Column::TagId.is_not_in(tag_ids.clone()))
         .exec(tx)
         .await?;
 
-    let models = tag_ids.map(|e| entity::bookmark_tags::ActiveModel {
+    let models = tag_ids.map(|e| bookmark_tags::ActiveModel {
         bookmark_id: ActiveValue::Set(bookmark_id.clone()),
         tag_id: ActiveValue::Set(e),
         user_id: ActiveValue::Set(user_id.clone()),
         ..Default::default()
     });
-    entity::bookmark_tags::Entity::insert_many(models)
+    bookmark_tags::Entity::insert_many(models)
         .on_conflict_do_nothing()
         .exec(tx)
         .await?;

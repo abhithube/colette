@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use super::{
     common::{ToColumn, ToSql, parse_date},
-    entity,
+    entity::{feed_entries, user_feed_entries, user_feed_tags},
 };
 
 #[derive(Debug, Clone)]
@@ -36,26 +36,26 @@ impl Findable for SqliteFeedEntryRepository {
     type Output = Result<Vec<FeedEntry>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let feed_entries = entity::user_feed_entries::Entity::find()
-            .find_also_related(entity::feed_entries::Entity)
-            .filter(entity::user_feed_entries::Column::UserId.eq(params.user_id.to_string()))
+        let feed_entries = user_feed_entries::Entity::find()
+            .find_also_related(feed_entries::Entity)
+            .filter(user_feed_entries::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
-                query.filter(entity::user_feed_entries::Column::Id.eq(id.to_string()))
+                query.filter(user_feed_entries::Column::Id.eq(id.to_string()))
             })
             .apply_if(params.has_read, |query, has_read| {
-                query.filter(entity::user_feed_entries::Column::HasRead.eq(has_read))
+                query.filter(user_feed_entries::Column::HasRead.eq(has_read))
             })
             .apply_if(params.tags, |query, tags| {
                 query.filter(Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
-                        .from(entity::user_feed_tags::Entity)
+                        .from(user_feed_tags::Entity)
                         .and_where(
-                            Expr::col(entity::user_feed_tags::Column::UserFeedId)
-                                .eq(Expr::col(entity::user_feed_entries::Column::UserFeedId)),
+                            Expr::col(user_feed_tags::Column::UserFeedId)
+                                .eq(Expr::col(user_feed_entries::Column::UserFeedId)),
                         )
                         .and_where(
-                            entity::user_feed_tags::Column::TagId
+                            user_feed_tags::Column::TagId
                                 .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
                         )
                         .to_owned(),
@@ -64,16 +64,9 @@ impl Findable for SqliteFeedEntryRepository {
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(
                     Expr::tuple([
-                        Expr::col((
-                            entity::feed_entries::Entity,
-                            entity::feed_entries::Column::PublishedAt,
-                        ))
-                        .into(),
-                        Expr::col((
-                            entity::user_feed_entries::Entity,
-                            entity::user_feed_entries::Column::Id,
-                        ))
-                        .into(),
+                        Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
+                        Expr::col((user_feed_entries::Entity, user_feed_entries::Column::Id))
+                            .into(),
                     ])
                     .lt(Expr::tuple([
                         Expr::val(cursor.published_at.to_rfc3339()).into(),
@@ -81,8 +74,8 @@ impl Findable for SqliteFeedEntryRepository {
                     ])),
                 )
             })
-            .order_by_desc(entity::feed_entries::Column::PublishedAt)
-            .order_by_desc(entity::user_feed_entries::Column::Id)
+            .order_by_desc(feed_entries::Column::PublishedAt)
+            .order_by_desc(user_feed_entries::Column::Id)
             .limit(params.limit.map(|e| e as u64))
             .all(&self.db)
             .await
@@ -105,7 +98,7 @@ impl Updatable for SqliteFeedEntryRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(feed_entry) = entity::user_feed_entries::Entity::find_by_id(params.id)
+        let Some(feed_entry) = user_feed_entries::Entity::find_by_id(params.id)
             .one(&tx)
             .await?
         else {
@@ -134,8 +127,8 @@ impl Updatable for SqliteFeedEntryRepository {
 impl FeedEntryRepository for SqliteFeedEntryRepository {}
 
 struct UfeWithFe {
-    ufe: entity::user_feed_entries::Model,
-    fe: entity::feed_entries::Model,
+    ufe: user_feed_entries::Model,
+    fe: feed_entries::Model,
 }
 
 impl From<UfeWithFe> for FeedEntry {

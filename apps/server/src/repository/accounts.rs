@@ -6,7 +6,7 @@ use colette_core::{
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, TransactionTrait};
 use uuid::Uuid;
 
-use super::entity;
+use super::entity::{accounts, users};
 
 #[derive(Clone)]
 pub struct SqliteAccountRepository {
@@ -26,8 +26,8 @@ impl Findable for SqliteAccountRepository {
 
     async fn find(&self, params: Self::Params) -> Self::Output {
         let Some((account, Some(user))) =
-            entity::accounts::Entity::find_by_id((params.provider_id, params.account_id.clone()))
-                .find_also_related(entity::users::Entity)
+            accounts::Entity::find_by_id((params.provider_id, params.account_id.clone()))
+                .find_also_related(users::Entity)
                 .one(&self.db)
                 .await?
         else {
@@ -47,7 +47,7 @@ impl Creatable for SqliteAccountRepository {
         let tx = self.db.begin().await?;
 
         let user_id = Uuid::new_v4();
-        let user = entity::users::ActiveModel {
+        let user = users::ActiveModel {
             id: ActiveValue::Set(user_id.into()),
             email: ActiveValue::Set(data.email),
             display_name: ActiveValue::Set(data.display_name),
@@ -55,7 +55,7 @@ impl Creatable for SqliteAccountRepository {
         };
         user.insert(&tx).await?;
 
-        let account = entity::accounts::ActiveModel {
+        let account = accounts::ActiveModel {
             provider_id: ActiveValue::Set(data.provider_id),
             account_id: ActiveValue::Set(data.account_id),
             password_hash: ActiveValue::Set(data.password_hash),
@@ -73,8 +73,8 @@ impl Creatable for SqliteAccountRepository {
 impl AccountRepository for SqliteAccountRepository {}
 
 struct AccountWithUser {
-    account: entity::accounts::Model,
-    user: entity::users::Model,
+    account: accounts::Model,
+    user: users::Model,
 }
 
 impl From<AccountWithUser> for Account {

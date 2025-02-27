@@ -10,7 +10,7 @@ use sea_orm::{
 };
 use uuid::{Uuid, fmt::Hyphenated};
 
-use super::entity;
+use super::entity::tags;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -90,7 +90,7 @@ impl Creatable for SqliteTagRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
-        let tag = entity::tags::ActiveModel {
+        let tag = tags::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             user_id: ActiveValue::Set(data.user_id.into()),
@@ -114,7 +114,7 @@ impl Updatable for SqliteTagRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(tag) = entity::tags::Entity::find_by_id(params.id).one(&tx).await? else {
+        let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if tag.user_id != params.user_id.to_string() {
@@ -145,10 +145,7 @@ impl Deletable for SqliteTagRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(tag) = entity::api_keys::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if tag.user_id != params.user_id.to_string() {

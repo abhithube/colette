@@ -14,7 +14,7 @@ use sea_orm::{
 use sqlx::QueryBuilder;
 use uuid::Uuid;
 
-use super::{common::parse_date, entity};
+use super::{common::parse_date, entity::collections};
 use crate::repository::{bookmark::BookmarkRow, common::ToSql};
 
 #[derive(Debug, Clone)]
@@ -34,15 +34,15 @@ impl Findable for SqliteCollectionRepository {
     type Output = Result<Vec<Collection>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let collections = entity::collections::Entity::find()
-            .filter(entity::collections::Column::UserId.eq(params.user_id.to_string()))
+        let collections = collections::Entity::find()
+            .filter(collections::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
-                query.filter(entity::collections::Column::Id.eq(id.to_string()))
+                query.filter(collections::Column::Id.eq(id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(entity::collections::Column::Title.gt(cursor.title))
+                query.filter(collections::Column::Title.gt(cursor.title))
             })
-            .order_by_asc(entity::collections::Column::Title)
+            .order_by_asc(collections::Column::Title)
             .limit(params.limit.map(|e| e as u64))
             .all(&self.db)
             .await
@@ -59,7 +59,7 @@ impl Creatable for SqliteCollectionRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
-        let collection = entity::collections::ActiveModel {
+        let collection = collections::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
@@ -84,10 +84,7 @@ impl Updatable for SqliteCollectionRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(collection) = entity::collections::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if collection.user_id != params.user_id.to_string() {
@@ -121,10 +118,7 @@ impl Deletable for SqliteCollectionRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(collection) = entity::collections::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if collection.user_id != params.user_id.to_string() {
@@ -202,8 +196,8 @@ SELECT b.id,
     }
 }
 
-impl From<entity::collections::Model> for Collection {
-    fn from(value: entity::collections::Model) -> Self {
+impl From<collections::Model> for Collection {
+    fn from(value: collections::Model) -> Self {
         Self {
             id: value.id.parse().unwrap(),
             title: value.title,

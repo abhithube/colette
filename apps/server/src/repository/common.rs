@@ -10,23 +10,23 @@ use sea_orm::{
 use url::Url;
 use uuid::Uuid;
 
-use super::entity;
+use super::entity::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
 
 pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     conn: &C,
     link: Url,
     xml_url: Option<Url>,
 ) -> Result<i32, DbErr> {
-    let feed = entity::feeds::ActiveModel {
+    let feed = feeds::ActiveModel {
         link: ActiveValue::Set(link.into()),
         xml_url: ActiveValue::Set(xml_url.map(Into::into)),
         ..Default::default()
     };
 
-    let mut keys = entity::feeds::Entity::insert(feed)
+    let mut keys = feeds::Entity::insert(feed)
         .on_conflict(
-            OnConflict::columns([entity::feeds::Column::Link])
-                .update_columns([entity::feeds::Column::XmlUrl])
+            OnConflict::columns([feeds::Column::Link])
+                .update_columns([feeds::Column::XmlUrl])
                 .to_owned(),
         )
         .exec_with_returning_keys(conn)
@@ -42,7 +42,7 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
 ) -> Result<(), DbErr> {
     let models = entries
         .into_iter()
-        .map(|e| entity::feed_entries::ActiveModel {
+        .map(|e| feed_entries::ActiveModel {
             link: ActiveValue::Set(e.link.into()),
             title: ActiveValue::Set(e.title),
             published_at: ActiveValue::Set(e.published.to_rfc3339()),
@@ -54,21 +54,18 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
         })
         .collect::<Vec<_>>();
 
-    entity::feed_entries::Entity::insert_many(models)
+    feed_entries::Entity::insert_many(models)
         .do_nothing()
         .on_conflict(
-            OnConflict::columns([
-                entity::feed_entries::Column::FeedId,
-                entity::feed_entries::Column::Link,
-            ])
-            .update_columns([
-                entity::feed_entries::Column::Title,
-                entity::feed_entries::Column::PublishedAt,
-                entity::feed_entries::Column::Description,
-                entity::feed_entries::Column::Author,
-                entity::feed_entries::Column::ThumbnailUrl,
-            ])
-            .to_owned(),
+            OnConflict::columns([feed_entries::Column::FeedId, feed_entries::Column::Link])
+                .update_columns([
+                    feed_entries::Column::Title,
+                    feed_entries::Column::PublishedAt,
+                    feed_entries::Column::Description,
+                    feed_entries::Column::Author,
+                    feed_entries::Column::ThumbnailUrl,
+                ])
+                .to_owned(),
         )
         .exec(conn)
         .await?;
@@ -79,13 +76,13 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
 pub struct FeedEntryToUserFeed;
 
 impl Linked for FeedEntryToUserFeed {
-    type FromEntity = entity::feed_entries::Entity;
-    type ToEntity = entity::user_feeds::Entity;
+    type FromEntity = feed_entries::Entity;
+    type ToEntity = user_feeds::Entity;
 
     fn link(&self) -> Vec<LinkDef> {
         vec![
-            entity::feeds::Relation::FeedEntries.def().rev(),
-            entity::feeds::Relation::UserFeeds.def(),
+            feeds::Relation::FeedEntries.def().rev(),
+            feeds::Relation::UserFeeds.def(),
         ]
     }
 }
@@ -94,15 +91,15 @@ pub(crate) async fn insert_many_user_feed_entries(
     tx: &DatabaseTransaction,
     feed_id: i32,
 ) -> Result<(), DbErr> {
-    let models = entity::feed_entries::Entity::find()
+    let models = feed_entries::Entity::find()
         .find_also_linked(FeedEntryToUserFeed)
-        .filter(entity::feed_entries::Column::FeedId.eq(feed_id))
+        .filter(feed_entries::Column::FeedId.eq(feed_id))
         .all(tx)
         .await
         .map(|e| {
             e.into_iter()
                 .filter_map(|(fe, uf)| {
-                    uf.map(|uf| entity::user_feed_entries::ActiveModel {
+                    uf.map(|uf| user_feed_entries::ActiveModel {
                         id: ActiveValue::Set(Uuid::new_v4().to_string()),
                         feed_entry_id: ActiveValue::Set(fe.id),
                         user_feed_id: ActiveValue::Set(uf.id),
@@ -113,11 +110,11 @@ pub(crate) async fn insert_many_user_feed_entries(
                 .collect::<Vec<_>>()
         })?;
 
-    entity::user_feed_entries::Entity::insert_many(models)
+    user_feed_entries::Entity::insert_many(models)
         .on_conflict(
             OnConflict::columns([
-                entity::user_feed_entries::Column::UserFeedId,
-                entity::user_feed_entries::Column::FeedEntryId,
+                user_feed_entries::Column::UserFeedId,
+                user_feed_entries::Column::FeedEntryId,
             ])
             .do_nothing()
             .to_owned(),
@@ -137,7 +134,7 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
     author: Option<String>,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let bookmark = entity::bookmarks::ActiveModel {
+    let bookmark = bookmarks::ActiveModel {
         id: ActiveValue::Set(Uuid::new_v4().into()),
         link: ActiveValue::Set(link.into()),
         title: ActiveValue::Set(title),
@@ -148,19 +145,16 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
         ..Default::default()
     };
 
-    let mut keys = entity::bookmarks::Entity::insert(bookmark)
+    let mut keys = bookmarks::Entity::insert(bookmark)
         .on_conflict(
-            OnConflict::columns([
-                entity::bookmarks::Column::UserId,
-                entity::bookmarks::Column::Link,
-            ])
-            .update_columns([
-                entity::bookmarks::Column::Title,
-                entity::bookmarks::Column::ThumbnailUrl,
-                entity::bookmarks::Column::PublishedAt,
-                entity::bookmarks::Column::Author,
-            ])
-            .to_owned(),
+            OnConflict::columns([bookmarks::Column::UserId, bookmarks::Column::Link])
+                .update_columns([
+                    bookmarks::Column::Title,
+                    bookmarks::Column::ThumbnailUrl,
+                    bookmarks::Column::PublishedAt,
+                    bookmarks::Column::Author,
+                ])
+                .to_owned(),
         )
         .exec_with_returning_keys(conn)
         .await?;
@@ -173,9 +167,9 @@ pub(crate) async fn upsert_tag(
     title: String,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let tag = entity::tags::Entity::find()
-        .filter(entity::tags::Column::UserId.eq(user_id.to_string()))
-        .filter(entity::tags::Column::Title.eq(title.clone()))
+    let tag = tags::Entity::find()
+        .filter(tags::Column::UserId.eq(user_id.to_string()))
+        .filter(tags::Column::Title.eq(title.clone()))
         .one(tx)
         .await?;
 
@@ -183,7 +177,7 @@ pub(crate) async fn upsert_tag(
         Some(tag) => tag.id.parse().unwrap(),
         _ => {
             let id = Uuid::new_v4();
-            let tag = entity::tags::ActiveModel {
+            let tag = tags::ActiveModel {
                 id: ActiveValue::Set(id.into()),
                 title: ActiveValue::Set(title),
                 user_id: ActiveValue::Set(user_id.into()),

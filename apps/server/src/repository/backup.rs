@@ -5,7 +5,10 @@ use sea_orm::{
 };
 use uuid::Uuid;
 
-use super::{common, entity};
+use super::{
+    common,
+    entity::{bookmark_tags, user_feed_tags, user_feeds},
+};
 
 #[derive(Debug, Clone)]
 pub struct SqliteBackupRepository {
@@ -50,9 +53,9 @@ impl BackupRepository for SqliteBackupRepository {
                 .await?;
 
                 let uf_id = {
-                    let user_feed = entity::user_feeds::Entity::find()
-                        .filter(entity::user_feeds::Column::FeedId.eq(feed_id))
-                        .filter(entity::user_feeds::Column::UserId.eq(user_id.to_string()))
+                    let user_feed = user_feeds::Entity::find()
+                        .filter(user_feeds::Column::FeedId.eq(feed_id))
+                        .filter(user_feeds::Column::UserId.eq(user_id.to_string()))
                         .one(&tx)
                         .await?;
 
@@ -60,7 +63,7 @@ impl BackupRepository for SqliteBackupRepository {
                         Some(tag) => tag.id.parse().unwrap(),
                         _ => {
                             let id = Uuid::new_v4();
-                            let user_feed = entity::user_feeds::ActiveModel {
+                            let user_feed = user_feeds::ActiveModel {
                                 id: ActiveValue::Set(id.into()),
                                 title: ActiveValue::Set(title),
                                 feed_id: ActiveValue::Set(feed_id),
@@ -75,13 +78,13 @@ impl BackupRepository for SqliteBackupRepository {
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let uft = entity::user_feed_tags::ActiveModel {
+                    let uft = user_feed_tags::ActiveModel {
                         user_feed_id: ActiveValue::Set(uf_id.into()),
                         tag_id: ActiveValue::Set(tag_id.into()),
                         user_id: ActiveValue::Set(user_id.into()),
                         ..Default::default()
                     };
-                    entity::user_feed_tags::Entity::insert(uft)
+                    user_feed_tags::Entity::insert(uft)
                         .on_conflict_do_nothing()
                         .exec(&tx)
                         .await?;
@@ -124,14 +127,14 @@ impl BackupRepository for SqliteBackupRepository {
                 .await?;
 
                 if let Some(tag_id) = parent_id {
-                    let bookmark_tag = entity::bookmark_tags::ActiveModel {
+                    let bookmark_tag = bookmark_tags::ActiveModel {
                         bookmark_id: ActiveValue::Set(bookmark_id.into()),
                         tag_id: ActiveValue::Set(tag_id.into()),
                         user_id: ActiveValue::Set(user_id.into()),
                         ..Default::default()
                     };
 
-                    entity::bookmark_tags::Entity::insert(bookmark_tag)
+                    bookmark_tags::Entity::insert(bookmark_tag)
                         .on_conflict_do_nothing()
                         .exec(&tx)
                         .await?;

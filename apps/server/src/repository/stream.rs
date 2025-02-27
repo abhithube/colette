@@ -16,7 +16,7 @@ use uuid::Uuid;
 
 use super::{
     common::{ToSql, parse_date},
-    entity,
+    entity::streams,
     feed_entry::FeedEntryRow,
 };
 
@@ -37,15 +37,15 @@ impl Findable for SqliteStreamRepository {
     type Output = Result<Vec<Stream>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let streams = entity::streams::Entity::find()
-            .filter(entity::streams::Column::UserId.eq(params.user_id.to_string()))
+        let streams = streams::Entity::find()
+            .filter(streams::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
-                query.filter(entity::streams::Column::Id.eq(id.to_string()))
+                query.filter(streams::Column::Id.eq(id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(entity::streams::Column::Title.gt(cursor.title))
+                query.filter(streams::Column::Title.gt(cursor.title))
             })
-            .order_by_asc(entity::streams::Column::Title)
+            .order_by_asc(streams::Column::Title)
             .limit(params.limit.map(|e| e as u64))
             .all(&self.db)
             .await
@@ -62,7 +62,7 @@ impl Creatable for SqliteStreamRepository {
 
     async fn create(&self, data: Self::Data) -> Self::Output {
         let id = Uuid::new_v4();
-        let stream = entity::streams::ActiveModel {
+        let stream = streams::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
@@ -87,10 +87,7 @@ impl Updatable for SqliteStreamRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(stream) = entity::streams::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if stream.user_id != params.user_id.to_string() {
@@ -124,10 +121,7 @@ impl Deletable for SqliteStreamRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(stream) = entity::streams::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if stream.user_id != params.user_id.to_string() {
@@ -199,8 +193,8 @@ impl StreamRepository for SqliteStreamRepository {
     }
 }
 
-impl From<entity::streams::Model> for Stream {
-    fn from(value: entity::streams::Model) -> Self {
+impl From<streams::Model> for Stream {
+    fn from(value: streams::Model) -> Self {
         Self {
             id: value.id.parse().unwrap(),
             title: value.title,

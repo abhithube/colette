@@ -20,7 +20,10 @@ use sqlx::{
 use url::Url;
 use uuid::{Uuid, fmt::Hyphenated};
 
-use super::{common, entity};
+use super::{
+    common,
+    entity::{feeds, user_feed_tags, user_feeds},
+};
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
@@ -149,11 +152,11 @@ impl Creatable for SqliteFeedRepository {
     async fn create(&self, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(feed) = entity::feeds::Entity::find()
+        let Some(feed) = feeds::Entity::find()
             .filter(
                 Condition::any()
-                    .add(entity::feeds::Column::Link.eq(data.url.to_string()))
-                    .add(entity::feeds::Column::XmlUrl.eq(data.url.to_string())),
+                    .add(feeds::Column::Link.eq(data.url.to_string()))
+                    .add(feeds::Column::XmlUrl.eq(data.url.to_string())),
             )
             .one(&tx)
             .await?
@@ -162,7 +165,7 @@ impl Creatable for SqliteFeedRepository {
         };
 
         let id = Uuid::new_v4();
-        let user_feed = entity::user_feeds::ActiveModel {
+        let user_feed = user_feeds::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title),
             user_id: ActiveValue::Set(data.user_id.into()),
@@ -195,10 +198,7 @@ impl Updatable for SqliteFeedRepository {
     async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(feed) = entity::user_feeds::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if feed.user_id != params.user_id.to_string() {
@@ -233,10 +233,7 @@ impl Deletable for SqliteFeedRepository {
     async fn delete(&self, params: Self::Params) -> Self::Output {
         let tx = self.db.begin().await?;
 
-        let Some(user_feed) = entity::user_feeds::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
+        let Some(user_feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
             return Err(Error::NotFound(params.id));
         };
         if user_feed.user_id != params.user_id.to_string() {
@@ -276,15 +273,15 @@ impl FeedRepository for SqliteFeedRepository {
     }
 
     async fn stream_urls(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
-        let urls = entity::feeds::Entity::find()
+        let urls = feeds::Entity::find()
             .expr_as(
                 Func::coalesce([
-                    Expr::col(entity::feeds::Column::XmlUrl).into(),
-                    Expr::col(entity::feeds::Column::Link).into(),
+                    Expr::col(feeds::Column::XmlUrl).into(),
+                    Expr::col(feeds::Column::Link).into(),
                 ]),
                 "url",
             )
-            .inner_join(entity::user_feeds::Entity)
+            .inner_join(user_feeds::Entity)
             .into_tuple::<String>()
             .stream(&self.db)
             .await?
@@ -305,18 +302,18 @@ async fn link_tags(
     let user_id = user_id.to_string();
     let tag_ids = tags.iter().map(|e| e.to_string());
 
-    entity::user_feed_tags::Entity::delete_many()
-        .filter(entity::user_feed_tags::Column::TagId.is_not_in(tag_ids.clone()))
+    user_feed_tags::Entity::delete_many()
+        .filter(user_feed_tags::Column::TagId.is_not_in(tag_ids.clone()))
         .exec(tx)
         .await?;
 
-    let models = tag_ids.map(|e| entity::user_feed_tags::ActiveModel {
+    let models = tag_ids.map(|e| user_feed_tags::ActiveModel {
         user_feed_id: ActiveValue::Set(user_feed_id.clone()),
         tag_id: ActiveValue::Set(e),
         user_id: ActiveValue::Set(user_id.clone()),
         ..Default::default()
     });
-    entity::user_feed_tags::Entity::insert_many(models)
+    user_feed_tags::Entity::insert_many(models)
         .on_conflict_do_nothing()
         .exec(tx)
         .await?;
