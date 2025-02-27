@@ -307,7 +307,7 @@ impl BookmarkService {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkListQuery {
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
 }
 
@@ -318,7 +318,7 @@ pub struct BookmarkCreate {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -327,7 +327,7 @@ pub struct BookmarkUpdate {
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<BookmarkUpdate> for BookmarkUpdateData {

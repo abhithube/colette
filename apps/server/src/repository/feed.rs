@@ -9,9 +9,9 @@ use colette_core::{
 };
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DbErr, EntityTrait,
-    IntoActiveModel, ModelTrait, QueryFilter, QuerySelect, RuntimeErr, TransactionTrait,
-    prelude::Expr, sea_query::Func,
+    ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction,
+    DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QuerySelect, RuntimeErr,
+    TransactionTrait, prelude::Expr, sea_query::Func,
 };
 use sqlx::{
     QueryBuilder,
@@ -84,9 +84,9 @@ SELECT uf.id,
         }
         if let Some(tags) = params.tags {
             let mut separated = qb.separated(", ");
-            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM user_feed_tags uft JOIN tags t ON t.id = uft.tag_id WHERE uft.user_feed_id = b.id AND t.title in (");
-            for tag in tags {
-                separated.push_bind(tag);
+            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM user_feed_tags uft WHERE uft.user_feed_id = b.id AND uft.tag_id in (");
+            for id in tags {
+                separated.push_bind(id);
             }
             separated.push(")");
         }
@@ -176,18 +176,9 @@ impl Creatable for SqliteFeedRepository {
 
         common::insert_many_user_feed_entries(&tx, feed.id).await?;
 
-        // if let Some(tags) = data.tags {
-        //     if !tags.is_empty() {
-        //         sqlx::query_file_scalar!(
-        //             "queries/user_feed_tags/link.sql",
-        //             &tags,
-        //             data.user_id,
-        //             uf_id,
-        //         )
-        //         .execute(&mut *tx)
-        //         .await?;
-        //     }
-        // }
+        if let Some(tags) = data.tags {
+            link_tags(&tx, tags, id, data.user_id).await?;
+        }
 
         tx.commit().await?;
 
@@ -224,20 +215,11 @@ impl Updatable for SqliteFeedRepository {
             feed.update(&tx).await?;
         }
 
-        tx.commit().await?;
+        if let Some(tags) = data.tags {
+            link_tags(&tx, tags, params.id, params.user_id).await?;
+        }
 
-        // if let Some(tags) = data.tags {
-        //     if !tags.is_empty() {
-        //         sqlx::query_file_scalar!(
-        //             "queries/user_feed_tags/link.sql",
-        //             &tags,
-        //             params.user_id,
-        //             params.id
-        //         )
-        //         .execute(&mut *tx)
-        //         .await?;
-        //     }
-        // }
+        tx.commit().await?;
 
         Ok(())
     }
@@ -311,6 +293,35 @@ impl FeedRepository for SqliteFeedRepository {
 
         Ok(urls)
     }
+}
+
+async fn link_tags(
+    tx: &DatabaseTransaction,
+    tags: Vec<Uuid>,
+    user_feed_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), DbErr> {
+    let user_feed_id = user_feed_id.to_string();
+    let user_id = user_id.to_string();
+    let tag_ids = tags.iter().map(|e| e.to_string());
+
+    entity::user_feed_tags::Entity::delete_many()
+        .filter(entity::user_feed_tags::Column::TagId.is_not_in(tag_ids.clone()))
+        .exec(tx)
+        .await?;
+
+    let models = tag_ids.map(|e| entity::user_feed_tags::ActiveModel {
+        user_feed_id: ActiveValue::Set(user_feed_id.clone()),
+        tag_id: ActiveValue::Set(e),
+        user_id: ActiveValue::Set(user_id.clone()),
+        ..Default::default()
+    });
+    entity::user_feed_tags::Entity::insert_many(models)
+        .on_conflict_do_nothing()
+        .exec(tx)
+        .await?;
+
+    Ok(())
 }
 
 #[derive(sqlx::FromRow)]

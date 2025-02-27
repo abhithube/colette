@@ -98,9 +98,9 @@ export const TagsInner: FC<{
         <CommandGroup heading="Results">
           {query.data?.data.map((tag) => (
             <CommandItem
-              key={tag.title}
+              key={tag.id}
               className="justify-between"
-              value={tag.title}
+              value={tag.id}
               onSelect={(value) =>
                 props.handleChange((curr) =>
                   curr.includes(value)
@@ -110,7 +110,7 @@ export const TagsInner: FC<{
               }
             >
               {tag.title}
-              {props.state.value.includes(tag.title) && <Check />}
+              {props.state.value.includes(tag.id) && <Check />}
             </CommandItem>
           ))}
         </CommandGroup>

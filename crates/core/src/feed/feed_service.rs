@@ -194,20 +194,20 @@ impl FeedService {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedListQuery {
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct FeedCreate {
     pub url: Url,
     pub title: String,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedUpdate {
     pub title: Option<String>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<FeedUpdate> for FeedUpdateData {

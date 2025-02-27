@@ -6,6 +6,7 @@ use axum::{
 };
 use colette_core::feed;
 use url::Url;
+use uuid::Uuid;
 
 use super::{FEEDS_TAG, Feed};
 use crate::api::{
@@ -45,8 +46,8 @@ pub struct FeedCreate {
     pub url: Url,
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    #[schema(value_type = Option<Vec<String>>, min_length = 1, nullable = false)]
-    pub tags: Option<Vec<NonEmptyString>>,
+    #[schema(nullable = false)]
+    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<FeedCreate> for feed::FeedCreate {
@@ -54,7 +55,7 @@ impl From<FeedCreate> for feed::FeedCreate {
         Self {
             url: value.url,
             title: value.title.into(),
-            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            tags: value.tags,
         }
     }
 }

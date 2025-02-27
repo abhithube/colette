@@ -8,7 +8,7 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, IntoActiveModel,
     ModelTrait, RuntimeErr, TransactionTrait,
 };
-use uuid::Uuid;
+use uuid::{Uuid, fmt::Hyphenated};
 
 use super::entity;
 
@@ -29,7 +29,9 @@ impl Findable for SqliteTagRepository {
     type Output = Result<Vec<Tag>, Error>;
 
     async fn find(&self, params: Self::Params) -> Self::Output {
-        let skip_id = params.id.is_none();
+        let id = params.id.map(Hyphenated::from);
+        let user_id = Hyphenated::from(params.user_id);
+        let skip_id = id.is_none();
 
         let mut skip_cursor = true;
         let mut cursor_title = Option::<String>::None;
@@ -52,7 +54,7 @@ bookmark_count AS (
    WHERE bt.user_id = $1
    GROUP BY bt.tag_id
 )
-SELECT t.id AS "id: Uuid",
+SELECT t.id AS "id: Hyphenated",
        t.title,
        t.created_at AS "created_at: DateTime<Utc>",
        t.updated_at AS "updated_at: DateTime<Utc>",
@@ -66,9 +68,9 @@ SELECT t.id AS "id: Uuid",
    AND ($4 OR t.title > $5)
  ORDER BY t.title ASC
  LIMIT coalesce($6, -1)"#,
-            params.user_id,
+            user_id,
             skip_id,
-            params.id,
+            id,
             skip_cursor,
             cursor_title,
             params.limit

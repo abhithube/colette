@@ -18,7 +18,7 @@ pub struct FeedEntryFindParams {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,

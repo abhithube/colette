@@ -5,6 +5,7 @@ use axum::{
 };
 use axum_extra::extract::Query;
 use colette_core::bookmark;
+use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, Bookmark};
 use crate::api::{
@@ -50,9 +51,9 @@ pub async fn handler(
 pub struct BookmarkListQuery {
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
+    #[param(nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

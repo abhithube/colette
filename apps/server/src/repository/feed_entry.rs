@@ -50,16 +50,14 @@ impl Findable for SqliteFeedEntryRepository {
                     Query::select()
                         .expr(Expr::val(1))
                         .from(entity::user_feed_tags::Entity)
-                        .inner_join(
-                            entity::tags::Entity,
-                            Expr::col(entity::tags::Column::Id)
-                                .eq(Expr::col(entity::user_feed_tags::Column::TagId)),
-                        )
                         .and_where(
                             Expr::col(entity::user_feed_tags::Column::UserFeedId)
                                 .eq(Expr::col(entity::user_feed_entries::Column::UserFeedId)),
                         )
-                        .and_where(entity::tags::Column::Title.is_in(tags))
+                        .and_where(
+                            entity::user_feed_tags::Column::TagId
+                                .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
+                        )
                         .to_owned(),
                 ))
             })

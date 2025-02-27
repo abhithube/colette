@@ -1,8 +1,8 @@
-import { TagsInput } from '../../../components/tags-input'
 import type { Bookmark } from '@colette/core'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { type FC, useEffect } from 'react'
+import { TagsInput } from '~/components/tags-input'
 import { Button } from '~/components/ui/button'
 import {
   DialogContent,
@@ -19,7 +19,7 @@ export const EditBookmarkModal: FC<{
 }> = (props) => {
   const form = useForm({
     defaultValues: {
-      tags: props.bookmark.tags?.map((tag) => tag.title) ?? [],
+      tags: props.bookmark.tags?.map((tag) => tag.id) ?? [],
     },
     onSubmit: ({ value }) => {
       let tags: string[] | undefined = value.tags
@@ -27,9 +27,7 @@ export const EditBookmarkModal: FC<{
         const current = props.bookmark.tags
         if (
           tags?.length === current.length &&
-          tags.every(
-            (title) => current.find((tag) => tag.title === title) !== undefined,
-          )
+          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
         ) {
           tags = undefined
         }

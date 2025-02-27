@@ -48,9 +48,9 @@ pub struct FeedEntryListQuery {
     pub smart_feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
-    #[param(min_length = 1, nullable = false)]
+    #[param(nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
 }

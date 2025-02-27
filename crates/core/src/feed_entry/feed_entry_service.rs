@@ -96,7 +96,7 @@ pub struct FeedEntryListQuery {
     pub feed_id: Option<Uuid>,
     pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
 }
 

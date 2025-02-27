@@ -21,7 +21,7 @@ pub trait BookmarkRepository:
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkFindParams {
     pub id: Option<Uuid>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
@@ -34,7 +34,7 @@ pub struct BookmarkCreateData {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,
 }
 
@@ -45,7 +45,7 @@ pub struct BookmarkUpdateData {
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
     pub archived_path: Option<Option<String>>,
-    pub tags: Option<Vec<String>>,
+    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone)]

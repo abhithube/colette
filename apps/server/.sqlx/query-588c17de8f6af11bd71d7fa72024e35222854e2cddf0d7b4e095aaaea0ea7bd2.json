@@ -1,0 +1,50 @@
+{
+  "db_name": "SQLite",
+  "query": "WITH feed_count AS (\n  SELECT uft.tag_id, coalesce(count(uft.user_feed_id), 0) AS count\n    FROM user_feed_tags uft\n   WHERE uft.user_id = $1\n   GROUP BY uft.tag_id\n),\nbookmark_count AS (\n  SELECT bt.tag_id, coalesce(count(bt.bookmark_id), 0) AS count\n    FROM bookmark_tags bt\n   WHERE bt.user_id = $1\n   GROUP BY bt.tag_id\n)\nSELECT t.id AS \"id: Hyphenated\",\n       t.title,\n       t.created_at AS \"created_at: DateTime<Utc>\",\n       t.updated_at AS \"updated_at: DateTime<Utc>\",\n       fc.count AS \"feed_count: i64\",\n       bc.count AS \"bookmark_count: i64\"\n  FROM tags t\n  LEFT JOIN feed_count fc ON fc.tag_id = t.id\n  LEFT JOIN bookmark_count bc ON bc.tag_id = t.id\n WHERE t.user_id = $1\n   AND ($2 OR t.id = $3)\n   AND ($4 OR t.title > $5)\n ORDER BY t.title ASC\n LIMIT coalesce($6, -1)",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: Hyphenated",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "created_at: DateTime<Utc>",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "updated_at: DateTime<Utc>",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "feed_count: i64",
+        "ordinal": 4,
+        "type_info": "Null"
+      },
+      {
+        "name": "bookmark_count: i64",
+        "ordinal": 5,
+        "type_info": "Null"
+      }
+    ],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      null,
+      null
+    ]
+  },
+  "hash": "588c17de8f6af11bd71d7fa72024e35222854e2cddf0d7b4e095aaaea0ea7bd2"
+}

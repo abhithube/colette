@@ -9,8 +9,8 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, IntoActiveModel,
-    ModelTrait, RuntimeErr, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
+    EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, RuntimeErr, TransactionTrait,
 };
 use sqlx::{
     QueryBuilder,
@@ -77,9 +77,9 @@ SELECT b.id,
         }
         if let Some(tags) = params.tags {
             let mut separated = qb.separated(", ");
-            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM bookmark_tags bt JOIN tags t ON t.id = bt.tag_id WHERE bt.bookmark_id = b.id AND t.title in (");
-            for tag in tags {
-                separated.push_bind(tag);
+            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM bookmark_tags bt WHERE bt.bookmark_id = b.id AND bt.tag_id in (");
+            for id in tags {
+                separated.push_bind(id);
             }
             separated.push(")");
         }
@@ -111,6 +111,7 @@ impl Creatable for SqliteBookmarkRepository {
         let tx = self.db.begin().await?;
 
         let id = Uuid::new_v4();
+        let user_id = data.user_id.to_string();
         let bookmark = entity::bookmarks::ActiveModel {
             id: ActiveValue::Set(id.into()),
             link: ActiveValue::Set(data.url.to_string()),
@@ -118,26 +119,17 @@ impl Creatable for SqliteBookmarkRepository {
             thumbnail_url: ActiveValue::Set(data.thumbnail_url.map(Into::into)),
             published_at: ActiveValue::Set(data.published_at.map(|e| e.to_rfc3339())),
             author: ActiveValue::Set(data.author),
-            user_id: ActiveValue::Set(data.user_id.into()),
+            user_id: ActiveValue::Set(user_id.clone()),
             ..Default::default()
         };
-        bookmark.insert(&self.db).await.map_err(|e| match e {
+        bookmark.insert(&tx).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(data.url),
             _ => Error::Database(e),
         })?;
 
-        // if let Some(tags) = data.tags {
-        //     if !tags.is_empty() {
-        //         sqlx::query_file_scalar!(
-        //             "queries/bookmark_tags/link.sql",
-        //             &tags,
-        //             data.user_id,
-        //             bookmark_id
-        //         )
-        //         .execute(&mut *tx)
-        //         .await?;
-        //     }
-        // }
+        if let Some(tags) = data.tags {
+            link_tags(&tx, tags, id, data.user_id).await?;
+        }
 
         tx.commit().await?;
 
@@ -186,18 +178,9 @@ impl Updatable for SqliteBookmarkRepository {
             bookmark.update(&tx).await?;
         }
 
-        // if let Some(tags) = data.tags {
-        //     if !tags.is_empty() {
-        //         sqlx::query_file_scalar!(
-        //             "queries/bookmark_tags/link.sql",
-        // &tags,
-        // params.user_id,
-        // params.id
-        //         )
-        //         .execute(&mut *tx)
-        //         .await?;
-        //     }
-        // }
+        if let Some(tags) = data.tags {
+            link_tags(&tx, tags, params.id, params.user_id).await?;
+        }
 
         tx.commit().await?;
 
@@ -247,6 +230,35 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         Ok(())
     }
+}
+
+async fn link_tags(
+    tx: &DatabaseTransaction,
+    tags: Vec<Uuid>,
+    bookmark_id: Uuid,
+    user_id: Uuid,
+) -> Result<(), DbErr> {
+    let bookmark_id = bookmark_id.to_string();
+    let user_id = user_id.to_string();
+    let tag_ids = tags.iter().map(|e| e.to_string());
+
+    entity::bookmark_tags::Entity::delete_many()
+        .filter(entity::bookmark_tags::Column::TagId.is_not_in(tag_ids.clone()))
+        .exec(tx)
+        .await?;
+
+    let models = tag_ids.map(|e| entity::bookmark_tags::ActiveModel {
+        bookmark_id: ActiveValue::Set(bookmark_id.clone()),
+        tag_id: ActiveValue::Set(e),
+        user_id: ActiveValue::Set(user_id.clone()),
+        ..Default::default()
+    });
+    entity::bookmark_tags::Entity::insert_many(models)
+        .on_conflict_do_nothing()
+        .exec(tx)
+        .await?;
+
+    Ok(())
 }
 
 #[derive(sqlx::FromRow)]

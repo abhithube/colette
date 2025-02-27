@@ -1,10 +1,10 @@
-import { TagsInput } from '../../../components/tags-input'
 import type { Feed } from '@colette/core'
 import { useUpdateFeedMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { type FC, useEffect } from 'react'
 import { z } from 'zod'
 import { FormDescription, FormMessage } from '~/components/form'
+import { TagsInput } from '~/components/tags-input'
 import { Button } from '~/components/ui/button'
 import {
   DialogContent,
@@ -23,7 +23,7 @@ export const EditFeedModal: FC<{
   const form = useForm({
     defaultValues: {
       title: props.feed.title,
-      tags: props.feed.tags?.map((tag) => tag.title) ?? [],
+      tags: props.feed.tags?.map((tag) => tag.id) ?? [],
     },
     onSubmit: ({ value }) => {
       let tags: string[] | undefined = value.tags
@@ -31,9 +31,7 @@ export const EditFeedModal: FC<{
         const current = props.feed.tags
         if (
           tags?.length === current.length &&
-          tags.every(
-            (title) => current.find((tag) => tag.title === title) !== undefined,
-          )
+          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
         ) {
           tags = undefined
         }
@@ -95,7 +93,7 @@ export const EditFeedModal: FC<{
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormDescription>Custom title</FormDescription>
+                <FormDescription>Title</FormDescription>
                 <FormMessage>
                   {field.state.meta.errors[0]?.toString()}
                 </FormMessage>
