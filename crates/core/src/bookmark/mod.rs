@@ -1,4 +1,3 @@
-use apalis_redis::RedisError;
 pub use bookmark_repository::*;
 pub use bookmark_scraper::*;
 pub use bookmark_service::*;
@@ -9,7 +8,7 @@ use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
-use crate::Tag;
+use crate::{Tag, worker};
 
 mod bookmark_repository;
 mod bookmark_scraper;
@@ -58,8 +57,8 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Job(#[from] worker::Error),
 
     #[error(transparent)]
-    Redis(#[from] RedisError),
+    Database(#[from] DbErr),
 }

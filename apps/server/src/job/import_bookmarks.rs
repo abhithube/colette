@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use apalis::prelude::Data;
-use colette_core::{backup::ImportBookmarksJob, bookmark::ScrapeBookmarkJob, storage::DynStorage};
+use colette_core::{backup::ImportBookmarksJob, bookmark::ScrapeBookmarkJob, worker::Storage};
 use tokio::sync::Mutex;
 
 pub async fn run(
     job: ImportBookmarksJob,
-    data: Data<Arc<Mutex<DynStorage<ScrapeBookmarkJob>>>>,
+    data: Data<Arc<Mutex<dyn Storage<ScrapeBookmarkJob>>>>,
 ) -> Result<(), apalis::prelude::Error> {
     tracing::debug!("Importing {} bookmarks", job.urls.len());
 

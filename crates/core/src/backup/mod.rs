@@ -1,7 +1,8 @@
-use apalis_redis::RedisError;
 pub use backup_repository::*;
 pub use backup_service::*;
 use sea_orm::DbErr;
+
+use crate::worker;
 
 mod backup_repository;
 mod backup_service;
@@ -15,8 +16,8 @@ pub enum Error {
     Netscape(#[from] colette_netscape::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Job(#[from] worker::Error),
 
     #[error(transparent)]
-    Redis(#[from] RedisError),
+    Database(#[from] DbErr),
 }

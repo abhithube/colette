@@ -11,15 +11,15 @@ use super::{Error, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
-    storage::DynStorage,
+    worker::Storage,
 };
 
 pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     feed_repository: Box<dyn FeedRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
-    import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
-    import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
+    import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
+    import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
 }
 
 impl BackupService {
@@ -27,8 +27,8 @@ impl BackupService {
         backup_repository: impl BackupRepository,
         feed_repository: impl FeedRepository,
         bookmark_repository: impl BookmarkRepository,
-        import_feeds_storage: Arc<Mutex<DynStorage<ImportFeedsJob>>>,
-        import_bookmarks_storage: Arc<Mutex<DynStorage<ImportBookmarksJob>>>,
+        import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
+        import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),

@@ -9,7 +9,6 @@ apalis = { version = "0.6.4", default-features = false, features = [
   "tracing",
 ] }
 apalis-cron = { version = "0.6.4", default-features = false }
-apalis-redis.workspace = true
 async-trait.workspace = true
 axum = { version = "0.8.1", default-features = false, features = [
   "http1",
@@ -32,13 +31,14 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-util.workspace = true
+colette-worker.workspace = true
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 object_store.workspace = true
-redis = { version = "0.27.6", default-features = false, features = [
+redis = { version = "0.29", default-features = false, features = [
   "tokio-rustls-comp",
   "tls-rustls-webpki-roots",
 ] }

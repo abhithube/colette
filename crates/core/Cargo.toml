@@ -4,8 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-apalis-core = { version = "0.6.4", default-features = false }
-apalis-redis.workspace = true
+apalis-core.workspace = true
 async-trait.workspace = true
 bytes.workspace = true
 chrono.workspace = true

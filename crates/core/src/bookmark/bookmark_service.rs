@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     common::{IdParams, PAGINATION_LIMIT, Paginated},
-    storage::DynStorage,
+    worker::Storage,
 };
 
 const BOOKMARKS_DIR: &str = "bookmarks";
@@ -26,7 +26,7 @@ pub struct BookmarkService {
     repository: Box<dyn BookmarkRepository>,
     client: Box<dyn HttpClient>,
     object_store: Box<dyn ObjectStore>,
-    archive_thumbnail_storage: Arc<Mutex<DynStorage<ArchiveThumbnailJob>>>,
+    archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }
 
@@ -35,7 +35,7 @@ impl BookmarkService {
         repository: impl BookmarkRepository,
         http_client: impl HttpClient,
         object_store: impl ObjectStore,
-        archive_thumbnail_storage: Arc<Mutex<DynStorage<ArchiveThumbnailJob>>>,
+        archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
         Self {

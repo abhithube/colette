@@ -5,7 +5,6 @@ use apalis::{
     prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
 };
 use apalis_cron::CronStream;
-use apalis_redis::RedisStorage;
 use api::{
     ApiState,
     api_key::ApiKeyApi,
@@ -31,6 +30,7 @@ use colette_core::{
 };
 use colette_http::ReqwestClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_worker::SqliteStorageAdapter;
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
@@ -78,6 +78,7 @@ pub struct AppConfig {
     #[serde(default = "default_port")]
     pub port: u32,
     pub database_url: Option<Cow<'static, str>>,
+    pub jobs_database_url: Option<Cow<'static, str>>,
     #[serde(default = "default_redis_enabled")]
     pub redis_enabled: bool,
     pub redis_url: String,
@@ -161,18 +162,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = envy::from_env::<AppConfig>()?;
 
-    let opts = match app_config.database_url {
-        Some(database_url) => SqliteConnectOptions::from_str(&database_url)?,
-        _ => SqliteConnectOptions::new(),
-    };
-    let pool = Pool::<Sqlite>::connect_with(
-        opts.create_if_missing(true)
-            .journal_mode(SqliteJournalMode::Wal), // .extension("uuid"),
-    )
-    .await?;
-    sqlx::migrate!("../../migrations").run(&pool).await?;
+    let app_pool = {
+        let options = match app_config.database_url {
+            Some(database_url) => {
+                SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
+            }
+            _ => SqliteConnectOptions::new(),
+        };
+        let pool = Pool::<Sqlite>::connect_with(
+            options
+                .create_if_missing(true)
+                .journal_mode(SqliteJournalMode::Wal),
+        )
+        .await?;
 
-    let db_conn = DatabaseConnection::from(pool.clone());
+        sqlx::migrate!("../../migrations").run(&pool).await?;
+
+        pool
+    };
+
+    let db_conn = DatabaseConnection::from(app_pool);
 
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
@@ -196,14 +205,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_allow_http(true)
         .build()?;
 
-    let redis = redis::Client::open(app_config.redis_url)?;
-    let redis_manager = redis.get_connection_manager().await?;
+    let job_pool = {
+        let options = match app_config.jobs_database_url {
+            Some(database_url) => {
+                SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
+            }
+            _ => SqliteConnectOptions::new(),
+        };
+        let pool = Pool::<Sqlite>::connect_with(options.create_if_missing(true)).await?;
 
-    let scrape_feed_storage = RedisStorage::new(redis_manager.clone());
-    let scrape_bookmark_storage = RedisStorage::new(redis_manager.clone());
-    let archive_thumbnail_storage = RedisStorage::new(redis_manager.clone());
-    let import_feeds_storage = RedisStorage::new(redis_manager.clone());
-    let import_bookmarks_storage = RedisStorage::new(redis_manager);
+        SqliteStorageAdapter::setup(&pool).await?;
+
+        pool
+    };
+
+    let scrape_feed_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let scrape_bookmark_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let archive_thumbnail_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let import_feeds_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let import_bookmarks_storage = SqliteStorageAdapter::new(job_pool);
 
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
@@ -338,6 +358,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .collect();
 
     let (session_store, deletion_task) = if app_config.redis_enabled {
+        let redis = redis::Client::open(app_config.redis_url)?;
         let redis_conn = redis.get_multiplexed_async_connection().await?;
         (AppSessionStore::Redis(RedisStore::new(redis_conn)), None)
     } else {
