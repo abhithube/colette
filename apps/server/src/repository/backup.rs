@@ -1,14 +1,12 @@
 use colette_core::backup::{BackupRepository, Error};
+use colette_model::{bookmark_tags, user_feed_tags, user_feeds};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
     TransactionTrait,
 };
 use uuid::Uuid;
 
-use super::{
-    common,
-    entity::{bookmark_tags, user_feed_tags, user_feeds},
-};
+use super::common;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBackupRepository {

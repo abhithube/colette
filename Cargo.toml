@@ -5,6 +5,7 @@ members = [
   "crates/feed",
   "crates/http",
   "crates/meta",
+  "crates/model",
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
@@ -24,6 +25,7 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "std",
 ] }
 colette-core.path = "crates/core"
+colette-model.path = "crates/model"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
 colette-meta.path = "crates/meta"

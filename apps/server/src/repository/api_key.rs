@@ -6,13 +6,12 @@ use colette_core::{
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
+use colette_model::api_keys;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
 };
 use uuid::Uuid;
-
-use super::{common::parse_timestamp, entity::api_keys};
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -137,26 +136,5 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             .map(|e| e.map(Into::into))?;
 
         Ok(api_key)
-    }
-}
-
-impl From<api_keys::Model> for ApiKey {
-    fn from(value: api_keys::Model) -> Self {
-        Self {
-            id: value.id.parse().unwrap(),
-            title: value.title,
-            preview: value.preview,
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.created_at),
-        }
-    }
-}
-
-impl From<api_keys::Model> for ApiKeySearched {
-    fn from(value: api_keys::Model) -> Self {
-        Self {
-            verification_hash: value.verification_hash,
-            user_id: value.user_id.parse().unwrap(),
-        }
     }
 }

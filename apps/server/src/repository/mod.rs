@@ -6,9 +6,6 @@ pub mod collection;
 pub mod common;
 pub mod feed;
 pub mod feed_entry;
-#[allow(unused_imports)]
-#[rustfmt::skip]
-pub(crate) mod entity;
 pub mod stream;
 pub mod tag;
 pub mod user;

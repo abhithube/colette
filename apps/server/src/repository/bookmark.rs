@@ -8,6 +8,7 @@ use colette_core::{
     collection::{BookmarkDateField, BookmarkFilter, BookmarkTextField},
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
+use colette_model::{bookmark_tags, bookmarks};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
     EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, RuntimeErr, TransactionTrait,
@@ -19,10 +20,7 @@ use sqlx::{
 use url::Url;
 use uuid::{Uuid, fmt::Hyphenated};
 
-use super::{
-    common::{self, ToColumn, ToSql},
-    entity::{bookmark_tags, bookmarks},
-};
+use super::common::{self, ToColumn, ToSql};
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {

@@ -3,10 +3,9 @@ use colette_core::{
     accounts::{AccountCreateData, AccountFindParams, AccountRepository, Error},
     common::{Creatable, Findable},
 };
+use colette_model::{AccountWithUser, accounts, users};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, TransactionTrait};
 use uuid::Uuid;
-
-use super::entity::{accounts, users};
 
 #[derive(Clone)]
 pub struct SqliteAccountRepository {
@@ -71,20 +70,3 @@ impl Creatable for SqliteAccountRepository {
 }
 
 impl AccountRepository for SqliteAccountRepository {}
-
-struct AccountWithUser {
-    account: accounts::Model,
-    user: users::Model,
-}
-
-impl From<AccountWithUser> for Account {
-    fn from(value: AccountWithUser) -> Self {
-        Self {
-            id: value.user.id.parse().unwrap(),
-            email: value.user.email,
-            provider_id: value.account.provider_id,
-            account_id: value.account.account_id,
-            password_hash: value.account.password_hash,
-        }
-    }
-}

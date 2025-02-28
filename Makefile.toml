@@ -9,7 +9,17 @@ args = ["run"]
 command = "cargo"
 args = ["build", "--release"]
 
-[tasks.migrate]
+[tasks.migrate-db]
+install_crate = "sqlx-cli"
+command = "sqlx"
+args = ["migrate", "run"]
+
+[tasks.reset-db]
+install_crate = "sqlx-cli"
+command = "sqlx"
+args = ["db", "reset"]
+
+[tasks.generate-migrate]
 command = "atlas"
 args = [
   "migrate",
@@ -22,6 +32,11 @@ args = [
   "--dev-url",
   "sqlite://dev?mode=memory",
 ]
+
+[tasks.generate-models]
+install_crate = true
+command = "sea-orm-cli"
+args = ["generate", "entity", "-o", "./crates/model/src/entity"]
 
 [tasks.build-docker]
 command = "docker"

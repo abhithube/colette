@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use colette_model::sessions;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DatabaseTransaction, DbErr, EntityTrait,
     QueryFilter, TransactionTrait, prelude::Expr, sea_query::OnConflict,
@@ -8,8 +9,6 @@ use tower_sessions_core::{
     session::{Id, Record},
     session_store::{self, ExpiredDeletion},
 };
-
-use crate::repository::entity::sessions;
 
 #[derive(Debug, Clone)]
 pub struct SqliteStore {

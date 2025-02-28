@@ -6,6 +6,7 @@ use colette_core::{
     },
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
 };
+use colette_model::collections;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
     IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RuntimeErr,
@@ -14,7 +15,6 @@ use sea_orm::{
 use sqlx::QueryBuilder;
 use uuid::Uuid;
 
-use super::{common::parse_timestamp, entity::collections};
 use crate::repository::{bookmark::BookmarkRow, common::ToSql};
 
 #[derive(Debug, Clone)]
@@ -193,17 +193,5 @@ SELECT b.id,
             .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
         Ok(bookmarks)
-    }
-}
-
-impl From<collections::Model> for Collection {
-    fn from(value: collections::Model) -> Self {
-        Self {
-            id: value.id.parse().unwrap(),
-            title: value.title,
-            filter: serde_json::from_str(&value.filter_raw).unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
-        }
     }
 }

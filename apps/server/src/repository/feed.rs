@@ -7,6 +7,7 @@ use colette_core::{
         FeedUpdateData,
     },
 };
+use colette_model::{feeds, user_feed_tags, user_feeds};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction,
@@ -20,10 +21,7 @@ use sqlx::{
 use url::Url;
 use uuid::{Uuid, fmt::Hyphenated};
 
-use super::{
-    common,
-    entity::{feeds, user_feed_tags, user_feeds},
-};
+use super::common;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {

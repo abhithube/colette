@@ -4,13 +4,12 @@ use colette_core::{
     common::{Creatable, Deletable, Findable, IdParams, Updatable},
     tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
 };
+use colette_model::tags;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, IntoActiveModel,
     ModelTrait, RuntimeErr, TransactionTrait,
 };
 use uuid::{Uuid, fmt::Hyphenated};
-
-use super::entity::tags;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {

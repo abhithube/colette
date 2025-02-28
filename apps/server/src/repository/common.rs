@@ -3,14 +3,13 @@ use colette_core::{
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
+use colette_model::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, DbErr,
     EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait, sea_query::OnConflict,
 };
 use url::Url;
 use uuid::Uuid;
-
-use super::entity::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
 
 pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     conn: &C,

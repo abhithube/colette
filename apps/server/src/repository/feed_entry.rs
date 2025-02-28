@@ -5,6 +5,7 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     stream::{FeedEntryBooleanField, FeedEntryDateField, FeedEntryFilter, FeedEntryTextField},
 };
+use colette_model::{feed_entries, user_feed_entries, user_feed_tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait, prelude::Expr,
@@ -14,10 +15,7 @@ use sqlx::types::Text;
 use url::Url;
 use uuid::Uuid;
 
-use super::{
-    common::{ToColumn, ToSql, parse_timestamp},
-    entity::{feed_entries, user_feed_entries, user_feed_tags},
-};
+use super::common::{ToColumn, ToSql, parse_timestamp};
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {

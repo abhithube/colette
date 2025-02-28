@@ -6,6 +6,7 @@ use colette_core::{
         StreamUpdateData,
     },
 };
+use colette_model::streams;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
     IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RuntimeErr,
@@ -14,11 +15,7 @@ use sea_orm::{
 use sqlx::QueryBuilder;
 use uuid::Uuid;
 
-use super::{
-    common::{ToSql, parse_timestamp},
-    entity::streams,
-    feed_entry::FeedEntryRow,
-};
+use super::{common::ToSql, feed_entry::FeedEntryRow};
 
 #[derive(Debug, Clone)]
 pub struct SqliteStreamRepository {
@@ -190,17 +187,5 @@ impl StreamRepository for SqliteStreamRepository {
             .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
         Ok(entries)
-    }
-}
-
-impl From<streams::Model> for Stream {
-    fn from(value: streams::Model) -> Self {
-        Self {
-            id: value.id.parse().unwrap(),
-            title: value.title,
-            filter: serde_json::from_str(&value.filter_raw).unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
-        }
     }
 }
