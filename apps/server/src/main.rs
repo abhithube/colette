@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc};
+use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc, time::Duration};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -30,6 +30,7 @@ use colette_core::{
 };
 use colette_http::ReqwestClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_session::{RedisStore, SessionAdapter};
 use colette_worker::SqliteStorageAdapter;
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
@@ -43,7 +44,6 @@ use repository::{
     tag::SqliteTagRepository, user::SqliteUserRepository,
 };
 use sea_orm::DatabaseConnection;
-use session::{AppSessionStore, RedisStore, SqliteStore};
 use sqlx::{
     Pool, Sqlite,
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
@@ -52,6 +52,7 @@ use tokio::{net::TcpListener, sync::Mutex};
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
 use tower_sessions::{SessionManagerLayer, cookie};
 use tower_sessions_core::{Expiry, session_store::ExpiredDeletion};
+use tower_sessions_sqlx_store::SqliteStore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use url::Url;
 use utoipa::{OpenApi, openapi::Server};
@@ -61,7 +62,6 @@ use utoipa_scalar::{Scalar, Servable};
 mod api;
 mod job;
 mod repository;
-mod session;
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]
@@ -79,6 +79,7 @@ pub struct AppConfig {
     pub port: u32,
     pub database_url: Option<Cow<'static, str>>,
     pub jobs_database_url: Option<Cow<'static, str>>,
+    pub sessions_database_url: Option<Cow<'static, str>>,
     #[serde(default = "default_redis_enabled")]
     pub redis_enabled: bool,
     pub redis_url: String,
@@ -169,12 +170,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
             _ => SqliteConnectOptions::new(),
         };
-        let pool = Pool::<Sqlite>::connect_with(
-            options
-                .create_if_missing(true)
-                .journal_mode(SqliteJournalMode::Wal),
-        )
-        .await?;
+        let pool =
+            Pool::<Sqlite>::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
 
         sqlx::migrate!("../../migrations").run(&pool).await?;
 
@@ -205,25 +202,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .with_allow_http(true)
         .build()?;
 
-    let job_pool = {
+    let jobs_pool = {
         let options = match app_config.jobs_database_url {
             Some(database_url) => {
                 SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
             }
             _ => SqliteConnectOptions::new(),
         };
-        let pool = Pool::<Sqlite>::connect_with(options.create_if_missing(true)).await?;
+        let pool = Pool::<Sqlite>::connect_with(options).await?;
 
         SqliteStorageAdapter::setup(&pool).await?;
 
         pool
     };
 
-    let scrape_feed_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let scrape_bookmark_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let archive_thumbnail_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let import_feeds_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let import_bookmarks_storage = SqliteStorageAdapter::new(job_pool);
+    let scrape_feed_storage = SqliteStorageAdapter::new(jobs_pool.clone());
+    let scrape_bookmark_storage = SqliteStorageAdapter::new(jobs_pool.clone());
+    let archive_thumbnail_storage = SqliteStorageAdapter::new(jobs_pool.clone());
+    let import_feeds_storage = SqliteStorageAdapter::new(jobs_pool.clone());
+    let import_bookmarks_storage = SqliteStorageAdapter::new(jobs_pool);
 
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
@@ -360,14 +357,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (session_store, deletion_task) = if app_config.redis_enabled {
         let redis = redis::Client::open(app_config.redis_url)?;
         let redis_conn = redis.get_multiplexed_async_connection().await?;
-        (AppSessionStore::Redis(RedisStore::new(redis_conn)), None)
+        (SessionAdapter::Redis(RedisStore::new(redis_conn)), None)
     } else {
-        let session_store = SqliteStore::new(db_conn);
+        let session_pool = {
+            let options = match app_config.sessions_database_url {
+                Some(database_url) => {
+                    SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
+                }
+                _ => SqliteConnectOptions::new(),
+            };
+
+            Pool::<Sqlite>::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?
+        };
+
+        let store = SqliteStore::new(session_pool);
+        store.migrate().await?;
 
         (
-            AppSessionStore::Sqlite(session_store.clone()),
+            SessionAdapter::Sqlite(store.clone()),
             Some(tokio::task::spawn(
-                session_store.continuously_delete_expired(tokio::time::Duration::from_secs(60)),
+                store.continuously_delete_expired(Duration::from_secs(60)),
             )),
         )
     };

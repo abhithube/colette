@@ -9,6 +9,7 @@ members = [
   "crates/netscape",
   "crates/opml",
   "crates/plugins",
+  "crates/session",
   "crates/util",
   "crates/worker",
 ]
@@ -31,6 +32,7 @@ colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
+colette-session.path = "crates/session"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
 futures = { version = "0.3.31", default-features = false }
@@ -42,6 +44,10 @@ object_store = { version = "0.11.2", default-features = false, features = [
   "tls-webpki-roots",
 ] }
 quick-xml = { version = "0.37.2", default-features = false }
+redis = { version = "0.29", default-features = false, features = [
+  "tokio-rustls-comp",
+  "tls-rustls-webpki-roots",
+] }
 reqwest = { version = "0.12.12", default-features = false, features = [
   "http2",
   "rustls-tls-webpki-roots",
@@ -68,6 +74,9 @@ thiserror = { version = "2.0.11", default-features = false }
 tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
   "rt-multi-thread",
+] }
+tower-sessions-sqlx-store = { version = "0.15.0", default-features = false, features = [
+  "sqlite",
 ] }
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 uuid = { version = "1.11.1", default-features = false, features = [

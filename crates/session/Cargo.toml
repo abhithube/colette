@@ -1,0 +1,14 @@
+[package]
+name = "colette-session"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait.workspace = true
+redis.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tower-sessions-core = { version = "0.14.0", default-features = false, features = [
+  "deletion-task",
+] }
+tower-sessions-sqlx-store.workspace = true

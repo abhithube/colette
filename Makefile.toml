@@ -19,7 +19,7 @@ install_crate = "sqlx-cli"
 command = "sqlx"
 args = ["db", "reset"]
 
-[tasks.generate-migrate]
+[tasks.generate-migration]
 command = "atlas"
 args = [
   "migrate",

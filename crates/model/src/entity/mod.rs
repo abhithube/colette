@@ -9,7 +9,6 @@ pub mod bookmarks;
 pub mod collections;
 pub mod feed_entries;
 pub mod feeds;
-pub mod sessions;
 pub mod streams;
 pub mod tags;
 pub mod user_feed_entries;

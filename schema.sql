@@ -262,9 +262,3 @@ WHERE
   id = OLD.id;
 
 END;
-
-CREATE TABLE sessions (
-  id TEXT NOT NULL PRIMARY KEY,
-  data BLOB NOT NULL,
-  expires_at INTEGER NOT NULL
-);
