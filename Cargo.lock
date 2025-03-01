@@ -597,6 +597,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-storage"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "futures",
+ "object_store",
+]
+
+[[package]]
 name = "colette-util"
 version = "0.1.0"
 dependencies = [

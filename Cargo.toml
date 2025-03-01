@@ -10,6 +10,7 @@ members = [
   "crates/opml",
   "crates/plugins",
   "crates/session",
+  "crates/storage",
   "crates/util",
   "crates/worker",
 ]
@@ -33,6 +34,7 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-session.path = "crates/session"
+colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
 colette-worker.path = "crates/worker"
 futures = { version = "0.3.31", default-features = false }
