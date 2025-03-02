@@ -8,7 +8,7 @@ import ReactDOM from 'react-dom/client'
 
 const queryClient = new QueryClient()
 const api = new HttpAPI({
-  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api/v1',
+  baseUrl: import.meta.env.DEV ? import.meta.env.VITE_BACKEND_URL : '/api',
   credentials: 'include',
 })
 
