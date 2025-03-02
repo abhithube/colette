@@ -19,7 +19,7 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod filter;
+pub mod job;
 pub mod stream;
 pub mod tag;
 pub mod user;
-pub mod worker;

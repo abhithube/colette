@@ -1,5 +1,5 @@
 [package]
-name = "colette-worker"
+name = "colette-job"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,8 +10,13 @@ apalis-sql = { version = "0.6.4", default-features = false, features = [
   "sqlite",
   "tokio-comp",
 ] }
+apalis-redis = { version = "0.6.4", default-features = false, features = [
+  "tokio-comp",
+] }
 async-trait.workspace = true
 colette-core.workspace = true
 chrono.workspace = true
+futures.workspace = true
+redis.workspace = true
 serde.workspace = true
 sqlx.workspace = true

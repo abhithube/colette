@@ -17,7 +17,7 @@ use super::{
 };
 use crate::{
     common::{IdParams, PAGINATION_LIMIT, Paginated},
-    worker::Storage,
+    job::Storage,
 };
 
 const BOOKMARKS_DIR: &str = "bookmarks";

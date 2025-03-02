@@ -8,7 +8,7 @@ use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{Tag, worker};
+use crate::{Tag, job};
 
 mod bookmark_repository;
 mod bookmark_scraper;
@@ -57,7 +57,7 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Job(#[from] worker::Error),
+    Job(#[from] job::Error),
 
     #[error(transparent)]
     Database(#[from] DbErr),

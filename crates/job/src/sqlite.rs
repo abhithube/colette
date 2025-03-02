@@ -10,17 +10,17 @@ use apalis_core::{
     task::task_id::TaskId,
     worker::{Context, Worker},
 };
-use apalis_sql::{context::SqlContext, sqlite::SqliteStorage, Config};
+use apalis_sql::{context::SqlContext, sqlite::SqliteStorage as ApalisStorage, Config};
 use chrono::DateTime;
-use colette_core::worker::{Error, Storage, StorageContext};
+use colette_core::job::{Error, Storage, StorageContext};
 use serde::{de::DeserializeOwned, Serialize};
 use sqlx::{Pool, Sqlite};
 
-pub struct SqliteStorageAdapter<T, C = JsonCodec<String>> {
-    inner: SqliteStorage<T, C>,
+pub struct SqliteStorage<T, C = JsonCodec<String>> {
+    inner: ApalisStorage<T, C>,
 }
 
-impl<T> Clone for SqliteStorageAdapter<T> {
+impl<T> Clone for SqliteStorage<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -28,10 +28,10 @@ impl<T> Clone for SqliteStorageAdapter<T> {
     }
 }
 
-impl<T: Serialize + DeserializeOwned> SqliteStorageAdapter<T> {
+impl<T: Serialize + DeserializeOwned> SqliteStorage<T> {
     pub fn new(pool: Pool<Sqlite>) -> Self {
         Self {
-            inner: SqliteStorage::new_with_config(
+            inner: ApalisStorage::new_with_config(
                 pool,
                 Config::new(type_name::<T>()).set_poll_interval(Duration::from_secs(1)),
             ),
@@ -40,14 +40,14 @@ impl<T: Serialize + DeserializeOwned> SqliteStorageAdapter<T> {
 
     pub fn new_with_config(pool: Pool<Sqlite>, config: Config) -> Self {
         Self {
-            inner: SqliteStorage::new_with_config(pool, config),
+            inner: ApalisStorage::new_with_config(pool, config),
         }
     }
 }
 
-impl SqliteStorageAdapter<()> {
+impl SqliteStorage<()> {
     pub async fn setup(pool: &Pool<Sqlite>) -> Result<(), sqlx::Error> {
-        SqliteStorage::setup(pool).await
+        ApalisStorage::setup(pool).await
     }
 }
 
@@ -55,7 +55,7 @@ impl SqliteStorageAdapter<()> {
 impl<
         T: Send + Sync + Unpin + 'static + Serialize + DeserializeOwned,
         C: Send + Codec<Compact = String>,
-    > Storage<T> for SqliteStorageAdapter<T, C>
+    > Storage<T> for SqliteStorage<T, C>
 {
     async fn push_request(
         &mut self,
@@ -126,10 +126,10 @@ impl<
 }
 
 impl<T: Send + Sync + Unpin + 'static + Serialize + DeserializeOwned, Res>
-    Backend<Request<T, SqlContext>, Res> for SqliteStorageAdapter<T>
+    Backend<Request<T, SqlContext>, Res> for SqliteStorage<T>
 {
     type Stream = BackendStream<RequestStream<Request<T, SqlContext>>>;
-    type Layer = AckLayer<SqliteStorage<T>, T, SqlContext, Res>;
+    type Layer = AckLayer<ApalisStorage<T>, T, SqlContext, Res>;
 
     fn poll<Svc: Service<Request<T, SqlContext>, Response = Res>>(
         self,

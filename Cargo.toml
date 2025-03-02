@@ -8,11 +8,11 @@ members = [
   "crates/model",
   "crates/netscape",
   "crates/opml",
+  "crates/job",
   "crates/plugins",
   "crates/session",
   "crates/storage",
   "crates/util",
-  "crates/worker",
 ]
 resolver = "2"
 
@@ -29,6 +29,7 @@ colette-core.path = "crates/core"
 colette-model.path = "crates/model"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
+colette-job.path = "crates/job"
 colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
@@ -36,7 +37,6 @@ colette-plugins.path = "crates/plugins"
 colette-session.path = "crates/session"
 colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
-colette-worker.path = "crates/worker"
 futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false }
@@ -46,7 +46,7 @@ object_store = { version = "0.11.2", default-features = false, features = [
   "tls-webpki-roots",
 ] }
 quick-xml = { version = "0.37.2", default-features = false }
-redis = { version = "0.29", default-features = false, features = [
+redis = { version = "0.27", default-features = false, features = [
   "tokio-rustls-comp",
   "tls-rustls-webpki-roots",
 ] }

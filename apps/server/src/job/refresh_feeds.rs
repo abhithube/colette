@@ -3,7 +3,7 @@ use std::sync::Arc;
 use apalis::prelude::Data;
 use colette_core::{
     feed::{FeedService, RefreshFeedsJob, ScrapeFeedJob},
-    worker::Storage,
+    job::Storage,
 };
 use futures::StreamExt;
 use tokio::sync::Mutex;

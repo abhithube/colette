@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use apalis::prelude::Data;
-use colette_core::{backup::ImportBookmarksJob, bookmark::ScrapeBookmarkJob, worker::Storage};
+use colette_core::{backup::ImportBookmarksJob, bookmark::ScrapeBookmarkJob, job::Storage};
 use tokio::sync::Mutex;
 
 pub async fn run(

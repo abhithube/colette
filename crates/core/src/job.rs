@@ -1,12 +1,14 @@
 use std::time::Duration;
 
 use apalis_core::{
+    backend::{Stat, WorkerState},
     request::{Parts, Request, State},
     service_fn::FromRequest,
     task::task_id::TaskId,
-    worker::WorkerId,
+    worker::{Worker, WorkerId},
 };
 use chrono::{DateTime, Utc};
+use redis::RedisError;
 use sea_orm::sqlx;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -92,8 +94,31 @@ pub trait Storage<T: Send + 'static>: Send {
     async fn vacuum(&mut self) -> Result<usize, Error>;
 }
 
+/// Represents functionality that allows reading of jobs and stats from a backend
+/// Some backends esp MessageQueues may not currently implement this
+#[async_trait::async_trait]
+pub trait BackendExpose<T>
+where
+    Self: Sized,
+{
+    /// The request type being handled by the backend
+    type Request;
+
+    /// List all Workers that are working on a backend
+    async fn list_workers(&self) -> Result<Vec<Worker<WorkerState>>, Error>;
+
+    /// Returns the counts of jobs in different states
+    async fn stats(&self) -> Result<Stat, Error>;
+
+    /// Fetch jobs persisted in a backend
+    async fn list_jobs(&self, status: &State, page: i32) -> Result<Vec<Self::Request>, Error>;
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
     Sqlx(#[from] sqlx::Error),
+
+    #[error(transparent)]
+    Redis(#[from] RedisError),
 }

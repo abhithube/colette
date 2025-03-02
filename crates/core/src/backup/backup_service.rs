@@ -11,7 +11,7 @@ use super::{Error, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     feed::{FeedFindParams, FeedRepository},
-    worker::Storage,
+    job::Storage,
 };
 
 pub struct BackupService {

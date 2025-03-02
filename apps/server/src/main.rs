@@ -29,10 +29,10 @@ use colette_core::{
     stream::StreamService, tag::TagService,
 };
 use colette_http::ReqwestClient;
+use colette_job::SqliteStorage;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::{RedisStore, SessionAdapter};
 use colette_storage::StorageAdapter;
-use colette_worker::SqliteStorageAdapter;
 use config::{DatabaseConfig, JobConfig, SessionConfig, StorageConfig};
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
@@ -128,8 +128,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
         SessionConfig::Redis(config) => {
             let redis = redis::Client::open(config.url)?;
-            let redis_conn = redis.get_multiplexed_async_connection().await?;
-            (SessionAdapter::Redis(RedisStore::new(redis_conn)), None)
+            let conn = redis.get_multiplexed_async_connection().await?;
+            (SessionAdapter::Redis(RedisStore::new(conn)), None)
         }
     };
 
@@ -140,7 +140,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
             let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
 
-            SqliteStorageAdapter::setup(&pool).await?;
+            SqliteStorage::setup(&pool).await?;
 
             pool
         }
@@ -177,11 +177,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
-    let scrape_feed_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let scrape_bookmark_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let archive_thumbnail_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let import_feeds_storage = SqliteStorageAdapter::new(job_pool.clone());
-    let import_bookmarks_storage = SqliteStorageAdapter::new(job_pool);
+    let scrape_feed_storage = SqliteStorage::new(job_pool.clone());
+    let scrape_bookmark_storage = SqliteStorage::new(job_pool.clone());
+    let archive_thumbnail_storage = SqliteStorage::new(job_pool.clone());
+    let import_feeds_storage = SqliteStorage::new(job_pool.clone());
+    let import_bookmarks_storage = SqliteStorage::new(job_pool);
 
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
@@ -213,7 +213,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
 
-    let archive_thumbnail_worker = WorkerBuilder::new("archive_thumbnail")
+    let archive_thumbnail_worker = WorkerBuilder::new("archive-thumbnail")
         .enable_tracing()
         .concurrency(5)
         .data(bookmark_service.clone())
