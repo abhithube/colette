@@ -28,7 +28,7 @@ pub async fn handler(
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
     match state.bookmark_service.get_bookmark(id, user_id).await {
-        Ok(data) => Ok(GetResponse::Ok((data, state.bucket_url.clone()).into())),
+        Ok(data) => Ok(GetResponse::Ok((data, state.image_base_url.clone()).into())),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),

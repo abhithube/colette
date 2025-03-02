@@ -51,7 +51,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 use tokio::{net::TcpListener, sync::Mutex};
-use tower_http::{cors::CorsLayer, trace::TraceLayer};
+use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tower_sessions::{SessionManagerLayer, cookie};
 use tower_sessions_core::{Expiry, session_store::ExpiredDeletion};
 use tower_sessions_sqlx_store::SqliteStore;
@@ -146,13 +146,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let (storage_adapter, bucket_url) = match app_config.storage {
+    let (storage_adapter, image_base_url) = match app_config.storage.clone() {
         StorageConfig::Fs(config) => {
             let fs = LocalFileSystem::new_with_prefix(config.path)?.with_automatic_cleanup(true);
 
             (
                 StorageAdapter::Local(Arc::new(fs)),
-                "http://localhost:8000/assets".parse().unwrap(),
+                format!("http://0.0.0.0:{}/uploads/", app_config.server.port)
+                    .parse()
+                    .unwrap(),
             )
         }
         StorageConfig::S3(config) => {
@@ -283,7 +285,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             db_conn.clone(),
         ))),
         tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn.clone()))),
-        bucket_url,
+        image_base_url,
     };
 
     let api_prefix = "/api";
@@ -335,6 +337,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
             FallbackBehavior::Ok,
             None,
         ));
+
+    if let StorageConfig::Fs(config) = app_config.storage {
+        api = api.nest_service("/uploads", ServeDir::new(config.path))
+    }
 
     if let Some(config) = app_config.cors {
         let origins = config

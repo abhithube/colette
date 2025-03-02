@@ -37,7 +37,9 @@ pub async fn handler(
         .update_bookmark(id, body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(UpdateResponse::Ok((data, state.bucket_url.clone()).into())),
+        Ok(data) => Ok(UpdateResponse::Ok(
+            (data, state.image_base_url.clone()).into(),
+        )),
         Err(e) => match e {
             bookmark::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),

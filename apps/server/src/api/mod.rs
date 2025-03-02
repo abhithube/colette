@@ -30,5 +30,5 @@ pub struct ApiState {
     pub feed_entry_service: Arc<FeedEntryService>,
     pub stream_service: Arc<StreamService>,
     pub tag_service: Arc<TagService>,
-    pub bucket_url: Url,
+    pub image_base_url: Url,
 }

@@ -37,7 +37,7 @@ pub async fn handler(
             data: data
                 .data
                 .into_iter()
-                .map(|e| (e, state.bucket_url.clone()).into())
+                .map(|e| (e, state.image_base_url.clone()).into())
                 .collect(),
             cursor: data.cursor,
         })),

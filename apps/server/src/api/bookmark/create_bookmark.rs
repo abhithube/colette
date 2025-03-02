@@ -36,7 +36,7 @@ pub async fn handler(
         .await
     {
         Ok(data) => Ok(CreateResponse::Created(
-            (data, state.bucket_url.clone()).into(),
+            (data, state.image_base_url.clone()).into(),
         )),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
