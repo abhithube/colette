@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::Error;
 use crate::{
     User,
-    accounts::{self, AccountCreateData, AccountFindParams, AccountRepository},
+    account::{self, AccountCreateData, AccountFindParams, AccountRepository},
     user::{UserFindParams, UserRepository},
 };
 
@@ -29,7 +29,7 @@ impl AuthService {
 
         let id = self
             .account_repository
-            .create(AccountCreateData {
+            .create_account(AccountCreateData {
                 email: data.email.clone(),
                 provider_id: "local".into(),
                 account_id: data.email.clone(),
@@ -39,7 +39,7 @@ impl AuthService {
             .await?;
 
         self.user_repository
-            .find(UserFindParams { id })
+            .find_user(UserFindParams { id })
             .await
             .map_err(Error::Users)
     }
@@ -47,13 +47,13 @@ impl AuthService {
     pub async fn login(&self, data: Login) -> Result<User, Error> {
         let account = self
             .account_repository
-            .find(AccountFindParams {
+            .find_account(AccountFindParams {
                 provider_id: "local".into(),
                 account_id: data.email,
             })
             .await
             .map_err(|e| match e {
-                accounts::Error::NotFound(_) => Error::NotAuthenticated,
+                account::Error::NotFound(_) => Error::NotAuthenticated,
                 _ => e.into(),
             })?;
         let Some(password_hash) = account.password_hash else {
@@ -66,14 +66,14 @@ impl AuthService {
         }
 
         self.user_repository
-            .find(UserFindParams { id: account.id })
+            .find_user(UserFindParams { id: account.id })
             .await
             .map_err(Error::Users)
     }
 
     pub async fn get_active(&self, user_id: Uuid) -> Result<User, Error> {
         self.user_repository
-            .find(UserFindParams { id: user_id })
+            .find_user(UserFindParams { id: user_id })
             .await
             .map_err(|e| e.into())
     }

@@ -1,17 +1,17 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, Tag, TagType};
-use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
+use crate::common::IdParams;
 
-pub trait TagRepository:
-    Findable<Params = TagFindParams, Output = Result<Vec<Tag>, Error>>
-    + Creatable<Data = TagCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = TagUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+#[async_trait::async_trait]
+pub trait TagRepository: Send + Sync + 'static {
+    async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
+
+    async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error>;
+
+    async fn update_tag(&self, params: IdParams, data: TagUpdateData) -> Result<(), Error>;
+
+    async fn delete_tag(&self, params: IdParams) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]

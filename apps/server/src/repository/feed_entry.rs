@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry,
-    common::{Findable, IdParams, Updatable},
+    common::IdParams,
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     stream::{FeedEntryBooleanField, FeedEntryDateField, FeedEntryFilter, FeedEntryTextField},
 };
@@ -29,11 +29,11 @@ impl SqliteFeedEntryRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteFeedEntryRepository {
-    type Params = FeedEntryFindParams;
-    type Output = Result<Vec<FeedEntry>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl FeedEntryRepository for SqliteFeedEntryRepository {
+    async fn find_feed_entries(
+        &self,
+        params: FeedEntryFindParams,
+    ) -> Result<Vec<FeedEntry>, Error> {
         let feed_entries = user_feed_entries::Entity::find()
             .find_also_related(feed_entries::Entity)
             .filter(user_feed_entries::Column::UserId.eq(params.user_id.to_string()))
@@ -85,15 +85,12 @@ impl Findable for SqliteFeedEntryRepository {
 
         Ok(feed_entries)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteFeedEntryRepository {
-    type Params = IdParams;
-    type Data = FeedEntryUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_feed_entry(
+        &self,
+        params: IdParams,
+        data: FeedEntryUpdateData,
+    ) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(feed_entry) = user_feed_entries::Entity::find_by_id(params.id)
@@ -121,8 +118,6 @@ impl Updatable for SqliteFeedEntryRepository {
         Ok(())
     }
 }
-
-impl FeedEntryRepository for SqliteFeedEntryRepository {}
 
 struct UfeWithFe {
     ufe: user_feed_entries::Model,

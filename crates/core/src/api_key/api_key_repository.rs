@@ -1,19 +1,22 @@
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeySearched, Cursor, Error};
-use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
+use crate::common::IdParams;
 
 #[async_trait::async_trait]
-pub trait ApiKeyRepository:
-    Findable<Params = ApiKeyFindParams, Output = Result<Vec<ApiKey>, Error>>
-    + Creatable<Data = ApiKeyCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = ApiKeyUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
-    async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error>;
+pub trait ApiKeyRepository: Send + Sync + 'static {
+    async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error>;
+
+    async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error>;
+
+    async fn update_api_key(&self, params: IdParams, data: ApiKeyUpdateData) -> Result<(), Error>;
+
+    async fn delete_api_key(&self, params: IdParams) -> Result<(), Error>;
+
+    async fn search_api_key(
+        &self,
+        params: ApiKeySearchParams,
+    ) -> Result<Option<ApiKeySearched>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]

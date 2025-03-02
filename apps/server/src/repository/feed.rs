@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Feed, Tag,
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
     feed::{
         ConflictError, Error, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
         FeedUpdateData,
@@ -35,11 +35,8 @@ impl SqliteFeedRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteFeedRepository {
-    type Params = FeedFindParams;
-    type Output = Result<Vec<Feed>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl FeedRepository for SqliteFeedRepository {
+    async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
         let initial = format!(
             r#"WITH unread_count AS (
   SELECT ufe.user_feed_id, count(ufe.id) AS count
@@ -106,48 +103,10 @@ SELECT uf.id,
             .map(|e| e.into_iter().map(Into::into).collect())
             .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
 
-        // let user_id = Hyphenated::from(params.user_id);
-        // let id = params.id.map(Hyphenated::from);
-        // let skip_id = id.is_none();
-        // // let skip_tags = tags.is_none();
-
-        // let mut skip_cursor = true;
-        // let mut cursor_title = Option::<String>::None;
-        // let mut cursor_id = Option::<Hyphenated>::None;
-        // if let Some(cursor) = params.cursor {
-        //     skip_cursor = false;
-        //     cursor_title = Some(cursor.title);
-        //     cursor_id = Some(cursor.id.into());
-        // }
-
-        // let feeds = sqlx::query_file_as!(
-        //     FeedRow,
-        //     "queries/user_feeds/select.sql",
-        //     user_id,
-        //     skip_id,
-        //     params.id,
-        //     // skip_tags,
-        //     // &params.tags.unwrap_or_default(),
-        //     skip_cursor,
-        //     cursor_title,
-        //     cursor_id,
-        //     params.limit
-        // )
-        // .fetch_all(self.db.get_sqlite_connection_pool())
-        // .await
-        // .map(|e| e.into_iter().map(Into::into).collect())
-        // .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
-
         Ok(feeds)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteFeedRepository {
-    type Data = FeedCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
         let Some(feed) = feeds::Entity::find()
@@ -185,15 +144,8 @@ impl Creatable for SqliteFeedRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteFeedRepository {
-    type Params = IdParams;
-    type Data = FeedUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_feed(&self, params: IdParams, data: FeedUpdateData) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -221,14 +173,8 @@ impl Updatable for SqliteFeedRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteFeedRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_feed(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(user_feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -244,10 +190,7 @@ impl Deletable for SqliteFeedRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl FeedRepository for SqliteFeedRepository {
     async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error> {
         if data.link_to_users {
             let tx = self.db.begin().await?;

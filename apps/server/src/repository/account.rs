@@ -1,7 +1,6 @@
 use colette_core::{
     Account,
-    accounts::{AccountCreateData, AccountFindParams, AccountRepository, Error},
-    common::{Creatable, Findable},
+    account::{AccountCreateData, AccountFindParams, AccountRepository, Error},
 };
 use colette_model::{AccountWithUser, accounts, users};
 use sea_orm::{ActiveModelTrait, ActiveValue, DatabaseConnection, EntityTrait, TransactionTrait};
@@ -19,11 +18,8 @@ impl SqliteAccountRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteAccountRepository {
-    type Params = AccountFindParams;
-    type Output = Result<Account, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl AccountRepository for SqliteAccountRepository {
+    async fn find_account(&self, params: AccountFindParams) -> Result<Account, Error> {
         let Some((account, Some(user))) =
             accounts::Entity::find_by_id((params.provider_id, params.account_id.clone()))
                 .find_also_related(users::Entity)
@@ -35,14 +31,8 @@ impl Findable for SqliteAccountRepository {
 
         Ok(AccountWithUser { account, user }.into())
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteAccountRepository {
-    type Data = AccountCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_account(&self, data: AccountCreateData) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
         let user_id = Uuid::new_v4();
@@ -68,5 +58,3 @@ impl Creatable for SqliteAccountRepository {
         Ok(user_id)
     }
 }
-
-impl AccountRepository for SqliteAccountRepository {}

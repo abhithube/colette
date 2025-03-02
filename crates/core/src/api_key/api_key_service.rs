@@ -25,7 +25,7 @@ impl ApiKeyService {
     pub async fn list_api_keys(&self, user_id: Uuid) -> Result<Paginated<ApiKey>, Error> {
         let api_keys = self
             .repository
-            .find(ApiKeyFindParams {
+            .find_api_keys(ApiKeyFindParams {
                 user_id,
                 ..Default::default()
             })
@@ -42,7 +42,7 @@ impl ApiKeyService {
 
         let api_key = self
             .repository
-            .search(ApiKeySearchParams { lookup_hash })
+            .search_api_key(ApiKeySearchParams { lookup_hash })
             .await?;
 
         if let Some(api_key) = api_key {
@@ -58,7 +58,7 @@ impl ApiKeyService {
     pub async fn get_api_key(&self, id: Uuid, user_id: Uuid) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
-            .find(ApiKeyFindParams {
+            .find_api_keys(ApiKeyFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -80,7 +80,7 @@ impl ApiKeyService {
 
         let id = self
             .repository
-            .create(ApiKeyCreateData {
+            .create_api_key(ApiKeyCreateData {
                 lookup_hash: api_key::hash(&value),
                 verification_hash: password::hash(&value)?,
                 title: data.title,
@@ -110,14 +110,16 @@ impl ApiKeyService {
         user_id: Uuid,
     ) -> Result<ApiKey, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_api_key(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_api_key(id, user_id).await
     }
 
     pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, user_id)).await
+        self.repository
+            .delete_api_key(IdParams::new(id, user_id))
+            .await
     }
 }
 

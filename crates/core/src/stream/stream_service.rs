@@ -25,7 +25,7 @@ impl StreamService {
     pub async fn list_streams(&self, user_id: Uuid) -> Result<Paginated<Stream>, Error> {
         let streams = self
             .repository
-            .find(StreamFindParams {
+            .find_streams(StreamFindParams {
                 user_id,
                 ..Default::default()
             })
@@ -40,7 +40,7 @@ impl StreamService {
     pub async fn get_stream(&self, id: Uuid, user_id: Uuid) -> Result<Stream, Error> {
         let mut streams = self
             .repository
-            .find(StreamFindParams {
+            .find_streams(StreamFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -56,7 +56,7 @@ impl StreamService {
     pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
         let id = self
             .repository
-            .create(StreamCreateData {
+            .create_stream(StreamCreateData {
                 title: data.title,
                 filter: data.filter,
                 user_id,
@@ -73,14 +73,16 @@ impl StreamService {
         user_id: Uuid,
     ) -> Result<Stream, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_stream(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_stream(id, user_id).await
     }
 
     pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, user_id)).await
+        self.repository
+            .delete_stream(IdParams::new(id, user_id))
+            .await
     }
 
     pub async fn list_stream_entries(

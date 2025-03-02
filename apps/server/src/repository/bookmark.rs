@@ -6,7 +6,7 @@ use colette_core::{
         BookmarkUpdateData, Error,
     },
     collection::{BookmarkDateField, BookmarkFilter, BookmarkTextField},
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
 };
 use colette_model::{bookmark_tags, bookmarks};
 use sea_orm::{
@@ -34,11 +34,8 @@ impl SqliteBookmarkRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteBookmarkRepository {
-    type Params = BookmarkFindParams;
-    type Output = Result<Vec<Bookmark>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl BookmarkRepository for SqliteBookmarkRepository {
+    async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
         let initial = format!(
             r#"WITH json_tags AS (
   SELECT bt.bookmark_id, json_group_array(json_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
@@ -98,14 +95,8 @@ SELECT b.id,
 
         Ok(bookmarks)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteBookmarkRepository {
-    type Data = BookmarkCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
         let id = Uuid::new_v4();
@@ -133,15 +124,12 @@ impl Creatable for SqliteBookmarkRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteBookmarkRepository {
-    type Params = IdParams;
-    type Data = BookmarkUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_bookmark(
+        &self,
+        params: IdParams,
+        data: BookmarkUpdateData,
+    ) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -181,14 +169,8 @@ impl Updatable for SqliteBookmarkRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteBookmarkRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_bookmark(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -204,10 +186,7 @@ impl Deletable for SqliteBookmarkRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl BookmarkRepository for SqliteBookmarkRepository {
     async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error> {
         common::upsert_bookmark(
             &self.db,

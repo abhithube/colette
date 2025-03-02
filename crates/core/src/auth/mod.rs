@@ -1,7 +1,7 @@
 pub use auth_service::*;
 use colette_util::password;
 
-use crate::{accounts, user};
+use crate::{account, user};
 
 mod auth_service;
 
@@ -11,7 +11,7 @@ pub enum Error {
     Users(#[from] user::Error),
 
     #[error(transparent)]
-    Accounts(#[from] accounts::Error),
+    Accounts(#[from] account::Error),
 
     #[error("user not authenticated")]
     NotAuthenticated,

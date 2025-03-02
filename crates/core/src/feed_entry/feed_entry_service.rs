@@ -27,7 +27,7 @@ impl FeedEntryService {
 
         let mut feed_entries = self
             .repository
-            .find(FeedEntryFindParams {
+            .find_feed_entries(FeedEntryFindParams {
                 feed_id: query.feed_id,
                 smart_feed_id: query.smart_feed_id,
                 has_read: query.has_read,
@@ -64,7 +64,7 @@ impl FeedEntryService {
     pub async fn get_feed_entry(&self, id: Uuid, user_id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
             .repository
-            .find(FeedEntryFindParams {
+            .find_feed_entries(FeedEntryFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -84,7 +84,7 @@ impl FeedEntryService {
         user_id: Uuid,
     ) -> Result<FeedEntry, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_feed_entry(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_feed_entry(id, user_id).await

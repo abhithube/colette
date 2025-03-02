@@ -56,7 +56,7 @@ impl BookmarkService {
 
         let mut bookmarks = self
             .repository
-            .find(BookmarkFindParams {
+            .find_bookmarks(BookmarkFindParams {
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
@@ -89,7 +89,7 @@ impl BookmarkService {
     pub async fn get_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .repository
-            .find(BookmarkFindParams {
+            .find_bookmarks(BookmarkFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -109,7 +109,7 @@ impl BookmarkService {
     ) -> Result<Bookmark, Error> {
         let id = self
             .repository
-            .create(BookmarkCreateData {
+            .create_bookmark(BookmarkCreateData {
                 url: data.url,
                 title: data.title,
                 thumbnail_url: data.thumbnail_url,
@@ -147,7 +147,7 @@ impl BookmarkService {
         let thumbnail_url = data.thumbnail_url.clone();
 
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_bookmark(IdParams::new(id, user_id), data.into())
             .await?;
 
         let bookmark = self.get_bookmark(id, user_id).await?;
@@ -177,7 +177,9 @@ impl BookmarkService {
     pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let bookmark = self.get_bookmark(id, user_id).await?;
 
-        self.repository.delete(IdParams::new(id, user_id)).await?;
+        self.repository
+            .delete_bookmark(IdParams::new(id, user_id))
+            .await?;
 
         let mut storage = self.archive_thumbnail_storage.lock().await;
 
@@ -273,7 +275,7 @@ impl BookmarkService {
                     .await?;
 
                 self.repository
-                    .update(
+                    .update_bookmark(
                         IdParams::new(bookmark_id, user_id),
                         BookmarkUpdateData {
                             archived_path: Some(Some(object_path)),
@@ -291,7 +293,7 @@ impl BookmarkService {
                 .await?;
 
             self.repository
-                .update(
+                .update_bookmark(
                     IdParams::new(bookmark_id, user_id),
                     BookmarkUpdateData {
                         archived_path: Some(None),

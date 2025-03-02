@@ -1,22 +1,18 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntryFilter, Stream};
-use crate::{
-    FeedEntry,
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
-    feed_entry,
-};
+use crate::{FeedEntry, common::IdParams, feed_entry};
 
 #[async_trait::async_trait]
-pub trait StreamRepository:
-    Findable<Params = StreamFindParams, Output = Result<Vec<Stream>, Error>>
-    + Creatable<Data = StreamCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = StreamUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+pub trait StreamRepository: Send + Sync + 'static {
+    async fn find_streams(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error>;
+
+    async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error>;
+
+    async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error>;
+
+    async fn delete_stream(&self, params: IdParams) -> Result<(), Error>;
+
     async fn find_entries(&self, params: StreamEntryFindParams) -> Result<Vec<FeedEntry>, Error>;
 }
 

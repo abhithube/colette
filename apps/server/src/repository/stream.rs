@@ -1,6 +1,6 @@
 use colette_core::{
     FeedEntry, Stream,
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
     stream::{
         Error, StreamCreateData, StreamEntryFindParams, StreamFindParams, StreamRepository,
         StreamUpdateData,
@@ -29,11 +29,8 @@ impl SqliteStreamRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteStreamRepository {
-    type Params = StreamFindParams;
-    type Output = Result<Vec<Stream>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl StreamRepository for SqliteStreamRepository {
+    async fn find_streams(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error> {
         let streams = streams::Entity::find()
             .filter(streams::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
@@ -50,14 +47,8 @@ impl Findable for SqliteStreamRepository {
 
         Ok(streams)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteStreamRepository {
-    type Data = StreamCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
         let stream = streams::ActiveModel {
             id: ActiveValue::Set(id.into()),
@@ -73,15 +64,8 @@ impl Creatable for SqliteStreamRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteStreamRepository {
-    type Params = IdParams;
-    type Data = StreamUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -108,14 +92,8 @@ impl Updatable for SqliteStreamRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteStreamRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_stream(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -131,10 +109,7 @@ impl Deletable for SqliteStreamRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl StreamRepository for SqliteStreamRepository {
     async fn find_entries(&self, params: StreamEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
         let initial = format!(
             r#"SELECT ufe.id,

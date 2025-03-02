@@ -39,7 +39,7 @@ use job::{
 };
 use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use repository::{
-    accounts::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
+    account::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
     backup::SqliteBackupRepository, bookmark::SqliteBookmarkRepository,
     collection::SqliteCollectionRepository, feed::SqliteFeedRepository,
     feed_entry::SqliteFeedEntryRepository, stream::SqliteStreamRepository,

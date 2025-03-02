@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{accounts, auth};
+use colette_core::{account, auth};
 use email_address::EmailAddress;
 
 use super::{AUTH_TAG, User};
@@ -30,7 +30,7 @@ pub async fn handler(
     match state.auth_service.register(body.into()).await {
         Ok(data) => Ok(RegisterResponse::Created(data.into())),
         Err(e) => match e {
-            auth::Error::Accounts(accounts::Error::Conflict(_)) => {
+            auth::Error::Accounts(account::Error::Conflict(_)) => {
                 Ok(RegisterResponse::Conflict(BaseError {
                     message: e.to_string(),
                 }))

@@ -26,7 +26,7 @@ impl CollectionService {
     pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repository
-            .find(CollectionFindParams {
+            .find_collections(CollectionFindParams {
                 user_id,
                 ..Default::default()
             })
@@ -41,7 +41,7 @@ impl CollectionService {
     pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
         let mut collections = self
             .repository
-            .find(CollectionFindParams {
+            .find_collections(CollectionFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -61,7 +61,7 @@ impl CollectionService {
     ) -> Result<Collection, Error> {
         let id = self
             .repository
-            .create(CollectionCreateData {
+            .create_collection(CollectionCreateData {
                 title: data.title,
                 filter: data.filter,
                 user_id,
@@ -78,14 +78,16 @@ impl CollectionService {
         user_id: Uuid,
     ) -> Result<Collection, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_collection(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_collection(id, user_id).await
     }
 
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, user_id)).await
+        self.repository
+            .delete_collection(IdParams::new(id, user_id))
+            .await
     }
 
     pub async fn list_collection_bookmarks(

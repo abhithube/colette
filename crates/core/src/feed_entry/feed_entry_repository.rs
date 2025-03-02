@@ -1,15 +1,18 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry};
-use crate::common::{Findable, IdParams, Updatable};
+use crate::common::IdParams;
 
-pub trait FeedEntryRepository:
-    Findable<Params = FeedEntryFindParams, Output = Result<Vec<FeedEntry>, Error>>
-    + Updatable<Params = IdParams, Data = FeedEntryUpdateData, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+#[async_trait::async_trait]
+pub trait FeedEntryRepository: Send + Sync + 'static {
+    async fn find_feed_entries(&self, params: FeedEntryFindParams)
+    -> Result<Vec<FeedEntry>, Error>;
+
+    async fn update_feed_entry(
+        &self,
+        params: IdParams,
+        data: FeedEntryUpdateData,
+    ) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]

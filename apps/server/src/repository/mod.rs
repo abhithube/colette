@@ -1,4 +1,4 @@
-pub mod accounts;
+pub mod account;
 pub mod api_key;
 pub mod backup;
 pub mod bookmark;

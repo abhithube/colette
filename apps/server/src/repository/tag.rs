@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
     tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
 };
 use colette_model::tags;
@@ -23,11 +23,8 @@ impl SqliteTagRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteTagRepository {
-    type Params = TagFindParams;
-    type Output = Result<Vec<Tag>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl TagRepository for SqliteTagRepository {
+    async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
         let id = params.id.map(Hyphenated::from);
         let user_id = Hyphenated::from(params.user_id);
         let skip_id = id.is_none();
@@ -80,14 +77,8 @@ SELECT t.id AS "id: Hyphenated",
 
         Ok(tags)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteTagRepository {
-    type Data = TagCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
         let tag = tags::ActiveModel {
             id: ActiveValue::Set(id.into()),
@@ -102,15 +93,8 @@ impl Creatable for SqliteTagRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteTagRepository {
-    type Params = IdParams;
-    type Data = TagUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_tag(&self, params: IdParams, data: TagUpdateData) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -134,14 +118,8 @@ impl Updatable for SqliteTagRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteTagRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_tag(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -158,5 +136,3 @@ impl Deletable for SqliteTagRepository {
         Ok(())
     }
 }
-
-impl TagRepository for SqliteTagRepository {}

@@ -3,18 +3,22 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, Cursor, Error, ProcessedBookmark};
-use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
+use crate::common::IdParams;
 
 #[async_trait::async_trait]
-pub trait BookmarkRepository:
-    Findable<Params = BookmarkFindParams, Output = Result<Vec<Bookmark>, Error>>
-    + Creatable<Data = BookmarkCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = BookmarkUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+pub trait BookmarkRepository: Send + Sync + 'static {
+    async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error>;
+
+    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error>;
+
+    async fn update_bookmark(
+        &self,
+        params: IdParams,
+        data: BookmarkUpdateData,
+    ) -> Result<(), Error>;
+
+    async fn delete_bookmark(&self, params: IdParams) -> Result<(), Error>;
+
     async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error>;
 }
 

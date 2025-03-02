@@ -43,7 +43,7 @@ impl FeedService {
     ) -> Result<Paginated<Feed>, Error> {
         let feeds = self
             .repository
-            .find(FeedFindParams {
+            .find_feeds(FeedFindParams {
                 tags: query.tags,
                 user_id,
                 ..Default::default()
@@ -59,7 +59,7 @@ impl FeedService {
     pub async fn get_feed(&self, id: Uuid, user_id: Uuid) -> Result<Feed, Error> {
         let mut feeds = self
             .repository
-            .find(FeedFindParams {
+            .find_feeds(FeedFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -75,7 +75,7 @@ impl FeedService {
     pub async fn create_feed(&self, data: FeedCreate, user_id: Uuid) -> Result<Feed, Error> {
         let id = self
             .repository
-            .create(FeedCreateData {
+            .create_feed(FeedCreateData {
                 url: data.url,
                 title: data.title,
                 tags: data.tags,
@@ -93,14 +93,16 @@ impl FeedService {
         user_id: Uuid,
     ) -> Result<Feed, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_feed(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_feed(id, user_id).await
     }
 
     pub async fn delete_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, user_id)).await
+        self.repository
+            .delete_feed(IdParams::new(id, user_id))
+            .await
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {

@@ -3,18 +3,18 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Cursor, Error, Feed, ProcessedFeed};
-use crate::common::{Creatable, Deletable, Findable, IdParams, Updatable};
+use crate::common::IdParams;
 
 #[async_trait::async_trait]
-pub trait FeedRepository:
-    Findable<Params = FeedFindParams, Output = Result<Vec<Feed>, Error>>
-    + Creatable<Data = FeedCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = FeedUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+pub trait FeedRepository: Send + Sync + 'static {
+    async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
+
+    async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error>;
+
+    async fn update_feed(&self, params: IdParams, data: FeedUpdateData) -> Result<(), Error>;
+
+    async fn delete_feed(&self, params: IdParams) -> Result<(), Error>;
+
     async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error>;
 
     async fn stream_urls(&self) -> Result<BoxStream<Result<String, Error>>, Error>;

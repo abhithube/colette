@@ -4,7 +4,7 @@ use colette_core::{
         ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams, ApiKeySearched,
         ApiKeyUpdateData, Error,
     },
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
 };
 use colette_model::api_keys;
 use sea_orm::{
@@ -25,11 +25,8 @@ impl SqliteApiKeyRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteApiKeyRepository {
-    type Params = ApiKeyFindParams;
-    type Output = Result<Vec<ApiKey>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl ApiKeyRepository for SqliteApiKeyRepository {
+    async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
         let api_keys = api_keys::Entity::find()
             .filter(api_keys::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
@@ -46,14 +43,8 @@ impl Findable for SqliteApiKeyRepository {
 
         Ok(api_keys)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteApiKeyRepository {
-    type Data = ApiKeyCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
 
         let api_key = api_keys::ActiveModel {
@@ -69,15 +60,8 @@ impl Creatable for SqliteApiKeyRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteApiKeyRepository {
-    type Params = IdParams;
-    type Data = ApiKeyUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_api_key(&self, params: IdParams, data: ApiKeyUpdateData) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -101,14 +85,8 @@ impl Updatable for SqliteApiKeyRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteApiKeyRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_api_key(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -124,11 +102,11 @@ impl Deletable for SqliteApiKeyRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl ApiKeyRepository for SqliteApiKeyRepository {
-    async fn search(&self, params: ApiKeySearchParams) -> Result<Option<ApiKeySearched>, Error> {
+    async fn search_api_key(
+        &self,
+        params: ApiKeySearchParams,
+    ) -> Result<Option<ApiKeySearched>, Error> {
         let api_key = api_keys::Entity::find()
             .filter(api_keys::Column::LookupHash.eq(params.lookup_hash))
             .one(&self.db)

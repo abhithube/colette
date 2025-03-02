@@ -1,21 +1,25 @@
 use uuid::Uuid;
 
 use super::{BookmarkFilter, Collection, Cursor, Error};
-use crate::{
-    Bookmark, bookmark,
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
-};
+use crate::{Bookmark, bookmark, common::IdParams};
 
 #[async_trait::async_trait]
-pub trait CollectionRepository:
-    Findable<Params = CollectionFindParams, Output = Result<Vec<Collection>, Error>>
-    + Creatable<Data = CollectionCreateData, Output = Result<Uuid, Error>>
-    + Updatable<Params = IdParams, Data = CollectionUpdateData, Output = Result<(), Error>>
-    + Deletable<Params = IdParams, Output = Result<(), Error>>
-    + Send
-    + Sync
-    + 'static
-{
+pub trait CollectionRepository: Send + Sync + 'static {
+    async fn find_collections(
+        &self,
+        params: CollectionFindParams,
+    ) -> Result<Vec<Collection>, Error>;
+
+    async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error>;
+
+    async fn update_collection(
+        &self,
+        params: IdParams,
+        data: CollectionUpdateData,
+    ) -> Result<(), Error>;
+
+    async fn delete_collection(&self, params: IdParams) -> Result<(), Error>;
+
     async fn find_bookmarks(
         &self,
         params: CollectionBookmarkFindParams,

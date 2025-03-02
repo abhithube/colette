@@ -4,7 +4,7 @@ use colette_core::{
         CollectionBookmarkFindParams, CollectionCreateData, CollectionFindParams,
         CollectionRepository, CollectionUpdateData, Error,
     },
-    common::{Creatable, Deletable, Findable, IdParams, Updatable},
+    common::IdParams,
 };
 use colette_model::collections;
 use sea_orm::{
@@ -29,11 +29,11 @@ impl SqliteCollectionRepository {
 }
 
 #[async_trait::async_trait]
-impl Findable for SqliteCollectionRepository {
-    type Params = CollectionFindParams;
-    type Output = Result<Vec<Collection>, Error>;
-
-    async fn find(&self, params: Self::Params) -> Self::Output {
+impl CollectionRepository for SqliteCollectionRepository {
+    async fn find_collections(
+        &self,
+        params: CollectionFindParams,
+    ) -> Result<Vec<Collection>, Error> {
         let collections = collections::Entity::find()
             .filter(collections::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
@@ -50,14 +50,8 @@ impl Findable for SqliteCollectionRepository {
 
         Ok(collections)
     }
-}
 
-#[async_trait::async_trait]
-impl Creatable for SqliteCollectionRepository {
-    type Data = CollectionCreateData;
-    type Output = Result<Uuid, Error>;
-
-    async fn create(&self, data: Self::Data) -> Self::Output {
+    async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
         let collection = collections::ActiveModel {
             id: ActiveValue::Set(id.into()),
@@ -73,15 +67,12 @@ impl Creatable for SqliteCollectionRepository {
 
         Ok(id)
     }
-}
 
-#[async_trait::async_trait]
-impl Updatable for SqliteCollectionRepository {
-    type Params = IdParams;
-    type Data = CollectionUpdateData;
-    type Output = Result<(), Error>;
-
-    async fn update(&self, params: Self::Params, data: Self::Data) -> Self::Output {
+    async fn update_collection(
+        &self,
+        params: IdParams,
+        data: CollectionUpdateData,
+    ) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -108,14 +99,8 @@ impl Updatable for SqliteCollectionRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl Deletable for SqliteCollectionRepository {
-    type Params = IdParams;
-    type Output = Result<(), Error>;
-
-    async fn delete(&self, params: Self::Params) -> Self::Output {
+    async fn delete_collection(&self, params: IdParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
@@ -131,10 +116,7 @@ impl Deletable for SqliteCollectionRepository {
 
         Ok(())
     }
-}
 
-#[async_trait::async_trait]
-impl CollectionRepository for SqliteCollectionRepository {
     async fn find_bookmarks(
         &self,
         params: CollectionBookmarkFindParams,

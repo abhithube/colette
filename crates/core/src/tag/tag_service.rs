@@ -24,7 +24,7 @@ impl TagService {
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
-            .find(TagFindParams {
+            .find_tags(TagFindParams {
                 tag_type: query.tag_type,
                 user_id,
                 ..Default::default()
@@ -40,7 +40,7 @@ impl TagService {
     pub async fn get_tag(&self, id: Uuid, user_id: Uuid) -> Result<Tag, Error> {
         let mut tags = self
             .repository
-            .find(TagFindParams {
+            .find_tags(TagFindParams {
                 id: Some(id),
                 user_id,
                 ..Default::default()
@@ -56,7 +56,7 @@ impl TagService {
     pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
         let id = self
             .repository
-            .create(TagCreateData {
+            .create_tag(TagCreateData {
                 title: data.title,
                 user_id,
             })
@@ -67,14 +67,14 @@ impl TagService {
 
     pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
         self.repository
-            .update(IdParams::new(id, user_id), data.into())
+            .update_tag(IdParams::new(id, user_id), data.into())
             .await?;
 
         self.get_tag(id, user_id).await
     }
 
     pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete(IdParams::new(id, user_id)).await
+        self.repository.delete_tag(IdParams::new(id, user_id)).await
     }
 }
 

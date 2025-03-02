@@ -1,15 +1,12 @@
 use uuid::Uuid;
 
 use super::{Account, Error};
-use crate::common::{Creatable, Findable};
 
-pub trait AccountRepository:
-    Findable<Params = AccountFindParams, Output = Result<Account, Error>>
-    + Creatable<Data = AccountCreateData, Output = Result<Uuid, Error>>
-    + Send
-    + Sync
-    + 'static
-{
+#[async_trait::async_trait]
+pub trait AccountRepository: Send + Sync + 'static {
+    async fn find_account(&self, params: AccountFindParams) -> Result<Account, Error>;
+
+    async fn create_account(&self, data: AccountCreateData) -> Result<Uuid, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
