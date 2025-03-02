@@ -140,7 +140,7 @@ struct RawConfig {
     cron_schedule: Option<String>,
     #[serde(default = "cors_enabled")]
     cors_enabled: bool,
-    cors_origin_urls: Vec<String>,
+    cors_origin_urls: Option<Vec<String>>,
 }
 
 impl TryFrom<RawConfig> for Config {
@@ -242,8 +242,8 @@ impl TryFrom<RawConfig> for Config {
         let mut cors = None;
         if value.cors_enabled {
             let mut config = CorsConfig::default();
-            if !value.cors_origin_urls.is_empty() {
-                config.origin_urls = value.cors_origin_urls;
+            if let Some(origin_urls) = value.cors_origin_urls {
+                config.origin_urls = origin_urls;
             }
 
             cors = Some(config);
