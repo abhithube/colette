@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{any::type_name, time::Duration};
 
 use apalis_core::{
     backend::Backend,
@@ -33,7 +33,7 @@ impl<T: Serialize + DeserializeOwned> SqliteStorageAdapter<T> {
         Self {
             inner: SqliteStorage::new_with_config(
                 pool,
-                Config::default().set_poll_interval(Duration::from_secs(1)),
+                Config::new(type_name::<T>()).set_poll_interval(Duration::from_secs(1)),
             ),
         }
     }
