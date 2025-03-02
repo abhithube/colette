@@ -1,4 +1,4 @@
-use std::{borrow::Cow, error::Error, ops::RangeFull, str::FromStr, sync::Arc, time::Duration};
+use std::{error::Error, ops::RangeFull, str::FromStr, sync::Arc, time::Duration};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -31,11 +31,13 @@ use colette_core::{
 use colette_http::ReqwestClient;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::{RedisStore, SessionAdapter};
+use colette_storage::StorageAdapter;
 use colette_worker::SqliteStorageAdapter;
+use config::{DatabaseConfig, JobConfig, SessionConfig, StorageConfig};
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
-use object_store::aws::AmazonS3Builder;
+use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use repository::{
     accounts::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
     backup::SqliteBackupRepository, bookmark::SqliteBookmarkRepository,
@@ -45,7 +47,7 @@ use repository::{
 };
 use sea_orm::DatabaseConnection;
 use sqlx::{
-    Pool, Sqlite,
+    Pool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 use tokio::{net::TcpListener, sync::Mutex};
@@ -54,12 +56,12 @@ use tower_sessions::{SessionManagerLayer, cookie};
 use tower_sessions_core::{Expiry, session_store::ExpiredDeletion};
 use tower_sessions_sqlx_store::SqliteStore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use url::Url;
 use utoipa::{OpenApi, openapi::Server};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
 mod api;
+mod config;
 mod job;
 mod repository;
 
@@ -70,76 +72,6 @@ struct Asset;
 #[derive(utoipa::OpenApi)]
 #[openapi(components(schemas(BaseError, TextOp, BooleanOp, DateOp)))]
 struct ApiDoc;
-
-#[derive(Debug, Clone, serde::Deserialize)]
-pub struct AppConfig {
-    #[serde(default = "default_host")]
-    pub host: Cow<'static, str>,
-    #[serde(default = "default_port")]
-    pub port: u32,
-    pub database_url: Option<Cow<'static, str>>,
-    pub jobs_database_url: Option<Cow<'static, str>>,
-    pub sessions_database_url: Option<Cow<'static, str>>,
-    #[serde(default = "default_redis_enabled")]
-    pub redis_enabled: bool,
-    pub redis_url: String,
-    #[serde(default = "default_cron_enabled")]
-    pub cron_enabled: bool,
-    #[serde(default = "default_cron_schedule")]
-    pub cron_schedule: Cow<'static, str>,
-    pub aws_access_key_id: Cow<'static, str>,
-    pub aws_secret_access_key: Cow<'static, str>,
-    #[serde(default = "default_aws_region")]
-    pub aws_region: Cow<'static, str>,
-    #[serde(default = "default_s3_bucket_name")]
-    pub s3_bucket_name: Cow<'static, str>,
-    #[serde(default = "default_s3_bucket_endpoint_url")]
-    pub s3_bucket_endpoint_url: Url,
-    #[serde(default = "default_cors_enabled")]
-    pub cors_enabled: bool,
-    #[serde(default = "default_origin_urls")]
-    pub origin_urls: Vec<Cow<'static, str>>,
-}
-
-fn default_host() -> Cow<'static, str> {
-    "0.0.0.0".into()
-}
-
-fn default_port() -> u32 {
-    8000
-}
-
-fn default_redis_enabled() -> bool {
-    false
-}
-
-fn default_cron_enabled() -> bool {
-    true
-}
-
-fn default_cron_schedule() -> Cow<'static, str> {
-    "0 */15 * * * *".into()
-}
-
-fn default_aws_region() -> Cow<'static, str> {
-    "us-east-1".into()
-}
-
-fn default_s3_bucket_name() -> Cow<'static, str> {
-    "colette".into()
-}
-
-fn default_s3_bucket_endpoint_url() -> Url {
-    "http://localhost:9000".parse().unwrap()
-}
-
-fn default_cors_enabled() -> bool {
-    false
-}
-
-fn default_origin_urls() -> Vec<Cow<'static, str>> {
-    Vec::new()
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -161,66 +93,95 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .init();
     }
 
-    let app_config = envy::from_env::<AppConfig>()?;
+    let app_config = config::from_env()?;
 
-    let app_pool = {
-        let options = match app_config.database_url {
-            Some(database_url) => {
-                SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
-            }
-            _ => SqliteConnectOptions::new(),
-        };
-        let pool =
-            Pool::<Sqlite>::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
+    let db_conn = match app_config.database {
+        DatabaseConfig::Sqlite(config) => {
+            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
+                .create_if_missing(true)
+                .journal_mode(SqliteJournalMode::Wal);
 
-        sqlx::migrate!("../../migrations").run(&pool).await?;
+            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
+            sqlx::migrate!("../../migrations").run(&pool).await?;
 
-        pool
+            DatabaseConnection::from(pool)
+        }
     };
 
-    let db_conn = DatabaseConnection::from(app_pool);
+    let (session_adapter, deletion_task) = match app_config.session {
+        SessionConfig::Sqlite(config) => {
+            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
+                .create_if_missing(true)
+                .journal_mode(SqliteJournalMode::Wal);
+
+            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
+
+            let store = SqliteStore::new(pool);
+            store.migrate().await?;
+
+            (
+                SessionAdapter::Sqlite(store.clone()),
+                Some(tokio::task::spawn(
+                    store.continuously_delete_expired(Duration::from_secs(60)),
+                )),
+            )
+        }
+        SessionConfig::Redis(config) => {
+            let redis = redis::Client::open(config.url)?;
+            let redis_conn = redis.get_multiplexed_async_connection().await?;
+            (SessionAdapter::Redis(RedisStore::new(redis_conn)), None)
+        }
+    };
+
+    let job_pool = match app_config.job {
+        JobConfig::Sqlite(config) => {
+            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
+                .create_if_missing(true);
+
+            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
+
+            SqliteStorageAdapter::setup(&pool).await?;
+
+            pool
+        }
+    };
+
+    let (storage_adapter, bucket_url) = match app_config.storage {
+        StorageConfig::Fs(config) => {
+            let fs = LocalFileSystem::new_with_prefix(config.path)?.with_automatic_cleanup(true);
+
+            (
+                StorageAdapter::Local(Arc::new(fs)),
+                "http://localhost:8000/assets".parse().unwrap(),
+            )
+        }
+        StorageConfig::S3(config) => {
+            let s3 = AmazonS3Builder::new()
+                .with_access_key_id(config.access_key_id)
+                .with_secret_access_key(config.secret_access_key)
+                .with_region(config.region)
+                .with_endpoint(config.endpoint.origin().ascii_serialization())
+                .with_bucket_name(&config.bucket_name)
+                .with_allow_http(true)
+                .build()?;
+
+            let base_url = config
+                .endpoint
+                .join(&format!("{}/", config.bucket_name))
+                .unwrap();
+
+            (StorageAdapter::S3(s3), base_url)
+        }
+    };
 
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
-    let bucket_url = app_config
-        .s3_bucket_endpoint_url
-        .join(&format!("{}/", app_config.s3_bucket_name))
-        .unwrap();
-
-    let bucket = AmazonS3Builder::new()
-        .with_region(app_config.aws_region)
-        .with_endpoint(
-            app_config
-                .s3_bucket_endpoint_url
-                .origin()
-                .ascii_serialization(),
-        )
-        .with_bucket_name(app_config.s3_bucket_name)
-        .with_access_key_id(app_config.aws_access_key_id)
-        .with_secret_access_key(app_config.aws_secret_access_key)
-        .with_allow_http(true)
-        .build()?;
-
-    let jobs_pool = {
-        let options = match app_config.jobs_database_url {
-            Some(database_url) => {
-                SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
-            }
-            _ => SqliteConnectOptions::new(),
-        };
-        let pool = Pool::<Sqlite>::connect_with(options).await?;
-
-        SqliteStorageAdapter::setup(&pool).await?;
-
-        pool
-    };
-
-    let scrape_feed_storage = SqliteStorageAdapter::new(jobs_pool.clone());
-    let scrape_bookmark_storage = SqliteStorageAdapter::new(jobs_pool.clone());
-    let archive_thumbnail_storage = SqliteStorageAdapter::new(jobs_pool.clone());
-    let import_feeds_storage = SqliteStorageAdapter::new(jobs_pool.clone());
-    let import_bookmarks_storage = SqliteStorageAdapter::new(jobs_pool);
+    let scrape_feed_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let scrape_bookmark_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let archive_thumbnail_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let import_feeds_storage = SqliteStorageAdapter::new(job_pool.clone());
+    let import_bookmarks_storage = SqliteStorageAdapter::new(job_pool);
 
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
@@ -228,7 +189,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
         http_client.clone(),
-        bucket,
+        storage_adapter,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
         register_bookmark_plugins(reqwest_client.clone()),
     ));
@@ -251,8 +212,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .data(bookmark_service.clone())
         .backend(scrape_bookmark_storage.clone())
         .build_fn(scrape_bookmark::run);
-
-    let schedule = app_config.cron_schedule.parse()?;
 
     let archive_thumbnail_worker = WorkerBuilder::new("archive_thumbnail")
         .enable_tracing()
@@ -280,7 +239,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .register(import_feeds_worker)
         .register(import_bookmarks_worker);
 
-    if app_config.cron_enabled {
+    if let Some(config) = app_config.cron {
+        let schedule = config.schedule.parse()?;
+
         let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
             .enable_tracing()
             .data(refresh_feeds::State::new(
@@ -354,33 +315,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .map(|(k, v)| (k.replace(&format!("{}/", api_prefix), "/"), v))
         .collect();
 
-    let (session_store, deletion_task) = if app_config.redis_enabled {
-        let redis = redis::Client::open(app_config.redis_url)?;
-        let redis_conn = redis.get_multiplexed_async_connection().await?;
-        (SessionAdapter::Redis(RedisStore::new(redis_conn)), None)
-    } else {
-        let session_pool = {
-            let options = match app_config.sessions_database_url {
-                Some(database_url) => {
-                    SqliteConnectOptions::from_str(&database_url)?.create_if_missing(true)
-                }
-                _ => SqliteConnectOptions::new(),
-            };
-
-            Pool::<Sqlite>::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?
-        };
-
-        let store = SqliteStore::new(session_pool);
-        store.migrate().await?;
-
-        (
-            SessionAdapter::Sqlite(store.clone()),
-            Some(tokio::task::spawn(
-                store.continuously_delete_expired(Duration::from_secs(60)),
-            )),
-        )
-    };
-
     let mut api = api
         .merge(Scalar::with_url(
             format!("{}/doc", api_prefix),
@@ -391,7 +325,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
         )
         .layer(
-            SessionManagerLayer::new(session_store.clone())
+            SessionManagerLayer::new(session_adapter.clone())
                 .with_secure(false)
                 .with_expiry(Expiry::OnInactivity(cookie::time::Duration::days(1))),
         )
@@ -402,8 +336,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
             None,
         ));
 
-    if app_config.cors_enabled {
-        let origins = app_config
+    if let Some(config) = app_config.cors {
+        let origins = config
             .origin_urls
             .iter()
             .filter_map(|e| e.parse::<HeaderValue>().ok())
@@ -418,7 +352,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
     }
 
-    let listener = TcpListener::bind(format!("{}:{}", app_config.host, app_config.port)).await?;
+    let listener = TcpListener::bind(format!("0.0.0.0:{}", app_config.server.port)).await?;
     let server = axum::serve(listener, api);
 
     let _ = tokio::join!(monitor, server);

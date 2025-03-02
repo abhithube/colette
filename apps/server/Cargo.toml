@@ -31,8 +31,10 @@ colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-session.workspace = true
+colette-storage.workspace = true
 colette-util.workspace = true
 colette-worker.workspace = true
+dirs = { version = "6.0.0", default-features = false }
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
