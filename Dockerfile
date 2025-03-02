@@ -8,7 +8,7 @@ COPY packages ./packages
 RUN npm ci
 RUN npm run build --workspace=@colette/web
 
-FROM rust:1.84-alpine AS base
+FROM rust:1.85-alpine AS base
 WORKDIR /app
 ARG TARGET
 RUN apk add --no-cache musl-dev
@@ -29,6 +29,8 @@ RUN cargo build --target $TARGET --release -p colette-server
 
 FROM gcr.io/distroless/static AS release
 ARG TARGET
-EXPOSE 8000
 COPY --from=rust-build /app/target/$TARGET/release/colette-server /
+VOLUME /app/data
+ENV DATA_DIR=/app/data
+EXPOSE 8000
 ENTRYPOINT ["/colette-server"]
