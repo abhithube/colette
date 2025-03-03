@@ -8,10 +8,18 @@ export const Thumbnail: FC<React.ImgHTMLAttributes<HTMLImageElement>> = (
   const [isLoading, setLoading] = useState(true)
 
   return (
-    <div className="aspect-video object-cover">
-      {isLoading && <Skeleton className="size-full" />}
+    <div className="relative aspect-video">
+      {isLoading && (
+        <div className="absolute inset-0">
+          <Skeleton className="size-full" />
+        </div>
+      )}
       <img
-        className={cn(isLoading && 'opacity-0', props.className)}
+        className={cn(
+          'size-full object-cover',
+          isLoading && 'invisible',
+          props.className,
+        )}
         src={props.src ?? 'https://placehold.co/320x180/black/black'}
         loading="lazy"
         onLoad={() => setLoading(false)}
