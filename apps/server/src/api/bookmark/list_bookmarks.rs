@@ -50,6 +50,8 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct BookmarkListQuery {
     #[param(nullable = false)]
+    pub collection_id: Option<Uuid>,
+    #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
@@ -61,6 +63,7 @@ pub struct BookmarkListQuery {
 impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     fn from(value: BookmarkListQuery) -> Self {
         Self {
+            collection_id: value.collection_id,
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
             } else {

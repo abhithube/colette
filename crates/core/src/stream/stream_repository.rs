@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntryFilter, Stream};
-use crate::{FeedEntry, common::IdParams, feed_entry};
+use crate::common::IdParams;
 
 #[async_trait::async_trait]
 pub trait StreamRepository: Send + Sync + 'static {
@@ -12,8 +12,6 @@ pub trait StreamRepository: Send + Sync + 'static {
     async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error>;
 
     async fn delete_stream(&self, params: IdParams) -> Result<(), Error>;
-
-    async fn find_entries(&self, params: StreamEntryFindParams) -> Result<Vec<FeedEntry>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -35,12 +33,4 @@ pub struct StreamCreateData {
 pub struct StreamUpdateData {
     pub title: Option<String>,
     pub filter: Option<FeedEntryFilter>,
-}
-
-#[derive(Debug, Clone)]
-pub struct StreamEntryFindParams {
-    pub filter: FeedEntryFilter,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<feed_entry::Cursor>,
 }

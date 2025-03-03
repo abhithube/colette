@@ -6,10 +6,11 @@ use axum::{
 };
 use colette_core::stream;
 
-use super::{FeedEntryFilter, STREAMS_TAG, Stream};
+use super::{STREAMS_TAG, Stream};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, NonEmptyString},
+    feed_entry::FeedEntryFilter,
 };
 
 #[utoipa::path(

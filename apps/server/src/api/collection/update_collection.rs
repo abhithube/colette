@@ -6,9 +6,10 @@ use axum::{
 };
 use colette_core::collection;
 
-use super::{BookmarkFilter, COLLECTIONS_TAG, Collection};
+use super::{COLLECTIONS_TAG, Collection};
 use crate::api::{
     ApiState,
+    bookmark::BookmarkFilter,
     common::{AuthUser, BaseError, Error, Id, NonEmptyString},
 };
 

@@ -43,9 +43,9 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct FeedEntryListQuery {
     #[param(nullable = false)]
-    pub feed_id: Option<Uuid>,
+    pub stream_id: Option<Uuid>,
     #[param(nullable = false)]
-    pub smart_feed_id: Option<Uuid>,
+    pub feed_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
     #[param(nullable = false)]
@@ -58,8 +58,8 @@ pub struct FeedEntryListQuery {
 impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
     fn from(value: FeedEntryListQuery) -> Self {
         Self {
+            stream_id: value.stream_id,
             feed_id: value.feed_id,
-            smart_feed_id: value.smart_feed_id,
             has_read: value.has_read,
             tags: value.tags,
             cursor: value.cursor,

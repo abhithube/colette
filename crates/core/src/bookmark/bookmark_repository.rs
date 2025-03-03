@@ -3,7 +3,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, Cursor, Error, ProcessedBookmark};
-use crate::common::IdParams;
+use crate::{bookmark::BookmarkFilter, common::IdParams};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
@@ -24,6 +24,7 @@ pub trait BookmarkRepository: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkFindParams {
+    pub filter: Option<BookmarkFilter>,
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,

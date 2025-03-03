@@ -1,21 +1,15 @@
 use colette_core::{
-    FeedEntry, Stream,
+    Stream,
     common::IdParams,
-    stream::{
-        Error, StreamCreateData, StreamEntryFindParams, StreamFindParams, StreamRepository,
-        StreamUpdateData,
-    },
+    stream::{Error, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData},
 };
 use colette_model::streams;
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
-    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, RuntimeErr,
+    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
     TransactionTrait,
 };
-use sqlx::QueryBuilder;
 use uuid::Uuid;
-
-use super::{common::ToSql, feed_entry::FeedEntryRow};
 
 #[derive(Debug, Clone)]
 pub struct SqliteStreamRepository {
@@ -108,59 +102,5 @@ impl StreamRepository for SqliteStreamRepository {
         tx.commit().await?;
 
         Ok(())
-    }
-
-    async fn find_entries(&self, params: StreamEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
-        let initial = format!(
-            r#"SELECT ufe.id,
-       fe.link,
-       fe.title,
-       fe.published_at,
-       fe.description,
-       fe.author,
-       fe.thumbnail_url,
-       ufe.has_read,
-       ufe.user_feed_id AS feed_id,
-       ufe.created_at,
-       ufe.updated_at
-  FROM user_feed_entries ufe
-  JOIN feed_entries fe on fe.id = ufe.feed_entry_id
- WHERE ufe.user_id = '{}'"#,
-            params.user_id
-        );
-
-        let mut qb = QueryBuilder::new(initial);
-
-        let where_clause = params.filter.to_sql();
-        if !where_clause.is_empty() {
-            qb.push(" AND ");
-            qb.push(&where_clause);
-        }
-
-        if let Some(cursor) = params.cursor {
-            qb.push(" AND (fe.published_at, ufe.id) > (");
-
-            let mut separated = qb.separated(", ");
-            separated.push_bind(cursor.published_at);
-            separated.push_bind(cursor.id);
-            separated.push_unseparated(")");
-        }
-
-        qb.push("\n ORDER BY fe.published_at DESC, ufe.id DESC");
-
-        if let Some(limit) = params.limit {
-            qb.push("\n LIMIT ");
-            qb.push_bind(limit);
-        }
-
-        let query = qb.build_query_as::<FeedEntryRow>();
-
-        let entries = query
-            .fetch_all(self.db.get_sqlite_connection_pool())
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())
-            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
-
-        Ok(entries)
     }
 }

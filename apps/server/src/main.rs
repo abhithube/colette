@@ -185,11 +185,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_storage = SqliteStorage::new(job_pool.clone());
     let import_bookmarks_storage = SqliteStorage::new(job_pool);
 
-    let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
+    let collection_repository = SqliteCollectionRepository::new(db_conn.clone());
+    let feed_repository = SqliteFeedRepository::new(db_conn.clone());
+    let stream_repository = SqliteStreamRepository::new(db_conn.clone());
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
+        collection_repository.clone(),
         http_client.clone(),
         storage_adapter,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
@@ -274,16 +277,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Arc::new(Mutex::new(import_bookmarks_storage)),
         )),
         bookmark_service,
-        collection_service: Arc::new(CollectionService::new(SqliteCollectionRepository::new(
-            db_conn.clone(),
-        ))),
+        collection_service: Arc::new(CollectionService::new(collection_repository)),
         feed_service,
-        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(
-            db_conn.clone(),
-        ))),
-        stream_service: Arc::new(StreamService::new(SqliteStreamRepository::new(
-            db_conn.clone(),
-        ))),
+        feed_entry_service: Arc::new(FeedEntryService::new(
+            SqliteFeedEntryRepository::new(db_conn.clone()),
+            stream_repository.clone(),
+        )),
+        stream_service: Arc::new(StreamService::new(stream_repository)),
         tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn.clone()))),
         image_base_url,
     };

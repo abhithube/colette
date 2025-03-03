@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{BookmarkFilter, Collection, Cursor, Error};
-use crate::{Bookmark, bookmark, common::IdParams};
+use crate::common::IdParams;
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Send + Sync + 'static {
@@ -19,11 +19,6 @@ pub trait CollectionRepository: Send + Sync + 'static {
     ) -> Result<(), Error>;
 
     async fn delete_collection(&self, params: IdParams) -> Result<(), Error>;
-
-    async fn find_bookmarks(
-        &self,
-        params: CollectionBookmarkFindParams,
-    ) -> Result<Vec<Bookmark>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,12 +40,4 @@ pub struct CollectionCreateData {
 pub struct CollectionUpdateData {
     pub title: Option<String>,
     pub filter: Option<BookmarkFilter>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CollectionBookmarkFindParams {
-    pub filter: BookmarkFilter,
-    pub user_id: Uuid,
-    pub limit: Option<i64>,
-    pub cursor: Option<bookmark::Cursor>,
 }

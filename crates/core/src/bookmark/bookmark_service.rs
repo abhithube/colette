@@ -10,12 +10,14 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkScrapedData, BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
+    Bookmark, BookmarkFilter, BookmarkScrapedData, BookmarkScraper, Cursor, Error,
+    ExtractedBookmark, ScraperError,
     bookmark_repository::{
         BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
     },
 };
 use crate::{
+    collection::{CollectionFindParams, CollectionRepository},
     common::{IdParams, PAGINATION_LIMIT, Paginated},
     job::Storage,
 };
@@ -23,7 +25,8 @@ use crate::{
 const BOOKMARKS_DIR: &str = "bookmarks";
 
 pub struct BookmarkService {
-    repository: Box<dyn BookmarkRepository>,
+    bookmark_repository: Box<dyn BookmarkRepository>,
+    collection_repository: Box<dyn CollectionRepository>,
     client: Box<dyn HttpClient>,
     object_store: Box<dyn ObjectStore>,
     archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
@@ -32,14 +35,16 @@ pub struct BookmarkService {
 
 impl BookmarkService {
     pub fn new(
-        repository: impl BookmarkRepository,
+        bookmark_repository: impl BookmarkRepository,
+        collection_repository: impl CollectionRepository,
         http_client: impl HttpClient,
         object_store: impl ObjectStore,
         archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
         Self {
-            repository: Box::new(repository),
+            bookmark_repository: Box::new(bookmark_repository),
+            collection_repository: Box::new(collection_repository),
             client: Box::new(http_client),
             object_store: Box::new(object_store),
             archive_thumbnail_storage,
@@ -54,9 +59,30 @@ impl BookmarkService {
     ) -> Result<Paginated<Bookmark>, Error> {
         let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
 
+        let mut filter = Option::<BookmarkFilter>::None;
+        if let Some(collection_id) = query.collection_id {
+            let mut collections = self
+                .collection_repository
+                .find_collections(CollectionFindParams {
+                    id: Some(collection_id),
+                    user_id,
+                    ..Default::default()
+                })
+                .await?;
+            if collections.is_empty() {
+                return Ok(Paginated {
+                    data: Default::default(),
+                    cursor: None,
+                });
+            }
+
+            filter = Some(collections.swap_remove(0).filter);
+        }
+
         let mut bookmarks = self
-            .repository
+            .bookmark_repository
             .find_bookmarks(BookmarkFindParams {
+                filter,
                 tags: query.tags,
                 user_id,
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
@@ -88,7 +114,7 @@ impl BookmarkService {
 
     pub async fn get_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<Bookmark, Error> {
         let mut bookmarks = self
-            .repository
+            .bookmark_repository
             .find_bookmarks(BookmarkFindParams {
                 id: Some(id),
                 user_id,
@@ -108,7 +134,7 @@ impl BookmarkService {
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         let id = self
-            .repository
+            .bookmark_repository
             .create_bookmark(BookmarkCreateData {
                 url: data.url,
                 title: data.title,
@@ -146,7 +172,7 @@ impl BookmarkService {
     ) -> Result<Bookmark, Error> {
         let thumbnail_url = data.thumbnail_url.clone();
 
-        self.repository
+        self.bookmark_repository
             .update_bookmark(IdParams::new(id, user_id), data.into())
             .await?;
 
@@ -177,7 +203,7 @@ impl BookmarkService {
     pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let bookmark = self.get_bookmark(id, user_id).await?;
 
-        self.repository
+        self.bookmark_repository
             .delete_bookmark(IdParams::new(id, user_id))
             .await?;
 
@@ -244,7 +270,7 @@ impl BookmarkService {
             }
         }?;
 
-        self.repository
+        self.bookmark_repository
             .save_scraped(BookmarkScrapedData {
                 url: data.url,
                 bookmark,
@@ -274,7 +300,7 @@ impl BookmarkService {
                     .put(&Path::parse(&object_path).unwrap(), body.into())
                     .await?;
 
-                self.repository
+                self.bookmark_repository
                     .update_bookmark(
                         IdParams::new(bookmark_id, user_id),
                         BookmarkUpdateData {
@@ -292,7 +318,7 @@ impl BookmarkService {
                 .delete(&Path::parse(&archived_path).unwrap())
                 .await?;
 
-            self.repository
+            self.bookmark_repository
                 .update_bookmark(
                     IdParams::new(bookmark_id, user_id),
                     BookmarkUpdateData {
@@ -309,6 +335,7 @@ impl BookmarkService {
 
 #[derive(Debug, Clone, Default)]
 pub struct BookmarkListQuery {
+    pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
 }

@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry};
-use crate::common::IdParams;
+use crate::{common::IdParams, feed_entry::FeedEntryFilter};
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository: Send + Sync + 'static {
@@ -17,9 +17,9 @@ pub trait FeedEntryRepository: Send + Sync + 'static {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedEntryFindParams {
+    pub filter: Option<FeedEntryFilter>,
     pub id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
-    pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,

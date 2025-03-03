@@ -6,7 +6,9 @@ use colette_core::{
 use colette_model::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, DbErr,
-    EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait, sea_query::OnConflict,
+    EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
+    prelude::Expr,
+    sea_query::{ExprTrait, OnConflict, SimpleExpr},
 };
 use url::Url;
 use uuid::Uuid;
@@ -192,67 +194,62 @@ pub(crate) async fn upsert_tag(
 }
 
 pub(crate) trait ToColumn {
-    fn to_column(&self) -> String;
+    fn to_column(self) -> Expr;
 }
 
 pub(crate) trait ToSql {
-    fn to_sql(&self) -> String;
+    fn to_sql(self) -> SimpleExpr;
 }
 
-impl ToSql for (String, &TextOp) {
-    fn to_sql(&self) -> String {
+impl ToSql for (Expr, TextOp) {
+    fn to_sql(self) -> SimpleExpr {
         let (column, op) = self;
 
         match op {
-            TextOp::Equals(value) => format!("{} = '{}'", column, value),
-            TextOp::Contains(value) => format!("{} ILIKE '%{}%'", column, value),
-            TextOp::StartsWith(value) => format!("{} ILIKE '{}%'", column, value),
-            TextOp::EndsWith(value) => format!("{} ILIKE '%{}'", column, value),
+            TextOp::Equals(value) => column.to_owned().eq(value),
+            TextOp::Contains(value) => column.to_owned().like(format!("%{}%", value)),
+            TextOp::StartsWith(value) => column.to_owned().like(format!("{}%", value)),
+            TextOp::EndsWith(value) => column.to_owned().like(format!("%{}", value)),
         }
     }
 }
 
-impl ToSql for (String, &NumberOp) {
-    fn to_sql(&self) -> String {
+impl ToSql for (Expr, NumberOp) {
+    fn to_sql(self) -> SimpleExpr {
         let (column, op) = self;
 
         match op {
-            NumberOp::Equals(value) => format!("{} = {}", column, value),
-            NumberOp::LessThan(value) => format!("{} < {}", column, value),
-            NumberOp::GreaterThan(value) => format!("{} > {}", column, value),
-            NumberOp::Between(value) => format!(
-                "{} > {} AND {} < {}",
-                column, value.start, column, value.end
-            ),
+            NumberOp::Equals(value) => column.to_owned().eq(value),
+            NumberOp::LessThan(value) => column.to_owned().lt(value),
+            NumberOp::GreaterThan(value) => column.to_owned().gt(value),
+            NumberOp::Between(value) => column.to_owned().between(value.start, value.end),
         }
     }
 }
 
-impl ToSql for (String, &BooleanOp) {
-    fn to_sql(&self) -> String {
+impl ToSql for (Expr, BooleanOp) {
+    fn to_sql(self) -> SimpleExpr {
         let (column, op) = self;
 
         match op {
-            BooleanOp::Equals(value) => format!("{} = {}", column, value),
+            BooleanOp::Equals(value) => column.to_owned().eq(value),
         }
     }
 }
 
-impl ToSql for (String, &DateOp) {
-    fn to_sql(&self) -> String {
+impl ToSql for (Expr, DateOp) {
+    fn to_sql(self) -> SimpleExpr {
         let (column, op) = self;
 
         match op {
-            DateOp::Before(value) => format!("{} < '{}'", column, value),
-            DateOp::After(value) => format!("{} > '{}'", column, value),
-            DateOp::Between(value) => format!(
-                "{} > '{}' AND {} < '{}'",
-                column, value.start, column, value.end
-            ),
-            DateOp::InLast(value) => format!(
-                "round((extract(epoch FROM now()) - extract(epoch FROM {})) * 1000) < '{}'",
-                column, value
-            ),
+            DateOp::Before(value) => column.to_owned().lt(value.timestamp()),
+            DateOp::After(value) => column.to_owned().gt(value.timestamp()),
+            DateOp::Between(value) => column
+                .to_owned()
+                .between(value.start.timestamp(), value.end.timestamp()),
+            DateOp::InLast(value) => Expr::cust("strftime('%s', 'now')")
+                .sub(column.to_owned())
+                .lt(value),
         }
     }
 }

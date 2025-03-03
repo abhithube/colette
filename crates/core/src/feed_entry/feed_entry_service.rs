@@ -5,16 +5,25 @@ use super::{
     Cursor, Error, FeedEntry,
     feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
 };
-use crate::common::{IdParams, PAGINATION_LIMIT, Paginated};
+use crate::{
+    common::{IdParams, PAGINATION_LIMIT, Paginated},
+    feed_entry::FeedEntryFilter,
+    stream::{StreamFindParams, StreamRepository},
+};
 
 pub struct FeedEntryService {
-    repository: Box<dyn FeedEntryRepository>,
+    feed_entry_repository: Box<dyn FeedEntryRepository>,
+    stream_repository: Box<dyn StreamRepository>,
 }
 
 impl FeedEntryService {
-    pub fn new(repository: impl FeedEntryRepository) -> Self {
+    pub fn new(
+        feed_entry_repository: impl FeedEntryRepository,
+        stream_repository: impl StreamRepository,
+    ) -> Self {
         Self {
-            repository: Box::new(repository),
+            feed_entry_repository: Box::new(feed_entry_repository),
+            stream_repository: Box::new(stream_repository),
         }
     }
 
@@ -25,11 +34,31 @@ impl FeedEntryService {
     ) -> Result<Paginated<FeedEntry>, Error> {
         let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
 
+        let mut filter = Option::<FeedEntryFilter>::None;
+        if let Some(stream_id) = query.stream_id {
+            let mut streams = self
+                .stream_repository
+                .find_streams(StreamFindParams {
+                    id: Some(stream_id),
+                    user_id,
+                    ..Default::default()
+                })
+                .await?;
+            if streams.is_empty() {
+                return Ok(Paginated {
+                    data: Default::default(),
+                    cursor: None,
+                });
+            }
+
+            filter = Some(streams.swap_remove(0).filter);
+        }
+
         let mut feed_entries = self
-            .repository
+            .feed_entry_repository
             .find_feed_entries(FeedEntryFindParams {
+                filter,
                 feed_id: query.feed_id,
-                smart_feed_id: query.smart_feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id,
@@ -63,7 +92,7 @@ impl FeedEntryService {
 
     pub async fn get_feed_entry(&self, id: Uuid, user_id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
-            .repository
+            .feed_entry_repository
             .find_feed_entries(FeedEntryFindParams {
                 id: Some(id),
                 user_id,
@@ -83,7 +112,7 @@ impl FeedEntryService {
         data: FeedEntryUpdate,
         user_id: Uuid,
     ) -> Result<FeedEntry, Error> {
-        self.repository
+        self.feed_entry_repository
             .update_feed_entry(IdParams::new(id, user_id), data.into())
             .await?;
 
@@ -93,8 +122,8 @@ impl FeedEntryService {
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedEntryListQuery {
+    pub stream_id: Option<Uuid>,
     pub feed_id: Option<Uuid>,
-    pub smart_feed_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
