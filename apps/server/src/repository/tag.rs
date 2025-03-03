@@ -1,15 +1,17 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
     common::IdParams,
-    tag::{Error, TagCreateData, TagFindParams, TagRepository, TagUpdateData},
+    tag::{Error, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
 };
-use colette_model::tags;
+use colette_model::{TagWithCounts, bookmark_tags, tags, user_feed_tags};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, DatabaseConnection, DbErr, EntityTrait, IntoActiveModel,
-    ModelTrait, RuntimeErr, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, Iden,
+    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+    TransactionTrait,
+    prelude::Expr,
+    sea_query::{Alias, Func},
 };
-use uuid::{Uuid, fmt::Hyphenated};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -25,55 +27,56 @@ impl SqliteTagRepository {
 #[async_trait::async_trait]
 impl TagRepository for SqliteTagRepository {
     async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
-        let id = params.id.map(Hyphenated::from);
-        let user_id = Hyphenated::from(params.user_id);
-        let skip_id = id.is_none();
+        let feed_count = Alias::new("feed_count");
+        let bookmark_count = Alias::new("bookmark_count");
 
-        let mut skip_cursor = true;
-        let mut cursor_title = Option::<String>::None;
-        if let Some(cursor) = params.cursor {
-            skip_cursor = false;
-            cursor_title = Some(cursor.title);
-        }
-
-        let tags = sqlx::query_as!(
-            Tag,
-            r#"WITH feed_count AS (
-  SELECT uft.tag_id, coalesce(count(uft.user_feed_id), 0) AS count
-    FROM user_feed_tags uft
-   WHERE uft.user_id = $1
-   GROUP BY uft.tag_id
-),
-bookmark_count AS (
-  SELECT bt.tag_id, coalesce(count(bt.bookmark_id), 0) AS count
-    FROM bookmark_tags bt
-   WHERE bt.user_id = $1
-   GROUP BY bt.tag_id
-)
-SELECT t.id AS "id: Hyphenated",
-       t.title,
-       t.created_at AS "created_at: DateTime<Utc>",
-       t.updated_at AS "updated_at: DateTime<Utc>",
-       fc.count AS "feed_count: i64",
-       bc.count AS "bookmark_count: i64"
-  FROM tags t
-  LEFT JOIN feed_count fc ON fc.tag_id = t.id
-  LEFT JOIN bookmark_count bc ON bc.tag_id = t.id
- WHERE t.user_id = $1
-   AND ($2 OR t.id = $3)
-   AND ($4 OR t.title > $5)
- ORDER BY t.title ASC
- LIMIT coalesce($6, -1)"#,
-            user_id,
-            skip_id,
-            id,
-            skip_cursor,
-            cursor_title,
-            params.limit
-        )
-        .fetch_all(self.db.get_sqlite_connection_pool())
-        .await
-        .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
+        let tags = tags::Entity::find()
+            .expr_as(
+                Func::count(Expr::col((
+                    user_feed_tags::Entity,
+                    user_feed_tags::Column::UserFeedId,
+                ))),
+                feed_count.to_string(),
+            )
+            .expr_as(
+                Func::count(Expr::col((
+                    bookmark_tags::Entity,
+                    bookmark_tags::Column::BookmarkId,
+                ))),
+                bookmark_count.to_string(),
+            )
+            .filter(tags::Column::UserId.eq(params.user_id.to_string()))
+            .left_join(user_feed_tags::Entity)
+            .left_join(bookmark_tags::Entity)
+            .apply_if(params.id, |query, id| {
+                query.filter(tags::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(tags::Column::Title.gt(cursor.title))
+            })
+            .group_by(tags::Column::Id)
+            .apply_if(
+                if params.tag_type == TagType::Feeds {
+                    Some(true)
+                } else {
+                    None
+                },
+                |query, _| query.having(Expr::col(feed_count).gt(Expr::val(0))),
+            )
+            .apply_if(
+                if params.tag_type == TagType::Bookmarks {
+                    Some(true)
+                } else {
+                    None
+                },
+                |query, _| query.having(Expr::col(bookmark_count).gt(Expr::val(0))),
+            )
+            .order_by_asc(tags::Column::Title)
+            .limit(params.limit.map(|e| e as u64))
+            .into_model::<TagWithCounts>()
+            .all(&self.db)
+            .await
+            .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(tags)
     }

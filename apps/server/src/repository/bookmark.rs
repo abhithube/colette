@@ -8,15 +8,13 @@ use colette_core::{
     collection::{BookmarkDateField, BookmarkFilter, BookmarkTextField},
     common::IdParams,
 };
-use colette_model::{bookmark_tags, bookmarks};
+use colette_model::{BookmarkWithTags, bookmark_tags, bookmarks, tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, RuntimeErr, TransactionTrait,
+    EntityTrait, IntoActiveModel, LoaderTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
+    QueryTrait, TransactionTrait, prelude::Expr, sea_query::Query,
 };
-use sqlx::{
-    QueryBuilder,
-    types::{Json, Text},
-};
+use sqlx::types::{Json, Text};
 use url::Url;
 use uuid::{Uuid, fmt::Hyphenated};
 
@@ -36,62 +34,48 @@ impl SqliteBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
-        let initial = format!(
-            r#"WITH json_tags AS (
-  SELECT bt.bookmark_id, json_group_array(json_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
-    FROM bookmark_tags bt
-    JOIN tags t ON t.id = bt.tag_id
-   WHERE bt.user_id = '{0}'
-   GROUP BY bt.bookmark_id
-)
-SELECT b.id,
-       b.link,
-       b.title,
-       b.thumbnail_url,
-       b.published_at,
-       b.author,
-       b.archived_path,
-       b.created_at,
-       b.updated_at,
-       coalesce(jt.tags, '[]') AS tags
-  FROM bookmarks b
-  LEFT JOIN json_tags jt ON jt.bookmark_id = b.id
- WHERE b.user_id = '{0}'"#,
-            Hyphenated::from(params.user_id)
-        );
+        let bookmark_models = bookmarks::Entity::find()
+            .filter(bookmarks::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(bookmarks::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(bookmarks::Column::CreatedAt.gt(cursor.created_at.timestamp()))
+            })
+            .apply_if(params.tags, |query, tags| {
+                query.filter(Expr::exists(
+                    Query::select()
+                        .expr(Expr::val(1))
+                        .from(bookmark_tags::Entity)
+                        .and_where(
+                            Expr::col(bookmark_tags::Column::BookmarkId)
+                                .eq(Expr::col(bookmarks::Column::Id)),
+                        )
+                        .and_where(
+                            bookmark_tags::Column::TagId
+                                .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
+                        )
+                        .to_owned(),
+                ))
+            })
+            .order_by_asc(bookmarks::Column::CreatedAt)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await?;
 
-        let mut qb = QueryBuilder::new(initial);
+        let tag_models = bookmark_models
+            .load_many_to_many(
+                tags::Entity::find().order_by_asc(tags::Column::Title),
+                bookmark_tags::Entity,
+                &self.db,
+            )
+            .await?;
 
-        if let Some(id) = params.id {
-            qb.push("\n   AND b.id = ");
-            qb.push_bind(Hyphenated::from(id));
-        }
-        if let Some(cursor) = params.cursor {
-            qb.push("\n   AND b.created_at > ");
-            qb.push_bind(cursor.created_at);
-        }
-        if let Some(tags) = params.tags {
-            let mut separated = qb.separated(", ");
-            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM bookmark_tags bt WHERE bt.bookmark_id = b.id AND bt.tag_id in (");
-            for id in tags {
-                separated.push_bind(id);
-            }
-            separated.push(")");
-        }
-
-        qb.push("\n ORDER BY b.created_at ASC");
-        if let Some(limit) = params.limit {
-            qb.push("\n LIMIT ");
-            qb.push_bind(limit);
-        }
-
-        let query = qb.build_query_as::<BookmarkRow>();
-
-        let bookmarks = query
-            .fetch_all(self.db.get_sqlite_connection_pool())
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())
-            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
+        let bookmarks = bookmark_models
+            .into_iter()
+            .zip(tag_models.into_iter())
+            .map(|(bookmark, tags)| BookmarkWithTags { bookmark, tags }.into())
+            .collect();
 
         Ok(bookmarks)
     }

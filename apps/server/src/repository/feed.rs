@@ -1,25 +1,23 @@
-use chrono::{DateTime, Utc};
 use colette_core::{
-    Feed, Tag,
+    Feed,
     common::IdParams,
     feed::{
         ConflictError, Error, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
         FeedUpdateData,
     },
 };
-use colette_model::{feeds, user_feed_tags, user_feeds};
+use colette_model::{
+    FeedWithTagsAndCount, feeds, tags, user_feed_entries, user_feed_tags, user_feeds,
+};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction,
-    DbErr, EntityTrait, IntoActiveModel, ModelTrait, QueryFilter, QuerySelect, RuntimeErr,
-    TransactionTrait, prelude::Expr, sea_query::Func,
+    DbErr, EntityTrait, IntoActiveModel, IntoSimpleExpr, LoaderTrait, ModelTrait, QueryFilter,
+    QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+    prelude::Expr,
+    sea_query::{Func, Query},
 };
-use sqlx::{
-    QueryBuilder,
-    types::{Json, Text},
-};
-use url::Url;
-use uuid::{Uuid, fmt::Hyphenated};
+use uuid::Uuid;
 
 use super::common;
 
@@ -37,71 +35,87 @@ impl SqliteFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
-        let initial = format!(
-            r#"WITH unread_count AS (
-  SELECT ufe.user_feed_id, count(ufe.id) AS count
-    FROM user_feed_entries ufe
-   WHERE ufe.user_id = '{0}' AND NOT ufe.has_read
-   GROUP BY ufe.user_feed_id
-),
-json_tags AS (
-  SELECT uft.user_feed_id, json_group_array(json_object('id', t.id, 'title', t.title) ORDER BY t.title) AS tags
-    FROM user_feed_tags uft
-    JOIN tags t ON t.id = uft.tag_id
-   WHERE uft.user_id = '{0}'
-   GROUP BY uft.user_feed_id
-)
-SELECT uf.id,
-       f.link,
-       uf.title,
-       f.xml_url,
-       uf.created_at,
-       uf.updated_at,
-       coalesce(jt.tags, '[]') AS tags,
-       coalesce(uc.count, 0) AS unread_count
-  FROM user_feeds uf
- INNER JOIN feeds f ON f.id = uf.feed_id
-  LEFT JOIN json_tags jt ON jt.user_feed_id = uf.id
-  LEFT JOIN unread_count uc ON uc.user_feed_id = uf.id
- WHERE uf.user_id = '{0}'"#,
-            Hyphenated::from(params.user_id)
-        );
+        let models = user_feeds::Entity::find()
+            .find_also_related(feeds::Entity)
+            .filter(user_feeds::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.id, |query, id| {
+                query.filter(user_feeds::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.cursor, |query, cursor| {
+                query.filter(
+                    Expr::tuple([
+                        user_feeds::Column::Title.into_simple_expr(),
+                        user_feeds::Column::Id.into_simple_expr(),
+                    ])
+                    .gt(Expr::tuple([
+                        Expr::value(cursor.title),
+                        Expr::value(cursor.id.to_string()),
+                    ])),
+                )
+            })
+            .apply_if(params.tags, |query, tags| {
+                query.filter(Expr::exists(
+                    Query::select()
+                        .expr(Expr::val(1))
+                        .from(user_feed_tags::Entity)
+                        .and_where(
+                            Expr::col(user_feed_tags::Column::UserFeedId)
+                                .eq(Expr::col(user_feeds::Column::Id)),
+                        )
+                        .and_where(
+                            user_feed_tags::Column::TagId
+                                .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
+                        )
+                        .to_owned(),
+                ))
+            })
+            .order_by_asc(user_feeds::Column::Title)
+            .order_by_asc(user_feeds::Column::Id)
+            .limit(params.limit.map(|e| e as u64))
+            .all(&self.db)
+            .await?;
 
-        let mut qb = QueryBuilder::new(initial);
+        let (user_feed_models, feed_models): (Vec<_>, Vec<_>) = models
+            .into_iter()
+            .filter_map(|(uf, f)| f.map(|f| (uf, f)))
+            .unzip();
 
-        if let Some(id) = params.id {
-            qb.push("\n   AND ufe.id = ");
-            qb.push_bind(Hyphenated::from(id));
-        }
-        if let Some(cursor) = params.cursor {
-            let mut separated = qb.separated(", ");
-            separated.push_unseparated("\n   AND (uf.title, uf.id) > (");
-            separated.push_bind(cursor.title);
-            separated.push_bind(cursor.id);
-            separated.push_unseparated(")");
-        }
-        if let Some(tags) = params.tags {
-            let mut separated = qb.separated(", ");
-            separated.push_unseparated("\n   AND EXISTS (SELECT 1 FROM user_feed_tags uft WHERE uft.user_feed_id = b.id AND uft.tag_id in (");
-            for id in tags {
-                separated.push_bind(id);
-            }
-            separated.push(")");
-        }
+        let tag_models = user_feed_models
+            .load_many_to_many(
+                tags::Entity::find().order_by_asc(tags::Column::Title),
+                user_feed_tags::Entity,
+                &self.db,
+            )
+            .await?;
 
-        qb.push("\n ORDER BY uf.title ASC, uf.id ASC");
-        if let Some(limit) = params.limit {
-            qb.push("\n LIMIT ");
-            qb.push_bind(limit);
-        }
+        let unread_counts = user_feed_entries::Entity::find()
+            .select_only()
+            .expr(Func::count(Expr::col(user_feed_entries::Column::Id)))
+            .filter(user_feed_entries::Column::HasRead.eq(false))
+            .filter(
+                user_feed_entries::Column::UserFeedId
+                    .is_in(user_feed_models.iter().map(|e| e.id.as_str())),
+            )
+            .group_by(user_feed_entries::Column::UserFeedId)
+            .into_tuple::<i64>()
+            .all(&self.db)
+            .await?;
 
-        let query = qb.build_query_as::<FeedRow>();
-
-        let feeds = query
-            .fetch_all(self.db.get_sqlite_connection_pool())
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())
-            .map_err(|e| DbErr::Query(RuntimeErr::SqlxError(e)))?;
+        let feeds = user_feed_models
+            .into_iter()
+            .zip(feed_models.into_iter())
+            .zip(unread_counts.into_iter())
+            .zip(tag_models.into_iter())
+            .map(|(((user_feed, feed), unread_count), tags)| {
+                FeedWithTagsAndCount {
+                    user_feed,
+                    feed,
+                    tags,
+                    unread_count,
+                }
+                .into()
+            })
+            .collect();
 
         Ok(feeds)
     }
@@ -260,31 +274,4 @@ async fn link_tags(
         .await?;
 
     Ok(())
-}
-
-#[derive(sqlx::FromRow)]
-struct FeedRow {
-    id: Hyphenated,
-    link: Text<Url>,
-    title: String,
-    xml_url: Option<Text<Url>>,
-    created_at: Option<DateTime<Utc>>,
-    updated_at: Option<DateTime<Utc>>,
-    tags: Option<Json<Vec<Tag>>>,
-    unread_count: Option<i64>,
-}
-
-impl From<FeedRow> for Feed {
-    fn from(value: FeedRow) -> Self {
-        Self {
-            id: value.id.into(),
-            link: value.link.0,
-            title: value.title,
-            xml_url: value.xml_url.map(|e| e.0),
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            tags: value.tags.map(|e| e.0),
-            unread_count: value.unread_count,
-        }
-    }
 }

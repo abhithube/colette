@@ -17,7 +17,7 @@ pub struct Tag {
     pub feed_count: Option<i64>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum TagType {
     #[default]
     All,

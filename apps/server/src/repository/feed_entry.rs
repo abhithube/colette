@@ -5,7 +5,7 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
     stream::{FeedEntryBooleanField, FeedEntryDateField, FeedEntryFilter, FeedEntryTextField},
 };
-use colette_model::{feed_entries, user_feed_entries, user_feed_tags};
+use colette_model::{UfeWithFe, feed_entries, user_feed_entries, user_feed_tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
     QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait, prelude::Expr,
@@ -15,7 +15,7 @@ use sqlx::types::Text;
 use url::Url;
 use uuid::Uuid;
 
-use super::common::{ToColumn, ToSql, parse_timestamp};
+use super::common::{ToColumn, ToSql};
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {
@@ -116,29 +116,6 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         tx.commit().await?;
 
         Ok(())
-    }
-}
-
-struct UfeWithFe {
-    ufe: user_feed_entries::Model,
-    fe: feed_entries::Model,
-}
-
-impl From<UfeWithFe> for FeedEntry {
-    fn from(value: UfeWithFe) -> Self {
-        Self {
-            id: value.ufe.id.parse().unwrap(),
-            link: value.fe.link.parse().unwrap(),
-            title: value.fe.title,
-            published_at: parse_timestamp(value.fe.published_at).unwrap(),
-            description: value.fe.description,
-            author: value.fe.author,
-            thumbnail_url: value.fe.thumbnail_url.and_then(|e| e.parse().ok()),
-            has_read: value.ufe.has_read == 1,
-            feed_id: value.ufe.user_feed_id.parse().unwrap(),
-            created_at: parse_timestamp(value.ufe.created_at),
-            updated_at: parse_timestamp(value.ufe.updated_at),
-        }
     }
 }
 

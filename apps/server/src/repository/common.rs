@@ -191,10 +191,6 @@ pub(crate) async fn upsert_tag(
     Ok(tag_id)
 }
 
-pub(crate) fn parse_timestamp(value: i32) -> Option<DateTime<Utc>> {
-    DateTime::from_timestamp(value.into(), 0)
-}
-
 pub(crate) trait ToColumn {
     fn to_column(&self) -> String;
 }
