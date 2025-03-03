@@ -21,7 +21,7 @@ impl StreamService {
         let streams = self
             .repository
             .find_streams(StreamFindParams {
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -37,7 +37,7 @@ impl StreamService {
             .repository
             .find_streams(StreamFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

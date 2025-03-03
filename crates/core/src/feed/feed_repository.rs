@@ -9,6 +9,8 @@ use crate::common::IdParams;
 pub trait FeedRepository: Send + Sync + 'static {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
 
+    async fn find_feed_by_id(&self, id: Uuid) -> Result<FeedById, Error>;
+
     async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error>;
 
     async fn update_feed(&self, params: IdParams, data: FeedUpdateData) -> Result<(), Error>;
@@ -21,10 +23,16 @@ pub trait FeedRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct FeedById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }

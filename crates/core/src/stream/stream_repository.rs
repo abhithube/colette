@@ -7,6 +7,8 @@ use crate::common::IdParams;
 pub trait StreamRepository: Send + Sync + 'static {
     async fn find_streams(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error>;
 
+    async fn find_stream_by_id(&self, id: Uuid) -> Result<StreamById, Error>;
+
     async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error>;
 
     async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error>;
@@ -15,9 +17,15 @@ pub trait StreamRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct StreamById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct StreamFindParams {
     pub id: Option<Uuid>,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }

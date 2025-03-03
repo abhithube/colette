@@ -65,7 +65,7 @@ impl BookmarkService {
                 .collection_repository
                 .find_collections(CollectionFindParams {
                     id: Some(collection_id),
-                    user_id,
+                    user_id: Some(user_id),
                     ..Default::default()
                 })
                 .await?;
@@ -84,7 +84,7 @@ impl BookmarkService {
             .find_bookmarks(BookmarkFindParams {
                 filter,
                 tags: query.tags,
-                user_id,
+                user_id: Some(user_id),
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
                 ..Default::default()
@@ -117,7 +117,7 @@ impl BookmarkService {
             .bookmark_repository
             .find_bookmarks(BookmarkFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

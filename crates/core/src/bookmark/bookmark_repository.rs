@@ -9,6 +9,8 @@ use crate::{bookmark::BookmarkFilter, common::IdParams};
 pub trait BookmarkRepository: Send + Sync + 'static {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error>;
 
+    async fn find_bookmark_by_id(&self, id: Uuid) -> Result<BookmarkById, Error>;
+
     async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error>;
 
     async fn update_bookmark(
@@ -23,11 +25,17 @@ pub trait BookmarkRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct BookmarkById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct BookmarkFindParams {
     pub filter: Option<BookmarkFilter>,
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }

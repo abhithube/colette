@@ -2,8 +2,8 @@ use colette_core::{
     FeedEntry,
     common::IdParams,
     feed_entry::{
-        Error, FeedEntryBooleanField, FeedEntryDateField, FeedEntryFilter, FeedEntryFindParams,
-        FeedEntryRepository, FeedEntryTextField, FeedEntryUpdateData,
+        Error, FeedEntryBooleanField, FeedEntryById, FeedEntryDateField, FeedEntryFilter,
+        FeedEntryFindParams, FeedEntryRepository, FeedEntryTextField, FeedEntryUpdateData,
     },
 };
 use colette_model::{UfeWithFe, feed_entries, tags, user_feed_entries, user_feed_tags};
@@ -13,6 +13,7 @@ use sea_orm::{
     prelude::Expr,
     sea_query::{Query, SimpleExpr},
 };
+use uuid::Uuid;
 
 use super::common::{ToColumn, ToSql};
 
@@ -35,7 +36,9 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
     ) -> Result<Vec<FeedEntry>, Error> {
         let mut query = user_feed_entries::Entity::find()
             .find_also_related(feed_entries::Entity)
-            .filter(user_feed_entries::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(user_feed_entries::Column::UserId.eq(user_id.to_string()))
+            })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(
                     Expr::tuple([
@@ -88,6 +91,27 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         })?;
 
         Ok(feed_entries)
+    }
+
+    async fn find_feed_entry_by_id(&self, id: Uuid) -> Result<FeedEntryById, Error> {
+        let Some((id, user_id)) = user_feed_entries::Entity::find()
+            .select_only()
+            .columns([
+                user_feed_entries::Column::Id,
+                user_feed_entries::Column::UserId,
+            ])
+            .filter(user_feed_entries::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(FeedEntryById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn update_feed_entry(

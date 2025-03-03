@@ -2,8 +2,8 @@ use colette_core::{
     Feed,
     common::IdParams,
     feed::{
-        ConflictError, Error, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
-        FeedUpdateData,
+        ConflictError, Error, FeedById, FeedCreateData, FeedFindParams, FeedRepository,
+        FeedScrapedData, FeedUpdateData,
     },
 };
 use colette_model::{
@@ -37,9 +37,11 @@ impl FeedRepository for SqliteFeedRepository {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
         let models = user_feeds::Entity::find()
             .find_also_related(feeds::Entity)
-            .filter(user_feeds::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
                 query.filter(user_feeds::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(user_feeds::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(
@@ -118,6 +120,24 @@ impl FeedRepository for SqliteFeedRepository {
             .collect();
 
         Ok(feeds)
+    }
+
+    async fn find_feed_by_id(&self, id: Uuid) -> Result<FeedById, Error> {
+        let Some((id, user_id)) = user_feeds::Entity::find()
+            .select_only()
+            .columns([user_feeds::Column::Id, user_feeds::Column::UserId])
+            .filter(user_feeds::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(FeedById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error> {

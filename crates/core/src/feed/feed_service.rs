@@ -45,7 +45,7 @@ impl FeedService {
             .repository
             .find_feeds(FeedFindParams {
                 tags: query.tags,
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -61,7 +61,7 @@ impl FeedService {
             .repository
             .find_feeds(FeedFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -92,6 +92,11 @@ impl FeedService {
         data: FeedUpdate,
         user_id: Uuid,
     ) -> Result<Feed, Error> {
+        let feed = self.repository.find_feed_by_id(id).await?;
+        if feed.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
         self.repository
             .update_feed(IdParams::new(id, user_id), data.into())
             .await?;
@@ -100,6 +105,11 @@ impl FeedService {
     }
 
     pub async fn delete_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        let feed = self.repository.find_feed_by_id(id).await?;
+        if feed.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
         self.repository
             .delete_feed(IdParams::new(id, user_id))
             .await

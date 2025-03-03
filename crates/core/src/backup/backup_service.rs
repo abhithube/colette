@@ -65,7 +65,7 @@ impl BackupService {
         let feeds = self
             .feed_repository
             .find_feeds(FeedFindParams {
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await
@@ -134,7 +134,7 @@ impl BackupService {
         let bookmarks = self
             .bookmark_repository
             .find_bookmarks(BookmarkFindParams {
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await

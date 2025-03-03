@@ -1,7 +1,7 @@
 use colette_core::{
     Bookmark,
     bookmark::{
-        BookmarkCreateData, BookmarkDateField, BookmarkFilter, BookmarkFindParams,
+        BookmarkById, BookmarkCreateData, BookmarkDateField, BookmarkFilter, BookmarkFindParams,
         BookmarkRepository, BookmarkScrapedData, BookmarkTextField, BookmarkUpdateData, Error,
     },
     common::IdParams,
@@ -33,7 +33,9 @@ impl SqliteBookmarkRepository {
 impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
         let mut query = bookmarks::Entity::find()
-            .filter(bookmarks::Column::UserId.eq(params.user_id.to_string()))
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(bookmarks::Column::UserId.eq(user_id.to_string()))
+            })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(bookmarks::Column::CreatedAt.gt(cursor.created_at.timestamp()))
             })
@@ -82,6 +84,24 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             .collect();
 
         Ok(bookmarks)
+    }
+
+    async fn find_bookmark_by_id(&self, id: Uuid) -> Result<BookmarkById, Error> {
+        let Some((id, user_id)) = bookmarks::Entity::find()
+            .select_only()
+            .columns([bookmarks::Column::Id, bookmarks::Column::UserId])
+            .filter(bookmarks::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(BookmarkById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error> {

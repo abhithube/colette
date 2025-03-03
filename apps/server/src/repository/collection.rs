@@ -1,8 +1,8 @@
 use colette_core::{
     Collection,
     collection::{
-        CollectionCreateData, CollectionFindParams, CollectionRepository, CollectionUpdateData,
-        Error,
+        CollectionById, CollectionCreateData, CollectionFindParams, CollectionRepository,
+        CollectionUpdateData, Error,
     },
     common::IdParams,
 };
@@ -32,9 +32,11 @@ impl CollectionRepository for SqliteCollectionRepository {
         params: CollectionFindParams,
     ) -> Result<Vec<Collection>, Error> {
         let collections = collections::Entity::find()
-            .filter(collections::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
                 query.filter(collections::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(collections::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(collections::Column::Title.gt(cursor.title))
@@ -46,6 +48,24 @@ impl CollectionRepository for SqliteCollectionRepository {
             .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(collections)
+    }
+
+    async fn find_collection_by_id(&self, id: Uuid) -> Result<CollectionById, Error> {
+        let Some((id, user_id)) = collections::Entity::find()
+            .select_only()
+            .columns([collections::Column::Id, collections::Column::UserId])
+            .filter(collections::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(CollectionById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error> {

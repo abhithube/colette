@@ -26,7 +26,7 @@ impl CollectionService {
         let collections = self
             .repository
             .find_collections(CollectionFindParams {
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -42,7 +42,7 @@ impl CollectionService {
             .repository
             .find_collections(CollectionFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

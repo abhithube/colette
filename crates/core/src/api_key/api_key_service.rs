@@ -26,7 +26,7 @@ impl ApiKeyService {
         let api_keys = self
             .repository
             .find_api_keys(ApiKeyFindParams {
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -60,7 +60,7 @@ impl ApiKeyService {
             .repository
             .find_api_keys(ApiKeyFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

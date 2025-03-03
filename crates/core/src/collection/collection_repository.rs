@@ -10,6 +10,8 @@ pub trait CollectionRepository: Send + Sync + 'static {
         params: CollectionFindParams,
     ) -> Result<Vec<Collection>, Error>;
 
+    async fn find_collection_by_id(&self, id: Uuid) -> Result<CollectionById, Error>;
+
     async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error>;
 
     async fn update_collection(
@@ -22,9 +24,15 @@ pub trait CollectionRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
+pub struct CollectionById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct CollectionFindParams {
     pub id: Option<Uuid>,
-    pub user_id: Uuid,
+    pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
 }

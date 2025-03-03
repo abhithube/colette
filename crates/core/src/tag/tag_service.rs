@@ -26,7 +26,7 @@ impl TagService {
             .repository
             .find_tags(TagFindParams {
                 tag_type: query.tag_type,
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -41,8 +41,8 @@ impl TagService {
         let mut tags = self
             .repository
             .find_tags(TagFindParams {
-                id: Some(id),
-                user_id,
+                ids: Some(vec![id]),
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

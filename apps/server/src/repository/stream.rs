@@ -1,7 +1,9 @@
 use colette_core::{
     Stream,
     common::IdParams,
-    stream::{Error, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData},
+    stream::{
+        Error, StreamById, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData,
+    },
 };
 use colette_model::streams;
 use sea_orm::{
@@ -26,9 +28,11 @@ impl SqliteStreamRepository {
 impl StreamRepository for SqliteStreamRepository {
     async fn find_streams(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error> {
         let streams = streams::Entity::find()
-            .filter(streams::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
                 query.filter(streams::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(streams::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(streams::Column::Title.gt(cursor.title))
@@ -40,6 +44,24 @@ impl StreamRepository for SqliteStreamRepository {
             .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(streams)
+    }
+
+    async fn find_stream_by_id(&self, id: Uuid) -> Result<StreamById, Error> {
+        let Some((id, user_id)) = streams::Entity::find()
+            .select_only()
+            .columns([streams::Column::Id, streams::Column::UserId])
+            .filter(streams::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(StreamById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error> {

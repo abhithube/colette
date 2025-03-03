@@ -40,7 +40,7 @@ impl FeedEntryService {
                 .stream_repository
                 .find_streams(StreamFindParams {
                     id: Some(stream_id),
-                    user_id,
+                    user_id: Some(user_id),
                     ..Default::default()
                 })
                 .await?;
@@ -61,7 +61,7 @@ impl FeedEntryService {
                 feed_id: query.feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
-                user_id,
+                user_id: Some(user_id),
                 limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
                 ..Default::default()
@@ -95,7 +95,7 @@ impl FeedEntryService {
             .feed_entry_repository
             .find_feed_entries(FeedEntryFindParams {
                 id: Some(id),
-                user_id,
+                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;

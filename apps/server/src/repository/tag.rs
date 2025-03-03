@@ -1,7 +1,7 @@
 use colette_core::{
     Tag,
     common::IdParams,
-    tag::{Error, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
+    tag::{Error, TagById, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
 };
 use colette_model::{TagWithCounts, bookmark_tags, tags, user_feed_tags};
 use sea_orm::{
@@ -45,11 +45,13 @@ impl TagRepository for SqliteTagRepository {
                 ))),
                 bookmark_count.to_string(),
             )
-            .filter(tags::Column::UserId.eq(params.user_id.to_string()))
             .left_join(user_feed_tags::Entity)
             .left_join(bookmark_tags::Entity)
-            .apply_if(params.id, |query, id| {
-                query.filter(tags::Column::Id.eq(id.to_string()))
+            .apply_if(params.ids, |query, ids| {
+                query.filter(tags::Column::Id.is_in(ids.into_iter().map(|e| e.to_string())))
+            })
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(tags::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(tags::Column::Title.gt(cursor.title))
@@ -79,6 +81,24 @@ impl TagRepository for SqliteTagRepository {
             .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(tags)
+    }
+
+    async fn find_tag_by_id(&self, id: Uuid) -> Result<TagById, Error> {
+        let Some((id, user_id)) = tags::Entity::find()
+            .select_only()
+            .columns([tags::Column::Id, tags::Column::UserId])
+            .filter(tags::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(TagById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error> {

@@ -1,8 +1,8 @@
 use colette_core::{
     ApiKey,
     api_key::{
-        ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams, ApiKeySearched,
-        ApiKeyUpdateData, Error,
+        ApiKeyById, ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams,
+        ApiKeySearched, ApiKeyUpdateData, Error,
     },
     common::IdParams,
 };
@@ -28,9 +28,11 @@ impl SqliteApiKeyRepository {
 impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
         let api_keys = api_keys::Entity::find()
-            .filter(api_keys::Column::UserId.eq(params.user_id.to_string()))
             .apply_if(params.id, |query, id| {
                 query.filter(api_keys::Column::Id.eq(id.to_string()))
+            })
+            .apply_if(params.user_id, |query, user_id| {
+                query.filter(api_keys::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(api_keys::Column::CreatedAt.gt(cursor.created_at.to_rfc3339()))
@@ -42,6 +44,24 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(api_keys)
+    }
+
+    async fn find_api_key_by_id(&self, id: Uuid) -> Result<ApiKeyById, Error> {
+        let Some((id, user_id)) = api_keys::Entity::find()
+            .select_only()
+            .columns([api_keys::Column::Id, api_keys::Column::UserId])
+            .filter(api_keys::Column::Id.eq(id.to_string()))
+            .into_tuple::<(String, String)>()
+            .one(&self.db)
+            .await?
+        else {
+            return Err(Error::NotFound(id));
+        };
+
+        Ok(ApiKeyById {
+            id: id.parse().unwrap(),
+            user_id: user_id.parse().unwrap(),
+        })
     }
 
     async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error> {
