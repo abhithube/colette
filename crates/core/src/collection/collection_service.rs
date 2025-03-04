@@ -42,7 +42,6 @@ impl CollectionService {
             .repository
             .find_collections(CollectionFindParams {
                 id: Some(id),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -50,7 +49,12 @@ impl CollectionService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(collections.swap_remove(0))
+        let collection = collections.swap_remove(0);
+        if collection.user_id != user_id {
+            return Err(Error::Forbidden(collection.id));
+        }
+
+        Ok(collection)
     }
 
     pub async fn create_collection(
@@ -80,7 +84,7 @@ impl CollectionService {
 
         let collection = self.repository.find_collection_by_id(&*tx, id).await?;
         if collection.user_id != user_id {
-            return Err(Error::NotFound(collection.id));
+            return Err(Error::Forbidden(collection.id));
         }
 
         self.repository
@@ -97,7 +101,7 @@ impl CollectionService {
 
         let collection = self.repository.find_collection_by_id(&*tx, id).await?;
         if collection.user_id != user_id {
-            return Err(Error::NotFound(collection.id));
+            return Err(Error::Forbidden(collection.id));
         }
 
         self.repository

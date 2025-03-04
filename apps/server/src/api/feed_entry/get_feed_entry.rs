@@ -30,6 +30,9 @@ pub async fn handler(
     match state.feed_entry_service.get_feed_entry(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
+            feed_entry::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
+                message: e.to_string(),
+            })),
             feed_entry::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
@@ -44,6 +47,9 @@ pub enum GetResponse {
     #[response(status = 200, description = "Feed entry by ID")]
     Ok(FeedEntry),
 
+    #[response(status = 403, description = "User not authorized")]
+    Forbidden(BaseError),
+
     #[response(status = 404, description = "Feed entry not found")]
     NotFound(BaseError),
 }
@@ -52,6 +58,7 @@ impl IntoResponse for GetResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }

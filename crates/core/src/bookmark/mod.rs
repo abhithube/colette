@@ -27,6 +27,7 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<Tag>>,
@@ -89,8 +90,11 @@ pub enum BookmarkDateField {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("bookmark not found with id: {0}")]
+    #[error("bookmark not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access bookmark with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error("bookmark already exists with URL: {0}")]
     Conflict(Url),

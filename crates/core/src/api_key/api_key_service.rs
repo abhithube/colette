@@ -62,7 +62,6 @@ impl ApiKeyService {
             .repository
             .find_api_keys(ApiKeyFindParams {
                 id: Some(id),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -70,7 +69,12 @@ impl ApiKeyService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(api_keys.swap_remove(0))
+        let api_key = api_keys.swap_remove(0);
+        if api_key.user_id != user_id {
+            return Err(Error::Forbidden(api_key.id));
+        }
+
+        Ok(api_key)
     }
 
     pub async fn create_api_key(
@@ -115,7 +119,7 @@ impl ApiKeyService {
 
         let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
         if api_key.user_id != user_id {
-            return Err(Error::NotFound(api_key.id));
+            return Err(Error::Forbidden(api_key.id));
         }
 
         self.repository
@@ -132,7 +136,7 @@ impl ApiKeyService {
 
         let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
         if api_key.user_id != user_id {
-            return Err(Error::NotFound(api_key.id));
+            return Err(Error::Forbidden(api_key.id));
         }
 
         self.repository.delete_api_key(&*tx, api_key.id).await?;

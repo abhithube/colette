@@ -36,6 +36,9 @@ pub async fn handler(
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
+            stream::Error::Forbidden(_) => Ok(UpdateResponse::Forbidden(BaseError {
+                message: e.to_string(),
+            })),
             stream::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
@@ -67,6 +70,9 @@ pub enum UpdateResponse {
     #[response(status = 200, description = "Updated stream")]
     Ok(Stream),
 
+    #[response(status = 403, description = "User not authorized")]
+    Forbidden(BaseError),
+
     #[response(status = 404, description = "Stream not found")]
     NotFound(BaseError),
 
@@ -78,6 +84,7 @@ impl IntoResponse for UpdateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }

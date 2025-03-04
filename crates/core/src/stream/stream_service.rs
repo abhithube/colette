@@ -39,7 +39,6 @@ impl StreamService {
             .repository
             .find_streams(StreamFindParams {
                 id: Some(id),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -47,7 +46,12 @@ impl StreamService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(streams.swap_remove(0))
+        let stream = streams.swap_remove(0);
+        if stream.user_id != user_id {
+            return Err(Error::Forbidden(stream.id));
+        }
+
+        Ok(stream)
     }
 
     pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
@@ -73,7 +77,7 @@ impl StreamService {
 
         let stream = self.repository.find_stream_by_id(&*tx, id).await?;
         if stream.user_id != user_id {
-            return Err(Error::NotFound(stream.id));
+            return Err(Error::Forbidden(stream.id));
         }
 
         self.repository
@@ -90,7 +94,7 @@ impl StreamService {
 
         let stream = self.repository.find_stream_by_id(&*tx, id).await?;
         if stream.user_id != user_id {
-            return Err(Error::NotFound(stream.id));
+            return Err(Error::Forbidden(stream.id));
         }
 
         self.repository.delete_stream(&*tx, stream.id).await?;

@@ -11,6 +11,7 @@ mod tag_service;
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub bookmark_count: Option<i64>,
@@ -34,6 +35,9 @@ pub struct Cursor {
 pub enum Error {
     #[error("tag not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access tag with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error("tag already exists with title: {0}")]
     Conflict(String),

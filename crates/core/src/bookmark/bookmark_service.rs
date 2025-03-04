@@ -120,7 +120,6 @@ impl BookmarkService {
             .bookmark_repository
             .find_bookmarks(BookmarkFindParams {
                 id: Some(id),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -128,7 +127,12 @@ impl BookmarkService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(bookmarks.swap_remove(0))
+        let bookmark = bookmarks.swap_remove(0);
+        if bookmark.user_id != user_id {
+            return Err(Error::Forbidden(bookmark.id));
+        }
+
+        Ok(bookmark)
     }
 
     pub async fn create_bookmark(
@@ -179,7 +183,7 @@ impl BookmarkService {
             .find_bookmark_by_id(&*tx, id)
             .await?;
         if bookmark.user_id != user_id {
-            return Err(Error::NotFound(bookmark.id));
+            return Err(Error::Forbidden(bookmark.id));
         }
 
         let thumbnail_url = data.thumbnail_url.clone();
@@ -221,7 +225,7 @@ impl BookmarkService {
             .find_bookmark_by_id(&*tx, id)
             .await?;
         if bookmark.user_id != user_id {
-            return Err(Error::NotFound(bookmark.id));
+            return Err(Error::Forbidden(bookmark.id));
         }
 
         self.bookmark_repository

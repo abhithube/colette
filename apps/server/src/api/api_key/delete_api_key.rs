@@ -29,6 +29,9 @@ pub async fn handler(
     match state.api_key_service.delete_api_key(id, user_id).await {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
+            api_key::Error::Forbidden(_) => Ok(DeleteResponse::Forbidden(BaseError {
+                message: e.to_string(),
+            })),
             api_key::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
@@ -42,6 +45,9 @@ pub enum DeleteResponse {
     #[response(status = 204, description = "Successfully deleted API key")]
     NoContent,
 
+    #[response(status = 403, description = "User not authorized")]
+    Forbidden(BaseError),
+
     #[response(status = 404, description = "API key not found")]
     NotFound(BaseError),
 }
@@ -50,6 +56,7 @@ impl IntoResponse for DeleteResponse {
     fn into_response(self) -> Response {
         match self {
             Self::NoContent => StatusCode::NO_CONTENT.into_response(),
+            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }

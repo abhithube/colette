@@ -97,7 +97,6 @@ impl FeedEntryService {
             .feed_entry_repository
             .find_feed_entries(FeedEntryFindParams {
                 id: Some(id),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -105,7 +104,12 @@ impl FeedEntryService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(feed_entries.swap_remove(0))
+        let feed_entry = feed_entries.swap_remove(0);
+        if feed_entry.user_id != user_id {
+            return Err(Error::Forbidden(feed_entry.id));
+        }
+
+        Ok(feed_entry)
     }
 
     pub async fn update_feed_entry(
@@ -121,7 +125,7 @@ impl FeedEntryService {
             .find_feed_entry_by_id(&*tx, id)
             .await?;
         if feed_entry.user_id != user_id {
-            return Err(Error::NotFound(feed_entry.id));
+            return Err(Error::Forbidden(feed_entry.id));
         }
 
         self.feed_entry_repository

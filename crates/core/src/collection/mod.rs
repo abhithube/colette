@@ -15,6 +15,7 @@ pub struct Collection {
     pub id: Uuid,
     pub title: String,
     pub filter: BookmarkFilter,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -26,8 +27,11 @@ pub struct Cursor {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("collection not found with id: {0}")]
+    #[error("collection not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access collection with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error("collection already exists with title: {0}")]
     Conflict(String),

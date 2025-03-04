@@ -41,7 +41,6 @@ impl TagService {
             .repository
             .find_tags(TagFindParams {
                 ids: Some(vec![id]),
-                user_id: Some(user_id),
                 ..Default::default()
             })
             .await?;
@@ -49,7 +48,12 @@ impl TagService {
             return Err(Error::NotFound(id));
         }
 
-        Ok(tags.swap_remove(0))
+        let tag = tags.swap_remove(0);
+        if tag.user_id != user_id {
+            return Err(Error::Forbidden(tag.id));
+        }
+
+        Ok(tag)
     }
 
     pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
@@ -69,7 +73,7 @@ impl TagService {
 
         let tag = self.repository.find_tag_by_id(&*tx, id).await?;
         if tag.user_id != user_id {
-            return Err(Error::NotFound(tag.id));
+            return Err(Error::Forbidden(tag.id));
         }
 
         self.repository

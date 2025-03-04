@@ -15,6 +15,7 @@ pub struct ApiKey {
     pub id: Uuid,
     pub title: String,
     pub preview: String,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -28,6 +29,9 @@ pub struct Cursor {
 pub enum Error {
     #[error("API key not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access API key with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error("API key already exists with title: {0}")]
     Conflict(String),

@@ -20,6 +20,7 @@ pub struct Feed {
     pub link: Url,
     pub title: String,
     pub xml_url: Option<Url>,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub tags: Option<Vec<Tag>>,
@@ -34,8 +35,11 @@ pub struct Cursor {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("feed not found with id: {0}")]
+    #[error("feed not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access feed with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error(transparent)]
     Conflict(ConflictError),

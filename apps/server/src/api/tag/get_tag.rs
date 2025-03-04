@@ -30,6 +30,9 @@ pub async fn handler(
     match state.tag_service.get_tag(id, user_id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
+            tag::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
+                message: e.to_string(),
+            })),
             tag::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
@@ -43,6 +46,9 @@ pub enum GetResponse {
     #[response(status = 200, description = "Tag by ID")]
     Ok(Tag),
 
+    #[response(status = 403, description = "User not authorized")]
+    Forbidden(BaseError),
+
     #[response(status = 404, description = "Tag not found")]
     NotFound(BaseError),
 }
@@ -51,6 +57,7 @@ impl IntoResponse for GetResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
         }
     }

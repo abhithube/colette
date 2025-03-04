@@ -37,6 +37,9 @@ pub async fn handler(
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
+            collection::Error::Forbidden(_) => Ok(UpdateResponse::Forbidden(BaseError {
+                message: e.to_string(),
+            })),
             collection::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
@@ -68,6 +71,9 @@ pub enum UpdateResponse {
     #[response(status = 200, description = "Updated collection")]
     Ok(Collection),
 
+    #[response(status = 403, description = "User not authorized")]
+    Forbidden(BaseError),
+
     #[response(status = 404, description = "Collection not found")]
     NotFound(BaseError),
 
@@ -79,6 +85,7 @@ impl IntoResponse for UpdateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),
+            Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }

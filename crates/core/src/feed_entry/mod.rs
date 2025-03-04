@@ -25,6 +25,7 @@ pub struct FeedEntry {
     pub thumbnail_url: Option<Url>,
     pub has_read: bool,
     pub feed_id: Uuid,
+    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -90,8 +91,11 @@ pub enum FeedEntryDateField {
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("feed entry not found with id: {0}")]
+    #[error("feed entry not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("not authorized to access feed entry with ID: {0}")]
+    Forbidden(Uuid),
 
     #[error(transparent)]
     Base64(#[from] base64::Error),

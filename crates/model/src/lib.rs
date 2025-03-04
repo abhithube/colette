@@ -35,6 +35,7 @@ impl From<api_keys::Model> for ApiKey {
             id: value.id.parse().unwrap(),
             title: value.title,
             preview: value.preview,
+            user_id: value.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.created_at),
             updated_at: parse_timestamp(value.created_at),
         }
@@ -65,6 +66,7 @@ impl From<BookmarkWithTags> for Bookmark {
             published_at: value.bookmark.published_at.and_then(parse_timestamp),
             author: value.bookmark.author,
             archived_path: value.bookmark.archived_path,
+            user_id: value.bookmark.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.bookmark.created_at),
             updated_at: parse_timestamp(value.bookmark.updated_at),
             tags: Some(value.tags.into_iter().map(Into::into).collect()),
@@ -88,6 +90,7 @@ impl From<collections::Model> for Collection {
             id: value.id.parse().unwrap(),
             title: value.title,
             filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            user_id: value.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.created_at),
             updated_at: parse_timestamp(value.updated_at),
         }
@@ -108,6 +111,7 @@ impl From<FeedWithTagsAndCount> for Feed {
             link: value.feed.link.parse().unwrap(),
             title: value.user_feed.title,
             xml_url: value.feed.xml_url.and_then(|e| e.parse().ok()),
+            user_id: value.user_feed.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.user_feed.created_at),
             updated_at: parse_timestamp(value.user_feed.updated_at),
             tags: Some(value.tags.into_iter().map(Into::into).collect()),
@@ -133,6 +137,7 @@ impl From<UfeWithFe> for FeedEntry {
             thumbnail_url: value.fe.thumbnail_url.and_then(|e| e.parse().ok()),
             has_read: value.ufe.has_read == 1,
             feed_id: value.ufe.user_feed_id.parse().unwrap(),
+            user_id: value.ufe.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.ufe.created_at),
             updated_at: parse_timestamp(value.ufe.updated_at),
         }
@@ -145,6 +150,7 @@ impl From<streams::Model> for Stream {
             id: value.id.parse().unwrap(),
             title: value.title,
             filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            user_id: value.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.created_at),
             updated_at: parse_timestamp(value.updated_at),
         }
@@ -167,6 +173,7 @@ impl From<tags::Model> for Tag {
 pub struct TagWithCounts {
     id: String,
     title: String,
+    user_id: String,
     created_at: i32,
     updated_at: i32,
     feed_count: i64,
@@ -178,6 +185,7 @@ impl From<TagWithCounts> for Tag {
         Self {
             id: value.id.parse().unwrap(),
             title: value.title,
+            user_id: value.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.created_at),
             updated_at: parse_timestamp(value.updated_at),
             feed_count: Some(value.feed_count),
