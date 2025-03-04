@@ -1,4 +1,6 @@
-use uuid::Uuid;
+use std::any::Any;
+
+use sea_orm::DbErr;
 
 pub const PAGINATION_LIMIT: u64 = 24;
 
@@ -8,16 +10,18 @@ pub struct Paginated<T> {
     pub cursor: Option<String>,
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct IdParams {
-    pub id: Uuid,
-    pub user_id: Uuid,
+#[async_trait::async_trait]
+pub trait Transaction: Send + Sync + 'static {
+    async fn commit(self: Box<Self>) -> Result<(), DbErr>;
+
+    async fn rollback(self: Box<Self>) -> Result<(), DbErr>;
+
+    fn as_any(&self) -> &dyn Any;
 }
 
-impl IdParams {
-    pub fn new(id: Uuid, user_id: Uuid) -> Self {
-        Self { id, user_id }
-    }
+#[async_trait::async_trait]
+pub trait TransactionManager: Send + Sync + 'static {
+    async fn begin(&self) -> Result<Box<dyn Transaction>, DbErr>;
 }
 
 #[derive(Debug, thiserror::Error)]

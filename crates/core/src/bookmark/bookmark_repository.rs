@@ -3,23 +3,28 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, Cursor, Error, ProcessedBookmark};
-use crate::{bookmark::BookmarkFilter, common::IdParams};
+use crate::{bookmark::BookmarkFilter, common::Transaction};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error>;
 
-    async fn find_bookmark_by_id(&self, id: Uuid) -> Result<BookmarkById, Error>;
+    async fn find_bookmark_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<BookmarkById, Error>;
 
     async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error>;
 
     async fn update_bookmark(
         &self,
-        params: IdParams,
+        tx: Option<&dyn Transaction>,
+        id: Uuid,
         data: BookmarkUpdateData,
     ) -> Result<(), Error>;
 
-    async fn delete_bookmark(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_bookmark(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 
     async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error>;
 }

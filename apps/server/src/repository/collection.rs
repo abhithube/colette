@@ -4,13 +4,12 @@ use colette_core::{
         CollectionById, CollectionCreateData, CollectionFindParams, CollectionRepository,
         CollectionUpdateData, Error,
     },
-    common::IdParams,
+    common::Transaction,
 };
 use colette_model::collections;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
-    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-    TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
+    EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use uuid::Uuid;
 
@@ -50,13 +49,19 @@ impl CollectionRepository for SqliteCollectionRepository {
         Ok(collections)
     }
 
-    async fn find_collection_by_id(&self, id: Uuid) -> Result<CollectionById, Error> {
+    async fn find_collection_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<CollectionById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = collections::Entity::find()
             .select_only()
             .columns([collections::Column::Id, collections::Column::UserId])
             .filter(collections::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -70,14 +75,14 @@ impl CollectionRepository for SqliteCollectionRepository {
 
     async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
-        let collection = collections::ActiveModel {
+        let model = collections::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
             user_id: ActiveValue::Set(data.user_id.into()),
             ..Default::default()
         };
-        collection.insert(&self.db).await.map_err(|e| match e {
+        model.insert(&self.db).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(data.title),
             _ => Error::Database(e),
         })?;
@@ -87,49 +92,35 @@ impl CollectionRepository for SqliteCollectionRepository {
 
     async fn update_collection(
         &self,
-        params: IdParams,
+        tx: &dyn Transaction,
+        id: Uuid,
         data: CollectionUpdateData,
     ) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = collections::ActiveModel {
+            id: ActiveValue::Unchanged(id.to_string()),
+            ..Default::default()
         };
-        if collection.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut collection = collection.into_active_model();
 
         if let Some(title) = data.title {
-            collection.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
         if let Some(filter) = data.filter {
-            collection.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
+            model.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
         }
 
-        if collection.is_changed() {
-            collection.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete_collection(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_collection(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(collection) = collections::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if collection.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        collection.delete(&tx).await?;
-
-        tx.commit().await?;
+        collections::Entity::delete_by_id(id).exec(tx).await?;
 
         Ok(())
     }

@@ -1,19 +1,24 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, Tag, TagType};
-use crate::common::IdParams;
+use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait TagRepository: Send + Sync + 'static {
     async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_tag_by_id(&self, id: Uuid) -> Result<TagById, Error>;
+    async fn find_tag_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<TagById, Error>;
 
     async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error>;
 
-    async fn update_tag(&self, params: IdParams, data: TagUpdateData) -> Result<(), Error>;
+    async fn update_tag(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: TagUpdateData,
+    ) -> Result<(), Error>;
 
-    async fn delete_tag(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_tag(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]

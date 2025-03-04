@@ -18,7 +18,7 @@ use super::{
 };
 use crate::{
     collection::{CollectionFindParams, CollectionRepository},
-    common::{IdParams, PAGINATION_LIMIT, Paginated},
+    common::{PAGINATION_LIMIT, Paginated, TransactionManager},
     job::Storage,
 };
 
@@ -27,6 +27,7 @@ const BOOKMARKS_DIR: &str = "bookmarks";
 pub struct BookmarkService {
     bookmark_repository: Box<dyn BookmarkRepository>,
     collection_repository: Box<dyn CollectionRepository>,
+    tx_manager: Box<dyn TransactionManager>,
     client: Box<dyn HttpClient>,
     object_store: Box<dyn ObjectStore>,
     archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
@@ -37,6 +38,7 @@ impl BookmarkService {
     pub fn new(
         bookmark_repository: impl BookmarkRepository,
         collection_repository: impl CollectionRepository,
+        tx_manager: impl TransactionManager,
         http_client: impl HttpClient,
         object_store: impl ObjectStore,
         archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
@@ -45,6 +47,7 @@ impl BookmarkService {
         Self {
             bookmark_repository: Box::new(bookmark_repository),
             collection_repository: Box::new(collection_repository),
+            tx_manager: Box::new(tx_manager),
             client: Box::new(http_client),
             object_store: Box::new(object_store),
             archive_thumbnail_storage,
@@ -156,7 +159,6 @@ impl BookmarkService {
                     operation: ThumbnailOperation::Upload(thumbnail_url),
                     archived_path: None,
                     bookmark_id: bookmark.id,
-                    user_id,
                 })
                 .await?;
         }
@@ -170,13 +172,23 @@ impl BookmarkService {
         data: BookmarkUpdate,
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let bookmark = self
+            .bookmark_repository
+            .find_bookmark_by_id(&*tx, id)
+            .await?;
+        if bookmark.user_id != user_id {
+            return Err(Error::NotFound(bookmark.id));
+        }
+
         let thumbnail_url = data.thumbnail_url.clone();
 
         self.bookmark_repository
-            .update_bookmark(IdParams::new(id, user_id), data.into())
+            .update_bookmark(Some(&*tx), bookmark.id, data.into())
             .await?;
 
-        let bookmark = self.get_bookmark(id, user_id).await?;
+        let bookmark = self.get_bookmark(bookmark.id, bookmark.user_id).await?;
 
         if let Some(thumbnail_url) = thumbnail_url {
             if thumbnail_url == bookmark.thumbnail_url {
@@ -191,30 +203,42 @@ impl BookmarkService {
                         },
                         archived_path: bookmark.archived_path.clone(),
                         bookmark_id: bookmark.id,
-                        user_id,
                     })
                     .await?;
             }
         }
 
+        tx.commit().await?;
+
         Ok(bookmark)
     }
 
     pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let bookmark = self.get_bookmark(id, user_id).await?;
+        let tx = self.tx_manager.begin().await?;
+
+        let bookmark = self
+            .bookmark_repository
+            .find_bookmark_by_id(&*tx, id)
+            .await?;
+        if bookmark.user_id != user_id {
+            return Err(Error::NotFound(bookmark.id));
+        }
 
         self.bookmark_repository
-            .delete_bookmark(IdParams::new(id, user_id))
+            .delete_bookmark(&*tx, bookmark.id)
             .await?;
 
+        tx.commit().await?;
+
         let mut storage = self.archive_thumbnail_storage.lock().await;
+
+        let bookmark = self.get_bookmark(bookmark.id, user_id).await?;
 
         storage
             .push(ArchiveThumbnailJob {
                 operation: ThumbnailOperation::Delete,
                 archived_path: bookmark.archived_path,
                 bookmark_id: bookmark.id,
-                user_id,
             })
             .await?;
 
@@ -283,7 +307,6 @@ impl BookmarkService {
         &self,
         bookmark_id: Uuid,
         data: ThumbnailArchive,
-        user_id: Uuid,
     ) -> Result<(), Error> {
         match data.operation {
             ThumbnailOperation::Upload(thumbnail_url) => {
@@ -302,7 +325,8 @@ impl BookmarkService {
 
                 self.bookmark_repository
                     .update_bookmark(
-                        IdParams::new(bookmark_id, user_id),
+                        None,
+                        bookmark_id,
                         BookmarkUpdateData {
                             archived_path: Some(Some(object_path)),
                             ..Default::default()
@@ -320,7 +344,8 @@ impl BookmarkService {
 
             self.bookmark_repository
                 .update_bookmark(
-                    IdParams::new(bookmark_id, user_id),
+                    None,
+                    bookmark_id,
                     BookmarkUpdateData {
                         archived_path: Some(None),
                         ..Default::default()
@@ -415,5 +440,4 @@ pub struct ArchiveThumbnailJob {
     pub operation: ThumbnailOperation,
     pub archived_path: Option<String>,
     pub bookmark_id: Uuid,
-    pub user_id: Uuid,
 }

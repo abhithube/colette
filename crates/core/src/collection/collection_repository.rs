@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{BookmarkFilter, Collection, Cursor, Error};
-use crate::common::IdParams;
+use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait CollectionRepository: Send + Sync + 'static {
@@ -10,17 +10,22 @@ pub trait CollectionRepository: Send + Sync + 'static {
         params: CollectionFindParams,
     ) -> Result<Vec<Collection>, Error>;
 
-    async fn find_collection_by_id(&self, id: Uuid) -> Result<CollectionById, Error>;
+    async fn find_collection_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<CollectionById, Error>;
 
     async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error>;
 
     async fn update_collection(
         &self,
-        params: IdParams,
+        tx: &dyn Transaction,
+        id: Uuid,
         data: CollectionUpdateData,
     ) -> Result<(), Error>;
 
-    async fn delete_collection(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_collection(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]

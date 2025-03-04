@@ -1,30 +1,74 @@
+use std::any::Any;
+
 use chrono::{DateTime, Utc};
 use colette_core::{
+    common::{Transaction, TransactionManager},
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
 use colette_model::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseTransaction, DbErr,
-    EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection,
+    DatabaseTransaction, DbErr, EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
+    TransactionTrait,
     prelude::Expr,
     sea_query::{ExprTrait, OnConflict, SimpleExpr},
 };
 use url::Url;
 use uuid::Uuid;
 
+#[derive(Debug)]
+pub struct SqliteTransaction {
+    tx: DatabaseTransaction,
+}
+
+#[async_trait::async_trait]
+impl Transaction for SqliteTransaction {
+    async fn commit(self: Box<Self>) -> Result<(), DbErr> {
+        self.tx.commit().await
+    }
+
+    async fn rollback(self: Box<Self>) -> Result<(), DbErr> {
+        self.tx.rollback().await
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        &self.tx
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SqliteTransactionManager {
+    db: DatabaseConnection,
+}
+
+impl SqliteTransactionManager {
+    pub fn new(db: DatabaseConnection) -> Self {
+        Self { db }
+    }
+}
+
+#[async_trait::async_trait]
+impl TransactionManager for SqliteTransactionManager {
+    async fn begin(&self) -> Result<Box<dyn Transaction>, DbErr> {
+        let tx = self.db.begin().await?;
+
+        Ok(Box::new(SqliteTransaction { tx }))
+    }
+}
+
 pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     conn: &C,
     link: Url,
     xml_url: Option<Url>,
 ) -> Result<i32, DbErr> {
-    let feed = feeds::ActiveModel {
+    let model = feeds::ActiveModel {
         link: ActiveValue::Set(link.into()),
         xml_url: ActiveValue::Set(xml_url.map(Into::into)),
         ..Default::default()
     };
 
-    let mut keys = feeds::Entity::insert(feed)
+    let mut keys = feeds::Entity::insert(model)
         .on_conflict(
             OnConflict::columns([feeds::Column::Link])
                 .update_columns([feeds::Column::XmlUrl])
@@ -135,7 +179,7 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
     author: Option<String>,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let bookmark = bookmarks::ActiveModel {
+    let model = bookmarks::ActiveModel {
         id: ActiveValue::Set(Uuid::new_v4().into()),
         link: ActiveValue::Set(link.into()),
         title: ActiveValue::Set(title),
@@ -146,7 +190,7 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
         ..Default::default()
     };
 
-    let mut keys = bookmarks::Entity::insert(bookmark)
+    let mut keys = bookmarks::Entity::insert(model)
         .on_conflict(
             OnConflict::columns([bookmarks::Column::UserId, bookmarks::Column::Link])
                 .update_columns([
@@ -168,23 +212,23 @@ pub(crate) async fn upsert_tag(
     title: String,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let tag = tags::Entity::find()
+    let model = tags::Entity::find()
         .filter(tags::Column::UserId.eq(user_id.to_string()))
         .filter(tags::Column::Title.eq(title.clone()))
         .one(tx)
         .await?;
 
-    let tag_id = match tag {
-        Some(tag) => tag.id.parse().unwrap(),
+    let tag_id = match model {
+        Some(model) => model.id.parse().unwrap(),
         _ => {
             let id = Uuid::new_v4();
-            let tag = tags::ActiveModel {
+            let model = tags::ActiveModel {
                 id: ActiveValue::Set(id.into()),
                 title: ActiveValue::Set(title),
                 user_id: ActiveValue::Set(user_id.into()),
                 ..Default::default()
             };
-            tag.insert(tx).await?;
+            model.insert(tx).await?;
 
             id
         }

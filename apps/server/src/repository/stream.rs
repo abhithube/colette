@@ -1,15 +1,14 @@
 use colette_core::{
     Stream,
-    common::IdParams,
+    common::Transaction,
     stream::{
         Error, StreamById, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData,
     },
 };
 use colette_model::streams;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait,
-    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-    TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
+    EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use uuid::Uuid;
 
@@ -46,13 +45,15 @@ impl StreamRepository for SqliteStreamRepository {
         Ok(streams)
     }
 
-    async fn find_stream_by_id(&self, id: Uuid) -> Result<StreamById, Error> {
+    async fn find_stream_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<StreamById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = streams::Entity::find()
             .select_only()
             .columns([streams::Column::Id, streams::Column::UserId])
             .filter(streams::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -66,14 +67,14 @@ impl StreamRepository for SqliteStreamRepository {
 
     async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
-        let stream = streams::ActiveModel {
+        let model = streams::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             filter_raw: ActiveValue::Set(serde_json::to_string(&data.filter).unwrap()),
             user_id: ActiveValue::Set(data.user_id.into()),
             ..Default::default()
         };
-        stream.insert(&self.db).await.map_err(|e| match e {
+        model.insert(&self.db).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(data.title),
             _ => Error::Database(e),
         })?;
@@ -81,47 +82,37 @@ impl StreamRepository for SqliteStreamRepository {
         Ok(id)
     }
 
-    async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn update_stream(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: StreamUpdateData,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = streams::ActiveModel {
+            id: ActiveValue::Unchanged(id.to_string()),
+            ..Default::default()
         };
-        if stream.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut stream = stream.into_active_model();
 
         if let Some(title) = data.title {
-            stream.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
         if let Some(filter) = data.filter {
-            stream.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
+            model.filter_raw = ActiveValue::Set(serde_json::to_string(&filter).unwrap());
         }
 
-        if stream.is_changed() {
-            stream.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete_stream(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_stream(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(stream) = streams::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if stream.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        stream.delete(&tx).await?;
-
-        tx.commit().await?;
+        streams::Entity::delete_by_id(id).exec(tx).await?;
 
         Ok(())
     }

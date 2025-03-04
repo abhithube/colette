@@ -9,16 +9,14 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Error, ExtractedFeed, Feed, FeedScraper, ScraperError,
-    feed_repository::{
-        FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData, FeedUpdateData,
-    },
-    feed_scraper::ProcessedFeed,
+    Error, ExtractedFeed, Feed, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
+    FeedScraper, FeedUpdateData, ProcessedFeed, ScraperError,
 };
-use crate::common::{IdParams, Paginated};
+use crate::common::{Paginated, TransactionManager};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
+    tx_manager: Box<dyn TransactionManager>,
     client: Box<dyn HttpClient>,
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
 }
@@ -26,11 +24,13 @@ pub struct FeedService {
 impl FeedService {
     pub fn new(
         repository: impl FeedRepository,
+        tx_manager: impl TransactionManager,
         client: impl HttpClient,
         plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
+            tx_manager: Box::new(tx_manager),
             client: Box::new(client),
             plugins,
         }
@@ -92,27 +92,35 @@ impl FeedService {
         data: FeedUpdate,
         user_id: Uuid,
     ) -> Result<Feed, Error> {
-        let feed = self.repository.find_feed_by_id(id).await?;
+        let tx = self.tx_manager.begin().await?;
+
+        let feed = self.repository.find_feed_by_id(&*tx, id).await?;
         if feed.user_id != user_id {
-            return Err(Error::Forbidden(id));
+            return Err(Error::NotFound(feed.id));
         }
 
         self.repository
-            .update_feed(IdParams::new(id, user_id), data.into())
+            .update_feed(&*tx, feed.id, data.into())
             .await?;
 
-        self.get_feed(id, user_id).await
+        tx.commit().await?;
+
+        self.get_feed(feed.id, feed.user_id).await
     }
 
     pub async fn delete_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let feed = self.repository.find_feed_by_id(id).await?;
+        let tx = self.tx_manager.begin().await?;
+
+        let feed = self.repository.find_feed_by_id(&*tx, id).await?;
         if feed.user_id != user_id {
-            return Err(Error::Forbidden(id));
+            return Err(Error::NotFound(feed.id));
         }
 
-        self.repository
-            .delete_feed(IdParams::new(id, user_id))
-            .await
+        self.repository.delete_feed(&*tx, feed.id).await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {

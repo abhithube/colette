@@ -2,11 +2,10 @@ use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
-    Cursor, Error, FeedEntry,
-    feed_entry_repository::{FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData},
+    Cursor, Error, FeedEntry, FeedEntryFindParams, FeedEntryRepository, FeedEntryUpdateData,
 };
 use crate::{
-    common::{IdParams, PAGINATION_LIMIT, Paginated},
+    common::{PAGINATION_LIMIT, Paginated, TransactionManager},
     feed_entry::FeedEntryFilter,
     stream::{StreamFindParams, StreamRepository},
 };
@@ -14,16 +13,19 @@ use crate::{
 pub struct FeedEntryService {
     feed_entry_repository: Box<dyn FeedEntryRepository>,
     stream_repository: Box<dyn StreamRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl FeedEntryService {
     pub fn new(
         feed_entry_repository: impl FeedEntryRepository,
         stream_repository: impl StreamRepository,
+        tx_manager: impl TransactionManager,
     ) -> Self {
         Self {
             feed_entry_repository: Box::new(feed_entry_repository),
             stream_repository: Box::new(stream_repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -112,11 +114,23 @@ impl FeedEntryService {
         data: FeedEntryUpdate,
         user_id: Uuid,
     ) -> Result<FeedEntry, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let feed_entry = self
+            .feed_entry_repository
+            .find_feed_entry_by_id(&*tx, id)
+            .await?;
+        if feed_entry.user_id != user_id {
+            return Err(Error::NotFound(feed_entry.id));
+        }
+
         self.feed_entry_repository
-            .update_feed_entry(IdParams::new(id, user_id), data.into())
+            .update_feed_entry(&*tx, feed_entry.id, data.into())
             .await?;
 
-        self.get_feed_entry(id, user_id).await
+        tx.commit().await?;
+
+        self.get_feed_entry(feed_entry.id, feed_entry.user_id).await
     }
 }
 

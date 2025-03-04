@@ -1,19 +1,24 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntryFilter, Stream};
-use crate::common::IdParams;
+use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait StreamRepository: Send + Sync + 'static {
     async fn find_streams(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error>;
 
-    async fn find_stream_by_id(&self, id: Uuid) -> Result<StreamById, Error>;
+    async fn find_stream_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<StreamById, Error>;
 
     async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error>;
 
-    async fn update_stream(&self, params: IdParams, data: StreamUpdateData) -> Result<(), Error>;
+    async fn update_stream(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: StreamUpdateData,
+    ) -> Result<(), Error>;
 
-    async fn delete_stream(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_stream(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]

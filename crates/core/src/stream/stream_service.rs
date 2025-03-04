@@ -1,19 +1,21 @@
 use uuid::Uuid;
 
 use super::{
-    Error, FeedEntryFilter, Stream,
-    stream_repository::{StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData},
+    Error, FeedEntryFilter, Stream, StreamCreateData, StreamFindParams, StreamRepository,
+    StreamUpdateData,
 };
-use crate::common::{IdParams, Paginated};
+use crate::common::{Paginated, TransactionManager};
 
 pub struct StreamService {
     repository: Box<dyn StreamRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl StreamService {
-    pub fn new(repository: impl StreamRepository) -> Self {
+    pub fn new(repository: impl StreamRepository, tx_manager: impl TransactionManager) -> Self {
         Self {
             repository: Box::new(repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -67,17 +69,35 @@ impl StreamService {
         data: StreamUpdate,
         user_id: Uuid,
     ) -> Result<Stream, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let stream = self.repository.find_stream_by_id(&*tx, id).await?;
+        if stream.user_id != user_id {
+            return Err(Error::NotFound(stream.id));
+        }
+
         self.repository
-            .update_stream(IdParams::new(id, user_id), data.into())
+            .update_stream(&*tx, stream.id, data.into())
             .await?;
 
-        self.get_stream(id, user_id).await
+        tx.commit().await?;
+
+        self.get_stream(stream.id, stream.user_id).await
     }
 
     pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository
-            .delete_stream(IdParams::new(id, user_id))
-            .await
+        let tx = self.tx_manager.begin().await?;
+
+        let stream = self.repository.find_stream_by_id(&*tx, id).await?;
+        if stream.user_id != user_id {
+            return Err(Error::NotFound(stream.id));
+        }
+
+        self.repository.delete_stream(&*tx, stream.id).await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 

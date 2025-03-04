@@ -3,22 +3,24 @@ use colette_util::{api_key, password};
 use uuid::Uuid;
 
 use super::{
-    ApiKey, ApiKeySearchParams, Error,
-    api_key_repository::{ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeyUpdateData},
+    ApiKey, ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams,
+    ApiKeyUpdateData, Error,
 };
 use crate::{
     auth,
-    common::{IdParams, Paginated},
+    common::{Paginated, TransactionManager},
 };
 
 pub struct ApiKeyService {
     repository: Box<dyn ApiKeyRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl ApiKeyService {
-    pub fn new(repository: impl ApiKeyRepository) -> Self {
+    pub fn new(repository: impl ApiKeyRepository, tx_manager: impl TransactionManager) -> Self {
         Self {
             repository: Box::new(repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -109,23 +111,35 @@ impl ApiKeyService {
         data: ApiKeyUpdate,
         user_id: Uuid,
     ) -> Result<ApiKey, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
+        if api_key.user_id != user_id {
+            return Err(Error::NotFound(api_key.id));
+        }
+
         self.repository
-            .update_api_key(IdParams::new(id, user_id), data.into())
+            .update_api_key(&*tx, api_key.id, data.into())
             .await?;
 
-        self.get_api_key(id, user_id).await
+        tx.commit().await?;
+
+        self.get_api_key(api_key.id, api_key.user_id).await
     }
 
     pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository
-            .delete_api_key(IdParams::new(id, user_id))
-            .await
-    }
-}
+        let tx = self.tx_manager.begin().await?;
 
-impl From<ApiKeyUpdate> for ApiKeyUpdateData {
-    fn from(value: ApiKeyUpdate) -> Self {
-        Self { title: value.title }
+        let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
+        if api_key.user_id != user_id {
+            return Err(Error::NotFound(api_key.id));
+        }
+
+        self.repository.delete_api_key(&*tx, api_key.id).await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 
@@ -145,6 +159,12 @@ pub struct ApiKeyCreated {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyUpdate {
     pub title: Option<String>,
+}
+
+impl From<ApiKeyUpdate> for ApiKeyUpdateData {
+    fn from(value: ApiKeyUpdate) -> Self {
+        Self { title: value.title }
+    }
 }
 
 #[derive(Debug, Clone, Default)]

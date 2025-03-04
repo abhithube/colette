@@ -1,6 +1,6 @@
 use colette_core::{
     Feed,
-    common::IdParams,
+    common::Transaction,
     feed::{
         ConflictError, Error, FeedById, FeedCreateData, FeedFindParams, FeedRepository,
         FeedScrapedData, FeedUpdateData,
@@ -12,8 +12,8 @@ use colette_model::{
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, Condition, DatabaseConnection, DatabaseTransaction,
-    DbErr, EntityTrait, IntoActiveModel, IntoSimpleExpr, LoaderTrait, ModelTrait, QueryFilter,
-    QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+    DbErr, EntityTrait, IntoSimpleExpr, LoaderTrait, QueryFilter, QueryOrder, QuerySelect,
+    QueryTrait, TransactionTrait,
     prelude::Expr,
     sea_query::{Func, Query},
 };
@@ -77,12 +77,12 @@ impl FeedRepository for SqliteFeedRepository {
             .all(&self.db)
             .await?;
 
-        let (user_feed_models, feed_models): (Vec<_>, Vec<_>) = models
+        let (uf_models, feed_models): (Vec<_>, Vec<_>) = models
             .into_iter()
             .filter_map(|(uf, f)| f.map(|f| (uf, f)))
             .unzip();
 
-        let tag_models = user_feed_models
+        let tag_models = uf_models
             .load_many_to_many(
                 tags::Entity::find().order_by_asc(tags::Column::Title),
                 user_feed_tags::Entity,
@@ -96,14 +96,14 @@ impl FeedRepository for SqliteFeedRepository {
             .filter(user_feed_entries::Column::HasRead.eq(false))
             .filter(
                 user_feed_entries::Column::UserFeedId
-                    .is_in(user_feed_models.iter().map(|e| e.id.as_str())),
+                    .is_in(uf_models.iter().map(|e| e.id.as_str())),
             )
             .group_by(user_feed_entries::Column::UserFeedId)
             .into_tuple::<i64>()
             .all(&self.db)
             .await?;
 
-        let feeds = user_feed_models
+        let feeds = uf_models
             .into_iter()
             .zip(feed_models.into_iter())
             .zip(unread_counts.into_iter())
@@ -122,13 +122,15 @@ impl FeedRepository for SqliteFeedRepository {
         Ok(feeds)
     }
 
-    async fn find_feed_by_id(&self, id: Uuid) -> Result<FeedById, Error> {
+    async fn find_feed_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<FeedById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = user_feeds::Entity::find()
             .select_only()
             .columns([user_feeds::Column::Id, user_feeds::Column::UserId])
             .filter(user_feeds::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -143,7 +145,7 @@ impl FeedRepository for SqliteFeedRepository {
     async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
-        let Some(feed) = feeds::Entity::find()
+        let Some(feed_model) = feeds::Entity::find()
             .filter(
                 Condition::any()
                     .add(feeds::Column::Link.eq(data.url.to_string()))
@@ -156,19 +158,19 @@ impl FeedRepository for SqliteFeedRepository {
         };
 
         let id = Uuid::new_v4();
-        let user_feed = user_feeds::ActiveModel {
+        let uf_model = user_feeds::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title),
             user_id: ActiveValue::Set(data.user_id.into()),
-            feed_id: ActiveValue::Set(feed.id),
+            feed_id: ActiveValue::Set(feed_model.id),
             ..Default::default()
         };
-        user_feed.insert(&tx).await.map_err(|e| match e {
+        uf_model.insert(&tx).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(ConflictError::AlreadyExists(data.url)),
             _ => Error::Database(e),
         })?;
 
-        common::insert_many_user_feed_entries(&tx, feed.id).await?;
+        common::insert_many_user_feed_entries(&tx, feed_model.id).await?;
 
         if let Some(tags) = data.tags {
             link_tags(&tx, tags, id, data.user_id).await?;
@@ -179,48 +181,42 @@ impl FeedRepository for SqliteFeedRepository {
         Ok(id)
     }
 
-    async fn update_feed(&self, params: IdParams, data: FeedUpdateData) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn update_feed(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: FeedUpdateData,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = user_feeds::ActiveModel {
+            id: ActiveValue::Set(id.to_string()),
+            ..Default::default()
         };
-        if feed.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut feed = feed.into_active_model();
 
         if let Some(title) = data.title {
-            feed.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
 
-        if feed.is_changed() {
-            feed.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
 
-        if let Some(tags) = data.tags {
-            link_tags(&tx, tags, params.id, params.user_id).await?;
-        }
+        // if let Some(tags) = data.tags {
+        //     link_tags(&tx, tags, id, params.user_id).await?;
+        // }
 
-        tx.commit().await?;
+        // tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete_feed(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_feed(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(user_feed) = user_feeds::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if user_feed.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        user_feed.delete(&tx).await?;
-
-        tx.commit().await?;
+        user_feeds::Entity::delete_by_id(id.to_string())
+            .exec(tx)
+            .await?;
 
         Ok(())
     }

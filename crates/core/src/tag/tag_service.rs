@@ -1,19 +1,18 @@
 use uuid::Uuid;
 
-use super::{
-    Error, Tag, TagType,
-    tag_repository::{TagCreateData, TagFindParams, TagRepository, TagUpdateData},
-};
-use crate::common::{IdParams, Paginated};
+use super::{Error, Tag, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData};
+use crate::common::{Paginated, TransactionManager};
 
 pub struct TagService {
     repository: Box<dyn TagRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl TagService {
-    pub fn new(repository: impl TagRepository) -> Self {
+    pub fn new(repository: impl TagRepository, tx_manager: impl TransactionManager) -> Self {
         Self {
             repository: Box::new(repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -66,15 +65,35 @@ impl TagService {
     }
 
     pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let tag = self.repository.find_tag_by_id(&*tx, id).await?;
+        if tag.user_id != user_id {
+            return Err(Error::NotFound(tag.id));
+        }
+
         self.repository
-            .update_tag(IdParams::new(id, user_id), data.into())
+            .update_tag(&*tx, tag.id, data.into())
             .await?;
 
-        self.get_tag(id, user_id).await
+        tx.commit().await?;
+
+        self.get_tag(tag.id, tag.user_id).await
     }
 
     pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        self.repository.delete_tag(IdParams::new(id, user_id)).await
+        let tx = self.tx_manager.begin().await?;
+
+        let tag = self.repository.find_tag_by_id(&*tx, id).await?;
+        if tag.user_id != user_id {
+            return Err(Error::NotFound(tag.id));
+        }
+
+        self.repository.delete_tag(&*tx, tag.id).await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 

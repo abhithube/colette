@@ -3,19 +3,24 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Cursor, Error, Feed, ProcessedFeed};
-use crate::common::IdParams;
+use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync + 'static {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
 
-    async fn find_feed_by_id(&self, id: Uuid) -> Result<FeedById, Error>;
+    async fn find_feed_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<FeedById, Error>;
 
     async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error>;
 
-    async fn update_feed(&self, params: IdParams, data: FeedUpdateData) -> Result<(), Error>;
+    async fn update_feed(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: FeedUpdateData,
+    ) -> Result<(), Error>;
 
-    async fn delete_feed(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_feed(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 
     async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error>;
 

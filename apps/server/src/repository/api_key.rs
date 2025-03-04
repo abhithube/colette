@@ -4,12 +4,12 @@ use colette_core::{
         ApiKeyById, ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams,
         ApiKeySearched, ApiKeyUpdateData, Error,
     },
-    common::IdParams,
+    common::Transaction,
 };
 use colette_model::api_keys;
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
-    ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction,
+    EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
 };
 use uuid::Uuid;
 
@@ -46,13 +46,19 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         Ok(api_keys)
     }
 
-    async fn find_api_key_by_id(&self, id: Uuid) -> Result<ApiKeyById, Error> {
+    async fn find_api_key_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<ApiKeyById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = api_keys::Entity::find()
             .select_only()
             .columns([api_keys::Column::Id, api_keys::Column::UserId])
             .filter(api_keys::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -81,44 +87,34 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         Ok(id)
     }
 
-    async fn update_api_key(&self, params: IdParams, data: ApiKeyUpdateData) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn update_api_key(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: ApiKeyUpdateData,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = api_keys::ActiveModel {
+            id: ActiveValue::Unchanged(id.into()),
+            ..Default::default()
         };
-        if api_key.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut api_key = api_key.into_active_model();
 
         if let Some(title) = data.title {
-            api_key.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
 
-        if api_key.is_changed() {
-            api_key.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete_api_key(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_api_key(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(api_key) = api_keys::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if api_key.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        api_key.delete(&tx).await?;
-
-        tx.commit().await?;
+        api_keys::Entity::delete_by_id(id).exec(tx).await?;
 
         Ok(())
     }

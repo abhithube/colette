@@ -36,22 +36,22 @@ impl AccountRepository for SqliteAccountRepository {
         let tx = self.db.begin().await?;
 
         let user_id = Uuid::new_v4();
-        let user = users::ActiveModel {
+        let user_model = users::ActiveModel {
             id: ActiveValue::Set(user_id.into()),
             email: ActiveValue::Set(data.email),
             display_name: ActiveValue::Set(data.display_name),
             ..Default::default()
         };
-        user.insert(&tx).await?;
+        user_model.insert(&tx).await?;
 
-        let account = accounts::ActiveModel {
+        let accout_model = accounts::ActiveModel {
             provider_id: ActiveValue::Set(data.provider_id),
             account_id: ActiveValue::Set(data.account_id),
             password_hash: ActiveValue::Set(data.password_hash),
             user_id: ActiveValue::Set(user_id.into()),
             ..Default::default()
         };
-        account.insert(&tx).await?;
+        accout_model.insert(&tx).await?;
 
         tx.commit().await?;
 

@@ -1,13 +1,12 @@
 use colette_core::{
     Tag,
-    common::IdParams,
+    common::Transaction,
     tag::{Error, TagById, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
 };
 use colette_model::{TagWithCounts, bookmark_tags, tags, user_feed_tags};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DbErr, EntityTrait, Iden,
-    IntoActiveModel, ModelTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-    TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
+    EntityTrait, Iden, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
     prelude::Expr,
     sea_query::{Alias, Func},
 };
@@ -83,13 +82,15 @@ impl TagRepository for SqliteTagRepository {
         Ok(tags)
     }
 
-    async fn find_tag_by_id(&self, id: Uuid) -> Result<TagById, Error> {
+    async fn find_tag_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<TagById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = tags::Entity::find()
             .select_only()
             .columns([tags::Column::Id, tags::Column::UserId])
             .filter(tags::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -103,13 +104,13 @@ impl TagRepository for SqliteTagRepository {
 
     async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
-        let tag = tags::ActiveModel {
+        let model = tags::ActiveModel {
             id: ActiveValue::Set(id.into()),
             title: ActiveValue::Set(data.title.clone()),
             user_id: ActiveValue::Set(data.user_id.into()),
             ..Default::default()
         };
-        tag.insert(&self.db).await.map_err(|e| match e {
+        model.insert(&self.db).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(data.title),
             _ => Error::Database(e),
         })?;
@@ -117,44 +118,34 @@ impl TagRepository for SqliteTagRepository {
         Ok(id)
     }
 
-    async fn update_tag(&self, params: IdParams, data: TagUpdateData) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn update_tag(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: TagUpdateData,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = tags::ActiveModel {
+            id: ActiveValue::Unchanged(id.to_string()),
+            ..Default::default()
         };
-        if tag.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut tag = tag.into_active_model();
 
         if let Some(title) = data.title {
-            tag.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
 
-        if tag.is_changed() {
-            tag.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }
 
-    async fn delete_tag(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_tag(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(tag) = tags::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if tag.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        tag.delete(&tx).await?;
-
-        tx.commit().await?;
+        tags::Entity::delete_by_id(id).exec(tx).await?;
 
         Ok(())
     }

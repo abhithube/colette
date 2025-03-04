@@ -19,13 +19,13 @@ impl SqliteUserRepository {
 #[async_trait::async_trait]
 impl UserRepository for SqliteUserRepository {
     async fn find_user(&self, params: UserFindParams) -> Result<User, Error> {
-        let Some(user) = users::Entity::find_by_id(params.id.to_string())
+        let Some(model) = users::Entity::find_by_id(params.id.to_string())
             .one(&self.db)
             .await?
         else {
             return Err(Error::NotFound(params.id));
         };
 
-        Ok(user.into())
+        Ok(model.into())
     }
 }

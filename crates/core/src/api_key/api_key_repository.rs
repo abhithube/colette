@@ -1,19 +1,25 @@
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeySearched, Cursor, Error};
-use crate::common::IdParams;
+use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait ApiKeyRepository: Send + Sync + 'static {
     async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error>;
 
-    async fn find_api_key_by_id(&self, id: Uuid) -> Result<ApiKeyById, Error>;
+    async fn find_api_key_by_id(&self, tx: &dyn Transaction, id: Uuid)
+    -> Result<ApiKeyById, Error>;
 
     async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error>;
 
-    async fn update_api_key(&self, params: IdParams, data: ApiKeyUpdateData) -> Result<(), Error>;
+    async fn update_api_key(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+        data: ApiKeyUpdateData,
+    ) -> Result<(), Error>;
 
-    async fn delete_api_key(&self, params: IdParams) -> Result<(), Error>;
+    async fn delete_api_key(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
 
     async fn search_api_key(
         &self,

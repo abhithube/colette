@@ -1,18 +1,23 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry};
-use crate::{common::IdParams, feed_entry::FeedEntryFilter};
+use crate::{common::Transaction, feed_entry::FeedEntryFilter};
 
 #[async_trait::async_trait]
 pub trait FeedEntryRepository: Send + Sync + 'static {
     async fn find_feed_entries(&self, params: FeedEntryFindParams)
     -> Result<Vec<FeedEntry>, Error>;
 
-    async fn find_feed_entry_by_id(&self, id: Uuid) -> Result<FeedEntryById, Error>;
+    async fn find_feed_entry_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<FeedEntryById, Error>;
 
     async fn update_feed_entry(
         &self,
-        params: IdParams,
+        tx: &dyn Transaction,
+        id: Uuid,
         data: FeedEntryUpdateData,
     ) -> Result<(), Error>;
 }

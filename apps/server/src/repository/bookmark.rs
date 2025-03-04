@@ -4,13 +4,12 @@ use colette_core::{
         BookmarkById, BookmarkCreateData, BookmarkDateField, BookmarkFilter, BookmarkFindParams,
         BookmarkRepository, BookmarkScrapedData, BookmarkTextField, BookmarkUpdateData, Error,
     },
-    common::IdParams,
+    common::Transaction,
 };
 use colette_model::{BookmarkWithTags, bookmark_tags, bookmarks, tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, IntoActiveModel, LoaderTrait, ModelTrait, QueryFilter, QueryOrder, QuerySelect,
-    QueryTrait, TransactionTrait,
+    EntityTrait, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
     prelude::Expr,
     sea_query::{Query, SimpleExpr},
 };
@@ -86,13 +85,19 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         Ok(bookmarks)
     }
 
-    async fn find_bookmark_by_id(&self, id: Uuid) -> Result<BookmarkById, Error> {
+    async fn find_bookmark_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<BookmarkById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = bookmarks::Entity::find()
             .select_only()
             .columns([bookmarks::Column::Id, bookmarks::Column::UserId])
             .filter(bookmarks::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -109,7 +114,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         let id = Uuid::new_v4();
         let user_id = data.user_id.to_string();
-        let bookmark = bookmarks::ActiveModel {
+        let model = bookmarks::ActiveModel {
             id: ActiveValue::Set(id.into()),
             link: ActiveValue::Set(data.url.to_string()),
             title: ActiveValue::Set(data.title.clone()),
@@ -119,7 +124,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             user_id: ActiveValue::Set(user_id.clone()),
             ..Default::default()
         };
-        bookmark.insert(&tx).await.map_err(|e| match e {
+        model.insert(&tx).await.map_err(|e| match e {
             DbErr::RecordNotInserted => Error::Conflict(data.url),
             _ => Error::Database(e),
         })?;
@@ -135,62 +140,52 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
     async fn update_bookmark(
         &self,
-        params: IdParams,
+        tx: Option<&dyn Transaction>,
+        id: Uuid,
         data: BookmarkUpdateData,
     ) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+        let tx = tx.map(|e| e.as_any().downcast_ref::<DatabaseTransaction>().unwrap());
 
-        let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
+        let mut model = bookmarks::ActiveModel {
+            id: ActiveValue::Unchanged(id.to_string()),
+            ..Default::default()
         };
-        if bookmark.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut bookmark = bookmark.into_active_model();
 
         if let Some(title) = data.title {
-            bookmark.title = ActiveValue::Set(title);
+            model.title = ActiveValue::Set(title);
         }
         if let Some(thumbnail_url) = data.thumbnail_url {
-            bookmark.thumbnail_url = ActiveValue::Set(thumbnail_url.map(Into::into));
+            model.thumbnail_url = ActiveValue::Set(thumbnail_url.map(Into::into));
         }
         if let Some(published_at) = data.published_at {
-            bookmark.published_at = ActiveValue::Set(published_at.map(|e| e.timestamp() as i32));
+            model.published_at = ActiveValue::Set(published_at.map(|e| e.timestamp() as i32));
         }
         if let Some(author) = data.author {
-            bookmark.author = ActiveValue::Set(author);
+            model.author = ActiveValue::Set(author);
         }
         if let Some(archived_path) = data.archived_path {
-            bookmark.archived_path = ActiveValue::Set(archived_path);
+            model.archived_path = ActiveValue::Set(archived_path);
         }
 
-        if bookmark.is_changed() {
-            bookmark.update(&tx).await?;
+        if model.is_changed() {
+            if let Some(tx) = tx {
+                model.update(tx).await?;
+            } else {
+                model.update(&self.db).await?;
+            }
         }
 
-        if let Some(tags) = data.tags {
-            link_tags(&tx, tags, params.id, params.user_id).await?;
-        }
-
-        tx.commit().await?;
+        // if let Some(tags) = data.tags {
+        //     link_tags(&tx, tags, id, params.user_id).await?;
+        // }
 
         Ok(())
     }
 
-    async fn delete_bookmark(&self, params: IdParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn delete_bookmark(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(bookmark) = bookmarks::Entity::find_by_id(params.id).one(&tx).await? else {
-            return Err(Error::NotFound(params.id));
-        };
-        if bookmark.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        bookmark.delete(&tx).await?;
-
-        tx.commit().await?;
+        bookmarks::Entity::delete_by_id(id).exec(tx).await?;
 
         Ok(())
     }

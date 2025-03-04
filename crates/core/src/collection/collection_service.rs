@@ -1,24 +1,24 @@
 use uuid::Uuid;
 
 use super::{
-    Collection, Error,
-    collection_repository::{
-        CollectionCreateData, CollectionFindParams, CollectionRepository, CollectionUpdateData,
-    },
+    Collection, CollectionCreateData, CollectionFindParams, CollectionRepository,
+    CollectionUpdateData, Error,
 };
 use crate::{
     bookmark::BookmarkFilter,
-    common::{IdParams, Paginated},
+    common::{Paginated, TransactionManager},
 };
 
 pub struct CollectionService {
     repository: Box<dyn CollectionRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl CollectionService {
-    pub fn new(repository: impl CollectionRepository) -> Self {
+    pub fn new(repository: impl CollectionRepository, tx_manager: impl TransactionManager) -> Self {
         Self {
             repository: Box::new(repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -76,17 +76,37 @@ impl CollectionService {
         data: CollectionUpdate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let collection = self.repository.find_collection_by_id(&*tx, id).await?;
+        if collection.user_id != user_id {
+            return Err(Error::NotFound(collection.id));
+        }
+
         self.repository
-            .update_collection(IdParams::new(id, user_id), data.into())
+            .update_collection(&*tx, collection.id, data.into())
             .await?;
 
-        self.get_collection(id, user_id).await
+        tx.commit().await?;
+
+        self.get_collection(collection.id, collection.user_id).await
     }
 
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+        let tx = self.tx_manager.begin().await?;
+
+        let collection = self.repository.find_collection_by_id(&*tx, id).await?;
+        if collection.user_id != user_id {
+            return Err(Error::NotFound(collection.id));
+        }
+
         self.repository
-            .delete_collection(IdParams::new(id, user_id))
-            .await
+            .delete_collection(&*tx, collection.id)
+            .await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 }
 

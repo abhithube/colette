@@ -41,9 +41,9 @@ use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use repository::{
     account::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
     backup::SqliteBackupRepository, bookmark::SqliteBookmarkRepository,
-    collection::SqliteCollectionRepository, feed::SqliteFeedRepository,
-    feed_entry::SqliteFeedEntryRepository, stream::SqliteStreamRepository,
-    tag::SqliteTagRepository, user::SqliteUserRepository,
+    collection::SqliteCollectionRepository, common::SqliteTransactionManager,
+    feed::SqliteFeedRepository, feed_entry::SqliteFeedEntryRepository,
+    stream::SqliteStreamRepository, tag::SqliteTagRepository, user::SqliteUserRepository,
 };
 use sea_orm::DatabaseConnection;
 use sqlx::{
@@ -190,9 +190,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let stream_repository = SqliteStreamRepository::new(db_conn.clone());
 
+    let tx_manager = SqliteTransactionManager::new(db_conn.clone());
+
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
         collection_repository.clone(),
+        tx_manager.clone(),
         http_client.clone(),
         storage_adapter,
         Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
@@ -200,6 +203,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
+        tx_manager.clone(),
         http_client.clone(),
         register_feed_plugins(reqwest_client),
     ));
@@ -262,9 +266,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let monitor = monitor.run();
 
     let api_state = ApiState {
-        api_key_service: Arc::new(ApiKeyService::new(SqliteApiKeyRepository::new(
-            db_conn.clone(),
-        ))),
+        api_key_service: Arc::new(ApiKeyService::new(
+            SqliteApiKeyRepository::new(db_conn.clone()),
+            tx_manager.clone(),
+        )),
         auth_service: Arc::new(AuthService::new(
             SqliteUserRepository::new(db_conn.clone()),
             SqliteAccountRepository::new(db_conn.clone()),
@@ -277,14 +282,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             Arc::new(Mutex::new(import_bookmarks_storage)),
         )),
         bookmark_service,
-        collection_service: Arc::new(CollectionService::new(collection_repository)),
+        collection_service: Arc::new(CollectionService::new(
+            collection_repository,
+            tx_manager.clone(),
+        )),
         feed_service,
         feed_entry_service: Arc::new(FeedEntryService::new(
             SqliteFeedEntryRepository::new(db_conn.clone()),
             stream_repository.clone(),
+            tx_manager.clone(),
         )),
-        stream_service: Arc::new(StreamService::new(stream_repository)),
-        tag_service: Arc::new(TagService::new(SqliteTagRepository::new(db_conn.clone()))),
+        stream_service: Arc::new(StreamService::new(stream_repository, tx_manager.clone())),
+        tag_service: Arc::new(TagService::new(
+            SqliteTagRepository::new(db_conn.clone()),
+            tx_manager,
+        )),
         image_base_url,
     };
 

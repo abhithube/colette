@@ -1,6 +1,6 @@
 use colette_core::{
     FeedEntry,
-    common::IdParams,
+    common::Transaction,
     feed_entry::{
         Error, FeedEntryBooleanField, FeedEntryById, FeedEntryDateField, FeedEntryFilter,
         FeedEntryFindParams, FeedEntryRepository, FeedEntryTextField, FeedEntryUpdateData,
@@ -8,8 +8,8 @@ use colette_core::{
 };
 use colette_model::{UfeWithFe, feed_entries, tags, user_feed_entries, user_feed_tags};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, IntoActiveModel,
-    QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
+    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction,
+    EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
     prelude::Expr,
     sea_query::{Query, SimpleExpr},
 };
@@ -93,7 +93,13 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         Ok(feed_entries)
     }
 
-    async fn find_feed_entry_by_id(&self, id: Uuid) -> Result<FeedEntryById, Error> {
+    async fn find_feed_entry_by_id(
+        &self,
+        tx: &dyn Transaction,
+        id: Uuid,
+    ) -> Result<FeedEntryById, Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
         let Some((id, user_id)) = user_feed_entries::Entity::find()
             .select_only()
             .columns([
@@ -102,7 +108,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
             ])
             .filter(user_feed_entries::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
-            .one(&self.db)
+            .one(tx)
             .await?
         else {
             return Err(Error::NotFound(id));
@@ -116,32 +122,24 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
 
     async fn update_feed_entry(
         &self,
-        params: IdParams,
+        tx: &dyn Transaction,
+        id: Uuid,
         data: FeedEntryUpdateData,
     ) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(feed_entry) = user_feed_entries::Entity::find_by_id(params.id)
-            .one(&tx)
-            .await?
-        else {
-            return Err(Error::NotFound(params.id));
+        let mut model = user_feed_entries::ActiveModel {
+            id: ActiveValue::Unchanged(id.to_string()),
+            ..Default::default()
         };
-        if feed_entry.user_id != params.user_id.to_string() {
-            return Err(Error::NotFound(params.id));
-        }
-
-        let mut feed_entry = feed_entry.into_active_model();
 
         if let Some(has_read) = data.has_read {
-            feed_entry.has_read = ActiveValue::Set(has_read.into());
+            model.has_read = ActiveValue::Set(has_read.into());
         }
 
-        if feed_entry.is_changed() {
-            feed_entry.update(&tx).await?;
+        if model.is_changed() {
+            model.update(tx).await?;
         }
-
-        tx.commit().await?;
 
         Ok(())
     }

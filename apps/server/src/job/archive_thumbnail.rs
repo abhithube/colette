@@ -22,7 +22,6 @@ pub async fn run(
             operation: job.operation,
             archived_path: job.archived_path,
         },
-        job.user_id,
     )
     .await
     .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
