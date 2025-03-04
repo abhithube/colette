@@ -3,7 +3,7 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_feeds")]
+#[sea_orm(table_name = "subscriptions")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
     pub id: String,
@@ -26,10 +26,10 @@ pub enum Relation {
         on_delete = "Restrict"
     )]
     Feeds,
-    #[sea_orm(has_many = "super::user_feed_entries::Entity")]
-    UserFeedEntries,
-    #[sea_orm(has_many = "super::user_feed_tags::Entity")]
-    UserFeedTags,
+    #[sea_orm(has_many = "super::subscription_entries::Entity")]
+    SubscriptionEntries,
+    #[sea_orm(has_many = "super::subscription_tags::Entity")]
+    SubscriptionTags,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UserId",
@@ -46,15 +46,15 @@ impl Related<super::feeds::Entity> for Entity {
     }
 }
 
-impl Related<super::user_feed_entries::Entity> for Entity {
+impl Related<super::subscription_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserFeedEntries.def()
+        Relation::SubscriptionEntries.def()
     }
 }
 
-impl Related<super::user_feed_tags::Entity> for Entity {
+impl Related<super::subscription_tags::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserFeedTags.def()
+        Relation::SubscriptionTags.def()
     }
 }
 

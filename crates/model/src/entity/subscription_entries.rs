@@ -3,12 +3,14 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "user_feed_tags")]
+#[sea_orm(table_name = "subscription_entries")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub user_feed_id: String,
-    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub tag_id: String,
+    pub id: String,
+    pub has_read: i32,
+    #[sea_orm(column_type = "Text")]
+    pub subscription_id: String,
+    pub feed_entry_id: i32,
     #[sea_orm(column_type = "Text")]
     pub user_id: String,
     pub created_at: i32,
@@ -18,21 +20,21 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::tags::Entity",
-        from = "Column::TagId",
-        to = "super::tags::Column::Id",
+        belongs_to = "super::feed_entries::Entity",
+        from = "Column::FeedEntryId",
+        to = "super::feed_entries::Column::Id",
         on_update = "NoAction",
-        on_delete = "Cascade"
+        on_delete = "Restrict"
     )]
-    Tags,
+    FeedEntries,
     #[sea_orm(
-        belongs_to = "super::user_feeds::Entity",
-        from = "Column::UserFeedId",
-        to = "super::user_feeds::Column::Id",
+        belongs_to = "super::subscriptions::Entity",
+        from = "Column::SubscriptionId",
+        to = "super::subscriptions::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    UserFeeds,
+    Subscriptions,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UserId",
@@ -43,15 +45,15 @@ pub enum Relation {
     Users,
 }
 
-impl Related<super::tags::Entity> for Entity {
+impl Related<super::feed_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Tags.def()
+        Relation::FeedEntries.def()
     }
 }
 
-impl Related<super::user_feeds::Entity> for Entity {
+impl Related<super::subscriptions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserFeeds.def()
+        Relation::Subscriptions.def()
     }
 }
 

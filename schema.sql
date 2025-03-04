@@ -99,7 +99,7 @@ WHERE
 
 END;
 
-CREATE TABLE user_feeds (
+CREATE TABLE subscriptions (
   id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -109,9 +109,9 @@ CREATE TABLE user_feeds (
   UNIQUE (user_id, feed_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feeds AFTER
-UPDATE ON user_feeds FOR EACH ROW BEGIN
-UPDATE user_feeds
+CREATE TRIGGER set_updated_at_subscriptions AFTER
+UPDATE ON subscriptions FOR EACH ROW BEGIN
+UPDATE subscriptions
 SET
   updated_at = strftime('%s', 'now')
 WHERE
@@ -119,20 +119,20 @@ WHERE
 
 END;
 
-CREATE TABLE user_feed_entries (
+CREATE TABLE subscription_entries (
   id TEXT NOT NULL PRIMARY KEY,
   has_read INTEGER NOT NULL DEFAULT 0,
-  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+  subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   feed_entry_id INTEGER NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  UNIQUE (user_feed_id, feed_entry_id)
+  UNIQUE (subscription_id, feed_entry_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feed_entries AFTER
-UPDATE ON user_feed_entries FOR EACH ROW BEGIN
-UPDATE user_feed_entries
+CREATE TRIGGER set_updated_at_subscription_entries AFTER
+UPDATE ON subscription_entries FOR EACH ROW BEGIN
+UPDATE subscription_entries
 SET
   updated_at = strftime('%s', 'now')
 WHERE
@@ -183,18 +183,18 @@ WHERE
 
 END;
 
-CREATE TABLE user_feed_tags (
-  user_feed_id TEXT NOT NULL REFERENCES user_feeds (id) ON DELETE CASCADE,
+CREATE TABLE subscription_tags (
+  subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  PRIMARY KEY (user_feed_id, tag_id)
+  PRIMARY KEY (subscription_id, tag_id)
 );
 
-CREATE TRIGGER set_updated_at_user_feed_tags AFTER
-UPDATE ON user_feed_tags FOR EACH ROW BEGIN
-UPDATE user_feed_tags
+CREATE TRIGGER set_updated_at_subscription_tags AFTER
+UPDATE ON subscription_tags FOR EACH ROW BEGIN
+UPDATE subscription_tags
 SET
   updated_at = strftime('%s', 'now')
 WHERE

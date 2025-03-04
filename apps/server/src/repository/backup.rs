@@ -1,5 +1,5 @@
 use colette_core::backup::{BackupRepository, Error};
-use colette_model::{bookmark_tags, user_feed_tags, user_feeds};
+use colette_model::{bookmark_tags, subscription_tags, subscriptions};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
     TransactionTrait,
@@ -50,25 +50,25 @@ impl BackupRepository for SqliteBackupRepository {
                 )
                 .await?;
 
-                let uf_id = {
-                    let user_feed = user_feeds::Entity::find()
-                        .filter(user_feeds::Column::FeedId.eq(feed_id))
-                        .filter(user_feeds::Column::UserId.eq(user_id.to_string()))
+                let subscription_id = {
+                    let subscription = subscriptions::Entity::find()
+                        .filter(subscriptions::Column::FeedId.eq(feed_id))
+                        .filter(subscriptions::Column::UserId.eq(user_id.to_string()))
                         .one(&tx)
                         .await?;
 
-                    match user_feed {
+                    match subscription {
                         Some(tag) => tag.id.parse().unwrap(),
                         _ => {
                             let id = Uuid::new_v4();
-                            let user_feed = user_feeds::ActiveModel {
+                            let subscription = subscriptions::ActiveModel {
                                 id: ActiveValue::Set(id.into()),
                                 title: ActiveValue::Set(title),
                                 feed_id: ActiveValue::Set(feed_id),
                                 user_id: ActiveValue::Set(user_id.into()),
                                 ..Default::default()
                             };
-                            user_feed.insert(&tx).await?;
+                            subscription.insert(&tx).await?;
 
                             id
                         }
@@ -76,13 +76,13 @@ impl BackupRepository for SqliteBackupRepository {
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let uft = user_feed_tags::ActiveModel {
-                        user_feed_id: ActiveValue::Set(uf_id.into()),
+                    let subscription_tag = subscription_tags::ActiveModel {
+                        subscription_id: ActiveValue::Set(subscription_id.into()),
                         tag_id: ActiveValue::Set(tag_id.into()),
                         user_id: ActiveValue::Set(user_id.into()),
                         ..Default::default()
                     };
-                    user_feed_tags::Entity::insert(uft)
+                    subscription_tags::Entity::insert(subscription_tag)
                         .on_conflict_do_nothing()
                         .exec(&tx)
                         .await?;

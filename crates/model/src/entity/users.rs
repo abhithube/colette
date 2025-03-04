@@ -29,14 +29,14 @@ pub enum Relation {
     Collections,
     #[sea_orm(has_many = "super::streams::Entity")]
     Streams,
+    #[sea_orm(has_many = "super::subscription_entries::Entity")]
+    SubscriptionEntries,
+    #[sea_orm(has_many = "super::subscription_tags::Entity")]
+    SubscriptionTags,
+    #[sea_orm(has_many = "super::subscriptions::Entity")]
+    Subscriptions,
     #[sea_orm(has_many = "super::tags::Entity")]
     Tags,
-    #[sea_orm(has_many = "super::user_feed_entries::Entity")]
-    UserFeedEntries,
-    #[sea_orm(has_many = "super::user_feed_tags::Entity")]
-    UserFeedTags,
-    #[sea_orm(has_many = "super::user_feeds::Entity")]
-    UserFeeds,
 }
 
 impl Related<super::accounts::Entity> for Entity {
@@ -75,27 +75,27 @@ impl Related<super::streams::Entity> for Entity {
     }
 }
 
+impl Related<super::subscription_entries::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SubscriptionEntries.def()
+    }
+}
+
+impl Related<super::subscription_tags::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::SubscriptionTags.def()
+    }
+}
+
+impl Related<super::subscriptions::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Subscriptions.def()
+    }
+}
+
 impl Related<super::tags::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Tags.def()
-    }
-}
-
-impl Related<super::user_feed_entries::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserFeedEntries.def()
-    }
-}
-
-impl Related<super::user_feed_tags::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserFeedTags.def()
-    }
-}
-
-impl Related<super::user_feeds::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserFeeds.def()
     }
 }
 

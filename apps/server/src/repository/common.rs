@@ -6,7 +6,7 @@ use colette_core::{
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
-use colette_model::{bookmarks, feed_entries, feeds, tags, user_feed_entries, user_feeds};
+use colette_model::{bookmarks, feed_entries, feeds, subscription_entries, subscriptions, tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection,
     DatabaseTransaction, DbErr, EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
@@ -118,48 +118,48 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
     Ok(())
 }
 
-pub struct FeedEntryToUserFeed;
+pub struct FeedEntryToSubscription;
 
-impl Linked for FeedEntryToUserFeed {
+impl Linked for FeedEntryToSubscription {
     type FromEntity = feed_entries::Entity;
-    type ToEntity = user_feeds::Entity;
+    type ToEntity = subscriptions::Entity;
 
     fn link(&self) -> Vec<LinkDef> {
         vec![
             feeds::Relation::FeedEntries.def().rev(),
-            feeds::Relation::UserFeeds.def(),
+            feeds::Relation::Subscriptions.def(),
         ]
     }
 }
 
-pub(crate) async fn insert_many_user_feed_entries(
+pub(crate) async fn insert_many_subscription_entries(
     tx: &DatabaseTransaction,
     feed_id: i32,
 ) -> Result<(), DbErr> {
     let models = feed_entries::Entity::find()
-        .find_also_linked(FeedEntryToUserFeed)
+        .find_also_linked(FeedEntryToSubscription)
         .filter(feed_entries::Column::FeedId.eq(feed_id))
         .all(tx)
         .await
         .map(|e| {
             e.into_iter()
-                .filter_map(|(fe, uf)| {
-                    uf.map(|uf| user_feed_entries::ActiveModel {
+                .filter_map(|(fe, subscription)| {
+                    subscription.map(|subscription| subscription_entries::ActiveModel {
                         id: ActiveValue::Set(Uuid::new_v4().to_string()),
                         feed_entry_id: ActiveValue::Set(fe.id),
-                        user_feed_id: ActiveValue::Set(uf.id),
-                        user_id: ActiveValue::Set(uf.user_id),
+                        subscription_id: ActiveValue::Set(subscription.id),
+                        user_id: ActiveValue::Set(subscription.user_id),
                         ..Default::default()
                     })
                 })
                 .collect::<Vec<_>>()
         })?;
 
-    user_feed_entries::Entity::insert_many(models)
+    subscription_entries::Entity::insert_many(models)
         .on_conflict(
             OnConflict::columns([
-                user_feed_entries::Column::UserFeedId,
-                user_feed_entries::Column::FeedEntryId,
+                subscription_entries::Column::SubscriptionId,
+                subscription_entries::Column::FeedEntryId,
             ])
             .do_nothing()
             .to_owned(),

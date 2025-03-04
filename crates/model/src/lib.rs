@@ -98,7 +98,7 @@ impl From<collections::Model> for Collection {
 }
 
 pub struct FeedWithTagsAndCount {
-    pub user_feed: user_feeds::Model,
+    pub subscription: subscriptions::Model,
     pub feed: feeds::Model,
     pub tags: Vec<tags::Model>,
     pub unread_count: i64,
@@ -107,39 +107,39 @@ pub struct FeedWithTagsAndCount {
 impl From<FeedWithTagsAndCount> for Feed {
     fn from(value: FeedWithTagsAndCount) -> Self {
         Self {
-            id: value.user_feed.id.parse().unwrap(),
+            id: value.subscription.id.parse().unwrap(),
             link: value.feed.link.parse().unwrap(),
-            title: value.user_feed.title,
+            title: value.subscription.title,
             xml_url: value.feed.xml_url.and_then(|e| e.parse().ok()),
-            user_id: value.user_feed.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.user_feed.created_at),
-            updated_at: parse_timestamp(value.user_feed.updated_at),
+            user_id: value.subscription.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.subscription.created_at),
+            updated_at: parse_timestamp(value.subscription.updated_at),
             tags: Some(value.tags.into_iter().map(Into::into).collect()),
             unread_count: Some(value.unread_count),
         }
     }
 }
 
-pub struct UfeWithFe {
-    pub ufe: user_feed_entries::Model,
+pub struct SubscriptionEntryWithFe {
+    pub se: subscription_entries::Model,
     pub fe: feed_entries::Model,
 }
 
-impl From<UfeWithFe> for FeedEntry {
-    fn from(value: UfeWithFe) -> Self {
+impl From<SubscriptionEntryWithFe> for FeedEntry {
+    fn from(value: SubscriptionEntryWithFe) -> Self {
         Self {
-            id: value.ufe.id.parse().unwrap(),
+            id: value.se.id.parse().unwrap(),
             link: value.fe.link.parse().unwrap(),
             title: value.fe.title,
             published_at: parse_timestamp(value.fe.published_at).unwrap(),
             description: value.fe.description,
             author: value.fe.author,
             thumbnail_url: value.fe.thumbnail_url.and_then(|e| e.parse().ok()),
-            has_read: value.ufe.has_read == 1,
-            feed_id: value.ufe.user_feed_id.parse().unwrap(),
-            user_id: value.ufe.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.ufe.created_at),
-            updated_at: parse_timestamp(value.ufe.updated_at),
+            has_read: value.se.has_read == 1,
+            feed_id: value.se.subscription_id.parse().unwrap(),
+            user_id: value.se.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.se.created_at),
+            updated_at: parse_timestamp(value.se.updated_at),
         }
     }
 }
@@ -194,13 +194,13 @@ impl From<TagWithCounts> for Tag {
     }
 }
 
-impl Related<tags::Entity> for user_feeds::Entity {
+impl Related<tags::Entity> for subscriptions::Entity {
     fn to() -> RelationDef {
-        user_feed_tags::Relation::Tags.def()
+        subscription_tags::Relation::Tags.def()
     }
 
     fn via() -> Option<RelationDef> {
-        Some(user_feed_tags::Relation::UserFeeds.def().rev())
+        Some(subscription_tags::Relation::Subscriptions.def().rev())
     }
 }
 

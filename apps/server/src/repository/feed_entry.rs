@@ -6,7 +6,9 @@ use colette_core::{
         FeedEntryFindParams, FeedEntryRepository, FeedEntryTextField, FeedEntryUpdateData,
     },
 };
-use colette_model::{UfeWithFe, feed_entries, tags, user_feed_entries, user_feed_tags};
+use colette_model::{
+    SubscriptionEntryWithFe, feed_entries, subscription_entries, subscription_tags, tags,
+};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction,
     EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
@@ -34,17 +36,20 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         &self,
         params: FeedEntryFindParams,
     ) -> Result<Vec<FeedEntry>, Error> {
-        let mut query = user_feed_entries::Entity::find()
+        let mut query = subscription_entries::Entity::find()
             .find_also_related(feed_entries::Entity)
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(user_feed_entries::Column::UserId.eq(user_id.to_string()))
+                query.filter(subscription_entries::Column::UserId.eq(user_id.to_string()))
             })
             .apply_if(params.cursor, |query, cursor| {
                 query.filter(
                     Expr::tuple([
                         Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
-                        Expr::col((user_feed_entries::Entity, user_feed_entries::Column::Id))
-                            .into(),
+                        Expr::col((
+                            subscription_entries::Entity,
+                            subscription_entries::Column::Id,
+                        ))
+                        .into(),
                     ])
                     .lt(Expr::tuple([
                         Expr::val(cursor.published_at.to_rfc3339()).into(),
@@ -53,7 +58,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
                 )
             })
             .order_by_desc(feed_entries::Column::PublishedAt)
-            .order_by_desc(user_feed_entries::Column::Id)
+            .order_by_desc(subscription_entries::Column::Id)
             .limit(params.limit.map(|e| e as u64));
 
         if let Some(filter) = params.filter {
@@ -61,22 +66,22 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         } else {
             query = query
                 .apply_if(params.id, |query, id| {
-                    query.filter(user_feed_entries::Column::Id.eq(id.to_string()))
+                    query.filter(subscription_entries::Column::Id.eq(id.to_string()))
                 })
                 .apply_if(params.has_read, |query, has_read| {
-                    query.filter(user_feed_entries::Column::HasRead.eq(has_read))
+                    query.filter(subscription_entries::Column::HasRead.eq(has_read))
                 })
                 .apply_if(params.tags, |query, tags| {
                     query.filter(Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
-                            .from(user_feed_tags::Entity)
+                            .from(subscription_tags::Entity)
                             .and_where(
-                                Expr::col(user_feed_tags::Column::UserFeedId)
-                                    .eq(Expr::col(user_feed_entries::Column::UserFeedId)),
+                                Expr::col(subscription_tags::Column::SubscriptionId)
+                                    .eq(Expr::col(subscription_entries::Column::SubscriptionId)),
                             )
                             .and_where(
-                                user_feed_tags::Column::TagId
+                                subscription_tags::Column::TagId
                                     .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
                             )
                             .to_owned(),
@@ -86,7 +91,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
 
         let feed_entries = query.all(&self.db).await.map(|e| {
             e.into_iter()
-                .filter_map(|(ufe, fe)| fe.map(|fe| UfeWithFe { ufe, fe }.into()))
+                .filter_map(|(se, fe)| fe.map(|fe| SubscriptionEntryWithFe { se, fe }.into()))
                 .collect()
         })?;
 
@@ -100,13 +105,13 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
     ) -> Result<FeedEntryById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((id, user_id)) = user_feed_entries::Entity::find()
+        let Some((id, user_id)) = subscription_entries::Entity::find()
             .select_only()
             .columns([
-                user_feed_entries::Column::Id,
-                user_feed_entries::Column::UserId,
+                subscription_entries::Column::Id,
+                subscription_entries::Column::UserId,
             ])
-            .filter(user_feed_entries::Column::Id.eq(id.to_string()))
+            .filter(subscription_entries::Column::Id.eq(id.to_string()))
             .into_tuple::<(String, String)>()
             .one(tx)
             .await?
@@ -128,7 +133,7 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let mut model = user_feed_entries::ActiveModel {
+        let mut model = subscription_entries::ActiveModel {
             id: ActiveValue::Unchanged(id.to_string()),
             ..Default::default()
         };
@@ -163,8 +168,8 @@ impl ToColumn for FeedEntryBooleanField {
     fn to_column(self) -> Expr {
         match self {
             Self::HasRead => Expr::col((
-                user_feed_entries::Entity,
-                user_feed_entries::Column::HasRead,
+                subscription_entries::Entity,
+                subscription_entries::Column::HasRead,
             )),
         }
     }
@@ -177,12 +182,12 @@ impl ToColumn for FeedEntryDateField {
                 Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt))
             }
             Self::CreatedAt => Expr::col((
-                user_feed_entries::Entity,
-                user_feed_entries::Column::CreatedAt,
+                subscription_entries::Entity,
+                subscription_entries::Column::CreatedAt,
             )),
             Self::UpdatedAt => Expr::col((
-                user_feed_entries::Entity,
-                user_feed_entries::Column::UpdatedAt,
+                subscription_entries::Entity,
+                subscription_entries::Column::UpdatedAt,
             )),
         }
     }
@@ -195,20 +200,23 @@ impl ToSql for FeedEntryFilter {
                 FeedEntryTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
-                        .from(user_feed_tags::Entity)
+                        .from(subscription_tags::Entity)
                         .inner_join(
                             tags::Entity,
                             Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                                user_feed_tags::Entity,
-                                user_feed_tags::Column::TagId,
+                                subscription_tags::Entity,
+                                subscription_tags::Column::TagId,
                             ))),
                         )
                         .and_where(
-                            Expr::col((user_feed_tags::Entity, user_feed_tags::Column::UserFeedId))
-                                .eq(Expr::col((
-                                    user_feed_entries::Entity,
-                                    user_feed_entries::Column::UserFeedId,
-                                ))),
+                            Expr::col((
+                                subscription_tags::Entity,
+                                subscription_tags::Column::SubscriptionId,
+                            ))
+                            .eq(Expr::col((
+                                subscription_entries::Entity,
+                                subscription_entries::Column::SubscriptionId,
+                            ))),
                         )
                         .and_where((field.to_column(), op).to_sql())
                         .to_owned(),

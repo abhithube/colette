@@ -33,8 +33,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Feeds,
-    #[sea_orm(has_many = "super::user_feed_entries::Entity")]
-    UserFeedEntries,
+    #[sea_orm(has_many = "super::subscription_entries::Entity")]
+    SubscriptionEntries,
 }
 
 impl Related<super::feeds::Entity> for Entity {
@@ -43,9 +43,9 @@ impl Related<super::feeds::Entity> for Entity {
     }
 }
 
-impl Related<super::user_feed_entries::Entity> for Entity {
+impl Related<super::subscription_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserFeedEntries.def()
+        Relation::SubscriptionEntries.def()
     }
 }
 

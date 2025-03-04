@@ -3,7 +3,7 @@ use colette_core::{
     common::Transaction,
     tag::{Error, TagById, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
 };
-use colette_model::{TagWithCounts, bookmark_tags, tags, user_feed_tags};
+use colette_model::{TagWithCounts, bookmark_tags, subscription_tags, tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
     EntityTrait, Iden, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
@@ -32,8 +32,8 @@ impl TagRepository for SqliteTagRepository {
         let tags = tags::Entity::find()
             .expr_as(
                 Func::count(Expr::col((
-                    user_feed_tags::Entity,
-                    user_feed_tags::Column::UserFeedId,
+                    subscription_tags::Entity,
+                    subscription_tags::Column::SubscriptionId,
                 ))),
                 feed_count.to_string(),
             )
@@ -44,7 +44,7 @@ impl TagRepository for SqliteTagRepository {
                 ))),
                 bookmark_count.to_string(),
             )
-            .left_join(user_feed_tags::Entity)
+            .left_join(subscription_tags::Entity)
             .left_join(bookmark_tags::Entity)
             .apply_if(params.ids, |query, ids| {
                 query.filter(tags::Column::Id.is_in(ids.into_iter().map(|e| e.to_string())))
