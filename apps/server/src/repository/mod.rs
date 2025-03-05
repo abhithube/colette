@@ -7,5 +7,6 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod stream;
+pub mod subscription;
 pub mod tag;
 pub mod user;

@@ -3,9 +3,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
+use colette_core::subscription;
 
-use super::FEEDS_TAG;
+use super::SUBSCRIPTIONS_TAG;
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id},
@@ -16,9 +16,9 @@ use crate::api::{
     path = "/{id}",
     params(Id),
     responses(DeleteResponse),
-    operation_id = "deleteFeed",
-    description = "Delete a feed by ID",
-    tag = FEEDS_TAG
+    operation_id = "deleteSubscription",
+    description = "Delete a subscription by ID",
+    tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
@@ -26,13 +26,17 @@ pub async fn handler(
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
 ) -> Result<DeleteResponse, Error> {
-    match state.feed_service.delete_feed(id, user_id).await {
+    match state
+        .subscription_service
+        .delete_subscription(id, user_id)
+        .await
+    {
         Ok(()) => Ok(DeleteResponse::NoContent),
         Err(e) => match e {
-            feed::Error::Forbidden(_) => Ok(DeleteResponse::Forbidden(BaseError {
+            subscription::Error::Forbidden(_) => Ok(DeleteResponse::Forbidden(BaseError {
                 message: e.to_string(),
             })),
-            feed::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
+            subscription::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             e => Err(Error::Unknown(e.into())),
@@ -42,13 +46,13 @@ pub async fn handler(
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum DeleteResponse {
-    #[response(status = 204, description = "Successfully deleted feed")]
+    #[response(status = 204, description = "Successfully deleted subscription")]
     NoContent,
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),
 
-    #[response(status = 404, description = "Feed not found")]
+    #[response(status = 404, description = "Subscription not found")]
     NotFound(BaseError),
 }
 

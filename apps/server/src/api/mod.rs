@@ -4,7 +4,7 @@ use axum::extract::FromRef;
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    stream::StreamService, tag::TagService,
+    stream::StreamService, subscription::SubscriptionService, tag::TagService,
 };
 use url::Url;
 
@@ -17,6 +17,7 @@ pub mod common;
 pub mod feed;
 pub mod feed_entry;
 pub mod stream;
+pub mod subscription;
 pub mod tag;
 
 #[derive(Clone, FromRef)]
@@ -29,6 +30,7 @@ pub struct ApiState {
     pub feed_service: Arc<FeedService>,
     pub feed_entry_service: Arc<FeedEntryService>,
     pub stream_service: Arc<StreamService>,
+    pub subscription_service: Arc<SubscriptionService>,
     pub tag_service: Arc<TagService>,
     pub image_base_url: Url,
 }

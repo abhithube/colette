@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Account, ApiKey, Bookmark, Collection, Feed, FeedEntry, Stream, Tag, User,
+    Account, ApiKey, Bookmark, Collection, Feed, FeedEntry, Stream, Subscription, Tag, User,
     api_key::ApiKeySearched,
 };
 pub use entity::*;
@@ -97,20 +97,31 @@ impl From<collections::Model> for Collection {
     }
 }
 
-pub struct FeedWithTagsAndCount {
+impl From<feeds::Model> for Feed {
+    fn from(value: feeds::Model) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            link: value.link.parse().unwrap(),
+            xml_url: value.xml_url.and_then(|e| e.parse().ok()),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+        }
+    }
+}
+
+pub struct SubscriptionWithTagsAndCount {
     pub subscription: subscriptions::Model,
     pub feed: feeds::Model,
     pub tags: Vec<tags::Model>,
     pub unread_count: i64,
 }
 
-impl From<FeedWithTagsAndCount> for Feed {
-    fn from(value: FeedWithTagsAndCount) -> Self {
+impl From<SubscriptionWithTagsAndCount> for Subscription {
+    fn from(value: SubscriptionWithTagsAndCount) -> Self {
         Self {
             id: value.subscription.id.parse().unwrap(),
-            link: value.feed.link.parse().unwrap(),
+            feed: value.feed.into(),
             title: value.subscription.title,
-            xml_url: value.feed.xml_url.and_then(|e| e.parse().ok()),
             user_id: value.subscription.user_id.parse().unwrap(),
             created_at: parse_timestamp(value.subscription.created_at),
             updated_at: parse_timestamp(value.subscription.updated_at),

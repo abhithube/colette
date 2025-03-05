@@ -7,7 +7,7 @@ use axum::{
 use colette_core::feed;
 use url::Url;
 
-use super::FEEDS_TAG;
+use super::{FEEDS_TAG, Feed};
 use crate::api::{
     ApiState,
     common::{BaseError, Error},
@@ -65,26 +65,10 @@ impl From<feed::FeedDetected> for FeedDetected {
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedProcessed {
-    pub link: Url,
-    pub title: String,
-}
-
-impl From<feed::ProcessedFeed> for FeedProcessed {
-    fn from(value: feed::ProcessedFeed) -> Self {
-        Self {
-            link: value.link,
-            title: value.title,
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),
-    Processed(FeedProcessed),
+    Processed(Feed),
 }
 
 impl From<feed::DetectedResponse> for DetectedResponse {

@@ -3,57 +3,21 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Cursor, Error, Feed, ProcessedFeed};
-use crate::common::Transaction;
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync + 'static {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
 
-    async fn find_feed_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<FeedById, Error>;
+    async fn upsert_feed(&self, data: FeedScrapedData) -> Result<Uuid, Error>;
 
-    async fn create_feed(&self, data: FeedCreateData) -> Result<Uuid, Error>;
-
-    async fn update_feed(
-        &self,
-        tx: &dyn Transaction,
-        id: Uuid,
-        data: FeedUpdateData,
-    ) -> Result<(), Error>;
-
-    async fn delete_feed(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
-
-    async fn save_scraped(&self, data: FeedScrapedData) -> Result<(), Error>;
-
-    async fn stream_urls(&self) -> Result<BoxStream<Result<String, Error>>, Error>;
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FeedById {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    async fn stream_feed_urls(&self) -> Result<BoxStream<Result<Url, Error>>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct FeedFindParams {
     pub id: Option<Uuid>,
-    pub tags: Option<Vec<Uuid>>,
-    pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FeedCreateData {
-    pub url: Url,
-    pub title: String,
-    pub tags: Option<Vec<Uuid>>,
-    pub user_id: Uuid,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FeedUpdateData {
-    pub title: Option<String>,
-    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone)]

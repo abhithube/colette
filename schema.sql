@@ -32,7 +32,8 @@ UPDATE accounts
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  provider_id = OLD.provider_id
+  AND account_id = OLD.account_id;
 
 END;
 
@@ -58,7 +59,7 @@ WHERE
 END;
 
 CREATE TABLE feeds (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   xml_url TEXT,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
@@ -83,7 +84,7 @@ CREATE TABLE feed_entries (
   description TEXT,
   author TEXT,
   thumbnail_url TEXT,
-  feed_id INTEGER NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
+  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   UNIQUE (feed_id, link)
@@ -103,7 +104,7 @@ CREATE TABLE subscriptions (
   id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  feed_id INTEGER NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
+  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   UNIQUE (user_id, feed_id)
@@ -198,7 +199,8 @@ UPDATE subscription_tags
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  subscription_id = OLD.subscription_id
+  AND tag_id = OLD.tag_id;
 
 END;
 
@@ -217,7 +219,8 @@ UPDATE bookmark_tags
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  bookmark_id = OLD.bookmark_id
+  AND tag_id = OLD.tag_id;
 
 END;
 

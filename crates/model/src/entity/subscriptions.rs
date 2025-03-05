@@ -11,7 +11,8 @@ pub struct Model {
     pub title: String,
     #[sea_orm(column_type = "Text")]
     pub user_id: String,
-    pub feed_id: i32,
+    #[sea_orm(column_type = "Text")]
+    pub feed_id: String,
     pub created_at: i32,
     pub updated_at: i32,
 }

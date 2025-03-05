@@ -52,7 +52,7 @@ impl BackupRepository for SqliteBackupRepository {
 
                 let subscription_id = {
                     let subscription = subscriptions::Entity::find()
-                        .filter(subscriptions::Column::FeedId.eq(feed_id))
+                        .filter(subscriptions::Column::FeedId.eq(feed_id.to_string()))
                         .filter(subscriptions::Column::UserId.eq(user_id.to_string()))
                         .one(&tx)
                         .await?;
@@ -64,7 +64,7 @@ impl BackupRepository for SqliteBackupRepository {
                             let subscription = subscriptions::ActiveModel {
                                 id: ActiveValue::Set(id.into()),
                                 title: ActiveValue::Set(title),
-                                feed_id: ActiveValue::Set(feed_id),
+                                feed_id: ActiveValue::Set(feed_id.into()),
                                 user_id: ActiveValue::Set(user_id.into()),
                                 ..Default::default()
                             };

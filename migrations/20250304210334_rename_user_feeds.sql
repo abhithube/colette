@@ -83,7 +83,8 @@ UPDATE subscription_tags
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  subscription_id = OLD.subscription_id
+  AND tag_id = OLD.tag_id;
 
 END;
 

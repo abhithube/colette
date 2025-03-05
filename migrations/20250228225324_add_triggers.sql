@@ -14,7 +14,8 @@ UPDATE accounts
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  provider_id = OLD.provider_id
+  AND account_id = OLD.account_id;
 
 END;
 
@@ -104,7 +105,8 @@ UPDATE bookmark_tags
 SET
   updated_at = strftime('%s', 'now')
 WHERE
-  id = OLD.id;
+  bookmark_id = OLD.bookmark_id
+  AND tag_id = OLD.tag_id;
 
 END;
 

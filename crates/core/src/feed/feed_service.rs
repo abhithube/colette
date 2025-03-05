@@ -6,17 +6,14 @@ use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use futures::stream::BoxStream;
 use url::Url;
-use uuid::Uuid;
 
 use super::{
-    Error, ExtractedFeed, Feed, FeedCreateData, FeedFindParams, FeedRepository, FeedScrapedData,
-    FeedScraper, FeedUpdateData, ProcessedFeed, ScraperError,
+    Error, ExtractedFeed, Feed, FeedFindParams, FeedRepository, FeedScrapedData, FeedScraper,
+    ProcessedFeed, ScraperError,
 };
-use crate::common::{Paginated, TransactionManager};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
-    tx_manager: Box<dyn TransactionManager>,
     client: Box<dyn HttpClient>,
     plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
 }
@@ -24,107 +21,14 @@ pub struct FeedService {
 impl FeedService {
     pub fn new(
         repository: impl FeedRepository,
-        tx_manager: impl TransactionManager,
         client: impl HttpClient,
         plugins: HashMap<&'static str, Box<dyn FeedScraper>>,
     ) -> Self {
         Self {
             repository: Box::new(repository),
-            tx_manager: Box::new(tx_manager),
             client: Box::new(client),
             plugins,
         }
-    }
-
-    pub async fn list_feeds(
-        &self,
-        query: FeedListQuery,
-        user_id: Uuid,
-    ) -> Result<Paginated<Feed>, Error> {
-        let feeds = self
-            .repository
-            .find_feeds(FeedFindParams {
-                tags: query.tags,
-                user_id: Some(user_id),
-                ..Default::default()
-            })
-            .await?;
-
-        Ok(Paginated {
-            data: feeds,
-            cursor: None,
-        })
-    }
-
-    pub async fn get_feed(&self, id: Uuid, user_id: Uuid) -> Result<Feed, Error> {
-        let mut feeds = self
-            .repository
-            .find_feeds(FeedFindParams {
-                id: Some(id),
-                ..Default::default()
-            })
-            .await?;
-        if feeds.is_empty() {
-            return Err(Error::NotFound(id));
-        }
-
-        let feed = feeds.swap_remove(0);
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
-        }
-
-        Ok(feed)
-    }
-
-    pub async fn create_feed(&self, data: FeedCreate, user_id: Uuid) -> Result<Feed, Error> {
-        let id = self
-            .repository
-            .create_feed(FeedCreateData {
-                url: data.url,
-                title: data.title,
-                tags: data.tags,
-                user_id,
-            })
-            .await?;
-
-        self.get_feed(id, user_id).await
-    }
-
-    pub async fn update_feed(
-        &self,
-        id: Uuid,
-        data: FeedUpdate,
-        user_id: Uuid,
-    ) -> Result<Feed, Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let feed = self.repository.find_feed_by_id(&*tx, id).await?;
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
-        }
-
-        self.repository
-            .update_feed(&*tx, feed.id, data.into())
-            .await?;
-
-        tx.commit().await?;
-
-        self.get_feed(feed.id, feed.user_id).await
-    }
-
-    pub async fn delete_feed(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let feed = self.repository.find_feed_by_id(&*tx, id).await?;
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
-        }
-
-        self.repository.delete_feed(&*tx, feed.id).await?;
-
-        tx.commit().await?;
-
-        Ok(())
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {
@@ -134,15 +38,24 @@ impl FeedService {
             Some(plugin) => {
                 let feed = plugin.scrape(&mut data.url).await?;
 
-                self.repository
-                    .save_scraped(FeedScrapedData {
+                let id = self
+                    .repository
+                    .upsert_feed(FeedScrapedData {
                         url: data.url,
                         feed: feed.clone(),
                         link_to_users: false,
                     })
                     .await?;
 
-                Ok(DetectedResponse::Processed(feed))
+                let mut feeds = self
+                    .repository
+                    .find_feeds(FeedFindParams {
+                        id: Some(id),
+                        ..Default::default()
+                    })
+                    .await?;
+
+                Ok(DetectedResponse::Processed(feeds.swap_remove(0)))
             }
             None => {
                 let body = self.client.get(&data.url).await?;
@@ -171,15 +84,24 @@ impl FeedService {
                         let feed =
                             ProcessedFeed::try_from(feed).map_err(|e| Error::Scraper(e.into()))?;
 
-                        self.repository
-                            .save_scraped(FeedScrapedData {
+                        let id = self
+                            .repository
+                            .upsert_feed(FeedScrapedData {
                                 url: data.url,
                                 feed: feed.clone(),
                                 link_to_users: false,
                             })
                             .await?;
 
-                        Ok(DetectedResponse::Processed(feed))
+                        let mut feeds = self
+                            .repository
+                            .find_feeds(FeedFindParams {
+                                id: Some(id),
+                                ..Default::default()
+                            })
+                            .await?;
+
+                        Ok(DetectedResponse::Processed(feeds.swap_remove(0)))
                     }
                     _ => Err(Error::Scraper(ScraperError::Unsupported)),
                 }
@@ -187,7 +109,7 @@ impl FeedService {
         }
     }
 
-    pub async fn scrape_and_persist_feed(&self, mut data: FeedPersist) -> Result<(), Error> {
+    pub async fn scrape_feed(&self, mut data: FeedScrape) -> Result<(), Error> {
         let host = data.url.host_str().unwrap();
 
         let feed = match self.plugins.get(host) {
@@ -203,43 +125,18 @@ impl FeedService {
         }?;
 
         self.repository
-            .save_scraped(FeedScrapedData {
+            .upsert_feed(FeedScrapedData {
                 url: data.url,
                 feed,
                 link_to_users: true,
             })
-            .await
+            .await?;
+
+        Ok(())
     }
 
-    pub async fn stream(&self) -> Result<BoxStream<Result<String, Error>>, Error> {
-        self.repository.stream_urls().await
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FeedListQuery {
-    pub tags: Option<Vec<Uuid>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct FeedCreate {
-    pub url: Url,
-    pub title: String,
-    pub tags: Option<Vec<Uuid>>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct FeedUpdate {
-    pub title: Option<String>,
-    pub tags: Option<Vec<Uuid>>,
-}
-
-impl From<FeedUpdate> for FeedUpdateData {
-    fn from(value: FeedUpdate) -> Self {
-        Self {
-            title: value.title,
-            tags: value.tags,
-        }
+    pub async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
+        self.repository.stream_feed_urls().await
     }
 }
 
@@ -263,14 +160,15 @@ impl From<colette_meta::rss::Feed> for FeedDetected {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub enum DetectedResponse {
     Detected(Vec<FeedDetected>),
-    Processed(ProcessedFeed),
+    Processed(Feed),
 }
 
 #[derive(Debug, Clone)]
-pub struct FeedPersist {
+pub struct FeedScrape {
     pub url: Url,
 }
 

@@ -316,6 +316,9 @@ pub enum CoreError {
     Stream(#[from] colette_core::stream::Error),
 
     #[error(transparent)]
+    Subscription(#[from] colette_core::subscription::Error),
+
+    #[error(transparent)]
     Tag(#[from] colette_core::tag::Error),
 
     #[error(transparent)]

@@ -4,9 +4,9 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
+use colette_core::subscription;
 
-use super::{FEEDS_TAG, Feed};
+use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id},
@@ -17,9 +17,9 @@ use crate::api::{
     path = "/{id}",
     params(Id),
     responses(GetResponse),
-    operation_id = "getFeed",
-    description = "Get a feed by ID",
-    tag = FEEDS_TAG
+    operation_id = "getSubscription",
+    description = "Get a subscription by ID",
+    tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
@@ -27,13 +27,17 @@ pub async fn handler(
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match state.feed_service.get_feed(id, user_id).await {
+    match state
+        .subscription_service
+        .get_subscription(id, user_id)
+        .await
+    {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
-            feed::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
+            subscription::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
                 message: e.to_string(),
             })),
-            feed::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
+            subscription::Error::NotFound(_) => Ok(GetResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             e => Err(Error::Unknown(e.into())),
@@ -44,13 +48,13 @@ pub async fn handler(
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
-    #[response(status = 200, description = "Feed by ID")]
-    Ok(Feed),
+    #[response(status = 200, description = "Subscription by ID")]
+    Ok(Subscription),
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),
 
-    #[response(status = 404, description = "Feed not found")]
+    #[response(status = 404, description = "Subscription not found")]
     NotFound(BaseError),
 }
 

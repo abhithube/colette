@@ -31,11 +31,9 @@ pub async fn run(_job: RefreshFeedsJob, data: Data<State>) -> Result<(), apalis:
         .await
         .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
 
-    while let Some(Ok(raw)) = stream.next().await {
+    while let Some(Ok(url)) = stream.next().await {
         storage
-            .push(ScrapeFeedJob {
-                url: raw.parse().unwrap(),
-            })
+            .push(ScrapeFeedJob { url })
             .await
             .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
     }

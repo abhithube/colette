@@ -10,13 +10,13 @@ use uuid::Uuid;
 use super::{Error, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
-    feed::{FeedFindParams, FeedRepository},
     job::Storage,
+    subscription::{SubscriptionFindParams, SubscriptionRepository},
 };
 
 pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
-    feed_repository: Box<dyn FeedRepository>,
+    subscription_repository: Box<dyn SubscriptionRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
     import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
     import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
@@ -25,14 +25,14 @@ pub struct BackupService {
 impl BackupService {
     pub fn new(
         backup_repository: impl BackupRepository,
-        feed_repository: impl FeedRepository,
+        subscription_repository: impl SubscriptionRepository,
         bookmark_repository: impl BookmarkRepository,
         import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
         import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
-            feed_repository: Box::new(feed_repository),
+            subscription_repository: Box::new(subscription_repository),
             bookmark_repository: Box::new(bookmark_repository),
             import_feeds_storage,
             import_bookmarks_storage,
@@ -62,26 +62,26 @@ impl BackupService {
     pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let mut outline_map = HashMap::<Uuid, Outline>::new();
 
-        let feeds = self
-            .feed_repository
-            .find_feeds(FeedFindParams {
+        let subscriptions = self
+            .subscription_repository
+            .find_subscriptions(SubscriptionFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
             .await
             .unwrap();
 
-        for feed in feeds {
+        for subscription in subscriptions {
             let outline = Outline {
                 r#type: Some(OutlineType::default()),
-                text: feed.title.clone(),
-                xml_url: feed.xml_url.map(Into::into),
-                title: Some(feed.title),
-                html_url: Some(feed.link.into()),
+                text: subscription.title.clone(),
+                xml_url: subscription.feed.xml_url.map(Into::into),
+                title: Some(subscription.title),
+                html_url: Some(subscription.feed.link.into()),
                 ..Default::default()
             };
 
-            if let Some(tags) = feed.tags {
+            if let Some(tags) = subscription.tags {
                 for tag in tags {
                     outline_map
                         .entry(tag.id)

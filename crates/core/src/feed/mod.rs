@@ -8,8 +8,6 @@ use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
-use crate::Tag;
-
 mod feed_repository;
 mod feed_scraper;
 mod feed_service;
@@ -18,31 +16,20 @@ mod feed_service;
 pub struct Feed {
     pub id: Uuid,
     pub link: Url,
-    pub title: String,
     pub xml_url: Option<Url>,
-    pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
-    pub tags: Option<Vec<Tag>>,
-    pub unread_count: Option<i64>,
 }
 
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
-    pub id: Uuid,
-    pub title: String,
+    pub link: Url,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error("feed not found with ID: {0}")]
     NotFound(Uuid),
-
-    #[error("not authorized to access feed with ID: {0}")]
-    Forbidden(Uuid),
-
-    #[error(transparent)]
-    Conflict(ConflictError),
 
     #[error(transparent)]
     Http(#[from] colette_http::Error),
@@ -58,13 +45,4 @@ pub enum Error {
 
     #[error(transparent)]
     Database(#[from] DbErr),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ConflictError {
-    #[error("feed not cached with URL: {0}")]
-    NotCached(Url),
-
-    #[error("feed already exists with URL: {0}")]
-    AlreadyExists(Url),
 }

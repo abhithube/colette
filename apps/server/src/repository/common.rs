@@ -61,29 +61,30 @@ pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     conn: &C,
     link: Url,
     xml_url: Option<Url>,
-) -> Result<i32, DbErr> {
+) -> Result<Uuid, DbErr> {
     let model = feeds::ActiveModel {
+        id: ActiveValue::Set(Uuid::new_v4().into()),
         link: ActiveValue::Set(link.into()),
         xml_url: ActiveValue::Set(xml_url.map(Into::into)),
         ..Default::default()
     };
 
-    let mut keys = feeds::Entity::insert(model)
+    let model = feeds::Entity::insert(model)
         .on_conflict(
             OnConflict::columns([feeds::Column::Link])
                 .update_columns([feeds::Column::XmlUrl])
                 .to_owned(),
         )
-        .exec_with_returning_keys(conn)
+        .exec_with_returning(conn)
         .await?;
 
-    Ok(keys.swap_remove(0))
+    Ok(model.id.parse().unwrap())
 }
 
 pub(crate) async fn upsert_entries<C: ConnectionTrait>(
     conn: &C,
     entries: Vec<ProcessedFeedEntry>,
-    feed_id: i32,
+    feed_id: Uuid,
 ) -> Result<(), DbErr> {
     let models = entries
         .into_iter()
@@ -94,7 +95,7 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
             description: ActiveValue::Set(e.description),
             thumbnail_url: ActiveValue::Set(e.thumbnail.map(Into::into)),
             author: ActiveValue::Set(e.author),
-            feed_id: ActiveValue::Set(feed_id),
+            feed_id: ActiveValue::Set(feed_id.into()),
             ..Default::default()
         })
         .collect::<Vec<_>>();
@@ -134,11 +135,11 @@ impl Linked for FeedEntryToSubscription {
 
 pub(crate) async fn insert_many_subscription_entries(
     tx: &DatabaseTransaction,
-    feed_id: i32,
+    feed_id: Uuid,
 ) -> Result<(), DbErr> {
     let models = feed_entries::Entity::find()
         .find_also_linked(FeedEntryToSubscription)
-        .filter(feed_entries::Column::FeedId.eq(feed_id))
+        .filter(feed_entries::Column::FeedId.eq(feed_id.to_string()))
         .all(tx)
         .await
         .map(|e| {
@@ -164,7 +165,7 @@ pub(crate) async fn insert_many_subscription_entries(
             .do_nothing()
             .to_owned(),
         )
-        .exec(tx)
+        .exec_without_returning(tx)
         .await?;
 
     Ok(())

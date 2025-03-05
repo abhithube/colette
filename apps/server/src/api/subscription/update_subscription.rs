@@ -4,10 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
+use colette_core::subscription;
 use uuid::Uuid;
 
-use super::{FEEDS_TAG, Feed};
+use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id, NonEmptyString},
@@ -17,30 +17,30 @@ use crate::api::{
     patch,
     path = "/{id}",
     params(Id),
-    request_body = FeedUpdate,
+    request_body = SubscriptionUpdate,
     responses(UpdateResponse),
-    operation_id = "updateFeed",
-    description = "Update a feed by ID",
-    tag = FEEDS_TAG
+    operation_id = "updateSubscription",
+    description = "Update a subscription by ID",
+    tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
-    Json(body): Json<FeedUpdate>,
+    Json(body): Json<SubscriptionUpdate>,
 ) -> Result<UpdateResponse, Error> {
     match state
-        .feed_service
-        .update_feed(id, body.into(), user_id)
+        .subscription_service
+        .update_subscription(id, body.into(), user_id)
         .await
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),
         Err(e) => match e {
-            feed::Error::Forbidden(_) => Ok(UpdateResponse::Forbidden(BaseError {
+            subscription::Error::Forbidden(_) => Ok(UpdateResponse::Forbidden(BaseError {
                 message: e.to_string(),
             })),
-            feed::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            subscription::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             e => Err(Error::Unknown(e.into())),
@@ -50,15 +50,15 @@ pub async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedUpdate {
+pub struct SubscriptionUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
     #[schema(nullable = false)]
     pub tags: Option<Vec<Uuid>>,
 }
 
-impl From<FeedUpdate> for feed::FeedUpdate {
-    fn from(value: FeedUpdate) -> Self {
+impl From<SubscriptionUpdate> for subscription::SubscriptionUpdate {
+    fn from(value: SubscriptionUpdate) -> Self {
         Self {
             title: value.title.map(Into::into),
             tags: value.tags,
@@ -69,13 +69,13 @@ impl From<FeedUpdate> for feed::FeedUpdate {
 #[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated feed")]
-    Ok(Feed),
+    #[response(status = 200, description = "Updated subscription")]
+    Ok(Subscription),
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),
 
-    #[response(status = 404, description = "Feed not found")]
+    #[response(status = 404, description = "Subscription not found")]
     NotFound(BaseError),
 
     #[response(status = 422, description = "Invalid input")]

@@ -4,11 +4,10 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::feed;
-use url::Url;
+use colette_core::subscription;
 use uuid::Uuid;
 
-use super::{FEEDS_TAG, Feed};
+use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, NonEmptyString},
@@ -17,22 +16,26 @@ use crate::api::{
 #[utoipa::path(
     post,
     path = "",
-    request_body = FeedCreate,
+    request_body = SubscriptionCreate,
     responses(CreateResponse),
-    operation_id = "createFeed",
+    operation_id = "createSubscription",
     description = "Subscribe to a web feed",
-    tag = FEEDS_TAG
+    tag = SUBSCRIPTIONS_TAG
   )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
-    Json(body): Json<FeedCreate>,
+    Json(body): Json<SubscriptionCreate>,
 ) -> Result<CreateResponse, Error> {
-    match state.feed_service.create_feed(body.into(), user_id).await {
+    match state
+        .subscription_service
+        .create_subscription(body.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
         Err(e) => match e {
-            feed::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
+            subscription::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
                 message: e.to_string(),
             })),
             _ => Err(Error::Unknown(e.into())),
@@ -42,19 +45,19 @@ pub async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedCreate {
-    pub url: Url,
+pub struct SubscriptionCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
+    pub feed_id: Uuid,
     #[schema(nullable = false)]
     pub tags: Option<Vec<Uuid>>,
 }
 
-impl From<FeedCreate> for feed::FeedCreate {
-    fn from(value: FeedCreate) -> Self {
+impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
+    fn from(value: SubscriptionCreate) -> Self {
         Self {
-            url: value.url,
             title: value.title.into(),
+            feed_id: value.feed_id,
             tags: value.tags,
         }
     }
@@ -63,8 +66,8 @@ impl From<FeedCreate> for feed::FeedCreate {
 #[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum CreateResponse {
-    #[response(status = 201, description = "Created feed")]
-    Created(Feed),
+    #[response(status = 201, description = "Created subscription")]
+    Created(Subscription),
 
     #[response(status = 409, description = "Feed not cached")]
     Conflict(BaseError),

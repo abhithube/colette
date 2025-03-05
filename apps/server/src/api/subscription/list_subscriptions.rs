@@ -4,10 +4,10 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::feed;
+use colette_core::subscription;
 use uuid::Uuid;
 
-use super::{FEEDS_TAG, Feed};
+use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::api::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -16,19 +16,23 @@ use crate::api::{
 #[utoipa::path(
     get,
     path = "",
-    params(FeedListQuery),
+    params(SubscriptionListQuery),
     responses(ListResponse),
-    operation_id = "listFeeds",
-    description = "List user feeds",
-    tag = FEEDS_TAG
+    operation_id = "listSubscriptions",
+    description = "List user subscriptions",
+    tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    Query(query): Query<FeedListQuery>,
+    Query(query): Query<SubscriptionListQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
-    match state.feed_service.list_feeds(query.into(), user_id).await {
+    match state
+        .subscription_service
+        .list_subscriptions(query.into(), user_id)
+        .await
+    {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
@@ -37,7 +41,7 @@ pub async fn handler(
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct FeedListQuery {
+pub struct SubscriptionListQuery {
     #[param(nullable = false)]
     pub filter_by_tags: Option<bool>,
     #[param(nullable = false)]
@@ -45,8 +49,8 @@ pub struct FeedListQuery {
     pub tags: Option<Vec<Uuid>>,
 }
 
-impl From<FeedListQuery> for feed::FeedListQuery {
-    fn from(value: FeedListQuery) -> Self {
+impl From<SubscriptionListQuery> for subscription::SubscriptionListQuery {
+    fn from(value: SubscriptionListQuery) -> Self {
         Self {
             tags: if value.filter_by_tags.unwrap_or(value.tags.is_some()) {
                 value.tags
@@ -59,8 +63,8 @@ impl From<FeedListQuery> for feed::FeedListQuery {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of feeds")]
-    Ok(Paginated<Feed>),
+    #[response(status = 200, description = "Paginated list of subscriptions")]
+    Ok(Paginated<Subscription>),
 }
 
 impl IntoResponse for ListResponse {

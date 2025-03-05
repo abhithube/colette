@@ -6,6 +6,7 @@ pub use collection::Collection;
 pub use feed::Feed;
 pub use feed_entry::FeedEntry;
 pub use stream::Stream;
+pub use subscription::Subscription;
 pub use tag::Tag;
 pub use user::User;
 
@@ -21,5 +22,6 @@ pub mod feed_entry;
 pub mod filter;
 pub mod job;
 pub mod stream;
+pub mod subscription;
 pub mod tag;
 pub mod user;
