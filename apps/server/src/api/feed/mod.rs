@@ -31,10 +31,11 @@ pub struct Feed {
     pub link: Url,
     #[schema(required)]
     pub xml_url: Option<Url>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub title: String,
+    #[schema(required)]
+    pub description: Option<String>,
+    #[schema(required)]
+    pub refreshed_at: Option<DateTime<Utc>>,
 }
 
 impl From<colette_core::Feed> for Feed {
@@ -43,8 +44,9 @@ impl From<colette_core::Feed> for Feed {
             id: value.id,
             link: value.link,
             xml_url: value.xml_url,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            title: value.title,
+            description: value.description,
+            refreshed_at: value.refreshed_at,
         }
     }
 }

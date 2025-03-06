@@ -11,8 +11,11 @@ pub struct Model {
     pub link: String,
     #[sea_orm(column_type = "Text", nullable)]
     pub xml_url: Option<String>,
-    pub created_at: i32,
-    pub updated_at: i32,
+    #[sea_orm(column_type = "Text")]
+    pub title: String,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub description: Option<String>,
+    pub refreshed_at: Option<i32>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

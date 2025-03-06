@@ -47,6 +47,9 @@ impl BackupRepository for SqliteBackupRepository {
                     &tx,
                     link.parse().unwrap(),
                     outline.xml_url.map(|e| e.parse().unwrap()),
+                    title.clone(),
+                    None,
+                    None,
                 )
                 .await?;
 

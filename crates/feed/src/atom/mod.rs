@@ -20,7 +20,8 @@ mod person;
 pub struct AtomFeed {
     pub link: Vec<AtomLink>,
     pub title: AtomText,
-    pub published: Option<String>,
+    pub subtitle: Option<AtomText>,
+    pub updated: String,
     pub author: Vec<AtomPerson>,
     pub entry: Vec<AtomEntry>,
 
@@ -82,7 +83,8 @@ impl FromStr for AtomTextType {
 #[derive(Debug, Clone)]
 enum FeedTag {
     Title(AtomText),
-    Published,
+    Subtitle(AtomText),
+    Updated,
 }
 
 pub fn from_reader<R: BufRead>(
@@ -101,8 +103,11 @@ pub fn from_reader<R: BufRead>(
                 if tag == "title" {
                     let text = handle_text(reader, &e)?;
                     tag_stack.push(FeedTag::Title(text));
-                } else if tag == "published" {
-                    tag_stack.push(FeedTag::Published);
+                } else if tag == "subtitle" {
+                    let text = handle_text(reader, &e)?;
+                    tag_stack.push(FeedTag::Subtitle(text));
+                } else if tag == "updated" {
+                    tag_stack.push(FeedTag::Updated);
                 } else if tag == "author" {
                     let author = person::from_reader(reader, buf)?;
                     feed.author.push(author);
@@ -150,8 +155,12 @@ pub fn from_reader<R: BufRead>(
                         t.text = text;
                         feed.title = t;
                     }
-                    Some(FeedTag::Published) => {
-                        feed.published = Some(text);
+                    Some(FeedTag::Subtitle(mut t)) => {
+                        t.text = text;
+                        feed.subtitle = Some(t);
+                    }
+                    Some(FeedTag::Updated) => {
+                        feed.updated = text;
                     }
                     _ => {}
                 }

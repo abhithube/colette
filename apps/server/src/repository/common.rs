@@ -61,18 +61,26 @@ pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     conn: &C,
     link: Url,
     xml_url: Option<Url>,
+    title: String,
+    description: Option<String>,
+    refreshed_at: Option<DateTime<Utc>>,
 ) -> Result<Uuid, DbErr> {
     let model = feeds::ActiveModel {
         id: ActiveValue::Set(Uuid::new_v4().into()),
         link: ActiveValue::Set(link.into()),
         xml_url: ActiveValue::Set(xml_url.map(Into::into)),
-        ..Default::default()
+        title: ActiveValue::Set(title),
+        description: ActiveValue::Set(description),
+        refreshed_at: ActiveValue::Set(refreshed_at.map(|e| e.timestamp() as i32)),
     };
 
     let model = feeds::Entity::insert(model)
         .on_conflict(
             OnConflict::columns([feeds::Column::Link])
                 .update_columns([feeds::Column::XmlUrl])
+                .update_columns([feeds::Column::Title])
+                .update_columns([feeds::Column::Description])
+                .update_columns([feeds::Column::RefreshedAt])
                 .to_owned(),
         )
         .exec_with_returning(conn)

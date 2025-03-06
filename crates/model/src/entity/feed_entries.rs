@@ -20,8 +20,6 @@ pub struct Model {
     pub thumbnail_url: Option<String>,
     #[sea_orm(column_type = "Text")]
     pub feed_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

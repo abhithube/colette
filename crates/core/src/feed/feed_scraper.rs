@@ -20,6 +20,8 @@ pub trait FeedScraper: Send + Sync + 'static {
 pub struct ExtractedFeed {
     pub link: Option<String>,
     pub title: Option<String>,
+    pub description: Option<String>,
+    pub refreshed: Option<String>,
     pub entries: Vec<ExtractedFeedEntry>,
 }
 
@@ -37,6 +39,8 @@ pub struct ExtractedFeedEntry {
 pub struct ProcessedFeed {
     pub link: Url,
     pub title: String,
+    pub description: Option<String>,
+    pub refreshed: Option<DateTime<Utc>>,
     pub entries: Vec<ProcessedFeedEntry>,
 }
 
@@ -73,11 +77,21 @@ impl TryFrom<ExtractedFeed> for ProcessedFeed {
         let feed = Self {
             link,
             title: title.trim().to_owned(),
+            description: value.description,
+            refreshed: value.refreshed.and_then(|e| parse_date(&e)),
             entries,
         };
 
         Ok(feed)
     }
+}
+
+fn parse_date(value: &str) -> Option<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(value)
+        .ok()
+        .or(DateTime::parse_from_rfc2822(value).ok())
+        .or(DateTime::parse_from_str(value, RFC2822_WITHOUT_COMMA).ok())
+        .map(|f| f.to_utc())
 }
 
 impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
@@ -94,13 +108,7 @@ impl TryFrom<ExtractedFeedEntry> for ProcessedFeedEntry {
             return Err(PostprocessorError::Title);
         }
 
-        let Some(published) = value.published.as_ref().and_then(|e| {
-            DateTime::parse_from_rfc3339(e.trim())
-                .ok()
-                .or(DateTime::parse_from_rfc2822(e).ok())
-                .or(DateTime::parse_from_str(e, RFC2822_WITHOUT_COMMA).ok())
-                .map(|f| f.to_utc())
-        }) else {
+        let Some(published) = value.published.as_ref().and_then(|e| parse_date(e.trim())) else {
             return Err(PostprocessorError::Published);
         };
         let thumbnail = value
@@ -147,11 +155,9 @@ impl From<AtomFeed> for ExtractedFeed {
         Self {
             link: parse_atom_link(value.link),
             title: Some(value.title.text),
-            entries: value
-                .entry
-                .into_iter()
-                .map(ExtractedFeedEntry::from)
-                .collect(),
+            description: value.subtitle.map(|e| e.text),
+            refreshed: Some(value.updated),
+            entries: value.entry.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -208,12 +214,9 @@ impl From<RssFeed> for ExtractedFeed {
         Self {
             link: Some(value.channel.link),
             title: Some(value.channel.title),
-            entries: value
-                .channel
-                .item
-                .into_iter()
-                .map(ExtractedFeedEntry::from)
-                .collect(),
+            description: Some(value.channel.description),
+            refreshed: value.channel.last_build_date,
+            entries: value.channel.item.into_iter().map(Into::into).collect(),
         }
     }
 }

@@ -103,8 +103,9 @@ impl From<feeds::Model> for Feed {
             id: value.id.parse().unwrap(),
             link: value.link.parse().unwrap(),
             xml_url: value.xml_url.and_then(|e| e.parse().ok()),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            title: value.title,
+            description: value.description,
+            refreshed_at: value.refreshed_at.and_then(parse_timestamp),
         }
     }
 }

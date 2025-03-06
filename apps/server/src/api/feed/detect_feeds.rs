@@ -64,6 +64,7 @@ impl From<feed::FeedDetected> for FeedDetected {
     }
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(untagged)]
 pub enum DetectedResponse {
@@ -83,6 +84,7 @@ impl From<feed::DetectedResponse> for DetectedResponse {
 }
 
 #[allow(dead_code)]
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum DetectResponse {
     #[response(status = 200, description = "Detected feeds")]

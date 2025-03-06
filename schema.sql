@@ -62,19 +62,10 @@ CREATE TABLE feeds (
   id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   xml_url TEXT,
-  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+  title TEXT NOT NULL,
+  description TEXT,
+  refreshed_at INTEGER
 );
-
-CREATE TRIGGER set_updated_at_feeds AFTER
-UPDATE ON feeds FOR EACH ROW BEGIN
-UPDATE feeds
-SET
-  updated_at = strftime('%s', 'now')
-WHERE
-  id = OLD.id;
-
-END;
 
 CREATE TABLE feed_entries (
   id INTEGER NOT NULL PRIMARY KEY,
@@ -85,20 +76,8 @@ CREATE TABLE feed_entries (
   author TEXT,
   thumbnail_url TEXT,
   feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
   UNIQUE (feed_id, link)
 );
-
-CREATE TRIGGER set_updated_at_feed_entries AFTER
-UPDATE ON feed_entries FOR EACH ROW BEGIN
-UPDATE feed_entries
-SET
-  updated_at = strftime('%s', 'now')
-WHERE
-  id = OLD.id;
-
-END;
 
 CREATE TABLE subscriptions (
   id TEXT NOT NULL PRIMARY KEY,

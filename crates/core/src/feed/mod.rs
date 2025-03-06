@@ -17,8 +17,9 @@ pub struct Feed {
     pub id: Uuid,
     pub link: Url,
     pub xml_url: Option<Url>,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub title: String,
+    pub description: Option<String>,
+    pub refreshed_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

@@ -46,7 +46,15 @@ impl FeedRepository for SqliteFeedRepository {
     async fn upsert_feed(&self, data: FeedScrapedData) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
-        let id = common::upsert_feed(&tx, data.feed.link, Some(data.url)).await?;
+        let id = common::upsert_feed(
+            &tx,
+            data.feed.link,
+            Some(data.url),
+            data.feed.title,
+            data.feed.description,
+            data.feed.refreshed,
+        )
+        .await?;
         common::upsert_entries(&tx, data.feed.entries, id).await?;
 
         if data.link_to_users {

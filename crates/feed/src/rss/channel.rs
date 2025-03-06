@@ -13,7 +13,7 @@ pub struct RssChannel {
     pub link: String,
     pub title: String,
     pub description: String,
-    pub pub_date: Option<String>,
+    pub last_build_date: Option<String>,
     pub item: Vec<RssItem>,
 
     pub additional_properties: HashMap<String, Value>,
@@ -24,7 +24,7 @@ enum ChannelTag {
     Title,
     Link,
     Description,
-    PubDate,
+    LastBuildDate,
 }
 
 pub(crate) fn from_reader<R: BufRead>(
@@ -46,8 +46,8 @@ pub(crate) fn from_reader<R: BufRead>(
             Some(ChannelTag::Description) => {
                 channel.description = text;
             }
-            Some(ChannelTag::PubDate) => {
-                channel.pub_date = Some(text);
+            Some(ChannelTag::LastBuildDate) => {
+                channel.last_build_date = Some(text);
             }
             _ => {}
         }
@@ -64,8 +64,8 @@ pub(crate) fn from_reader<R: BufRead>(
                     tag_stack.push(ChannelTag::Link);
                 } else if tag == "description" {
                     tag_stack.push(ChannelTag::Description);
-                } else if tag == "pubDate" {
-                    tag_stack.push(ChannelTag::PubDate);
+                } else if tag == "lastBuildDate" {
+                    tag_stack.push(ChannelTag::LastBuildDate);
                 } else if tag == "item" {
                     let item = item::from_reader(reader, buf)?;
                     channel.item.push(item);

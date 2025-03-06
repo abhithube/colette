@@ -12,6 +12,8 @@ use scraper::{Html, Selector};
 pub struct FeedExtractorOptions {
     pub feed_link_queries: Vec<ExtractorQuery>,
     pub feed_title_queries: Vec<ExtractorQuery>,
+    pub feed_description_queries: Vec<ExtractorQuery>,
+    pub feed_refreshed_queries: Vec<ExtractorQuery>,
     pub feed_entries_selectors: Vec<Selector>,
     pub feed_entry_link_queries: Vec<ExtractorQuery>,
     pub feed_entry_title_queries: Vec<ExtractorQuery>,
@@ -63,6 +65,8 @@ impl FeedExtractor {
         let feed = ExtractedFeed {
             link: html.select_text(&self.options.feed_link_queries),
             title: html.select_text(&self.options.feed_title_queries),
+            description: html.select_text(&self.options.feed_description_queries),
+            refreshed: html.select_text(&self.options.feed_refreshed_queries),
             entries,
         };
 
