@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Account, ApiKey, Bookmark, Collection, Feed, FeedEntry, Stream, Subscription, Tag, User,
-    api_key::ApiKeySearched,
+    Account, ApiKey, Bookmark, Collection, Feed, FeedEntry, Stream, Subscription,
+    SubscriptionEntry, Tag, User, api_key::ApiKeySearched,
 };
 pub use entity::*;
 use sea_orm::{Related, RelationDef, RelationTrait};
@@ -132,26 +132,44 @@ impl From<SubscriptionWithTagsAndCount> for Subscription {
     }
 }
 
-pub struct SubscriptionEntryWithFe {
-    pub se: subscription_entries::Model,
-    pub fe: feed_entries::Model,
+impl Related<subscriptions::Entity> for feed_entries::Entity {
+    fn to() -> RelationDef {
+        feeds::Relation::Subscriptions.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(feeds::Relation::FeedEntries.def().rev())
+    }
 }
 
-impl From<SubscriptionEntryWithFe> for FeedEntry {
-    fn from(value: SubscriptionEntryWithFe) -> Self {
+impl From<feed_entries::Model> for FeedEntry {
+    fn from(value: feed_entries::Model) -> Self {
         Self {
-            id: value.se.id.parse().unwrap(),
-            link: value.fe.link.parse().unwrap(),
-            title: value.fe.title,
-            published_at: parse_timestamp(value.fe.published_at).unwrap(),
-            description: value.fe.description,
-            author: value.fe.author,
-            thumbnail_url: value.fe.thumbnail_url.and_then(|e| e.parse().ok()),
-            has_read: value.se.has_read == 1,
-            feed_id: value.se.subscription_id.parse().unwrap(),
-            user_id: value.se.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.se.created_at),
-            updated_at: parse_timestamp(value.se.updated_at),
+            id: value.id.parse().unwrap(),
+            link: value.link.parse().unwrap(),
+            title: value.title,
+            published_at: parse_timestamp(value.published_at).unwrap(),
+            description: value.description,
+            author: value.author,
+            thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),
+            feed_id: value.feed_id.parse().unwrap(),
+        }
+    }
+}
+
+pub struct FeedEntryWithRead {
+    pub fe: feed_entries::Model,
+    pub subscription: subscriptions::Model,
+    pub re: Option<read_entries::Model>,
+}
+
+impl From<FeedEntryWithRead> for SubscriptionEntry {
+    fn from(value: FeedEntryWithRead) -> Self {
+        Self {
+            entry: value.fe.into(),
+            has_read: value.re.is_some(),
+            subscription_id: value.subscription.id.parse().unwrap(),
+            user_id: value.subscription.user_id.parse().unwrap(),
         }
     }
 }

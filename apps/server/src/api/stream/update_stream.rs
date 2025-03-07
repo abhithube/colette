@@ -6,10 +6,11 @@ use axum::{
 };
 use colette_core::stream;
 
-use super::{FeedEntryFilter, STREAMS_TAG, Stream};
+use super::{STREAMS_TAG, Stream};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id, NonEmptyString},
+    subscription_entry::SubscriptionEntryFilter,
 };
 
 #[utoipa::path(
@@ -52,7 +53,7 @@ pub async fn handler(
 pub struct StreamUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
-    pub filter: Option<FeedEntryFilter>,
+    pub filter: Option<SubscriptionEntryFilter>,
 }
 
 impl From<StreamUpdate> for stream::StreamUpdate {

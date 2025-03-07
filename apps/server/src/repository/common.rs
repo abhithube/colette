@@ -6,7 +6,7 @@ use colette_core::{
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
-use colette_model::{bookmarks, feed_entries, feeds, subscription_entries, subscriptions, tags};
+use colette_model::{bookmarks, feed_entries, feeds, subscriptions, tags};
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection,
     DatabaseTransaction, DbErr, EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
@@ -97,6 +97,7 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
     let models = entries
         .into_iter()
         .map(|e| feed_entries::ActiveModel {
+            id: ActiveValue::Set(Uuid::new_v4().into()),
             link: ActiveValue::Set(e.link.into()),
             title: ActiveValue::Set(e.title),
             published_at: ActiveValue::Set(e.published.timestamp() as i32),
@@ -104,7 +105,6 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
             thumbnail_url: ActiveValue::Set(e.thumbnail.map(Into::into)),
             author: ActiveValue::Set(e.author),
             feed_id: ActiveValue::Set(feed_id.into()),
-            ..Default::default()
         })
         .collect::<Vec<_>>();
 
@@ -139,44 +139,6 @@ impl Linked for FeedEntryToSubscription {
             feeds::Relation::Subscriptions.def(),
         ]
     }
-}
-
-pub(crate) async fn insert_many_subscription_entries(
-    tx: &DatabaseTransaction,
-    feed_id: Uuid,
-) -> Result<(), DbErr> {
-    let models = feed_entries::Entity::find()
-        .find_also_linked(FeedEntryToSubscription)
-        .filter(feed_entries::Column::FeedId.eq(feed_id.to_string()))
-        .all(tx)
-        .await
-        .map(|e| {
-            e.into_iter()
-                .filter_map(|(fe, subscription)| {
-                    subscription.map(|subscription| subscription_entries::ActiveModel {
-                        id: ActiveValue::Set(Uuid::new_v4().to_string()),
-                        feed_entry_id: ActiveValue::Set(fe.id),
-                        subscription_id: ActiveValue::Set(subscription.id),
-                        user_id: ActiveValue::Set(subscription.user_id),
-                        ..Default::default()
-                    })
-                })
-                .collect::<Vec<_>>()
-        })?;
-
-    subscription_entries::Entity::insert_many(models)
-        .on_conflict(
-            OnConflict::columns([
-                subscription_entries::Column::SubscriptionId,
-                subscription_entries::Column::FeedEntryId,
-            ])
-            .do_nothing()
-            .to_owned(),
-        )
-        .exec_without_returning(tx)
-        .await?;
-
-    Ok(())
 }
 
 pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(

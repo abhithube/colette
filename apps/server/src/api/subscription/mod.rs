@@ -9,6 +9,8 @@ mod create_subscription;
 mod delete_subscription;
 mod get_subscription;
 mod list_subscriptions;
+mod mark_subscription_entry_as_read;
+mod mark_subscription_entry_as_unread;
 mod update_subscription;
 
 pub const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
@@ -34,6 +36,8 @@ impl SubscriptionApi {
                 update_subscription::handler,
                 delete_subscription::handler
             ))
+            .routes(routes!(mark_subscription_entry_as_read::handler))
+            .routes(routes!(mark_subscription_entry_as_unread::handler))
     }
 }
 

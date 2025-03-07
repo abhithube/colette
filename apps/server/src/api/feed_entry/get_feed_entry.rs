@@ -9,7 +9,7 @@ use colette_core::feed_entry;
 use super::{FEED_ENTRIES_TAG, FeedEntry};
 use crate::api::{
     ApiState,
-    common::{AuthUser, BaseError, Error, Id},
+    common::{BaseError, Error, Id},
 };
 
 #[utoipa::path(
@@ -25,9 +25,8 @@ use crate::api::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match state.feed_entry_service.get_feed_entry(id, user_id).await {
+    match state.feed_entry_service.get_feed_entry(id).await {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             feed_entry::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {

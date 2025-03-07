@@ -319,6 +319,9 @@ pub enum CoreError {
     Subscription(#[from] colette_core::subscription::Error),
 
     #[error(transparent)]
+    SubscriptionEntry(#[from] colette_core::subscription_entry::Error),
+
+    #[error(transparent)]
     Tag(#[from] colette_core::tag::Error),
 
     #[error(transparent)]

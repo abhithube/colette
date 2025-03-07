@@ -5,7 +5,7 @@ pub use stream_repository::*;
 pub use stream_service::*;
 use uuid::Uuid;
 
-use crate::feed_entry::FeedEntryFilter;
+use crate::subscription_entry::SubscriptionEntryFilter;
 
 mod stream_repository;
 mod stream_service;
@@ -14,7 +14,7 @@ mod stream_service;
 pub struct Stream {
     pub id: Uuid,
     pub title: String,
-    pub filter: FeedEntryFilter,
+    pub filter: SubscriptionEntryFilter,
     pub user_id: Uuid,
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,

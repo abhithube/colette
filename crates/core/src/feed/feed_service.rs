@@ -43,7 +43,6 @@ impl FeedService {
                     .upsert_feed(FeedScrapedData {
                         url: data.url,
                         feed: feed.clone(),
-                        link_to_users: false,
                     })
                     .await?;
 
@@ -89,7 +88,6 @@ impl FeedService {
                             .upsert_feed(FeedScrapedData {
                                 url: data.url,
                                 feed: feed.clone(),
-                                link_to_users: false,
                             })
                             .await?;
 
@@ -128,7 +126,6 @@ impl FeedService {
             .upsert_feed(FeedScrapedData {
                 url: data.url,
                 feed,
-                link_to_users: true,
             })
             .await?;
 

@@ -2,13 +2,14 @@ use colette_core::{
     Subscription,
     common::Transaction,
     subscription::{
-        Error, SubscriptionById, SubscriptionCreateData, SubscriptionFindParams,
-        SubscriptionRepository, SubscriptionUpdateData,
+        Error, SubscriptionById, SubscriptionCreateData, SubscriptionEntryUpdateData,
+        SubscriptionEntryUpdateParams, SubscriptionFindParams, SubscriptionRepository,
+        SubscriptionUpdateData,
     },
 };
 use colette_model::{
-    SubscriptionWithTagsAndCount, feeds, subscription_entries, subscription_tags, subscriptions,
-    tags,
+    SubscriptionWithTagsAndCount, feed_entries, feeds, read_entries, subscription_tags,
+    subscriptions, tags,
 };
 use sea_orm::{
     ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
@@ -18,8 +19,6 @@ use sea_orm::{
     sea_query::{Func, Query},
 };
 use uuid::Uuid;
-
-use super::common;
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionRepository {
@@ -93,15 +92,37 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             )
             .await?;
 
-        let unread_counts = subscription_entries::Entity::find()
+        let unread_counts = feed_entries::Entity::find()
             .select_only()
-            .expr(Func::count(Expr::col(subscription_entries::Column::Id)))
-            .filter(subscription_entries::Column::HasRead.eq(false))
+            .expr(Func::count(Expr::col((
+                feed_entries::Entity,
+                feed_entries::Column::Id,
+            ))))
+            .inner_join(subscriptions::Entity)
             .filter(
-                subscription_entries::Column::SubscriptionId
-                    .is_in(subscription_models.iter().map(|e| e.id.as_str())),
+                subscriptions::Column::Id.is_in(subscription_models.iter().map(|e| e.id.as_str())),
             )
-            .group_by(subscription_entries::Column::SubscriptionId)
+            .filter(
+                Expr::exists(
+                    Query::select()
+                        .expr(Expr::val(1))
+                        .from(read_entries::Entity)
+                        .and_where(
+                            Expr::col((read_entries::Entity, read_entries::Column::FeedEntryId))
+                                .eq(Expr::col((feed_entries::Entity, feed_entries::Column::Id))),
+                        )
+                        .and_where(
+                            Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
+                                .eq(Expr::col((
+                                    subscriptions::Entity,
+                                    subscriptions::Column::Id,
+                                ))),
+                        )
+                        .to_owned(),
+                )
+                .not(),
+            )
+            .group_by(subscriptions::Column::Id)
             .into_tuple::<i64>()
             .all(&self.db)
             .await?;
@@ -165,8 +186,6 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             _ => Error::Database(e),
         })?;
 
-        common::insert_many_subscription_entries(&tx, data.feed_id).await?;
-
         if let Some(tags) = data.tags {
             link_tags(&tx, tags, id, data.user_id).await?;
         }
@@ -212,6 +231,38 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         subscriptions::Entity::delete_by_id(id.to_string())
             .exec(tx)
             .await?;
+
+        Ok(())
+    }
+
+    async fn update_subscription_entry(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionEntryUpdateParams,
+        data: SubscriptionEntryUpdateData,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
+        if data.has_read {
+            let model = read_entries::ActiveModel {
+                feed_entry_id: ActiveValue::Set(params.feed_entry_id.into()),
+                subscription_id: ActiveValue::Set(params.subscription_id.into()),
+                user_id: ActiveValue::Set(params.user_id.into()),
+                ..Default::default()
+            };
+
+            read_entries::Entity::insert(model)
+                .on_conflict_do_nothing()
+                .exec(tx)
+                .await?;
+        } else {
+            read_entries::Entity::delete_by_id((
+                params.subscription_id.to_string(),
+                params.feed_entry_id.to_string(),
+            ))
+            .exec(tx)
+            .await?;
+        }
 
         Ok(())
     }

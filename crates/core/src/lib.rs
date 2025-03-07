@@ -7,6 +7,7 @@ pub use feed::Feed;
 pub use feed_entry::FeedEntry;
 pub use stream::Stream;
 pub use subscription::Subscription;
+pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
 pub use user::User;
 
@@ -23,5 +24,6 @@ pub mod filter;
 pub mod job;
 pub mod stream;
 pub mod subscription;
+pub mod subscription_entry;
 pub mod tag;
 pub mod user;

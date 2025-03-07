@@ -24,5 +24,4 @@ pub struct FeedFindParams {
 pub struct FeedScrapedData {
     pub url: Url,
     pub feed: ProcessedFeed,
-    pub link_to_users: bool,
 }

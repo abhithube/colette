@@ -3,7 +3,7 @@ use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-use super::{ApiState, feed_entry::FeedEntryFilter};
+use super::{ApiState, subscription_entry::SubscriptionEntryFilter};
 use crate::api::common::Paginated;
 
 mod create_stream;
@@ -35,7 +35,7 @@ impl StreamApi {
 pub struct Stream {
     pub id: Uuid,
     pub title: String,
-    pub filter: FeedEntryFilter,
+    pub filter: SubscriptionEntryFilter,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub created_at: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]

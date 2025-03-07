@@ -57,10 +57,6 @@ impl FeedRepository for SqliteFeedRepository {
         .await?;
         common::upsert_entries(&tx, data.feed.entries, id).await?;
 
-        if data.link_to_users {
-            common::insert_many_subscription_entries(&tx, id).await?;
-        }
-
         tx.commit().await?;
 
         Ok(id)

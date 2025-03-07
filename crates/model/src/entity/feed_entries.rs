@@ -5,9 +5,9 @@ use sea_orm::entity::prelude::*;
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
 #[sea_orm(table_name = "feed_entries")]
 pub struct Model {
-    #[sea_orm(primary_key, auto_increment = false)]
-    pub id: i32,
-    #[sea_orm(column_type = "Text", unique)]
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub id: String,
+    #[sea_orm(column_type = "Text")]
     pub link: String,
     #[sea_orm(column_type = "Text")]
     pub title: String,
@@ -32,8 +32,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Feeds,
-    #[sea_orm(has_many = "super::subscription_entries::Entity")]
-    SubscriptionEntries,
+    #[sea_orm(has_many = "super::read_entries::Entity")]
+    ReadEntries,
 }
 
 impl Related<super::feeds::Entity> for Entity {
@@ -42,9 +42,9 @@ impl Related<super::feeds::Entity> for Entity {
     }
 }
 
-impl Related<super::subscription_entries::Entity> for Entity {
+impl Related<super::read_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::SubscriptionEntries.def()
+        Relation::ReadEntries.def()
     }
 }
 

@@ -3,34 +3,35 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "subscriptions")]
+#[sea_orm(table_name = "read_entries")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
-    pub id: String,
-    #[sea_orm(column_type = "Text")]
-    pub title: String,
+    pub subscription_id: String,
+    #[sea_orm(primary_key, auto_increment = false, column_type = "Text")]
+    pub feed_entry_id: String,
     #[sea_orm(column_type = "Text")]
     pub user_id: String,
-    #[sea_orm(column_type = "Text")]
-    pub feed_id: String,
     pub created_at: i32,
-    pub updated_at: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::feeds::Entity",
-        from = "Column::FeedId",
-        to = "super::feeds::Column::Id",
+        belongs_to = "super::feed_entries::Entity",
+        from = "Column::FeedEntryId",
+        to = "super::feed_entries::Column::Id",
         on_update = "NoAction",
         on_delete = "Restrict"
     )]
-    Feeds,
-    #[sea_orm(has_many = "super::read_entries::Entity")]
-    ReadEntries,
-    #[sea_orm(has_many = "super::subscription_tags::Entity")]
-    SubscriptionTags,
+    FeedEntries,
+    #[sea_orm(
+        belongs_to = "super::subscriptions::Entity",
+        from = "Column::SubscriptionId",
+        to = "super::subscriptions::Column::Id",
+        on_update = "NoAction",
+        on_delete = "Cascade"
+    )]
+    Subscriptions,
     #[sea_orm(
         belongs_to = "super::users::Entity",
         from = "Column::UserId",
@@ -41,21 +42,15 @@ pub enum Relation {
     Users,
 }
 
-impl Related<super::feeds::Entity> for Entity {
+impl Related<super::feed_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Feeds.def()
+        Relation::FeedEntries.def()
     }
 }
 
-impl Related<super::read_entries::Entity> for Entity {
+impl Related<super::subscriptions::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ReadEntries.def()
-    }
-}
-
-impl Related<super::subscription_tags::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::SubscriptionTags.def()
+        Relation::Subscriptions.def()
     }
 }
 

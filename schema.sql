@@ -68,8 +68,8 @@ CREATE TABLE feeds (
 );
 
 CREATE TABLE feed_entries (
-  id INTEGER NOT NULL PRIMARY KEY,
-  link TEXT NOT NULL UNIQUE,
+  id TEXT NOT NULL PRIMARY KEY,
+  link TEXT NOT NULL,
   title TEXT NOT NULL,
   published_at INTEGER NOT NULL,
   description TEXT,
@@ -99,26 +99,13 @@ WHERE
 
 END;
 
-CREATE TABLE subscription_entries (
-  id TEXT NOT NULL PRIMARY KEY,
-  has_read INTEGER NOT NULL DEFAULT 0,
+CREATE TABLE read_entries (
   subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
-  feed_entry_id INTEGER NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
+  feed_entry_id TEXT NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-  UNIQUE (subscription_id, feed_entry_id)
+  PRIMARY KEY (subscription_id, feed_entry_id)
 );
-
-CREATE TRIGGER set_updated_at_subscription_entries AFTER
-UPDATE ON subscription_entries FOR EACH ROW BEGIN
-UPDATE subscription_entries
-SET
-  updated_at = strftime('%s', 'now')
-WHERE
-  id = OLD.id;
-
-END;
 
 CREATE TABLE bookmarks (
   id TEXT NOT NULL PRIMARY KEY,

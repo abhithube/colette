@@ -17,6 +17,7 @@ use api::{
     feed_entry::FeedEntryApi,
     stream::StreamApi,
     subscription::SubscriptionApi,
+    subscription_entry::SubscriptionEntryApi,
     tag::TagApi,
 };
 use axum::{
@@ -27,7 +28,8 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_core::{
     api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    stream::StreamService, subscription::SubscriptionService, tag::TagService,
+    stream::StreamService, subscription::SubscriptionService,
+    subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
 use colette_job::SqliteStorage;
@@ -45,7 +47,8 @@ use repository::{
     collection::SqliteCollectionRepository, common::SqliteTransactionManager,
     feed::SqliteFeedRepository, feed_entry::SqliteFeedEntryRepository,
     stream::SqliteStreamRepository, subscription::SqliteSubscriptionRepository,
-    tag::SqliteTagRepository, user::SqliteUserRepository,
+    subscription_entry::SqliteSubscriptionEntryRepository, tag::SqliteTagRepository,
+    user::SqliteUserRepository,
 };
 use sea_orm::DatabaseConnection;
 use sqlx::{
@@ -192,6 +195,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_repository = SqliteFeedRepository::new(db_conn.clone());
     let stream_repository = SqliteStreamRepository::new(db_conn.clone());
     let subscription_repository = SqliteSubscriptionRepository::new(db_conn.clone());
+    let subscription_entry_repository = SqliteSubscriptionEntryRepository::new(db_conn.clone());
 
     let tx_manager = SqliteTransactionManager::new(db_conn.clone());
 
@@ -289,15 +293,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             tx_manager.clone(),
         )),
         feed_service,
-        feed_entry_service: Arc::new(FeedEntryService::new(
-            SqliteFeedEntryRepository::new(db_conn.clone()),
+        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(
+            db_conn.clone(),
+        ))),
+        stream_service: Arc::new(StreamService::new(
             stream_repository.clone(),
             tx_manager.clone(),
         )),
-        stream_service: Arc::new(StreamService::new(stream_repository, tx_manager.clone())),
         subscription_service: Arc::new(SubscriptionService::new(
             subscription_repository,
+            subscription_entry_repository.clone(),
             tx_manager.clone(),
+        )),
+        subscription_entry_service: Arc::new(SubscriptionEntryService::new(
+            subscription_entry_repository,
+            stream_repository,
         )),
         tag_service: Arc::new(TagService::new(
             SqliteTagRepository::new(db_conn.clone()),
@@ -320,6 +330,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/feedEntries", FeedEntryApi::router())
                 .nest("/feeds", FeedApi::router())
                 .nest("/streams", StreamApi::router())
+                .nest("/subscriptionEntries", SubscriptionEntryApi::router())
                 .nest("/subscriptions", SubscriptionApi::router())
                 .nest("/tags", TagApi::router()),
         )

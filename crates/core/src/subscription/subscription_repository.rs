@@ -26,6 +26,13 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
     ) -> Result<(), Error>;
 
     async fn delete_subscription(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
+
+    async fn update_subscription_entry(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionEntryUpdateParams,
+        data: SubscriptionEntryUpdateData,
+    ) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -55,4 +62,16 @@ pub struct SubscriptionCreateData {
 pub struct SubscriptionUpdateData {
     pub title: Option<String>,
     pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SubscriptionEntryUpdateParams {
+    pub feed_entry_id: Uuid,
+    pub subscription_id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SubscriptionEntryUpdateData {
+    pub has_read: bool,
 }

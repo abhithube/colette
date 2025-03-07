@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    Error, FeedEntryFilter, Stream, StreamCreateData, StreamFindParams, StreamRepository,
-    StreamUpdateData,
+    Error, Stream, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData,
+    SubscriptionEntryFilter,
 };
 use crate::common::{Paginated, TransactionManager};
 
@@ -117,11 +117,11 @@ impl From<StreamUpdate> for StreamUpdateData {
 #[derive(Debug, Clone)]
 pub struct StreamCreate {
     pub title: String,
-    pub filter: FeedEntryFilter,
+    pub filter: SubscriptionEntryFilter,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct StreamUpdate {
     pub title: Option<String>,
-    pub filter: Option<FeedEntryFilter>,
+    pub filter: Option<SubscriptionEntryFilter>,
 }

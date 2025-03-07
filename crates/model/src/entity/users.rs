@@ -27,10 +27,10 @@ pub enum Relation {
     Bookmarks,
     #[sea_orm(has_many = "super::collections::Entity")]
     Collections,
+    #[sea_orm(has_many = "super::read_entries::Entity")]
+    ReadEntries,
     #[sea_orm(has_many = "super::streams::Entity")]
     Streams,
-    #[sea_orm(has_many = "super::subscription_entries::Entity")]
-    SubscriptionEntries,
     #[sea_orm(has_many = "super::subscription_tags::Entity")]
     SubscriptionTags,
     #[sea_orm(has_many = "super::subscriptions::Entity")]
@@ -69,15 +69,15 @@ impl Related<super::collections::Entity> for Entity {
     }
 }
 
-impl Related<super::streams::Entity> for Entity {
+impl Related<super::read_entries::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Streams.def()
+        Relation::ReadEntries.def()
     }
 }
 
-impl Related<super::subscription_entries::Entity> for Entity {
+impl Related<super::streams::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::SubscriptionEntries.def()
+        Relation::Streams.def()
     }
 }
 

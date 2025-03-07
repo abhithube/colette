@@ -10,7 +10,7 @@ use super::{STREAMS_TAG, Stream};
 use crate::api::{
     ApiState,
     common::{AuthUser, BaseError, Error, NonEmptyString},
-    feed_entry::FeedEntryFilter,
+    subscription_entry::SubscriptionEntryFilter,
 };
 
 #[utoipa::path(
@@ -48,7 +48,7 @@ pub async fn handler(
 pub struct StreamCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
-    pub filter: FeedEntryFilter,
+    pub filter: SubscriptionEntryFilter,
 }
 
 impl From<StreamCreate> for stream::StreamCreate {

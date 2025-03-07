@@ -6,10 +6,7 @@ use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
-use crate::{
-    filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    stream,
-};
+use crate::stream;
 
 mod feed_entry_repository;
 mod feed_entry_service;
@@ -23,70 +20,13 @@ pub struct FeedEntry {
     pub description: Option<String>,
     pub author: Option<String>,
     pub thumbnail_url: Option<Url>,
-    pub has_read: bool,
     pub feed_id: Uuid,
-    pub user_id: Uuid,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub id: Uuid,
     pub published_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FeedEntryFilter {
-    Text {
-        field: FeedEntryTextField,
-        op: TextOp,
-    },
-    Number {
-        field: FeedEntryNumberField,
-        op: NumberOp,
-    },
-    Boolean {
-        field: FeedEntryBooleanField,
-        op: BooleanOp,
-    },
-    Date {
-        field: FeedEntryDateField,
-        op: DateOp,
-    },
-
-    And(Vec<FeedEntryFilter>),
-    Or(Vec<FeedEntryFilter>),
-    Not(Box<FeedEntryFilter>),
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FeedEntryTextField {
-    Link,
-    Title,
-    Description,
-    Author,
-    Tag,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FeedEntryNumberField {}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FeedEntryBooleanField {
-    HasRead,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub enum FeedEntryDateField {
-    PublishedAt,
-    CreatedAt,
-    UpdatedAt,
 }
 
 #[derive(Debug, thiserror::Error)]

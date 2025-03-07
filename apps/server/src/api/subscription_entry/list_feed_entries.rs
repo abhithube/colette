@@ -4,32 +4,33 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use axum_extra::extract::Query;
-use colette_core::feed_entry;
+use colette_core::subscription_entry;
 use uuid::Uuid;
 
-use super::{FEED_ENTRIES_TAG, FeedEntry};
+use super::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntry};
 use crate::api::{
     ApiState,
-    common::{Error, Paginated},
+    common::{AuthUser, Error, Paginated},
 };
 
 #[utoipa::path(
     get,
     path = "",
-    params(FeedEntryListQuery),
+    params(SubscriptionEntryListQuery),
     responses(ListResponse),
-    operation_id = "listFeedEntries",
-    description = "List feed entries",
-    tag = FEED_ENTRIES_TAG
+    operation_id = "listSubscriptionEntries",
+    description = "List subscription entries",
+    tag = SUBSCRIPTION_ENTRIES_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    Query(query): Query<FeedEntryListQuery>,
+    Query(query): Query<SubscriptionEntryListQuery>,
+    AuthUser(user_id): AuthUser,
 ) -> Result<ListResponse, Error> {
     match state
-        .feed_entry_service
-        .list_feed_entries(query.into())
+        .subscription_entry_service
+        .list_subscription_entries(query.into(), user_id)
         .await
     {
         Ok(data) => Ok(ListResponse::Ok(data.into())),
@@ -40,7 +41,7 @@ pub async fn handler(
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct FeedEntryListQuery {
+pub struct SubscriptionEntryListQuery {
     #[param(nullable = false)]
     pub stream_id: Option<Uuid>,
     #[param(nullable = false)]
@@ -54,8 +55,8 @@ pub struct FeedEntryListQuery {
     pub cursor: Option<String>,
 }
 
-impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
-    fn from(value: FeedEntryListQuery) -> Self {
+impl From<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryListQuery {
+    fn from(value: SubscriptionEntryListQuery) -> Self {
         Self {
             stream_id: value.stream_id,
             feed_id: value.feed_id,
@@ -68,8 +69,8 @@ impl From<FeedEntryListQuery> for feed_entry::FeedEntryListQuery {
 
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of feed entries")]
-    Ok(Paginated<FeedEntry>),
+    #[response(status = 200, description = "Paginated list of subscription entries")]
+    Ok(Paginated<SubscriptionEntry>),
 }
 
 impl IntoResponse for ListResponse {

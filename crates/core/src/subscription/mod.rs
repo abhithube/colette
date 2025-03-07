@@ -4,7 +4,7 @@ pub use subscription_repository::*;
 pub use subscription_service::*;
 use uuid::Uuid;
 
-use crate::{Feed, Tag};
+use crate::{Feed, Tag, subscription_entry};
 
 mod subscription_repository;
 mod subscription_service;
@@ -37,6 +37,9 @@ pub enum Error {
 
     #[error("already subscribed to feed with ID: {0}")]
     Conflict(Uuid),
+
+    #[error(transparent)]
+    SubscriptionEntry(#[from] subscription_entry::Error),
 
     #[error(transparent)]
     Database(#[from] DbErr),

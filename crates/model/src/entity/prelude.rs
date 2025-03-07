@@ -4,8 +4,7 @@ pub use super::{
     accounts::Entity as Accounts, api_keys::Entity as ApiKeys,
     bookmark_tags::Entity as BookmarkTags, bookmarks::Entity as Bookmarks,
     collections::Entity as Collections, feed_entries::Entity as FeedEntries,
-    feeds::Entity as Feeds, streams::Entity as Streams,
-    subscription_entries::Entity as SubscriptionEntries,
+    feeds::Entity as Feeds, read_entries::Entity as ReadEntries, streams::Entity as Streams,
     subscription_tags::Entity as SubscriptionTags, subscriptions::Entity as Subscriptions,
     tags::Entity as Tags, users::Entity as Users,
 };

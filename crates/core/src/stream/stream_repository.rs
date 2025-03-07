@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use super::{Cursor, Error, FeedEntryFilter, Stream};
+use super::{Cursor, Error, Stream, SubscriptionEntryFilter};
 use crate::common::Transaction;
 
 #[async_trait::async_trait]
@@ -38,12 +38,12 @@ pub struct StreamFindParams {
 #[derive(Debug, Clone)]
 pub struct StreamCreateData {
     pub title: String,
-    pub filter: FeedEntryFilter,
+    pub filter: SubscriptionEntryFilter,
     pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct StreamUpdateData {
     pub title: Option<String>,
-    pub filter: Option<FeedEntryFilter>,
+    pub filter: Option<SubscriptionEntryFilter>,
 }
