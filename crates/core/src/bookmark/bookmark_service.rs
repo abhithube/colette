@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use super::{
     Bookmark, BookmarkDeleteParams, BookmarkFilter, BookmarkFindByIdParams, BookmarkScrapedParams,
-    BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
+    BookmarkScraper, BookmarkTagsLinkParams, Cursor, Error, ExtractedBookmark, ScraperError,
     bookmark_repository::{
         BookmarkCreateParams, BookmarkFindParams, BookmarkRepository, BookmarkUpdateParams,
     },
@@ -20,12 +20,14 @@ use crate::{
     collection::{CollectionFindParams, CollectionRepository},
     common::{PAGINATION_LIMIT, Paginated, TransactionManager},
     job::Storage,
+    tag::{TagFindByIdsParams, TagRepository},
 };
 
 const BOOKMARKS_DIR: &str = "bookmarks";
 
 pub struct BookmarkService {
     bookmark_repository: Box<dyn BookmarkRepository>,
+    tag_repository: Box<dyn TagRepository>,
     collection_repository: Box<dyn CollectionRepository>,
     tx_manager: Box<dyn TransactionManager>,
     client: Box<dyn HttpClient>,
@@ -35,8 +37,10 @@ pub struct BookmarkService {
 }
 
 impl BookmarkService {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         bookmark_repository: impl BookmarkRepository,
+        tag_repository: impl TagRepository,
         collection_repository: impl CollectionRepository,
         tx_manager: impl TransactionManager,
         http_client: impl HttpClient,
@@ -46,6 +50,7 @@ impl BookmarkService {
     ) -> Self {
         Self {
             bookmark_repository: Box::new(bookmark_repository),
+            tag_repository: Box::new(tag_repository),
             collection_repository: Box::new(collection_repository),
             tx_manager: Box::new(tx_manager),
             client: Box::new(http_client),
@@ -140,20 +145,46 @@ impl BookmarkService {
         data: BookmarkCreate,
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
+        let tx = self.tx_manager.begin().await?;
+
         let id = Uuid::new_v4();
 
         self.bookmark_repository
-            .create_bookmark(BookmarkCreateParams {
-                id,
-                url: data.url,
-                title: data.title,
-                thumbnail_url: data.thumbnail_url,
-                published_at: data.published_at,
-                author: data.author,
-                tags: data.tags,
-                user_id,
-            })
+            .create_bookmark(
+                &*tx,
+                BookmarkCreateParams {
+                    id,
+                    url: data.url,
+                    title: data.title,
+                    thumbnail_url: data.thumbnail_url,
+                    published_at: data.published_at,
+                    author: data.author,
+                    user_id,
+                },
+            )
             .await?;
+
+        if let Some(ids) = data.tags {
+            let tags = self
+                .tag_repository
+                .find_tags_by_ids(&*tx, TagFindByIdsParams { ids })
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect();
+
+            self.bookmark_repository
+                .link_tags(
+                    &*tx,
+                    BookmarkTagsLinkParams {
+                        bookmark_id: id,
+                        tags,
+                    },
+                )
+                .await?;
+        }
+
+        tx.commit().await?;
 
         let bookmark = self.get_bookmark(id, user_id).await?;
 
@@ -199,11 +230,32 @@ impl BookmarkService {
                     thumbnail_url: data.thumbnail_url,
                     published_at: data.published_at,
                     author: data.author,
-                    tags: data.tags,
                     ..Default::default()
                 },
             )
             .await?;
+
+        if let Some(ids) = data.tags {
+            let tags = self
+                .tag_repository
+                .find_tags_by_ids(&*tx, TagFindByIdsParams { ids })
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect();
+
+            self.bookmark_repository
+                .link_tags(
+                    &*tx,
+                    BookmarkTagsLinkParams {
+                        bookmark_id: id,
+                        tags,
+                    },
+                )
+                .await?;
+        }
+
+        tx.commit().await?;
 
         let bookmark = self.get_bookmark(id, user_id).await?;
 
@@ -224,8 +276,6 @@ impl BookmarkService {
                     .await?;
             }
         }
-
-        tx.commit().await?;
 
         Ok(bookmark)
     }

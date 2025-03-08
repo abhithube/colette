@@ -5,7 +5,8 @@ use colette_core::{
     bookmark::{
         BookmarkById, BookmarkCreateParams, BookmarkDateField, BookmarkDeleteParams,
         BookmarkFilter, BookmarkFindByIdParams, BookmarkFindParams, BookmarkRepository,
-        BookmarkScrapedParams, BookmarkTextField, BookmarkUpdateParams, Error,
+        BookmarkScrapedParams, BookmarkTagsLinkParams, BookmarkTextField, BookmarkUpdateParams,
+        Error,
     },
     common::Transaction,
 };
@@ -14,10 +15,8 @@ use colette_model::{
 };
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
-    TransactionTrait,
     sea_query::{Expr, OnConflict, Order, Query, SimpleExpr},
 };
-use uuid::Uuid;
 
 use super::common::{self, ToColumn, ToSql};
 
@@ -195,8 +194,12 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         })
     }
 
-    async fn create_bookmark(&self, params: BookmarkCreateParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn create_bookmark(
+        &self,
+        tx: &dyn Transaction,
+        params: BookmarkCreateParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::insert()
             .into_table(bookmarks::Entity)
@@ -226,12 +229,6 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                 DbErr::RecordNotInserted => Error::Conflict(params.url),
                 _ => Error::Database(e),
             })?;
-
-        if let Some(tags) = params.tags {
-            link_tags(&tx, tags, params.id, params.user_id).await?;
-        }
-
-        tx.commit().await?;
 
         Ok(())
     }
@@ -287,10 +284,6 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             self.db.execute(statement).await?;
         }
 
-        // if let Some(tags) = data.tags {
-        //     link_tags(&tx, tags, params.id, params.user_id).await?;
-        // }
-
         Ok(())
     }
 
@@ -326,54 +319,58 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
         Ok(())
     }
-}
 
-async fn link_tags(
-    tx: &DatabaseTransaction,
-    tags: Vec<Uuid>,
-    bookmark_id: Uuid,
-    user_id: Uuid,
-) -> Result<(), DbErr> {
-    let bookmark_id = bookmark_id.to_string();
-    let user_id = user_id.to_string();
-    let tag_ids = tags.iter().map(|e| e.to_string());
+    async fn link_tags(
+        &self,
+        tx: &dyn Transaction,
+        params: BookmarkTagsLinkParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-    let query = Query::delete()
-        .from_table(bookmark_tags::Entity)
-        .and_where(Expr::col(bookmark_tags::Column::BookmarkId).eq(bookmark_id.as_str()))
-        .and_where(Expr::col(bookmark_tags::Column::TagId).is_not_in(tag_ids.clone()))
-        .to_owned();
+        let query = Query::delete()
+            .from_table(bookmark_tags::Entity)
+            .and_where(
+                Expr::col(bookmark_tags::Column::BookmarkId).eq(params.bookmark_id.to_string()),
+            )
+            .and_where(
+                Expr::col(bookmark_tags::Column::TagId)
+                    .is_not_in(params.tags.iter().map(|e| e.id.to_string())),
+            )
+            .to_owned();
 
-    tx.execute(tx.get_database_backend().build(&query)).await?;
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
-    let mut query = Query::insert()
-        .into_table(bookmark_tags::Entity)
-        .columns([
-            bookmark_tags::Column::BookmarkId,
-            bookmark_tags::Column::TagId,
-            bookmark_tags::Column::UserId,
-        ])
-        .on_conflict(
-            OnConflict::columns([
+        let mut query = Query::insert()
+            .into_table(bookmark_tags::Entity)
+            .columns([
                 bookmark_tags::Column::BookmarkId,
                 bookmark_tags::Column::TagId,
+                bookmark_tags::Column::UserId,
             ])
-            .do_nothing()
-            .to_owned(),
-        )
-        .to_owned();
+            .on_conflict(
+                OnConflict::columns([
+                    bookmark_tags::Column::BookmarkId,
+                    bookmark_tags::Column::TagId,
+                ])
+                .do_nothing()
+                .to_owned(),
+            )
+            .to_owned();
 
-    for tag_id in tag_ids {
-        query.values_panic([
-            bookmark_id.clone().into(),
-            tag_id.into(),
-            user_id.clone().into(),
-        ]);
+        for tag in params.tags {
+            query.values_panic([
+                params.bookmark_id.to_string().into(),
+                tag.id.to_string().into(),
+                tag.user_id.to_string().into(),
+            ]);
+        }
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
+
+        Ok(())
     }
-
-    tx.execute(tx.get_database_backend().build(&query)).await?;
-
-    Ok(())
 }
 
 impl ToColumn for BookmarkTextField {

@@ -7,11 +7,11 @@ use crate::common::Transaction;
 pub trait TagRepository: Send + Sync + 'static {
     async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_tag_by_id(
+    async fn find_tags_by_ids(
         &self,
         tx: &dyn Transaction,
-        params: TagFindByIdParams,
-    ) -> Result<TagById, Error>;
+        params: TagFindByIdsParams,
+    ) -> Result<Vec<TagById>, Error>;
 
     async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error>;
 
@@ -32,8 +32,8 @@ pub struct TagFindParams {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TagFindByIdParams {
-    pub id: Uuid,
+pub struct TagFindByIdsParams {
+    pub ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone, Default)]

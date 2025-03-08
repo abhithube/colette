@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{
-    Error, Tag, TagCreateParams, TagDeleteParams, TagFindByIdParams, TagFindParams, TagRepository,
+    Error, Tag, TagCreateParams, TagDeleteParams, TagFindByIdsParams, TagFindParams, TagRepository,
     TagType, TagUpdateParams,
 };
 use crate::common::{Paginated, TransactionManager};
@@ -76,10 +76,15 @@ impl TagService {
     pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let tag = self
+        let mut tags = self
             .repository
-            .find_tag_by_id(&*tx, TagFindByIdParams { id })
+            .find_tags_by_ids(&*tx, TagFindByIdsParams { ids: vec![id] })
             .await?;
+        if tags.is_empty() {
+            return Err(Error::NotFound(id));
+        }
+
+        let tag = tags.swap_remove(0);
         if tag.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
@@ -102,12 +107,17 @@ impl TagService {
     pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let tag = self
+        let mut tags = self
             .repository
-            .find_tag_by_id(&*tx, TagFindByIdParams { id })
+            .find_tags_by_ids(&*tx, TagFindByIdsParams { ids: vec![id] })
             .await?;
-        if tag.user_id != user_id {
+        if tags.is_empty() {
             return Err(Error::NotFound(id));
+        }
+
+        let tag = tags.swap_remove(0);
+        if tag.user_id != user_id {
+            return Err(Error::Forbidden(id));
         }
 
         self.repository

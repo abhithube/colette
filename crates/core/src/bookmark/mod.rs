@@ -11,7 +11,7 @@ use uuid::Uuid;
 use crate::{
     Tag, collection,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    job,
+    job, tag,
 };
 
 mod bookmark_repository;
@@ -116,6 +116,9 @@ pub enum Error {
 
     #[error(transparent)]
     Job(#[from] job::Error),
+
+    #[error(transparent)]
+    Tag(#[from] tag::Error),
 
     #[error(transparent)]
     Collection(#[from] collection::Error),

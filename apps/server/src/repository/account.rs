@@ -1,10 +1,11 @@
 use colette_core::{
     Account,
     account::{AccountCreateParams, AccountFindParams, AccountRepository, Error},
+    common::Transaction,
 };
 use colette_model::{AccountRow, accounts, users};
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, FromQueryResult, TransactionTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
     sea_query::{Expr, Query},
 };
 
@@ -56,25 +57,12 @@ impl AccountRepository for SqliteAccountRepository {
         Ok(account.into())
     }
 
-    async fn create_account(&self, params: AccountCreateParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
-
-        let query = Query::insert()
-            .into_table(users::Entity)
-            .columns([
-                users::Column::Id,
-                users::Column::Email,
-                users::Column::DisplayName,
-            ])
-            .values_panic([
-                params.user_id.to_string().into(),
-                params.email.into(),
-                params.display_name.into(),
-            ])
-            .to_owned();
-
-        tx.execute(self.db.get_database_backend().build(&query))
-            .await?;
+    async fn create_account(
+        &self,
+        tx: &dyn Transaction,
+        params: AccountCreateParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::insert()
             .into_table(accounts::Entity)
@@ -94,8 +82,6 @@ impl AccountRepository for SqliteAccountRepository {
 
         tx.execute(self.db.get_database_backend().build(&query))
             .await?;
-
-        tx.commit().await?;
 
         Ok(())
     }

@@ -1,7 +1,7 @@
 use uuid::Uuid;
 
 use super::{Cursor, Error, Subscription};
-use crate::common::Transaction;
+use crate::{common::Transaction, tag::TagById};
 
 #[async_trait::async_trait]
 pub trait SubscriptionRepository: Send + Sync + 'static {
@@ -16,7 +16,11 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
         params: SubscriptionFindByIdParams,
     ) -> Result<SubscriptionById, Error>;
 
-    async fn create_subscription(&self, params: SubscriptionCreateParams) -> Result<(), Error>;
+    async fn create_subscription(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionCreateParams,
+    ) -> Result<(), Error>;
 
     async fn update_subscription(
         &self,
@@ -28,6 +32,12 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
         &self,
         tx: &dyn Transaction,
         params: SubscriptionDeleteParams,
+    ) -> Result<(), Error>;
+
+    async fn link_tags(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionTagsLinkParams,
     ) -> Result<(), Error>;
 
     async fn update_subscription_entry(
@@ -62,7 +72,6 @@ pub struct SubscriptionCreateParams {
     pub id: Uuid,
     pub title: String,
     pub feed_id: Uuid,
-    pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,
 }
 
@@ -70,12 +79,17 @@ pub struct SubscriptionCreateParams {
 pub struct SubscriptionUpdateParams {
     pub id: Uuid,
     pub title: Option<String>,
-    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionDeleteParams {
     pub id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SubscriptionTagsLinkParams {
+    pub subscription_id: Uuid,
+    pub tags: Vec<TagById>,
 }
 
 #[derive(Debug, Clone, Default)]

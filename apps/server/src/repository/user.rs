@@ -1,10 +1,11 @@
 use colette_core::{
     User,
-    user::{Error, UserFindParams, UserRepository},
+    common::Transaction,
+    user::{Error, UserCreateParams, UserFindParams, UserRepository},
 };
 use colette_model::{UserRow, users};
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, FromQueryResult,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
     sea_query::{Asterisk, Expr, Query},
 };
 
@@ -36,5 +37,32 @@ impl UserRepository for SqliteUserRepository {
         };
 
         Ok(model.into())
+    }
+
+    async fn create_user(
+        &self,
+        tx: &dyn Transaction,
+        params: UserCreateParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
+        let query = Query::insert()
+            .into_table(users::Entity)
+            .columns([
+                users::Column::Id,
+                users::Column::Email,
+                users::Column::DisplayName,
+            ])
+            .values_panic([
+                params.id.to_string().into(),
+                params.email.into(),
+                params.display_name.into(),
+            ])
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
+
+        Ok(())
     }
 }

@@ -2,7 +2,7 @@ use colette_core::{
     Tag,
     common::Transaction,
     tag::{
-        Error, TagById, TagCreateParams, TagDeleteParams, TagFindByIdParams, TagFindParams,
+        Error, TagById, TagCreateParams, TagDeleteParams, TagFindByIdsParams, TagFindParams,
         TagRepository, TagType, TagUpdateParams,
     },
 };
@@ -104,39 +104,36 @@ impl TagRepository for SqliteTagRepository {
         Ok(tags)
     }
 
-    async fn find_tag_by_id(
+    async fn find_tags_by_ids(
         &self,
         tx: &dyn Transaction,
-        params: TagFindByIdParams,
-    ) -> Result<TagById, Error> {
+        params: TagFindByIdsParams,
+    ) -> Result<Vec<TagById>, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::select()
             .column((tags::Entity, tags::Column::Id))
             .column((tags::Entity, tags::Column::UserId))
             .from(tags::Entity)
-            .and_where(Expr::col((tags::Entity, tags::Column::Id)).eq(params.id.to_string()))
+            .and_where(
+                Expr::col((tags::Entity, tags::Column::Id))
+                    .is_in(params.ids.into_iter().map(String::from)),
+            )
             .to_owned();
 
-        let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&query))
-            .await?
-        else {
-            return Err(Error::NotFound(params.id));
-        };
+        let tags = tx
+            .query_all(self.db.get_database_backend().build(&query))
+            .await
+            .map(|e| {
+                e.into_iter()
+                    .map(|e| TagById {
+                        id: e.try_get_by_index::<String>(0).unwrap().parse().unwrap(),
+                        user_id: e.try_get_by_index::<String>(1).unwrap().parse().unwrap(),
+                    })
+                    .collect()
+            })?;
 
-        Ok(TagById {
-            id: result
-                .try_get_by_index::<String>(0)
-                .unwrap()
-                .parse()
-                .unwrap(),
-            user_id: result
-                .try_get_by_index::<String>(1)
-                .unwrap()
-                .parse()
-                .unwrap(),
-        })
+        Ok(tags)
     }
 
     async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error> {

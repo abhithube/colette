@@ -3,7 +3,7 @@ use uuid::Uuid;
 use super::{
     Error, Subscription, SubscriptionCreateParams, SubscriptionDeleteParams,
     SubscriptionEntryUpdateParams, SubscriptionFindByIdParams, SubscriptionFindParams,
-    SubscriptionRepository, SubscriptionUpdateParams,
+    SubscriptionRepository, SubscriptionTagsLinkParams, SubscriptionUpdateParams,
 };
 use crate::{
     SubscriptionEntry,
@@ -11,10 +11,12 @@ use crate::{
     subscription_entry::{
         SubscriptionEntryFindByIdParams, SubscriptionEntryFindParams, SubscriptionEntryRepository,
     },
+    tag::{TagFindByIdsParams, TagRepository},
 };
 
 pub struct SubscriptionService {
     subscription_repository: Box<dyn SubscriptionRepository>,
+    tag_repository: Box<dyn TagRepository>,
     subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
     tx_manager: Box<dyn TransactionManager>,
 }
@@ -22,11 +24,13 @@ pub struct SubscriptionService {
 impl SubscriptionService {
     pub fn new(
         subscription_repository: impl SubscriptionRepository,
+        tag_repository: impl TagRepository,
         subscription_entry_repository: impl SubscriptionEntryRepository,
         tx_manager: impl TransactionManager,
     ) -> Self {
         Self {
             subscription_repository: Box::new(subscription_repository),
+            tag_repository: Box::new(tag_repository),
             subscription_entry_repository: Box::new(subscription_entry_repository),
             tx_manager: Box::new(tx_manager),
         }
@@ -77,17 +81,43 @@ impl SubscriptionService {
         data: SubscriptionCreate,
         user_id: Uuid,
     ) -> Result<Subscription, Error> {
+        let tx = self.tx_manager.begin().await?;
+
         let id = Uuid::new_v4();
 
         self.subscription_repository
-            .create_subscription(SubscriptionCreateParams {
-                id,
-                title: data.title,
-                feed_id: data.feed_id,
-                tags: data.tags,
-                user_id,
-            })
+            .create_subscription(
+                &*tx,
+                SubscriptionCreateParams {
+                    id,
+                    title: data.title,
+                    feed_id: data.feed_id,
+                    user_id,
+                },
+            )
             .await?;
+
+        if let Some(ids) = data.tags {
+            let tags = self
+                .tag_repository
+                .find_tags_by_ids(&*tx, TagFindByIdsParams { ids })
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect();
+
+            self.subscription_repository
+                .link_tags(
+                    &*tx,
+                    SubscriptionTagsLinkParams {
+                        subscription_id: id,
+                        tags,
+                    },
+                )
+                .await?;
+        }
+
+        tx.commit().await?;
 
         self.get_subscription(id, user_id).await
     }
@@ -114,10 +144,29 @@ impl SubscriptionService {
                 SubscriptionUpdateParams {
                     id,
                     title: data.title,
-                    tags: data.tags,
                 },
             )
             .await?;
+
+        if let Some(ids) = data.tags {
+            let tags = self
+                .tag_repository
+                .find_tags_by_ids(&*tx, TagFindByIdsParams { ids })
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect();
+
+            self.subscription_repository
+                .link_tags(
+                    &*tx,
+                    SubscriptionTagsLinkParams {
+                        subscription_id: id,
+                        tags,
+                    },
+                )
+                .await?;
+        }
 
         tx.commit().await?;
 

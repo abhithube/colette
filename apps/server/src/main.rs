@@ -196,11 +196,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let stream_repository = SqliteStreamRepository::new(db_conn.clone());
     let subscription_repository = SqliteSubscriptionRepository::new(db_conn.clone());
     let subscription_entry_repository = SqliteSubscriptionEntryRepository::new(db_conn.clone());
+    let tag_repository = SqliteTagRepository::new(db_conn.clone());
 
     let tx_manager = SqliteTransactionManager::new(db_conn.clone());
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
+        tag_repository.clone(),
         collection_repository.clone(),
         tx_manager.clone(),
         http_client.clone(),
@@ -279,6 +281,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         auth_service: Arc::new(AuthService::new(
             SqliteUserRepository::new(db_conn.clone()),
             SqliteAccountRepository::new(db_conn.clone()),
+            tx_manager.clone(),
         )),
         backup_service: Arc::new(BackupService::new(
             SqliteBackupRepository::new(db_conn.clone()),
@@ -302,6 +305,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )),
         subscription_service: Arc::new(SubscriptionService::new(
             subscription_repository,
+            tag_repository.clone(),
             subscription_entry_repository.clone(),
             tx_manager.clone(),
         )),
@@ -309,10 +313,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             subscription_entry_repository,
             stream_repository,
         )),
-        tag_service: Arc::new(TagService::new(
-            SqliteTagRepository::new(db_conn.clone()),
-            tx_manager,
-        )),
+        tag_service: Arc::new(TagService::new(tag_repository, tx_manager)),
         image_base_url,
     };
 

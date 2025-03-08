@@ -3,7 +3,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{Bookmark, Cursor, Error, ProcessedBookmark};
-use crate::{bookmark::BookmarkFilter, common::Transaction};
+use crate::{bookmark::BookmarkFilter, common::Transaction, tag::TagById};
 
 #[async_trait::async_trait]
 pub trait BookmarkRepository: Send + Sync + 'static {
@@ -15,7 +15,11 @@ pub trait BookmarkRepository: Send + Sync + 'static {
         params: BookmarkFindByIdParams,
     ) -> Result<BookmarkById, Error>;
 
-    async fn create_bookmark(&self, params: BookmarkCreateParams) -> Result<(), Error>;
+    async fn create_bookmark(
+        &self,
+        tx: &dyn Transaction,
+        params: BookmarkCreateParams,
+    ) -> Result<(), Error>;
 
     async fn update_bookmark(
         &self,
@@ -30,6 +34,12 @@ pub trait BookmarkRepository: Send + Sync + 'static {
     ) -> Result<(), Error>;
 
     async fn save_scraped(&self, params: BookmarkScrapedParams) -> Result<(), Error>;
+
+    async fn link_tags(
+        &self,
+        tx: &dyn Transaction,
+        params: BookmarkTagsLinkParams,
+    ) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -61,7 +71,6 @@ pub struct BookmarkCreateParams {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Option<Vec<Uuid>>,
     pub user_id: Uuid,
 }
 
@@ -73,7 +82,6 @@ pub struct BookmarkUpdateParams {
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
     pub archived_path: Option<Option<String>>,
-    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -86,4 +94,10 @@ pub struct BookmarkScrapedParams {
     pub url: Url,
     pub bookmark: ProcessedBookmark,
     pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkTagsLinkParams {
+    pub bookmark_id: Uuid,
+    pub tags: Vec<TagById>,
 }

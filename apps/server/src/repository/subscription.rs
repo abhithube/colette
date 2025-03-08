@@ -6,7 +6,7 @@ use colette_core::{
     subscription::{
         Error, SubscriptionById, SubscriptionCreateParams, SubscriptionDeleteParams,
         SubscriptionEntryUpdateParams, SubscriptionFindByIdParams, SubscriptionFindParams,
-        SubscriptionRepository, SubscriptionUpdateParams,
+        SubscriptionRepository, SubscriptionTagsLinkParams, SubscriptionUpdateParams,
     },
 };
 use colette_model::{
@@ -15,10 +15,8 @@ use colette_model::{
 };
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
-    TransactionTrait,
     sea_query::{Alias, Expr, Func, OnConflict, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionRepository {
@@ -286,8 +284,12 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         })
     }
 
-    async fn create_subscription(&self, params: SubscriptionCreateParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+    async fn create_subscription(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionCreateParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::insert()
             .into_table(subscriptions::Entity)
@@ -305,19 +307,12 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             ])
             .to_owned();
 
-        self.db
-            .execute(self.db.get_database_backend().build(&query))
+        tx.execute(self.db.get_database_backend().build(&query))
             .await
             .map_err(|e| match e {
                 DbErr::RecordNotInserted => Error::Conflict(params.feed_id),
                 _ => Error::Database(e),
             })?;
-
-        if let Some(tags) = params.tags {
-            link_tags(&tx, tags, params.id, params.user_id).await?;
-        }
-
-        tx.commit().await?;
 
         Ok(())
     }
@@ -329,7 +324,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if params.title.is_none() && params.tags.is_none() {
+        if params.title.is_none() {
             return Ok(());
         }
 
@@ -345,12 +340,6 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx.execute(self.db.get_database_backend().build(&query))
             .await?;
 
-        // if let Some(tags) = data.tags {
-        //     link_tags(&tx, tags, params.id, params.user_id).await?;
-        // }
-
-        // tx.commit().await?;
-
         Ok(())
     }
 
@@ -365,6 +354,59 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             .from_table(subscriptions::Entity)
             .and_where(Expr::col(subscriptions::Column::Id).eq(params.id.to_string()))
             .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
+
+        Ok(())
+    }
+
+    async fn link_tags(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionTagsLinkParams,
+    ) -> Result<(), Error> {
+        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+
+        let query = Query::delete()
+            .from_table(subscription_tags::Entity)
+            .and_where(
+                Expr::col(subscription_tags::Column::SubscriptionId)
+                    .eq(params.subscription_id.to_string()),
+            )
+            .and_where(
+                Expr::col(subscription_tags::Column::TagId)
+                    .is_not_in(params.tags.iter().map(|e| e.id.to_string())),
+            )
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
+
+        let mut query = Query::insert()
+            .into_table(subscription_tags::Entity)
+            .columns([
+                subscription_tags::Column::SubscriptionId,
+                subscription_tags::Column::TagId,
+                subscription_tags::Column::UserId,
+            ])
+            .on_conflict(
+                OnConflict::columns([
+                    subscription_tags::Column::SubscriptionId,
+                    subscription_tags::Column::TagId,
+                ])
+                .do_nothing()
+                .to_owned(),
+            )
+            .to_owned();
+
+        for tag in params.tags {
+            query.values_panic([
+                params.subscription_id.to_string().into(),
+                tag.id.to_string().into(),
+                tag.user_id.to_string().into(),
+            ]);
+        }
 
         tx.execute(self.db.get_database_backend().build(&query))
             .await?;
@@ -423,52 +465,4 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
 
         Ok(())
     }
-}
-
-async fn link_tags(
-    tx: &DatabaseTransaction,
-    tags: Vec<Uuid>,
-    subscription_id: Uuid,
-    user_id: Uuid,
-) -> Result<(), DbErr> {
-    let subscription_id = subscription_id.to_string();
-    let user_id = user_id.to_string();
-    let tag_ids = tags.iter().map(|e| e.to_string());
-
-    let query = Query::delete()
-        .from_table(subscription_tags::Entity)
-        .and_where(Expr::col(subscription_tags::Column::SubscriptionId).eq(subscription_id.clone()))
-        .and_where(Expr::col(subscription_tags::Column::TagId).is_not_in(tag_ids.clone()))
-        .to_owned();
-
-    tx.execute(tx.get_database_backend().build(&query)).await?;
-
-    let mut query = Query::insert()
-        .into_table(subscription_tags::Entity)
-        .columns([
-            subscription_tags::Column::SubscriptionId,
-            subscription_tags::Column::TagId,
-            subscription_tags::Column::UserId,
-        ])
-        .on_conflict(
-            OnConflict::columns([
-                subscription_tags::Column::SubscriptionId,
-                subscription_tags::Column::TagId,
-            ])
-            .do_nothing()
-            .to_owned(),
-        )
-        .to_owned();
-
-    for tag_id in tag_ids {
-        query.values_panic([
-            subscription_id.clone().into(),
-            tag_id.into(),
-            user_id.clone().into(),
-        ]);
-    }
-
-    tx.execute(tx.get_database_backend().build(&query)).await?;
-
-    Ok(())
 }

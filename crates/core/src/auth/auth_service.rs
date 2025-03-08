@@ -5,22 +5,26 @@ use super::Error;
 use crate::{
     User,
     account::{self, AccountCreateParams, AccountFindParams, AccountRepository},
-    user::{UserFindParams, UserRepository},
+    common::TransactionManager,
+    user::{UserCreateParams, UserFindParams, UserRepository},
 };
 
 pub struct AuthService {
     user_repository: Box<dyn UserRepository>,
     account_repository: Box<dyn AccountRepository>,
+    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl AuthService {
     pub fn new(
         user_repository: impl UserRepository,
         account_repository: impl AccountRepository,
+        tx_manager: impl TransactionManager,
     ) -> Self {
         Self {
             user_repository: Box::new(user_repository),
             account_repository: Box::new(account_repository),
+            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -28,15 +32,29 @@ impl AuthService {
         let id = Uuid::new_v4();
         let hashed = password::hash(&data.password)?;
 
+        let tx = self.tx_manager.begin().await?;
+
+        self.user_repository
+            .create_user(
+                &*tx,
+                UserCreateParams {
+                    id,
+                    email: data.email.clone(),
+                    ..Default::default()
+                },
+            )
+            .await?;
+
         self.account_repository
-            .create_account(AccountCreateParams {
-                user_id: id,
-                email: data.email.clone(),
-                provider_id: "local".into(),
-                account_id: data.email.clone(),
-                password_hash: Some(hashed),
-                ..Default::default()
-            })
+            .create_account(
+                &*tx,
+                AccountCreateParams {
+                    user_id: id,
+                    provider_id: "local".into(),
+                    account_id: data.email.clone(),
+                    password_hash: Some(hashed),
+                },
+            )
             .await?;
 
         self.user_repository
