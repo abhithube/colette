@@ -1,6 +1,9 @@
 use uuid::Uuid;
 
-use super::{Error, Tag, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData};
+use super::{
+    Error, Tag, TagCreateParams, TagDeleteParams, TagFindByIdParams, TagFindParams, TagRepository,
+    TagType, TagUpdateParams,
+};
 use crate::common::{Paginated, TransactionManager};
 
 pub struct TagService {
@@ -57,9 +60,11 @@ impl TagService {
     }
 
     pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
-        let id = self
-            .repository
-            .create_tag(TagCreateData {
+        let id = Uuid::new_v4();
+
+        self.repository
+            .create_tag(TagCreateParams {
+                id,
                 title: data.title,
                 user_id,
             })
@@ -71,29 +76,43 @@ impl TagService {
     pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let tag = self.repository.find_tag_by_id(&*tx, id).await?;
+        let tag = self
+            .repository
+            .find_tag_by_id(&*tx, TagFindByIdParams { id })
+            .await?;
         if tag.user_id != user_id {
-            return Err(Error::Forbidden(tag.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.repository
-            .update_tag(&*tx, tag.id, data.into())
+            .update_tag(
+                &*tx,
+                TagUpdateParams {
+                    id,
+                    title: data.title,
+                },
+            )
             .await?;
 
         tx.commit().await?;
 
-        self.get_tag(tag.id, tag.user_id).await
+        self.get_tag(id, user_id).await
     }
 
     pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let tag = self.repository.find_tag_by_id(&*tx, id).await?;
+        let tag = self
+            .repository
+            .find_tag_by_id(&*tx, TagFindByIdParams { id })
+            .await?;
         if tag.user_id != user_id {
-            return Err(Error::NotFound(tag.id));
+            return Err(Error::NotFound(id));
         }
 
-        self.repository.delete_tag(&*tx, tag.id).await?;
+        self.repository
+            .delete_tag(&*tx, TagDeleteParams { id })
+            .await?;
 
         tx.commit().await?;
 
@@ -104,12 +123,6 @@ impl TagService {
 #[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
     pub tag_type: TagType,
-}
-
-impl From<TagUpdate> for TagUpdateData {
-    fn from(value: TagUpdate) -> Self {
-        Self { title: value.title }
-    }
 }
 
 #[derive(Debug, Clone)]

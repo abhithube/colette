@@ -4,7 +4,7 @@ use uuid::Uuid;
 use super::Error;
 use crate::{
     User,
-    account::{self, AccountCreateData, AccountFindParams, AccountRepository},
+    account::{self, AccountCreateParams, AccountFindParams, AccountRepository},
     user::{UserFindParams, UserRepository},
 };
 
@@ -25,11 +25,12 @@ impl AuthService {
     }
 
     pub async fn register(&self, data: Register) -> Result<User, Error> {
+        let id = Uuid::new_v4();
         let hashed = password::hash(&data.password)?;
 
-        let id = self
-            .account_repository
-            .create_account(AccountCreateData {
+        self.account_repository
+            .create_account(AccountCreateParams {
+                user_id: id,
                 email: data.email.clone(),
                 provider_id: "local".into(),
                 account_id: data.email.clone(),

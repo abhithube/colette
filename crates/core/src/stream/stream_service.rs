@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    Error, Stream, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData,
-    SubscriptionEntryFilter,
+    Error, Stream, StreamCreateParams, StreamDeleteParams, StreamFindByIdParams, StreamFindParams,
+    StreamRepository, StreamUpdateParams, SubscriptionEntryFilter,
 };
 use crate::common::{Paginated, TransactionManager};
 
@@ -55,9 +55,11 @@ impl StreamService {
     }
 
     pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
-        let id = self
-            .repository
-            .create_stream(StreamCreateData {
+        let id = Uuid::new_v4();
+
+        self.repository
+            .create_stream(StreamCreateParams {
+                id,
                 title: data.title,
                 filter: data.filter,
                 user_id,
@@ -75,42 +77,48 @@ impl StreamService {
     ) -> Result<Stream, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let stream = self.repository.find_stream_by_id(&*tx, id).await?;
+        let stream = self
+            .repository
+            .find_stream_by_id(&*tx, StreamFindByIdParams { id })
+            .await?;
         if stream.user_id != user_id {
-            return Err(Error::Forbidden(stream.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.repository
-            .update_stream(&*tx, stream.id, data.into())
+            .update_stream(
+                &*tx,
+                StreamUpdateParams {
+                    id,
+                    title: data.title,
+                    filter: data.filter,
+                },
+            )
             .await?;
 
         tx.commit().await?;
 
-        self.get_stream(stream.id, stream.user_id).await
+        self.get_stream(id, user_id).await
     }
 
     pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let stream = self.repository.find_stream_by_id(&*tx, id).await?;
+        let stream = self
+            .repository
+            .find_stream_by_id(&*tx, StreamFindByIdParams { id })
+            .await?;
         if stream.user_id != user_id {
-            return Err(Error::Forbidden(stream.id));
+            return Err(Error::Forbidden(id));
         }
 
-        self.repository.delete_stream(&*tx, stream.id).await?;
+        self.repository
+            .delete_stream(&*tx, StreamDeleteParams { id })
+            .await?;
 
         tx.commit().await?;
 
         Ok(())
-    }
-}
-
-impl From<StreamUpdate> for StreamUpdateData {
-    fn from(value: StreamUpdate) -> Self {
-        Self {
-            title: value.title,
-            filter: value.filter,
-        }
     }
 }
 

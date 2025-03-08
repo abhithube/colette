@@ -1,6 +1,6 @@
 use colette_core::{
     Feed,
-    feed::{Error, FeedFindParams, FeedRepository, FeedScrapedData},
+    feed::{Error, FeedFindParams, FeedRepository, FeedUpsertParams, StreamFeedUrlsParams},
 };
 use colette_model::{FeedRow, feeds};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
@@ -54,27 +54,30 @@ impl FeedRepository for SqliteFeedRepository {
         Ok(feeds)
     }
 
-    async fn upsert_feed(&self, data: FeedScrapedData) -> Result<Uuid, Error> {
+    async fn upsert_feed(&self, params: FeedUpsertParams) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
         let id = common::upsert_feed(
             &tx,
-            data.feed.link,
-            Some(data.url),
-            data.feed.title,
-            data.feed.description,
-            data.feed.refreshed,
+            params.feed.link,
+            Some(params.url),
+            params.feed.title,
+            params.feed.description,
+            params.feed.refreshed,
         )
         .await?;
 
-        common::upsert_entries(&tx, data.feed.entries, id).await?;
+        common::upsert_entries(&tx, params.feed.entries, id).await?;
 
         tx.commit().await?;
 
         Ok(id)
     }
 
-    async fn stream_feed_urls(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
+    async fn stream_feed_urls(
+        &self,
+        _params: StreamFeedUrlsParams,
+    ) -> Result<BoxStream<Result<Url, Error>>, Error> {
         let query = Query::select()
             .expr(Func::coalesce([
                 Expr::col(feeds::Column::XmlUrl).into(),

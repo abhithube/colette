@@ -10,10 +10,10 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkFilter, BookmarkScrapedData, BookmarkScraper, Cursor, Error,
-    ExtractedBookmark, ScraperError,
+    Bookmark, BookmarkDeleteParams, BookmarkFilter, BookmarkFindByIdParams, BookmarkScrapedParams,
+    BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
     bookmark_repository::{
-        BookmarkCreateData, BookmarkFindParams, BookmarkRepository, BookmarkUpdateData,
+        BookmarkCreateParams, BookmarkFindParams, BookmarkRepository, BookmarkUpdateParams,
     },
 };
 use crate::{
@@ -140,9 +140,11 @@ impl BookmarkService {
         data: BookmarkCreate,
         user_id: Uuid,
     ) -> Result<Bookmark, Error> {
-        let id = self
-            .bookmark_repository
-            .create_bookmark(BookmarkCreateData {
+        let id = Uuid::new_v4();
+
+        self.bookmark_repository
+            .create_bookmark(BookmarkCreateParams {
+                id,
                 url: data.url,
                 title: data.title,
                 thumbnail_url: data.thumbnail_url,
@@ -180,19 +182,30 @@ impl BookmarkService {
 
         let bookmark = self
             .bookmark_repository
-            .find_bookmark_by_id(&*tx, id)
+            .find_bookmark_by_id(&*tx, BookmarkFindByIdParams { id })
             .await?;
         if bookmark.user_id != user_id {
-            return Err(Error::Forbidden(bookmark.id));
+            return Err(Error::Forbidden(id));
         }
 
         let thumbnail_url = data.thumbnail_url.clone();
 
         self.bookmark_repository
-            .update_bookmark(Some(&*tx), bookmark.id, data.into())
+            .update_bookmark(
+                Some(&*tx),
+                BookmarkUpdateParams {
+                    id,
+                    title: data.title,
+                    thumbnail_url: data.thumbnail_url,
+                    published_at: data.published_at,
+                    author: data.author,
+                    tags: data.tags,
+                    ..Default::default()
+                },
+            )
             .await?;
 
-        let bookmark = self.get_bookmark(bookmark.id, bookmark.user_id).await?;
+        let bookmark = self.get_bookmark(id, user_id).await?;
 
         if let Some(thumbnail_url) = thumbnail_url {
             if thumbnail_url == bookmark.thumbnail_url {
@@ -222,21 +235,21 @@ impl BookmarkService {
 
         let bookmark = self
             .bookmark_repository
-            .find_bookmark_by_id(&*tx, id)
+            .find_bookmark_by_id(&*tx, BookmarkFindByIdParams { id })
             .await?;
         if bookmark.user_id != user_id {
-            return Err(Error::Forbidden(bookmark.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.bookmark_repository
-            .delete_bookmark(&*tx, bookmark.id)
+            .delete_bookmark(&*tx, BookmarkDeleteParams { id })
             .await?;
 
         tx.commit().await?;
 
         let mut storage = self.archive_thumbnail_storage.lock().await;
 
-        let bookmark = self.get_bookmark(bookmark.id, user_id).await?;
+        let bookmark = self.get_bookmark(id, user_id).await?;
 
         storage
             .push(ArchiveThumbnailJob {
@@ -299,7 +312,7 @@ impl BookmarkService {
         }?;
 
         self.bookmark_repository
-            .save_scraped(BookmarkScrapedData {
+            .save_scraped(BookmarkScrapedParams {
                 url: data.url,
                 bookmark,
                 user_id: data.user_id,
@@ -330,8 +343,8 @@ impl BookmarkService {
                 self.bookmark_repository
                     .update_bookmark(
                         None,
-                        bookmark_id,
-                        BookmarkUpdateData {
+                        BookmarkUpdateParams {
+                            id: bookmark_id,
                             archived_path: Some(Some(object_path)),
                             ..Default::default()
                         },
@@ -349,8 +362,8 @@ impl BookmarkService {
             self.bookmark_repository
                 .update_bookmark(
                     None,
-                    bookmark_id,
-                    BookmarkUpdateData {
+                    BookmarkUpdateParams {
+                        id: bookmark_id,
                         archived_path: Some(None),
                         ..Default::default()
                     },
@@ -386,19 +399,6 @@ pub struct BookmarkUpdate {
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
     pub tags: Option<Vec<Uuid>>,
-}
-
-impl From<BookmarkUpdate> for BookmarkUpdateData {
-    fn from(value: BookmarkUpdate) -> Self {
-        Self {
-            title: value.title,
-            thumbnail_url: value.thumbnail_url,
-            published_at: value.published_at,
-            author: value.author,
-            archived_path: None,
-            tags: value.tags,
-        }
-    }
 }
 
 #[derive(Debug, Clone)]

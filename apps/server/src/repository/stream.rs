@@ -2,7 +2,8 @@ use colette_core::{
     Stream,
     common::Transaction,
     stream::{
-        Error, StreamById, StreamCreateData, StreamFindParams, StreamRepository, StreamUpdateData,
+        Error, StreamById, StreamCreateParams, StreamDeleteParams, StreamFindByIdParams,
+        StreamFindParams, StreamRepository, StreamUpdateParams,
     },
 };
 use colette_model::{StreamRow, streams};
@@ -10,7 +11,6 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
     sea_query::{Asterisk, Expr, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteStreamRepository {
@@ -60,21 +60,25 @@ impl StreamRepository for SqliteStreamRepository {
         Ok(streams)
     }
 
-    async fn find_stream_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<StreamById, Error> {
+    async fn find_stream_by_id(
+        &self,
+        tx: &dyn Transaction,
+        params: StreamFindByIdParams,
+    ) -> Result<StreamById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::select()
             .column((streams::Entity, streams::Column::Id))
             .column((streams::Entity, streams::Column::UserId))
             .from(streams::Entity)
-            .and_where(Expr::col((streams::Entity, streams::Column::Id)).eq(id.to_string()))
+            .and_where(Expr::col((streams::Entity, streams::Column::Id)).eq(params.id.to_string()))
             .to_owned();
 
         let Some(result) = tx
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         };
 
         Ok(StreamById {
@@ -91,9 +95,7 @@ impl StreamRepository for SqliteStreamRepository {
         })
     }
 
-    async fn create_stream(&self, data: StreamCreateData) -> Result<Uuid, Error> {
-        let id = Uuid::new_v4();
-
+    async fn create_stream(&self, params: StreamCreateParams) -> Result<(), Error> {
         let query = Query::insert()
             .columns([
                 streams::Column::Id,
@@ -102,10 +104,10 @@ impl StreamRepository for SqliteStreamRepository {
                 streams::Column::UserId,
             ])
             .values_panic([
-                id.to_string().into(),
-                data.title.clone().into(),
-                serde_json::to_string(&data.filter).unwrap().into(),
-                data.user_id.to_string().into(),
+                params.id.to_string().into(),
+                params.title.clone().into(),
+                serde_json::to_string(&params.filter).unwrap().into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -113,34 +115,33 @@ impl StreamRepository for SqliteStreamRepository {
             .execute(self.db.get_database_backend().build(&query))
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(data.title),
+                DbErr::RecordNotInserted => Error::Conflict(params.title),
                 _ => Error::Database(e),
             })?;
 
-        Ok(id)
+        Ok(())
     }
 
     async fn update_stream(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
-        data: StreamUpdateData,
+        params: StreamUpdateParams,
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.title.is_none() && data.filter.is_none() {
+        if params.title.is_none() && params.filter.is_none() {
             return Ok(());
         }
 
         let mut query = Query::update()
             .table(streams::Entity)
-            .and_where(Expr::col(streams::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(streams::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
-        if let Some(title) = data.title {
+        if let Some(title) = params.title {
             query.value(streams::Column::Title, title);
         }
-        if let Some(filter) = data.filter {
+        if let Some(filter) = params.filter {
             query.value(
                 streams::Column::FilterRaw,
                 serde_json::to_string(&filter).unwrap(),
@@ -153,12 +154,16 @@ impl StreamRepository for SqliteStreamRepository {
         Ok(())
     }
 
-    async fn delete_stream(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+    async fn delete_stream(
+        &self,
+        tx: &dyn Transaction,
+        params: StreamDeleteParams,
+    ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::delete()
             .from_table(streams::Entity)
-            .and_where(Expr::col(streams::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(streams::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
         tx.execute(self.db.get_database_backend().build(&query))

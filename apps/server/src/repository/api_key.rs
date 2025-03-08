@@ -1,8 +1,8 @@
 use colette_core::{
     ApiKey,
     api_key::{
-        ApiKeyById, ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams,
-        ApiKeySearched, ApiKeyUpdateData, Error,
+        ApiKeyById, ApiKeyCreateParams, ApiKeyDeleteParams, ApiKeyFindByIdParams, ApiKeyFindParams,
+        ApiKeyRepository, ApiKeySearchParams, ApiKeySearched, ApiKeyUpdateParams, Error,
     },
     common::Transaction,
 };
@@ -11,7 +11,6 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
     sea_query::{Asterisk, Expr, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -64,7 +63,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find_api_key_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
+        params: ApiKeyFindByIdParams,
     ) -> Result<ApiKeyById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
@@ -72,14 +71,16 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             .column((api_keys::Entity, api_keys::Column::Id))
             .column((api_keys::Entity, api_keys::Column::UserId))
             .from(api_keys::Entity)
-            .and_where(Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(id.to_string()))
+            .and_where(
+                Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(params.id.to_string()),
+            )
             .to_owned();
 
         let Some(result) = tx
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         };
 
         Ok(ApiKeyById {
@@ -96,9 +97,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         })
     }
 
-    async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error> {
-        let id = Uuid::new_v4();
-
+    async fn create_api_key(&self, params: ApiKeyCreateParams) -> Result<(), Error> {
         let query = Query::insert()
             .columns([
                 api_keys::Column::Id,
@@ -109,12 +108,12 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
                 api_keys::Column::UserId,
             ])
             .values_panic([
-                id.to_string().into(),
-                data.lookup_hash.into(),
-                data.verification_hash.into(),
-                data.title.into(),
-                data.preview.into(),
-                data.user_id.to_string().into(),
+                params.id.to_string().into(),
+                params.lookup_hash.into(),
+                params.verification_hash.into(),
+                params.title.into(),
+                params.preview.into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -122,27 +121,26 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             .execute(self.db.get_database_backend().build(&query))
             .await?;
 
-        Ok(id)
+        Ok(())
     }
 
     async fn update_api_key(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
-        data: ApiKeyUpdateData,
+        params: ApiKeyUpdateParams,
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.title.is_none() {
+        if params.title.is_none() {
             return Ok(());
         }
 
         let mut query = Query::update()
             .table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(api_keys::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
-        if let Some(title) = data.title {
+        if let Some(title) = params.title {
             query.value(api_keys::Column::Title, title);
         }
 
@@ -152,12 +150,16 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         Ok(())
     }
 
-    async fn delete_api_key(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+    async fn delete_api_key(
+        &self,
+        tx: &dyn Transaction,
+        params: ApiKeyDeleteParams,
+    ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::delete()
             .from_table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(api_keys::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
         tx.execute(self.db.get_database_backend().build(&query))

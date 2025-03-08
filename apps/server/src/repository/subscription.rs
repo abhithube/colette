@@ -4,9 +4,9 @@ use colette_core::{
     Subscription,
     common::Transaction,
     subscription::{
-        Error, SubscriptionById, SubscriptionCreateData, SubscriptionEntryUpdateData,
-        SubscriptionEntryUpdateParams, SubscriptionFindParams, SubscriptionRepository,
-        SubscriptionUpdateData,
+        Error, SubscriptionById, SubscriptionCreateParams, SubscriptionDeleteParams,
+        SubscriptionEntryUpdateParams, SubscriptionFindByIdParams, SubscriptionFindParams,
+        SubscriptionRepository, SubscriptionUpdateParams,
     },
 };
 use colette_model::{
@@ -251,7 +251,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
     async fn find_subscription_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
+        params: SubscriptionFindByIdParams,
     ) -> Result<SubscriptionById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
@@ -260,7 +260,8 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             .column((subscriptions::Entity, subscriptions::Column::UserId))
             .from(subscriptions::Entity)
             .and_where(
-                Expr::col((subscriptions::Entity, subscriptions::Column::Id)).eq(id.to_string()),
+                Expr::col((subscriptions::Entity, subscriptions::Column::Id))
+                    .eq(params.id.to_string()),
             )
             .to_owned();
 
@@ -268,7 +269,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         };
 
         Ok(SubscriptionById {
@@ -285,10 +286,8 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         })
     }
 
-    async fn create_subscription(&self, data: SubscriptionCreateData) -> Result<Uuid, Error> {
+    async fn create_subscription(&self, params: SubscriptionCreateParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
-
-        let id = Uuid::new_v4();
 
         let query = Query::insert()
             .into_table(subscriptions::Entity)
@@ -299,10 +298,10 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                 subscriptions::Column::UserId,
             ])
             .values_panic([
-                id.to_string().into(),
-                data.title.clone().into(),
-                data.feed_id.to_string().into(),
-                data.user_id.to_string().into(),
+                params.id.to_string().into(),
+                params.title.clone().into(),
+                params.feed_id.to_string().into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -310,37 +309,36 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             .execute(self.db.get_database_backend().build(&query))
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(data.feed_id),
+                DbErr::RecordNotInserted => Error::Conflict(params.feed_id),
                 _ => Error::Database(e),
             })?;
 
-        if let Some(tags) = data.tags {
-            link_tags(&tx, tags, id, data.user_id).await?;
+        if let Some(tags) = params.tags {
+            link_tags(&tx, tags, params.id, params.user_id).await?;
         }
 
         tx.commit().await?;
 
-        Ok(id)
+        Ok(())
     }
 
     async fn update_subscription(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
-        data: SubscriptionUpdateData,
+        params: SubscriptionUpdateParams,
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.title.is_none() && data.tags.is_none() {
+        if params.title.is_none() && params.tags.is_none() {
             return Ok(());
         }
 
         let mut query = Query::update()
             .table(subscriptions::Entity)
-            .and_where(Expr::col(subscriptions::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(subscriptions::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
-        if let Some(title) = data.title {
+        if let Some(title) = params.title {
             query.value(subscriptions::Column::Title, title);
         }
 
@@ -348,7 +346,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             .await?;
 
         // if let Some(tags) = data.tags {
-        //     link_tags(&tx, tags, id, params.user_id).await?;
+        //     link_tags(&tx, tags, params.id, params.user_id).await?;
         // }
 
         // tx.commit().await?;
@@ -356,12 +354,16 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         Ok(())
     }
 
-    async fn delete_subscription(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+    async fn delete_subscription(
+        &self,
+        tx: &dyn Transaction,
+        params: SubscriptionDeleteParams,
+    ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::delete()
             .from_table(subscriptions::Entity)
-            .and_where(Expr::col(subscriptions::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(subscriptions::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
         tx.execute(self.db.get_database_backend().build(&query))
@@ -374,11 +376,10 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         &self,
         tx: &dyn Transaction,
         params: SubscriptionEntryUpdateParams,
-        data: SubscriptionEntryUpdateData,
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.has_read {
+        if params.has_read {
             let query = Query::insert()
                 .into_table(read_entries::Entity)
                 .columns([

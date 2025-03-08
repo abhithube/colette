@@ -1,8 +1,8 @@
 use uuid::Uuid;
 
 use super::{
-    Collection, CollectionCreateData, CollectionFindParams, CollectionRepository,
-    CollectionUpdateData, Error,
+    Collection, CollectionCreateParams, CollectionDeleteParams, CollectionFindByIdParams,
+    CollectionFindParams, CollectionRepository, CollectionUpdateParams, Error,
 };
 use crate::{
     bookmark::BookmarkFilter,
@@ -62,9 +62,11 @@ impl CollectionService {
         data: CollectionCreate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
-        let id = self
-            .repository
-            .create_collection(CollectionCreateData {
+        let id = Uuid::new_v4();
+
+        self.repository
+            .create_collection(CollectionCreateParams {
+                id,
                 title: data.title,
                 filter: data.filter,
                 user_id,
@@ -82,44 +84,48 @@ impl CollectionService {
     ) -> Result<Collection, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let collection = self.repository.find_collection_by_id(&*tx, id).await?;
+        let collection = self
+            .repository
+            .find_collection_by_id(&*tx, CollectionFindByIdParams { id })
+            .await?;
         if collection.user_id != user_id {
-            return Err(Error::Forbidden(collection.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.repository
-            .update_collection(&*tx, collection.id, data.into())
+            .update_collection(
+                &*tx,
+                CollectionUpdateParams {
+                    id,
+                    title: data.title,
+                    filter: data.filter,
+                },
+            )
             .await?;
 
         tx.commit().await?;
 
-        self.get_collection(collection.id, collection.user_id).await
+        self.get_collection(id, user_id).await
     }
 
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let collection = self.repository.find_collection_by_id(&*tx, id).await?;
+        let collection = self
+            .repository
+            .find_collection_by_id(&*tx, CollectionFindByIdParams { id })
+            .await?;
         if collection.user_id != user_id {
-            return Err(Error::Forbidden(collection.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.repository
-            .delete_collection(&*tx, collection.id)
+            .delete_collection(&*tx, CollectionDeleteParams { id })
             .await?;
 
         tx.commit().await?;
 
         Ok(())
-    }
-}
-
-impl From<CollectionUpdate> for CollectionUpdateData {
-    fn from(value: CollectionUpdate) -> Self {
-        Self {
-            title: value.title,
-            filter: value.filter,
-        }
     }
 }
 

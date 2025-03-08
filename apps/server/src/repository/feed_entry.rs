@@ -1,14 +1,12 @@
 use colette_core::{
     FeedEntry,
-    common::Transaction,
-    feed_entry::{Error, FeedEntryById, FeedEntryFindParams, FeedEntryRepository},
+    feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
 };
 use colette_model::{FeedEntryRow, feed_entries};
 use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
+    ConnectionTrait, DatabaseConnection, FromQueryResult,
     sea_query::{Asterisk, Expr, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {
@@ -63,36 +61,5 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
                 .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(feed_entries)
-    }
-
-    async fn find_feed_entry_by_id(
-        &self,
-        tx: &dyn Transaction,
-        id: Uuid,
-    ) -> Result<FeedEntryById, Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
-
-        let query = Query::select()
-            .column((feed_entries::Entity, feed_entries::Column::Id))
-            .from(feed_entries::Entity)
-            .and_where(
-                Expr::col((feed_entries::Entity, feed_entries::Column::Id)).eq(id.to_string()),
-            )
-            .to_owned();
-
-        let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&query))
-            .await?
-        else {
-            return Err(Error::NotFound(id));
-        };
-
-        Ok(FeedEntryById {
-            id: result
-                .try_get_by_index::<String>(0)
-                .unwrap()
-                .parse()
-                .unwrap(),
-        })
     }
 }

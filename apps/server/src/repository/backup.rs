@@ -1,4 +1,4 @@
-use colette_core::backup::{BackupRepository, Error};
+use colette_core::backup::{BackupRepository, Error, ImportBookmarksParams, ImportFeedsParams};
 use colette_model::{bookmark_tags, subscription_tags, subscriptions};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, TransactionTrait,
@@ -21,14 +21,11 @@ impl SqliteBackupRepository {
 
 #[async_trait::async_trait]
 impl BackupRepository for SqliteBackupRepository {
-    async fn import_feeds(
-        &self,
-        outlines: Vec<colette_opml::Outline>,
-        user_id: Uuid,
-    ) -> Result<(), Error> {
+    async fn import_feeds(&self, params: ImportFeedsParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
-        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = outlines
+        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = params
+            .outlines
             .into_iter()
             .map(|outline| (None, outline))
             .collect();
@@ -37,7 +34,7 @@ impl BackupRepository for SqliteBackupRepository {
             let title = outline.title.unwrap_or(outline.text);
 
             if !outline.outline.is_empty() {
-                let tag_id = common::upsert_tag(&tx, title, user_id).await?;
+                let tag_id = common::upsert_tag(&tx, title, params.user_id).await?;
 
                 for child in outline.outline {
                     stack.push((Some(tag_id), child));
@@ -66,7 +63,7 @@ impl BackupRepository for SqliteBackupRepository {
                             Uuid::new_v4().to_string().into(),
                             title.clone().into(),
                             feed_id.to_string().into(),
-                            user_id.to_string().into(),
+                            params.user_id.to_string().into(),
                         ])
                         .on_conflict(
                             OnConflict::columns([
@@ -98,7 +95,7 @@ impl BackupRepository for SqliteBackupRepository {
                         .values_panic([
                             subscription_id.into(),
                             tag_id.to_string().into(),
-                            user_id.to_string().into(),
+                            params.user_id.to_string().into(),
                         ])
                         .on_conflict(
                             OnConflict::columns([
@@ -121,19 +118,15 @@ impl BackupRepository for SqliteBackupRepository {
         Ok(())
     }
 
-    async fn import_bookmarks(
-        &self,
-        items: Vec<colette_netscape::Item>,
-        user_id: Uuid,
-    ) -> Result<(), Error> {
+    async fn import_bookmarks(&self, params: ImportBookmarksParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
-            items.into_iter().map(|item| (None, item)).collect();
+            params.items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let tag_id = common::upsert_tag(&tx, item.title, user_id).await?;
+                let tag_id = common::upsert_tag(&tx, item.title, params.user_id).await?;
 
                 for child in item.item {
                     stack.push((Some(tag_id), child));
@@ -146,7 +139,7 @@ impl BackupRepository for SqliteBackupRepository {
                     None,
                     None,
                     None,
-                    user_id,
+                    params.user_id,
                 )
                 .await?;
 
@@ -161,7 +154,7 @@ impl BackupRepository for SqliteBackupRepository {
                         .values_panic([
                             bookmark_id.to_string().into(),
                             tag_id.to_string().into(),
-                            user_id.to_string().into(),
+                            params.user_id.to_string().into(),
                         ])
                         .on_conflict(
                             OnConflict::columns([

@@ -1,14 +1,16 @@
 use colette_core::{
     Tag,
     common::Transaction,
-    tag::{Error, TagById, TagCreateData, TagFindParams, TagRepository, TagType, TagUpdateData},
+    tag::{
+        Error, TagById, TagCreateParams, TagDeleteParams, TagFindByIdParams, TagFindParams,
+        TagRepository, TagType, TagUpdateParams,
+    },
 };
 use colette_model::{TagWithCounts, bookmark_tags, subscription_tags, tags};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
     sea_query::{Alias, Expr, Func, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -102,21 +104,25 @@ impl TagRepository for SqliteTagRepository {
         Ok(tags)
     }
 
-    async fn find_tag_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<TagById, Error> {
+    async fn find_tag_by_id(
+        &self,
+        tx: &dyn Transaction,
+        params: TagFindByIdParams,
+    ) -> Result<TagById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::select()
             .column((tags::Entity, tags::Column::Id))
             .column((tags::Entity, tags::Column::UserId))
             .from(tags::Entity)
-            .and_where(Expr::col((tags::Entity, tags::Column::Id)).eq(id.to_string()))
+            .and_where(Expr::col((tags::Entity, tags::Column::Id)).eq(params.id.to_string()))
             .to_owned();
 
         let Some(result) = tx
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         };
 
         Ok(TagById {
@@ -133,15 +139,13 @@ impl TagRepository for SqliteTagRepository {
         })
     }
 
-    async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error> {
-        let id = Uuid::new_v4();
-
+    async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error> {
         let query = Query::insert()
             .columns([tags::Column::Id, tags::Column::Title, tags::Column::UserId])
             .values_panic([
-                id.to_string().into(),
-                data.title.clone().into(),
-                data.user_id.to_string().into(),
+                params.id.to_string().into(),
+                params.title.clone().into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -149,31 +153,26 @@ impl TagRepository for SqliteTagRepository {
             .execute(self.db.get_database_backend().build(&query))
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(data.title),
+                DbErr::RecordNotInserted => Error::Conflict(params.title),
                 _ => Error::Database(e),
             })?;
 
-        Ok(id)
+        Ok(())
     }
 
-    async fn update_tag(
-        &self,
-        tx: &dyn Transaction,
-        id: Uuid,
-        data: TagUpdateData,
-    ) -> Result<(), Error> {
+    async fn update_tag(&self, tx: &dyn Transaction, params: TagUpdateParams) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.title.is_none() {
+        if params.title.is_none() {
             return Ok(());
         }
 
         let mut query = Query::update()
             .table(tags::Entity)
-            .and_where(Expr::col(tags::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(tags::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
-        if let Some(title) = data.title {
+        if let Some(title) = params.title {
             query.value(tags::Column::Title, title);
         }
 
@@ -183,12 +182,12 @@ impl TagRepository for SqliteTagRepository {
         Ok(())
     }
 
-    async fn delete_tag(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+    async fn delete_tag(&self, tx: &dyn Transaction, params: TagDeleteParams) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::delete()
             .from_table(tags::Entity)
-            .and_where(Expr::col(tags::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(tags::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
         tx.execute(self.db.get_database_backend().build(&query))

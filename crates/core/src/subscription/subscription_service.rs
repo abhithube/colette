@@ -1,14 +1,16 @@
 use uuid::Uuid;
 
 use super::{
-    Error, Subscription, SubscriptionCreateData, SubscriptionEntryUpdateData,
-    SubscriptionEntryUpdateParams, SubscriptionFindParams, SubscriptionRepository,
-    SubscriptionUpdateData,
+    Error, Subscription, SubscriptionCreateParams, SubscriptionDeleteParams,
+    SubscriptionEntryUpdateParams, SubscriptionFindByIdParams, SubscriptionFindParams,
+    SubscriptionRepository, SubscriptionUpdateParams,
 };
 use crate::{
     SubscriptionEntry,
     common::{Paginated, TransactionManager},
-    subscription_entry::{SubscriptionEntryFindParams, SubscriptionEntryRepository},
+    subscription_entry::{
+        SubscriptionEntryFindByIdParams, SubscriptionEntryFindParams, SubscriptionEntryRepository,
+    },
 };
 
 pub struct SubscriptionService {
@@ -35,7 +37,7 @@ impl SubscriptionService {
         query: SubscriptionListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Subscription>, Error> {
-        let feeds = self
+        let subscriptions = self
             .subscription_repository
             .find_subscriptions(SubscriptionFindParams {
                 tags: query.tags,
@@ -45,29 +47,29 @@ impl SubscriptionService {
             .await?;
 
         Ok(Paginated {
-            data: feeds,
+            data: subscriptions,
             cursor: None,
         })
     }
 
     pub async fn get_subscription(&self, id: Uuid, user_id: Uuid) -> Result<Subscription, Error> {
-        let mut feeds = self
+        let mut subscriptions = self
             .subscription_repository
             .find_subscriptions(SubscriptionFindParams {
                 id: Some(id),
                 ..Default::default()
             })
             .await?;
-        if feeds.is_empty() {
+        if subscriptions.is_empty() {
             return Err(Error::NotFound(id));
         }
 
-        let feed = feeds.swap_remove(0);
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
+        let subscription = subscriptions.swap_remove(0);
+        if subscription.user_id != user_id {
+            return Err(Error::Forbidden(subscription.id));
         }
 
-        Ok(feed)
+        Ok(subscription)
     }
 
     pub async fn create_subscription(
@@ -75,9 +77,11 @@ impl SubscriptionService {
         data: SubscriptionCreate,
         user_id: Uuid,
     ) -> Result<Subscription, Error> {
-        let id = self
-            .subscription_repository
-            .create_subscription(SubscriptionCreateData {
+        let id = Uuid::new_v4();
+
+        self.subscription_repository
+            .create_subscription(SubscriptionCreateParams {
+                id,
                 title: data.title,
                 feed_id: data.feed_id,
                 tags: data.tags,
@@ -96,36 +100,43 @@ impl SubscriptionService {
     ) -> Result<Subscription, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let feed = self
+        let subscription = self
             .subscription_repository
-            .find_subscription_by_id(&*tx, id)
+            .find_subscription_by_id(&*tx, SubscriptionFindByIdParams { id })
             .await?;
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
+        if subscription.user_id != user_id {
+            return Err(Error::Forbidden(id));
         }
 
         self.subscription_repository
-            .update_subscription(&*tx, feed.id, data.into())
+            .update_subscription(
+                &*tx,
+                SubscriptionUpdateParams {
+                    id,
+                    title: data.title,
+                    tags: data.tags,
+                },
+            )
             .await?;
 
         tx.commit().await?;
 
-        self.get_subscription(feed.id, feed.user_id).await
+        self.get_subscription(id, user_id).await
     }
 
     pub async fn delete_subscription(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let feed = self
+        let subscription = self
             .subscription_repository
-            .find_subscription_by_id(&*tx, id)
+            .find_subscription_by_id(&*tx, SubscriptionFindByIdParams { id })
             .await?;
-        if feed.user_id != user_id {
-            return Err(Error::Forbidden(feed.id));
+        if subscription.user_id != user_id {
+            return Err(Error::Forbidden(id));
         }
 
         self.subscription_repository
-            .delete_subscription(&*tx, feed.id)
+            .delete_subscription(&*tx, SubscriptionDeleteParams { id })
             .await?;
 
         tx.commit().await?;
@@ -138,23 +149,23 @@ impl SubscriptionService {
         id: Uuid,
         user_id: Uuid,
     ) -> Result<SubscriptionEntry, Error> {
-        let mut feed_entries = self
+        let mut subscription_entries = self
             .subscription_entry_repository
             .find_subscription_entries(SubscriptionEntryFindParams {
                 id: Some(id),
                 ..Default::default()
             })
             .await?;
-        if feed_entries.is_empty() {
+        if subscription_entries.is_empty() {
             return Err(Error::NotFound(id));
         }
 
-        let feed_entry = feed_entries.swap_remove(0);
-        if feed_entry.user_id != user_id {
-            return Err(Error::Forbidden(feed_entry.entry.id));
+        let subscription_entry = subscription_entries.swap_remove(0);
+        if subscription_entry.user_id != user_id {
+            return Err(Error::Forbidden(id));
         }
 
-        Ok(feed_entry)
+        Ok(subscription_entry)
     }
 
     pub async fn mark_subscription_entry_as_read(
@@ -167,10 +178,10 @@ impl SubscriptionService {
 
         let subscription_entry = self
             .subscription_entry_repository
-            .find_subscription_entry_by_id(&*tx, feed_entry_id)
+            .find_subscription_entry_by_id(&*tx, SubscriptionEntryFindByIdParams { feed_entry_id })
             .await?;
         if subscription_entry.user_id != user_id {
-            return Err(Error::Forbidden(subscription_entry.feed_entry_id));
+            return Err(Error::Forbidden(feed_entry_id));
         }
 
         self.subscription_repository
@@ -180,15 +191,14 @@ impl SubscriptionService {
                     feed_entry_id,
                     subscription_id,
                     user_id,
+                    has_read: true,
                 },
-                SubscriptionEntryUpdateData { has_read: true },
             )
             .await?;
 
         tx.commit().await?;
 
-        self.get_subscription_entry(subscription_entry.feed_entry_id, subscription_entry.user_id)
-            .await
+        self.get_subscription_entry(feed_entry_id, user_id).await
     }
 
     pub async fn mark_subscription_entry_as_unread(
@@ -201,10 +211,10 @@ impl SubscriptionService {
 
         let subscription_entry = self
             .subscription_entry_repository
-            .find_subscription_entry_by_id(&*tx, feed_entry_id)
+            .find_subscription_entry_by_id(&*tx, SubscriptionEntryFindByIdParams { feed_entry_id })
             .await?;
         if subscription_entry.user_id != user_id {
-            return Err(Error::Forbidden(subscription_entry.feed_entry_id));
+            return Err(Error::Forbidden(feed_entry_id));
         }
 
         self.subscription_repository
@@ -214,15 +224,14 @@ impl SubscriptionService {
                     feed_entry_id,
                     subscription_id,
                     user_id,
+                    has_read: false,
                 },
-                SubscriptionEntryUpdateData { has_read: false },
             )
             .await?;
 
         tx.commit().await?;
 
-        self.get_subscription_entry(subscription_entry.feed_entry_id, subscription_entry.user_id)
-            .await
+        self.get_subscription_entry(feed_entry_id, user_id).await
     }
 }
 
@@ -242,13 +251,4 @@ pub struct SubscriptionCreate {
 pub struct SubscriptionUpdate {
     pub title: Option<String>,
     pub tags: Option<Vec<Uuid>>,
-}
-
-impl From<SubscriptionUpdate> for SubscriptionUpdateData {
-    fn from(value: SubscriptionUpdate) -> Self {
-        Self {
-            title: value.title,
-            tags: value.tags,
-        }
-    }
 }

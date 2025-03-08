@@ -1,8 +1,8 @@
 use colette_core::{
     Collection,
     collection::{
-        CollectionById, CollectionCreateData, CollectionFindParams, CollectionRepository,
-        CollectionUpdateData, Error,
+        CollectionById, CollectionCreateParams, CollectionDeleteParams, CollectionFindByIdParams,
+        CollectionFindParams, CollectionRepository, CollectionUpdateParams, Error,
     },
     common::Transaction,
 };
@@ -11,7 +11,6 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
     sea_query::{Asterisk, Expr, Order, Query},
 };
-use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteCollectionRepository {
@@ -72,7 +71,7 @@ impl CollectionRepository for SqliteCollectionRepository {
     async fn find_collection_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
+        params: CollectionFindByIdParams,
     ) -> Result<CollectionById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
@@ -80,14 +79,16 @@ impl CollectionRepository for SqliteCollectionRepository {
             .column((collections::Entity, collections::Column::Id))
             .column((collections::Entity, collections::Column::UserId))
             .from(collections::Entity)
-            .and_where(Expr::col((collections::Entity, collections::Column::Id)).eq(id.to_string()))
+            .and_where(
+                Expr::col((collections::Entity, collections::Column::Id)).eq(params.id.to_string()),
+            )
             .to_owned();
 
         let Some(result) = tx
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.id));
         };
 
         Ok(CollectionById {
@@ -104,9 +105,7 @@ impl CollectionRepository for SqliteCollectionRepository {
         })
     }
 
-    async fn create_collection(&self, data: CollectionCreateData) -> Result<Uuid, Error> {
-        let id = Uuid::new_v4();
-
+    async fn create_collection(&self, params: CollectionCreateParams) -> Result<(), Error> {
         let query = Query::insert()
             .columns([
                 collections::Column::Id,
@@ -115,10 +114,10 @@ impl CollectionRepository for SqliteCollectionRepository {
                 collections::Column::UserId,
             ])
             .values_panic([
-                id.to_string().into(),
-                data.title.clone().into(),
-                serde_json::to_string(&data.filter).unwrap().into(),
-                data.user_id.to_string().into(),
+                params.id.to_string().into(),
+                params.title.clone().into(),
+                serde_json::to_string(&params.filter).unwrap().into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -126,34 +125,33 @@ impl CollectionRepository for SqliteCollectionRepository {
             .execute(self.db.get_database_backend().build(&query))
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(data.title),
+                DbErr::RecordNotInserted => Error::Conflict(params.title),
                 _ => Error::Database(e),
             })?;
 
-        Ok(id)
+        Ok(())
     }
 
     async fn update_collection(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
-        data: CollectionUpdateData,
+        params: CollectionUpdateParams,
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        if data.title.is_none() && data.filter.is_none() {
+        if params.title.is_none() && params.filter.is_none() {
             return Ok(());
         }
 
         let mut query = Query::update()
             .table(collections::Entity)
-            .and_where(Expr::col(collections::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(collections::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
-        if let Some(title) = data.title {
+        if let Some(title) = params.title {
             query.value(collections::Column::Title, title);
         }
-        if let Some(filter) = data.filter {
+        if let Some(filter) = params.filter {
             query.value(
                 collections::Column::FilterRaw,
                 serde_json::to_string(&filter).unwrap(),
@@ -166,12 +164,16 @@ impl CollectionRepository for SqliteCollectionRepository {
         Ok(())
     }
 
-    async fn delete_collection(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
+    async fn delete_collection(
+        &self,
+        tx: &dyn Transaction,
+        params: CollectionDeleteParams,
+    ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         let query = Query::delete()
             .from_table(collections::Entity)
-            .and_where(Expr::col(collections::Column::Id).eq(id.to_string()))
+            .and_where(Expr::col(collections::Column::Id).eq(params.id.to_string()))
             .to_owned();
 
         tx.execute(self.db.get_database_backend().build(&query))

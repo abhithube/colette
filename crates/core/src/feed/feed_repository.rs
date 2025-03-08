@@ -8,9 +8,12 @@ use super::{Cursor, Error, Feed, ProcessedFeed};
 pub trait FeedRepository: Send + Sync + 'static {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
 
-    async fn upsert_feed(&self, data: FeedScrapedData) -> Result<Uuid, Error>;
+    async fn upsert_feed(&self, params: FeedUpsertParams) -> Result<Uuid, Error>;
 
-    async fn stream_feed_urls(&self) -> Result<BoxStream<Result<Url, Error>>, Error>;
+    async fn stream_feed_urls(
+        &self,
+        params: StreamFeedUrlsParams,
+    ) -> Result<BoxStream<Result<Url, Error>>, Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -21,7 +24,9 @@ pub struct FeedFindParams {
 }
 
 #[derive(Debug, Clone)]
-pub struct FeedScrapedData {
+pub struct FeedUpsertParams {
     pub url: Url,
     pub feed: ProcessedFeed,
 }
+
+pub struct StreamFeedUrlsParams;

@@ -3,8 +3,8 @@ use colette_core::{
     common::Transaction,
     subscription_entry::{
         Error, SubscriptionEntryBooleanField, SubscriptionEntryById, SubscriptionEntryDateField,
-        SubscriptionEntryFilter, SubscriptionEntryFindParams, SubscriptionEntryRepository,
-        SubscriptionEntryTextField,
+        SubscriptionEntryFilter, SubscriptionEntryFindByIdParams, SubscriptionEntryFindParams,
+        SubscriptionEntryRepository, SubscriptionEntryTextField,
     },
 };
 use colette_model::{
@@ -14,7 +14,6 @@ use sea_orm::{
     ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
     sea_query::{Alias, Expr, Order, Query, SimpleExpr},
 };
-use uuid::Uuid;
 
 use super::common::{ToColumn, ToSql};
 
@@ -188,7 +187,7 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
     async fn find_subscription_entry_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
+        params: SubscriptionEntryFindByIdParams,
     ) -> Result<SubscriptionEntryById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
@@ -204,7 +203,8 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
                 ))),
             )
             .and_where(
-                Expr::col((feed_entries::Entity, feed_entries::Column::Id)).eq(id.to_string()),
+                Expr::col((feed_entries::Entity, feed_entries::Column::Id))
+                    .eq(params.feed_entry_id.to_string()),
             )
             .to_owned();
 
@@ -212,7 +212,7 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
             .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(params.feed_entry_id));
         };
 
         Ok(SubscriptionEntryById {

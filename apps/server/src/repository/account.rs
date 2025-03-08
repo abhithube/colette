@@ -1,13 +1,12 @@
 use colette_core::{
     Account,
-    account::{AccountCreateData, AccountFindParams, AccountRepository, Error},
+    account::{AccountCreateParams, AccountFindParams, AccountRepository, Error},
 };
 use colette_model::{AccountRow, accounts, users};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, FromQueryResult, TransactionTrait,
     sea_query::{Expr, Query},
 };
-use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct SqliteAccountRepository {
@@ -57,10 +56,8 @@ impl AccountRepository for SqliteAccountRepository {
         Ok(account.into())
     }
 
-    async fn create_account(&self, data: AccountCreateData) -> Result<Uuid, Error> {
+    async fn create_account(&self, params: AccountCreateParams) -> Result<(), Error> {
         let tx = self.db.begin().await?;
-
-        let user_id = Uuid::new_v4();
 
         let query = Query::insert()
             .into_table(users::Entity)
@@ -70,9 +67,9 @@ impl AccountRepository for SqliteAccountRepository {
                 users::Column::DisplayName,
             ])
             .values_panic([
-                user_id.to_string().into(),
-                data.email.into(),
-                data.display_name.into(),
+                params.user_id.to_string().into(),
+                params.email.into(),
+                params.display_name.into(),
             ])
             .to_owned();
 
@@ -88,10 +85,10 @@ impl AccountRepository for SqliteAccountRepository {
                 accounts::Column::UserId,
             ])
             .values_panic([
-                data.provider_id.into(),
-                data.account_id.into(),
-                data.password_hash.into(),
-                user_id.to_string().into(),
+                params.provider_id.into(),
+                params.account_id.into(),
+                params.password_hash.into(),
+                params.user_id.to_string().into(),
             ])
             .to_owned();
 
@@ -100,6 +97,6 @@ impl AccountRepository for SqliteAccountRepository {
 
         tx.commit().await?;
 
-        Ok(user_id)
+        Ok(())
     }
 }

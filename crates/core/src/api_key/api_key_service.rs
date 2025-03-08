@@ -3,8 +3,8 @@ use colette_util::{api_key, password};
 use uuid::Uuid;
 
 use super::{
-    ApiKey, ApiKeyCreateData, ApiKeyFindParams, ApiKeyRepository, ApiKeySearchParams,
-    ApiKeyUpdateData, Error,
+    ApiKey, ApiKeyCreateParams, ApiKeyDeleteParams, ApiKeyFindByIdParams, ApiKeyFindParams,
+    ApiKeyRepository, ApiKeySearchParams, ApiKeyUpdateParams, Error,
 };
 use crate::{
     auth,
@@ -71,7 +71,7 @@ impl ApiKeyService {
 
         let api_key = api_keys.swap_remove(0);
         if api_key.user_id != user_id {
-            return Err(Error::Forbidden(api_key.id));
+            return Err(Error::Forbidden(id));
         }
 
         Ok(api_key)
@@ -82,11 +82,12 @@ impl ApiKeyService {
         data: ApiKeyCreate,
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
+        let id = Uuid::new_v4();
         let value = api_key::generate();
 
-        let id = self
-            .repository
-            .create_api_key(ApiKeyCreateData {
+        self.repository
+            .create_api_key(ApiKeyCreateParams {
+                id,
                 lookup_hash: api_key::hash(&value),
                 verification_hash: password::hash(&value)?,
                 title: data.title,
@@ -102,7 +103,7 @@ impl ApiKeyService {
         let api_key = self.get_api_key(id, user_id).await?;
 
         Ok(ApiKeyCreated {
-            id: api_key.id,
+            id,
             title: api_key.title,
             value,
             created_at: api_key.created_at,
@@ -117,29 +118,43 @@ impl ApiKeyService {
     ) -> Result<ApiKey, Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
+        let api_key = self
+            .repository
+            .find_api_key_by_id(&*tx, ApiKeyFindByIdParams { id })
+            .await?;
         if api_key.user_id != user_id {
-            return Err(Error::Forbidden(api_key.id));
+            return Err(Error::Forbidden(id));
         }
 
         self.repository
-            .update_api_key(&*tx, api_key.id, data.into())
+            .update_api_key(
+                &*tx,
+                ApiKeyUpdateParams {
+                    id,
+                    title: data.title,
+                },
+            )
             .await?;
 
         tx.commit().await?;
 
-        self.get_api_key(api_key.id, api_key.user_id).await
+        self.get_api_key(id, user_id).await
     }
 
     pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let tx = self.tx_manager.begin().await?;
 
-        let api_key = self.repository.find_api_key_by_id(&*tx, id).await?;
+        let api_key = self
+            .repository
+            .find_api_key_by_id(&*tx, ApiKeyFindByIdParams { id })
+            .await?;
         if api_key.user_id != user_id {
-            return Err(Error::Forbidden(api_key.id));
+            return Err(Error::Forbidden(id));
         }
 
-        self.repository.delete_api_key(&*tx, api_key.id).await?;
+        self.repository
+            .delete_api_key(&*tx, ApiKeyDeleteParams { id })
+            .await?;
 
         tx.commit().await?;
 
@@ -163,12 +178,6 @@ pub struct ApiKeyCreated {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyUpdate {
     pub title: Option<String>,
-}
-
-impl From<ApiKeyUpdate> for ApiKeyUpdateData {
-    fn from(value: ApiKeyUpdate) -> Self {
-        Self { title: value.title }
-    }
 }
 
 #[derive(Debug, Clone, Default)]

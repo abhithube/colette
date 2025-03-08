@@ -7,24 +7,17 @@ use crate::common::Transaction;
 pub trait TagRepository: Send + Sync + 'static {
     async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_tag_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<TagById, Error>;
-
-    async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error>;
-
-    async fn update_tag(
+    async fn find_tag_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
-        data: TagUpdateData,
-    ) -> Result<(), Error>;
+        params: TagFindByIdParams,
+    ) -> Result<TagById, Error>;
 
-    async fn delete_tag(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
-}
+    async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error>;
 
-#[derive(Debug, Clone, Default)]
-pub struct TagById {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    async fn update_tag(&self, tx: &dyn Transaction, params: TagUpdateParams) -> Result<(), Error>;
+
+    async fn delete_tag(&self, tx: &dyn Transaction, params: TagDeleteParams) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -39,12 +32,30 @@ pub struct TagFindParams {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TagCreateData {
+pub struct TagFindByIdParams {
+    pub id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TagById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TagCreateParams {
+    pub id: Uuid,
     pub title: String,
     pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct TagUpdateData {
+pub struct TagUpdateParams {
+    pub id: Uuid,
     pub title: Option<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct TagDeleteParams {
+    pub id: Uuid,
 }

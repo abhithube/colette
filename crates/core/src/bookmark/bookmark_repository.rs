@@ -12,27 +12,24 @@ pub trait BookmarkRepository: Send + Sync + 'static {
     async fn find_bookmark_by_id(
         &self,
         tx: &dyn Transaction,
-        id: Uuid,
+        params: BookmarkFindByIdParams,
     ) -> Result<BookmarkById, Error>;
 
-    async fn create_bookmark(&self, data: BookmarkCreateData) -> Result<Uuid, Error>;
+    async fn create_bookmark(&self, params: BookmarkCreateParams) -> Result<(), Error>;
 
     async fn update_bookmark(
         &self,
         tx: Option<&dyn Transaction>,
-        id: Uuid,
-        data: BookmarkUpdateData,
+        params: BookmarkUpdateParams,
     ) -> Result<(), Error>;
 
-    async fn delete_bookmark(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error>;
+    async fn delete_bookmark(
+        &self,
+        tx: &dyn Transaction,
+        params: BookmarkDeleteParams,
+    ) -> Result<(), Error>;
 
-    async fn save_scraped(&self, data: BookmarkScrapedData) -> Result<(), Error>;
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BookmarkById {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    async fn save_scraped(&self, params: BookmarkScrapedParams) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,8 +42,20 @@ pub struct BookmarkFindParams {
     pub cursor: Option<Cursor>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkFindByIdParams {
+    pub id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkById {
+    pub id: Uuid,
+    pub user_id: Uuid,
+}
+
 #[derive(Debug, Clone)]
-pub struct BookmarkCreateData {
+pub struct BookmarkCreateParams {
+    pub id: Uuid,
     pub url: Url,
     pub title: String,
     pub thumbnail_url: Option<Url>,
@@ -57,7 +66,8 @@ pub struct BookmarkCreateData {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct BookmarkUpdateData {
+pub struct BookmarkUpdateParams {
+    pub id: Uuid,
     pub title: Option<String>,
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
@@ -66,8 +76,13 @@ pub struct BookmarkUpdateData {
     pub tags: Option<Vec<Uuid>>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct BookmarkDeleteParams {
+    pub id: Uuid,
+}
+
 #[derive(Debug, Clone)]
-pub struct BookmarkScrapedData {
+pub struct BookmarkScrapedParams {
     pub url: Url,
     pub bookmark: ProcessedBookmark,
     pub user_id: Uuid,

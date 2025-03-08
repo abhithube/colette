@@ -6,7 +6,7 @@ use super::{Account, Error};
 pub trait AccountRepository: Send + Sync + 'static {
     async fn find_account(&self, params: AccountFindParams) -> Result<Account, Error>;
 
-    async fn create_account(&self, data: AccountCreateData) -> Result<Uuid, Error>;
+    async fn create_account(&self, params: AccountCreateParams) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -16,7 +16,8 @@ pub struct AccountFindParams {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct AccountCreateData {
+pub struct AccountCreateParams {
+    pub user_id: Uuid,
     pub email: String,
     pub display_name: Option<String>,
     pub provider_id: String,

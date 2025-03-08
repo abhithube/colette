@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
-use super::{Error, backup_repository::BackupRepository};
+use super::{Error, ImportBookmarksParams, ImportFeedsParams, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     job::Storage,
@@ -50,7 +50,10 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_feeds(opml.body.outlines, user_id)
+            .import_feeds(ImportFeedsParams {
+                outlines: opml.body.outlines,
+                user_id,
+            })
             .await?;
 
         let mut storage = self.import_feeds_storage.lock().await;
@@ -119,7 +122,10 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_bookmarks(netscape.items, user_id)
+            .import_bookmarks(ImportBookmarksParams {
+                items: netscape.items,
+                user_id,
+            })
             .await?;
 
         let mut storage = self.import_bookmarks_storage.lock().await;

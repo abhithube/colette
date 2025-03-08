@@ -13,14 +13,8 @@ pub trait SubscriptionEntryRepository: Send + Sync + 'static {
     async fn find_subscription_entry_by_id(
         &self,
         tx: &dyn Transaction,
-        feed_entry_id: Uuid,
+        params: SubscriptionEntryFindByIdParams,
     ) -> Result<SubscriptionEntryById, Error>;
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct SubscriptionEntryById {
-    pub feed_entry_id: Uuid,
-    pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -33,4 +27,15 @@ pub struct SubscriptionEntryFindParams {
     pub user_id: Option<Uuid>,
     pub limit: Option<i64>,
     pub cursor: Option<Cursor>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SubscriptionEntryFindByIdParams {
+    pub feed_entry_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SubscriptionEntryById {
+    pub feed_entry_id: Uuid,
+    pub user_id: Uuid,
 }
