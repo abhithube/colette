@@ -8,13 +8,11 @@ use colette_core::{
     },
 };
 use colette_model::{
-    FeedEntryWithRead, feed_entries, read_entries, subscription_tags, subscriptions, tags,
+    SubscriptionEntryRow, feed_entries, read_entries, subscription_tags, subscriptions, tags,
 };
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, QueryTrait,
-    prelude::Expr,
-    sea_query::{Query, SimpleExpr},
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
+    sea_query::{Alias, Expr, Order, Query, SimpleExpr},
 };
 use uuid::Uuid;
 
@@ -37,14 +35,55 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
         &self,
         params: SubscriptionEntryFindParams,
     ) -> Result<Vec<SubscriptionEntry>, Error> {
-        let mut query = feed_entries::Entity::find()
-            .find_also_related(subscriptions::Entity)
-            .and_also_related(read_entries::Entity)
+        let mut query = Query::select()
+            .columns([
+                (feed_entries::Entity, feed_entries::Column::Id),
+                (feed_entries::Entity, feed_entries::Column::Link),
+                (feed_entries::Entity, feed_entries::Column::Title),
+                (feed_entries::Entity, feed_entries::Column::PublishedAt),
+                (feed_entries::Entity, feed_entries::Column::Description),
+                (feed_entries::Entity, feed_entries::Column::Author),
+                (feed_entries::Entity, feed_entries::Column::ThumbnailUrl),
+                (feed_entries::Entity, feed_entries::Column::FeedId),
+            ])
+            .expr_as(
+                Expr::col((subscriptions::Entity, subscriptions::Column::Id)),
+                Alias::new("subscription_id"),
+            )
+            .column((subscriptions::Entity, subscriptions::Column::UserId))
+            .expr_as(
+                Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
+                    .is_not_null(),
+                Alias::new("has_read"),
+            )
+            .from(feed_entries::Entity)
+            .inner_join(
+                subscriptions::Entity,
+                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
+                    feed_entries::Entity,
+                    feed_entries::Column::FeedId,
+                ))),
+            )
+            .left_join(
+                read_entries::Entity,
+                Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
+                    .eq(Expr::col((
+                        subscriptions::Entity,
+                        subscriptions::Column::Id,
+                    )))
+                    .and(
+                        Expr::col((read_entries::Entity, read_entries::Column::FeedEntryId))
+                            .eq(Expr::col((feed_entries::Entity, feed_entries::Column::Id))),
+                    ),
+            )
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(subscriptions::Column::UserId.eq(user_id.to_string()))
+                query.and_where(
+                    Expr::col((subscriptions::Entity, subscriptions::Column::UserId))
+                        .eq(user_id.to_string()),
+                );
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(
+                query.and_where(
                     Expr::tuple([
                         Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
                         Expr::col((feed_entries::Entity, feed_entries::Column::Id)).into(),
@@ -53,18 +92,27 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
                         Expr::val(cursor.published_at.timestamp()).into(),
                         Expr::val(cursor.id.to_string()).into(),
                     ])),
-                )
+                );
             })
-            .order_by_desc(feed_entries::Column::PublishedAt)
-            .order_by_desc(subscriptions::Column::Id)
-            .limit(params.limit.map(|e| e as u64));
+            .order_by(
+                (feed_entries::Entity, feed_entries::Column::PublishedAt),
+                Order::Desc,
+            )
+            .order_by(
+                (feed_entries::Entity, feed_entries::Column::Id),
+                Order::Desc,
+            )
+            .to_owned();
 
         if let Some(filter) = params.filter {
-            query = query.filter(filter.to_sql());
+            query.and_where(filter.to_sql());
         } else {
-            query = query
+            query
                 .apply_if(params.id, |query, id| {
-                    query.filter(feed_entries::Column::Id.eq(id.to_string()))
+                    query.and_where(
+                        Expr::col((feed_entries::Entity, feed_entries::Column::Id))
+                            .eq(id.to_string()),
+                    );
                 })
                 .apply_if(params.has_read, |query, has_read| {
                     let mut subquery = Expr::exists(
@@ -95,42 +143,46 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
                         subquery = subquery.not();
                     }
 
-                    query.filter(subquery)
+                    query.and_where(subquery);
                 })
                 .apply_if(params.tags, |query, tags| {
-                    query.filter(Expr::exists(
+                    query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
                             .from(subscription_tags::Entity)
                             .and_where(
-                                Expr::col(subscription_tags::Column::SubscriptionId)
-                                    .eq(Expr::col(subscriptions::Column::Id)),
+                                Expr::col((
+                                    subscription_tags::Entity,
+                                    subscription_tags::Column::SubscriptionId,
+                                ))
+                                .eq(Expr::col((
+                                    subscriptions::Entity,
+                                    subscriptions::Column::Id,
+                                ))),
                             )
                             .and_where(
-                                subscription_tags::Column::TagId
-                                    .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
+                                Expr::col((
+                                    subscription_tags::Entity,
+                                    subscription_tags::Column::TagId,
+                                ))
+                                .is_in(tags.into_iter().map(String::from)),
                             )
                             .to_owned(),
-                    ))
+                    ));
                 });
         }
 
-        let feed_entries = query.all(&self.db).await.map(|e| {
-            e.into_iter()
-                .filter_map(|(fe, subscription, re)| {
-                    subscription.map(|subscription| {
-                        FeedEntryWithRead {
-                            fe,
-                            subscription,
-                            re,
-                        }
-                        .into()
-                    })
-                })
-                .collect()
-        })?;
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
 
-        Ok(feed_entries)
+        let subscription_entries =
+            SubscriptionEntryRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await
+                .map(|e| e.into_iter().map(Into::into).collect())?;
+
+        Ok(subscription_entries)
     }
 
     async fn find_subscription_entry_by_id(
@@ -140,22 +192,40 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
     ) -> Result<SubscriptionEntryById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((feed_entry_id, user_id)) = feed_entries::Entity::find()
-            .select_only()
-            .column(feed_entries::Column::Id)
-            .column(subscriptions::Column::UserId)
-            .inner_join(subscriptions::Entity)
-            .filter(feed_entries::Column::Id.eq(id.to_string()))
-            .into_tuple::<(String, String)>()
-            .one(tx)
+        let query = Query::select()
+            .column((feed_entries::Entity, feed_entries::Column::Id))
+            .column((subscriptions::Entity, subscriptions::Column::UserId))
+            .from(feed_entries::Entity)
+            .inner_join(
+                subscriptions::Entity,
+                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
+                    feed_entries::Entity,
+                    feed_entries::Column::FeedId,
+                ))),
+            )
+            .and_where(
+                Expr::col((feed_entries::Entity, feed_entries::Column::Id)).eq(id.to_string()),
+            )
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(SubscriptionEntryById {
-            feed_entry_id: feed_entry_id.parse().unwrap(),
-            user_id: user_id.parse().unwrap(),
+            feed_entry_id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            user_id: result
+                .try_get_by_index::<String>(1)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 }

@@ -2,11 +2,11 @@ use colette_core::{
     Feed,
     feed::{Error, FeedFindParams, FeedRepository, FeedScrapedData},
 };
-use colette_model::{feeds, subscriptions};
+use colette_model::{FeedRow, feeds};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-    TransactionTrait, prelude::Expr, sea_query::Func,
+    ConnectionTrait, DatabaseConnection, FromQueryResult, StreamTrait, TransactionTrait,
+    sea_query::{Asterisk, Expr, Func, Order, Query},
 };
 use url::Url;
 use uuid::Uuid;
@@ -27,15 +27,26 @@ impl SqliteFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
-        let feeds = feeds::Entity::find()
+        let mut query = Query::select()
+            .column(Asterisk)
+            .from(feeds::Entity)
             .apply_if(params.id, |query, id| {
-                query.filter(feeds::Column::Id.eq(id.to_string()))
+                query.and_where(Expr::col((feeds::Entity, feeds::Column::Id)).eq(id.to_string()));
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(feeds::Column::Link.gt(cursor.link.to_string()))
+                query.and_where(
+                    Expr::col((feeds::Entity, feeds::Column::Link))
+                        .gt(Expr::val(cursor.link.to_string())),
+                );
             })
-            .order_by_asc(feeds::Column::Link)
-            .limit(params.limit.map(|e| e as u64))
+            .order_by((feeds::Entity, feeds::Column::Link), Order::Asc)
+            .to_owned();
+
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
+
+        let feeds = FeedRow::find_by_statement(self.db.get_database_backend().build(&query))
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Into::into).collect())?;
@@ -55,6 +66,7 @@ impl FeedRepository for SqliteFeedRepository {
             data.feed.refreshed,
         )
         .await?;
+
         common::upsert_entries(&tx, data.feed.entries, id).await?;
 
         tx.commit().await?;
@@ -63,20 +75,19 @@ impl FeedRepository for SqliteFeedRepository {
     }
 
     async fn stream_feed_urls(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        let urls = feeds::Entity::find()
-            .select_only()
-            .expr_as(
-                Func::coalesce([
-                    Expr::col(feeds::Column::XmlUrl).into(),
-                    Expr::col(feeds::Column::Link).into(),
-                ]),
-                "url",
-            )
-            .inner_join(subscriptions::Entity)
-            .into_tuple::<String>()
-            .stream(&self.db)
+        let query = Query::select()
+            .expr(Func::coalesce([
+                Expr::col(feeds::Column::XmlUrl).into(),
+                Expr::col(feeds::Column::Link).into(),
+            ]))
+            .from(feeds::Entity)
+            .to_owned();
+
+        let urls = self
+            .db
+            .stream(self.db.get_database_backend().build(&query))
             .await?
-            .map_ok(|e| e.parse().unwrap())
+            .map_ok(|e| e.try_get_by_index::<String>(0).unwrap().parse().unwrap())
             .map_err(Error::Database)
             .boxed();
 

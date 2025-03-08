@@ -3,10 +3,10 @@ use colette_core::{
     common::Transaction,
     feed_entry::{Error, FeedEntryById, FeedEntryFindParams, FeedEntryRepository},
 };
-use colette_model::feed_entries;
+use colette_model::{FeedEntryRow, feed_entries};
 use sea_orm::{
-    ColumnTrait, DatabaseConnection, DatabaseTransaction, EntityTrait, QueryFilter, QueryOrder,
-    QuerySelect, QueryTrait, prelude::Expr,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
+    sea_query::{Asterisk, Expr, Order, Query},
 };
 use uuid::Uuid;
 
@@ -27,12 +27,11 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         &self,
         params: FeedEntryFindParams,
     ) -> Result<Vec<FeedEntry>, Error> {
-        let feed_entries = feed_entries::Entity::find()
-            .apply_if(params.id, |query, id| {
-                query.filter(feed_entries::Column::Id.eq(id.to_string()))
-            })
+        let mut query = Query::select()
+            .column(Asterisk)
+            .from(feed_entries::Entity)
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(
+                query.and_where(
                     Expr::tuple([
                         Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
                         Expr::col((feed_entries::Entity, feed_entries::Column::Id)).into(),
@@ -41,14 +40,27 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
                         Expr::val(cursor.published_at.timestamp()).into(),
                         Expr::val(cursor.id.to_string()).into(),
                     ])),
-                )
+                );
             })
-            .order_by_desc(feed_entries::Column::PublishedAt)
-            .order_by_desc(feed_entries::Column::Id)
-            .limit(params.limit.map(|e| e as u64))
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())?;
+            .order_by(
+                (feed_entries::Entity, feed_entries::Column::PublishedAt),
+                Order::Desc,
+            )
+            .order_by(
+                (feed_entries::Entity, feed_entries::Column::Id),
+                Order::Desc,
+            )
+            .to_owned();
+
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
+
+        let feed_entries =
+            FeedEntryRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await
+                .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(feed_entries)
     }
@@ -60,19 +72,27 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
     ) -> Result<FeedEntryById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some(id) = feed_entries::Entity::find()
-            .select_only()
-            .columns([feed_entries::Column::Id])
-            .filter(feed_entries::Column::Id.eq(id.to_string()))
-            .into_tuple::<String>()
-            .one(tx)
+        let query = Query::select()
+            .column((feed_entries::Entity, feed_entries::Column::Id))
+            .from(feed_entries::Entity)
+            .and_where(
+                Expr::col((feed_entries::Entity, feed_entries::Column::Id)).eq(id.to_string()),
+            )
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(FeedEntryById {
-            id: id.parse().unwrap(),
+            id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 }

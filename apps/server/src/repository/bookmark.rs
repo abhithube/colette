@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use colette_core::{
     Bookmark,
     bookmark::{
@@ -6,12 +8,13 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::{BookmarkWithTags, bookmark_tags, bookmarks, tags};
+use colette_model::{
+    BookmarkRow, BookmarkRowWithTagRows, BookmarkTagRow, bookmark_tags, bookmarks, tags,
+};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait, TransactionTrait,
-    prelude::Expr,
-    sea_query::{Query, SimpleExpr},
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
+    TransactionTrait,
+    sea_query::{Expr, OnConflict, Order, Query, SimpleExpr},
 };
 use uuid::Uuid;
 
@@ -31,55 +34,124 @@ impl SqliteBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
-        let mut query = bookmarks::Entity::find()
+        let mut query = Query::select()
+            .columns([
+                (bookmarks::Entity, bookmarks::Column::Id),
+                (bookmarks::Entity, bookmarks::Column::Link),
+                (bookmarks::Entity, bookmarks::Column::Title),
+                (bookmarks::Entity, bookmarks::Column::ThumbnailUrl),
+                (bookmarks::Entity, bookmarks::Column::PublishedAt),
+                (bookmarks::Entity, bookmarks::Column::Author),
+                (bookmarks::Entity, bookmarks::Column::ArchivedPath),
+                (bookmarks::Entity, bookmarks::Column::UserId),
+                (bookmarks::Entity, bookmarks::Column::CreatedAt),
+                (bookmarks::Entity, bookmarks::Column::UpdatedAt),
+            ])
+            .from(bookmarks::Entity)
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(bookmarks::Column::UserId.eq(user_id.to_string()))
+                query.and_where(
+                    Expr::col((bookmarks::Entity, bookmarks::Column::UserId))
+                        .eq(user_id.to_string()),
+                );
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(bookmarks::Column::CreatedAt.gt(cursor.created_at.timestamp()))
+                query.and_where(
+                    Expr::col((bookmarks::Entity, bookmarks::Column::CreatedAt))
+                        .lt(Expr::val(cursor.created_at.timestamp())),
+                );
             })
-            .order_by_asc(bookmarks::Column::CreatedAt)
-            .limit(params.limit.map(|e| e as u64));
+            .order_by(
+                (bookmarks::Entity, bookmarks::Column::CreatedAt),
+                Order::Desc,
+            )
+            .to_owned();
 
         if let Some(filter) = params.filter {
-            query = query.filter(filter.to_sql());
+            query.and_where(filter.to_sql());
         } else {
-            query = query
+            query
                 .apply_if(params.id, |query, id| {
-                    query.filter(bookmarks::Column::Id.eq(id.to_string()))
+                    query.and_where(
+                        Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(id.to_string()),
+                    );
                 })
                 .apply_if(params.tags, |query, tags| {
-                    query.filter(Expr::exists(
+                    query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
                             .from(bookmark_tags::Entity)
                             .and_where(
-                                Expr::col(bookmark_tags::Column::BookmarkId)
-                                    .eq(Expr::col(bookmarks::Column::Id)),
+                                Expr::col((
+                                    bookmark_tags::Entity,
+                                    bookmark_tags::Column::BookmarkId,
+                                ))
+                                .eq(Expr::col((bookmarks::Entity, bookmarks::Column::Id))),
                             )
                             .and_where(
-                                bookmark_tags::Column::TagId
-                                    .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
+                                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::TagId))
+                                    .is_in(tags.into_iter().map(String::from)),
                             )
                             .to_owned(),
-                    ))
-                })
+                    ));
+                });
         }
 
-        let bookmark_models = query.all(&self.db).await?;
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
 
-        let tag_models = bookmark_models
-            .load_many_to_many(
-                tags::Entity::find().order_by_asc(tags::Column::Title),
-                bookmark_tags::Entity,
-                &self.db,
+        let bookmark_rows =
+            BookmarkRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await?;
+
+        let query = Query::select()
+            .column((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
+            .columns([
+                (tags::Entity, tags::Column::Id),
+                (tags::Entity, tags::Column::Title),
+                (tags::Entity, tags::Column::CreatedAt),
+                (tags::Entity, tags::Column::UpdatedAt),
+                (tags::Entity, tags::Column::UserId),
+            ])
+            .from(bookmark_tags::Entity)
+            .inner_join(
+                tags::Entity,
+                Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
+                    bookmark_tags::Entity,
+                    bookmark_tags::Column::TagId,
+                ))),
             )
-            .await?;
+            .and_where(
+                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
+                    .is_in(bookmark_rows.iter().map(|e| e.id.as_str())),
+            )
+            .order_by((tags::Entity, tags::Column::Title), Order::Asc)
+            .to_owned();
 
-        let bookmarks = bookmark_models
+        let tag_rows =
+            BookmarkTagRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await?;
+
+        let mut tag_row_map = HashMap::<String, Vec<BookmarkTagRow>>::new();
+
+        for row in tag_rows {
+            tag_row_map
+                .entry(row.bookmark_id.clone())
+                .or_default()
+                .push(row);
+        }
+
+        let bookmarks = bookmark_rows
             .into_iter()
-            .zip(tag_models.into_iter())
-            .map(|(bookmark, tags)| BookmarkWithTags { bookmark, tags }.into())
+            .map(|bookmark| {
+                BookmarkRowWithTagRows {
+                    tags: tag_row_map.remove(&bookmark.id),
+                    bookmark,
+                }
+                .into()
+            })
             .collect();
 
         Ok(bookmarks)
@@ -92,20 +164,31 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<BookmarkById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((id, user_id)) = bookmarks::Entity::find()
-            .select_only()
-            .columns([bookmarks::Column::Id, bookmarks::Column::UserId])
-            .filter(bookmarks::Column::Id.eq(id.to_string()))
-            .into_tuple::<(String, String)>()
-            .one(tx)
+        let query = Query::select()
+            .column((bookmarks::Entity, bookmarks::Column::Id))
+            .column((bookmarks::Entity, bookmarks::Column::UserId))
+            .from(bookmarks::Entity)
+            .and_where(Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(id.to_string()))
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(BookmarkById {
-            id: id.parse().unwrap(),
-            user_id: user_id.parse().unwrap(),
+            id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            user_id: result
+                .try_get_by_index::<String>(1)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 
@@ -113,21 +196,35 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         let tx = self.db.begin().await?;
 
         let id = Uuid::new_v4();
-        let user_id = data.user_id.to_string();
-        let model = bookmarks::ActiveModel {
-            id: ActiveValue::Set(id.into()),
-            link: ActiveValue::Set(data.url.to_string()),
-            title: ActiveValue::Set(data.title.clone()),
-            thumbnail_url: ActiveValue::Set(data.thumbnail_url.map(Into::into)),
-            published_at: ActiveValue::Set(data.published_at.map(|e| e.timestamp() as i32)),
-            author: ActiveValue::Set(data.author),
-            user_id: ActiveValue::Set(user_id.clone()),
-            ..Default::default()
-        };
-        model.insert(&tx).await.map_err(|e| match e {
-            DbErr::RecordNotInserted => Error::Conflict(data.url),
-            _ => Error::Database(e),
-        })?;
+
+        let query = Query::insert()
+            .into_table(bookmarks::Entity)
+            .columns([
+                bookmarks::Column::Id,
+                bookmarks::Column::Link,
+                bookmarks::Column::Title,
+                bookmarks::Column::ThumbnailUrl,
+                bookmarks::Column::PublishedAt,
+                bookmarks::Column::Author,
+                bookmarks::Column::UserId,
+            ])
+            .values_panic([
+                id.to_string().into(),
+                data.url.to_string().into(),
+                data.title.into(),
+                data.thumbnail_url.map(String::from).into(),
+                data.published_at.map(|e| e.timestamp()).into(),
+                data.author.into(),
+                data.user_id.to_string().into(),
+            ])
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await
+            .map_err(|e| match e {
+                DbErr::RecordNotInserted => Error::Conflict(data.url),
+                _ => Error::Database(e),
+            })?;
 
         if let Some(tags) = data.tags {
             link_tags(&tx, tags, id, data.user_id).await?;
@@ -146,33 +243,48 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<(), Error> {
         let tx = tx.map(|e| e.as_any().downcast_ref::<DatabaseTransaction>().unwrap());
 
-        let mut model = bookmarks::ActiveModel {
-            id: ActiveValue::Unchanged(id.to_string()),
-            ..Default::default()
-        };
+        if data.title.is_none()
+            && data.thumbnail_url.is_none()
+            && data.published_at.is_none()
+            && data.author.is_none()
+            && data.archived_path.is_none()
+        {
+            return Ok(());
+        }
+
+        let mut query = Query::update()
+            .table(bookmarks::Entity)
+            .and_where(Expr::col(bookmarks::Column::Id).eq(id.to_string()))
+            .to_owned();
 
         if let Some(title) = data.title {
-            model.title = ActiveValue::Set(title);
+            query.value(bookmarks::Column::Title, title);
         }
         if let Some(thumbnail_url) = data.thumbnail_url {
-            model.thumbnail_url = ActiveValue::Set(thumbnail_url.map(Into::into));
+            query.value(
+                bookmarks::Column::ThumbnailUrl,
+                thumbnail_url.map(String::from),
+            );
         }
         if let Some(published_at) = data.published_at {
-            model.published_at = ActiveValue::Set(published_at.map(|e| e.timestamp() as i32));
+            query.value(
+                bookmarks::Column::ThumbnailUrl,
+                published_at.map(|e| e.timestamp()),
+            );
         }
         if let Some(author) = data.author {
-            model.author = ActiveValue::Set(author);
+            query.value(bookmarks::Column::Author, author);
         }
         if let Some(archived_path) = data.archived_path {
-            model.archived_path = ActiveValue::Set(archived_path);
+            query.value(bookmarks::Column::ArchivedPath, archived_path);
         }
 
-        if model.is_changed() {
-            if let Some(tx) = tx {
-                model.update(tx).await?;
-            } else {
-                model.update(&self.db).await?;
-            }
+        let statement = self.db.get_database_backend().build(&query);
+
+        if let Some(tx) = tx {
+            tx.execute(statement).await?;
+        } else {
+            self.db.execute(statement).await?;
         }
 
         // if let Some(tags) = data.tags {
@@ -185,7 +297,13 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     async fn delete_bookmark(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        bookmarks::Entity::delete_by_id(id).exec(tx).await?;
+        let query = Query::delete()
+            .from_table(bookmarks::Entity)
+            .and_where(Expr::col(bookmarks::Column::Id).eq(id.to_string()))
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(())
     }
@@ -216,21 +334,40 @@ async fn link_tags(
     let user_id = user_id.to_string();
     let tag_ids = tags.iter().map(|e| e.to_string());
 
-    bookmark_tags::Entity::delete_many()
-        .filter(bookmark_tags::Column::TagId.is_not_in(tag_ids.clone()))
-        .exec(tx)
-        .await?;
+    let query = Query::delete()
+        .from_table(bookmark_tags::Entity)
+        .and_where(Expr::col(bookmark_tags::Column::BookmarkId).eq(bookmark_id.as_str()))
+        .and_where(Expr::col(bookmark_tags::Column::TagId).is_not_in(tag_ids.clone()))
+        .to_owned();
 
-    let models = tag_ids.map(|e| bookmark_tags::ActiveModel {
-        bookmark_id: ActiveValue::Set(bookmark_id.clone()),
-        tag_id: ActiveValue::Set(e),
-        user_id: ActiveValue::Set(user_id.clone()),
-        ..Default::default()
-    });
-    bookmark_tags::Entity::insert_many(models)
-        .on_conflict_do_nothing()
-        .exec(tx)
-        .await?;
+    tx.execute(tx.get_database_backend().build(&query)).await?;
+
+    let mut query = Query::insert()
+        .into_table(bookmark_tags::Entity)
+        .columns([
+            bookmark_tags::Column::BookmarkId,
+            bookmark_tags::Column::TagId,
+            bookmark_tags::Column::UserId,
+        ])
+        .on_conflict(
+            OnConflict::columns([
+                bookmark_tags::Column::BookmarkId,
+                bookmark_tags::Column::TagId,
+            ])
+            .do_nothing()
+            .to_owned(),
+        )
+        .to_owned();
+
+    for tag_id in tag_ids {
+        query.values_panic([
+            bookmark_id.clone().into(),
+            tag_id.into(),
+            user_id.clone().into(),
+        ]);
+    }
+
+    tx.execute(tx.get_database_backend().build(&query)).await?;
 
     Ok(())
 }

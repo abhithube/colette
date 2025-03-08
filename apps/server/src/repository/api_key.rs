@@ -6,10 +6,10 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::api_keys;
+use colette_model::{ApiKeyRow, api_keys};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction,
-    EntityTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
+    sea_query::{Asterisk, Expr, Order, Query},
 };
 use uuid::Uuid;
 
@@ -27,18 +27,33 @@ impl SqliteApiKeyRepository {
 #[async_trait::async_trait]
 impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
-        let api_keys = api_keys::Entity::find()
+        let mut query = Query::select()
+            .column(Asterisk)
+            .from(api_keys::Entity)
             .apply_if(params.id, |query, id| {
-                query.filter(api_keys::Column::Id.eq(id.to_string()))
+                query.and_where(
+                    Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(id.to_string()),
+                );
             })
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(api_keys::Column::UserId.eq(user_id.to_string()))
+                query.and_where(
+                    Expr::col((api_keys::Entity, api_keys::Column::UserId)).eq(user_id.to_string()),
+                );
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(api_keys::Column::CreatedAt.gt(cursor.created_at.to_rfc3339()))
+                query.and_where(
+                    Expr::col((api_keys::Entity, api_keys::Column::CreatedAt))
+                        .gt(Expr::val(cursor.created_at.timestamp())),
+                );
             })
-            .order_by_asc(api_keys::Column::CreatedAt)
-            .limit(params.limit.map(|e| e as u64))
+            .order_by((api_keys::Entity, api_keys::Column::CreatedAt), Order::Asc)
+            .to_owned();
+
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
+
+        let api_keys = ApiKeyRow::find_by_statement(self.db.get_database_backend().build(&query))
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Into::into).collect())?;
@@ -53,36 +68,59 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     ) -> Result<ApiKeyById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((id, user_id)) = api_keys::Entity::find()
-            .select_only()
-            .columns([api_keys::Column::Id, api_keys::Column::UserId])
-            .filter(api_keys::Column::Id.eq(id.to_string()))
-            .into_tuple::<(String, String)>()
-            .one(tx)
+        let query = Query::select()
+            .column((api_keys::Entity, api_keys::Column::Id))
+            .column((api_keys::Entity, api_keys::Column::UserId))
+            .from(api_keys::Entity)
+            .and_where(Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(id.to_string()))
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(ApiKeyById {
-            id: id.parse().unwrap(),
-            user_id: user_id.parse().unwrap(),
+            id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            user_id: result
+                .try_get_by_index::<String>(1)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 
     async fn create_api_key(&self, data: ApiKeyCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
 
-        let api_key = api_keys::ActiveModel {
-            id: ActiveValue::Set(id.into()),
-            lookup_hash: ActiveValue::Set(data.lookup_hash),
-            verification_hash: ActiveValue::Set(data.verification_hash),
-            title: ActiveValue::Set(data.title),
-            preview: ActiveValue::Set(data.preview),
-            user_id: ActiveValue::Set(data.user_id.into()),
-            ..Default::default()
-        };
-        api_key.insert(&self.db).await?;
+        let query = Query::insert()
+            .columns([
+                api_keys::Column::Id,
+                api_keys::Column::LookupHash,
+                api_keys::Column::VerificationHash,
+                api_keys::Column::Title,
+                api_keys::Column::Preview,
+                api_keys::Column::UserId,
+            ])
+            .values_panic([
+                id.to_string().into(),
+                data.lookup_hash.into(),
+                data.verification_hash.into(),
+                data.title.into(),
+                data.preview.into(),
+                data.user_id.to_string().into(),
+            ])
+            .to_owned();
+
+        self.db
+            .execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(id)
     }
@@ -95,18 +133,21 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let mut model = api_keys::ActiveModel {
-            id: ActiveValue::Unchanged(id.into()),
-            ..Default::default()
-        };
+        if data.title.is_none() {
+            return Ok(());
+        }
+
+        let mut query = Query::update()
+            .table(api_keys::Entity)
+            .and_where(Expr::col(api_keys::Column::Id).eq(id.to_string()))
+            .to_owned();
 
         if let Some(title) = data.title {
-            model.title = ActiveValue::Set(title);
+            query.value(api_keys::Column::Title, title);
         }
 
-        if model.is_changed() {
-            model.update(tx).await?;
-        }
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(())
     }
@@ -114,7 +155,13 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn delete_api_key(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        api_keys::Entity::delete_by_id(id).exec(tx).await?;
+        let query = Query::delete()
+            .from_table(api_keys::Entity)
+            .and_where(Expr::col(api_keys::Column::Id).eq(id.to_string()))
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(())
     }
@@ -123,12 +170,23 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         &self,
         params: ApiKeySearchParams,
     ) -> Result<Option<ApiKeySearched>, Error> {
-        let api_key = api_keys::Entity::find()
-            .filter(api_keys::Column::LookupHash.eq(params.lookup_hash))
-            .one(&self.db)
-            .await
-            .map(|e| e.map(Into::into))?;
+        let query = Query::select()
+            .column((api_keys::Entity, api_keys::Column::VerificationHash))
+            .column((api_keys::Entity, api_keys::Column::UserId))
+            .from(api_keys::Entity)
+            .and_where(
+                Expr::col((api_keys::Entity, api_keys::Column::LookupHash)).eq(params.lookup_hash),
+            )
+            .to_owned();
 
-        Ok(api_key)
+        let result = self
+            .db
+            .query_one(self.db.get_database_backend().build(&query))
+            .await?;
+
+        Ok(result.map(|e| ApiKeySearched {
+            verification_hash: e.try_get_by_index::<String>(0).unwrap(),
+            user_id: e.try_get_by_index::<String>(1).unwrap().parse().unwrap(),
+        }))
     }
 }

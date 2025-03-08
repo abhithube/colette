@@ -2,8 +2,11 @@ use colette_core::{
     User,
     user::{Error, UserFindParams, UserRepository},
 };
-use colette_model::users;
-use sea_orm::{DatabaseConnection, EntityTrait};
+use colette_model::{UserRow, users};
+use sea_orm::{
+    ConnectionTrait, DatabaseConnection, FromQueryResult,
+    sea_query::{Asterisk, Expr, Query},
+};
 
 #[derive(Debug, Clone)]
 pub struct SqliteUserRepository {
@@ -19,7 +22,13 @@ impl SqliteUserRepository {
 #[async_trait::async_trait]
 impl UserRepository for SqliteUserRepository {
     async fn find_user(&self, params: UserFindParams) -> Result<User, Error> {
-        let Some(model) = users::Entity::find_by_id(params.id.to_string())
+        let query = Query::select()
+            .column(Asterisk)
+            .from(users::Entity)
+            .and_where(Expr::col(users::Column::Id).eq(params.id.to_string()))
+            .to_owned();
+
+        let Some(model) = UserRow::find_by_statement(self.db.get_database_backend().build(&query))
             .one(&self.db)
             .await?
         else {

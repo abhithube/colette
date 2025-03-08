@@ -1,8 +1,8 @@
 use colette_core::backup::{BackupRepository, Error};
 use colette_model::{bookmark_tags, subscription_tags, subscriptions};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
-    TransactionTrait,
+    ConnectionTrait, DatabaseConnection, TransactionTrait,
+    sea_query::{OnConflict, Query},
 };
 use uuid::Uuid;
 
@@ -53,41 +53,64 @@ impl BackupRepository for SqliteBackupRepository {
                 )
                 .await?;
 
-                let subscription_id = {
-                    let subscription = subscriptions::Entity::find()
-                        .filter(subscriptions::Column::FeedId.eq(feed_id.to_string()))
-                        .filter(subscriptions::Column::UserId.eq(user_id.to_string()))
-                        .one(&tx)
-                        .await?;
+                let subscription_id: String = {
+                    let query = Query::insert()
+                        .into_table(subscriptions::Entity)
+                        .columns([
+                            subscriptions::Column::Id,
+                            subscriptions::Column::Title,
+                            subscriptions::Column::FeedId,
+                            subscriptions::Column::UserId,
+                        ])
+                        .values_panic([
+                            Uuid::new_v4().to_string().into(),
+                            title.clone().into(),
+                            feed_id.to_string().into(),
+                            user_id.to_string().into(),
+                        ])
+                        .on_conflict(
+                            OnConflict::columns([
+                                subscriptions::Column::UserId,
+                                subscriptions::Column::FeedId,
+                            ])
+                            .update_column(subscriptions::Column::Title)
+                            .to_owned(),
+                        )
+                        .returning_col(subscriptions::Column::Id)
+                        .to_owned();
 
-                    match subscription {
-                        Some(tag) => tag.id.parse().unwrap(),
-                        _ => {
-                            let id = Uuid::new_v4();
-                            let subscription = subscriptions::ActiveModel {
-                                id: ActiveValue::Set(id.into()),
-                                title: ActiveValue::Set(title),
-                                feed_id: ActiveValue::Set(feed_id.into()),
-                                user_id: ActiveValue::Set(user_id.into()),
-                                ..Default::default()
-                            };
-                            subscription.insert(&tx).await?;
+                    let result = tx
+                        .query_one(self.db.get_database_backend().build(&query))
+                        .await?
+                        .unwrap();
 
-                            id
-                        }
-                    }
+                    result.try_get_by_index::<String>(0).unwrap()
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let subscription_tag = subscription_tags::ActiveModel {
-                        subscription_id: ActiveValue::Set(subscription_id.into()),
-                        tag_id: ActiveValue::Set(tag_id.into()),
-                        user_id: ActiveValue::Set(user_id.into()),
-                        ..Default::default()
-                    };
-                    subscription_tags::Entity::insert(subscription_tag)
-                        .on_conflict_do_nothing()
-                        .exec(&tx)
+                    let query = Query::insert()
+                        .into_table(subscription_tags::Entity)
+                        .columns([
+                            subscription_tags::Column::SubscriptionId,
+                            subscription_tags::Column::TagId,
+                            subscription_tags::Column::UserId,
+                        ])
+                        .values_panic([
+                            subscription_id.into(),
+                            tag_id.to_string().into(),
+                            user_id.to_string().into(),
+                        ])
+                        .on_conflict(
+                            OnConflict::columns([
+                                subscription_tags::Column::SubscriptionId,
+                                subscription_tags::Column::TagId,
+                            ])
+                            .do_nothing()
+                            .to_owned(),
+                        )
+                        .to_owned();
+
+                    tx.execute(self.db.get_database_backend().build(&query))
                         .await?;
                 }
             }
@@ -128,16 +151,29 @@ impl BackupRepository for SqliteBackupRepository {
                 .await?;
 
                 if let Some(tag_id) = parent_id {
-                    let bookmark_tag = bookmark_tags::ActiveModel {
-                        bookmark_id: ActiveValue::Set(bookmark_id.into()),
-                        tag_id: ActiveValue::Set(tag_id.into()),
-                        user_id: ActiveValue::Set(user_id.into()),
-                        ..Default::default()
-                    };
+                    let query = Query::insert()
+                        .into_table(bookmark_tags::Entity)
+                        .columns([
+                            bookmark_tags::Column::BookmarkId,
+                            bookmark_tags::Column::TagId,
+                            bookmark_tags::Column::UserId,
+                        ])
+                        .values_panic([
+                            bookmark_id.to_string().into(),
+                            tag_id.to_string().into(),
+                            user_id.to_string().into(),
+                        ])
+                        .on_conflict(
+                            OnConflict::columns([
+                                bookmark_tags::Column::BookmarkId,
+                                bookmark_tags::Column::TagId,
+                            ])
+                            .do_nothing()
+                            .to_owned(),
+                        )
+                        .to_owned();
 
-                    bookmark_tags::Entity::insert(bookmark_tag)
-                        .on_conflict_do_nothing()
-                        .exec(&tx)
+                    tx.execute(self.db.get_database_backend().build(&query))
                         .await?;
                 }
             }

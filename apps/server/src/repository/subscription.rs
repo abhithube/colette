@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use colette_core::{
     Subscription,
     common::Transaction,
@@ -8,15 +10,13 @@ use colette_core::{
     },
 };
 use colette_model::{
-    SubscriptionWithTagsAndCount, feed_entries, feeds, read_entries, subscription_tags,
-    subscriptions, tags,
+    SubscriptionRow, SubscriptionTagRow, SubscriptionWithTagsAndCount, feed_entries, feeds,
+    read_entries, subscription_tags, subscriptions, tags,
 };
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, IntoSimpleExpr, LoaderTrait, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
     TransactionTrait,
-    prelude::Expr,
-    sea_query::{Func, Query},
+    sea_query::{Alias, Expr, Func, OnConflict, Order, Query},
 };
 use uuid::Uuid;
 
@@ -37,72 +37,167 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         &self,
         params: SubscriptionFindParams,
     ) -> Result<Vec<Subscription>, Error> {
-        let models = subscriptions::Entity::find()
-            .find_also_related(feeds::Entity)
+        let mut query = Query::select()
+            .columns([
+                (subscriptions::Entity, subscriptions::Column::Id),
+                (subscriptions::Entity, subscriptions::Column::Title),
+                (subscriptions::Entity, subscriptions::Column::UserId),
+                (subscriptions::Entity, subscriptions::Column::CreatedAt),
+                (subscriptions::Entity, subscriptions::Column::UpdatedAt),
+            ])
+            .columns([
+                (feeds::Entity, feeds::Column::Link),
+                (feeds::Entity, feeds::Column::XmlUrl),
+                (feeds::Entity, feeds::Column::Description),
+                (feeds::Entity, feeds::Column::RefreshedAt),
+            ])
+            .expr_as(
+                Expr::col((feeds::Entity, feeds::Column::Id)),
+                Alias::new("feed_id"),
+            )
+            .expr_as(
+                Expr::col((feeds::Entity, feeds::Column::Title)),
+                Alias::new("feed_title"),
+            )
+            .from(subscriptions::Entity)
+            .inner_join(
+                feeds::Entity,
+                Expr::col((feeds::Entity, feeds::Column::Id)).eq(Expr::col((
+                    subscriptions::Entity,
+                    subscriptions::Column::FeedId,
+                ))),
+            )
             .apply_if(params.id, |query, id| {
-                query.filter(subscriptions::Column::Id.eq(id.to_string()))
+                query.and_where(
+                    Expr::col((subscriptions::Entity, subscriptions::Column::Id))
+                        .eq(id.to_string()),
+                );
             })
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(subscriptions::Column::UserId.eq(user_id.to_string()))
+                query.and_where(
+                    Expr::col((subscriptions::Entity, subscriptions::Column::UserId))
+                        .eq(user_id.to_string()),
+                );
+            })
+            .apply_if(params.tags, |query, tags| {
+                query.and_where(Expr::exists(
+                    Query::select()
+                        .expr(Expr::val(1))
+                        .from(subscription_tags::Entity)
+                        .and_where(
+                            Expr::col((
+                                subscription_tags::Entity,
+                                subscription_tags::Column::SubscriptionId,
+                            ))
+                            .eq(Expr::col((
+                                subscriptions::Entity,
+                                subscriptions::Column::Id,
+                            ))),
+                        )
+                        .and_where(
+                            Expr::col((
+                                subscription_tags::Entity,
+                                subscription_tags::Column::TagId,
+                            ))
+                            .is_in(tags.into_iter().map(String::from)),
+                        )
+                        .to_owned(),
+                ));
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(
+                query.and_where(
                     Expr::tuple([
-                        subscriptions::Column::Title.into_simple_expr(),
-                        subscriptions::Column::Id.into_simple_expr(),
+                        Expr::col(subscriptions::Column::Title).into(),
+                        Expr::col(subscriptions::Column::Id).into(),
                     ])
                     .gt(Expr::tuple([
                         Expr::value(cursor.title),
                         Expr::value(cursor.id.to_string()),
                     ])),
-                )
+                );
             })
-            .apply_if(params.tags, |query, tags| {
-                query.filter(Expr::exists(
-                    Query::select()
-                        .expr(Expr::val(1))
-                        .from(subscription_tags::Entity)
-                        .and_where(
-                            Expr::col(subscription_tags::Column::SubscriptionId)
-                                .eq(Expr::col(subscriptions::Column::Id)),
-                        )
-                        .and_where(
-                            subscription_tags::Column::TagId
-                                .is_in(tags.into_iter().map(String::from).collect::<Vec<_>>()),
-                        )
-                        .to_owned(),
-                ))
-            })
-            .order_by_asc(subscriptions::Column::Title)
-            .order_by_asc(subscriptions::Column::Id)
-            .limit(params.limit.map(|e| e as u64))
-            .all(&self.db)
-            .await?;
-
-        let (subscription_models, feed_models): (Vec<_>, Vec<_>) = models
-            .into_iter()
-            .filter_map(|(subscription, feed)| feed.map(|f| (subscription, f)))
-            .unzip();
-
-        let tag_models = subscription_models
-            .load_many_to_many(
-                tags::Entity::find().order_by_asc(tags::Column::Title),
-                subscription_tags::Entity,
-                &self.db,
+            .order_by(
+                (subscriptions::Entity, subscriptions::Column::Title),
+                Order::Asc,
             )
-            .await?;
+            .order_by(
+                (subscriptions::Entity, subscriptions::Column::Id),
+                Order::Asc,
+            )
+            .to_owned();
 
-        let unread_counts = feed_entries::Entity::find()
-            .select_only()
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
+
+        let subscription_rows =
+            SubscriptionRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await?;
+
+        let query = Query::select()
+            .column((
+                subscription_tags::Entity,
+                subscription_tags::Column::SubscriptionId,
+            ))
+            .columns([
+                (tags::Entity, tags::Column::Id),
+                (tags::Entity, tags::Column::Title),
+                (tags::Entity, tags::Column::CreatedAt),
+                (tags::Entity, tags::Column::UpdatedAt),
+                (tags::Entity, tags::Column::UserId),
+            ])
+            .from(subscription_tags::Entity)
+            .inner_join(
+                tags::Entity,
+                Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
+                    subscription_tags::Entity,
+                    subscription_tags::Column::TagId,
+                ))),
+            )
+            .and_where(
+                Expr::col((
+                    subscription_tags::Entity,
+                    subscription_tags::Column::SubscriptionId,
+                ))
+                .is_in(subscription_rows.iter().map(|e| e.id.as_str())),
+            )
+            .order_by((tags::Entity, tags::Column::Title), Order::Asc)
+            .to_owned();
+
+        let tag_rows =
+            SubscriptionTagRow::find_by_statement(self.db.get_database_backend().build(&query))
+                .all(&self.db)
+                .await?;
+
+        let mut tag_row_map = HashMap::<String, Vec<SubscriptionTagRow>>::new();
+
+        for row in tag_rows {
+            tag_row_map
+                .entry(row.subscription_id.clone())
+                .or_default()
+                .push(row);
+        }
+
+        let query = Query::select()
+            .column((subscriptions::Entity, subscriptions::Column::Id))
             .expr(Func::count(Expr::col((
                 feed_entries::Entity,
                 feed_entries::Column::Id,
             ))))
-            .inner_join(subscriptions::Entity)
-            .filter(
-                subscriptions::Column::Id.is_in(subscription_models.iter().map(|e| e.id.as_str())),
+            .from(feed_entries::Entity)
+            .inner_join(
+                subscriptions::Entity,
+                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
+                    feed_entries::Entity,
+                    feed_entries::Column::FeedId,
+                ))),
             )
-            .filter(
+            .and_where(
+                Expr::col((subscriptions::Entity, subscriptions::Column::Id))
+                    .is_in(subscription_rows.iter().map(|e| e.id.as_str())),
+            )
+            .and_where(
                 Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
@@ -122,22 +217,29 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                 )
                 .not(),
             )
-            .group_by(subscriptions::Column::Id)
-            .into_tuple::<i64>()
-            .all(&self.db)
+            .group_by_col((subscriptions::Entity, subscriptions::Column::Id))
+            .to_owned();
+
+        let mut unread_count_map = HashMap::<String, i64>::new();
+
+        let results = self
+            .db
+            .query_all(self.db.get_database_backend().build(&query))
             .await?;
 
-        let subscriptions = subscription_models
+        for row in results {
+            unread_count_map
+                .entry(row.try_get_by_index(0).unwrap())
+                .insert_entry(row.try_get_by_index(1).unwrap());
+        }
+
+        let subscriptions = subscription_rows
             .into_iter()
-            .zip(feed_models.into_iter())
-            .zip(unread_counts.into_iter())
-            .zip(tag_models.into_iter())
-            .map(|(((subscription, feed), unread_count), tags)| {
+            .map(|subscription| {
                 SubscriptionWithTagsAndCount {
+                    tags: tag_row_map.remove(&subscription.id),
+                    unread_count: unread_count_map.remove(&subscription.id),
                     subscription,
-                    feed,
-                    tags,
-                    unread_count,
                 }
                 .into()
             })
@@ -153,20 +255,33 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
     ) -> Result<SubscriptionById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((id, user_id)) = subscriptions::Entity::find()
-            .select_only()
-            .columns([subscriptions::Column::Id, subscriptions::Column::UserId])
-            .filter(subscriptions::Column::Id.eq(id.to_string()))
-            .into_tuple::<(String, String)>()
-            .one(tx)
+        let query = Query::select()
+            .column((subscriptions::Entity, subscriptions::Column::Id))
+            .column((subscriptions::Entity, subscriptions::Column::UserId))
+            .from(subscriptions::Entity)
+            .and_where(
+                Expr::col((subscriptions::Entity, subscriptions::Column::Id)).eq(id.to_string()),
+            )
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(SubscriptionById {
-            id: id.parse().unwrap(),
-            user_id: user_id.parse().unwrap(),
+            id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            user_id: result
+                .try_get_by_index::<String>(1)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 
@@ -174,17 +289,30 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         let tx = self.db.begin().await?;
 
         let id = Uuid::new_v4();
-        let model = subscriptions::ActiveModel {
-            id: ActiveValue::Set(id.into()),
-            title: ActiveValue::Set(data.title),
-            user_id: ActiveValue::Set(data.user_id.into()),
-            feed_id: ActiveValue::Set(data.feed_id.into()),
-            ..Default::default()
-        };
-        model.insert(&tx).await.map_err(|e| match e {
-            DbErr::RecordNotInserted => Error::Conflict(data.feed_id),
-            _ => Error::Database(e),
-        })?;
+
+        let query = Query::insert()
+            .into_table(subscriptions::Entity)
+            .columns([
+                subscriptions::Column::Id,
+                subscriptions::Column::Title,
+                subscriptions::Column::FeedId,
+                subscriptions::Column::UserId,
+            ])
+            .values_panic([
+                id.to_string().into(),
+                data.title.clone().into(),
+                data.feed_id.to_string().into(),
+                data.user_id.to_string().into(),
+            ])
+            .to_owned();
+
+        self.db
+            .execute(self.db.get_database_backend().build(&query))
+            .await
+            .map_err(|e| match e {
+                DbErr::RecordNotInserted => Error::Conflict(data.feed_id),
+                _ => Error::Database(e),
+            })?;
 
         if let Some(tags) = data.tags {
             link_tags(&tx, tags, id, data.user_id).await?;
@@ -203,18 +331,21 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let mut model = subscriptions::ActiveModel {
-            id: ActiveValue::Set(id.to_string()),
-            ..Default::default()
-        };
+        if data.title.is_none() && data.tags.is_none() {
+            return Ok(());
+        }
+
+        let mut query = Query::update()
+            .table(subscriptions::Entity)
+            .and_where(Expr::col(subscriptions::Column::Id).eq(id.to_string()))
+            .to_owned();
 
         if let Some(title) = data.title {
-            model.title = ActiveValue::Set(title);
+            query.value(subscriptions::Column::Title, title);
         }
 
-        if model.is_changed() {
-            model.update(tx).await?;
-        }
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         // if let Some(tags) = data.tags {
         //     link_tags(&tx, tags, id, params.user_id).await?;
@@ -228,8 +359,12 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
     async fn delete_subscription(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        subscriptions::Entity::delete_by_id(id.to_string())
-            .exec(tx)
+        let query = Query::delete()
+            .from_table(subscriptions::Entity)
+            .and_where(Expr::col(subscriptions::Column::Id).eq(id.to_string()))
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
             .await?;
 
         Ok(())
@@ -244,24 +379,45 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
         if data.has_read {
-            let model = read_entries::ActiveModel {
-                feed_entry_id: ActiveValue::Set(params.feed_entry_id.into()),
-                subscription_id: ActiveValue::Set(params.subscription_id.into()),
-                user_id: ActiveValue::Set(params.user_id.into()),
-                ..Default::default()
-            };
+            let query = Query::insert()
+                .into_table(read_entries::Entity)
+                .columns([
+                    read_entries::Column::SubscriptionId,
+                    read_entries::Column::FeedEntryId,
+                    read_entries::Column::UserId,
+                ])
+                .values_panic([
+                    params.subscription_id.to_string().into(),
+                    params.feed_entry_id.to_string().into(),
+                    params.user_id.to_string().into(),
+                ])
+                .on_conflict(
+                    OnConflict::columns([
+                        read_entries::Column::SubscriptionId,
+                        read_entries::Column::FeedEntryId,
+                    ])
+                    .do_nothing()
+                    .to_owned(),
+                )
+                .to_owned();
 
-            read_entries::Entity::insert(model)
-                .on_conflict_do_nothing()
-                .exec(tx)
+            tx.execute(self.db.get_database_backend().build(&query))
                 .await?;
         } else {
-            read_entries::Entity::delete_by_id((
-                params.subscription_id.to_string(),
-                params.feed_entry_id.to_string(),
-            ))
-            .exec(tx)
-            .await?;
+            let query = Query::delete()
+                .from_table(read_entries::Entity)
+                .and_where(
+                    Expr::col(read_entries::Column::SubscriptionId)
+                        .eq(params.subscription_id.to_string()),
+                )
+                .and_where(
+                    Expr::col(read_entries::Column::FeedEntryId)
+                        .eq(params.feed_entry_id.to_string()),
+                )
+                .to_owned();
+
+            tx.execute(self.db.get_database_backend().build(&query))
+                .await?;
         }
 
         Ok(())
@@ -278,21 +434,40 @@ async fn link_tags(
     let user_id = user_id.to_string();
     let tag_ids = tags.iter().map(|e| e.to_string());
 
-    subscription_tags::Entity::delete_many()
-        .filter(subscription_tags::Column::TagId.is_not_in(tag_ids.clone()))
-        .exec(tx)
-        .await?;
+    let query = Query::delete()
+        .from_table(subscription_tags::Entity)
+        .and_where(Expr::col(subscription_tags::Column::SubscriptionId).eq(subscription_id.clone()))
+        .and_where(Expr::col(subscription_tags::Column::TagId).is_not_in(tag_ids.clone()))
+        .to_owned();
 
-    let models = tag_ids.map(|e| subscription_tags::ActiveModel {
-        subscription_id: ActiveValue::Set(subscription_id.clone()),
-        tag_id: ActiveValue::Set(e),
-        user_id: ActiveValue::Set(user_id.clone()),
-        ..Default::default()
-    });
-    subscription_tags::Entity::insert_many(models)
-        .on_conflict_do_nothing()
-        .exec(tx)
-        .await?;
+    tx.execute(tx.get_database_backend().build(&query)).await?;
+
+    let mut query = Query::insert()
+        .into_table(subscription_tags::Entity)
+        .columns([
+            subscription_tags::Column::SubscriptionId,
+            subscription_tags::Column::TagId,
+            subscription_tags::Column::UserId,
+        ])
+        .on_conflict(
+            OnConflict::columns([
+                subscription_tags::Column::SubscriptionId,
+                subscription_tags::Column::TagId,
+            ])
+            .do_nothing()
+            .to_owned(),
+        )
+        .to_owned();
+
+    for tag_id in tag_ids {
+        query.values_panic([
+            subscription_id.clone().into(),
+            tag_id.into(),
+            user_id.clone().into(),
+        ]);
+    }
+
+    tx.execute(tx.get_database_backend().build(&query)).await?;
 
     Ok(())
 }

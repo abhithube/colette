@@ -6,13 +6,10 @@ use colette_core::{
     feed::ProcessedFeedEntry,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
 };
-use colette_model::{bookmarks, feed_entries, feeds, subscriptions, tags};
+use colette_model::{bookmarks, feed_entries, feeds, tags};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, ConnectionTrait, DatabaseConnection,
-    DatabaseTransaction, DbErr, EntityTrait, LinkDef, Linked, QueryFilter, RelationTrait,
-    TransactionTrait,
-    prelude::Expr,
-    sea_query::{ExprTrait, OnConflict, SimpleExpr},
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait,
+    sea_query::{Expr, ExprTrait, OnConflict, Query, SimpleExpr},
 };
 use url::Url;
 use uuid::Uuid;
@@ -65,28 +62,47 @@ pub(crate) async fn upsert_feed<C: ConnectionTrait>(
     description: Option<String>,
     refreshed_at: Option<DateTime<Utc>>,
 ) -> Result<Uuid, DbErr> {
-    let model = feeds::ActiveModel {
-        id: ActiveValue::Set(Uuid::new_v4().into()),
-        link: ActiveValue::Set(link.into()),
-        xml_url: ActiveValue::Set(xml_url.map(Into::into)),
-        title: ActiveValue::Set(title),
-        description: ActiveValue::Set(description),
-        refreshed_at: ActiveValue::Set(refreshed_at.map(|e| e.timestamp() as i32)),
-    };
-
-    let model = feeds::Entity::insert(model)
+    let query = Query::insert()
+        .into_table(feeds::Entity)
+        .columns([
+            feeds::Column::Id,
+            feeds::Column::Link,
+            feeds::Column::XmlUrl,
+            feeds::Column::Title,
+            feeds::Column::Description,
+            feeds::Column::RefreshedAt,
+        ])
+        .values_panic([
+            Uuid::new_v4().to_string().into(),
+            link.to_string().into(),
+            xml_url.map(String::from).into(),
+            title.into(),
+            description.into(),
+            refreshed_at.map(|e| e.timestamp()).into(),
+        ])
         .on_conflict(
-            OnConflict::columns([feeds::Column::Link])
-                .update_columns([feeds::Column::XmlUrl])
-                .update_columns([feeds::Column::Title])
-                .update_columns([feeds::Column::Description])
-                .update_columns([feeds::Column::RefreshedAt])
+            OnConflict::column(feeds::Column::Link)
+                .update_columns([
+                    feeds::Column::XmlUrl,
+                    feeds::Column::Title,
+                    feeds::Column::Description,
+                    feeds::Column::RefreshedAt,
+                ])
                 .to_owned(),
         )
-        .exec_with_returning(conn)
-        .await?;
+        .returning_col(feeds::Column::Id)
+        .to_owned();
 
-    Ok(model.id.parse().unwrap())
+    let result = conn
+        .query_one(conn.get_database_backend().build(&query))
+        .await?
+        .unwrap();
+
+    Ok(result
+        .try_get_by_index::<String>(0)
+        .unwrap()
+        .parse()
+        .unwrap())
 }
 
 pub(crate) async fn upsert_entries<C: ConnectionTrait>(
@@ -94,22 +110,18 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
     entries: Vec<ProcessedFeedEntry>,
     feed_id: Uuid,
 ) -> Result<(), DbErr> {
-    let models = entries
-        .into_iter()
-        .map(|e| feed_entries::ActiveModel {
-            id: ActiveValue::Set(Uuid::new_v4().into()),
-            link: ActiveValue::Set(e.link.into()),
-            title: ActiveValue::Set(e.title),
-            published_at: ActiveValue::Set(e.published.timestamp() as i32),
-            description: ActiveValue::Set(e.description),
-            thumbnail_url: ActiveValue::Set(e.thumbnail.map(Into::into)),
-            author: ActiveValue::Set(e.author),
-            feed_id: ActiveValue::Set(feed_id.into()),
-        })
-        .collect::<Vec<_>>();
-
-    feed_entries::Entity::insert_many(models)
-        .do_nothing()
+    let mut query = Query::insert()
+        .into_table(feed_entries::Entity)
+        .columns([
+            feed_entries::Column::Id,
+            feed_entries::Column::Link,
+            feed_entries::Column::Title,
+            feed_entries::Column::PublishedAt,
+            feed_entries::Column::Description,
+            feed_entries::Column::Author,
+            feed_entries::Column::ThumbnailUrl,
+            feed_entries::Column::FeedId,
+        ])
         .on_conflict(
             OnConflict::columns([feed_entries::Column::FeedId, feed_entries::Column::Link])
                 .update_columns([
@@ -121,24 +133,26 @@ pub(crate) async fn upsert_entries<C: ConnectionTrait>(
                 ])
                 .to_owned(),
         )
-        .exec(conn)
+        .to_owned();
+
+    let feed_id = feed_id.to_string();
+    for entry in entries {
+        query.values_panic([
+            Uuid::new_v4().to_string().into(),
+            entry.link.to_string().into(),
+            entry.title.into(),
+            entry.published.timestamp().into(),
+            entry.description.into(),
+            entry.author.into(),
+            entry.thumbnail.map(String::from).into(),
+            feed_id.clone().into(),
+        ]);
+    }
+
+    conn.execute(conn.get_database_backend().build(&query))
         .await?;
 
     Ok(())
-}
-
-pub struct FeedEntryToSubscription;
-
-impl Linked for FeedEntryToSubscription {
-    type FromEntity = feed_entries::Entity;
-    type ToEntity = subscriptions::Entity;
-
-    fn link(&self) -> Vec<LinkDef> {
-        vec![
-            feeds::Relation::FeedEntries.def().rev(),
-            feeds::Relation::Subscriptions.def(),
-        ]
-    }
 }
 
 pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
@@ -150,18 +164,26 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
     author: Option<String>,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let model = bookmarks::ActiveModel {
-        id: ActiveValue::Set(Uuid::new_v4().into()),
-        link: ActiveValue::Set(link.into()),
-        title: ActiveValue::Set(title),
-        thumbnail_url: ActiveValue::Set(thumbnail_url.map(Into::into)),
-        published_at: ActiveValue::Set(published_at.map(|e| e.timestamp() as i32)),
-        author: ActiveValue::Set(author),
-        user_id: ActiveValue::Set(user_id.into()),
-        ..Default::default()
-    };
-
-    let mut keys = bookmarks::Entity::insert(model)
+    let query = Query::insert()
+        .into_table(bookmarks::Entity)
+        .columns([
+            bookmarks::Column::Id,
+            bookmarks::Column::Link,
+            bookmarks::Column::Title,
+            bookmarks::Column::ThumbnailUrl,
+            bookmarks::Column::PublishedAt,
+            bookmarks::Column::Author,
+            bookmarks::Column::UserId,
+        ])
+        .values_panic([
+            Uuid::new_v4().to_string().into(),
+            link.to_string().into(),
+            title.into(),
+            thumbnail_url.map(String::from).into(),
+            published_at.map(|e| e.timestamp()).into(),
+            author.into(),
+            user_id.to_string().into(),
+        ])
         .on_conflict(
             OnConflict::columns([bookmarks::Column::UserId, bookmarks::Column::Link])
                 .update_columns([
@@ -172,10 +194,19 @@ pub(crate) async fn upsert_bookmark<C: ConnectionTrait>(
                 ])
                 .to_owned(),
         )
-        .exec_with_returning_keys(conn)
-        .await?;
+        .returning_col(bookmarks::Column::Id)
+        .to_owned();
 
-    Ok(keys.swap_remove(0).parse().unwrap())
+    let result = conn
+        .query_one(conn.get_database_backend().build(&query))
+        .await?
+        .unwrap();
+
+    Ok(result
+        .try_get_by_index::<String>(0)
+        .unwrap()
+        .parse()
+        .unwrap())
 }
 
 pub(crate) async fn upsert_tag(
@@ -183,23 +214,37 @@ pub(crate) async fn upsert_tag(
     title: String,
     user_id: Uuid,
 ) -> Result<Uuid, DbErr> {
-    let model = tags::Entity::find()
-        .filter(tags::Column::UserId.eq(user_id.to_string()))
-        .filter(tags::Column::Title.eq(title.clone()))
-        .one(tx)
+    let query = Query::select()
+        .column(tags::Column::Id)
+        .from(tags::Entity)
+        .and_where(Expr::col(tags::Column::UserId).eq(user_id.to_string()))
+        .and_where(Expr::col(tags::Column::UserId).eq(title.clone()))
+        .to_owned();
+
+    let result = tx
+        .query_one(tx.get_database_backend().build(&query))
         .await?;
 
-    let tag_id = match model {
-        Some(model) => model.id.parse().unwrap(),
+    let tag_id = match result {
+        Some(model) => model
+            .try_get_by_index::<String>(0)
+            .unwrap()
+            .parse()
+            .unwrap(),
         _ => {
             let id = Uuid::new_v4();
-            let model = tags::ActiveModel {
-                id: ActiveValue::Set(id.into()),
-                title: ActiveValue::Set(title),
-                user_id: ActiveValue::Set(user_id.into()),
-                ..Default::default()
-            };
-            model.insert(tx).await?;
+
+            let query = Query::insert()
+                .into_table(tags::Entity)
+                .columns([tags::Column::Id, tags::Column::Title, tags::Column::UserId])
+                .values_panic([
+                    id.to_string().into(),
+                    title.into(),
+                    user_id.to_string().into(),
+                ])
+                .to_owned();
+
+            tx.execute(tx.get_database_backend().build(&query)).await?;
 
             id
         }

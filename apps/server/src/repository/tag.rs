@@ -5,10 +5,8 @@ use colette_core::{
 };
 use colette_model::{TagWithCounts, bookmark_tags, subscription_tags, tags};
 use sea_orm::{
-    ActiveModelTrait, ActiveValue, ColumnTrait, DatabaseConnection, DatabaseTransaction, DbErr,
-    EntityTrait, Iden, QueryFilter, QueryOrder, QuerySelect, QueryTrait,
-    prelude::Expr,
-    sea_query::{Alias, Func},
+    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
+    sea_query::{Alias, Expr, Func, Order, Query},
 };
 use uuid::Uuid;
 
@@ -29,52 +27,74 @@ impl TagRepository for SqliteTagRepository {
         let feed_count = Alias::new("feed_count");
         let bookmark_count = Alias::new("bookmark_count");
 
-        let tags = tags::Entity::find()
+        let mut query = Query::select()
+            .columns([
+                (tags::Entity, tags::Column::Id),
+                (tags::Entity, tags::Column::Title),
+                (tags::Entity, tags::Column::UserId),
+                (tags::Entity, tags::Column::CreatedAt),
+                (tags::Entity, tags::Column::UpdatedAt),
+            ])
             .expr_as(
                 Func::count(Expr::col((
                     subscription_tags::Entity,
                     subscription_tags::Column::SubscriptionId,
                 ))),
-                feed_count.to_string(),
+                feed_count.clone(),
             )
             .expr_as(
                 Func::count(Expr::col((
                     bookmark_tags::Entity,
                     bookmark_tags::Column::BookmarkId,
                 ))),
-                bookmark_count.to_string(),
+                bookmark_count.clone(),
             )
-            .left_join(subscription_tags::Entity)
-            .left_join(bookmark_tags::Entity)
+            .from(tags::Entity)
+            .left_join(
+                subscription_tags::Entity,
+                Expr::col((subscription_tags::Entity, subscription_tags::Column::TagId))
+                    .eq(Expr::col((tags::Entity, tags::Column::Id))),
+            )
+            .left_join(
+                bookmark_tags::Entity,
+                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::TagId))
+                    .eq(Expr::col((tags::Entity, tags::Column::Id))),
+            )
             .apply_if(params.ids, |query, ids| {
-                query.filter(tags::Column::Id.is_in(ids.into_iter().map(|e| e.to_string())))
+                query.and_where(
+                    Expr::col((tags::Entity, tags::Column::Id))
+                        .is_in(ids.into_iter().map(String::from)),
+                );
             })
             .apply_if(params.user_id, |query, user_id| {
-                query.filter(tags::Column::UserId.eq(user_id.to_string()))
+                query.and_where(
+                    Expr::col((tags::Entity, tags::Column::UserId)).eq(user_id.to_string()),
+                );
             })
             .apply_if(params.cursor, |query, cursor| {
-                query.filter(tags::Column::Title.gt(cursor.title))
+                query.and_where(
+                    Expr::col((tags::Entity, tags::Column::Title)).gt(Expr::val(cursor.title)),
+                );
             })
-            .group_by(tags::Column::Id)
-            .apply_if(
-                if params.tag_type == TagType::Feeds {
-                    Some(true)
-                } else {
-                    None
-                },
-                |query, _| query.having(Expr::col(feed_count).gt(Expr::val(0))),
-            )
-            .apply_if(
-                if params.tag_type == TagType::Bookmarks {
-                    Some(true)
-                } else {
-                    None
-                },
-                |query, _| query.having(Expr::col(bookmark_count).gt(Expr::val(0))),
-            )
-            .order_by_asc(tags::Column::Title)
-            .limit(params.limit.map(|e| e as u64))
-            .into_model::<TagWithCounts>()
+            .group_by_col((tags::Entity, tags::Column::Id))
+            .order_by((tags::Entity, tags::Column::CreatedAt), Order::Asc)
+            .to_owned();
+
+        match params.tag_type {
+            TagType::Feeds => {
+                query.and_having(Expr::col(feed_count).gt(Expr::val(0)));
+            }
+            TagType::Bookmarks => {
+                query.and_having(Expr::col(bookmark_count).gt(Expr::val(0)));
+            }
+            _ => {}
+        }
+
+        if let Some(limit) = params.limit {
+            query.limit(limit as u64);
+        }
+
+        let tags = TagWithCounts::find_by_statement(self.db.get_database_backend().build(&query))
             .all(&self.db)
             .await
             .map(|e| e.into_iter().map(Into::into).collect())?;
@@ -85,35 +105,53 @@ impl TagRepository for SqliteTagRepository {
     async fn find_tag_by_id(&self, tx: &dyn Transaction, id: Uuid) -> Result<TagById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let Some((id, user_id)) = tags::Entity::find()
-            .select_only()
-            .columns([tags::Column::Id, tags::Column::UserId])
-            .filter(tags::Column::Id.eq(id.to_string()))
-            .into_tuple::<(String, String)>()
-            .one(tx)
+        let query = Query::select()
+            .column((tags::Entity, tags::Column::Id))
+            .column((tags::Entity, tags::Column::UserId))
+            .from(tags::Entity)
+            .and_where(Expr::col((tags::Entity, tags::Column::Id)).eq(id.to_string()))
+            .to_owned();
+
+        let Some(result) = tx
+            .query_one(self.db.get_database_backend().build(&query))
             .await?
         else {
             return Err(Error::NotFound(id));
         };
 
         Ok(TagById {
-            id: id.parse().unwrap(),
-            user_id: user_id.parse().unwrap(),
+            id: result
+                .try_get_by_index::<String>(0)
+                .unwrap()
+                .parse()
+                .unwrap(),
+            user_id: result
+                .try_get_by_index::<String>(1)
+                .unwrap()
+                .parse()
+                .unwrap(),
         })
     }
 
     async fn create_tag(&self, data: TagCreateData) -> Result<Uuid, Error> {
         let id = Uuid::new_v4();
-        let model = tags::ActiveModel {
-            id: ActiveValue::Set(id.into()),
-            title: ActiveValue::Set(data.title.clone()),
-            user_id: ActiveValue::Set(data.user_id.into()),
-            ..Default::default()
-        };
-        model.insert(&self.db).await.map_err(|e| match e {
-            DbErr::RecordNotInserted => Error::Conflict(data.title),
-            _ => Error::Database(e),
-        })?;
+
+        let query = Query::insert()
+            .columns([tags::Column::Id, tags::Column::Title, tags::Column::UserId])
+            .values_panic([
+                id.to_string().into(),
+                data.title.clone().into(),
+                data.user_id.to_string().into(),
+            ])
+            .to_owned();
+
+        self.db
+            .execute(self.db.get_database_backend().build(&query))
+            .await
+            .map_err(|e| match e {
+                DbErr::RecordNotInserted => Error::Conflict(data.title),
+                _ => Error::Database(e),
+            })?;
 
         Ok(id)
     }
@@ -126,18 +164,21 @@ impl TagRepository for SqliteTagRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let mut model = tags::ActiveModel {
-            id: ActiveValue::Unchanged(id.to_string()),
-            ..Default::default()
-        };
+        if data.title.is_none() {
+            return Ok(());
+        }
+
+        let mut query = Query::update()
+            .table(tags::Entity)
+            .and_where(Expr::col(tags::Column::Id).eq(id.to_string()))
+            .to_owned();
 
         if let Some(title) = data.title {
-            model.title = ActiveValue::Set(title);
+            query.value(tags::Column::Title, title);
         }
 
-        if model.is_changed() {
-            model.update(tx).await?;
-        }
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(())
     }
@@ -145,7 +186,13 @@ impl TagRepository for SqliteTagRepository {
     async fn delete_tag(&self, tx: &dyn Transaction, id: Uuid) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        tags::Entity::delete_by_id(id).exec(tx).await?;
+        let query = Query::delete()
+            .from_table(tags::Entity)
+            .and_where(Expr::col(tags::Column::Id).eq(id.to_string()))
+            .to_owned();
+
+        tx.execute(self.db.get_database_backend().build(&query))
+            .await?;
 
         Ok(())
     }
