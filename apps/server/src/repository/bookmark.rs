@@ -3,22 +3,18 @@ use std::collections::HashMap;
 use colette_core::{
     Bookmark,
     bookmark::{
-        BookmarkById, BookmarkCreateParams, BookmarkDateField, BookmarkDeleteParams,
-        BookmarkFilter, BookmarkFindByIdParams, BookmarkFindParams, BookmarkRepository,
-        BookmarkScrapedParams, BookmarkTagsLinkParams, BookmarkTextField, BookmarkUpdateParams,
-        Error,
+        BookmarkById, BookmarkCreateParams, BookmarkDeleteParams, BookmarkFindByIdParams,
+        BookmarkFindParams, BookmarkRepository, BookmarkTagsLinkParams, BookmarkUpdateParams,
+        BookmarkUpsertParams, Error,
     },
     common::Transaction,
 };
-use colette_model::{
-    BookmarkRow, BookmarkRowWithTagRows, BookmarkTagRow, bookmark_tags, bookmarks, tags,
+use colette_model::{BookmarkRow, BookmarkRowWithTagRows, BookmarkTagRow};
+use colette_query::{
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    bookmark_tag::{BookmarkTagDeleteMany, BookmarkTagSelectMany, BookmarkTagUpsertMany},
 };
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult,
-    sea_query::{Expr, OnConflict, Order, Query, SimpleExpr},
-};
-
-use super::common::{self, ToColumn, ToSql};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {
@@ -34,105 +30,23 @@ impl SqliteBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
-        let mut query = Query::select()
-            .columns([
-                (bookmarks::Entity, bookmarks::Column::Id),
-                (bookmarks::Entity, bookmarks::Column::Link),
-                (bookmarks::Entity, bookmarks::Column::Title),
-                (bookmarks::Entity, bookmarks::Column::ThumbnailUrl),
-                (bookmarks::Entity, bookmarks::Column::PublishedAt),
-                (bookmarks::Entity, bookmarks::Column::Author),
-                (bookmarks::Entity, bookmarks::Column::ArchivedPath),
-                (bookmarks::Entity, bookmarks::Column::UserId),
-                (bookmarks::Entity, bookmarks::Column::CreatedAt),
-                (bookmarks::Entity, bookmarks::Column::UpdatedAt),
-            ])
-            .from(bookmarks::Entity)
-            .apply_if(params.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((bookmarks::Entity, bookmarks::Column::UserId))
-                        .eq(user_id.to_string()),
-                );
-            })
-            .apply_if(params.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((bookmarks::Entity, bookmarks::Column::CreatedAt))
-                        .lt(Expr::val(cursor.created_at.timestamp())),
-                );
-            })
-            .order_by(
-                (bookmarks::Entity, bookmarks::Column::CreatedAt),
-                Order::Desc,
-            )
-            .to_owned();
+        let bookmark_rows = BookmarkRow::find_by_statement(
+            self.db.get_database_backend().build(&params.into_select()),
+        )
+        .all(&self.db)
+        .await?;
 
-        if let Some(filter) = params.filter {
-            query.and_where(filter.to_sql());
-        } else {
-            query
-                .apply_if(params.id, |query, id| {
-                    query.and_where(
-                        Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(id.to_string()),
-                    );
-                })
-                .apply_if(params.tags, |query, tags| {
-                    query.and_where(Expr::exists(
-                        Query::select()
-                            .expr(Expr::val(1))
-                            .from(bookmark_tags::Entity)
-                            .and_where(
-                                Expr::col((
-                                    bookmark_tags::Entity,
-                                    bookmark_tags::Column::BookmarkId,
-                                ))
-                                .eq(Expr::col((bookmarks::Entity, bookmarks::Column::Id))),
-                            )
-                            .and_where(
-                                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::TagId))
-                                    .is_in(tags.into_iter().map(String::from)),
-                            )
-                            .to_owned(),
-                    ));
-                });
-        }
+        let select_many = BookmarkTagSelectMany {
+            bookmark_ids: bookmark_rows.iter().map(|e| e.id.as_str()),
+        };
 
-        if let Some(limit) = params.limit {
-            query.limit(limit as u64);
-        }
-
-        let bookmark_rows =
-            BookmarkRow::find_by_statement(self.db.get_database_backend().build(&query))
-                .all(&self.db)
-                .await?;
-
-        let query = Query::select()
-            .column((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
-            .columns([
-                (tags::Entity, tags::Column::Id),
-                (tags::Entity, tags::Column::Title),
-                (tags::Entity, tags::Column::CreatedAt),
-                (tags::Entity, tags::Column::UpdatedAt),
-                (tags::Entity, tags::Column::UserId),
-            ])
-            .from(bookmark_tags::Entity)
-            .inner_join(
-                tags::Entity,
-                Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                    bookmark_tags::Entity,
-                    bookmark_tags::Column::TagId,
-                ))),
-            )
-            .and_where(
-                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
-                    .is_in(bookmark_rows.iter().map(|e| e.id.as_str())),
-            )
-            .order_by((tags::Entity, tags::Column::Title), Order::Asc)
-            .to_owned();
-
-        let tag_rows =
-            BookmarkTagRow::find_by_statement(self.db.get_database_backend().build(&query))
-                .all(&self.db)
-                .await?;
+        let tag_rows = BookmarkTagRow::find_by_statement(
+            self.db
+                .get_database_backend()
+                .build(&select_many.into_select()),
+        )
+        .all(&self.db)
+        .await?;
 
         let mut tag_row_map = HashMap::<String, Vec<BookmarkTagRow>>::new();
 
@@ -164,20 +78,13 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<BookmarkById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::select()
-            .column((bookmarks::Entity, bookmarks::Column::Id))
-            .column((bookmarks::Entity, bookmarks::Column::UserId))
-            .from(bookmarks::Entity)
-            .and_where(
-                Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(params.id.to_string()),
-            )
-            .to_owned();
+        let id = params.id;
 
         let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&query))
+            .query_one(self.db.get_database_backend().build(&params.into_select()))
             .await?
         else {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(id));
         };
 
         Ok(BookmarkById {
@@ -201,32 +108,12 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::insert()
-            .into_table(bookmarks::Entity)
-            .columns([
-                bookmarks::Column::Id,
-                bookmarks::Column::Link,
-                bookmarks::Column::Title,
-                bookmarks::Column::ThumbnailUrl,
-                bookmarks::Column::PublishedAt,
-                bookmarks::Column::Author,
-                bookmarks::Column::UserId,
-            ])
-            .values_panic([
-                params.id.to_string().into(),
-                params.url.to_string().into(),
-                params.title.into(),
-                params.thumbnail_url.map(String::from).into(),
-                params.published_at.map(|e| e.timestamp()).into(),
-                params.author.into(),
-                params.user_id.to_string().into(),
-            ])
-            .to_owned();
+        let url = params.url.clone();
 
-        tx.execute(self.db.get_database_backend().build(&query))
+        tx.execute(self.db.get_database_backend().build(&params.into_insert()))
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(params.url),
+                DbErr::RecordNotInserted => Error::Conflict(url),
                 _ => Error::Database(e),
             })?;
 
@@ -249,34 +136,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             return Ok(());
         }
 
-        let mut query = Query::update()
-            .table(bookmarks::Entity)
-            .and_where(Expr::col(bookmarks::Column::Id).eq(params.id.to_string()))
-            .to_owned();
-
-        if let Some(title) = params.title {
-            query.value(bookmarks::Column::Title, title);
-        }
-        if let Some(thumbnail_url) = params.thumbnail_url {
-            query.value(
-                bookmarks::Column::ThumbnailUrl,
-                thumbnail_url.map(String::from),
-            );
-        }
-        if let Some(published_at) = params.published_at {
-            query.value(
-                bookmarks::Column::ThumbnailUrl,
-                published_at.map(|e| e.timestamp()),
-            );
-        }
-        if let Some(author) = params.author {
-            query.value(bookmarks::Column::Author, author);
-        }
-        if let Some(archived_path) = params.archived_path {
-            query.value(bookmarks::Column::ArchivedPath, archived_path);
-        }
-
-        let statement = self.db.get_database_backend().build(&query);
+        let statement = self.db.get_database_backend().build(&params.into_update());
 
         if let Some(tx) = tx {
             tx.execute(statement).await?;
@@ -294,28 +154,16 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::delete()
-            .from_table(bookmarks::Entity)
-            .and_where(Expr::col(bookmarks::Column::Id).eq(params.id.to_string()))
-            .to_owned();
-
-        tx.execute(self.db.get_database_backend().build(&query))
+        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
             .await?;
 
         Ok(())
     }
 
-    async fn save_scraped(&self, params: BookmarkScrapedParams) -> Result<(), Error> {
-        common::upsert_bookmark(
-            &self.db,
-            params.url,
-            params.bookmark.title,
-            params.bookmark.thumbnail,
-            params.bookmark.published,
-            params.bookmark.author,
-            params.user_id,
-        )
-        .await?;
+    async fn upsert(&self, params: BookmarkUpsertParams) -> Result<(), Error> {
+        self.db
+            .execute(self.db.get_database_backend().build(&params.into_insert()))
+            .await?;
 
         Ok(())
     }
@@ -327,120 +175,30 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::delete()
-            .from_table(bookmark_tags::Entity)
-            .and_where(
-                Expr::col(bookmark_tags::Column::BookmarkId).eq(params.bookmark_id.to_string()),
-            )
-            .and_where(
-                Expr::col(bookmark_tags::Column::TagId)
-                    .is_not_in(params.tags.iter().map(|e| e.id.to_string())),
-            )
-            .to_owned();
+        let delete_many = BookmarkTagDeleteMany {
+            bookmark_id: params.bookmark_id,
+            tag_ids: params.tags.iter().map(|e| e.id.to_string()),
+        };
 
-        tx.execute(self.db.get_database_backend().build(&query))
-            .await?;
+        tx.execute(
+            self.db
+                .get_database_backend()
+                .build(&delete_many.into_delete()),
+        )
+        .await?;
 
-        let mut query = Query::insert()
-            .into_table(bookmark_tags::Entity)
-            .columns([
-                bookmark_tags::Column::BookmarkId,
-                bookmark_tags::Column::TagId,
-                bookmark_tags::Column::UserId,
-            ])
-            .on_conflict(
-                OnConflict::columns([
-                    bookmark_tags::Column::BookmarkId,
-                    bookmark_tags::Column::TagId,
-                ])
-                .do_nothing()
-                .to_owned(),
-            )
-            .to_owned();
+        let upsert_many = BookmarkTagUpsertMany {
+            bookmark_id: params.bookmark_id,
+            tags: params.tags,
+        };
 
-        for tag in params.tags {
-            query.values_panic([
-                params.bookmark_id.to_string().into(),
-                tag.id.to_string().into(),
-                tag.user_id.to_string().into(),
-            ]);
-        }
-
-        tx.execute(self.db.get_database_backend().build(&query))
-            .await?;
+        tx.execute(
+            self.db
+                .get_database_backend()
+                .build(&upsert_many.into_insert()),
+        )
+        .await?;
 
         Ok(())
-    }
-}
-
-impl ToColumn for BookmarkTextField {
-    fn to_column(self) -> Expr {
-        match self {
-            Self::Link => Expr::col((bookmarks::Entity, bookmarks::Column::Link)),
-            Self::Title => Expr::col((bookmarks::Entity, bookmarks::Column::Title)),
-            Self::Author => Expr::col((bookmarks::Entity, bookmarks::Column::Author)),
-            Self::Tag => Expr::col((tags::Entity, tags::Column::Title)),
-        }
-    }
-}
-
-impl ToColumn for BookmarkDateField {
-    fn to_column(self) -> Expr {
-        match self {
-            Self::PublishedAt => Expr::col((bookmarks::Entity, bookmarks::Column::PublishedAt)),
-            Self::CreatedAt => Expr::col((bookmarks::Entity, bookmarks::Column::CreatedAt)),
-            Self::UpdatedAt => Expr::col((bookmarks::Entity, bookmarks::Column::UpdatedAt)),
-        }
-    }
-}
-
-impl ToSql for BookmarkFilter {
-    fn to_sql(self) -> SimpleExpr {
-        match self {
-            BookmarkFilter::Text { field, op } => match field {
-                BookmarkTextField::Tag => Expr::exists(
-                    Query::select()
-                        .expr(Expr::val(1))
-                        .from(bookmark_tags::Entity)
-                        .inner_join(
-                            tags::Entity,
-                            Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                                bookmark_tags::Entity,
-                                bookmark_tags::Column::TagId,
-                            ))),
-                        )
-                        .and_where(
-                            Expr::col((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
-                                .eq(Expr::col((bookmarks::Entity, bookmarks::Column::Id))),
-                        )
-                        .and_where((field.to_column(), op).to_sql())
-                        .to_owned(),
-                ),
-                _ => (field.to_column(), op).to_sql(),
-            },
-            BookmarkFilter::Date { field, op } => (field.to_column(), op).to_sql(),
-            BookmarkFilter::And(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
-                let mut and = conditions.swap_remove(0);
-
-                for condition in conditions {
-                    and = and.and(condition)
-                }
-
-                and
-            }
-            BookmarkFilter::Or(filters) => {
-                let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
-                let mut or = conditions.swap_remove(0);
-
-                for condition in conditions {
-                    or = or.or(condition)
-                }
-
-                or
-            }
-            BookmarkFilter::Not(filter) => filter.to_sql().not(),
-            _ => unreachable!(),
-        }
     }
 }

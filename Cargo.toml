@@ -10,6 +10,7 @@ members = [
   "crates/opml",
   "crates/job",
   "crates/plugins",
+  "crates/query",
   "crates/session",
   "crates/storage",
   "crates/util",
@@ -34,6 +35,7 @@ colette-meta.path = "crates/meta"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
+colette-query.path = "crates/query"
 colette-session.path = "crates/session"
 colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"

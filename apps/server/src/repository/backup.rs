@@ -1,12 +1,13 @@
-use colette_core::backup::{BackupRepository, Error, ImportBookmarksParams, ImportFeedsParams};
-use colette_model::{bookmark_tags, subscription_tags, subscriptions};
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, TransactionTrait,
-    sea_query::{OnConflict, Query},
+use colette_core::{
+    backup::{BackupRepository, Error, ImportBookmarksParams, ImportFeedsParams},
+    bookmark::{BookmarkUpsertParams, ProcessedBookmark},
 };
+use colette_query::{
+    IntoInsert, IntoSelect, bookmark_tag::BookmarkTagUpsert, feed::FeedUpsert,
+    subscription::SubscriptionUpsert, subscription_tag::SubscriptionTagUpsert, tag::TagUpsert,
+};
+use sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};
 use uuid::Uuid;
-
-use super::common;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBackupRepository {
@@ -31,84 +32,96 @@ impl BackupRepository for SqliteBackupRepository {
             .collect();
 
         while let Some((parent_id, outline)) = stack.pop() {
-            let title = outline.title.unwrap_or(outline.text);
-
             if !outline.outline.is_empty() {
-                let tag_id = common::upsert_tag(&tx, title, params.user_id).await?;
+                let tag_id = {
+                    let tag = TagUpsert {
+                        id: Uuid::new_v4(),
+                        title: outline.text,
+                        user_id: params.user_id,
+                    };
+
+                    let result = tx
+                        .query_one(tx.get_database_backend().build(&tag.clone().into_select()))
+                        .await?;
+
+                    match result {
+                        Some(model) => model
+                            .try_get_by_index::<String>(0)
+                            .unwrap()
+                            .parse()
+                            .unwrap(),
+                        _ => {
+                            let id = Uuid::new_v4();
+
+                            tx.execute(tx.get_database_backend().build(&tag.into_insert()))
+                                .await?;
+
+                            id
+                        }
+                    }
+                };
 
                 for child in outline.outline {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = outline.html_url {
-                let feed_id = common::upsert_feed(
-                    &tx,
-                    link.parse().unwrap(),
-                    outline.xml_url.map(|e| e.parse().unwrap()),
-                    title.clone(),
-                    None,
-                    None,
-                )
-                .await?;
+                let title = outline.title.unwrap_or(outline.text);
 
-                let subscription_id: String = {
-                    let query = Query::insert()
-                        .into_table(subscriptions::Entity)
-                        .columns([
-                            subscriptions::Column::Id,
-                            subscriptions::Column::Title,
-                            subscriptions::Column::FeedId,
-                            subscriptions::Column::UserId,
-                        ])
-                        .values_panic([
-                            Uuid::new_v4().to_string().into(),
-                            title.clone().into(),
-                            feed_id.to_string().into(),
-                            params.user_id.to_string().into(),
-                        ])
-                        .on_conflict(
-                            OnConflict::columns([
-                                subscriptions::Column::UserId,
-                                subscriptions::Column::FeedId,
-                            ])
-                            .update_column(subscriptions::Column::Title)
-                            .to_owned(),
-                        )
-                        .returning_col(subscriptions::Column::Id)
-                        .to_owned();
+                let feed = FeedUpsert {
+                    id: Uuid::new_v4(),
+                    link: link.parse().unwrap(),
+                    xml_url: outline.xml_url.map(|e| e.parse().unwrap()),
+                    title: title.clone(),
+                    description: None,
+                    refreshed_at: None,
+                };
+
+                let feed_id = tx
+                    .query_one(self.db.get_database_backend().build(&feed.into_insert()))
+                    .await?
+                    .unwrap()
+                    .try_get_by_index::<String>(0)
+                    .unwrap()
+                    .parse::<Uuid>()
+                    .unwrap();
+
+                let subscription_id = {
+                    let subscription = SubscriptionUpsert {
+                        id: Uuid::new_v4(),
+                        title,
+                        feed_id,
+                        user_id: params.user_id,
+                    };
 
                     let result = tx
-                        .query_one(self.db.get_database_backend().build(&query))
+                        .query_one(
+                            self.db
+                                .get_database_backend()
+                                .build(&subscription.into_insert()),
+                        )
                         .await?
                         .unwrap();
 
-                    result.try_get_by_index::<String>(0).unwrap()
+                    result
+                        .try_get_by_index::<String>(0)
+                        .unwrap()
+                        .parse::<Uuid>()
+                        .unwrap()
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let query = Query::insert()
-                        .into_table(subscription_tags::Entity)
-                        .columns([
-                            subscription_tags::Column::SubscriptionId,
-                            subscription_tags::Column::TagId,
-                            subscription_tags::Column::UserId,
-                        ])
-                        .values_panic([
-                            subscription_id.into(),
-                            tag_id.to_string().into(),
-                            params.user_id.to_string().into(),
-                        ])
-                        .on_conflict(
-                            OnConflict::columns([
-                                subscription_tags::Column::SubscriptionId,
-                                subscription_tags::Column::TagId,
-                            ])
-                            .do_nothing()
-                            .to_owned(),
-                        )
-                        .to_owned();
+                    let subscription_tag = SubscriptionTagUpsert {
+                        subscription_id,
+                        tag_id,
+                        user_id: params.user_id,
+                    };
 
-                    tx.execute(self.db.get_database_backend().build(&query))
-                        .await?;
+                    tx.execute(
+                        self.db
+                            .get_database_backend()
+                            .build(&subscription_tag.into_insert()),
+                    )
+                    .await?;
                 }
             }
         }
@@ -126,48 +139,69 @@ impl BackupRepository for SqliteBackupRepository {
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let tag_id = common::upsert_tag(&tx, item.title, params.user_id).await?;
+                let tag = TagUpsert {
+                    id: Uuid::new_v4(),
+                    title: item.title,
+                    user_id: params.user_id,
+                };
+
+                let result = tx
+                    .query_one(tx.get_database_backend().build(&tag.clone().into_select()))
+                    .await?;
+
+                let tag_id = match result {
+                    Some(model) => model
+                        .try_get_by_index::<String>(0)
+                        .unwrap()
+                        .parse()
+                        .unwrap(),
+                    _ => {
+                        let id = Uuid::new_v4();
+
+                        tx.execute(tx.get_database_backend().build(&tag.into_insert()))
+                            .await?;
+
+                        id
+                    }
+                };
 
                 for child in item.item {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = item.href {
-                let bookmark_id = common::upsert_bookmark(
-                    &tx,
-                    link.parse().unwrap(),
-                    item.title,
-                    None,
-                    None,
-                    None,
-                    params.user_id,
-                )
-                .await?;
+                let user_id = params.user_id;
+
+                let params = BookmarkUpsertParams {
+                    url: link.parse().unwrap(),
+                    bookmark: ProcessedBookmark {
+                        title: item.title,
+                        ..Default::default()
+                    },
+                    user_id,
+                };
+
+                let bookmark_id: Uuid = tx
+                    .query_one(self.db.get_database_backend().build(&params.into_insert()))
+                    .await?
+                    .unwrap()
+                    .try_get_by_index::<String>(0)
+                    .unwrap()
+                    .parse()
+                    .unwrap();
 
                 if let Some(tag_id) = parent_id {
-                    let query = Query::insert()
-                        .into_table(bookmark_tags::Entity)
-                        .columns([
-                            bookmark_tags::Column::BookmarkId,
-                            bookmark_tags::Column::TagId,
-                            bookmark_tags::Column::UserId,
-                        ])
-                        .values_panic([
-                            bookmark_id.to_string().into(),
-                            tag_id.to_string().into(),
-                            params.user_id.to_string().into(),
-                        ])
-                        .on_conflict(
-                            OnConflict::columns([
-                                bookmark_tags::Column::BookmarkId,
-                                bookmark_tags::Column::TagId,
-                            ])
-                            .do_nothing()
-                            .to_owned(),
-                        )
-                        .to_owned();
+                    let bookmark_tag = BookmarkTagUpsert {
+                        bookmark_id,
+                        tag_id,
+                        user_id,
+                    };
 
-                    tx.execute(self.db.get_database_backend().build(&query))
-                        .await?;
+                    tx.execute(
+                        self.db
+                            .get_database_backend()
+                            .build(&bookmark_tag.into_insert()),
+                    )
+                    .await?;
                 }
             }
         }

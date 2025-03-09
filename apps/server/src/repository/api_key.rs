@@ -6,11 +6,9 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::{ApiKeyRow, api_keys};
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult,
-    sea_query::{Asterisk, Expr, Order, Query},
-};
+use colette_model::ApiKeyRow;
+use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
+use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -26,36 +24,12 @@ impl SqliteApiKeyRepository {
 #[async_trait::async_trait]
 impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
-        let mut query = Query::select()
-            .column(Asterisk)
-            .from(api_keys::Entity)
-            .apply_if(params.id, |query, id| {
-                query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(id.to_string()),
-                );
-            })
-            .apply_if(params.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::UserId)).eq(user_id.to_string()),
-                );
-            })
-            .apply_if(params.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::CreatedAt))
-                        .gt(Expr::val(cursor.created_at.timestamp())),
-                );
-            })
-            .order_by((api_keys::Entity, api_keys::Column::CreatedAt), Order::Asc)
-            .to_owned();
-
-        if let Some(limit) = params.limit {
-            query.limit(limit as u64);
-        }
-
-        let api_keys = ApiKeyRow::find_by_statement(self.db.get_database_backend().build(&query))
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())?;
+        let api_keys = ApiKeyRow::find_by_statement(
+            self.db.get_database_backend().build(&params.into_select()),
+        )
+        .all(&self.db)
+        .await
+        .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(api_keys)
     }
@@ -67,20 +41,13 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     ) -> Result<ApiKeyById, Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::select()
-            .column((api_keys::Entity, api_keys::Column::Id))
-            .column((api_keys::Entity, api_keys::Column::UserId))
-            .from(api_keys::Entity)
-            .and_where(
-                Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(params.id.to_string()),
-            )
-            .to_owned();
+        let id = params.id;
 
         let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&query))
+            .query_one(self.db.get_database_backend().build(&params.into_select()))
             .await?
         else {
-            return Err(Error::NotFound(params.id));
+            return Err(Error::NotFound(id));
         };
 
         Ok(ApiKeyById {
@@ -98,27 +65,8 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     }
 
     async fn create_api_key(&self, params: ApiKeyCreateParams) -> Result<(), Error> {
-        let query = Query::insert()
-            .columns([
-                api_keys::Column::Id,
-                api_keys::Column::LookupHash,
-                api_keys::Column::VerificationHash,
-                api_keys::Column::Title,
-                api_keys::Column::Preview,
-                api_keys::Column::UserId,
-            ])
-            .values_panic([
-                params.id.to_string().into(),
-                params.lookup_hash.into(),
-                params.verification_hash.into(),
-                params.title.into(),
-                params.preview.into(),
-                params.user_id.to_string().into(),
-            ])
-            .to_owned();
-
         self.db
-            .execute(self.db.get_database_backend().build(&query))
+            .execute(self.db.get_database_backend().build(&params.into_insert()))
             .await?;
 
         Ok(())
@@ -135,16 +83,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             return Ok(());
         }
 
-        let mut query = Query::update()
-            .table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(params.id.to_string()))
-            .to_owned();
-
-        if let Some(title) = params.title {
-            query.value(api_keys::Column::Title, title);
-        }
-
-        tx.execute(self.db.get_database_backend().build(&query))
+        tx.execute(self.db.get_database_backend().build(&params.into_update()))
             .await?;
 
         Ok(())
@@ -157,12 +96,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     ) -> Result<(), Error> {
         let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
 
-        let query = Query::delete()
-            .from_table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(params.id.to_string()))
-            .to_owned();
-
-        tx.execute(self.db.get_database_backend().build(&query))
+        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
             .await?;
 
         Ok(())
@@ -172,18 +106,9 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         &self,
         params: ApiKeySearchParams,
     ) -> Result<Option<ApiKeySearched>, Error> {
-        let query = Query::select()
-            .column((api_keys::Entity, api_keys::Column::VerificationHash))
-            .column((api_keys::Entity, api_keys::Column::UserId))
-            .from(api_keys::Entity)
-            .and_where(
-                Expr::col((api_keys::Entity, api_keys::Column::LookupHash)).eq(params.lookup_hash),
-            )
-            .to_owned();
-
         let result = self
             .db
-            .query_one(self.db.get_database_backend().build(&query))
+            .query_one(self.db.get_database_backend().build(&params.into_select()))
             .await?;
 
         Ok(result.map(|e| ApiKeySearched {

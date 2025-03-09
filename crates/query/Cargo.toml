@@ -1,0 +1,13 @@
+[package]
+name = "colette-query"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono.workspace = true
+colette-core.workspace = true
+colette-model.workspace = true
+sea-query = { version = "0.32.2", default-features = false }
+serde_json.workspace = true
+url.workspace = true
+uuid.workspace = true

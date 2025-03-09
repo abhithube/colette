@@ -8,8 +8,8 @@ use futures::stream::BoxStream;
 use url::Url;
 
 use super::{
-    Error, ExtractedFeed, Feed, FeedFindParams, FeedRepository, FeedScraper, FeedUpsertParams,
-    ProcessedFeed, ScraperError, StreamFeedUrlsParams,
+    Error, ExtractedFeed, Feed, FeedFindParams, FeedRepository, FeedScraper, FeedStreamUrlsParams,
+    FeedUpsertParams, ProcessedFeed, ScraperError,
 };
 
 pub struct FeedService {
@@ -133,7 +133,7 @@ impl FeedService {
     }
 
     pub async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        self.repository.stream_feed_urls(StreamFeedUrlsParams).await
+        self.repository.stream_feed_urls(FeedStreamUrlsParams).await
     }
 }
 

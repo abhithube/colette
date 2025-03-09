@@ -578,6 +578,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-query"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "colette-core",
+ "colette-model",
+ "sea-query",
+ "serde_json",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
@@ -596,6 +609,7 @@ dependencies = [
  "colette-netscape",
  "colette-opml",
  "colette-plugins",
+ "colette-query",
  "colette-session",
  "colette-storage",
  "colette-util",

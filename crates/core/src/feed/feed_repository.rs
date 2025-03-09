@@ -12,7 +12,7 @@ pub trait FeedRepository: Send + Sync + 'static {
 
     async fn stream_feed_urls(
         &self,
-        params: StreamFeedUrlsParams,
+        params: FeedStreamUrlsParams,
     ) -> Result<BoxStream<Result<Url, Error>>, Error>;
 }
 
@@ -29,4 +29,4 @@ pub struct FeedUpsertParams {
     pub feed: ProcessedFeed,
 }
 
-pub struct StreamFeedUrlsParams;
+pub struct FeedStreamUrlsParams;

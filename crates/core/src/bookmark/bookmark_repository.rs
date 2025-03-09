@@ -33,7 +33,7 @@ pub trait BookmarkRepository: Send + Sync + 'static {
         params: BookmarkDeleteParams,
     ) -> Result<(), Error>;
 
-    async fn save_scraped(&self, params: BookmarkScrapedParams) -> Result<(), Error>;
+    async fn upsert(&self, params: BookmarkUpsertParams) -> Result<(), Error>;
 
     async fn link_tags(
         &self,
@@ -90,7 +90,7 @@ pub struct BookmarkDeleteParams {
 }
 
 #[derive(Debug, Clone)]
-pub struct BookmarkScrapedParams {
+pub struct BookmarkUpsertParams {
     pub url: Url,
     pub bookmark: ProcessedBookmark,
     pub user_id: Uuid,

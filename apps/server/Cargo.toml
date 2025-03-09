@@ -31,6 +31,7 @@ colette-job.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
+colette-query.workspace = true
 colette-session.workspace = true
 colette-storage.workspace = true
 colette-util.workspace = true

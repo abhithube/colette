@@ -10,8 +10,8 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkDeleteParams, BookmarkFilter, BookmarkFindByIdParams, BookmarkScrapedParams,
-    BookmarkScraper, BookmarkTagsLinkParams, Cursor, Error, ExtractedBookmark, ScraperError,
+    Bookmark, BookmarkDeleteParams, BookmarkFilter, BookmarkFindByIdParams, BookmarkScraper,
+    BookmarkTagsLinkParams, BookmarkUpsertParams, Cursor, Error, ExtractedBookmark, ScraperError,
     bookmark_repository::{
         BookmarkCreateParams, BookmarkFindParams, BookmarkRepository, BookmarkUpdateParams,
     },
@@ -362,7 +362,7 @@ impl BookmarkService {
         }?;
 
         self.bookmark_repository
-            .save_scraped(BookmarkScrapedParams {
+            .upsert(BookmarkUpsertParams {
                 url: data.url,
                 bookmark,
                 user_id: data.user_id,

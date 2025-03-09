@@ -1,17 +1,15 @@
 use colette_core::{
     Feed,
-    feed::{Error, FeedFindParams, FeedRepository, FeedUpsertParams, StreamFeedUrlsParams},
+    feed::{Error, FeedFindParams, FeedRepository, FeedStreamUrlsParams, FeedUpsertParams},
 };
-use colette_model::{FeedRow, feeds};
+use colette_model::FeedRow;
+use colette_query::{IntoInsert, IntoSelect, feed::FeedUpsert, feed_entry::FeedEntryUpsert};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
     ConnectionTrait, DatabaseConnection, FromQueryResult, StreamTrait, TransactionTrait,
-    sea_query::{Asterisk, Expr, Func, Order, Query},
 };
 use url::Url;
 use uuid::Uuid;
-
-use super::common;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
@@ -27,29 +25,11 @@ impl SqliteFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
-        let mut query = Query::select()
-            .column(Asterisk)
-            .from(feeds::Entity)
-            .apply_if(params.id, |query, id| {
-                query.and_where(Expr::col((feeds::Entity, feeds::Column::Id)).eq(id.to_string()));
-            })
-            .apply_if(params.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((feeds::Entity, feeds::Column::Link))
-                        .gt(Expr::val(cursor.link.to_string())),
-                );
-            })
-            .order_by((feeds::Entity, feeds::Column::Link), Order::Asc)
-            .to_owned();
-
-        if let Some(limit) = params.limit {
-            query.limit(limit as u64);
-        }
-
-        let feeds = FeedRow::find_by_statement(self.db.get_database_backend().build(&query))
-            .all(&self.db)
-            .await
-            .map(|e| e.into_iter().map(Into::into).collect())?;
+        let feeds =
+            FeedRow::find_by_statement(self.db.get_database_backend().build(&params.into_select()))
+                .all(&self.db)
+                .await
+                .map(|e| e.into_iter().map(Into::into).collect())?;
 
         Ok(feeds)
     }
@@ -57,17 +37,42 @@ impl FeedRepository for SqliteFeedRepository {
     async fn upsert_feed(&self, params: FeedUpsertParams) -> Result<Uuid, Error> {
         let tx = self.db.begin().await?;
 
-        let id = common::upsert_feed(
-            &tx,
-            params.feed.link,
-            Some(params.url),
-            params.feed.title,
-            params.feed.description,
-            params.feed.refreshed,
-        )
-        .await?;
+        let feed = FeedUpsert {
+            id: Uuid::new_v4(),
+            link: params.feed.link,
+            xml_url: Some(params.url),
+            title: params.feed.title,
+            description: params.feed.description,
+            refreshed_at: params.feed.refreshed,
+        };
 
-        common::upsert_entries(&tx, params.feed.entries, id).await?;
+        let id = tx
+            .query_one(self.db.get_database_backend().build(&feed.into_insert()))
+            .await?
+            .unwrap()
+            .try_get_by_index::<String>(0)
+            .unwrap()
+            .parse::<Uuid>()
+            .unwrap();
+
+        let entries = params
+            .feed
+            .entries
+            .into_iter()
+            .map(|e| FeedEntryUpsert {
+                id: Uuid::new_v4(),
+                link: e.link,
+                title: e.title,
+                published_at: e.published,
+                description: e.description,
+                author: e.author,
+                thumbnail_url: e.thumbnail,
+                feed_id: id,
+            })
+            .collect::<Vec<_>>();
+
+        tx.execute(self.db.get_database_backend().build(&entries.into_insert()))
+            .await?;
 
         tx.commit().await?;
 
@@ -76,19 +81,11 @@ impl FeedRepository for SqliteFeedRepository {
 
     async fn stream_feed_urls(
         &self,
-        _params: StreamFeedUrlsParams,
+        params: FeedStreamUrlsParams,
     ) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        let query = Query::select()
-            .expr(Func::coalesce([
-                Expr::col(feeds::Column::XmlUrl).into(),
-                Expr::col(feeds::Column::Link).into(),
-            ]))
-            .from(feeds::Entity)
-            .to_owned();
-
         let urls = self
             .db
-            .stream(self.db.get_database_backend().build(&query))
+            .stream(self.db.get_database_backend().build(&params.into_select()))
             .await?
             .map_ok(|e| e.try_get_by_index::<String>(0).unwrap().parse().unwrap())
             .map_err(Error::Database)
