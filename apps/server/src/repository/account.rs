@@ -3,7 +3,6 @@ use colette_core::{
     account::{AccountCreateParams, AccountFindParams, AccountRepository, Error},
     common::Transaction,
 };
-use colette_model::AccountRow;
 use colette_query::{IntoInsert, IntoSelect};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
 
@@ -46,5 +45,26 @@ impl AccountRepository for SqliteAccountRepository {
             .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct AccountRow {
+    email: String,
+    provider_id: String,
+    account_id: String,
+    password_hash: Option<String>,
+    user_id: String,
+}
+
+impl From<AccountRow> for Account {
+    fn from(value: AccountRow) -> Self {
+        Self {
+            email: value.email,
+            provider_id: value.provider_id,
+            account_id: value.account_id,
+            password_hash: value.password_hash,
+            id: value.user_id.parse().unwrap(),
+        }
     }
 }

@@ -6,9 +6,10 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::ApiKeyRow;
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -115,5 +116,28 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             verification_hash: e.try_get_by_index::<String>(0).unwrap(),
             user_id: e.try_get_by_index::<String>(1).unwrap().parse().unwrap(),
         }))
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct ApiKeyRow {
+    id: String,
+    title: String,
+    preview: String,
+    user_id: String,
+    created_at: i32,
+    updated_at: i32,
+}
+
+impl From<ApiKeyRow> for ApiKey {
+    fn from(value: ApiKeyRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            preview: value.preview,
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+        }
     }
 }

@@ -6,9 +6,10 @@ use colette_core::{
         SubscriptionEntryRepository,
     },
 };
-use colette_model::SubscriptionEntryRow;
 use colette_query::IntoSelect;
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
+
+use super::feed_entry::FeedEntryRow;
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionEntryRepository {
@@ -65,5 +66,42 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
                 .parse()
                 .unwrap(),
         })
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct SubscriptionEntryRow {
+    id: String,
+    link: String,
+    title: String,
+    published_at: i32,
+    description: Option<String>,
+    author: Option<String>,
+    thumbnail_url: Option<String>,
+    feed_id: String,
+
+    subscription_id: String,
+    user_id: String,
+    has_read: bool,
+}
+
+impl From<SubscriptionEntryRow> for SubscriptionEntry {
+    fn from(value: SubscriptionEntryRow) -> Self {
+        Self {
+            entry: FeedEntryRow {
+                id: value.id,
+                link: value.link,
+                title: value.title,
+                published_at: value.published_at,
+                description: value.description,
+                author: value.author,
+                thumbnail_url: value.thumbnail_url,
+                feed_id: value.feed_id,
+            }
+            .into(),
+            subscription_id: value.subscription_id.parse().unwrap(),
+            user_id: value.user_id.parse().unwrap(),
+            has_read: value.has_read,
+        }
     }
 }

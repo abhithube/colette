@@ -6,9 +6,10 @@ use colette_core::{
         TagRepository, TagUpdateParams,
     },
 };
-use colette_model::TagWithCounts;
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -90,5 +91,30 @@ impl TagRepository for SqliteTagRepository {
             .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub struct TagWithCounts {
+    pub id: String,
+    pub title: String,
+    pub user_id: String,
+    pub created_at: i32,
+    pub updated_at: i32,
+    pub feed_count: i64,
+    pub bookmark_count: i64,
+}
+
+impl From<TagWithCounts> for Tag {
+    fn from(value: TagWithCounts) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+            feed_count: Some(value.feed_count),
+            bookmark_count: Some(value.bookmark_count),
+        }
     }
 }

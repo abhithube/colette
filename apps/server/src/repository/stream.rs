@@ -6,9 +6,10 @@ use colette_core::{
         StreamFindParams, StreamRepository, StreamUpdateParams,
     },
 };
-use colette_model::StreamRow;
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteStreamRepository {
@@ -106,5 +107,28 @@ impl StreamRepository for SqliteStreamRepository {
             .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct StreamRow {
+    id: String,
+    title: String,
+    filter_raw: String,
+    user_id: String,
+    created_at: i32,
+    updated_at: i32,
+}
+
+impl From<StreamRow> for Stream {
+    fn from(value: StreamRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+        }
     }
 }

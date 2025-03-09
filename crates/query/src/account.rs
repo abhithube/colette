@@ -1,31 +1,56 @@
-use colette_core::account::{AccountCreateParams, AccountFindParams};
-use colette_model::{accounts, users};
-use sea_query::{Expr, InsertStatement, Query, SelectStatement};
+use std::fmt::Write;
 
-use crate::{IntoInsert, IntoSelect};
+use colette_core::account::{AccountCreateParams, AccountFindParams};
+use sea_query::{Expr, Iden, InsertStatement, Query, SelectStatement};
+
+use crate::{IntoInsert, IntoSelect, user::User};
+
+pub enum Account {
+    Table,
+    ProviderId,
+    AccountId,
+    PasswordHash,
+    UserId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+impl Iden for Account {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "accounts",
+                Self::ProviderId => "provider_id",
+                Self::AccountId => "account_id",
+                Self::PasswordHash => "password_hash",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
+}
 
 impl IntoSelect for AccountFindParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((users::Entity, users::Column::Email))
+            .column((User::Table, User::Email))
             .columns([
-                (accounts::Entity, accounts::Column::ProviderId),
-                (accounts::Entity, accounts::Column::AccountId),
-                (accounts::Entity, accounts::Column::PasswordHash),
-                (accounts::Entity, accounts::Column::UserId),
+                (Account::Table, Account::ProviderId),
+                (Account::Table, Account::AccountId),
+                (Account::Table, Account::PasswordHash),
+                (Account::Table, Account::UserId),
             ])
-            .from(accounts::Entity)
+            .from(Account::Table)
             .inner_join(
-                users::Entity,
-                Expr::col((users::Entity, users::Column::Id))
-                    .eq(Expr::col((accounts::Entity, accounts::Column::UserId))),
+                User::Table,
+                Expr::col((User::Table, User::Id)).eq(Expr::col((Account::Table, Account::UserId))),
             )
-            .and_where(
-                Expr::col((accounts::Entity, accounts::Column::ProviderId)).eq(self.provider_id),
-            )
-            .and_where(
-                Expr::col((accounts::Entity, accounts::Column::AccountId)).eq(self.account_id),
-            )
+            .and_where(Expr::col((Account::Table, Account::ProviderId)).eq(self.provider_id))
+            .and_where(Expr::col((Account::Table, Account::AccountId)).eq(self.account_id))
             .to_owned()
     }
 }
@@ -33,12 +58,12 @@ impl IntoSelect for AccountFindParams {
 impl IntoInsert for AccountCreateParams {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .into_table(accounts::Entity)
+            .into_table(Account::Table)
             .columns([
-                accounts::Column::ProviderId,
-                accounts::Column::AccountId,
-                accounts::Column::PasswordHash,
-                accounts::Column::UserId,
+                Account::ProviderId,
+                Account::AccountId,
+                Account::PasswordHash,
+                Account::UserId,
             ])
             .values_panic([
                 self.provider_id.into(),

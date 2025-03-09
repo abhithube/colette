@@ -1,14 +1,45 @@
+use std::fmt::Write;
+
 use colette_core::tag::{
     TagCreateParams, TagDeleteParams, TagFindByIdsParams, TagFindParams, TagType, TagUpdateParams,
 };
-use colette_model::{bookmark_tags, subscription_tags, tags};
 use sea_query::{
-    Alias, DeleteStatement, Expr, Func, InsertStatement, Order, Query, SelectStatement,
+    Alias, DeleteStatement, Expr, Func, Iden, InsertStatement, Order, Query, SelectStatement,
     UpdateStatement,
 };
 use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
+use crate::{
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate, bookmark_tag::BookmarkTag,
+    subscription_tag::SubscriptionTag,
+};
+
+pub enum Tag {
+    Table,
+    Id,
+    Title,
+    UserId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+impl Iden for Tag {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "tags",
+                Self::Id => "id",
+                Self::Title => "title",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
+}
 
 impl IntoSelect for TagFindParams {
     fn into_select(self) -> SelectStatement {
@@ -17,55 +48,47 @@ impl IntoSelect for TagFindParams {
 
         let mut query = Query::select()
             .columns([
-                (tags::Entity, tags::Column::Id),
-                (tags::Entity, tags::Column::Title),
-                (tags::Entity, tags::Column::UserId),
-                (tags::Entity, tags::Column::CreatedAt),
-                (tags::Entity, tags::Column::UpdatedAt),
+                (Tag::Table, Tag::Id),
+                (Tag::Table, Tag::Title),
+                (Tag::Table, Tag::UserId),
+                (Tag::Table, Tag::CreatedAt),
+                (Tag::Table, Tag::UpdatedAt),
             ])
             .expr_as(
                 Func::count(Expr::col((
-                    subscription_tags::Entity,
-                    subscription_tags::Column::SubscriptionId,
+                    SubscriptionTag::Table,
+                    SubscriptionTag::SubscriptionId,
                 ))),
                 feed_count.clone(),
             )
             .expr_as(
-                Func::count(Expr::col((
-                    bookmark_tags::Entity,
-                    bookmark_tags::Column::BookmarkId,
-                ))),
+                Func::count(Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))),
                 bookmark_count.clone(),
             )
-            .from(tags::Entity)
+            .from(Tag::Table)
             .left_join(
-                subscription_tags::Entity,
-                Expr::col((subscription_tags::Entity, subscription_tags::Column::TagId))
-                    .eq(Expr::col((tags::Entity, tags::Column::Id))),
+                SubscriptionTag::Table,
+                Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
+                    .eq(Expr::col((Tag::Table, Tag::Id))),
             )
             .left_join(
-                bookmark_tags::Entity,
-                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::TagId))
-                    .eq(Expr::col((tags::Entity, tags::Column::Id))),
+                BookmarkTag::Table,
+                Expr::col((BookmarkTag::Table, BookmarkTag::TagId))
+                    .eq(Expr::col((Tag::Table, Tag::Id))),
             )
             .apply_if(self.ids, |query, ids| {
                 query.and_where(
-                    Expr::col((tags::Entity, tags::Column::Id))
-                        .is_in(ids.into_iter().map(String::from)),
+                    Expr::col((Tag::Table, Tag::Id)).is_in(ids.into_iter().map(String::from)),
                 );
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((tags::Entity, tags::Column::UserId)).eq(user_id.to_string()),
-                );
+                query.and_where(Expr::col((Tag::Table, Tag::UserId)).eq(user_id.to_string()));
             })
             .apply_if(self.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((tags::Entity, tags::Column::Title)).gt(Expr::val(cursor.title)),
-                );
+                query.and_where(Expr::col((Tag::Table, Tag::Title)).gt(Expr::val(cursor.title)));
             })
-            .group_by_col((tags::Entity, tags::Column::Id))
-            .order_by((tags::Entity, tags::Column::CreatedAt), Order::Asc)
+            .group_by_col((Tag::Table, Tag::Id))
+            .order_by((Tag::Table, Tag::CreatedAt), Order::Asc)
             .to_owned();
 
         match self.tag_type {
@@ -89,12 +112,11 @@ impl IntoSelect for TagFindParams {
 impl IntoSelect for TagFindByIdsParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((tags::Entity, tags::Column::Id))
-            .column((tags::Entity, tags::Column::UserId))
-            .from(tags::Entity)
+            .column((Tag::Table, Tag::Id))
+            .column((Tag::Table, Tag::UserId))
+            .from(Tag::Table)
             .and_where(
-                Expr::col((tags::Entity, tags::Column::Id))
-                    .is_in(self.ids.into_iter().map(String::from)),
+                Expr::col((Tag::Table, Tag::Id)).is_in(self.ids.into_iter().map(String::from)),
             )
             .to_owned()
     }
@@ -103,7 +125,7 @@ impl IntoSelect for TagFindByIdsParams {
 impl IntoInsert for TagCreateParams {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .columns([tags::Column::Id, tags::Column::Title, tags::Column::UserId])
+            .columns([Tag::Id, Tag::Title, Tag::UserId])
             .values_panic([
                 self.id.to_string().into(),
                 self.title.clone().into(),
@@ -116,12 +138,12 @@ impl IntoInsert for TagCreateParams {
 impl IntoUpdate for TagUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
-            .table(tags::Entity)
-            .and_where(Expr::col(tags::Column::Id).eq(self.id.to_string()))
+            .table(Tag::Table)
+            .and_where(Expr::col(Tag::Id).eq(self.id.to_string()))
             .to_owned();
 
         if let Some(title) = self.title {
-            query.value(tags::Column::Title, title);
+            query.value(Tag::Title, title);
         }
 
         query
@@ -131,8 +153,8 @@ impl IntoUpdate for TagUpdateParams {
 impl IntoDelete for TagDeleteParams {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
-            .from_table(tags::Entity)
-            .and_where(Expr::col(tags::Column::Id).eq(self.id.to_string()))
+            .from_table(Tag::Table)
+            .and_where(Expr::col(Tag::Id).eq(self.id.to_string()))
             .to_owned()
     }
 }
@@ -147,10 +169,10 @@ pub struct TagUpsert {
 impl IntoSelect for TagUpsert {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column(tags::Column::Id)
-            .from(tags::Entity)
-            .and_where(Expr::col(tags::Column::UserId).eq(self.user_id.to_string()))
-            .and_where(Expr::col(tags::Column::UserId).eq(self.title.clone()))
+            .column(Tag::Id)
+            .from(Tag::Table)
+            .and_where(Expr::col(Tag::UserId).eq(self.user_id.to_string()))
+            .and_where(Expr::col(Tag::UserId).eq(self.title.clone()))
             .to_owned()
     }
 }
@@ -158,8 +180,8 @@ impl IntoSelect for TagUpsert {
 impl IntoInsert for TagUpsert {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .into_table(tags::Entity)
-            .columns([tags::Column::Id, tags::Column::Title, tags::Column::UserId])
+            .into_table(Tag::Table)
+            .columns([Tag::Id, Tag::Title, Tag::UserId])
             .values_panic([
                 self.id.to_string().into(),
                 self.title.into(),

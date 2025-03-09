@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use colette_core::{
-    Bookmark,
+    Bookmark, Tag,
     bookmark::{
         BookmarkById, BookmarkCreateParams, BookmarkDeleteParams, BookmarkFindByIdParams,
         BookmarkFindParams, BookmarkRepository, BookmarkTagsLinkParams, BookmarkUpdateParams,
@@ -9,12 +9,13 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::{BookmarkRow, BookmarkRowWithTagRows, BookmarkTagRow};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark_tag::{BookmarkTagDeleteMany, BookmarkTagSelectMany, BookmarkTagUpsertMany},
 };
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {
@@ -200,5 +201,65 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub struct BookmarkRow {
+    pub id: String,
+    pub link: String,
+    pub title: String,
+    pub thumbnail_url: Option<String>,
+    pub published_at: Option<i32>,
+    pub archived_path: Option<String>,
+    pub author: Option<String>,
+    pub user_id: String,
+    pub created_at: i32,
+    pub updated_at: i32,
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub struct BookmarkTagRow {
+    pub bookmark_id: String,
+    pub id: String,
+    pub title: String,
+    pub user_id: String,
+    pub created_at: i32,
+    pub updated_at: i32,
+}
+
+impl From<BookmarkTagRow> for Tag {
+    fn from(value: BookmarkTagRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct BookmarkRowWithTagRows {
+    pub bookmark: BookmarkRow,
+    pub tags: Option<Vec<BookmarkTagRow>>,
+}
+
+impl From<BookmarkRowWithTagRows> for Bookmark {
+    fn from(value: BookmarkRowWithTagRows) -> Self {
+        Self {
+            id: value.bookmark.id.parse().unwrap(),
+            link: value.bookmark.link.parse().unwrap(),
+            title: value.bookmark.title,
+            thumbnail_url: value.bookmark.thumbnail_url.and_then(|e| e.parse().ok()),
+            published_at: value.bookmark.published_at.and_then(parse_timestamp),
+            author: value.bookmark.author,
+            archived_path: value.bookmark.archived_path,
+            user_id: value.bookmark.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.bookmark.created_at),
+            updated_at: parse_timestamp(value.bookmark.updated_at),
+            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+        }
     }
 }

@@ -3,9 +3,10 @@ use colette_core::{
     common::Transaction,
     user::{Error, UserCreateParams, UserFindParams, UserRepository},
 };
-use colette_model::UserRow;
 use colette_query::{IntoInsert, IntoSelect};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteUserRepository {
@@ -45,5 +46,26 @@ impl UserRepository for SqliteUserRepository {
             .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct UserRow {
+    id: String,
+    email: String,
+    display_name: Option<String>,
+    created_at: i32,
+    updated_at: i32,
+}
+
+impl From<UserRow> for User {
+    fn from(value: UserRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            email: value.email,
+            display_name: value.display_name,
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+        }
     }
 }

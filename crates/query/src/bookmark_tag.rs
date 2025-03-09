@@ -1,11 +1,40 @@
+use std::fmt::Write;
+
 use colette_core::tag::TagById;
-use colette_model::{bookmark_tags, tags};
 use sea_query::{
-    DeleteStatement, Expr, InsertStatement, OnConflict, Order, Query, SelectStatement, SimpleExpr,
+    DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    SimpleExpr,
 };
 use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect};
+use crate::{IntoDelete, IntoInsert, IntoSelect, tag::Tag};
+
+pub enum BookmarkTag {
+    Table,
+    BookmarkId,
+    TagId,
+    UserId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+impl Iden for BookmarkTag {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "bookmark_tags",
+                Self::BookmarkId => "bookmark_id",
+                Self::TagId => "tag_id",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
+}
 
 pub struct BookmarkTagSelectMany<T> {
     pub bookmark_ids: T,
@@ -14,27 +43,24 @@ pub struct BookmarkTagSelectMany<T> {
 impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for BookmarkTagSelectMany<I> {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
+            .column((BookmarkTag::Table, BookmarkTag::BookmarkId))
             .columns([
-                (tags::Entity, tags::Column::Id),
-                (tags::Entity, tags::Column::Title),
-                (tags::Entity, tags::Column::CreatedAt),
-                (tags::Entity, tags::Column::UpdatedAt),
-                (tags::Entity, tags::Column::UserId),
+                (Tag::Table, Tag::Id),
+                (Tag::Table, Tag::Title),
+                (Tag::Table, Tag::CreatedAt),
+                (Tag::Table, Tag::UpdatedAt),
+                (Tag::Table, Tag::UserId),
             ])
-            .from(bookmark_tags::Entity)
+            .from(BookmarkTag::Table)
             .inner_join(
-                tags::Entity,
-                Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                    bookmark_tags::Entity,
-                    bookmark_tags::Column::TagId,
-                ))),
+                Tag::Table,
+                Expr::col((Tag::Table, Tag::Id))
+                    .eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId))),
             )
             .and_where(
-                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
-                    .is_in(self.bookmark_ids),
+                Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId)).is_in(self.bookmark_ids),
             )
-            .order_by((tags::Entity, tags::Column::Title), Order::Asc)
+            .order_by((Tag::Table, Tag::Title), Order::Asc)
             .to_owned()
     }
 }
@@ -48,11 +74,11 @@ pub struct BookmarkTagUpsert {
 impl IntoInsert for BookmarkTagUpsert {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .into_table(bookmark_tags::Entity)
+            .into_table(BookmarkTag::Table)
             .columns([
-                bookmark_tags::Column::BookmarkId,
-                bookmark_tags::Column::TagId,
-                bookmark_tags::Column::UserId,
+                BookmarkTag::BookmarkId,
+                BookmarkTag::TagId,
+                BookmarkTag::UserId,
             ])
             .values_panic([
                 self.bookmark_id.to_string().into(),
@@ -60,12 +86,9 @@ impl IntoInsert for BookmarkTagUpsert {
                 self.user_id.to_string().into(),
             ])
             .on_conflict(
-                OnConflict::columns([
-                    bookmark_tags::Column::BookmarkId,
-                    bookmark_tags::Column::TagId,
-                ])
-                .do_nothing()
-                .to_owned(),
+                OnConflict::columns([BookmarkTag::BookmarkId, BookmarkTag::TagId])
+                    .do_nothing()
+                    .to_owned(),
             )
             .to_owned()
     }
@@ -79,11 +102,9 @@ pub struct BookmarkTagDeleteMany<T> {
 impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoDelete for BookmarkTagDeleteMany<I> {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
-            .from_table(bookmark_tags::Entity)
-            .and_where(
-                Expr::col(bookmark_tags::Column::BookmarkId).eq(self.bookmark_id.to_string()),
-            )
-            .and_where(Expr::col(bookmark_tags::Column::TagId).is_not_in(self.tag_ids))
+            .from_table(BookmarkTag::Table)
+            .and_where(Expr::col(BookmarkTag::BookmarkId).eq(self.bookmark_id.to_string()))
+            .and_where(Expr::col(BookmarkTag::TagId).is_not_in(self.tag_ids))
             .to_owned()
     }
 }
@@ -96,19 +117,16 @@ pub struct BookmarkTagUpsertMany {
 impl IntoInsert for BookmarkTagUpsertMany {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
-            .into_table(bookmark_tags::Entity)
+            .into_table(BookmarkTag::Table)
             .columns([
-                bookmark_tags::Column::BookmarkId,
-                bookmark_tags::Column::TagId,
-                bookmark_tags::Column::UserId,
+                BookmarkTag::BookmarkId,
+                BookmarkTag::TagId,
+                BookmarkTag::UserId,
             ])
             .on_conflict(
-                OnConflict::columns([
-                    bookmark_tags::Column::BookmarkId,
-                    bookmark_tags::Column::TagId,
-                ])
-                .do_nothing()
-                .to_owned(),
+                OnConflict::columns([BookmarkTag::BookmarkId, BookmarkTag::TagId])
+                    .do_nothing()
+                    .to_owned(),
             )
             .to_owned();
 

@@ -1,52 +1,88 @@
+use std::fmt::Write;
+
 use colette_core::bookmark::{
     BookmarkCreateParams, BookmarkDateField, BookmarkDeleteParams, BookmarkFilter,
     BookmarkFindByIdParams, BookmarkFindParams, BookmarkTextField, BookmarkUpdateParams,
     BookmarkUpsertParams,
 };
-use colette_model::{bookmark_tags, bookmarks, tags};
 use sea_query::{
-    DeleteStatement, Expr, InsertStatement, OnConflict, Order, Query, SelectStatement, SimpleExpr,
-    UpdateStatement,
+    DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    SimpleExpr, UpdateStatement,
 };
 use uuid::Uuid;
 
 use crate::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    bookmark_tag::BookmarkTag,
     filter::{ToColumn, ToSql},
+    tag::Tag,
 };
+
+pub enum Bookmark {
+    Table,
+    Id,
+    Link,
+    Title,
+    ThumbnailUrl,
+    PublishedAt,
+    Author,
+    ArchivedPath,
+    UserId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+impl Iden for Bookmark {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "bookmarks",
+                Self::Id => "id",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::ThumbnailUrl => "thumbnail_url",
+                Self::PublishedAt => "published_at",
+                Self::Author => "author",
+                Self::ArchivedPath => "archived_path",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
+}
 
 impl IntoSelect for BookmarkFindParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .columns([
-                (bookmarks::Entity, bookmarks::Column::Id),
-                (bookmarks::Entity, bookmarks::Column::Link),
-                (bookmarks::Entity, bookmarks::Column::Title),
-                (bookmarks::Entity, bookmarks::Column::ThumbnailUrl),
-                (bookmarks::Entity, bookmarks::Column::PublishedAt),
-                (bookmarks::Entity, bookmarks::Column::Author),
-                (bookmarks::Entity, bookmarks::Column::ArchivedPath),
-                (bookmarks::Entity, bookmarks::Column::UserId),
-                (bookmarks::Entity, bookmarks::Column::CreatedAt),
-                (bookmarks::Entity, bookmarks::Column::UpdatedAt),
+                (Bookmark::Table, Bookmark::Id),
+                (Bookmark::Table, Bookmark::Link),
+                (Bookmark::Table, Bookmark::Title),
+                (Bookmark::Table, Bookmark::ThumbnailUrl),
+                (Bookmark::Table, Bookmark::PublishedAt),
+                (Bookmark::Table, Bookmark::Author),
+                (Bookmark::Table, Bookmark::ArchivedPath),
+                (Bookmark::Table, Bookmark::UserId),
+                (Bookmark::Table, Bookmark::CreatedAt),
+                (Bookmark::Table, Bookmark::UpdatedAt),
             ])
-            .from(bookmarks::Entity)
+            .from(Bookmark::Table)
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(
-                    Expr::col((bookmarks::Entity, bookmarks::Column::UserId))
-                        .eq(user_id.to_string()),
+                    Expr::col((Bookmark::Table, Bookmark::UserId)).eq(user_id.to_string()),
                 );
             })
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
-                    Expr::col((bookmarks::Entity, bookmarks::Column::CreatedAt))
+                    Expr::col((Bookmark::Table, Bookmark::CreatedAt))
                         .lt(Expr::val(cursor.created_at.timestamp())),
                 );
             })
-            .order_by(
-                (bookmarks::Entity, bookmarks::Column::CreatedAt),
-                Order::Desc,
-            )
+            .order_by((Bookmark::Table, Bookmark::CreatedAt), Order::Desc)
             .to_owned();
 
         if let Some(filter) = self.filter {
@@ -54,24 +90,19 @@ impl IntoSelect for BookmarkFindParams {
         } else {
             query
                 .apply_if(self.id, |query, id| {
-                    query.and_where(
-                        Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(id.to_string()),
-                    );
+                    query.and_where(Expr::col((Bookmark::Table, Bookmark::Id)).eq(id.to_string()));
                 })
                 .apply_if(self.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
-                            .from(bookmark_tags::Entity)
+                            .from(BookmarkTag::Table)
                             .and_where(
-                                Expr::col((
-                                    bookmark_tags::Entity,
-                                    bookmark_tags::Column::BookmarkId,
-                                ))
-                                .eq(Expr::col((bookmarks::Entity, bookmarks::Column::Id))),
+                                Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))
+                                    .eq(Expr::col((Bookmark::Table, Bookmark::Id))),
                             )
                             .and_where(
-                                Expr::col((bookmark_tags::Entity, bookmark_tags::Column::TagId))
+                                Expr::col((BookmarkTag::Table, BookmarkTag::TagId))
                                     .is_in(tags.into_iter().map(String::from)),
                             )
                             .to_owned(),
@@ -90,12 +121,10 @@ impl IntoSelect for BookmarkFindParams {
 impl IntoSelect for BookmarkFindByIdParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((bookmarks::Entity, bookmarks::Column::Id))
-            .column((bookmarks::Entity, bookmarks::Column::UserId))
-            .from(bookmarks::Entity)
-            .and_where(
-                Expr::col((bookmarks::Entity, bookmarks::Column::Id)).eq(self.id.to_string()),
-            )
+            .column((Bookmark::Table, Bookmark::Id))
+            .column((Bookmark::Table, Bookmark::UserId))
+            .from(Bookmark::Table)
+            .and_where(Expr::col((Bookmark::Table, Bookmark::Id)).eq(self.id.to_string()))
             .to_owned()
     }
 }
@@ -103,15 +132,15 @@ impl IntoSelect for BookmarkFindByIdParams {
 impl IntoInsert for BookmarkCreateParams {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .into_table(bookmarks::Entity)
+            .into_table(Bookmark::Table)
             .columns([
-                bookmarks::Column::Id,
-                bookmarks::Column::Link,
-                bookmarks::Column::Title,
-                bookmarks::Column::ThumbnailUrl,
-                bookmarks::Column::PublishedAt,
-                bookmarks::Column::Author,
-                bookmarks::Column::UserId,
+                Bookmark::Id,
+                Bookmark::Link,
+                Bookmark::Title,
+                Bookmark::ThumbnailUrl,
+                Bookmark::PublishedAt,
+                Bookmark::Author,
+                Bookmark::UserId,
             ])
             .values_panic([
                 self.id.to_string().into(),
@@ -129,30 +158,24 @@ impl IntoInsert for BookmarkCreateParams {
 impl IntoUpdate for BookmarkUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
-            .table(bookmarks::Entity)
-            .and_where(Expr::col(bookmarks::Column::Id).eq(self.id.to_string()))
+            .table(Bookmark::Table)
+            .and_where(Expr::col(Bookmark::Id).eq(self.id.to_string()))
             .to_owned();
 
         if let Some(title) = self.title {
-            query.value(bookmarks::Column::Title, title);
+            query.value(Bookmark::Title, title);
         }
         if let Some(thumbnail_url) = self.thumbnail_url {
-            query.value(
-                bookmarks::Column::ThumbnailUrl,
-                thumbnail_url.map(String::from),
-            );
+            query.value(Bookmark::ThumbnailUrl, thumbnail_url.map(String::from));
         }
         if let Some(published_at) = self.published_at {
-            query.value(
-                bookmarks::Column::ThumbnailUrl,
-                published_at.map(|e| e.timestamp()),
-            );
+            query.value(Bookmark::PublishedAt, published_at.map(|e| e.timestamp()));
         }
         if let Some(author) = self.author {
-            query.value(bookmarks::Column::Author, author);
+            query.value(Bookmark::Author, author);
         }
         if let Some(archived_path) = self.archived_path {
-            query.value(bookmarks::Column::ArchivedPath, archived_path);
+            query.value(Bookmark::ArchivedPath, archived_path);
         }
 
         query
@@ -162,8 +185,8 @@ impl IntoUpdate for BookmarkUpdateParams {
 impl IntoDelete for BookmarkDeleteParams {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
-            .from_table(bookmarks::Entity)
-            .and_where(Expr::col(bookmarks::Column::Id).eq(self.id.to_string()))
+            .from_table(Bookmark::Table)
+            .and_where(Expr::col(Bookmark::Id).eq(self.id.to_string()))
             .to_owned()
     }
 }
@@ -171,15 +194,15 @@ impl IntoDelete for BookmarkDeleteParams {
 impl IntoInsert for BookmarkUpsertParams {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .into_table(bookmarks::Entity)
+            .into_table(Bookmark::Table)
             .columns([
-                bookmarks::Column::Id,
-                bookmarks::Column::Link,
-                bookmarks::Column::Title,
-                bookmarks::Column::ThumbnailUrl,
-                bookmarks::Column::PublishedAt,
-                bookmarks::Column::Author,
-                bookmarks::Column::UserId,
+                Bookmark::Id,
+                Bookmark::Link,
+                Bookmark::Title,
+                Bookmark::ThumbnailUrl,
+                Bookmark::PublishedAt,
+                Bookmark::Author,
+                Bookmark::UserId,
             ])
             .values_panic([
                 Uuid::new_v4().to_string().into(),
@@ -191,16 +214,16 @@ impl IntoInsert for BookmarkUpsertParams {
                 self.user_id.to_string().into(),
             ])
             .on_conflict(
-                OnConflict::columns([bookmarks::Column::UserId, bookmarks::Column::Link])
+                OnConflict::columns([Bookmark::UserId, Bookmark::Link])
                     .update_columns([
-                        bookmarks::Column::Title,
-                        bookmarks::Column::ThumbnailUrl,
-                        bookmarks::Column::PublishedAt,
-                        bookmarks::Column::Author,
+                        Bookmark::Title,
+                        Bookmark::ThumbnailUrl,
+                        Bookmark::PublishedAt,
+                        Bookmark::Author,
                     ])
                     .to_owned(),
             )
-            .returning_col(bookmarks::Column::Id)
+            .returning_col(Bookmark::Id)
             .to_owned()
     }
 }
@@ -208,10 +231,10 @@ impl IntoInsert for BookmarkUpsertParams {
 impl ToColumn for BookmarkTextField {
     fn to_column(self) -> Expr {
         match self {
-            Self::Link => Expr::col((bookmarks::Entity, bookmarks::Column::Link)),
-            Self::Title => Expr::col((bookmarks::Entity, bookmarks::Column::Title)),
-            Self::Author => Expr::col((bookmarks::Entity, bookmarks::Column::Author)),
-            Self::Tag => Expr::col((tags::Entity, tags::Column::Title)),
+            Self::Link => Expr::col((Bookmark::Table, Bookmark::Link)),
+            Self::Title => Expr::col((Bookmark::Table, Bookmark::Title)),
+            Self::Author => Expr::col((Bookmark::Table, Bookmark::Author)),
+            Self::Tag => Expr::col((Tag::Table, Tag::Title)),
         }
     }
 }
@@ -219,9 +242,9 @@ impl ToColumn for BookmarkTextField {
 impl ToColumn for BookmarkDateField {
     fn to_column(self) -> Expr {
         match self {
-            Self::PublishedAt => Expr::col((bookmarks::Entity, bookmarks::Column::PublishedAt)),
-            Self::CreatedAt => Expr::col((bookmarks::Entity, bookmarks::Column::CreatedAt)),
-            Self::UpdatedAt => Expr::col((bookmarks::Entity, bookmarks::Column::UpdatedAt)),
+            Self::PublishedAt => Expr::col((Bookmark::Table, Bookmark::PublishedAt)),
+            Self::CreatedAt => Expr::col((Bookmark::Table, Bookmark::CreatedAt)),
+            Self::UpdatedAt => Expr::col((Bookmark::Table, Bookmark::UpdatedAt)),
         }
     }
 }
@@ -233,17 +256,15 @@ impl ToSql for BookmarkFilter {
                 BookmarkTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
-                        .from(bookmark_tags::Entity)
+                        .from(BookmarkTag::Table)
                         .inner_join(
-                            tags::Entity,
-                            Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                                bookmark_tags::Entity,
-                                bookmark_tags::Column::TagId,
-                            ))),
+                            Tag::Table,
+                            Expr::col((Tag::Table, Tag::Id))
+                                .eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId))),
                         )
                         .and_where(
-                            Expr::col((bookmark_tags::Entity, bookmark_tags::Column::BookmarkId))
-                                .eq(Expr::col((bookmarks::Entity, bookmarks::Column::Id))),
+                            Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))
+                                .eq(Expr::col((Bookmark::Table, Bookmark::Id))),
                         )
                         .and_where((field.to_column(), op).to_sql())
                         .to_owned(),

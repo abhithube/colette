@@ -6,9 +6,10 @@ use colette_core::{
     },
     common::Transaction,
 };
-use colette_model::CollectionRow;
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteCollectionRepository {
@@ -109,5 +110,28 @@ impl CollectionRepository for SqliteCollectionRepository {
             .await?;
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+struct CollectionRow {
+    id: String,
+    title: String,
+    filter_raw: String,
+    user_id: String,
+    created_at: i32,
+    updated_at: i32,
+}
+
+impl From<CollectionRow> for Collection {
+    fn from(value: CollectionRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            filter: serde_json::from_str(&value.filter_raw).unwrap(),
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+        }
     }
 }

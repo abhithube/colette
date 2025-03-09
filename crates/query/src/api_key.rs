@@ -1,37 +1,67 @@
+use std::fmt::Write;
+
 use colette_core::api_key::{
     ApiKeyCreateParams, ApiKeyDeleteParams, ApiKeyFindByIdParams, ApiKeyFindParams,
     ApiKeySearchParams, ApiKeyUpdateParams,
 };
-use colette_model::api_keys;
 use sea_query::{
-    Asterisk, DeleteStatement, Expr, InsertStatement, Order, Query, SelectStatement,
+    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement,
     UpdateStatement,
 };
 
 use crate::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
 
+pub enum ApiKey {
+    Table,
+    Id,
+    LookupHash,
+    VerificationHash,
+    Title,
+    Preview,
+    UserId,
+    CreatedAt,
+    UpdatedAt,
+}
+
+impl Iden for ApiKey {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "api_keys",
+                Self::Id => "id",
+                Self::LookupHash => "lookup_hash",
+                Self::VerificationHash => "verification_hash",
+                Self::Title => "title",
+                Self::Preview => "preview",
+                Self::UserId => "user_id",
+                Self::CreatedAt => "created_at",
+                Self::UpdatedAt => "updated_at",
+            }
+        )
+        .unwrap();
+    }
+}
+
 impl IntoSelect for ApiKeyFindParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
-            .from(api_keys::Entity)
+            .from(ApiKey::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(id.to_string()),
-                );
+                query.and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(id.to_string()));
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::UserId)).eq(user_id.to_string()),
-                );
+                query.and_where(Expr::col((ApiKey::Table, ApiKey::UserId)).eq(user_id.to_string()));
             })
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
-                    Expr::col((api_keys::Entity, api_keys::Column::CreatedAt))
+                    Expr::col((ApiKey::Table, ApiKey::CreatedAt))
                         .gt(Expr::val(cursor.created_at.timestamp())),
                 );
             })
-            .order_by((api_keys::Entity, api_keys::Column::CreatedAt), Order::Asc)
+            .order_by((ApiKey::Table, ApiKey::CreatedAt), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {
@@ -45,10 +75,10 @@ impl IntoSelect for ApiKeyFindParams {
 impl IntoSelect for ApiKeyFindByIdParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((api_keys::Entity, api_keys::Column::Id))
-            .column((api_keys::Entity, api_keys::Column::UserId))
-            .from(api_keys::Entity)
-            .and_where(Expr::col((api_keys::Entity, api_keys::Column::Id)).eq(self.id.to_string()))
+            .column((ApiKey::Table, ApiKey::Id))
+            .column((ApiKey::Table, ApiKey::UserId))
+            .from(ApiKey::Table)
+            .and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(self.id.to_string()))
             .to_owned()
     }
 }
@@ -57,12 +87,12 @@ impl IntoInsert for ApiKeyCreateParams {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
             .columns([
-                api_keys::Column::Id,
-                api_keys::Column::LookupHash,
-                api_keys::Column::VerificationHash,
-                api_keys::Column::Title,
-                api_keys::Column::Preview,
-                api_keys::Column::UserId,
+                ApiKey::Id,
+                ApiKey::LookupHash,
+                ApiKey::VerificationHash,
+                ApiKey::Title,
+                ApiKey::Preview,
+                ApiKey::UserId,
             ])
             .values_panic([
                 self.id.to_string().into(),
@@ -79,12 +109,12 @@ impl IntoInsert for ApiKeyCreateParams {
 impl IntoUpdate for ApiKeyUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
-            .table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(self.id.to_string()))
+            .table(ApiKey::Table)
+            .and_where(Expr::col(ApiKey::Id).eq(self.id.to_string()))
             .to_owned();
 
         if let Some(title) = self.title {
-            query.value(api_keys::Column::Title, title);
+            query.value(ApiKey::Title, title);
         }
 
         query
@@ -94,8 +124,8 @@ impl IntoUpdate for ApiKeyUpdateParams {
 impl IntoDelete for ApiKeyDeleteParams {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
-            .from_table(api_keys::Entity)
-            .and_where(Expr::col(api_keys::Column::Id).eq(self.id.to_string()))
+            .from_table(ApiKey::Table)
+            .and_where(Expr::col(ApiKey::Id).eq(self.id.to_string()))
             .to_owned()
     }
 }
@@ -103,12 +133,10 @@ impl IntoDelete for ApiKeyDeleteParams {
 impl IntoSelect for ApiKeySearchParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((api_keys::Entity, api_keys::Column::VerificationHash))
-            .column((api_keys::Entity, api_keys::Column::UserId))
-            .from(api_keys::Entity)
-            .and_where(
-                Expr::col((api_keys::Entity, api_keys::Column::LookupHash)).eq(self.lookup_hash),
-            )
+            .column((ApiKey::Table, ApiKey::VerificationHash))
+            .column((ApiKey::Table, ApiKey::UserId))
+            .from(ApiKey::Table)
+            .and_where(Expr::col((ApiKey::Table, ApiKey::LookupHash)).eq(self.lookup_hash))
             .to_owned()
     }
 }

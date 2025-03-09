@@ -1,3 +1,5 @@
+use std::fmt::Write;
+
 use chrono::{DateTime, Utc};
 use colette_core::{
     feed_entry::FeedEntryFindParams,
@@ -6,9 +8,8 @@ use colette_core::{
         SubscriptionEntryFindByIdParams, SubscriptionEntryFindParams, SubscriptionEntryTextField,
     },
 };
-use colette_model::{feed_entries, read_entries, subscription_tags, subscriptions, tags};
 use sea_query::{
-    Alias, Asterisk, Expr, Func, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    Alias, Asterisk, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
     SimpleExpr,
 };
 use url::Url;
@@ -17,29 +18,63 @@ use uuid::Uuid;
 use crate::{
     IntoInsert, IntoSelect,
     filter::{ToColumn, ToSql},
+    read_entry::ReadEntry,
+    subscription::Subscription,
+    subscription_tag::SubscriptionTag,
+    tag::Tag,
 };
+
+pub enum FeedEntry {
+    Table,
+    Id,
+    Link,
+    Title,
+    PublishedAt,
+    Description,
+    Author,
+    ThumbnailUrl,
+    FeedId,
+}
+
+impl Iden for FeedEntry {
+    fn unquoted(&self, s: &mut dyn Write) {
+        write!(
+            s,
+            "{}",
+            match self {
+                Self::Table => "feed_entries",
+                Self::Id => "id",
+                Self::Link => "link",
+                Self::Title => "title",
+                Self::PublishedAt => "published_at",
+                Self::Description => "description",
+                Self::Author => "author",
+                Self::ThumbnailUrl => "thumbnail_url",
+                Self::FeedId => "feed_id",
+            }
+        )
+        .unwrap();
+    }
+}
 
 impl IntoSelect for FeedEntryFindParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
-            .from(feed_entries::Entity)
+            .from(FeedEntry::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(
-                    Expr::col((feed_entries::Entity, feed_entries::Column::Id)).eq(id.to_string()),
-                );
+                query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id.to_string()));
             })
             .apply_if(self.feed_id, |query, feed_id| {
                 query.and_where(
-                    Expr::col((feed_entries::Entity, feed_entries::Column::FeedId))
-                        .eq(feed_id.to_string()),
+                    Expr::col((FeedEntry::Table, FeedEntry::FeedId)).eq(feed_id.to_string()),
                 );
             })
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
                     Expr::tuple([
-                        Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
-                        Expr::col((feed_entries::Entity, feed_entries::Column::Id)).into(),
+                        Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
+                        Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
                         Expr::val(cursor.published_at.timestamp()).into(),
@@ -47,14 +82,8 @@ impl IntoSelect for FeedEntryFindParams {
                     ])),
                 );
             })
-            .order_by(
-                (feed_entries::Entity, feed_entries::Column::PublishedAt),
-                Order::Desc,
-            )
-            .order_by(
-                (feed_entries::Entity, feed_entries::Column::Id),
-                Order::Desc,
-            )
+            .order_by((FeedEntry::Table, FeedEntry::PublishedAt), Order::Desc)
+            .order_by((FeedEntry::Table, FeedEntry::Id), Order::Desc)
             .to_owned();
 
         if let Some(limit) = self.limit {
@@ -69,56 +98,49 @@ impl IntoSelect for SubscriptionEntryFindParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .columns([
-                (feed_entries::Entity, feed_entries::Column::Id),
-                (feed_entries::Entity, feed_entries::Column::Link),
-                (feed_entries::Entity, feed_entries::Column::Title),
-                (feed_entries::Entity, feed_entries::Column::PublishedAt),
-                (feed_entries::Entity, feed_entries::Column::Description),
-                (feed_entries::Entity, feed_entries::Column::Author),
-                (feed_entries::Entity, feed_entries::Column::ThumbnailUrl),
-                (feed_entries::Entity, feed_entries::Column::FeedId),
+                (FeedEntry::Table, FeedEntry::Id),
+                (FeedEntry::Table, FeedEntry::Link),
+                (FeedEntry::Table, FeedEntry::Title),
+                (FeedEntry::Table, FeedEntry::PublishedAt),
+                (FeedEntry::Table, FeedEntry::Description),
+                (FeedEntry::Table, FeedEntry::Author),
+                (FeedEntry::Table, FeedEntry::ThumbnailUrl),
+                (FeedEntry::Table, FeedEntry::FeedId),
             ])
             .expr_as(
-                Expr::col((subscriptions::Entity, subscriptions::Column::Id)),
+                Expr::col((Subscription::Table, Subscription::Id)),
                 Alias::new("subscription_id"),
             )
-            .column((subscriptions::Entity, subscriptions::Column::UserId))
+            .column((Subscription::Table, Subscription::UserId))
             .expr_as(
-                Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
-                    .is_not_null(),
+                Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId)).is_not_null(),
                 Alias::new("has_read"),
             )
-            .from(feed_entries::Entity)
+            .from(FeedEntry::Table)
             .inner_join(
-                subscriptions::Entity,
-                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
-                    feed_entries::Entity,
-                    feed_entries::Column::FeedId,
-                ))),
+                Subscription::Table,
+                Expr::col((Subscription::Table, Subscription::FeedId))
+                    .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
             )
             .left_join(
-                read_entries::Entity,
-                Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
-                    .eq(Expr::col((
-                        subscriptions::Entity,
-                        subscriptions::Column::Id,
-                    )))
+                ReadEntry::Table,
+                Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
+                    .eq(Expr::col((Subscription::Table, Subscription::Id)))
                     .and(
-                        Expr::col((read_entries::Entity, read_entries::Column::FeedEntryId))
-                            .eq(Expr::col((feed_entries::Entity, feed_entries::Column::Id))),
+                        Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
+                            .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
                     ),
             )
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(
-                    Expr::col((subscriptions::Entity, subscriptions::Column::UserId))
-                        .eq(user_id.to_string()),
+                    Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id.to_string()),
                 );
             })
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
                     Expr::tuple([
-                        Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt)).into(),
-                        Expr::col((feed_entries::Entity, feed_entries::Column::Id)).into(),
+                        Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
+                        Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
                         Expr::val(cursor.published_at.timestamp()).into(),
@@ -126,14 +148,8 @@ impl IntoSelect for SubscriptionEntryFindParams {
                     ])),
                 );
             })
-            .order_by(
-                (feed_entries::Entity, feed_entries::Column::PublishedAt),
-                Order::Desc,
-            )
-            .order_by(
-                (feed_entries::Entity, feed_entries::Column::Id),
-                Order::Desc,
-            )
+            .order_by((FeedEntry::Table, FeedEntry::PublishedAt), Order::Desc)
+            .order_by((FeedEntry::Table, FeedEntry::Id), Order::Desc)
             .to_owned();
 
         if let Some(filter) = self.filter {
@@ -141,32 +157,21 @@ impl IntoSelect for SubscriptionEntryFindParams {
         } else {
             query
                 .apply_if(self.id, |query, id| {
-                    query.and_where(
-                        Expr::col((feed_entries::Entity, feed_entries::Column::Id))
-                            .eq(id.to_string()),
-                    );
+                    query
+                        .and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id.to_string()));
                 })
                 .apply_if(self.has_read, |query, has_read| {
                     let mut subquery = Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
-                            .from(read_entries::Entity)
+                            .from(ReadEntry::Table)
                             .and_where(
-                                Expr::col((
-                                    read_entries::Entity,
-                                    read_entries::Column::FeedEntryId,
-                                ))
-                                .eq(Expr::col((feed_entries::Entity, feed_entries::Column::Id))),
+                                Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
+                                    .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
                             )
                             .and_where(
-                                Expr::col((
-                                    read_entries::Entity,
-                                    read_entries::Column::SubscriptionId,
-                                ))
-                                .eq(Expr::col((
-                                    subscriptions::Entity,
-                                    subscriptions::Column::Id,
-                                ))),
+                                Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
+                                    .eq(Expr::col((Subscription::Table, Subscription::Id))),
                             )
                             .to_owned(),
                     );
@@ -181,23 +186,17 @@ impl IntoSelect for SubscriptionEntryFindParams {
                     query.and_where(Expr::exists(
                         Query::select()
                             .expr(Expr::val(1))
-                            .from(subscription_tags::Entity)
+                            .from(SubscriptionTag::Table)
                             .and_where(
                                 Expr::col((
-                                    subscription_tags::Entity,
-                                    subscription_tags::Column::SubscriptionId,
+                                    SubscriptionTag::Table,
+                                    SubscriptionTag::SubscriptionId,
                                 ))
-                                .eq(Expr::col((
-                                    subscriptions::Entity,
-                                    subscriptions::Column::Id,
-                                ))),
+                                .eq(Expr::col((Subscription::Table, Subscription::Id))),
                             )
                             .and_where(
-                                Expr::col((
-                                    subscription_tags::Entity,
-                                    subscription_tags::Column::TagId,
-                                ))
-                                .is_in(tags.into_iter().map(String::from)),
+                                Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
+                                    .is_in(tags.into_iter().map(String::from)),
                             )
                             .to_owned(),
                     ));
@@ -215,19 +214,16 @@ impl IntoSelect for SubscriptionEntryFindParams {
 impl IntoSelect for SubscriptionEntryFindByIdParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((feed_entries::Entity, feed_entries::Column::Id))
-            .column((subscriptions::Entity, subscriptions::Column::UserId))
-            .from(feed_entries::Entity)
+            .column((FeedEntry::Table, FeedEntry::Id))
+            .column((Subscription::Table, Subscription::UserId))
+            .from(FeedEntry::Table)
             .inner_join(
-                subscriptions::Entity,
-                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
-                    feed_entries::Entity,
-                    feed_entries::Column::FeedId,
-                ))),
+                Subscription::Table,
+                Expr::col((Subscription::Table, Subscription::FeedId))
+                    .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
             )
             .and_where(
-                Expr::col((feed_entries::Entity, feed_entries::Column::Id))
-                    .eq(self.feed_entry_id.to_string()),
+                Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(self.feed_entry_id.to_string()),
             )
             .to_owned()
     }
@@ -247,25 +243,25 @@ pub struct FeedEntryUpsert {
 impl IntoInsert for Vec<FeedEntryUpsert> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
-            .into_table(feed_entries::Entity)
+            .into_table(FeedEntry::Table)
             .columns([
-                feed_entries::Column::Id,
-                feed_entries::Column::Link,
-                feed_entries::Column::Title,
-                feed_entries::Column::PublishedAt,
-                feed_entries::Column::Description,
-                feed_entries::Column::Author,
-                feed_entries::Column::ThumbnailUrl,
-                feed_entries::Column::FeedId,
+                FeedEntry::Id,
+                FeedEntry::Link,
+                FeedEntry::Title,
+                FeedEntry::PublishedAt,
+                FeedEntry::Description,
+                FeedEntry::Author,
+                FeedEntry::ThumbnailUrl,
+                FeedEntry::FeedId,
             ])
             .on_conflict(
-                OnConflict::columns([feed_entries::Column::FeedId, feed_entries::Column::Link])
+                OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
                     .update_columns([
-                        feed_entries::Column::Title,
-                        feed_entries::Column::PublishedAt,
-                        feed_entries::Column::Description,
-                        feed_entries::Column::Author,
-                        feed_entries::Column::ThumbnailUrl,
+                        FeedEntry::Title,
+                        FeedEntry::PublishedAt,
+                        FeedEntry::Description,
+                        FeedEntry::Author,
+                        FeedEntry::ThumbnailUrl,
                     ])
                     .to_owned(),
             )
@@ -295,44 +291,35 @@ pub struct UnreadCountSelectMany<T> {
 impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for UnreadCountSelectMany<I> {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((subscriptions::Entity, subscriptions::Column::Id))
-            .expr(Func::count(Expr::col((
-                feed_entries::Entity,
-                feed_entries::Column::Id,
-            ))))
-            .from(feed_entries::Entity)
+            .column((Subscription::Table, Subscription::Id))
+            .expr(Func::count(Expr::col((FeedEntry::Table, FeedEntry::Id))))
+            .from(FeedEntry::Table)
             .inner_join(
-                subscriptions::Entity,
-                Expr::col((subscriptions::Entity, subscriptions::Column::FeedId)).eq(Expr::col((
-                    feed_entries::Entity,
-                    feed_entries::Column::FeedId,
-                ))),
+                Subscription::Table,
+                Expr::col((Subscription::Table, Subscription::FeedId))
+                    .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
             )
             .and_where(
-                Expr::col((subscriptions::Entity, subscriptions::Column::Id))
-                    .is_in(self.subscription_ids),
+                Expr::col((Subscription::Table, Subscription::Id)).is_in(self.subscription_ids),
             )
             .and_where(
                 Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
-                        .from(read_entries::Entity)
+                        .from(ReadEntry::Table)
                         .and_where(
-                            Expr::col((read_entries::Entity, read_entries::Column::FeedEntryId))
-                                .eq(Expr::col((feed_entries::Entity, feed_entries::Column::Id))),
+                            Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
+                                .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
                         )
                         .and_where(
-                            Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
-                                .eq(Expr::col((
-                                    subscriptions::Entity,
-                                    subscriptions::Column::Id,
-                                ))),
+                            Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
+                                .eq(Expr::col((Subscription::Table, Subscription::Id))),
                         )
                         .to_owned(),
                 )
                 .not(),
             )
-            .group_by_col((subscriptions::Entity, subscriptions::Column::Id))
+            .group_by_col((Subscription::Table, Subscription::Id))
             .to_owned()
     }
 }
@@ -340,13 +327,11 @@ impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for UnreadCountS
 impl ToColumn for SubscriptionEntryTextField {
     fn to_column(self) -> Expr {
         match self {
-            Self::Link => Expr::col((feed_entries::Entity, feed_entries::Column::Link)),
-            Self::Title => Expr::col((feed_entries::Entity, feed_entries::Column::Title)),
-            Self::Description => {
-                Expr::col((feed_entries::Entity, feed_entries::Column::Description))
-            }
-            Self::Author => Expr::col((feed_entries::Entity, feed_entries::Column::Author)),
-            Self::Tag => Expr::col((tags::Entity, tags::Column::Title)),
+            Self::Link => Expr::col((FeedEntry::Table, FeedEntry::Link)),
+            Self::Title => Expr::col((FeedEntry::Table, FeedEntry::Title)),
+            Self::Description => Expr::col((FeedEntry::Table, FeedEntry::Description)),
+            Self::Author => Expr::col((FeedEntry::Table, FeedEntry::Author)),
+            Self::Tag => Expr::col((Tag::Table, Tag::Title)),
         }
     }
 }
@@ -354,9 +339,7 @@ impl ToColumn for SubscriptionEntryTextField {
 impl ToColumn for SubscriptionEntryBooleanField {
     fn to_column(self) -> Expr {
         match self {
-            Self::HasRead => {
-                Expr::col((read_entries::Entity, read_entries::Column::SubscriptionId))
-            }
+            Self::HasRead => Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId)),
         }
     }
 }
@@ -364,9 +347,7 @@ impl ToColumn for SubscriptionEntryBooleanField {
 impl ToColumn for SubscriptionEntryDateField {
     fn to_column(self) -> Expr {
         match self {
-            Self::PublishedAt => {
-                Expr::col((feed_entries::Entity, feed_entries::Column::PublishedAt))
-            }
+            Self::PublishedAt => Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)),
         }
     }
 }
@@ -378,23 +359,15 @@ impl ToSql for SubscriptionEntryFilter {
                 SubscriptionEntryTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
-                        .from(subscription_tags::Entity)
+                        .from(SubscriptionTag::Table)
                         .inner_join(
-                            tags::Entity,
-                            Expr::col((tags::Entity, tags::Column::Id)).eq(Expr::col((
-                                subscription_tags::Entity,
-                                subscription_tags::Column::TagId,
-                            ))),
+                            Tag::Table,
+                            Expr::col((Tag::Table, Tag::Id))
+                                .eq(Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))),
                         )
                         .and_where(
-                            Expr::col((
-                                subscription_tags::Entity,
-                                subscription_tags::Column::SubscriptionId,
-                            ))
-                            .eq(Expr::col((
-                                subscriptions::Entity,
-                                subscriptions::Column::Id,
-                            ))),
+                            Expr::col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
+                                .eq(Expr::col((Subscription::Table, Subscription::Id))),
                         )
                         .and_where((field.to_column(), op).to_sql())
                         .to_owned(),

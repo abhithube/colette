@@ -535,16 +535,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "colette-model"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "colette-core",
- "sea-orm",
- "serde_json",
-]
-
-[[package]]
 name = "colette-netscape"
 version = "0.1.0"
 dependencies = [
@@ -583,7 +573,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "colette-core",
- "colette-model",
  "sea-query",
  "serde_json",
  "url",
@@ -605,7 +594,6 @@ dependencies = [
  "colette-core",
  "colette-http",
  "colette-job",
- "colette-model",
  "colette-netscape",
  "colette-opml",
  "colette-plugins",

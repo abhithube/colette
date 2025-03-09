@@ -1,5 +1,6 @@
 use std::any::Any;
 
+use chrono::{DateTime, Utc};
 use colette_core::common::{Transaction, TransactionManager};
 use sea_orm::{DatabaseConnection, DatabaseTransaction, DbErr, TransactionTrait};
 
@@ -41,4 +42,8 @@ impl TransactionManager for SqliteTransactionManager {
 
         Ok(Box::new(SqliteTransaction { tx }))
     }
+}
+
+pub(crate) fn parse_timestamp(value: i32) -> Option<DateTime<Utc>> {
+    DateTime::from_timestamp(value.into(), 0)
 }

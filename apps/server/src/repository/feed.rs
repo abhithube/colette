@@ -2,7 +2,6 @@ use colette_core::{
     Feed,
     feed::{Error, FeedFindParams, FeedRepository, FeedStreamUrlsParams, FeedUpsertParams},
 };
-use colette_model::FeedRow;
 use colette_query::{IntoInsert, IntoSelect, feed::FeedUpsert, feed_entry::FeedEntryUpsert};
 use futures::{StreamExt, TryStreamExt, stream::BoxStream};
 use sea_orm::{
@@ -10,6 +9,8 @@ use sea_orm::{
 };
 use url::Url;
 use uuid::Uuid;
+
+use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
@@ -92,5 +93,28 @@ impl FeedRepository for SqliteFeedRepository {
             .boxed();
 
         Ok(urls)
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub(crate) struct FeedRow {
+    pub(crate) id: String,
+    pub(crate) link: String,
+    pub(crate) xml_url: Option<String>,
+    pub(crate) title: String,
+    pub(crate) description: Option<String>,
+    pub(crate) refreshed_at: Option<i32>,
+}
+
+impl From<FeedRow> for Feed {
+    fn from(value: FeedRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            link: value.link.parse().unwrap(),
+            xml_url: value.xml_url.and_then(|e| e.parse().ok()),
+            title: value.title,
+            description: value.description,
+            refreshed_at: value.refreshed_at.and_then(parse_timestamp),
+        }
     }
 }

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use colette_core::{
-    Subscription,
+    Subscription, Tag,
     common::Transaction,
     subscription::{
         Error, SubscriptionById, SubscriptionCreateParams, SubscriptionDeleteParams,
@@ -9,7 +9,6 @@ use colette_core::{
         SubscriptionRepository, SubscriptionTagsLinkParams, SubscriptionUpdateParams,
     },
 };
-use colette_model::{SubscriptionRow, SubscriptionTagRow, SubscriptionWithTagsAndCount};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     feed_entry::UnreadCountSelectMany,
@@ -18,6 +17,8 @@ use colette_query::{
     },
 };
 use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+
+use super::{common::parse_timestamp, feed::FeedRow};
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionRepository {
@@ -227,5 +228,73 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         }
 
         Ok(())
+    }
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub struct SubscriptionRow {
+    pub id: String,
+    pub title: String,
+    pub user_id: String,
+    pub created_at: i32,
+    pub updated_at: i32,
+
+    pub feed_id: String,
+    pub link: String,
+    pub xml_url: Option<String>,
+    pub feed_title: String,
+    pub description: Option<String>,
+    pub refreshed_at: Option<i32>,
+}
+
+#[derive(sea_orm::FromQueryResult)]
+pub struct SubscriptionTagRow {
+    pub subscription_id: String,
+    pub id: String,
+    pub title: String,
+    pub user_id: String,
+    pub created_at: i32,
+    pub updated_at: i32,
+}
+
+impl From<SubscriptionTagRow> for Tag {
+    fn from(value: SubscriptionTagRow) -> Self {
+        Self {
+            id: value.id.parse().unwrap(),
+            title: value.title,
+            user_id: value.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.created_at),
+            updated_at: parse_timestamp(value.updated_at),
+            ..Default::default()
+        }
+    }
+}
+
+pub struct SubscriptionWithTagsAndCount {
+    pub subscription: SubscriptionRow,
+    pub tags: Option<Vec<SubscriptionTagRow>>,
+    pub unread_count: Option<i64>,
+}
+
+impl From<SubscriptionWithTagsAndCount> for Subscription {
+    fn from(value: SubscriptionWithTagsAndCount) -> Self {
+        Self {
+            id: value.subscription.id.parse().unwrap(),
+            title: value.subscription.title,
+            user_id: value.subscription.user_id.parse().unwrap(),
+            created_at: parse_timestamp(value.subscription.created_at),
+            updated_at: parse_timestamp(value.subscription.updated_at),
+            feed: FeedRow {
+                id: value.subscription.feed_id,
+                link: value.subscription.link,
+                xml_url: value.subscription.xml_url,
+                title: value.subscription.feed_title,
+                description: value.subscription.description,
+                refreshed_at: value.subscription.refreshed_at,
+            }
+            .into(),
+            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            unread_count: value.unread_count,
+        }
     }
 }
