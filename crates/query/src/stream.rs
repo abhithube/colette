@@ -96,6 +96,7 @@ impl IntoUpdate for StreamUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(Stream::Table)
+            .value(Stream::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(Stream::Id).eq(self.id.to_string()))
             .to_owned();
 

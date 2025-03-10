@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
     common::Transaction,
@@ -11,8 +12,6 @@ use futures::lock::Mutex;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Row, Sqlite};
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -120,8 +119,8 @@ pub struct TagRowWithCounts {
     pub id: String,
     pub title: String,
     pub user_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub feed_count: i64,
     pub bookmark_count: i64,
 }
@@ -132,8 +131,8 @@ impl From<TagRowWithCounts> for Tag {
             id: value.id.parse().unwrap(),
             title: value.title,
             user_id: value.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             feed_count: Some(value.feed_count),
             bookmark_count: Some(value.bookmark_count),
         }

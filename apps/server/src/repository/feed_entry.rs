@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry,
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
@@ -6,8 +7,6 @@ use colette_query::IntoSelect;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Sqlite};
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {
@@ -41,7 +40,7 @@ pub(crate) struct FeedEntryRow {
     pub(crate) id: String,
     pub(crate) link: String,
     pub(crate) title: String,
-    pub(crate) published_at: i32,
+    pub(crate) published_at: DateTime<Utc>,
     pub(crate) description: Option<String>,
     pub(crate) author: Option<String>,
     pub(crate) thumbnail_url: Option<String>,
@@ -54,7 +53,7 @@ impl From<FeedEntryRow> for FeedEntry {
             id: value.id.parse().unwrap(),
             link: value.link.parse().unwrap(),
             title: value.title,
-            published_at: parse_timestamp(value.published_at).unwrap(),
+            published_at: value.published_at,
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),

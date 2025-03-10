@@ -49,6 +49,7 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
 sea-query.workspace = true
 sea-query-binder = { version = "0.7.0", default-features = false, features = [
   "sqlx-sqlite",
+  "with-chrono",
 ] }
 serde.workspace = true
 serde_json.workspace = true

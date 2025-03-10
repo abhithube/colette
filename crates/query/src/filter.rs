@@ -50,11 +50,9 @@ impl ToSql for (Expr, DateOp) {
         let (column, op) = self;
 
         match op {
-            DateOp::Before(value) => column.to_owned().lt(value.timestamp()),
-            DateOp::After(value) => column.to_owned().gt(value.timestamp()),
-            DateOp::Between(value) => column
-                .to_owned()
-                .between(value.start.timestamp(), value.end.timestamp()),
+            DateOp::Before(value) => column.to_owned().lt(value),
+            DateOp::After(value) => column.to_owned().gt(value),
+            DateOp::Between(value) => column.to_owned().between(value.start, value.end),
             DateOp::InLast(value) => Expr::cust("strftime('%s', 'now')")
                 .sub(column.to_owned())
                 .lt(value),

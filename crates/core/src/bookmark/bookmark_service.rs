@@ -106,7 +106,7 @@ impl BookmarkService {
 
             if let Some(last) = bookmarks.last() {
                 let c = Cursor {
-                    created_at: last.created_at.unwrap(),
+                    created_at: last.created_at,
                 };
                 let encoded = base64::encode(&c)?;
 

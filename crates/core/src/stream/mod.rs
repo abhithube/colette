@@ -15,8 +15,8 @@ pub struct Stream {
     pub title: String,
     pub filter: SubscriptionEntryFilter,
     pub user_id: Uuid,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

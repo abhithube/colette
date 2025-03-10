@@ -90,7 +90,7 @@ impl IntoInsert for FeedUpsert {
                 self.xml_url.map(String::from).into(),
                 self.title.into(),
                 self.description.into(),
-                self.refreshed_at.map(|e| e.timestamp()).into(),
+                self.refreshed_at.into(),
             ])
             .on_conflict(
                 OnConflict::column(Feed::Link)

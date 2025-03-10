@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     User,
     common::Transaction,
@@ -8,8 +9,6 @@ use futures::lock::Mutex;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Sqlite};
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteUserRepository {
@@ -64,8 +63,8 @@ struct UserRow {
     id: String,
     email: String,
     display_name: Option<String>,
-    created_at: i32,
-    updated_at: i32,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<UserRow> for User {
@@ -74,8 +73,8 @@ impl From<UserRow> for User {
             id: value.id.parse().unwrap(),
             email: value.email,
             display_name: value.display_name,
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     Feed,
     feed::{Error, FeedFindParams, FeedRepository, FeedStreamUrlsParams, FeedUpsertParams},
@@ -12,8 +13,6 @@ use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Sqlite};
 use url::Url;
 use uuid::Uuid;
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
@@ -104,7 +103,7 @@ pub(crate) struct FeedRow {
     pub(crate) xml_url: Option<String>,
     pub(crate) title: String,
     pub(crate) description: Option<String>,
-    pub(crate) refreshed_at: Option<i32>,
+    pub(crate) refreshed_at: Option<DateTime<Utc>>,
 }
 
 impl From<FeedRow> for Feed {
@@ -115,7 +114,7 @@ impl From<FeedRow> for Feed {
             xml_url: value.xml_url.and_then(|e| e.parse().ok()),
             title: value.title,
             description: value.description,
-            refreshed_at: value.refreshed_at.and_then(parse_timestamp),
+            refreshed_at: value.refreshed_at,
         }
     }
 }

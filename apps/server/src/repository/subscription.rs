@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use colette_core::{
     Subscription, Tag,
     common::Transaction,
@@ -21,7 +22,7 @@ use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Row, Sqlite};
 
-use super::{common::parse_timestamp, feed::FeedRow};
+use super::feed::FeedRow;
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionRepository {
@@ -257,15 +258,15 @@ pub struct SubscriptionRow {
     pub id: String,
     pub title: String,
     pub user_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 
     pub feed_id: String,
     pub link: String,
     pub xml_url: Option<String>,
     pub feed_title: String,
     pub description: Option<String>,
-    pub refreshed_at: Option<i32>,
+    pub refreshed_at: Option<DateTime<Utc>>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -274,8 +275,8 @@ pub struct SubscriptionTagRow {
     pub id: String,
     pub title: String,
     pub user_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<SubscriptionTagRow> for Tag {
@@ -284,8 +285,8 @@ impl From<SubscriptionTagRow> for Tag {
             id: value.id.parse().unwrap(),
             title: value.title,
             user_id: value.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             ..Default::default()
         }
     }
@@ -303,8 +304,8 @@ impl From<SubscriptionWithTagsAndCount> for Subscription {
             id: value.subscription.id.parse().unwrap(),
             title: value.subscription.title,
             user_id: value.subscription.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.subscription.created_at),
-            updated_at: parse_timestamp(value.subscription.updated_at),
+            created_at: value.subscription.created_at,
+            updated_at: value.subscription.updated_at,
             feed: FeedRow {
                 id: value.subscription.feed_id,
                 link: value.subscription.link,

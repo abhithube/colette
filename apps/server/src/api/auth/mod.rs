@@ -32,10 +32,8 @@ pub struct User {
     pub id: Uuid,
     #[schema(format = "email")]
     pub email: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::User> for User {

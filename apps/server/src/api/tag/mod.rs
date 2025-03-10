@@ -35,10 +35,8 @@ impl TagApi {
 pub struct Tag {
     pub id: Uuid,
     pub title: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     bookmark_count: Option<i64>,

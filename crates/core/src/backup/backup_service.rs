@@ -149,8 +149,8 @@ impl BackupService {
         for bookmark in bookmarks {
             let item = Item {
                 title: bookmark.title,
-                add_date: bookmark.created_at.map(|e| e.timestamp()),
-                last_modified: bookmark.updated_at.map(|e| e.timestamp()),
+                add_date: Some(bookmark.created_at.timestamp()),
+                last_modified: Some(bookmark.updated_at.timestamp()),
                 href: Some(bookmark.link.into()),
                 ..Default::default()
             };

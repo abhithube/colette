@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Tag,
     bookmark::{
@@ -17,8 +18,6 @@ use futures::lock::Mutex;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Row, Sqlite};
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {
@@ -231,12 +230,12 @@ pub struct BookmarkRow {
     pub link: String,
     pub title: String,
     pub thumbnail_url: Option<String>,
-    pub published_at: Option<i32>,
+    pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
     pub user_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
@@ -245,8 +244,8 @@ pub struct BookmarkTagRow {
     pub id: String,
     pub title: String,
     pub user_id: String,
-    pub created_at: i32,
-    pub updated_at: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl From<BookmarkTagRow> for Tag {
@@ -255,8 +254,8 @@ impl From<BookmarkTagRow> for Tag {
             id: value.id.parse().unwrap(),
             title: value.title,
             user_id: value.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             ..Default::default()
         }
     }
@@ -274,12 +273,12 @@ impl From<BookmarkRowWithTagRows> for Bookmark {
             link: value.bookmark.link.parse().unwrap(),
             title: value.bookmark.title,
             thumbnail_url: value.bookmark.thumbnail_url.and_then(|e| e.parse().ok()),
-            published_at: value.bookmark.published_at.and_then(parse_timestamp),
+            published_at: value.bookmark.published_at,
             author: value.bookmark.author,
             archived_path: value.bookmark.archived_path,
             user_id: value.bookmark.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.bookmark.created_at),
-            updated_at: parse_timestamp(value.bookmark.updated_at),
+            created_at: value.bookmark.created_at,
+            updated_at: value.bookmark.updated_at,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }

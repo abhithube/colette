@@ -65,7 +65,7 @@ pub struct ApiKeyCreated {
     pub id: Uuid,
     pub value: String,
     pub title: String,
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<api_key::ApiKeyCreated> for ApiKeyCreated {

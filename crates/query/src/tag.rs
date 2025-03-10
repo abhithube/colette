@@ -139,6 +139,7 @@ impl IntoUpdate for TagUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(Tag::Table)
+            .value(Tag::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(Tag::Id).eq(self.id.to_string()))
             .to_owned();
 

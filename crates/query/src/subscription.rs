@@ -155,6 +155,7 @@ impl IntoUpdate for SubscriptionUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(Subscription::Table)
+            .value(Subscription::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(Subscription::Id).eq(self.id.to_string()))
             .to_owned();
 

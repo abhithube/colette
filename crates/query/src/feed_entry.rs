@@ -77,7 +77,7 @@ impl IntoSelect for FeedEntryFindParams {
                         Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
-                        Expr::val(cursor.published_at.timestamp()).into(),
+                        Expr::val(cursor.published_at).into(),
                         Expr::val(cursor.id.to_string()).into(),
                     ])),
                 );
@@ -143,7 +143,7 @@ impl IntoSelect for SubscriptionEntryFindParams {
                         Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
-                        Expr::val(cursor.published_at.timestamp()).into(),
+                        Expr::val(cursor.published_at).into(),
                         Expr::val(cursor.id.to_string()).into(),
                     ])),
                 );
@@ -272,7 +272,7 @@ impl IntoInsert for Vec<FeedEntryUpsert> {
                 entry.id.to_string().into(),
                 entry.link.to_string().into(),
                 entry.title.into(),
-                entry.published_at.timestamp().into(),
+                entry.published_at.into(),
                 entry.description.into(),
                 entry.author.into(),
                 entry.thumbnail_url.map(String::from).into(),

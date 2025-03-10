@@ -79,7 +79,7 @@ impl IntoSelect for BookmarkFindParams {
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
                     Expr::col((Bookmark::Table, Bookmark::CreatedAt))
-                        .lt(Expr::val(cursor.created_at.timestamp())),
+                        .lt(Expr::val(cursor.created_at)),
                 );
             })
             .order_by((Bookmark::Table, Bookmark::CreatedAt), Order::Desc)
@@ -147,7 +147,7 @@ impl IntoInsert for BookmarkCreateParams {
                 self.url.to_string().into(),
                 self.title.into(),
                 self.thumbnail_url.map(String::from).into(),
-                self.published_at.map(|e| e.timestamp()).into(),
+                self.published_at.into(),
                 self.author.into(),
                 self.user_id.to_string().into(),
             ])
@@ -159,6 +159,7 @@ impl IntoUpdate for BookmarkUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(Bookmark::Table)
+            .value(Bookmark::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(Bookmark::Id).eq(self.id.to_string()))
             .to_owned();
 
@@ -169,7 +170,7 @@ impl IntoUpdate for BookmarkUpdateParams {
             query.value(Bookmark::ThumbnailUrl, thumbnail_url.map(String::from));
         }
         if let Some(published_at) = self.published_at {
-            query.value(Bookmark::PublishedAt, published_at.map(|e| e.timestamp()));
+            query.value(Bookmark::PublishedAt, published_at);
         }
         if let Some(author) = self.author {
             query.value(Bookmark::Author, author);
@@ -209,7 +210,7 @@ impl IntoInsert for BookmarkUpsertParams {
                 self.url.to_string().into(),
                 self.bookmark.title.into(),
                 self.bookmark.thumbnail.map(String::from).into(),
-                self.bookmark.published.map(|e| e.timestamp()).into(),
+                self.bookmark.published.into(),
                 self.bookmark.author.into(),
                 self.user_id.to_string().into(),
             ])

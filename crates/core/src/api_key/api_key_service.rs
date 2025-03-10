@@ -172,7 +172,7 @@ pub struct ApiKeyCreated {
     pub id: Uuid,
     pub title: String,
     pub value: String,
-    pub created_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default)]

@@ -1,6 +1,5 @@
 use std::any::Any;
 
-use chrono::{DateTime, Utc};
 use colette_core::common::{Transaction, TransactionManager};
 use futures::lock::Mutex;
 use sqlx::{Pool, Sqlite};
@@ -25,20 +24,6 @@ impl Transaction for SqliteTransaction {
     }
 }
 
-// impl SqliteTransaction {
-//     pub async fn execute<'a, E>(
-//         &self,
-//         query: E,
-//     ) -> Result<sqlx::sqlite::SqliteQueryResult, sqlx::Error>
-//     where
-//         E: sqlx::Execute<'a, Sqlite> + Send,
-//     {
-//         let mut guard = self.tx.lock().unwrap();
-//         let tx = guard.as_mut();
-//         Ok(query.execute(&mut *tx).await?)
-//     }
-// }
-
 #[derive(Debug, Clone)]
 pub struct SqliteTransactionManager {
     pool: Pool<Sqlite>,
@@ -57,8 +42,4 @@ impl TransactionManager for SqliteTransactionManager {
 
         Ok(Box::new(SqliteTransaction { tx: Mutex::new(tx) }))
     }
-}
-
-pub(crate) fn parse_timestamp(value: i32) -> Option<DateTime<Utc>> {
-    DateTime::from_timestamp(value.into(), 0)
 }

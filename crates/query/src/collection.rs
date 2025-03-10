@@ -103,6 +103,7 @@ impl IntoUpdate for CollectionUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(Collection::Table)
+            .value(Collection::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(Collection::Id).eq(self.id.to_string()))
             .to_owned();
 

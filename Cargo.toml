@@ -57,6 +57,7 @@ reqwest = { version = "0.12.12", default-features = false, features = [
 scraper = { version = "0.23.1", default-features = false }
 sea-query = { version = "0.32.2", default-features = false, features = [
   "backend-sqlite",
+  "with-chrono",
 ] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [

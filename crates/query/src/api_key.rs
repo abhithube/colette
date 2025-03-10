@@ -57,8 +57,7 @@ impl IntoSelect for ApiKeyFindParams {
             })
             .apply_if(self.cursor, |query, cursor| {
                 query.and_where(
-                    Expr::col((ApiKey::Table, ApiKey::CreatedAt))
-                        .gt(Expr::val(cursor.created_at.timestamp())),
+                    Expr::col((ApiKey::Table, ApiKey::CreatedAt)).gt(Expr::val(cursor.created_at)),
                 );
             })
             .order_by((ApiKey::Table, ApiKey::CreatedAt), Order::Asc)
@@ -110,6 +109,7 @@ impl IntoUpdate for ApiKeyUpdateParams {
     fn into_update(self) -> UpdateStatement {
         let mut query = Query::update()
             .table(ApiKey::Table)
+            .value(ApiKey::UpdatedAt, Expr::current_timestamp())
             .and_where(Expr::col(ApiKey::Id).eq(self.id.to_string()))
             .to_owned();
 

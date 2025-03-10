@@ -27,8 +27,8 @@ pub struct Bookmark {
     pub archived_path: Option<String>,
     pub author: Option<String>,
     pub user_id: Uuid,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }
 

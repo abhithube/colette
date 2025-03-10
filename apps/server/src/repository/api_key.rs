@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     ApiKey,
     api_key::{
@@ -11,8 +12,6 @@ use futures::lock::Mutex;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Row, Sqlite};
-
-use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
@@ -140,8 +139,8 @@ struct ApiKeyRow {
     title: String,
     preview: String,
     user_id: String,
-    created_at: i32,
-    updated_at: i32,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<ApiKeyRow> for ApiKey {
@@ -151,8 +150,8 @@ impl From<ApiKeyRow> for ApiKey {
             title: value.title,
             preview: value.preview,
             user_id: value.user_id.parse().unwrap(),
-            created_at: parse_timestamp(value.created_at),
-            updated_at: parse_timestamp(value.updated_at),
+            created_at: value.created_at,
+            updated_at: value.updated_at,
         }
     }
 }

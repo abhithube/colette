@@ -15,8 +15,8 @@ pub struct Collection {
     pub title: String,
     pub filter: BookmarkFilter,
     pub user_id: Uuid,
-    pub created_at: Option<DateTime<Utc>>,
-    pub updated_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::{
     SubscriptionEntry,
     common::Transaction,
@@ -76,7 +77,7 @@ struct SubscriptionEntryRow {
     id: String,
     link: String,
     title: String,
-    published_at: i32,
+    published_at: DateTime<Utc>,
     description: Option<String>,
     author: Option<String>,
     thumbnail_url: Option<String>,
