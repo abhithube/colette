@@ -57,6 +57,8 @@ impl AuthService {
             )
             .await?;
 
+        tx.commit().await?;
+
         self.user_repository
             .find_user(UserFindParams { id })
             .await
