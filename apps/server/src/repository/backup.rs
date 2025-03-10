@@ -6,24 +6,27 @@ use colette_query::{
     IntoInsert, IntoSelect, bookmark_tag::BookmarkTagUpsert, feed::FeedUpsert,
     subscription::SubscriptionUpsert, subscription_tag::SubscriptionTagUpsert, tag::TagUpsert,
 };
-use sea_orm::{ConnectionTrait, DatabaseConnection, TransactionTrait};
+use futures::TryFutureExt;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Row, Sqlite};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBackupRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteBackupRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
 impl BackupRepository for SqliteBackupRepository {
     async fn import_feeds(&self, params: ImportFeedsParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+        let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = params
             .outlines
@@ -40,21 +43,20 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id: params.user_id,
                     };
 
-                    let result = tx
-                        .query_one(tx.get_database_backend().build(&tag.clone().into_select()))
+                    let (sql, values) = tag.clone().into_select().build_sqlx(SqliteQueryBuilder);
+
+                    let row = sqlx::query_with(&sql, values)
+                        .fetch_optional(&mut *tx)
                         .await?;
 
-                    match result {
-                        Some(model) => model
-                            .try_get_by_index::<String>(0)
-                            .unwrap()
-                            .parse()
-                            .unwrap(),
+                    match row {
+                        Some(row) => row.get::<String, _>(0).parse().unwrap(),
                         _ => {
-                            let id = Uuid::new_v4();
+                            let id = tag.id;
 
-                            tx.execute(tx.get_database_backend().build(&tag.into_insert()))
-                                .await?;
+                            let (sql, values) = tag.into_insert().build_sqlx(SqliteQueryBuilder);
+
+                            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
                             id
                         }
@@ -76,14 +78,12 @@ impl BackupRepository for SqliteBackupRepository {
                     refreshed_at: None,
                 };
 
-                let feed_id = tx
-                    .query_one(self.db.get_database_backend().build(&feed.into_insert()))
-                    .await?
-                    .unwrap()
-                    .try_get_by_index::<String>(0)
-                    .unwrap()
-                    .parse::<Uuid>()
-                    .unwrap();
+                let (sql, values) = feed.into_insert().build_sqlx(SqliteQueryBuilder);
+
+                let feed_id = sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                    .fetch_one(&mut *tx)
+                    .map_ok(|e| e.parse().unwrap())
+                    .await?;
 
                 let subscription_id = {
                     let subscription = SubscriptionUpsert {
@@ -93,20 +93,12 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id: params.user_id,
                     };
 
-                    let result = tx
-                        .query_one(
-                            self.db
-                                .get_database_backend()
-                                .build(&subscription.into_insert()),
-                        )
-                        .await?
-                        .unwrap();
+                    let (sql, values) = subscription.into_insert().build_sqlx(SqliteQueryBuilder);
 
-                    result
-                        .try_get_by_index::<String>(0)
-                        .unwrap()
-                        .parse::<Uuid>()
-                        .unwrap()
+                    sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                        .fetch_one(&mut *tx)
+                        .map_ok(|e| e.parse().unwrap())
+                        .await?
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -116,12 +108,11 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id: params.user_id,
                     };
 
-                    tx.execute(
-                        self.db
-                            .get_database_backend()
-                            .build(&subscription_tag.into_insert()),
-                    )
-                    .await?;
+                    let (sql, values) = subscription_tag
+                        .into_insert()
+                        .build_sqlx(SqliteQueryBuilder);
+
+                    sqlx::query_with(&sql, values).execute(&mut *tx).await?;
                 }
             }
         }
@@ -132,36 +123,37 @@ impl BackupRepository for SqliteBackupRepository {
     }
 
     async fn import_bookmarks(&self, params: ImportBookmarksParams) -> Result<(), Error> {
-        let tx = self.db.begin().await?;
+        let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
             params.items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
-                let tag = TagUpsert {
-                    id: Uuid::new_v4(),
-                    title: item.title,
-                    user_id: params.user_id,
-                };
+                let tag_id = {
+                    let tag = TagUpsert {
+                        id: Uuid::new_v4(),
+                        title: item.title,
+                        user_id: params.user_id,
+                    };
 
-                let result = tx
-                    .query_one(tx.get_database_backend().build(&tag.clone().into_select()))
-                    .await?;
+                    let (sql, values) = tag.clone().into_select().build_sqlx(SqliteQueryBuilder);
 
-                let tag_id = match result {
-                    Some(model) => model
-                        .try_get_by_index::<String>(0)
-                        .unwrap()
-                        .parse()
-                        .unwrap(),
-                    _ => {
-                        let id = Uuid::new_v4();
+                    let row = sqlx::query_with(&sql, values)
+                        .fetch_optional(&mut *tx)
+                        .await?;
 
-                        tx.execute(tx.get_database_backend().build(&tag.into_insert()))
-                            .await?;
+                    match row {
+                        Some(row) => row.get::<String, _>(0).parse().unwrap(),
+                        _ => {
+                            let id = tag.id;
 
-                        id
+                            let (sql, values) = tag.into_insert().build_sqlx(SqliteQueryBuilder);
+
+                            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+
+                            id
+                        }
                     }
                 };
 
@@ -171,23 +163,23 @@ impl BackupRepository for SqliteBackupRepository {
             } else if let Some(link) = item.href {
                 let user_id = params.user_id;
 
-                let params = BookmarkUpsertParams {
-                    url: link.parse().unwrap(),
-                    bookmark: ProcessedBookmark {
-                        title: item.title,
-                        ..Default::default()
-                    },
-                    user_id,
-                };
+                let bookmark_id = {
+                    let bookmark = BookmarkUpsertParams {
+                        url: link.parse().unwrap(),
+                        bookmark: ProcessedBookmark {
+                            title: item.title,
+                            ..Default::default()
+                        },
+                        user_id,
+                    };
 
-                let bookmark_id: Uuid = tx
-                    .query_one(self.db.get_database_backend().build(&params.into_insert()))
-                    .await?
-                    .unwrap()
-                    .try_get_by_index::<String>(0)
-                    .unwrap()
-                    .parse()
-                    .unwrap();
+                    let (sql, values) = bookmark.into_insert().build_sqlx(SqliteQueryBuilder);
+
+                    sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                        .fetch_one(&mut *tx)
+                        .map_ok(|e| e.parse().unwrap())
+                        .await?
+                };
 
                 if let Some(tag_id) = parent_id {
                     let bookmark_tag = BookmarkTagUpsert {
@@ -196,12 +188,9 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id,
                     };
 
-                    tx.execute(
-                        self.db
-                            .get_database_backend()
-                            .build(&bookmark_tag.into_insert()),
-                    )
-                    .await?;
+                    let (sql, values) = bookmark_tag.into_insert().build_sqlx(SqliteQueryBuilder);
+
+                    sqlx::query_with(&sql, values).execute(&mut *tx).await?;
                 }
             }
         }

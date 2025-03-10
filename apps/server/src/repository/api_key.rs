@@ -7,32 +7,34 @@ use colette_core::{
     common::Transaction,
 };
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
+use futures::lock::Mutex;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Row, Sqlite};
 
 use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteApiKeyRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteApiKeyRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
 impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find_api_keys(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
-        let api_keys = ApiKeyRow::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .all(&self.db)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(api_keys)
+        let rows = sqlx::query_as_with::<_, ApiKeyRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_api_key_by_id(
@@ -40,35 +42,35 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         tx: &dyn Transaction,
         params: ApiKeyFindByIdParams,
     ) -> Result<ApiKeyById, Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         let id = params.id;
 
-        let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&params.into_select()))
-            .await?
-        else {
-            return Err(Error::NotFound(id));
-        };
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+
+        let row = sqlx::query_with(&sql, values)
+            .fetch_one(tx.as_mut())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Database(e),
+            })?;
 
         Ok(ApiKeyById {
-            id: result
-                .try_get_by_index::<String>(0)
-                .unwrap()
-                .parse()
-                .unwrap(),
-            user_id: result
-                .try_get_by_index::<String>(1)
-                .unwrap()
-                .parse()
-                .unwrap(),
+            id: row.get::<String, _>(0).parse().unwrap(),
+            user_id: row.get::<String, _>(1).parse().unwrap(),
         })
     }
 
     async fn create_api_key(&self, params: ApiKeyCreateParams) -> Result<(), Error> {
-        self.db
-            .execute(self.db.get_database_backend().build(&params.into_insert()))
-            .await?;
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
@@ -78,14 +80,20 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         tx: &dyn Transaction,
         params: ApiKeyUpdateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         if params.title.is_none() {
             return Ok(());
         }
 
-        tx.execute(self.db.get_database_backend().build(&params.into_update()))
-            .await?;
+        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
@@ -95,10 +103,16 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         tx: &dyn Transaction,
         params: ApiKeyDeleteParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
-            .await?;
+        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
@@ -107,19 +121,20 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
         &self,
         params: ApiKeySearchParams,
     ) -> Result<Option<ApiKeySearched>, Error> {
-        let result = self
-            .db
-            .query_one(self.db.get_database_backend().build(&params.into_select()))
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+
+        let row = sqlx::query_with(&sql, values)
+            .fetch_optional(&self.pool)
             .await?;
 
-        Ok(result.map(|e| ApiKeySearched {
-            verification_hash: e.try_get_by_index::<String>(0).unwrap(),
-            user_id: e.try_get_by_index::<String>(1).unwrap().parse().unwrap(),
+        Ok(row.map(|e| ApiKeySearched {
+            verification_hash: e.get::<String, _>(0),
+            user_id: e.get::<String, _>(1).parse().unwrap(),
         }))
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 struct ApiKeyRow {
     id: String,
     title: String,

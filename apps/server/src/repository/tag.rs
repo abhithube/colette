@@ -7,32 +7,34 @@ use colette_core::{
     },
 };
 use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+use futures::lock::Mutex;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Row, Sqlite};
 
 use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteTagRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
 impl TagRepository for SqliteTagRepository {
     async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
-        let tags = TagWithCounts::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .all(&self.db)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(tags)
+        let rows = sqlx::query_as_with::<_, TagRowWithCounts, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn find_tags_by_ids(
@@ -40,31 +42,38 @@ impl TagRepository for SqliteTagRepository {
         tx: &dyn Transaction,
         params: TagFindByIdsParams,
     ) -> Result<Vec<TagById>, Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        let tags = tx
-            .query_all(self.db.get_database_backend().build(&params.into_select()))
-            .await
-            .map(|e| {
-                e.into_iter()
-                    .map(|e| TagById {
-                        id: e.try_get_by_index::<String>(0).unwrap().parse().unwrap(),
-                        user_id: e.try_get_by_index::<String>(1).unwrap().parse().unwrap(),
-                    })
-                    .collect()
-            })?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(tags)
+        let rows = sqlx::query_with(&sql, values)
+            .fetch_all(tx.as_mut())
+            .await?;
+
+        Ok(rows
+            .into_iter()
+            .map(|e| TagById {
+                id: e.get::<String, _>(0).parse().unwrap(),
+                user_id: e.get::<String, _>(1).parse().unwrap(),
+            })
+            .collect())
     }
 
     async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error> {
         let title = params.title.clone();
 
-        self.db
-            .execute(self.db.get_database_backend().build(&params.into_insert()))
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values)
+            .execute(&self.pool)
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(title),
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(title),
                 _ => Error::Database(e),
             })?;
 
@@ -72,30 +81,42 @@ impl TagRepository for SqliteTagRepository {
     }
 
     async fn update_tag(&self, tx: &dyn Transaction, params: TagUpdateParams) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         if params.title.is_none() {
             return Ok(());
         }
 
-        tx.execute(self.db.get_database_backend().build(&params.into_update()))
-            .await?;
+        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
 
     async fn delete_tag(&self, tx: &dyn Transaction, params: TagDeleteParams) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
-            .await?;
+        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
-pub struct TagWithCounts {
+#[derive(sqlx::FromRow)]
+pub struct TagRowWithCounts {
     pub id: String,
     pub title: String,
     pub user_id: String,
@@ -105,8 +126,8 @@ pub struct TagWithCounts {
     pub bookmark_count: i64,
 }
 
-impl From<TagWithCounts> for Tag {
-    fn from(value: TagWithCounts) -> Self {
+impl From<TagRowWithCounts> for Tag {
+    fn from(value: TagRowWithCounts) -> Self {
         Self {
             id: value.id.parse().unwrap(),
             title: value.title,

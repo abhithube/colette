@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use sea_orm::DbErr;
 pub use subscription_repository::*;
 pub use subscription_service::*;
 use uuid::Uuid;
@@ -45,5 +44,5 @@ pub enum Error {
     SubscriptionEntry(#[from] subscription_entry::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

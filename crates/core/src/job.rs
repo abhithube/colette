@@ -9,7 +9,6 @@ use apalis_core::{
 };
 use chrono::{DateTime, Utc};
 use redis::RedisError;
-use sea_orm::sqlx;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct StorageContext {

@@ -3,18 +3,20 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
 };
 use colette_query::IntoSelect;
-use sea_orm::{ConnectionTrait, DatabaseConnection, FromQueryResult};
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Sqlite};
 
 use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedEntryRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteFeedEntryRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
@@ -24,18 +26,17 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
         &self,
         params: FeedEntryFindParams,
     ) -> Result<Vec<FeedEntry>, Error> {
-        let feed_entries = FeedEntryRow::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .all(&self.db)
-        .await
-        .map(|e| e.into_iter().map(Into::into).collect())?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(feed_entries)
+        let rows = sqlx::query_as_with::<_, FeedEntryRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub(crate) struct FeedEntryRow {
     pub(crate) id: String,
     pub(crate) link: String,

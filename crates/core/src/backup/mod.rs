@@ -1,6 +1,5 @@
 pub use backup_repository::*;
 pub use backup_service::*;
-use sea_orm::DbErr;
 
 use crate::job;
 
@@ -19,5 +18,5 @@ pub enum Error {
     Job(#[from] job::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

@@ -1,5 +1,4 @@
 pub use account_repository::*;
-use sea_orm::DbErr;
 use uuid::Uuid;
 
 mod account_repository;
@@ -22,5 +21,5 @@ pub enum Error {
     Conflict(String),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

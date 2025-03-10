@@ -2,7 +2,6 @@ pub use api_key_repository::*;
 pub use api_key_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::password;
-use sea_orm::DbErr;
 use uuid::Uuid;
 
 use crate::auth;
@@ -43,5 +42,5 @@ pub enum Error {
     Auth(#[from] auth::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

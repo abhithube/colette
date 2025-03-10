@@ -4,7 +4,6 @@ pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::base64;
 use image::ImageError;
-use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
@@ -124,5 +123,5 @@ pub enum Error {
     Collection(#[from] collection::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

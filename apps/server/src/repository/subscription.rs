@@ -16,18 +16,21 @@ use colette_query::{
         SubscriptionTagDeleteMany, SubscriptionTagSelectMany, SubscriptionTagUpsertMany,
     },
 };
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+use futures::lock::Mutex;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Row, Sqlite};
 
 use super::{common::parse_timestamp, feed::FeedRow};
 
 #[derive(Debug, Clone)]
 pub struct SqliteSubscriptionRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteSubscriptionRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
@@ -37,36 +40,29 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         &self,
         params: SubscriptionFindParams,
     ) -> Result<Vec<Subscription>, Error> {
-        let subscription_rows = SubscriptionRow::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .all(&self.db)
-        .await?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+
+        let subscription_rows = sqlx::query_as_with::<_, SubscriptionRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
         let subscription_ids = subscription_rows.iter().map(|e| e.id.to_string());
 
-        let tag_select = SubscriptionTagSelectMany {
+        let (sql, values) = SubscriptionTagSelectMany {
             subscription_ids: subscription_ids.clone(),
-        };
+        }
+        .into_select()
+        .build_sqlx(SqliteQueryBuilder);
 
-        let tag_rows = SubscriptionTagRow::find_by_statement(
-            self.db
-                .get_database_backend()
-                .build(&tag_select.into_select()),
-        )
-        .all(&self.db)
-        .await?;
-
-        let unread_count_select = UnreadCountSelectMany { subscription_ids };
-
-        let unread_count_results = self
-            .db
-            .query_all(
-                self.db
-                    .get_database_backend()
-                    .build(&unread_count_select.into_select()),
-            )
+        let tag_rows = sqlx::query_as_with::<_, SubscriptionTagRow, _>(&sql, values)
+            .fetch_all(&self.pool)
             .await?;
+
+        let (sql, values) = UnreadCountSelectMany { subscription_ids }
+            .into_select()
+            .build_sqlx(SqliteQueryBuilder);
+
+        let unread_count_rows = sqlx::query_with(&sql, values).fetch_all(&self.pool).await?;
 
         let mut tag_row_map = HashMap::<String, Vec<SubscriptionTagRow>>::new();
         let mut unread_count_map = HashMap::<String, i64>::new();
@@ -78,10 +74,8 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                 .push(row);
         }
 
-        for row in unread_count_results {
-            unread_count_map
-                .entry(row.try_get_by_index(0).unwrap())
-                .insert_entry(row.try_get_by_index(1).unwrap());
+        for row in unread_count_rows {
+            unread_count_map.entry(row.get(0)).insert_entry(row.get(1));
         }
 
         let subscriptions = subscription_rows
@@ -104,28 +98,28 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionFindByIdParams,
     ) -> Result<SubscriptionById, Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         let id = params.id;
 
-        let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&params.into_select()))
-            .await?
-        else {
-            return Err(Error::NotFound(id));
-        };
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+
+        let row = sqlx::query_with(&sql, values)
+            .fetch_one(tx.as_mut())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Database(e),
+            })?;
 
         Ok(SubscriptionById {
-            id: result
-                .try_get_by_index::<String>(0)
-                .unwrap()
-                .parse()
-                .unwrap(),
-            user_id: result
-                .try_get_by_index::<String>(1)
-                .unwrap()
-                .parse()
-                .unwrap(),
+            id: row.get::<String, _>(0).parse().unwrap(),
+            user_id: row.get::<String, _>(1).parse().unwrap(),
         })
     }
 
@@ -134,14 +128,22 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionCreateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         let feed_id = params.feed_id;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_insert()))
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values)
+            .execute(tx.as_mut())
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(feed_id),
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(feed_id),
                 _ => Error::Database(e),
             })?;
 
@@ -153,14 +155,20 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionUpdateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         if params.title.is_none() {
             return Ok(());
         }
 
-        tx.execute(self.db.get_database_backend().build(&params.into_update()))
-            .await?;
+        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
@@ -170,10 +178,16 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionDeleteParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
-            .await?;
+        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
@@ -183,31 +197,31 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionTagsLinkParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
+        let conn = tx.as_mut();
 
-        let delete_many = SubscriptionTagDeleteMany {
+        let (sql, values) = SubscriptionTagDeleteMany {
             subscription_id: params.subscription_id,
             tag_ids: params.tags.iter().map(|e| e.id.to_string()),
-        };
+        }
+        .into_delete()
+        .build_sqlx(SqliteQueryBuilder);
 
-        tx.execute(
-            self.db
-                .get_database_backend()
-                .build(&delete_many.into_delete()),
-        )
-        .await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
 
-        let upsert_many = SubscriptionTagUpsertMany {
+        let (sql, values) = SubscriptionTagUpsertMany {
             subscription_id: params.subscription_id,
             tags: params.tags,
-        };
+        }
+        .into_insert()
+        .build_sqlx(SqliteQueryBuilder);
 
-        tx.execute(
-            self.db
-                .get_database_backend()
-                .build(&upsert_many.into_insert()),
-        )
-        .await?;
+        sqlx::query_with(&sql, values).execute(conn).await?;
 
         Ok(())
     }
@@ -217,21 +231,28 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         tx: &dyn Transaction,
         params: SubscriptionEntryUpdateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         if params.has_read {
-            tx.execute(self.db.get_database_backend().build(&params.into_insert()))
-                .await?;
+            let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+            sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
         } else {
-            tx.execute(self.db.get_database_backend().build(&params.into_delete()))
-                .await?;
+            let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
+
+            sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
         }
 
         Ok(())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub struct SubscriptionRow {
     pub id: String,
     pub title: String,
@@ -247,7 +268,7 @@ pub struct SubscriptionRow {
     pub refreshed_at: Option<i32>,
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub struct SubscriptionTagRow {
     pub subscription_id: String,
     pub id: String,

@@ -50,7 +50,6 @@ use repository::{
     subscription_entry::SqliteSubscriptionEntryRepository, tag::SqliteTagRepository,
     user::SqliteUserRepository,
 };
-use sea_orm::DatabaseConnection;
 use sqlx::{
     Pool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
@@ -100,7 +99,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = config::from_env()?;
 
-    let db_conn = match app_config.database {
+    let pool = match app_config.database {
         DatabaseConfig::Sqlite(config) => {
             let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
                 .create_if_missing(true)
@@ -109,7 +108,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
             sqlx::migrate!("../../migrations").run(&pool).await?;
 
-            DatabaseConnection::from(pool)
+            pool
         }
     };
 
@@ -190,15 +189,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let import_feeds_storage = SqliteStorage::new(job_pool.clone());
     let import_bookmarks_storage = SqliteStorage::new(job_pool);
 
-    let bookmark_repository = SqliteBookmarkRepository::new(db_conn.clone());
-    let collection_repository = SqliteCollectionRepository::new(db_conn.clone());
-    let feed_repository = SqliteFeedRepository::new(db_conn.clone());
-    let stream_repository = SqliteStreamRepository::new(db_conn.clone());
-    let subscription_repository = SqliteSubscriptionRepository::new(db_conn.clone());
-    let subscription_entry_repository = SqliteSubscriptionEntryRepository::new(db_conn.clone());
-    let tag_repository = SqliteTagRepository::new(db_conn.clone());
+    let bookmark_repository = SqliteBookmarkRepository::new(pool.clone());
+    let collection_repository = SqliteCollectionRepository::new(pool.clone());
+    let feed_repository = SqliteFeedRepository::new(pool.clone());
+    let stream_repository = SqliteStreamRepository::new(pool.clone());
+    let subscription_repository = SqliteSubscriptionRepository::new(pool.clone());
+    let subscription_entry_repository = SqliteSubscriptionEntryRepository::new(pool.clone());
+    let tag_repository = SqliteTagRepository::new(pool.clone());
 
-    let tx_manager = SqliteTransactionManager::new(db_conn.clone());
+    let tx_manager = SqliteTransactionManager::new(pool.clone());
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
@@ -275,16 +274,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState {
         api_key_service: Arc::new(ApiKeyService::new(
-            SqliteApiKeyRepository::new(db_conn.clone()),
+            SqliteApiKeyRepository::new(pool.clone()),
             tx_manager.clone(),
         )),
         auth_service: Arc::new(AuthService::new(
-            SqliteUserRepository::new(db_conn.clone()),
-            SqliteAccountRepository::new(db_conn.clone()),
+            SqliteUserRepository::new(pool.clone()),
+            SqliteAccountRepository::new(pool.clone()),
             tx_manager.clone(),
         )),
         backup_service: Arc::new(BackupService::new(
-            SqliteBackupRepository::new(db_conn.clone()),
+            SqliteBackupRepository::new(pool.clone()),
             subscription_repository.clone(),
             bookmark_repository,
             Arc::new(Mutex::new(import_feeds_storage)),
@@ -296,9 +295,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             tx_manager.clone(),
         )),
         feed_service,
-        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(
-            db_conn.clone(),
-        ))),
+        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(pool))),
         stream_service: Arc::new(StreamService::new(
             stream_repository.clone(),
             tx_manager.clone(),

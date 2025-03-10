@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use sea_orm::DbErr;
 pub use user_repository::*;
 use uuid::Uuid;
 
@@ -20,5 +19,5 @@ pub enum Error {
     NotFound(Uuid),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

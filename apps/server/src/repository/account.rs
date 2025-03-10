@@ -4,16 +4,19 @@ use colette_core::{
     common::Transaction,
 };
 use colette_query::{IntoInsert, IntoSelect};
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, FromQueryResult};
+use futures::lock::Mutex;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Sqlite};
 
 #[derive(Clone)]
 pub struct SqliteAccountRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteAccountRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
@@ -22,16 +25,17 @@ impl AccountRepository for SqliteAccountRepository {
     async fn find_account(&self, params: AccountFindParams) -> Result<Account, Error> {
         let account_id = params.account_id.clone();
 
-        let Some(account) = AccountRow::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .one(&self.db)
-        .await?
-        else {
-            return Err(Error::NotFound(account_id));
-        };
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(account.into())
+        let row = sqlx::query_as_with::<_, AccountRow, _>(&sql, values)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(account_id),
+                _ => Error::Database(e),
+            })?;
+
+        Ok(row.into())
     }
 
     async fn create_account(
@@ -39,16 +43,22 @@ impl AccountRepository for SqliteAccountRepository {
         tx: &dyn Transaction,
         params: AccountCreateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_insert()))
-            .await?;
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 struct AccountRow {
     email: String,
     provider_id: String,

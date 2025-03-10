@@ -3,10 +3,13 @@ use colette_core::{
     feed::{Error, FeedFindParams, FeedRepository, FeedStreamUrlsParams, FeedUpsertParams},
 };
 use colette_query::{IntoInsert, IntoSelect, feed::FeedUpsert, feed_entry::FeedEntryUpsert};
-use futures::{StreamExt, TryStreamExt, stream::BoxStream};
-use sea_orm::{
-    ConnectionTrait, DatabaseConnection, FromQueryResult, StreamTrait, TransactionTrait,
+use futures::{
+    StreamExt,
+    stream::{self, BoxStream},
 };
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Sqlite};
 use url::Url;
 use uuid::Uuid;
 
@@ -14,29 +17,29 @@ use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteFeedRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteFeedRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
 impl FeedRepository for SqliteFeedRepository {
     async fn find_feeds(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
-        let feeds =
-            FeedRow::find_by_statement(self.db.get_database_backend().build(&params.into_select()))
-                .all(&self.db)
-                .await
-                .map(|e| e.into_iter().map(Into::into).collect())?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(feeds)
+        let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
     async fn upsert_feed(&self, params: FeedUpsertParams) -> Result<Uuid, Error> {
-        let tx = self.db.begin().await?;
+        let mut tx = self.pool.begin().await?;
 
         let feed = FeedUpsert {
             id: Uuid::new_v4(),
@@ -47,13 +50,12 @@ impl FeedRepository for SqliteFeedRepository {
             refreshed_at: params.feed.refreshed,
         };
 
-        let id = tx
-            .query_one(self.db.get_database_backend().build(&feed.into_insert()))
+        let (sql, values) = feed.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        let id = sqlx::query_scalar_with::<_, String, _>(&sql, values)
+            .fetch_one(&mut *tx)
             .await?
-            .unwrap()
-            .try_get_by_index::<String>(0)
-            .unwrap()
-            .parse::<Uuid>()
+            .parse()
             .unwrap();
 
         let entries = params
@@ -72,8 +74,9 @@ impl FeedRepository for SqliteFeedRepository {
             })
             .collect::<Vec<_>>();
 
-        tx.execute(self.db.get_database_backend().build(&entries.into_insert()))
-            .await?;
+        let (sql, values) = entries.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
         tx.commit().await?;
 
@@ -84,19 +87,17 @@ impl FeedRepository for SqliteFeedRepository {
         &self,
         params: FeedStreamUrlsParams,
     ) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        let urls = self
-            .db
-            .stream(self.db.get_database_backend().build(&params.into_select()))
-            .await?
-            .map_ok(|e| e.try_get_by_index::<String>(0).unwrap().parse().unwrap())
-            .map_err(Error::Database)
-            .boxed();
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        Ok(urls)
+        let urls = sqlx::query_scalar_with::<_, String, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
+
+        Ok(stream::iter(urls.into_iter().map(|e| Ok(e.parse().unwrap()))).boxed())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub(crate) struct FeedRow {
     pub(crate) id: String,
     pub(crate) link: String,

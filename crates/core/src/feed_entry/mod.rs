@@ -2,7 +2,6 @@ use chrono::{DateTime, Utc};
 use colette_util::base64;
 pub use feed_entry_repository::*;
 pub use feed_entry_service::*;
-use sea_orm::DbErr;
 use url::Url;
 use uuid::Uuid;
 
@@ -44,5 +43,5 @@ pub enum Error {
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }

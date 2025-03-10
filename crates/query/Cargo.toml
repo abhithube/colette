@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 chrono.workspace = true
 colette-core.workspace = true
-sea-query = { version = "0.32.2", default-features = false }
+sea-query.workspace = true
 serde_json.workspace = true
 url.workspace = true
 uuid.workspace = true

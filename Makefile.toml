@@ -33,11 +33,6 @@ args = [
   "sqlite://dev?mode=memory",
 ]
 
-[tasks.generate-models]
-install_crate = true
-command = "sea-orm-cli"
-args = ["generate", "entity", "-o", "./crates/model/src/entity"]
-
 [tasks.build-docker]
 command = "docker"
 args = ["build", "--platform", "linux/amd64", "-t", "colette-server", "."]

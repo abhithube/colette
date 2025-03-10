@@ -13,41 +13,42 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark_tag::{BookmarkTagDeleteMany, BookmarkTagSelectMany, BookmarkTagUpsertMany},
 };
-use sea_orm::{ConnectionTrait, DatabaseConnection, DatabaseTransaction, DbErr, FromQueryResult};
+use futures::lock::Mutex;
+use sea_query::SqliteQueryBuilder;
+use sea_query_binder::SqlxBinder;
+use sqlx::{Pool, Row, Sqlite};
 
 use super::common::parse_timestamp;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {
-    db: DatabaseConnection,
+    pool: Pool<Sqlite>,
 }
 
 impl SqliteBookmarkRepository {
-    pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+    pub fn new(pool: Pool<Sqlite>) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
 impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
-        let bookmark_rows = BookmarkRow::find_by_statement(
-            self.db.get_database_backend().build(&params.into_select()),
-        )
-        .all(&self.db)
-        .await?;
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
 
-        let select_many = BookmarkTagSelectMany {
-            bookmark_ids: bookmark_rows.iter().map(|e| e.id.as_str()),
-        };
+        let bookmark_rows = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
-        let tag_rows = BookmarkTagRow::find_by_statement(
-            self.db
-                .get_database_backend()
-                .build(&select_many.into_select()),
-        )
-        .all(&self.db)
-        .await?;
+        let (sql, values) = BookmarkTagSelectMany {
+            bookmark_ids: bookmark_rows.iter().map(|e| e.id.to_string()),
+        }
+        .into_select()
+        .build_sqlx(SqliteQueryBuilder);
+
+        let tag_rows = sqlx::query_as_with::<_, BookmarkTagRow, _>(&sql, values)
+            .fetch_all(&self.pool)
+            .await?;
 
         let mut tag_row_map = HashMap::<String, Vec<BookmarkTagRow>>::new();
 
@@ -77,28 +78,28 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         tx: &dyn Transaction,
         params: BookmarkFindByIdParams,
     ) -> Result<BookmarkById, Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         let id = params.id;
 
-        let Some(result) = tx
-            .query_one(self.db.get_database_backend().build(&params.into_select()))
-            .await?
-        else {
-            return Err(Error::NotFound(id));
-        };
+        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+
+        let row = sqlx::query_with(&sql, values)
+            .fetch_one(tx.as_mut())
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::RowNotFound => Error::NotFound(id),
+                _ => Error::Database(e),
+            })?;
 
         Ok(BookmarkById {
-            id: result
-                .try_get_by_index::<String>(0)
-                .unwrap()
-                .parse()
-                .unwrap(),
-            user_id: result
-                .try_get_by_index::<String>(1)
-                .unwrap()
-                .parse()
-                .unwrap(),
+            id: row.get::<String, _>(0).parse().unwrap(),
+            user_id: row.get::<String, _>(1).parse().unwrap(),
         })
     }
 
@@ -107,14 +108,22 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         tx: &dyn Transaction,
         params: BookmarkCreateParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
         let url = params.url.clone();
 
-        tx.execute(self.db.get_database_backend().build(&params.into_insert()))
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values)
+            .execute(tx.as_mut())
             .await
             .map_err(|e| match e {
-                DbErr::RecordNotInserted => Error::Conflict(url),
+                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(url),
                 _ => Error::Database(e),
             })?;
 
@@ -126,7 +135,11 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         tx: Option<&dyn Transaction>,
         params: BookmarkUpdateParams,
     ) -> Result<(), Error> {
-        let tx = tx.map(|e| e.as_any().downcast_ref::<DatabaseTransaction>().unwrap());
+        let tx = tx.map(|e| {
+            e.as_any()
+                .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+                .unwrap()
+        });
 
         if params.title.is_none()
             && params.thumbnail_url.is_none()
@@ -137,12 +150,14 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             return Ok(());
         }
 
-        let statement = self.db.get_database_backend().build(&params.into_update());
+        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
 
         if let Some(tx) = tx {
-            tx.execute(statement).await?;
+            let mut tx = tx.lock().await;
+
+            sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
         } else {
-            self.db.execute(statement).await?;
+            sqlx::query_with(&sql, values).execute(&self.pool).await?;
         }
 
         Ok(())
@@ -153,18 +168,24 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         tx: &dyn Transaction,
         params: BookmarkDeleteParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
 
-        tx.execute(self.db.get_database_backend().build(&params.into_delete()))
-            .await?;
+        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
 
         Ok(())
     }
 
     async fn upsert(&self, params: BookmarkUpsertParams) -> Result<(), Error> {
-        self.db
-            .execute(self.db.get_database_backend().build(&params.into_insert()))
-            .await?;
+        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
@@ -174,37 +195,37 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         tx: &dyn Transaction,
         params: BookmarkTagsLinkParams,
     ) -> Result<(), Error> {
-        let tx = tx.as_any().downcast_ref::<DatabaseTransaction>().unwrap();
+        let mut tx = tx
+            .as_any()
+            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
+            .unwrap()
+            .lock()
+            .await;
+        let conn = tx.as_mut();
 
-        let delete_many = BookmarkTagDeleteMany {
+        let (sql, values) = BookmarkTagDeleteMany {
             bookmark_id: params.bookmark_id,
             tag_ids: params.tags.iter().map(|e| e.id.to_string()),
-        };
+        }
+        .into_delete()
+        .build_sqlx(SqliteQueryBuilder);
 
-        tx.execute(
-            self.db
-                .get_database_backend()
-                .build(&delete_many.into_delete()),
-        )
-        .await?;
+        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
 
-        let upsert_many = BookmarkTagUpsertMany {
+        let (sql, values) = BookmarkTagUpsertMany {
             bookmark_id: params.bookmark_id,
             tags: params.tags,
-        };
+        }
+        .into_insert()
+        .build_sqlx(SqliteQueryBuilder);
 
-        tx.execute(
-            self.db
-                .get_database_backend()
-                .build(&upsert_many.into_insert()),
-        )
-        .await?;
+        sqlx::query_with(&sql, values).execute(conn).await?;
 
         Ok(())
     }
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub struct BookmarkRow {
     pub id: String,
     pub link: String,
@@ -218,7 +239,7 @@ pub struct BookmarkRow {
     pub updated_at: i32,
 }
 
-#[derive(sea_orm::FromQueryResult)]
+#[derive(sqlx::FromRow)]
 pub struct BookmarkTagRow {
     pub bookmark_id: String,
     pub id: String,

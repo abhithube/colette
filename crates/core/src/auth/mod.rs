@@ -1,6 +1,5 @@
 pub use auth_service::*;
 use colette_util::password;
-use sea_orm::DbErr;
 
 use crate::{account, user};
 
@@ -21,5 +20,5 @@ pub enum Error {
     Hash(#[from] password::Error),
 
     #[error(transparent)]
-    Database(#[from] DbErr),
+    Database(#[from] sqlx::Error),
 }
