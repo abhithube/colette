@@ -21,7 +21,7 @@ export const listBookmarksOptions = (
   infiniteQueryOptions({
     queryKey: [BOOKMARKS_PREFIX, query],
     queryFn: ({ pageParam }) =>
-      api.bookmarks.list({
+      api.bookmarks.listBookmarks({
         ...query,
         cursor: pageParam,
       }),
@@ -34,7 +34,7 @@ export const useCreateBookmarkMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: BookmarkCreate) => api.bookmarks.create(data),
+    mutationFn: (data: BookmarkCreate) => api.bookmarks.createBookmark(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -48,7 +48,8 @@ export const useUpdateBookmarkMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: BookmarkUpdate) => api.bookmarks.update(id, data),
+    mutationFn: (data: BookmarkUpdate) =>
+      api.bookmarks.updateBookmark(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -62,7 +63,7 @@ export const useDeleteBookmarkMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.bookmarks.delete(id),
+    mutationFn: () => api.bookmarks.deleteBookmark(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],
@@ -75,6 +76,6 @@ export const useScrapeBookmarkMutation = () => {
   const api = useAPI()
 
   return useMutation({
-    mutationFn: (data: BookmarkScrape) => api.bookmarks.scrape(data),
+    mutationFn: (data: BookmarkScrape) => api.bookmarks.scrapeBookmark(data),
   })
 }

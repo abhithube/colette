@@ -14,6 +14,11 @@ import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
 import { BaseError, createApiClient } from './openapi.gen'
 import { HTTPStreamAPI, StreamAPI } from './stream'
+import { HTTPSubscriptionAPI, SubscriptionAPI } from './subscription'
+import {
+  HTTPSubscriptionEntryAPI,
+  SubscriptionEntryAPI,
+} from './subscription-entry'
 import { HTTPTagAPI, type TagAPI } from './tag'
 
 export interface API {
@@ -24,6 +29,8 @@ export interface API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   streams: StreamAPI
+  subscriptionEntries: SubscriptionEntryAPI
+  subscriptions: SubscriptionAPI
   tags: TagAPI
 }
 
@@ -39,6 +46,8 @@ export class HttpAPI implements API {
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   streams: StreamAPI
+  subscriptionEntries: SubscriptionEntryAPI
+  subscriptions: SubscriptionAPI
   tags: TagAPI
 
   constructor({ baseUrl, ...rest }: HttpAPIOptions) {
@@ -96,6 +105,8 @@ export class HttpAPI implements API {
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
     this.streams = new HTTPStreamAPI(client)
+    this.subscriptionEntries = new HTTPSubscriptionEntryAPI(client)
+    this.subscriptions = new HTTPSubscriptionAPI(client)
     this.tags = new HTTPTagAPI(client)
   }
 }

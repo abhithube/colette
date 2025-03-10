@@ -1,7 +1,7 @@
-import { FeedList } from './components/feed-list'
+import { SubscriptionList } from './components/subscription-list'
 import { type FC, useEffect } from 'react'
 
-export const FeedsPage: FC = () => {
+export const SubscriptionsPage: FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])
@@ -9,10 +9,10 @@ export const FeedsPage: FC = () => {
   return (
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
-        <h1 className="text-3xl font-medium">All Feeds</h1>
+        <h1 className="text-3xl font-medium">Subscriptions</h1>
       </div>
       <main>
-        <FeedList />
+        <SubscriptionList />
       </main>
     </>
   )

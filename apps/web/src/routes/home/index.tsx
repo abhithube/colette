@@ -1,5 +1,5 @@
-import { EntryList } from '../feeds/components/entry-list'
-import { listFeedEntriesOptions } from '@colette/query'
+import { EntryList } from '../subscriptions/components/entry-list'
+import { listSubscriptionEntriesOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { type FC, useEffect } from 'react'
@@ -8,7 +8,7 @@ export const HomePage: FC = () => {
   const api = useAPI()
 
   const query = useInfiniteQuery(
-    listFeedEntriesOptions(api, { hasRead: false }),
+    listSubscriptionEntriesOptions(api, { hasRead: false }),
   )
 
   useEffect(() => {

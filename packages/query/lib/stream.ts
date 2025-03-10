@@ -1,12 +1,6 @@
-import type {
-  API,
-  StreamCreate,
-  StreamEntryListQuery,
-  StreamUpdate,
-} from '@colette/core'
+import type { API, StreamCreate, StreamUpdate } from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
-  infiniteQueryOptions,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -17,13 +11,13 @@ const STREAMS_PREFIX = 'streams'
 export const listStreamsOptions = (api: API) =>
   queryOptions({
     queryKey: [STREAMS_PREFIX],
-    queryFn: () => api.streams.list(),
+    queryFn: () => api.streams.listStreams(),
   })
 
 export const getStreamOptions = (api: API, id: string) =>
   queryOptions({
     queryKey: [STREAMS_PREFIX, id],
-    queryFn: () => api.streams.get(id),
+    queryFn: () => api.streams.getStream(id),
   })
 
 export const useCreateStreamMutation = () => {
@@ -31,7 +25,7 @@ export const useCreateStreamMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: StreamCreate) => api.streams.create(data),
+    mutationFn: (data: StreamCreate) => api.streams.createStream(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],
@@ -45,7 +39,7 @@ export const useUpdateStreamMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: StreamUpdate) => api.streams.update(id, data),
+    mutationFn: (data: StreamUpdate) => api.streams.updateStream(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],
@@ -59,7 +53,7 @@ export const useDeleteStreamMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.streams.delete(id),
+    mutationFn: () => api.streams.deleteStream(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [STREAMS_PREFIX],
@@ -67,19 +61,3 @@ export const useDeleteStreamMutation = (id: string) => {
     },
   })
 }
-
-export const listStreamEntriesOptions = (
-  api: API,
-  id: string,
-  query: Omit<StreamEntryListQuery, 'cursor'> = {},
-) =>
-  infiniteQueryOptions({
-    queryKey: [STREAMS_PREFIX, id, 'entries', query],
-    queryFn: ({ pageParam }) =>
-      api.streams.listEntries(id, {
-        ...query,
-        cursor: pageParam,
-      }),
-    initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.cursor,
-  })

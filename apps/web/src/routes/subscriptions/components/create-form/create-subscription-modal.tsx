@@ -1,7 +1,7 @@
 import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
 import { SelectStep } from './select-step'
-import type { FeedDetected, FeedProcessed } from '@colette/core'
+import type { Feed, FeedDetected } from '@colette/core'
 import { Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
 import { Dialog } from '~/components/dialog'
@@ -14,12 +14,12 @@ enum Step {
   Edit = 2,
 }
 
-export const CreateFeedModal: FC = () => {
+export const CreateSubscriptionModal: FC = () => {
   const [step, setStep] = useState(Step.Search)
   const [detectedFeeds, setDetectedFeeds] = useState<FeedDetected[] | null>(
     null,
   )
-  const [selectedFeed, setSelectedFeed] = useState<FeedProcessed | null>(null)
+  const [selectedFeed, setSelectedFeed] = useState<Feed | null>(null)
 
   return (
     <Dialog>

@@ -11,13 +11,13 @@ const TAGS_PREFIX = 'tags'
 export const listTagsOptions = (api: API, query: TagListQuery = {}) =>
   queryOptions({
     queryKey: [TAGS_PREFIX, query],
-    queryFn: () => api.tags.list(query),
+    queryFn: () => api.tags.listTags(query),
   })
 
 export const getTagOptions = (api: API, id: string) =>
   queryOptions({
     queryKey: [TAGS_PREFIX, id],
-    queryFn: () => api.tags.get(id),
+    queryFn: () => api.tags.getTag(id),
   })
 
 export const useCreateTagMutation = () => {
@@ -25,7 +25,7 @@ export const useCreateTagMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: TagCreate) => api.tags.create(data),
+    mutationFn: (data: TagCreate) => api.tags.createTag(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [TAGS_PREFIX],
@@ -39,7 +39,7 @@ export const useUpdateTagMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: TagUpdate) => api.tags.update(id, data),
+    mutationFn: (data: TagUpdate) => api.tags.updateTag(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [TAGS_PREFIX],
@@ -53,7 +53,7 @@ export const useDeleteTagMutation = (id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () => api.tags.delete(id),
+    mutationFn: () => api.tags.deleteTag(id),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [TAGS_PREFIX],

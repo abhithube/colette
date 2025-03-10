@@ -1,4 +1,4 @@
-import type { FeedDetected, FeedProcessed } from '@colette/core'
+import type { Feed, FeedDetected } from '@colette/core'
 import { useDetectFeedsMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
@@ -16,7 +16,7 @@ import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 
 export const SelectStep: FC<{
   feeds: FeedDetected[]
-  onNext: (feed: FeedProcessed) => void
+  onNext: (feed: Feed) => void
   onBack: () => void
 }> = (props) => {
   const form = useForm({

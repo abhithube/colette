@@ -1,19 +1,19 @@
 import { type ApiClient, Login, Register, User } from './openapi.gen'
 
 export interface AuthAPI {
-  register(data: Register): Promise<User>
+  registerUser(data: Register): Promise<User>
 
-  login(data: Login): Promise<User>
+  loginUser(data: Login): Promise<User>
 
-  getActive(): Promise<User>
+  getActiveUser(): Promise<User>
 
-  logout(): Promise<void>
+  logoutUser(): Promise<void>
 }
 
 export class HTTPAuthAPI implements AuthAPI {
   constructor(private client: ApiClient) {}
 
-  register(data: Register): Promise<User> {
+  registerUser(data: Register): Promise<User> {
     return this.client
       .post('/auth/register', {
         body: Register.parse(data),
@@ -21,7 +21,7 @@ export class HTTPAuthAPI implements AuthAPI {
       .then(User.parse)
   }
 
-  login(data: Login): Promise<User> {
+  loginUser(data: Login): Promise<User> {
     return this.client
       .post('/auth/login', {
         body: Login.parse(data),
@@ -29,11 +29,11 @@ export class HTTPAuthAPI implements AuthAPI {
       .then(User.parse)
   }
 
-  getActive(): Promise<User> {
+  getActiveUser(): Promise<User> {
     return this.client.get('/auth/@me').then(User.parse)
   }
 
-  logout(): Promise<void> {
+  logoutUser(): Promise<void> {
     return this.client.post('/auth/logout').then()
   }
 }

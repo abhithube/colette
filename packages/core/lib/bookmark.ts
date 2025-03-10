@@ -17,23 +17,23 @@ export type BookmarkList = Paginated_Bookmark
 export const BookmarkList = Paginated_Bookmark
 
 export interface BookmarkAPI {
-  list(query: BookmarkListQuery): Promise<BookmarkList>
+  listBookmarks(query: BookmarkListQuery): Promise<BookmarkList>
 
-  get(id: string): Promise<Bookmark>
+  getBookmark(id: string): Promise<Bookmark>
 
-  create(data: BookmarkCreate): Promise<Bookmark>
+  createBookmark(data: BookmarkCreate): Promise<Bookmark>
 
-  update(id: string, data: BookmarkUpdate): Promise<Bookmark>
+  updateBookmark(id: string, data: BookmarkUpdate): Promise<Bookmark>
 
-  delete(id: string): Promise<void>
+  deleteBookmark(id: string): Promise<void>
 
-  scrape(data: BookmarkScrape): Promise<BookmarkScraped>
+  scrapeBookmark(data: BookmarkScrape): Promise<BookmarkScraped>
 }
 
 export class HTTPBookmarkAPI implements BookmarkAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: BookmarkListQuery): Promise<BookmarkList> {
+  listBookmarks(query: BookmarkListQuery): Promise<BookmarkList> {
     return this.client
       .get('/bookmarks', {
         query: BookmarkListQuery.parse(query),
@@ -41,7 +41,7 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
       .then(BookmarkList.parse)
   }
 
-  get(id: string): Promise<Bookmark> {
+  getBookmark(id: string): Promise<Bookmark> {
     return this.client
       .get('/bookmarks/{id}', {
         path: {
@@ -51,7 +51,7 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
       .then(Bookmark.parse)
   }
 
-  create(data: BookmarkCreate): Promise<Bookmark> {
+  createBookmark(data: BookmarkCreate): Promise<Bookmark> {
     return this.client
       .post('/bookmarks', {
         body: BookmarkCreate.parse(data),
@@ -59,7 +59,7 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
       .then(Bookmark.parse)
   }
 
-  update(id: string, data: BookmarkUpdate): Promise<Bookmark> {
+  updateBookmark(id: string, data: BookmarkUpdate): Promise<Bookmark> {
     return this.client
       .patch('/bookmarks/{id}', {
         path: {
@@ -70,7 +70,7 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
       .then(Bookmark.parse)
   }
 
-  delete(id: string): Promise<void> {
+  deleteBookmark(id: string): Promise<void> {
     return this.client
       .delete('/bookmarks/{id}', {
         path: {
@@ -80,7 +80,7 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
       .then()
   }
 
-  scrape(data: BookmarkScrape): Promise<BookmarkScraped> {
+  scrapeBookmark(data: BookmarkScrape): Promise<BookmarkScraped> {
     return this.client
       .post('/bookmarks/scrape', {
         body: BookmarkScrape.parse(data),

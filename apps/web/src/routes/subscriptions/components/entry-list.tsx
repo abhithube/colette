@@ -1,11 +1,11 @@
 import { EntryCard } from './entry-card'
-import type { FeedEntry } from '@colette/core'
+import type { SubscriptionEntry } from '@colette/core'
 import { useIntersectionObserver } from '@colette/util'
 import { type FC } from 'react'
 import { Separator } from '~/components/ui/separator'
 
 export const EntryList: FC<{
-  entries: FeedEntry[]
+  entries: SubscriptionEntry[]
   hasMore: boolean
   fetchMore: () => void
 }> = (props) => {
@@ -25,8 +25,8 @@ export const EntryList: FC<{
   const lastYear = date - day * 365
 
   const list = Object.entries(
-    Object.groupBy(props.entries, (item: FeedEntry) => {
-      const publishedAt = Date.parse(item.publishedAt)
+    Object.groupBy(props.entries, (item: SubscriptionEntry) => {
+      const publishedAt = Date.parse(item.entry.publishedAt)
       return publishedAt > today
         ? 'Today'
         : publishedAt > lastWeek
@@ -50,7 +50,7 @@ export const EntryList: FC<{
           </div>
           <div className="container space-y-4">
             {entries.map((entry) => (
-              <EntryCard key={entry.id} entry={entry} />
+              <EntryCard key={entry.entry.id} entry={entry} />
             ))}
           </div>
         </div>

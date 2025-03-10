@@ -18,22 +18,24 @@ export {
   CollectionUpdate,
   DetectedResponse,
   Feed,
-  FeedCreate,
   FeedDetect,
   FeedDetected,
   FeedEntry,
-  FeedEntryUpdate,
-  FeedProcessed,
-  FeedUpdate,
   Login,
   Register,
   Stream,
   StreamCreate,
   StreamUpdate,
+  Subscription,
+  SubscriptionCreate,
+  SubscriptionEntry,
+  SubscriptionUpdate,
   Tag,
   TagCreate,
   TagUpdate,
   User,
 } from './openapi.gen'
 export * from './stream'
+export * from './subscription'
+export * from './subscription-entry'
 export * from './tag'

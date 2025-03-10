@@ -38,9 +38,9 @@ export const AppSidebar: FC<{ user: User }> = (props) => {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link to="/feeds">
+                  <Link to="/subscriptions">
                     <Rss />
-                    Feeds
+                    Subscriptions
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

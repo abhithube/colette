@@ -1,5 +1,5 @@
-import { EditFeedModal } from './edit-feed-modal'
-import { Feed } from '@colette/core'
+import { EditSubscriptionModal } from './edit-subscription-modal'
+import { Subscription } from '@colette/core'
 import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
 import { FC } from 'react'
 import { AlertDialog, Dialog } from '~/components/dialog'
@@ -14,21 +14,28 @@ import {
   CardFooter,
 } from '~/components/ui/card'
 import { DialogTrigger } from '~/components/ui/dialog'
-import { UnsubscribeAlert } from '~/routes/feeds/components/unsubscribe-alert'
+import { UnsubscribeAlert } from '~/routes/subscriptions/components/unsubscribe-alert'
 
-export const FeedItem: FC<{ feed: Feed }> = (props) => {
+export const SubscriptionItem: FC<{ subscription: Subscription }> = (props) => {
   return (
-    <Card key={props.feed.id} className="flex items-center justify-between">
+    <Card
+      key={props.subscription.id}
+      className="flex items-center justify-between"
+    >
       <CardHeader>
-        <CardTitle>{props.feed.title}</CardTitle>
+        <CardTitle>{props.subscription.title}</CardTitle>
         <CardDescription className="flex items-center gap-2">
-          <Favicon url={props.feed.link} />
-          {new URL(props.feed.link).hostname}
+          <Favicon url={props.subscription.feed.link} />
+          {new URL(props.subscription.feed.link).hostname}
         </CardDescription>
       </CardHeader>
       <CardFooter className="p-3">
         <Button asChild variant="ghost">
-          <a href={props.feed.link} target="_blank" rel="noreferrer">
+          <a
+            href={props.subscription.feed.link}
+            target="_blank"
+            rel="noreferrer"
+          >
             <ExternalLink />
           </a>
         </Button>
@@ -40,7 +47,10 @@ export const FeedItem: FC<{ feed: Feed }> = (props) => {
                   <Pencil />
                 </Button>
               </DialogTrigger>
-              <EditFeedModal feed={props.feed} close={close} />
+              <EditSubscriptionModal
+                subscription={props.subscription}
+                close={close}
+              />
             </>
           )}
         </Dialog>
@@ -52,7 +62,10 @@ export const FeedItem: FC<{ feed: Feed }> = (props) => {
                   <Trash2 />
                 </Button>
               </AlertDialogTrigger>
-              <UnsubscribeAlert feed={props.feed} close={close} />
+              <UnsubscribeAlert
+                subscription={props.subscription}
+                close={close}
+              />
             </>
           )}
         </AlertDialog>

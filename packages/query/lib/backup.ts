@@ -1,4 +1,4 @@
-import { FEEDS_PREFIX } from './feed'
+import { SUBSCRIPTIONS_PREFIX } from './subscription'
 import { useAPI } from '@colette/util'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -7,10 +7,10 @@ export const useImportOPMLMutation = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (data: File) => api.backups.import(data),
+    mutationFn: (data: File) => api.backups.importOPML(data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
-        queryKey: [FEEDS_PREFIX],
+        queryKey: [SUBSCRIPTIONS_PREFIX],
       })
     },
   })

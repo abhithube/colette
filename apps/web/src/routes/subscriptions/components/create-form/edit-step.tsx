@@ -1,5 +1,5 @@
-import type { FeedProcessed } from '@colette/core'
-import { useCreateFeedMutation } from '@colette/query'
+import type { Feed } from '@colette/core'
+import { useCreateSubscriptionMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
 import { navigate } from 'wouter/use-browser-location'
@@ -17,7 +17,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const EditStep: FC<{
-  feed: FeedProcessed
+  feed: Feed
   onClose: () => void
   onBack: () => void
 }> = (props) => {
@@ -28,8 +28,8 @@ export const EditStep: FC<{
     onSubmit: ({ value }) => {
       createdFeed.mutate(
         {
-          url: props.feed.link,
           title: value.title,
+          feedId: props.feed.id,
         },
         {
           onSuccess: (feed) => {
@@ -43,7 +43,7 @@ export const EditStep: FC<{
     },
   })
 
-  const createdFeed = useCreateFeedMutation()
+  const createdFeed = useCreateSubscriptionMutation()
 
   return (
     <DialogContent>

@@ -1,7 +1,6 @@
 import {
   type ApiClient,
   FeedEntry,
-  FeedEntryUpdate,
   Paginated_FeedEntry,
   get_ListFeedEntries,
 } from './openapi.gen'
@@ -14,15 +13,15 @@ export type FeedEntryList = Paginated_FeedEntry
 export const FeedEntryList = Paginated_FeedEntry
 
 export interface FeedEntryAPI {
-  list(query: FeedEntryListQuery): Promise<FeedEntryList>
+  listFeedEntries(query: FeedEntryListQuery): Promise<FeedEntryList>
 
-  update(id: string, data: FeedEntryUpdate): Promise<FeedEntry>
+  getFeedEntry(id: string): Promise<FeedEntry>
 }
 
 export class HTTPFeedEntryAPI implements FeedEntryAPI {
   constructor(private client: ApiClient) {}
 
-  list(query: FeedEntryListQuery): Promise<FeedEntryList> {
+  listFeedEntries(query: FeedEntryListQuery): Promise<FeedEntryList> {
     return this.client
       .get('/feedEntries', {
         query: FeedEntryListQuery.parse(query),
@@ -30,13 +29,12 @@ export class HTTPFeedEntryAPI implements FeedEntryAPI {
       .then(FeedEntryList.parse)
   }
 
-  update(id: string, data: FeedEntryUpdate): Promise<FeedEntry> {
+  getFeedEntry(id: string): Promise<FeedEntry> {
     return this.client
-      .patch('/feedEntries/{id}', {
+      .get('/feedEntries/{id}', {
         path: {
           id,
         },
-        body: FeedEntryUpdate.parse(data),
       })
       .then(FeedEntry.parse)
   }

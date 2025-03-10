@@ -1,5 +1,8 @@
-import { EntryList } from '../feeds/components/entry-list'
-import { getStreamOptions, listStreamEntriesOptions } from '@colette/query'
+import { EntryList } from '../subscriptions/components/entry-list'
+import {
+  getStreamOptions,
+  listSubscriptionEntriesOptions,
+} from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -15,7 +18,11 @@ export const StreamPage: FC = () => {
   const { id } = useParams<{ id: string }>()
 
   const streamQuery = useQuery(getStreamOptions(api, id))
-  const entriesQuery = useInfiniteQuery(listStreamEntriesOptions(api, id))
+  const entriesQuery = useInfiniteQuery(
+    listSubscriptionEntriesOptions(api, {
+      streamId: id,
+    }),
+  )
 
   useEffect(() => {
     window.scrollTo(0, 0)

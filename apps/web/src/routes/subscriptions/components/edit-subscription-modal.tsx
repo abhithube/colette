@@ -1,5 +1,5 @@
-import type { Feed } from '@colette/core'
-import { useUpdateFeedMutation } from '@colette/query'
+import type { Subscription } from '@colette/core'
+import { useUpdateSubscriptionMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { type FC, useEffect } from 'react'
 import { z } from 'zod'
@@ -16,19 +16,19 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
-export const EditFeedModal: FC<{
-  feed: Feed
+export const EditSubscriptionModal: FC<{
+  subscription: Subscription
   close: () => void
 }> = (props) => {
   const form = useForm({
     defaultValues: {
-      title: props.feed.title,
-      tags: props.feed.tags?.map((tag) => tag.id) ?? [],
+      title: props.subscription.title,
+      tags: props.subscription.tags?.map((tag) => tag.id) ?? [],
     },
     onSubmit: ({ value }) => {
       let tags: string[] | undefined = value.tags
-      if (props.feed.tags) {
-        const current = props.feed.tags
+      if (props.subscription.tags) {
+        const current = props.subscription.tags
         if (
           tags?.length === current.length &&
           tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
@@ -39,11 +39,11 @@ export const EditFeedModal: FC<{
         tags = undefined
       }
 
-      if (value.title === props.feed.title && tags === undefined) {
+      if (value.title === props.subscription.title && tags === undefined) {
         return props.close()
       }
 
-      updateFeed.mutate(
+      updateSubscription.mutate(
         {
           title: value.title,
           tags,
@@ -58,11 +58,13 @@ export const EditFeedModal: FC<{
     },
   })
 
-  const updateFeed = useUpdateFeedMutation(props.feed.id)
+  const updateSubscription = useUpdateSubscriptionMutation(
+    props.subscription.id,
+  )
 
   useEffect(() => {
     form.reset()
-  }, [form, props.feed.id])
+  }, [form, props.subscription.id])
 
   return (
     <DialogContent className="max-w-md p-6">
@@ -74,7 +76,8 @@ export const EditFeedModal: FC<{
       >
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
-            Edit <span className="text-primary">{props.feed.title}</span>
+            Edit{' '}
+            <span className="text-primary">{props.subscription.title}</span>
           </DialogTitle>
           <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>
@@ -112,7 +115,7 @@ export const EditFeedModal: FC<{
             )}
           </form.Field>
           <DialogFooter>
-            <Button disabled={updateFeed.isPending}>Submit</Button>
+            <Button disabled={updateSubscription.isPending}>Submit</Button>
           </DialogFooter>
         </div>
       </form>
