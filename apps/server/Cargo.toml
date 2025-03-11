@@ -27,6 +27,7 @@ chrono.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-job.workspace = true
+colette-migration.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
@@ -42,6 +43,7 @@ envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 object_store.workspace = true
 redis.workspace = true
+refinery = { version = "0.8.16", default-features = false }
 reqwest.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",

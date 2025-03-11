@@ -4,10 +4,11 @@ members = [
   "crates/core",
   "crates/feed",
   "crates/http",
+  "crates/job",
   "crates/meta",
+  "crates/migration",
   "crates/netscape",
   "crates/opml",
-  "crates/job",
   "crates/plugins",
   "crates/query",
   "crates/session",
@@ -30,6 +31,7 @@ colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
 colette-job.path = "crates/job"
 colette-meta.path = "crates/meta"
+colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
@@ -63,13 +65,7 @@ serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [
   "std",
 ] }
-sqlx = { version = "0.8.3", features = [
-  "chrono",
-  "json",
-  "macros",
-  "migrate",
-  "uuid",
-] }
+sqlx = { version = "0.8.3", default-features = false }
 thiserror = { version = "2.0.11", default-features = false }
 tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
@@ -81,6 +77,7 @@ tower-sessions-sqlx-store = { version = "0.15.0", default-features = false, feat
 url = { version = "2.5.4", default-features = false, features = ["serde"] }
 uuid = { version = "1.11.1", default-features = false, features = [
   "serde",
+  "std",
   "v4",
 ] }
 

@@ -33,6 +33,7 @@ use colette_core::{
 };
 use colette_http::ReqwestClient;
 use colette_job::SqliteStorage;
+use colette_migration::SqliteMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_session::{RedisStore, SessionAdapter};
 use colette_storage::StorageAdapter;
@@ -41,6 +42,7 @@ use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
 use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
+use refinery::embed_migrations;
 use repository::{
     account::SqliteAccountRepository, api_key::SqliteApiKeyRepository,
     backup::SqliteBackupRepository, bookmark::SqliteBookmarkRepository,
@@ -77,6 +79,8 @@ struct Asset;
 #[openapi(components(schemas(BaseError, TextOp, BooleanOp, DateOp)))]
 struct ApiDoc;
 
+embed_migrations!("../../migrations");
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(debug_assertions)]
@@ -106,7 +110,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .journal_mode(SqliteJournalMode::Wal);
 
             let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
-            sqlx::migrate!("../../migrations").run(&pool).await?;
+
+            let mut migrator = SqliteMigrator::new(pool.clone());
+            migrations::runner().run_async(&mut migrator).await?;
 
             pool
         }

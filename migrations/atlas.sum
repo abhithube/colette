@@ -1,8 +1,2 @@
-h1:mCHN253G+/jQeU70BUcAHBk8txytl9JXeeI6mRpd+7Q=
-20250228225221_init.sql h1:Oay9WbRhGWCjLsc3aZYoKtOrOT/5DJj6Ynb9YV8YZX0=
-20250228225324_add_triggers.sql h1:+Ovy8DpkS4tRdrzi0+PEQIdDKfWfwYB4mA5UXPH8gOI=
-20250304210334_rename_user_feeds.sql h1:BqoehYTZnom9/oEQbRR3dQJseFgdKphB8Mz4xkGK5cs=
-20250304221957_change_feed_id_type.sql h1:9nexiRkG73/kBaGRiClpfm2DUJfNq/9QUq6xxwSlM2g=
-20250306011949_add_description_and_refreshed_at.sql h1:CTglCaaXwmcM3q1mDsVnYC4fujyKyThR+qh3HtF7gq0=
-20250306125709_simplify_subscription_entries.sql h1:TxjQHqnKQ8jr1bQRAr6ZdbeHPVrWfRfNcMiCVcyW3nk=
-20250310181118_change_timestamp_types.sql h1:aWNFsqgYyzlrGFHN44RfONaXvFWeez8I9NzYpmadsBA=
+h1:kac0Tk3RVVXpSguxm2LewFia2mSjBbPIblgoty34cBo=
+V0001__init.sql h1:e37K89OR+Sf/wu0MIYy40i2Do4pr00hOZ8rQJVwZq08=

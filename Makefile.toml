@@ -10,14 +10,9 @@ command = "cargo"
 args = ["build", "--release"]
 
 [tasks.migrate-db]
-install_crate = "sqlx-cli"
-command = "sqlx"
-args = ["migrate", "run"]
-
-[tasks.reset-db]
-install_crate = "sqlx-cli"
-command = "sqlx"
-args = ["db", "reset"]
+install_crate = "refinery_cli"
+command = "refinery"
+args = ["migrate", "-e", "DATABASE_URL"]
 
 [tasks.generate-migration]
 command = "atlas"

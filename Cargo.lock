@@ -529,6 +529,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-migration"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "refinery-core",
+ "sqlx",
+ "time",
+]
+
+[[package]]
 name = "colette-netscape"
 version = "0.1.0"
 dependencies = [
@@ -588,6 +598,7 @@ dependencies = [
  "colette-core",
  "colette-http",
  "colette-job",
+ "colette-migration",
  "colette-netscape",
  "colette-opml",
  "colette-plugins",
@@ -601,6 +612,7 @@ dependencies = [
  "futures",
  "object_store",
  "redis",
+ "refinery",
  "reqwest",
  "rust-embed",
  "sea-query",
@@ -2376,6 +2388,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "refinery"
+version = "0.8.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ba5d693abf62492c37268512ff35b77655d2e957ca53dab85bf993fe9172d15"
+dependencies = [
+ "refinery-core",
+ "refinery-macros",
+]
+
+[[package]]
+name = "refinery-core"
+version = "0.8.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a83581f18c1a4c3a6ebd7a174bdc665f17f618d79f7edccb6a0ac67e660b319"
+dependencies = [
+ "async-trait",
+ "cfg-if",
+ "log",
+ "regex",
+ "siphasher",
+ "thiserror 1.0.69",
+ "time",
+ "url",
+ "walkdir",
+]
+
+[[package]]
+name = "refinery-macros"
+version = "0.8.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72c225407d8e52ef8cf094393781ecda9a99d6544ec28d90a6915751de259264"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "refinery-core",
+ "regex",
+ "syn",
+]
+
+[[package]]
 name = "regex"
 version = "1.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3052,7 +3105,6 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
- "uuid",
  "webpki-roots",
 ]
 
@@ -3136,7 +3188,6 @@ dependencies = [
  "thiserror 2.0.12",
  "time",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -3176,7 +3227,6 @@ dependencies = [
  "thiserror 2.0.12",
  "time",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -3203,7 +3253,6 @@ dependencies = [
  "time",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
