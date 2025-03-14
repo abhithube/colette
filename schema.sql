@@ -1,19 +1,22 @@
 CREATE TABLE users (
   id TEXT NOT NULL PRIMARY KEY,
+  name TEXT,
   email TEXT NOT NULL UNIQUE,
-  display_name TEXT,
+  verified_at TEXT,
+  password_hash TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE accounts (
-  provider_id TEXT NOT NULL,
-  account_id TEXT NOT NULL,
-  password_hash TEXT,
+CREATE TABLE sessions (
+  id INTEGER NOT NULL PRIMARY KEY,
+  token TEXT NOT NULL,
+  user_agent TEXT,
+  ip_address TEXT,
+  expires_at TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (provider_id, account_id)
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE api_keys (
