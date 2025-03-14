@@ -49,7 +49,7 @@ impl AsyncQuery<Vec<Migration>> for SqliteMigrator {
                     e.get(0),
                     e.get(1),
                     OffsetDateTime::parse(&e.get::<String, _>(2), &Rfc3339).unwrap(),
-                    e.get(3),
+                    e.get::<String, _>(3).parse().unwrap(),
                 )
             })
             .collect();
