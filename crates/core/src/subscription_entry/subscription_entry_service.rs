@@ -37,7 +37,7 @@ impl SubscriptionEntryService {
         if let Some(stream_id) = query.stream_id {
             let mut streams = self
                 .stream_repository
-                .find_streams(StreamFindParams {
+                .find(StreamFindParams {
                     id: Some(stream_id),
                     user_id: Some(user_id),
                     ..Default::default()
@@ -55,14 +55,14 @@ impl SubscriptionEntryService {
 
         let mut subscription_entries = self
             .subscription_entry_repository
-            .find_subscription_entries(SubscriptionEntryFindParams {
+            .find(SubscriptionEntryFindParams {
                 filter,
-                feed_id: query.feed_id,
+                subscription_id: query.feed_id,
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id: Some(user_id),
-                limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
+                limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })
             .await?;
@@ -73,13 +73,15 @@ impl SubscriptionEntryService {
             subscription_entries = subscription_entries.into_iter().take(limit).collect();
 
             if let Some(last) = subscription_entries.last() {
-                let c = Cursor {
-                    id: last.entry.id,
-                    published_at: last.entry.published_at,
-                };
-                let encoded = base64::encode(&c)?;
+                if let Some(ref entry) = last.entry {
+                    let c = Cursor {
+                        published_at: entry.published_at,
+                        id: entry.id,
+                    };
+                    let encoded = base64::encode(&c)?;
 
-                cursor = Some(encoded);
+                    cursor = Some(encoded);
+                }
             }
         }
 

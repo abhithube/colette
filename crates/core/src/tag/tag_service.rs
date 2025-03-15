@@ -1,21 +1,17 @@
+use chrono::Utc;
 use uuid::Uuid;
 
-use super::{
-    Error, Tag, TagCreateParams, TagDeleteParams, TagFindByIdsParams, TagFindParams, TagRepository,
-    TagType, TagUpdateParams,
-};
-use crate::common::{Paginated, TransactionManager};
+use super::{Error, Tag, TagFindParams, TagRepository, TagType, TagUpsertType};
+use crate::common::Paginated;
 
 pub struct TagService {
     repository: Box<dyn TagRepository>,
-    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl TagService {
-    pub fn new(repository: impl TagRepository, tx_manager: impl TransactionManager) -> Self {
+    pub fn new(repository: impl TagRepository) -> Self {
         Self {
             repository: Box::new(repository),
-            tx_manager: Box::new(tx_manager),
         }
     }
 
@@ -26,7 +22,7 @@ impl TagService {
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
-            .find_tags(TagFindParams {
+            .find(TagFindParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
                 ..Default::default()
@@ -35,14 +31,14 @@ impl TagService {
 
         Ok(Paginated {
             data: tags,
-            ..Default::default()
+            cursor: None,
         })
     }
 
     pub async fn get_tag(&self, id: Uuid, user_id: Uuid) -> Result<Tag, Error> {
         let mut tags = self
             .repository
-            .find_tags(TagFindParams {
+            .find(TagFindParams {
                 ids: Some(vec![id]),
                 ..Default::default()
             })
@@ -60,57 +56,36 @@ impl TagService {
     }
 
     pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
-        let id = Uuid::new_v4();
+        let tag = Tag::builder().title(data.title).user_id(user_id).build();
 
-        self.repository
-            .create_tag(TagCreateParams {
-                id,
-                title: data.title,
-                user_id,
-            })
-            .await?;
+        self.repository.save(&tag, None).await?;
 
-        self.get_tag(id, user_id).await
+        Ok(tag)
     }
 
     pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let mut tags = self
-            .repository
-            .find_tags_by_ids(&*tx, TagFindByIdsParams { ids: vec![id] })
-            .await?;
+        let mut tags = self.repository.find_by_ids(vec![id]).await?;
         if tags.is_empty() {
             return Err(Error::NotFound(id));
         }
 
-        let tag = tags.swap_remove(0);
+        let mut tag = tags.swap_remove(0);
         if tag.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .update_tag(
-                &*tx,
-                TagUpdateParams {
-                    id,
-                    title: data.title,
-                },
-            )
-            .await?;
+        if let Some(title) = data.title {
+            tag.title = title;
+        }
 
-        tx.commit().await?;
+        tag.updated_at = Utc::now();
+        self.repository.save(&tag, Some(TagUpsertType::Id)).await?;
 
-        self.get_tag(id, user_id).await
+        Ok(tag)
     }
 
     pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let mut tags = self
-            .repository
-            .find_tags_by_ids(&*tx, TagFindByIdsParams { ids: vec![id] })
-            .await?;
+        let mut tags = self.repository.find_by_ids(vec![id]).await?;
         if tags.is_empty() {
             return Err(Error::NotFound(id));
         }
@@ -120,11 +95,7 @@ impl TagService {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .delete_tag(&*tx, TagDeleteParams { id })
-            .await?;
-
-        tx.commit().await?;
+        self.repository.delete_by_id(id).await?;
 
         Ok(())
     }

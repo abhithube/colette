@@ -1,31 +1,24 @@
+use chrono::Utc;
 use uuid::Uuid;
 
-use super::{
-    Collection, CollectionCreateParams, CollectionDeleteParams, CollectionFindByIdParams,
-    CollectionFindParams, CollectionRepository, CollectionUpdateParams, Error,
-};
-use crate::{
-    bookmark::BookmarkFilter,
-    common::{Paginated, TransactionManager},
-};
+use super::{Collection, CollectionFindParams, CollectionRepository, Error};
+use crate::{bookmark::BookmarkFilter, common::Paginated};
 
 pub struct CollectionService {
     repository: Box<dyn CollectionRepository>,
-    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl CollectionService {
-    pub fn new(repository: impl CollectionRepository, tx_manager: impl TransactionManager) -> Self {
+    pub fn new(repository: impl CollectionRepository) -> Self {
         Self {
             repository: Box::new(repository),
-            tx_manager: Box::new(tx_manager),
         }
     }
 
     pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repository
-            .find_collections(CollectionFindParams {
+            .find(CollectionFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -40,7 +33,7 @@ impl CollectionService {
     pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
         let mut collections = self
             .repository
-            .find_collections(CollectionFindParams {
+            .find(CollectionFindParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -62,18 +55,15 @@ impl CollectionService {
         data: CollectionCreate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
-        let id = Uuid::new_v4();
+        let collection = Collection::builder()
+            .title(data.title)
+            .filter(data.filter)
+            .user_id(user_id)
+            .build();
 
-        self.repository
-            .create_collection(CollectionCreateParams {
-                id,
-                title: data.title,
-                filter: data.filter,
-                user_id,
-            })
-            .await?;
+        self.repository.save(&collection, false).await?;
 
-        self.get_collection(id, user_id).await
+        Ok(collection)
     }
 
     pub async fn update_collection(
@@ -82,48 +72,35 @@ impl CollectionService {
         data: CollectionUpdate,
         user_id: Uuid,
     ) -> Result<Collection, Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let collection = self
-            .repository
-            .find_collection_by_id(&*tx, CollectionFindByIdParams { id })
-            .await?;
+        let Some(mut collection) = self.repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
         if collection.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .update_collection(
-                &*tx,
-                CollectionUpdateParams {
-                    id,
-                    title: data.title,
-                    filter: data.filter,
-                },
-            )
-            .await?;
+        if let Some(title) = data.title {
+            collection.title = title;
+        }
+        if let Some(filter) = data.filter {
+            collection.filter = filter;
+        }
 
-        tx.commit().await?;
+        collection.updated_at = Utc::now();
+        self.repository.save(&collection, true).await?;
 
-        self.get_collection(id, user_id).await
+        Ok(collection)
     }
 
     pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let collection = self
-            .repository
-            .find_collection_by_id(&*tx, CollectionFindByIdParams { id })
-            .await?;
+        let Some(collection) = self.repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
         if collection.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .delete_collection(&*tx, CollectionDeleteParams { id })
-            .await?;
-
-        tx.commit().await?;
+        self.repository.delete_by_id(id).await?;
 
         Ok(())
     }

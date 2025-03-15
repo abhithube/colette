@@ -1,15 +1,12 @@
 use std::fmt::Write;
 
-use colette_core::collection::{
-    CollectionCreateParams, CollectionDeleteParams, CollectionFindByIdParams, CollectionFindParams,
-    CollectionUpdateParams,
-};
 use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement,
-    UpdateStatement,
+    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
+use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
+use crate::{IntoDelete, IntoInsert, IntoSelect};
 
 pub enum Collection {
     Table,
@@ -40,49 +37,65 @@ impl Iden for Collection {
     }
 }
 
-impl IntoSelect for CollectionFindParams {
+pub struct CollectionSelect<'a> {
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for CollectionSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(Collection::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(Expr::col((Collection::Table, Collection::Id)).eq(id.to_string()));
+                query.and_where(Expr::col((Collection::Table, Collection::Id)).eq(id));
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((Collection::Table, Collection::UserId)).eq(user_id.to_string()),
-                );
+                query.and_where(Expr::col((Collection::Table, Collection::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, cursor| {
+            .apply_if(self.cursor, |query, title| {
                 query.and_where(
-                    Expr::col((Collection::Table, Collection::Title)).gt(Expr::val(cursor.title)),
+                    Expr::col((Collection::Table, Collection::Title)).gt(Expr::val(title)),
                 );
             })
             .order_by((Collection::Table, Collection::Title), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for CollectionFindByIdParams {
+pub struct CollectionSelectOne {
+    pub id: Uuid,
+}
+
+impl IntoSelect for CollectionSelectOne {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((Collection::Table, Collection::Id))
-            .column((Collection::Table, Collection::UserId))
+            .column(Asterisk)
             .from(Collection::Table)
-            .and_where(Expr::col((Collection::Table, Collection::Id)).eq(self.id.to_string()))
+            .and_where(Expr::col(Collection::Id).eq(self.id))
             .to_owned()
     }
 }
 
-impl IntoInsert for CollectionCreateParams {
+pub struct CollectionInsert<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub filter_raw: &'a str,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+impl IntoInsert for CollectionInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        Query::insert()
+        let mut query = Query::insert()
             .columns([
                 Collection::Id,
                 Collection::Title,
@@ -90,30 +103,19 @@ impl IntoInsert for CollectionCreateParams {
                 Collection::UserId,
             ])
             .values_panic([
-                self.id.to_string().into(),
-                self.title.clone().into(),
-                serde_json::to_string(&self.filter).unwrap().into(),
-                self.user_id.to_string().into(),
+                self.id.into(),
+                self.title.into(),
+                self.filter_raw.into(),
+                self.user_id.into(),
             ])
-            .to_owned()
-    }
-}
-
-impl IntoUpdate for CollectionUpdateParams {
-    fn into_update(self) -> UpdateStatement {
-        let mut query = Query::update()
-            .table(Collection::Table)
-            .value(Collection::UpdatedAt, Expr::current_timestamp())
-            .and_where(Expr::col(Collection::Id).eq(self.id.to_string()))
             .to_owned();
 
-        if let Some(title) = self.title {
-            query.value(Collection::Title, title);
-        }
-        if let Some(filter) = self.filter {
-            query.value(
-                Collection::FilterRaw,
-                serde_json::to_string(&filter).unwrap(),
+        if self.upsert {
+            query.on_conflict(
+                OnConflict::column(Collection::Id)
+                    .update_columns([Collection::Title, Collection::FilterRaw])
+                    .value(Collection::UpdatedAt, Expr::current_timestamp())
+                    .to_owned(),
             );
         }
 
@@ -121,11 +123,15 @@ impl IntoUpdate for CollectionUpdateParams {
     }
 }
 
-impl IntoDelete for CollectionDeleteParams {
+pub struct CollectionDelete {
+    pub id: Uuid,
+}
+
+impl IntoDelete for CollectionDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Collection::Table)
-            .and_where(Expr::col(Collection::Id).eq(self.id.to_string()))
+            .and_where(Expr::col(Collection::Id).eq(self.id))
             .to_owned()
     }
 }

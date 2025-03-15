@@ -49,10 +49,7 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 sea-query.workspace = true
-sea-query-binder = { version = "0.7.0", default-features = false, features = [
-  "sqlx-sqlite",
-  "with-chrono",
-] }
+sea-query-binder.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { version = "3.12.0", default-features = false }

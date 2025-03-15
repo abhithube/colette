@@ -7,18 +7,22 @@ pub use feed_service::*;
 use url::Url;
 use uuid::Uuid;
 
+use crate::FeedEntry;
+
 mod feed_repository;
 mod feed_scraper;
 mod feed_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct Feed {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub link: Url,
     pub xml_url: Option<Url>,
     pub title: String,
     pub description: Option<String>,
     pub refreshed_at: Option<DateTime<Utc>>,
+    pub entries: Option<Vec<FeedEntry>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

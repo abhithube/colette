@@ -1,11 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::feed::{FeedFindParams, FeedStreamUrlsParams};
-use sea_query::{
-    Asterisk, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-};
-use url::Url;
+use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement};
 use uuid::Uuid;
 
 use crate::{IntoInsert, IntoSelect};
@@ -39,40 +35,45 @@ impl Iden for Feed {
     }
 }
 
-impl IntoSelect for FeedFindParams {
+#[derive(Default)]
+pub struct FeedSelect<'a> {
+    pub id: Option<Uuid>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for FeedSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(Feed::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(Expr::col((Feed::Table, Feed::Id)).eq(id.to_string()));
+                query.and_where(Expr::col((Feed::Table, Feed::Id)).eq(id));
             })
-            .apply_if(self.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(cursor.link.to_string())),
-                );
+            .apply_if(self.cursor, |query, link| {
+                query.and_where(Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(link)));
             })
             .order_by((Feed::Table, Feed::Link), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-pub struct FeedUpsert {
+pub struct FeedInsert<'a> {
     pub id: Uuid,
-    pub link: Url,
-    pub xml_url: Option<Url>,
-    pub title: String,
-    pub description: Option<String>,
+    pub link: &'a str,
+    pub xml_url: Option<&'a str>,
+    pub title: &'a str,
+    pub description: Option<&'a str>,
     pub refreshed_at: Option<DateTime<Utc>>,
 }
 
-impl IntoInsert for FeedUpsert {
+impl IntoInsert for FeedInsert<'_> {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
             .into_table(Feed::Table)
@@ -85,9 +86,9 @@ impl IntoInsert for FeedUpsert {
                 Feed::RefreshedAt,
             ])
             .values_panic([
-                self.id.to_string().into(),
-                self.link.to_string().into(),
-                self.xml_url.map(String::from).into(),
+                self.id.into(),
+                self.link.into(),
+                self.xml_url.into(),
                 self.title.into(),
                 self.description.into(),
                 self.refreshed_at.into(),
@@ -103,18 +104,6 @@ impl IntoInsert for FeedUpsert {
                     .to_owned(),
             )
             .returning_col(Feed::Id)
-            .to_owned()
-    }
-}
-
-impl IntoSelect for FeedStreamUrlsParams {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .expr(Func::coalesce([
-                Expr::col(Feed::XmlUrl).into(),
-                Expr::col(Feed::Link).into(),
-            ]))
-            .from(Feed::Table)
             .to_owned()
     }
 }

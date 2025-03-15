@@ -1,15 +1,13 @@
 use std::fmt::Write;
 
-use colette_core::api_key::{
-    ApiKeyCreateParams, ApiKeyDeleteParams, ApiKeyFindByIdParams, ApiKeyFindParams,
-    ApiKeySearchParams, ApiKeyUpdateParams,
-};
+use chrono::{DateTime, Utc};
 use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement,
-    UpdateStatement,
+    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
+use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
+use crate::{IntoDelete, IntoInsert, IntoSelect};
 
 pub enum ApiKey {
     Table,
@@ -44,47 +42,75 @@ impl Iden for ApiKey {
     }
 }
 
-impl IntoSelect for ApiKeyFindParams {
+pub struct ApiKeySelect {
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<DateTime<Utc>>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for ApiKeySelect {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(ApiKey::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(id.to_string()));
+                query.and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(id));
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(Expr::col((ApiKey::Table, ApiKey::UserId)).eq(user_id.to_string()));
+                query.and_where(Expr::col((ApiKey::Table, ApiKey::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, cursor| {
+            .apply_if(self.cursor, |query, created_at| {
                 query.and_where(
-                    Expr::col((ApiKey::Table, ApiKey::CreatedAt)).gt(Expr::val(cursor.created_at)),
+                    Expr::col((ApiKey::Table, ApiKey::CreatedAt)).gt(Expr::val(created_at)),
                 );
             })
             .order_by((ApiKey::Table, ApiKey::CreatedAt), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for ApiKeyFindByIdParams {
+pub enum ApiKeySelectOne {
+    Id(Uuid),
+    LookupHash(String),
+}
+
+impl IntoSelect for ApiKeySelectOne {
     fn into_select(self) -> SelectStatement {
+        let r#where = match self {
+            ApiKeySelectOne::Id(id) => Expr::col(ApiKey::Id).eq(id),
+            ApiKeySelectOne::LookupHash(lookup_hash) => {
+                Expr::col(ApiKey::LookupHash).eq(lookup_hash)
+            }
+        };
+
         Query::select()
-            .column((ApiKey::Table, ApiKey::Id))
-            .column((ApiKey::Table, ApiKey::UserId))
+            .column(Asterisk)
             .from(ApiKey::Table)
-            .and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(self.id.to_string()))
+            .and_where(r#where)
             .to_owned()
     }
 }
 
-impl IntoInsert for ApiKeyCreateParams {
+pub struct ApiKeyInsert<'a> {
+    pub id: Uuid,
+    pub lookup_hash: &'a str,
+    pub verification_hash: &'a str,
+    pub title: &'a str,
+    pub preview: &'a str,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+impl IntoInsert for ApiKeyInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        Query::insert()
+        let mut query = Query::insert()
             .columns([
                 ApiKey::Id,
                 ApiKey::LookupHash,
@@ -94,49 +120,38 @@ impl IntoInsert for ApiKeyCreateParams {
                 ApiKey::UserId,
             ])
             .values_panic([
-                self.id.to_string().into(),
+                self.id.into(),
                 self.lookup_hash.into(),
                 self.verification_hash.into(),
                 self.title.into(),
                 self.preview.into(),
-                self.user_id.to_string().into(),
+                self.user_id.into(),
             ])
-            .to_owned()
-    }
-}
-
-impl IntoUpdate for ApiKeyUpdateParams {
-    fn into_update(self) -> UpdateStatement {
-        let mut query = Query::update()
-            .table(ApiKey::Table)
-            .value(ApiKey::UpdatedAt, Expr::current_timestamp())
-            .and_where(Expr::col(ApiKey::Id).eq(self.id.to_string()))
+            .returning_col(ApiKey::Id)
             .to_owned();
 
-        if let Some(title) = self.title {
-            query.value(ApiKey::Title, title);
+        if self.upsert {
+            query.on_conflict(
+                OnConflict::column(ApiKey::Id)
+                    .update_columns([ApiKey::Title])
+                    .value(ApiKey::UpdatedAt, Expr::current_timestamp())
+                    .to_owned(),
+            );
         }
 
         query
     }
 }
 
-impl IntoDelete for ApiKeyDeleteParams {
+pub struct ApiKeyDelete {
+    pub id: Uuid,
+}
+
+impl IntoDelete for ApiKeyDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(ApiKey::Table)
-            .and_where(Expr::col(ApiKey::Id).eq(self.id.to_string()))
-            .to_owned()
-    }
-}
-
-impl IntoSelect for ApiKeySearchParams {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column((ApiKey::Table, ApiKey::VerificationHash))
-            .column((ApiKey::Table, ApiKey::UserId))
-            .from(ApiKey::Table)
-            .and_where(Expr::col((ApiKey::Table, ApiKey::LookupHash)).eq(self.lookup_hash))
+            .and_where(Expr::col(ApiKey::Id).eq(self.id))
             .to_owned()
     }
 }

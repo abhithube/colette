@@ -3,21 +3,17 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Tag,
-    bookmark::{
-        BookmarkById, BookmarkCreateParams, BookmarkDeleteParams, BookmarkFindByIdParams,
-        BookmarkFindParams, BookmarkRepository, BookmarkTagsLinkParams, BookmarkUpdateParams,
-        BookmarkUpsertParams, Error,
-    },
-    common::Transaction,
+    bookmark::{BookmarkFindParams, BookmarkRepository, BookmarkUpsertType, Error},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
-    bookmark_tag::{BookmarkTagDeleteMany, BookmarkTagSelectMany, BookmarkTagUpsertMany},
+    IntoDelete, IntoInsert, IntoSelect,
+    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkSelectOne},
+    bookmark_tag::{BookmarkTagById, BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
 };
-use futures::lock::Mutex;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Row, Sqlite};
+use sqlx::{Pool, Sqlite};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteBookmarkRepository {
@@ -32,15 +28,24 @@ impl SqliteBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for SqliteBookmarkRepository {
-    async fn find_bookmarks(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
-        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
+        let (sql, values) = BookmarkSelect {
+            id: params.id,
+            tags: params.tags,
+            user_id: params.user_id,
+            filter: params.filter,
+            cursor: params.cursor,
+            limit: params.limit,
+        }
+        .into_select()
+        .build_sqlx(SqliteQueryBuilder);
 
         let bookmark_rows = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
             .fetch_all(&self.pool)
             .await?;
 
-        let (sql, values) = BookmarkTagSelectMany {
-            bookmark_ids: bookmark_rows.iter().map(|e| e.id.to_string()),
+        let (sql, values) = BookmarkTagSelect {
+            bookmark_ids: bookmark_rows.iter().map(|e| e.id),
         }
         .into_select()
         .build_sqlx(SqliteQueryBuilder);
@@ -49,13 +54,10 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             .fetch_all(&self.pool)
             .await?;
 
-        let mut tag_row_map = HashMap::<String, Vec<BookmarkTagRow>>::new();
+        let mut tag_row_map = HashMap::<Uuid, Vec<BookmarkTagRow>>::new();
 
         for row in tag_rows {
-            tag_row_map
-                .entry(row.bookmark_id.clone())
-                .or_default()
-                .push(row);
+            tag_row_map.entry(row.bookmark_id).or_default().push(row);
         }
 
         let bookmarks = bookmark_rows
@@ -72,153 +74,79 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         Ok(bookmarks)
     }
 
-    async fn find_bookmark_by_id(
-        &self,
-        tx: &dyn Transaction,
-        params: BookmarkFindByIdParams,
-    ) -> Result<BookmarkById, Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Bookmark>, Error> {
+        let (sql, values) = BookmarkSelectOne { id }
+            .into_select()
+            .build_sqlx(SqliteQueryBuilder);
 
-        let id = params.id;
+        let row = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
+            .fetch_optional(&self.pool)
+            .await?;
 
-        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
-
-        let row = sqlx::query_with(&sql, values)
-            .fetch_one(tx.as_mut())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::RowNotFound => Error::NotFound(id),
-                _ => Error::Database(e),
-            })?;
-
-        Ok(BookmarkById {
-            id: row.get::<String, _>(0).parse().unwrap(),
-            user_id: row.get::<String, _>(1).parse().unwrap(),
-        })
+        Ok(row.map(Into::into))
     }
 
-    async fn create_bookmark(
-        &self,
-        tx: &dyn Transaction,
-        params: BookmarkCreateParams,
-    ) -> Result<(), Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
+    async fn save(&self, data: &Bookmark, upsert: Option<BookmarkUpsertType>) -> Result<(), Error> {
+        let mut tx = self.pool.begin().await?;
 
-        let url = params.url.clone();
-
-        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values)
-            .execute(tx.as_mut())
-            .await
-            .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(url),
-                _ => Error::Database(e),
-            })?;
-
-        Ok(())
-    }
-
-    async fn update_bookmark(
-        &self,
-        tx: Option<&dyn Transaction>,
-        params: BookmarkUpdateParams,
-    ) -> Result<(), Error> {
-        let tx = tx.map(|e| {
-            e.as_any()
-                .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-                .unwrap()
-        });
-
-        if params.title.is_none()
-            && params.thumbnail_url.is_none()
-            && params.published_at.is_none()
-            && params.author.is_none()
-            && params.archived_path.is_none()
-        {
-            return Ok(());
-        }
-
-        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
-
-        if let Some(tx) = tx {
-            let mut tx = tx.lock().await;
-
-            sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
-        } else {
-            sqlx::query_with(&sql, values).execute(&self.pool).await?;
-        }
-
-        Ok(())
-    }
-
-    async fn delete_bookmark(
-        &self,
-        tx: &dyn Transaction,
-        params: BookmarkDeleteParams,
-    ) -> Result<(), Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
-
-        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
-
-        Ok(())
-    }
-
-    async fn upsert(&self, params: BookmarkUpsertParams) -> Result<(), Error> {
-        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
-
-        Ok(())
-    }
-
-    async fn link_tags(
-        &self,
-        tx: &dyn Transaction,
-        params: BookmarkTagsLinkParams,
-    ) -> Result<(), Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
-        let conn = tx.as_mut();
-
-        let (sql, values) = BookmarkTagDeleteMany {
-            bookmark_id: params.bookmark_id,
-            tag_ids: params.tags.iter().map(|e| e.id.to_string()),
-        }
-        .into_delete()
-        .build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(&mut *conn).await?;
-
-        let (sql, values) = BookmarkTagUpsertMany {
-            bookmark_id: params.bookmark_id,
-            tags: params.tags,
+        let (sql, values) = BookmarkInsert {
+            id: data.id,
+            link: data.link.as_str(),
+            title: &data.title,
+            thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
+            published_at: data.published_at,
+            author: data.author.as_deref(),
+            archived_path: data.archived_path.as_deref(),
+            user_id: data.user_id,
+            upsert,
         }
         .into_insert()
         .build_sqlx(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(conn).await?;
+        sqlx::query_with(&sql, values)
+            .execute(&mut *tx)
+            .await
+            .map_err(|e| match e {
+                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                    Error::Conflict(data.link.clone())
+                }
+                _ => Error::Database(e),
+            })?;
+
+        if let Some(ref tags) = data.tags {
+            let (sql, values) = BookmarkTagDelete {
+                bookmark_id: data.id,
+                tag_ids: tags.iter().map(|e| e.id),
+            }
+            .into_delete()
+            .build_sqlx(SqliteQueryBuilder);
+
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+
+            let (sql, values) = BookmarkTagInsert {
+                bookmark_id: data.id,
+                tags: tags.iter().map(|e| BookmarkTagById {
+                    id: e.id,
+                    user_id: e.user_id,
+                }),
+            }
+            .into_insert()
+            .build_sqlx(SqliteQueryBuilder);
+
+            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+        let (sql, values) = BookmarkDelete { id }
+            .into_delete()
+            .build_sqlx(SqliteQueryBuilder);
+
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
@@ -226,24 +154,42 @@ impl BookmarkRepository for SqliteBookmarkRepository {
 
 #[derive(sqlx::FromRow)]
 pub struct BookmarkRow {
-    pub id: String,
+    pub id: Uuid,
     pub link: String,
     pub title: String,
     pub thumbnail_url: Option<String>,
     pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
-    pub user_id: String,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
+impl From<BookmarkRow> for Bookmark {
+    fn from(value: BookmarkRow) -> Self {
+        Self {
+            id: value.id,
+            link: value.link.parse().unwrap(),
+            title: value.title,
+            thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),
+            published_at: value.published_at,
+            author: value.author,
+            archived_path: value.archived_path,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            tags: None,
+        }
+    }
+}
+
 #[derive(sqlx::FromRow)]
 pub struct BookmarkTagRow {
-    pub bookmark_id: String,
-    pub id: String,
+    pub bookmark_id: Uuid,
+    pub id: Uuid,
     pub title: String,
-    pub user_id: String,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -251,12 +197,13 @@ pub struct BookmarkTagRow {
 impl From<BookmarkTagRow> for Tag {
     fn from(value: BookmarkTagRow) -> Self {
         Self {
-            id: value.id.parse().unwrap(),
+            id: value.id,
             title: value.title,
-            user_id: value.user_id.parse().unwrap(),
+            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
-            ..Default::default()
+            feed_count: None,
+            bookmark_count: None,
         }
     }
 }
@@ -269,14 +216,14 @@ pub struct BookmarkRowWithTagRows {
 impl From<BookmarkRowWithTagRows> for Bookmark {
     fn from(value: BookmarkRowWithTagRows) -> Self {
         Self {
-            id: value.bookmark.id.parse().unwrap(),
+            id: value.bookmark.id,
             link: value.bookmark.link.parse().unwrap(),
             title: value.bookmark.title,
             thumbnail_url: value.bookmark.thumbnail_url.and_then(|e| e.parse().ok()),
             published_at: value.bookmark.published_at,
             author: value.bookmark.author,
             archived_path: value.bookmark.archived_path,
-            user_id: value.bookmark.user_id.parse().unwrap(),
+            user_id: value.bookmark.user_id,
             created_at: value.bookmark.created_at,
             updated_at: value.bookmark.updated_at,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),

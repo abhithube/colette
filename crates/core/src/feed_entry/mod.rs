@@ -24,8 +24,8 @@ pub struct FeedEntry {
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
-    pub id: Uuid,
     pub published_at: DateTime<Utc>,
+    pub id: Uuid,
 }
 
 #[derive(Debug, thiserror::Error)]

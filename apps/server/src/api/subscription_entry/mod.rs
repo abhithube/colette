@@ -27,15 +27,17 @@ impl SubscriptionEntryApi {
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SubscriptionEntry {
-    pub entry: FeedEntry,
-    pub has_read: bool,
+    pub entry_id: Uuid,
     pub subscription_id: Uuid,
+    pub entry: Option<FeedEntry>,
+    pub has_read: Option<bool>,
 }
 
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
         Self {
-            entry: value.entry.into(),
+            entry_id: value.entry_id,
+            entry: value.entry.map(Into::into),
             has_read: value.has_read,
             subscription_id: value.subscription_id,
         }

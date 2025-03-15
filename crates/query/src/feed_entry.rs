@@ -1,18 +1,14 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::{
-    feed_entry::FeedEntryFindParams,
-    subscription_entry::{
-        SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
-        SubscriptionEntryFindByIdParams, SubscriptionEntryFindParams, SubscriptionEntryTextField,
-    },
+use colette_core::subscription_entry::{
+    SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
+    SubscriptionEntryTextField,
 };
 use sea_query::{
     Alias, Asterisk, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
     SimpleExpr,
 };
-use url::Url;
 use uuid::Uuid;
 
 use crate::{
@@ -57,28 +53,33 @@ impl Iden for FeedEntry {
     }
 }
 
-impl IntoSelect for FeedEntryFindParams {
+pub struct FeedEntrySelect {
+    pub id: Option<Uuid>,
+    pub feed_id: Option<Uuid>,
+    pub cursor: Option<(DateTime<Utc>, Uuid)>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for FeedEntrySelect {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(FeedEntry::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id.to_string()));
+                query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id));
             })
             .apply_if(self.feed_id, |query, feed_id| {
-                query.and_where(
-                    Expr::col((FeedEntry::Table, FeedEntry::FeedId)).eq(feed_id.to_string()),
-                );
+                query.and_where(Expr::col((FeedEntry::Table, FeedEntry::FeedId)).eq(feed_id));
             })
-            .apply_if(self.cursor, |query, cursor| {
+            .apply_if(self.cursor, |query, (published_at, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
                         Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
-                        Expr::val(cursor.published_at).into(),
-                        Expr::val(cursor.id.to_string()).into(),
+                        Expr::val(published_at).into(),
+                        Expr::val(id).into(),
                     ])),
                 );
             })
@@ -87,26 +88,85 @@ impl IntoSelect for FeedEntryFindParams {
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for SubscriptionEntryFindParams {
+pub struct FeedEntryInsert<'a> {
+    pub id: Uuid,
+    pub link: &'a str,
+    pub title: &'a str,
+    pub published_at: DateTime<Utc>,
+    pub description: Option<&'a str>,
+    pub author: Option<&'a str>,
+    pub thumbnail_url: Option<&'a str>,
+    pub feed_id: Uuid,
+}
+
+pub struct FeedEntryInsertBatch<I>(pub I);
+
+impl<'a, I: IntoIterator<Item = FeedEntryInsert<'a>>> IntoInsert for FeedEntryInsertBatch<I> {
+    fn into_insert(self) -> InsertStatement {
+        let mut query = Query::insert()
+            .into_table(FeedEntry::Table)
+            .columns([
+                FeedEntry::Id,
+                FeedEntry::Link,
+                FeedEntry::Title,
+                FeedEntry::PublishedAt,
+                FeedEntry::Description,
+                FeedEntry::Author,
+                FeedEntry::ThumbnailUrl,
+                FeedEntry::FeedId,
+            ])
+            .on_conflict(
+                OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
+                    .update_columns([
+                        FeedEntry::Title,
+                        FeedEntry::PublishedAt,
+                        FeedEntry::Description,
+                        FeedEntry::Author,
+                        FeedEntry::ThumbnailUrl,
+                    ])
+                    .to_owned(),
+            )
+            .to_owned();
+
+        for entry in self.0 {
+            query.values_panic([
+                entry.id.into(),
+                entry.link.into(),
+                entry.title.into(),
+                entry.published_at.into(),
+                entry.description.into(),
+                entry.author.into(),
+                entry.thumbnail_url.into(),
+                entry.feed_id.into(),
+            ]);
+        }
+
+        query
+    }
+}
+
+pub struct SubscriptionEntrySelect<I> {
+    pub filter: Option<SubscriptionEntryFilter>,
+    pub id: Option<Uuid>,
+    pub subscription_id: Option<Uuid>,
+    pub has_read: Option<bool>,
+    pub tags: Option<I>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<(DateTime<Utc>, Uuid)>,
+    pub limit: Option<u64>,
+}
+
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionEntrySelect<I> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
-            .columns([
-                (FeedEntry::Table, FeedEntry::Id),
-                (FeedEntry::Table, FeedEntry::Link),
-                (FeedEntry::Table, FeedEntry::Title),
-                (FeedEntry::Table, FeedEntry::PublishedAt),
-                (FeedEntry::Table, FeedEntry::Description),
-                (FeedEntry::Table, FeedEntry::Author),
-                (FeedEntry::Table, FeedEntry::ThumbnailUrl),
-                (FeedEntry::Table, FeedEntry::FeedId),
-            ])
+            .column((FeedEntry::Table, Asterisk))
             .expr_as(
                 Expr::col((Subscription::Table, Subscription::Id)),
                 Alias::new("subscription_id"),
@@ -132,19 +192,17 @@ impl IntoSelect for SubscriptionEntryFindParams {
                     ),
             )
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id.to_string()),
-                );
+                query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, cursor| {
+            .apply_if(self.cursor, |query, (published_at, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col((FeedEntry::Table, FeedEntry::PublishedAt)).into(),
                         Expr::col((FeedEntry::Table, FeedEntry::Id)).into(),
                     ])
                     .lt(Expr::tuple([
-                        Expr::val(cursor.published_at).into(),
-                        Expr::val(cursor.id.to_string()).into(),
+                        Expr::val(published_at).into(),
+                        Expr::val(id).into(),
                     ])),
                 );
             })
@@ -157,8 +215,12 @@ impl IntoSelect for SubscriptionEntryFindParams {
         } else {
             query
                 .apply_if(self.id, |query, id| {
-                    query
-                        .and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id.to_string()));
+                    query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id));
+                })
+                .apply_if(self.subscription_id, |query, subscription_id| {
+                    query.and_where(
+                        Expr::col((Subscription::Table, Subscription::Id)).eq(subscription_id),
+                    );
                 })
                 .apply_if(self.has_read, |query, has_read| {
                     let mut subquery = Expr::exists(
@@ -196,7 +258,7 @@ impl IntoSelect for SubscriptionEntryFindParams {
                             )
                             .and_where(
                                 Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
-                                    .is_in(tags.into_iter().map(String::from)),
+                                    .is_in(tags),
                             )
                             .to_owned(),
                     ));
@@ -204,83 +266,33 @@ impl IntoSelect for SubscriptionEntryFindParams {
         }
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for SubscriptionEntryFindByIdParams {
+pub struct SubscriptionEntrySelectOne {
+    pub feed_entry_id: Uuid,
+    pub subscription_id: Uuid,
+}
+
+impl IntoSelect for SubscriptionEntrySelectOne {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column((FeedEntry::Table, FeedEntry::Id))
-            .column((Subscription::Table, Subscription::UserId))
+            .columns([
+                (Subscription::Table, Subscription::UserId),
+                (Subscription::Table, Subscription::Id),
+            ])
             .from(FeedEntry::Table)
             .inner_join(
                 Subscription::Table,
-                Expr::col((Subscription::Table, Subscription::FeedId))
-                    .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
+                Expr::col((Subscription::Table, Subscription::Id)).eq(self.subscription_id),
             )
-            .and_where(
-                Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(self.feed_entry_id.to_string()),
-            )
+            .and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(self.feed_entry_id))
             .to_owned()
-    }
-}
-
-pub struct FeedEntryUpsert {
-    pub id: Uuid,
-    pub link: Url,
-    pub title: String,
-    pub published_at: DateTime<Utc>,
-    pub description: Option<String>,
-    pub author: Option<String>,
-    pub thumbnail_url: Option<Url>,
-    pub feed_id: Uuid,
-}
-
-impl IntoInsert for Vec<FeedEntryUpsert> {
-    fn into_insert(self) -> InsertStatement {
-        let mut query = Query::insert()
-            .into_table(FeedEntry::Table)
-            .columns([
-                FeedEntry::Id,
-                FeedEntry::Link,
-                FeedEntry::Title,
-                FeedEntry::PublishedAt,
-                FeedEntry::Description,
-                FeedEntry::Author,
-                FeedEntry::ThumbnailUrl,
-                FeedEntry::FeedId,
-            ])
-            .on_conflict(
-                OnConflict::columns([FeedEntry::FeedId, FeedEntry::Link])
-                    .update_columns([
-                        FeedEntry::Title,
-                        FeedEntry::PublishedAt,
-                        FeedEntry::Description,
-                        FeedEntry::Author,
-                        FeedEntry::ThumbnailUrl,
-                    ])
-                    .to_owned(),
-            )
-            .to_owned();
-
-        for entry in self {
-            query.values_panic([
-                entry.id.to_string().into(),
-                entry.link.to_string().into(),
-                entry.title.into(),
-                entry.published_at.into(),
-                entry.description.into(),
-                entry.author.into(),
-                entry.thumbnail_url.map(String::from).into(),
-                entry.feed_id.to_string().into(),
-            ]);
-        }
-
-        query
     }
 }
 
@@ -355,7 +367,7 @@ impl ToColumn for SubscriptionEntryDateField {
 impl ToSql for SubscriptionEntryFilter {
     fn to_sql(self) -> SimpleExpr {
         match self {
-            SubscriptionEntryFilter::Text { field, op } => match field {
+            Self::Text { field, op } => match field {
                 SubscriptionEntryTextField::Tag => Expr::exists(
                     Query::select()
                         .expr(Expr::val(1))
@@ -374,9 +386,9 @@ impl ToSql for SubscriptionEntryFilter {
                 ),
                 _ => (field.to_column(), op).to_sql(),
             },
-            SubscriptionEntryFilter::Boolean { field, op } => (field.to_column(), op).to_sql(),
-            SubscriptionEntryFilter::Date { field, op } => (field.to_column(), op).to_sql(),
-            SubscriptionEntryFilter::And(filters) => {
+            Self::Boolean { field, op } => (field.to_column(), op).to_sql(),
+            Self::Date { field, op } => (field.to_column(), op).to_sql(),
+            Self::And(filters) => {
                 let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut and = conditions.swap_remove(0);
 
@@ -386,7 +398,7 @@ impl ToSql for SubscriptionEntryFilter {
 
                 and
             }
-            SubscriptionEntryFilter::Or(filters) => {
+            Self::Or(filters) => {
                 let mut conditions = filters.into_iter().map(|e| e.to_sql()).collect::<Vec<_>>();
                 let mut or = conditions.swap_remove(0);
 
@@ -396,7 +408,7 @@ impl ToSql for SubscriptionEntryFilter {
 
                 or
             }
-            SubscriptionEntryFilter::Not(filter) => filter.to_sql().not(),
+            Self::Not(filter) => filter.to_sql().not(),
             _ => unreachable!(),
         }
     }

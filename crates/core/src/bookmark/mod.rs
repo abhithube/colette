@@ -17,8 +17,9 @@ mod bookmark_repository;
 mod bookmark_scraper;
 mod bookmark_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct Bookmark {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub link: Url,
     pub title: String,
@@ -27,7 +28,9 @@ pub struct Bookmark {
     pub archived_path: Option<String>,
     pub author: Option<String>,
     pub user_id: Uuid,
+    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
+    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
     pub tags: Option<Vec<Tag>>,
 }

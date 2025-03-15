@@ -1,6 +1,5 @@
 use sea_query::{DeleteStatement, InsertStatement, SelectStatement, UpdateStatement};
 
-pub mod account;
 pub mod api_key;
 pub mod bookmark;
 pub mod bookmark_tag;

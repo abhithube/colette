@@ -1,7 +1,7 @@
 use std::fmt::Write;
 
-use colette_core::subscription::SubscriptionEntryUpdateParams;
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
+use uuid::Uuid;
 
 use crate::{IntoDelete, IntoInsert};
 
@@ -30,7 +30,13 @@ impl Iden for ReadEntry {
     }
 }
 
-impl IntoInsert for SubscriptionEntryUpdateParams {
+pub struct ReadEntryInsert {
+    pub feed_entry_id: Uuid,
+    pub subscription_id: Uuid,
+    pub user_id: Uuid,
+}
+
+impl IntoInsert for ReadEntryInsert {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
             .into_table(ReadEntry::Table)
@@ -40,9 +46,9 @@ impl IntoInsert for SubscriptionEntryUpdateParams {
                 ReadEntry::UserId,
             ])
             .values_panic([
-                self.subscription_id.to_string().into(),
-                self.feed_entry_id.to_string().into(),
-                self.user_id.to_string().into(),
+                self.subscription_id.into(),
+                self.feed_entry_id.into(),
+                self.user_id.into(),
             ])
             .on_conflict(
                 OnConflict::columns([ReadEntry::SubscriptionId, ReadEntry::FeedEntryId])
@@ -53,12 +59,17 @@ impl IntoInsert for SubscriptionEntryUpdateParams {
     }
 }
 
-impl IntoDelete for SubscriptionEntryUpdateParams {
+pub struct ReadEntryDelete {
+    pub feed_entry_id: Uuid,
+    pub subscription_id: Uuid,
+}
+
+impl IntoDelete for ReadEntryDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(ReadEntry::Table)
-            .and_where(Expr::col(ReadEntry::SubscriptionId).eq(self.subscription_id.to_string()))
-            .and_where(Expr::col(ReadEntry::FeedEntryId).eq(self.feed_entry_id.to_string()))
+            .and_where(Expr::col(ReadEntry::SubscriptionId).eq(self.subscription_id))
+            .and_where(Expr::col(ReadEntry::FeedEntryId).eq(self.feed_entry_id))
             .to_owned()
     }
 }

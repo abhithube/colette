@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 apalis-core.workspace = true
 async-trait.workspace = true
+bon = { version = "3.4.0", default-features = false }
 bytes.workspace = true
 chrono.workspace = true
 colette-feed.workspace = true

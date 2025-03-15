@@ -6,17 +6,17 @@ use super::Error;
 
 #[async_trait::async_trait]
 pub trait BackupRepository: Send + Sync + 'static {
-    async fn import_feeds(&self, params: ImportFeedsParams) -> Result<(), Error>;
+    async fn import_feeds(&self, data: ImportFeedsData) -> Result<(), Error>;
 
-    async fn import_bookmarks(&self, params: ImportBookmarksParams) -> Result<(), Error>;
+    async fn import_bookmarks(&self, data: ImportBookmarksData) -> Result<(), Error>;
 }
 
-pub struct ImportFeedsParams {
+pub struct ImportFeedsData {
     pub outlines: Vec<Outline>,
     pub user_id: Uuid,
 }
 
-pub struct ImportBookmarksParams {
+pub struct ImportBookmarksData {
     pub items: Vec<Item>,
     pub user_id: Uuid,
 }

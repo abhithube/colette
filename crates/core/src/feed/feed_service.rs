@@ -7,10 +7,7 @@ use colette_http::HttpClient;
 use futures::stream::BoxStream;
 use url::Url;
 
-use super::{
-    Error, ExtractedFeed, Feed, FeedFindParams, FeedRepository, FeedScraper, FeedStreamUrlsParams,
-    FeedUpsertParams, ProcessedFeed, ScraperError,
-};
+use super::{Error, ExtractedFeed, Feed, FeedRepository, FeedScraper, ProcessedFeed, ScraperError};
 
 pub struct FeedService {
     repository: Box<dyn FeedRepository>,
@@ -36,25 +33,18 @@ impl FeedService {
 
         match self.plugins.get(host) {
             Some(plugin) => {
-                let feed = plugin.scrape(&mut data.url).await?;
+                let processed = plugin.scrape(&mut data.url).await?;
 
-                let id = self
-                    .repository
-                    .upsert_feed(FeedUpsertParams {
-                        url: data.url,
-                        feed: feed.clone(),
-                    })
-                    .await?;
+                let feed = Feed::builder()
+                    .link(processed.link)
+                    .title(processed.title)
+                    .maybe_description(processed.description)
+                    .maybe_refreshed_at(processed.refreshed)
+                    .build();
 
-                let mut feeds = self
-                    .repository
-                    .find_feeds(FeedFindParams {
-                        id: Some(id),
-                        ..Default::default()
-                    })
-                    .await?;
+                self.repository.save(&feed).await?;
 
-                Ok(DetectedResponse::Processed(feeds.swap_remove(0)))
+                Ok(DetectedResponse::Processed(feed))
             }
             None => {
                 let body = self.client.get(&data.url).await?;
@@ -80,26 +70,20 @@ impl FeedService {
                             .map(ExtractedFeed::from)
                             .map_err(|e| ScraperError::Parse(e.into()))?;
 
-                        let feed =
+                        let processed =
                             ProcessedFeed::try_from(feed).map_err(|e| Error::Scraper(e.into()))?;
 
-                        let id = self
-                            .repository
-                            .upsert_feed(FeedUpsertParams {
-                                url: data.url,
-                                feed: feed.clone(),
-                            })
-                            .await?;
+                        let feed = Feed::builder()
+                            .link(processed.link)
+                            .xml_url(data.url)
+                            .title(processed.title)
+                            .maybe_description(processed.description)
+                            .maybe_refreshed_at(processed.refreshed)
+                            .build();
 
-                        let mut feeds = self
-                            .repository
-                            .find_feeds(FeedFindParams {
-                                id: Some(id),
-                                ..Default::default()
-                            })
-                            .await?;
+                        self.repository.save(&feed).await?;
 
-                        Ok(DetectedResponse::Processed(feeds.swap_remove(0)))
+                        Ok(DetectedResponse::Processed(feed))
                     }
                     _ => Err(Error::Scraper(ScraperError::Unsupported)),
                 }
@@ -110,7 +94,7 @@ impl FeedService {
     pub async fn scrape_feed(&self, mut data: FeedScrape) -> Result<(), Error> {
         let host = data.url.host_str().unwrap();
 
-        let feed = match self.plugins.get(host) {
+        let processed = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
                 let body = self.client.get(&data.url).await?;
@@ -122,18 +106,20 @@ impl FeedService {
             }
         }?;
 
-        self.repository
-            .upsert_feed(FeedUpsertParams {
-                url: data.url,
-                feed,
-            })
-            .await?;
+        let feed = Feed::builder()
+            .link(processed.link)
+            .title(processed.title)
+            .maybe_description(processed.description)
+            .maybe_refreshed_at(processed.refreshed)
+            .build();
+
+        self.repository.save(&feed).await?;
 
         Ok(())
     }
 
     pub async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        self.repository.stream_feed_urls(FeedStreamUrlsParams).await
+        self.repository.stream().await
     }
 }
 

@@ -23,12 +23,10 @@ impl FeedEntryService {
 
         let mut feed_entries = self
             .feed_entry_repository
-            .find_feed_entries(FeedEntryFindParams {
+            .find(FeedEntryFindParams {
                 feed_id: query.feed_id,
-                has_read: query.has_read,
-                tags: query.tags,
-                limit: Some(PAGINATION_LIMIT as i64 + 1),
                 cursor,
+                limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })
             .await?;
@@ -40,8 +38,8 @@ impl FeedEntryService {
 
             if let Some(last) = feed_entries.last() {
                 let c = Cursor {
-                    id: last.id,
                     published_at: last.published_at,
+                    id: last.id,
                 };
                 let encoded = base64::encode(&c)?;
 
@@ -58,7 +56,7 @@ impl FeedEntryService {
     pub async fn get_feed_entry(&self, id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
             .feed_entry_repository
-            .find_feed_entries(FeedEntryFindParams {
+            .find(FeedEntryFindParams {
                 id: Some(id),
                 ..Default::default()
             })

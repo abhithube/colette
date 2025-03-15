@@ -9,13 +9,16 @@ use crate::bookmark::BookmarkFilter;
 mod collection_repository;
 mod collection_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct Collection {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
     pub filter: BookmarkFilter,
     pub user_id: Uuid,
+    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
+    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
 }
 

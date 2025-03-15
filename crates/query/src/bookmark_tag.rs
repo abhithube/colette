@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
-use colette_core::tag::TagById;
 use sea_query::{
     DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    SimpleExpr,
 };
 use uuid::Uuid;
 
@@ -36,11 +34,11 @@ impl Iden for BookmarkTag {
     }
 }
 
-pub struct BookmarkTagSelectMany<T> {
+pub struct BookmarkTagSelect<T> {
     pub bookmark_ids: T,
 }
 
-impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for BookmarkTagSelectMany<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkTagSelect<I> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column((BookmarkTag::Table, BookmarkTag::BookmarkId))
@@ -65,56 +63,17 @@ impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for BookmarkTagS
     }
 }
 
-pub struct BookmarkTagUpsert {
-    pub bookmark_id: Uuid,
-    pub tag_id: Uuid,
+pub struct BookmarkTagById {
+    pub id: Uuid,
     pub user_id: Uuid,
 }
 
-impl IntoInsert for BookmarkTagUpsert {
-    fn into_insert(self) -> InsertStatement {
-        Query::insert()
-            .into_table(BookmarkTag::Table)
-            .columns([
-                BookmarkTag::BookmarkId,
-                BookmarkTag::TagId,
-                BookmarkTag::UserId,
-            ])
-            .values_panic([
-                self.bookmark_id.to_string().into(),
-                self.tag_id.to_string().into(),
-                self.user_id.to_string().into(),
-            ])
-            .on_conflict(
-                OnConflict::columns([BookmarkTag::BookmarkId, BookmarkTag::TagId])
-                    .do_nothing()
-                    .to_owned(),
-            )
-            .to_owned()
-    }
-}
-
-pub struct BookmarkTagDeleteMany<T> {
+pub struct BookmarkTagInsert<I> {
     pub bookmark_id: Uuid,
-    pub tag_ids: T,
+    pub tags: I,
 }
 
-impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoDelete for BookmarkTagDeleteMany<I> {
-    fn into_delete(self) -> DeleteStatement {
-        Query::delete()
-            .from_table(BookmarkTag::Table)
-            .and_where(Expr::col(BookmarkTag::BookmarkId).eq(self.bookmark_id.to_string()))
-            .and_where(Expr::col(BookmarkTag::TagId).is_not_in(self.tag_ids))
-            .to_owned()
-    }
-}
-
-pub struct BookmarkTagUpsertMany {
-    pub bookmark_id: Uuid,
-    pub tags: Vec<TagById>,
-}
-
-impl IntoInsert for BookmarkTagUpsertMany {
+impl<I: IntoIterator<Item = BookmarkTagById>> IntoInsert for BookmarkTagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(BookmarkTag::Table)
@@ -131,13 +90,24 @@ impl IntoInsert for BookmarkTagUpsertMany {
             .to_owned();
 
         for tag in self.tags {
-            query.values_panic([
-                self.bookmark_id.to_string().into(),
-                tag.id.to_string().into(),
-                tag.user_id.to_string().into(),
-            ]);
+            query.values_panic([self.bookmark_id.into(), tag.id.into(), tag.user_id.into()]);
         }
 
         query
+    }
+}
+
+pub struct BookmarkTagDelete<T> {
+    pub bookmark_id: Uuid,
+    pub tag_ids: T,
+}
+
+impl<I: IntoIterator<Item = Uuid>> IntoDelete for BookmarkTagDelete<I> {
+    fn into_delete(self) -> DeleteStatement {
+        Query::delete()
+            .from_table(BookmarkTag::Table)
+            .and_where(Expr::col(BookmarkTag::BookmarkId).eq(self.bookmark_id))
+            .and_where(Expr::col(BookmarkTag::TagId).is_not_in(self.tag_ids))
+            .to_owned()
     }
 }

@@ -1,15 +1,12 @@
 use std::fmt::Write;
 
-use colette_core::stream::{
-    StreamCreateParams, StreamDeleteParams, StreamFindByIdParams, StreamFindParams,
-    StreamUpdateParams,
-};
 use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Order, Query, SelectStatement,
-    UpdateStatement,
+    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
+use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
+use crate::{IntoDelete, IntoInsert, IntoSelect};
 
 pub enum Stream {
     Table,
@@ -40,82 +37,94 @@ impl Iden for Stream {
     }
 }
 
-impl IntoSelect for StreamFindParams {
+pub struct StreamSelect<'a> {
+    pub id: Option<Uuid>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<&'a str>,
+    pub limit: Option<u64>,
+}
+
+impl IntoSelect for StreamSelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(Stream::Table)
             .apply_if(self.id, |query, id| {
-                query.and_where(Expr::col((Stream::Table, Stream::Id)).eq(id.to_string()));
+                query.and_where(Expr::col((Stream::Table, Stream::Id)).eq(id));
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(Expr::col((Stream::Table, Stream::UserId)).eq(user_id.to_string()));
+                query.and_where(Expr::col((Stream::Table, Stream::UserId)).eq(user_id));
             })
-            .apply_if(self.cursor, |query, cursor| {
-                query.and_where(
-                    Expr::col((Stream::Table, Stream::Title)).gt(Expr::val(cursor.title)),
-                );
+            .apply_if(self.cursor, |query, title| {
+                query.and_where(Expr::col((Stream::Table, Stream::Title)).gt(Expr::val(title)));
             })
             .order_by((Stream::Table, Stream::Title), Order::Asc)
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for StreamFindByIdParams {
+pub struct StreamSelectOne {
+    pub id: Uuid,
+}
+
+impl IntoSelect for StreamSelectOne {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((Stream::Table, Stream::Id))
-            .column((Stream::Table, Stream::UserId))
+            .column(Asterisk)
             .from(Stream::Table)
-            .and_where(Expr::col((Stream::Table, Stream::Id)).eq(self.id.to_string()))
+            .and_where(Expr::col(Stream::Id).eq(self.id))
             .to_owned()
     }
 }
 
-impl IntoInsert for StreamCreateParams {
+pub struct StreamInsert<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub filter_raw: &'a str,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+impl IntoInsert for StreamInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        Query::insert()
+        let mut query = Query::insert()
             .columns([Stream::Id, Stream::Title, Stream::FilterRaw, Stream::UserId])
             .values_panic([
-                self.id.to_string().into(),
-                self.title.clone().into(),
-                serde_json::to_string(&self.filter).unwrap().into(),
-                self.user_id.to_string().into(),
+                self.id.into(),
+                self.title.into(),
+                self.filter_raw.into(),
+                self.user_id.into(),
             ])
-            .to_owned()
-    }
-}
-
-impl IntoUpdate for StreamUpdateParams {
-    fn into_update(self) -> UpdateStatement {
-        let mut query = Query::update()
-            .table(Stream::Table)
-            .value(Stream::UpdatedAt, Expr::current_timestamp())
-            .and_where(Expr::col(Stream::Id).eq(self.id.to_string()))
             .to_owned();
 
-        if let Some(title) = self.title {
-            query.value(Stream::Title, title);
-        }
-        if let Some(filter) = self.filter {
-            query.value(Stream::FilterRaw, serde_json::to_string(&filter).unwrap());
+        if self.upsert {
+            query.on_conflict(
+                OnConflict::column(Stream::Id)
+                    .update_columns([Stream::Title, Stream::FilterRaw])
+                    .value(Stream::UpdatedAt, Expr::current_timestamp())
+                    .to_owned(),
+            );
         }
 
         query
     }
 }
 
-impl IntoDelete for StreamDeleteParams {
+pub struct StreamDelete {
+    pub id: Uuid,
+}
+
+impl IntoDelete for StreamDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Stream::Table)
-            .and_where(Expr::col(Stream::Id).eq(self.id.to_string()))
+            .and_where(Expr::col(Stream::Id).eq(self.id))
             .to_owned()
     }
 }

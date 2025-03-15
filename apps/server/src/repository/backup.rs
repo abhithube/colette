@@ -1,12 +1,17 @@
 use colette_core::{
-    backup::{BackupRepository, Error, ImportBookmarksParams, ImportFeedsParams},
-    bookmark::{BookmarkUpsertParams, ProcessedBookmark},
+    backup::{BackupRepository, Error, ImportBookmarksData, ImportFeedsData},
+    bookmark::BookmarkUpsertType,
+    tag::TagUpsertType,
 };
 use colette_query::{
-    IntoInsert, IntoSelect, bookmark_tag::BookmarkTagUpsert, feed::FeedUpsert,
-    subscription::SubscriptionUpsert, subscription_tag::SubscriptionTagUpsert, tag::TagUpsert,
+    IntoInsert, IntoSelect,
+    bookmark::BookmarkInsert,
+    bookmark_tag::{BookmarkTagById, BookmarkTagInsert},
+    feed::FeedInsert,
+    subscription::SubscriptionInsert,
+    subscription_tag::{SubscriptionTagById, SubscriptionTagInsert},
+    tag::{TagInsert, TagSelectOne},
 };
-use futures::TryFutureExt;
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
 use sqlx::{Pool, Row, Sqlite};
@@ -25,10 +30,10 @@ impl SqliteBackupRepository {
 
 #[async_trait::async_trait]
 impl BackupRepository for SqliteBackupRepository {
-    async fn import_feeds(&self, params: ImportFeedsParams) -> Result<(), Error> {
+    async fn import_feeds(&self, data: ImportFeedsData) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
-        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = params
+        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = data
             .outlines
             .into_iter()
             .map(|outline| (None, outline))
@@ -37,24 +42,30 @@ impl BackupRepository for SqliteBackupRepository {
         while let Some((parent_id, outline)) = stack.pop() {
             if !outline.outline.is_empty() {
                 let tag_id = {
-                    let tag = TagUpsert {
-                        id: Uuid::new_v4(),
-                        title: outline.text,
-                        user_id: params.user_id,
-                    };
-
-                    let (sql, values) = tag.clone().into_select().build_sqlx(SqliteQueryBuilder);
+                    let (sql, values) = TagSelectOne::Index {
+                        title: &outline.text,
+                        user_id: data.user_id,
+                    }
+                    .into_select()
+                    .build_sqlx(SqliteQueryBuilder);
 
                     let row = sqlx::query_with(&sql, values)
                         .fetch_optional(&mut *tx)
                         .await?;
 
                     match row {
-                        Some(row) => row.get::<String, _>(0).parse().unwrap(),
+                        Some(row) => row.get::<Uuid, _>(0),
                         _ => {
-                            let id = tag.id;
+                            let id = Uuid::new_v4();
 
-                            let (sql, values) = tag.into_insert().build_sqlx(SqliteQueryBuilder);
+                            let (sql, values) = TagInsert {
+                                id,
+                                title: &outline.text,
+                                user_id: data.user_id,
+                                upsert: Some(TagUpsertType::Title),
+                            }
+                            .into_insert()
+                            .build_sqlx(SqliteQueryBuilder);
 
                             sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
@@ -69,43 +80,44 @@ impl BackupRepository for SqliteBackupRepository {
             } else if let Some(link) = outline.html_url {
                 let title = outline.title.unwrap_or(outline.text);
 
-                let feed = FeedUpsert {
+                let feed = FeedInsert {
                     id: Uuid::new_v4(),
-                    link: link.parse().unwrap(),
-                    xml_url: outline.xml_url.map(|e| e.parse().unwrap()),
-                    title: title.clone(),
+                    link: &link,
+                    xml_url: outline.xml_url.as_deref(),
+                    title: &title,
                     description: None,
                     refreshed_at: None,
                 };
 
                 let (sql, values) = feed.into_insert().build_sqlx(SqliteQueryBuilder);
 
-                let feed_id = sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                let feed_id = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
                     .fetch_one(&mut *tx)
-                    .map_ok(|e| e.parse().unwrap())
                     .await?;
 
                 let subscription_id = {
-                    let subscription = SubscriptionUpsert {
+                    let (sql, values) = SubscriptionInsert {
                         id: Uuid::new_v4(),
-                        title,
+                        title: &title,
                         feed_id,
-                        user_id: params.user_id,
-                    };
+                        user_id: data.user_id,
+                        upsert: true,
+                    }
+                    .into_insert()
+                    .build_sqlx(SqliteQueryBuilder);
 
-                    let (sql, values) = subscription.into_insert().build_sqlx(SqliteQueryBuilder);
-
-                    sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
                         .fetch_one(&mut *tx)
-                        .map_ok(|e| e.parse().unwrap())
                         .await?
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let subscription_tag = SubscriptionTagUpsert {
+                    let subscription_tag = SubscriptionTagInsert {
                         subscription_id,
-                        tag_id,
-                        user_id: params.user_id,
+                        tags: vec![SubscriptionTagById {
+                            id: tag_id,
+                            user_id: data.user_id,
+                        }],
                     };
 
                     let (sql, values) = subscription_tag
@@ -122,33 +134,39 @@ impl BackupRepository for SqliteBackupRepository {
         Ok(())
     }
 
-    async fn import_bookmarks(&self, params: ImportBookmarksParams) -> Result<(), Error> {
+    async fn import_bookmarks(&self, data: ImportBookmarksData) -> Result<(), Error> {
         let mut tx = self.pool.begin().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
-            params.items.into_iter().map(|item| (None, item)).collect();
+            data.items.into_iter().map(|item| (None, item)).collect();
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
                 let tag_id = {
-                    let tag = TagUpsert {
-                        id: Uuid::new_v4(),
-                        title: item.title,
-                        user_id: params.user_id,
-                    };
-
-                    let (sql, values) = tag.clone().into_select().build_sqlx(SqliteQueryBuilder);
+                    let (sql, values) = TagSelectOne::Index {
+                        title: &item.title,
+                        user_id: data.user_id,
+                    }
+                    .into_select()
+                    .build_sqlx(SqliteQueryBuilder);
 
                     let row = sqlx::query_with(&sql, values)
                         .fetch_optional(&mut *tx)
                         .await?;
 
                     match row {
-                        Some(row) => row.get::<String, _>(0).parse().unwrap(),
+                        Some(row) => row.get::<Uuid, _>(0),
                         _ => {
-                            let id = tag.id;
+                            let id = Uuid::new_v4();
 
-                            let (sql, values) = tag.into_insert().build_sqlx(SqliteQueryBuilder);
+                            let (sql, values) = TagInsert {
+                                id,
+                                title: &item.title,
+                                user_id: data.user_id,
+                                upsert: Some(TagUpsertType::Title),
+                            }
+                            .into_insert()
+                            .build_sqlx(SqliteQueryBuilder);
 
                             sqlx::query_with(&sql, values).execute(&mut *tx).await?;
 
@@ -161,31 +179,32 @@ impl BackupRepository for SqliteBackupRepository {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = item.href {
-                let user_id = params.user_id;
+                let user_id = data.user_id;
 
                 let bookmark_id = {
-                    let bookmark = BookmarkUpsertParams {
-                        url: link.parse().unwrap(),
-                        bookmark: ProcessedBookmark {
-                            title: item.title,
-                            ..Default::default()
-                        },
-                        user_id,
-                    };
+                    let (sql, values) = BookmarkInsert {
+                        id: Uuid::new_v4(),
+                        link: &link,
+                        title: &item.title,
+                        user_id: data.user_id,
+                        upsert: Some(BookmarkUpsertType::Link),
+                        ..Default::default()
+                    }
+                    .into_insert()
+                    .build_sqlx(SqliteQueryBuilder);
 
-                    let (sql, values) = bookmark.into_insert().build_sqlx(SqliteQueryBuilder);
-
-                    sqlx::query_scalar_with::<_, String, _>(&sql, values)
+                    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
                         .fetch_one(&mut *tx)
-                        .map_ok(|e| e.parse().unwrap())
                         .await?
                 };
 
                 if let Some(tag_id) = parent_id {
-                    let bookmark_tag = BookmarkTagUpsert {
+                    let bookmark_tag = BookmarkTagInsert {
                         bookmark_id,
-                        tag_id,
-                        user_id,
+                        tags: vec![BookmarkTagById {
+                            id: tag_id,
+                            user_id,
+                        }],
                     };
 
                     let (sql, values) = bookmark_tag.into_insert().build_sqlx(SqliteQueryBuilder);

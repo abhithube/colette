@@ -1,18 +1,12 @@
 use std::fmt::Write;
 
-use colette_core::subscription::{
-    SubscriptionCreateParams, SubscriptionDeleteParams, SubscriptionFindByIdParams,
-    SubscriptionFindParams, SubscriptionUpdateParams,
-};
 use sea_query::{
-    Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    UpdateStatement,
+    Alias, Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
 use uuid::Uuid;
 
-use crate::{
-    IntoDelete, IntoInsert, IntoSelect, IntoUpdate, feed::Feed, subscription_tag::SubscriptionTag,
-};
+use crate::{IntoDelete, IntoInsert, IntoSelect, feed::Feed, subscription_tag::SubscriptionTag};
 
 pub enum Subscription {
     Table,
@@ -43,7 +37,15 @@ impl Iden for Subscription {
     }
 }
 
-impl IntoSelect for SubscriptionFindParams {
+pub struct SubscriptionSelect<I> {
+    pub id: Option<Uuid>,
+    pub tags: Option<I>,
+    pub user_id: Option<Uuid>,
+    pub cursor: Option<(String, Uuid)>,
+    pub limit: Option<u64>,
+}
+
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<I> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .columns([
@@ -71,14 +73,10 @@ impl IntoSelect for SubscriptionFindParams {
                     .eq(Expr::col((Subscription::Table, Subscription::FeedId))),
             )
             .apply_if(self.id, |query, id| {
-                query.and_where(
-                    Expr::col((Subscription::Table, Subscription::Id)).eq(id.to_string()),
-                );
+                query.and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(id));
             })
             .apply_if(self.user_id, |query, user_id| {
-                query.and_where(
-                    Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id.to_string()),
-                );
+                query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
             })
             .apply_if(self.tags, |query, tags| {
                 query.and_where(Expr::exists(
@@ -90,22 +88,18 @@ impl IntoSelect for SubscriptionFindParams {
                                 .eq(Expr::col((Subscription::Table, Subscription::Id))),
                         )
                         .and_where(
-                            Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
-                                .is_in(tags.into_iter().map(String::from)),
+                            Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId)).is_in(tags),
                         )
                         .to_owned(),
                 ));
             })
-            .apply_if(self.cursor, |query, cursor| {
+            .apply_if(self.cursor, |query, (title, id)| {
                 query.and_where(
                     Expr::tuple([
                         Expr::col(Subscription::Title).into(),
                         Expr::col(Subscription::Id).into(),
                     ])
-                    .gt(Expr::tuple([
-                        Expr::value(cursor.title),
-                        Expr::value(cursor.id.to_string()),
-                    ])),
+                    .gt(Expr::tuple([Expr::value(title), Expr::value(id)])),
                 );
             })
             .order_by((Subscription::Table, Subscription::Title), Order::Asc)
@@ -113,27 +107,38 @@ impl IntoSelect for SubscriptionFindParams {
             .to_owned();
 
         if let Some(limit) = self.limit {
-            query.limit(limit as u64);
+            query.limit(limit);
         }
 
         query
     }
 }
 
-impl IntoSelect for SubscriptionFindByIdParams {
+pub struct SubscriptionSelectOne {
+    pub id: Uuid,
+}
+
+impl IntoSelect for SubscriptionSelectOne {
     fn into_select(self) -> SelectStatement {
         Query::select()
-            .column((Subscription::Table, Subscription::Id))
-            .column((Subscription::Table, Subscription::UserId))
+            .column(Asterisk)
             .from(Subscription::Table)
-            .and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(self.id.to_string()))
+            .and_where(Expr::col(Subscription::Id).eq(self.id))
             .to_owned()
     }
 }
 
-impl IntoInsert for SubscriptionCreateParams {
+pub struct SubscriptionInsert<'a> {
+    pub id: Uuid,
+    pub title: &'a str,
+    pub feed_id: Uuid,
+    pub user_id: Uuid,
+    pub upsert: bool,
+}
+
+impl IntoInsert for SubscriptionInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        Query::insert()
+        let mut query = Query::insert()
             .into_table(Subscription::Table)
             .columns([
                 Subscription::Id,
@@ -142,69 +147,36 @@ impl IntoInsert for SubscriptionCreateParams {
                 Subscription::UserId,
             ])
             .values_panic([
-                self.id.to_string().into(),
-                self.title.clone().into(),
-                self.feed_id.to_string().into(),
-                self.user_id.to_string().into(),
+                self.id.into(),
+                self.title.into(),
+                self.feed_id.into(),
+                self.user_id.into(),
             ])
-            .to_owned()
-    }
-}
-
-impl IntoUpdate for SubscriptionUpdateParams {
-    fn into_update(self) -> UpdateStatement {
-        let mut query = Query::update()
-            .table(Subscription::Table)
-            .value(Subscription::UpdatedAt, Expr::current_timestamp())
-            .and_where(Expr::col(Subscription::Id).eq(self.id.to_string()))
             .to_owned();
 
-        if let Some(title) = self.title {
-            query.value(Subscription::Title, title);
+        if self.upsert {
+            query
+                .on_conflict(
+                    OnConflict::columns([Subscription::UserId, Subscription::FeedId])
+                        .update_column(Subscription::Title)
+                        .to_owned(),
+                )
+                .returning_col(Subscription::Id);
         }
 
         query
     }
 }
 
-impl IntoDelete for SubscriptionDeleteParams {
+pub struct SubscriptionDelete {
+    pub id: Uuid,
+}
+
+impl IntoDelete for SubscriptionDelete {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(Subscription::Table)
-            .and_where(Expr::col(Subscription::Id).eq(self.id.to_string()))
-            .to_owned()
-    }
-}
-
-pub struct SubscriptionUpsert {
-    pub id: Uuid,
-    pub title: String,
-    pub feed_id: Uuid,
-    pub user_id: Uuid,
-}
-
-impl IntoInsert for SubscriptionUpsert {
-    fn into_insert(self) -> InsertStatement {
-        Query::insert()
-            .into_table(Subscription::Table)
-            .columns([
-                Subscription::Id,
-                Subscription::Title,
-                Subscription::FeedId,
-                Subscription::UserId,
-            ])
-            .values_panic([
-                self.id.to_string().into(),
-                self.title.into(),
-                self.feed_id.to_string().into(),
-                self.user_id.to_string().into(),
-            ])
-            .on_conflict(
-                OnConflict::columns([Subscription::UserId, Subscription::FeedId])
-                    .update_column(Subscription::Title)
-                    .to_owned(),
-            )
-            .returning_col(Subscription::Id)
+            .and_where(Expr::col(Subscription::Id).eq(self.id))
             .to_owned()
     }
 }

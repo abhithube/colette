@@ -9,13 +9,18 @@ use crate::auth;
 mod api_key_repository;
 mod api_key_service;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct ApiKey {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
+    pub lookup_hash: String,
+    pub verification_hash: String,
     pub title: String,
     pub preview: String,
     pub user_id: Uuid,
+    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
+    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
 }
 

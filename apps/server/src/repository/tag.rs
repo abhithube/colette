@@ -1,17 +1,16 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
-    common::Transaction,
-    tag::{
-        Error, TagById, TagCreateParams, TagDeleteParams, TagFindByIdsParams, TagFindParams,
-        TagRepository, TagUpdateParams,
-    },
+    tag::{Error, TagFindParams, TagRepository, TagUpsertType},
 };
-use colette_query::{IntoDelete, IntoInsert, IntoSelect, IntoUpdate};
-use futures::lock::Mutex;
+use colette_query::{
+    IntoDelete, IntoInsert, IntoSelect,
+    tag::{TagDelete, TagInsert, TagSelect, TagSelectOne},
+};
 use sea_query::SqliteQueryBuilder;
 use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Row, Sqlite};
+use sqlx::{Pool, Sqlite};
+use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct SqliteTagRepository {
@@ -26,8 +25,18 @@ impl SqliteTagRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for SqliteTagRepository {
-    async fn find_tags(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
-        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
+    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
+        let (sql, values) = TagSelect {
+            ids: params.ids,
+            tag_type: params.tag_type,
+            feed_id: params.feed_id,
+            bookmark_id: params.bookmark_id,
+            user_id: params.user_id,
+            cursor: params.cursor.as_deref(),
+            limit: params.limit,
+        }
+        .into_select()
+        .build_sqlx(SqliteQueryBuilder);
 
         let rows = sqlx::query_as_with::<_, TagRowWithCounts, _>(&sql, values)
             .fetch_all(&self.pool)
@@ -36,89 +45,80 @@ impl TagRepository for SqliteTagRepository {
         Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn find_tags_by_ids(
-        &self,
-        tx: &dyn Transaction,
-        params: TagFindByIdsParams,
-    ) -> Result<Vec<TagById>, Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
+    async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error> {
+        let (sql, values) = TagSelectOne::Ids(ids)
+            .into_select()
+            .build_sqlx(SqliteQueryBuilder);
 
-        let (sql, values) = params.into_select().build_sqlx(SqliteQueryBuilder);
-
-        let rows = sqlx::query_with(&sql, values)
-            .fetch_all(tx.as_mut())
+        let rows = sqlx::query_as_with::<_, TagRow, _>(&sql, values)
+            .fetch_all(&self.pool)
             .await?;
 
-        Ok(rows
-            .into_iter()
-            .map(|e| TagById {
-                id: e.get::<String, _>(0).parse().unwrap(),
-                user_id: e.get::<String, _>(1).parse().unwrap(),
-            })
-            .collect())
+        Ok(rows.into_iter().map(Into::into).collect())
     }
 
-    async fn create_tag(&self, params: TagCreateParams) -> Result<(), Error> {
-        let title = params.title.clone();
-
-        let (sql, values) = params.into_insert().build_sqlx(SqliteQueryBuilder);
+    async fn save(&self, data: &Tag, upsert: Option<TagUpsertType>) -> Result<(), Error> {
+        let (sql, values) = TagInsert {
+            id: data.id,
+            title: &data.title,
+            user_id: data.user_id,
+            upsert,
+        }
+        .into_insert()
+        .build_sqlx(SqliteQueryBuilder);
 
         sqlx::query_with(&sql, values)
             .execute(&self.pool)
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => Error::Conflict(title),
+                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                    Error::Conflict(data.title.clone())
+                }
                 _ => Error::Database(e),
             })?;
 
         Ok(())
     }
 
-    async fn update_tag(&self, tx: &dyn Transaction, params: TagUpdateParams) -> Result<(), Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
+    async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+        let (sql, values) = TagDelete { id }
+            .into_delete()
+            .build_sqlx(SqliteQueryBuilder);
 
-        if params.title.is_none() {
-            return Ok(());
-        }
-
-        let (sql, values) = params.into_update().build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
-
-        Ok(())
-    }
-
-    async fn delete_tag(&self, tx: &dyn Transaction, params: TagDeleteParams) -> Result<(), Error> {
-        let mut tx = tx
-            .as_any()
-            .downcast_ref::<Mutex<sqlx::Transaction<'static, Sqlite>>>()
-            .unwrap()
-            .lock()
-            .await;
-
-        let (sql, values) = params.into_delete().build_sqlx(SqliteQueryBuilder);
-
-        sqlx::query_with(&sql, values).execute(tx.as_mut()).await?;
+        sqlx::query_with(&sql, values).execute(&self.pool).await?;
 
         Ok(())
     }
 }
 
 #[derive(sqlx::FromRow)]
-pub struct TagRowWithCounts {
-    pub id: String,
+pub struct TagRow {
+    pub id: Uuid,
     pub title: String,
-    pub user_id: String,
+    pub user_id: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl From<TagRow> for Tag {
+    fn from(value: TagRow) -> Self {
+        Self {
+            id: value.id,
+            title: value.title,
+            user_id: value.user_id,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
+            feed_count: None,
+            bookmark_count: None,
+        }
+    }
+}
+
+#[derive(sqlx::FromRow)]
+pub struct TagRowWithCounts {
+    pub id: Uuid,
+    pub title: String,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub feed_count: i64,
@@ -128,9 +128,9 @@ pub struct TagRowWithCounts {
 impl From<TagRowWithCounts> for Tag {
     fn from(value: TagRowWithCounts) -> Self {
         Self {
-            id: value.id.parse().unwrap(),
+            id: value.id,
             title: value.title,
-            user_id: value.user_id.parse().unwrap(),
+            user_id: value.user_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
             feed_count: Some(value.feed_count),

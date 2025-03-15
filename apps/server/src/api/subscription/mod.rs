@@ -48,7 +48,9 @@ pub struct Subscription {
     pub title: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub feed: Feed,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feed: Option<Feed>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -63,7 +65,7 @@ impl From<colette_core::Subscription> for Subscription {
             title: value.title,
             created_at: value.created_at,
             updated_at: value.updated_at,
-            feed: value.feed.into(),
+            feed: value.feed.map(Into::into),
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
             unread_count: value.unread_count,
         }

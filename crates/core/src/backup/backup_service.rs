@@ -7,7 +7,7 @@ use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
 
-use super::{Error, ImportBookmarksParams, ImportFeedsParams, backup_repository::BackupRepository};
+use super::{Error, ImportBookmarksData, ImportFeedsData, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
     job::Storage,
@@ -50,7 +50,7 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_feeds(ImportFeedsParams {
+            .import_feeds(ImportFeedsData {
                 outlines: opml.body.outlines,
                 user_id,
             })
@@ -67,7 +67,7 @@ impl BackupService {
 
         let subscriptions = self
             .subscription_repository
-            .find_subscriptions(SubscriptionFindParams {
+            .find(SubscriptionFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -75,12 +75,16 @@ impl BackupService {
             .unwrap();
 
         for subscription in subscriptions {
+            let Some(feed) = subscription.feed else {
+                continue;
+            };
+
             let outline = Outline {
                 r#type: Some(OutlineType::default()),
                 text: subscription.title.clone(),
-                xml_url: subscription.feed.xml_url.map(Into::into),
+                xml_url: feed.xml_url.map(Into::into),
                 title: Some(subscription.title),
-                html_url: Some(subscription.feed.link.into()),
+                html_url: Some(feed.link.into()),
                 ..Default::default()
             };
 
@@ -122,7 +126,7 @@ impl BackupService {
             .collect::<Vec<Url>>();
 
         self.backup_repository
-            .import_bookmarks(ImportBookmarksParams {
+            .import_bookmarks(ImportBookmarksData {
                 items: netscape.items,
                 user_id,
             })
@@ -139,7 +143,7 @@ impl BackupService {
 
         let bookmarks = self
             .bookmark_repository
-            .find_bookmarks(BookmarkFindParams {
+            .find(BookmarkFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })

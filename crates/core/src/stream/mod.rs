@@ -9,13 +9,16 @@ use crate::subscription_entry::SubscriptionEntryFilter;
 mod stream_repository;
 mod stream_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct Stream {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
     pub filter: SubscriptionEntryFilter,
     pub user_id: Uuid,
+    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
+    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
 }
 

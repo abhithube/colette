@@ -15,16 +15,17 @@ mod subscription_entry_service;
 
 #[derive(Debug, Clone)]
 pub struct SubscriptionEntry {
-    pub entry: FeedEntry,
-    pub has_read: bool,
+    pub entry_id: Uuid,
     pub subscription_id: Uuid,
     pub user_id: Uuid,
+    pub entry: Option<FeedEntry>,
+    pub has_read: Option<bool>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
-    pub id: Uuid,
     pub published_at: DateTime<Utc>,
+    pub id: Uuid,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

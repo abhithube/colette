@@ -60,6 +60,12 @@ scraper = { version = "0.23.1", default-features = false }
 sea-query = { version = "0.32.2", default-features = false, features = [
   "backend-sqlite",
   "with-chrono",
+  "with-uuid",
+] }
+sea-query-binder = { version = "0.7.0", default-features = false, features = [
+  "sqlx-sqlite",
+  "with-chrono",
+  "with-uuid",
 ] }
 serde = { version = "1.0.217", default-features = false }
 serde_json = { version = "1.0.135", default-features = false, features = [

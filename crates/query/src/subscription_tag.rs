@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
-use colette_core::tag::TagById;
 use sea_query::{
     DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
-    SimpleExpr,
 };
 use uuid::Uuid;
 
@@ -36,11 +34,11 @@ impl Iden for SubscriptionTag {
     }
 }
 
-pub struct SubscriptionTagSelectMany<T> {
+pub struct SubscriptionTagSelect<T> {
     pub subscription_ids: T,
 }
 
-impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for SubscriptionTagSelectMany<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionTagSelect<I> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
@@ -66,58 +64,32 @@ impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for Subscription
     }
 }
 
-pub struct SubscriptionTagUpsert {
+pub struct SubscriptionTagDelete<I> {
     pub subscription_id: Uuid,
-    pub tag_id: Uuid,
-    pub user_id: Uuid,
+    pub tag_ids: I,
 }
 
-impl IntoInsert for SubscriptionTagUpsert {
-    fn into_insert(self) -> InsertStatement {
-        Query::insert()
-            .into_table(SubscriptionTag::Table)
-            .columns([
-                SubscriptionTag::SubscriptionId,
-                SubscriptionTag::TagId,
-                SubscriptionTag::UserId,
-            ])
-            .values_panic([
-                self.subscription_id.to_string().into(),
-                self.tag_id.to_string().into(),
-                self.user_id.to_string().into(),
-            ])
-            .on_conflict(
-                OnConflict::columns([SubscriptionTag::SubscriptionId, SubscriptionTag::TagId])
-                    .do_nothing()
-                    .to_owned(),
-            )
-            .to_owned()
-    }
-}
-
-pub struct SubscriptionTagDeleteMany<T> {
-    pub subscription_id: Uuid,
-    pub tag_ids: T,
-}
-
-impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoDelete for SubscriptionTagDeleteMany<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoDelete for SubscriptionTagDelete<I> {
     fn into_delete(self) -> DeleteStatement {
         Query::delete()
             .from_table(SubscriptionTag::Table)
-            .and_where(
-                Expr::col(SubscriptionTag::SubscriptionId).eq(self.subscription_id.to_string()),
-            )
+            .and_where(Expr::col(SubscriptionTag::SubscriptionId).eq(self.subscription_id))
             .and_where(Expr::col(SubscriptionTag::TagId).is_not_in(self.tag_ids))
             .to_owned()
     }
 }
 
-pub struct SubscriptionTagUpsertMany {
-    pub subscription_id: Uuid,
-    pub tags: Vec<TagById>,
+pub struct SubscriptionTagById {
+    pub id: Uuid,
+    pub user_id: Uuid,
 }
 
-impl IntoInsert for SubscriptionTagUpsertMany {
+pub struct SubscriptionTagInsert<I> {
+    pub subscription_id: Uuid,
+    pub tags: I,
+}
+
+impl<I: IntoIterator<Item = SubscriptionTagById>> IntoInsert for SubscriptionTagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(SubscriptionTag::Table)
@@ -135,9 +107,9 @@ impl IntoInsert for SubscriptionTagUpsertMany {
 
         for tag in self.tags {
             query.values_panic([
-                self.subscription_id.to_string().into(),
-                tag.id.to_string().into(),
-                tag.user_id.to_string().into(),
+                self.subscription_id.into(),
+                tag.id.into(),
+                tag.user_id.into(),
             ]);
         }
 

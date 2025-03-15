@@ -4,99 +4,57 @@ use uuid::Uuid;
 use super::Error;
 use crate::{
     User,
-    account::{self, AccountCreateParams, AccountFindParams, AccountRepository},
-    common::TransactionManager,
-    user::{UserCreateParams, UserFindParams, UserRepository},
+    user::{UserFindOne, UserRepository},
 };
 
 pub struct AuthService {
-    user_repository: Box<dyn UserRepository>,
-    account_repository: Box<dyn AccountRepository>,
-    tx_manager: Box<dyn TransactionManager>,
+    repository: Box<dyn UserRepository>,
 }
 
 impl AuthService {
-    pub fn new(
-        user_repository: impl UserRepository,
-        account_repository: impl AccountRepository,
-        tx_manager: impl TransactionManager,
-    ) -> Self {
+    pub fn new(repository: impl UserRepository) -> Self {
         Self {
-            user_repository: Box::new(user_repository),
-            account_repository: Box::new(account_repository),
-            tx_manager: Box::new(tx_manager),
+            repository: Box::new(repository),
         }
     }
 
     pub async fn register(&self, data: Register) -> Result<User, Error> {
-        let id = Uuid::new_v4();
-        let hashed = password::hash(&data.password)?;
+        let user = User::builder()
+            .email(data.email)
+            .password_hash(password::hash(&data.password)?)
+            .build();
 
-        let tx = self.tx_manager.begin().await?;
+        self.repository.save(&user).await?;
 
-        self.user_repository
-            .create_user(
-                &*tx,
-                UserCreateParams {
-                    id,
-                    email: data.email.clone(),
-                    ..Default::default()
-                },
-            )
-            .await?;
-
-        self.account_repository
-            .create_account(
-                &*tx,
-                AccountCreateParams {
-                    user_id: id,
-                    provider_id: "local".into(),
-                    account_id: data.email.clone(),
-                    password_hash: Some(hashed),
-                },
-            )
-            .await?;
-
-        tx.commit().await?;
-
-        self.user_repository
-            .find_user(UserFindParams { id })
-            .await
-            .map_err(Error::Users)
+        Ok(user)
     }
 
     pub async fn login(&self, data: Login) -> Result<User, Error> {
-        let account = self
-            .account_repository
-            .find_account(AccountFindParams {
-                provider_id: "local".into(),
-                account_id: data.email,
-            })
-            .await
-            .map_err(|e| match e {
-                account::Error::NotFound(_) => Error::NotAuthenticated,
-                _ => e.into(),
-            })?;
-        let Some(password_hash) = account.password_hash else {
+        let Some(user) = self
+            .repository
+            .find_one(UserFindOne::Email(data.email))
+            .await?
+        else {
+            return Err(Error::NotAuthenticated);
+        };
+        let Some(ref password_hash) = user.password_hash else {
             return Err(Error::NotAuthenticated);
         };
 
-        let valid = password::verify(&data.password, &password_hash)?;
+        let valid = password::verify(&data.password, password_hash)?;
         if !valid {
             return Err(Error::NotAuthenticated);
         }
 
-        self.user_repository
-            .find_user(UserFindParams { id: account.id })
-            .await
-            .map_err(Error::Users)
+        Ok(user)
     }
 
     pub async fn get_active(&self, user_id: Uuid) -> Result<User, Error> {
-        self.user_repository
-            .find_user(UserFindParams { id: user_id })
-            .await
-            .map_err(|e| e.into())
+        let Some(user) = self.repository.find_one(UserFindOne::Id(user_id)).await? else {
+            return Err(Error::NotAuthenticated);
+        };
+
+        Ok(user)
     }
 }
 
@@ -111,20 +69,3 @@ pub struct Login {
     pub email: String,
     pub password: String,
 }
-
-// #[derive(Debug, Clone)]
-// pub struct UserCreateData {
-//     pub email: String,
-//     pub account: AccountCreateData,
-// }
-
-// #[derive(Debug, Clone)]
-// pub enum AccountCreateData {
-//     Local {
-//         password_hash: String,
-//     },
-//     Oidc {
-//         provider_id: String,
-//         provider_account_id: String,
-//     },
-// }

@@ -8,22 +8,26 @@ use crate::{Feed, Tag, subscription_entry, tag};
 mod subscription_repository;
 mod subscription_service;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, bon::Builder)]
 pub struct Subscription {
+    #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
+    pub feed_id: Uuid,
     pub user_id: Uuid,
+    #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
+    #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
-    pub feed: Feed,
+    pub feed: Option<Feed>,
     pub tags: Option<Vec<Tag>>,
     pub unread_count: Option<i64>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
-    pub id: Uuid,
     pub title: String,
+    pub id: Uuid,
 }
 
 #[derive(Debug, thiserror::Error)]

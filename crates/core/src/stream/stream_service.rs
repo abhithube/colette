@@ -1,28 +1,24 @@
+use chrono::Utc;
 use uuid::Uuid;
 
-use super::{
-    Error, Stream, StreamCreateParams, StreamDeleteParams, StreamFindByIdParams, StreamFindParams,
-    StreamRepository, StreamUpdateParams, SubscriptionEntryFilter,
-};
-use crate::common::{Paginated, TransactionManager};
+use super::{Error, Stream, StreamFindParams, StreamRepository, SubscriptionEntryFilter};
+use crate::common::Paginated;
 
 pub struct StreamService {
     repository: Box<dyn StreamRepository>,
-    tx_manager: Box<dyn TransactionManager>,
 }
 
 impl StreamService {
-    pub fn new(repository: impl StreamRepository, tx_manager: impl TransactionManager) -> Self {
+    pub fn new(repository: impl StreamRepository) -> Self {
         Self {
             repository: Box::new(repository),
-            tx_manager: Box::new(tx_manager),
         }
     }
 
     pub async fn list_streams(&self, user_id: Uuid) -> Result<Paginated<Stream>, Error> {
         let streams = self
             .repository
-            .find_streams(StreamFindParams {
+            .find(StreamFindParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -37,7 +33,7 @@ impl StreamService {
     pub async fn get_stream(&self, id: Uuid, user_id: Uuid) -> Result<Stream, Error> {
         let mut streams = self
             .repository
-            .find_streams(StreamFindParams {
+            .find(StreamFindParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -55,18 +51,15 @@ impl StreamService {
     }
 
     pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
-        let id = Uuid::new_v4();
+        let stream = Stream::builder()
+            .title(data.title)
+            .filter(data.filter)
+            .user_id(user_id)
+            .build();
 
-        self.repository
-            .create_stream(StreamCreateParams {
-                id,
-                title: data.title,
-                filter: data.filter,
-                user_id,
-            })
-            .await?;
+        self.repository.save(&stream, false).await?;
 
-        self.get_stream(id, user_id).await
+        Ok(stream)
     }
 
     pub async fn update_stream(
@@ -75,48 +68,35 @@ impl StreamService {
         data: StreamUpdate,
         user_id: Uuid,
     ) -> Result<Stream, Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let stream = self
-            .repository
-            .find_stream_by_id(&*tx, StreamFindByIdParams { id })
-            .await?;
+        let Some(mut stream) = self.repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
         if stream.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .update_stream(
-                &*tx,
-                StreamUpdateParams {
-                    id,
-                    title: data.title,
-                    filter: data.filter,
-                },
-            )
-            .await?;
+        if let Some(title) = data.title {
+            stream.title = title;
+        }
+        if let Some(filter) = data.filter {
+            stream.filter = filter;
+        }
 
-        tx.commit().await?;
+        stream.updated_at = Utc::now();
+        self.repository.save(&stream, true).await?;
 
-        self.get_stream(id, user_id).await
+        Ok(stream)
     }
 
     pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
-        let tx = self.tx_manager.begin().await?;
-
-        let stream = self
-            .repository
-            .find_stream_by_id(&*tx, StreamFindByIdParams { id })
-            .await?;
+        let Some(stream) = self.repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
         if stream.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
 
-        self.repository
-            .delete_stream(&*tx, StreamDeleteParams { id })
-            .await?;
-
-        tx.commit().await?;
+        self.repository.delete_by_id(id).await?;
 
         Ok(())
     }

@@ -323,9 +323,6 @@ pub enum CoreError {
 
     #[error(transparent)]
     Tag(#[from] colette_core::tag::Error),
-
-    #[error(transparent)]
-    User(#[from] colette_core::user::Error),
 }
 
 impl IntoResponse for Error {
