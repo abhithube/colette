@@ -4,6 +4,7 @@ env_files = [".env"]
 [tasks.dev]
 command = "cargo"
 args = ["run"]
+watch = true
 
 [tasks.build]
 command = "cargo"
