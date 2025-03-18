@@ -8,6 +8,7 @@ pub mod feed;
 pub mod feed_entry;
 pub mod filter;
 pub mod read_entry;
+pub mod session;
 pub mod stream;
 pub mod subscription;
 pub mod subscription_tag;

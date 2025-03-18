@@ -8,10 +8,8 @@ pub use stream::Stream;
 pub use subscription::Subscription;
 pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
-pub use user::User;
 
 pub mod api_key;
-pub mod auth;
 pub mod backup;
 pub mod bookmark;
 pub mod collection;
@@ -24,4 +22,3 @@ pub mod stream;
 pub mod subscription;
 pub mod subscription_entry;
 pub mod tag;
-pub mod user;

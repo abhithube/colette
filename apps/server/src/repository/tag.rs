@@ -31,7 +31,7 @@ impl TagRepository for SqliteTagRepository {
             tag_type: params.tag_type,
             feed_id: params.feed_id,
             bookmark_id: params.bookmark_id,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             cursor: params.cursor.as_deref(),
             limit: params.limit,
         }
@@ -61,7 +61,7 @@ impl TagRepository for SqliteTagRepository {
         let (sql, values) = TagInsert {
             id: data.id,
             title: &data.title,
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -95,7 +95,7 @@ impl TagRepository for SqliteTagRepository {
 pub struct TagRow {
     pub id: Uuid,
     pub title: String,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -118,7 +118,7 @@ impl From<TagRow> for Tag {
 pub struct TagRowWithCounts {
     pub id: Uuid,
     pub title: String,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub feed_count: i64,

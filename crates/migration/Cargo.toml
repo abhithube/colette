@@ -7,4 +7,4 @@ edition = "2024"
 async-trait.workspace = true
 refinery-core = { version = "0.8.16", default-features = false }
 sqlx.workspace = true
-time = { version = "0.3.39", default-features = false }
+time.workspace = true

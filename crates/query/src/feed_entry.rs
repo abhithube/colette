@@ -158,7 +158,7 @@ pub struct SubscriptionEntrySelect<I> {
     pub subscription_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<I>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub cursor: Option<(DateTime<Utc>, Uuid)>,
     pub limit: Option<u64>,
 }

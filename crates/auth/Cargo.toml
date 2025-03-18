@@ -1,0 +1,13 @@
+[package]
+name = "colette-auth"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+colette-query.workspace = true
+sea-query.workspace = true
+sea-query-binder.workspace = true
+sqlx.workspace = true
+torii-core = { git = "https://github.com/cmackenzie1/torii-rs", default-features = false }

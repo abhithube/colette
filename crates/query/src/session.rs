@@ -1,9 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Query, SelectStatement, UpdateStatement,
-};
+use sea_query::{Asterisk, DeleteStatement, Expr, Iden, InsertStatement, Query, SelectStatement};
 
 use crate::{IntoDelete, IntoInsert, IntoSelect};
 
@@ -25,7 +23,7 @@ impl Iden for Session {
             s,
             "{}",
             match self {
-                Self::Table => "users",
+                Self::Table => "sessions",
                 Self::Id => "id",
                 Self::Token => "token",
                 Self::UserAgent => "user_agent",
@@ -40,11 +38,11 @@ impl Iden for Session {
     }
 }
 
-pub struct SessionFindParams {
-    pub token: String,
+pub struct SessionSelect<'a> {
+    pub token: &'a str,
 }
 
-impl IntoSelect for SessionFindParams {
+impl IntoSelect for SessionSelect<'_> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column(Asterisk)
@@ -54,15 +52,15 @@ impl IntoSelect for SessionFindParams {
     }
 }
 
-pub struct SessionCreateParams {
-    pub token: String,
-    pub user_agent: Option<String>,
-    pub ip_address: Option<String>,
+pub struct SessionInsert<'a> {
+    pub token: &'a str,
+    pub user_agent: Option<&'a str>,
+    pub ip_address: Option<&'a str>,
     pub expires_at: DateTime<Utc>,
-    pub user_id: String,
+    pub user_id: &'a str,
 }
 
-impl IntoInsert for SessionCreateParams {
+impl IntoInsert for SessionInsert<'_> {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
             .into_table(Session::Table)
@@ -80,17 +78,18 @@ impl IntoInsert for SessionCreateParams {
                 self.expires_at.into(),
                 self.user_id.into(),
             ])
+            .returning_all()
             .to_owned()
     }
 }
 
-pub enum SessionDeleteParams {
+pub enum SessionDelete {
     Token(String),
     UserId(String),
     Expired,
 }
 
-impl IntoDelete for SessionDeleteParams {
+impl IntoDelete for SessionDelete {
     fn into_delete(self) -> DeleteStatement {
         let r#where = match self {
             Self::Token(token) => Expr::col(Session::Token).eq(token),

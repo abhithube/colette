@@ -3,7 +3,7 @@ use colette_util::{api_key, password};
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeyFindOne, ApiKeyFindParams, ApiKeyRepository, Error};
-use crate::{auth, common::Paginated};
+use crate::common::Paginated;
 
 pub struct ApiKeyService {
     repository: Box<dyn ApiKeyRepository>,
@@ -16,7 +16,7 @@ impl ApiKeyService {
         }
     }
 
-    pub async fn list_api_keys(&self, user_id: Uuid) -> Result<Paginated<ApiKey>, Error> {
+    pub async fn list_api_keys(&self, user_id: String) -> Result<Paginated<ApiKey>, Error> {
         let api_keys = self
             .repository
             .find(ApiKeyFindParams {
@@ -31,25 +31,26 @@ impl ApiKeyService {
         })
     }
 
-    pub async fn validate_api_key(&self, value: String) -> Result<Uuid, Error> {
+    pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
         let lookup_hash = api_key::hash(&value);
 
-        let api_key = self
+        let Some(api_key) = self
             .repository
             .find_one(ApiKeyFindOne::LookupHash(lookup_hash))
-            .await?;
+            .await?
+        else {
+            return Err(Error::Auth);
+        };
 
-        if let Some(api_key) = api_key {
-            let valid = password::verify(&value, &api_key.verification_hash)?;
-            if valid {
-                return Ok(api_key.user_id);
-            }
+        let valid = password::verify(&value, &api_key.verification_hash)?;
+        if !valid {
+            return Err(Error::Auth);
         }
 
-        Err(Error::Auth(auth::Error::NotAuthenticated))
+        Ok(api_key)
     }
 
-    pub async fn get_api_key(&self, id: Uuid, user_id: Uuid) -> Result<ApiKey, Error> {
+    pub async fn get_api_key(&self, id: Uuid, user_id: String) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
             .find(ApiKeyFindParams {
@@ -72,7 +73,7 @@ impl ApiKeyService {
     pub async fn create_api_key(
         &self,
         data: ApiKeyCreate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<ApiKeyCreated, Error> {
         let value = api_key::generate();
 
@@ -102,7 +103,7 @@ impl ApiKeyService {
         &self,
         id: Uuid,
         data: ApiKeyUpdate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<ApiKey, Error> {
         let Some(mut api_key) = self.repository.find_one(ApiKeyFindOne::Id(id)).await? else {
             return Err(Error::NotFound(id));
@@ -121,7 +122,7 @@ impl ApiKeyService {
         Ok(api_key)
     }
 
-    pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    pub async fn delete_api_key(&self, id: Uuid, user_id: String) -> Result<(), Error> {
         let Some(api_key) = self.repository.find_one(ApiKeyFindOne::Id(id)).await? else {
             return Err(Error::NotFound(id));
         };
@@ -151,10 +152,4 @@ pub struct ApiKeyCreated {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyUpdate {
     pub title: Option<String>,
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct ApiKeySearched {
-    pub verification_hash: String,
-    pub user_id: Uuid,
 }

@@ -15,7 +15,7 @@ pub struct Collection {
     pub id: Uuid,
     pub title: String,
     pub filter: BookmarkFilter,
-    pub user_id: Uuid,
+    pub user_id: String,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]

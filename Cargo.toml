@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "apps/server",
+  "crates/auth",
   "crates/core",
   "crates/feed",
   "crates/http",
@@ -11,7 +12,6 @@ members = [
   "crates/opml",
   "crates/plugins",
   "crates/query",
-  "crates/session",
   "crates/storage",
   "crates/util",
 ]
@@ -26,6 +26,7 @@ chrono = { version = "0.4.39", default-features = false, features = [
   "serde",
   "std",
 ] }
+colette-auth.path = "crates/auth"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
@@ -36,7 +37,6 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-query.path = "crates/query"
-colette-session.path = "crates/session"
 colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
 futures = { version = "0.3.31", default-features = false }
@@ -73,6 +73,7 @@ serde_json = { version = "1.0.135", default-features = false, features = [
 ] }
 sqlx = { version = "0.8.3", default-features = false }
 thiserror = { version = "2.0.11", default-features = false }
+time = { version = "0.3.39", default-features = false }
 tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
   "rt-multi-thread",

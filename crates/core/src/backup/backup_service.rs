@@ -39,7 +39,7 @@ impl BackupService {
         }
     }
 
-    pub async fn import_opml(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
+    pub async fn import_opml(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
         let opml = colette_opml::from_reader(raw.reader())?;
 
         let urls = opml
@@ -62,7 +62,7 @@ impl BackupService {
         Ok(())
     }
 
-    pub async fn export_opml(&self, user_id: Uuid) -> Result<Bytes, Error> {
+    pub async fn export_opml(&self, user_id: String) -> Result<Bytes, Error> {
         let mut outline_map = HashMap::<Uuid, Outline>::new();
 
         let subscriptions = self
@@ -116,7 +116,7 @@ impl BackupService {
         Ok(raw.into())
     }
 
-    pub async fn import_netscape(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
+    pub async fn import_netscape(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
         let netscape = colette_netscape::from_reader(raw.reader())?;
 
         let urls = netscape
@@ -128,7 +128,7 @@ impl BackupService {
         self.backup_repository
             .import_bookmarks(ImportBookmarksData {
                 items: netscape.items,
-                user_id,
+                user_id: user_id.clone(),
             })
             .await?;
 
@@ -138,7 +138,7 @@ impl BackupService {
         Ok(())
     }
 
-    pub async fn export_netscape(&self, user_id: Uuid) -> Result<Bytes, Error> {
+    pub async fn export_netscape(&self, user_id: String) -> Result<Bytes, Error> {
         let mut item_map = HashMap::<Uuid, Item>::new();
 
         let bookmarks = self
@@ -194,5 +194,5 @@ pub struct ImportFeedsJob {
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ImportBookmarksJob {
     pub urls: Vec<Url>,
-    pub user_id: Uuid,
+    pub user_id: String,
 }

@@ -58,7 +58,7 @@ impl BookmarkService {
     pub async fn list_bookmarks(
         &self,
         query: BookmarkListQuery,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Paginated<Bookmark>, Error> {
         let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
 
@@ -68,7 +68,7 @@ impl BookmarkService {
                 .collection_repository
                 .find(CollectionFindParams {
                     id: Some(collection_id),
-                    user_id: Some(user_id),
+                    user_id: Some(user_id.clone()),
                     ..Default::default()
                 })
                 .await?;
@@ -115,7 +115,7 @@ impl BookmarkService {
         })
     }
 
-    pub async fn get_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<Bookmark, Error> {
+    pub async fn get_bookmark(&self, id: Uuid, user_id: String) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .bookmark_repository
             .find(BookmarkFindParams {
@@ -138,7 +138,7 @@ impl BookmarkService {
     pub async fn create_bookmark(
         &self,
         data: BookmarkCreate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Bookmark, Error> {
         let builder = Bookmark::builder()
             .link(data.url)
@@ -146,7 +146,7 @@ impl BookmarkService {
             .maybe_thumbnail_url(data.thumbnail_url)
             .maybe_published_at(data.published_at)
             .maybe_author(data.author)
-            .user_id(user_id);
+            .user_id(user_id.clone());
 
         let bookmark = if let Some(ids) = data.tags {
             let tags = self
@@ -183,7 +183,7 @@ impl BookmarkService {
         &self,
         id: Uuid,
         data: BookmarkUpdate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Bookmark, Error> {
         let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -245,7 +245,7 @@ impl BookmarkService {
         Ok(bookmark)
     }
 
-    pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    pub async fn delete_bookmark(&self, id: Uuid, user_id: String) -> Result<(), Error> {
         let Some(bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
@@ -423,7 +423,7 @@ pub struct BookmarkScraped {
 #[derive(Debug, Clone)]
 pub struct BookmarkPersist {
     pub url: Url,
-    pub user_id: Uuid,
+    pub user_id: String,
 }
 
 #[derive(Debug, Clone)]
@@ -441,7 +441,7 @@ pub enum ThumbnailOperation {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScrapeBookmarkJob {
     pub url: Url,
-    pub user_id: Uuid,
+    pub user_id: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

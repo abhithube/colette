@@ -17,7 +17,7 @@ mod subscription_entry_service;
 pub struct SubscriptionEntry {
     pub entry_id: Uuid,
     pub subscription_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub entry: Option<FeedEntry>,
     pub has_read: Option<bool>,
 }

@@ -20,7 +20,7 @@ pub struct BookmarkFindParams {
     pub filter: Option<BookmarkFilter>,
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
 }

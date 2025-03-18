@@ -44,7 +44,7 @@ pub struct TagSelect<'a, I> {
     pub tag_type: TagType,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<&'a str>,
     pub cursor: Option<&'a str>,
     pub limit: Option<u64>,
 }
@@ -118,7 +118,7 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for TagSelect<'_, I> {
 pub enum TagSelectOne<'a> {
     Id(Uuid),
     Ids(Vec<Uuid>),
-    Index { title: &'a str, user_id: Uuid },
+    Index { title: &'a str, user_id: &'a str },
 }
 
 impl IntoSelect for TagSelectOne<'_> {
@@ -142,7 +142,7 @@ impl IntoSelect for TagSelectOne<'_> {
 pub struct TagInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
     pub upsert: Option<TagUpsertType>,
 }
 

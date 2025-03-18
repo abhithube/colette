@@ -28,7 +28,7 @@ impl CollectionRepository for SqliteCollectionRepository {
     async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, Error> {
         let (sql, values) = CollectionSelect {
             id: params.id,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             cursor: params.cursor.as_deref(),
             limit: params.limit,
         }
@@ -59,7 +59,7 @@ impl CollectionRepository for SqliteCollectionRepository {
             id: data.id,
             title: &data.title,
             filter_raw: &serde_json::to_string(&data.filter).unwrap(),
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -94,7 +94,7 @@ struct CollectionRow {
     id: Uuid,
     title: String,
     filter_raw: String,
-    user_id: Uuid,
+    user_id: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }

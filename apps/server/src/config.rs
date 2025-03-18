@@ -16,7 +16,6 @@ pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub job: JobConfig,
-    pub session: SessionConfig,
     pub storage: StorageConfig,
     pub cron: Option<CronConfig>,
     pub cors: Option<CorsConfig>,
@@ -25,19 +24,6 @@ pub struct Config {
 #[derive(Debug, Clone)]
 pub struct SqliteConfig {
     pub url: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct RedisConfig {
-    pub url: String,
-}
-
-impl Default for RedisConfig {
-    fn default() -> Self {
-        Self {
-            url: "redis://localhost".into(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -83,12 +69,6 @@ pub enum DatabaseConfig {
 }
 
 #[derive(Debug, Clone)]
-pub enum SessionConfig {
-    Sqlite(SqliteConfig),
-    Redis(RedisConfig),
-}
-
-#[derive(Debug, Clone)]
 pub enum JobConfig {
     Sqlite(SqliteConfig),
 }
@@ -123,13 +103,10 @@ struct RawConfig {
     server_port: Option<u32>,
     #[serde(default = "DatabaseBackend::default")]
     database_backend: DatabaseBackend,
-    #[serde(default = "SessionBackend::default")]
-    session_backend: SessionBackend,
     #[serde(default = "JobBackend::default")]
     job_backend: JobBackend,
     #[serde(default = "StorageBackend::default")]
     storage_backend: StorageBackend,
-    redis_url: Option<String>,
     aws_access_key_id: Option<String>,
     aws_secret_access_key: Option<String>,
     aws_region: Option<String>,
@@ -165,24 +142,6 @@ impl TryFrom<RawConfig> for Config {
                 };
 
                 DatabaseConfig::Sqlite(config)
-            }
-        };
-
-        let session = match value.session_backend {
-            SessionBackend::Sqlite => {
-                let config = SqliteConfig {
-                    url: data_dir.join("session.sqlite"),
-                };
-
-                SessionConfig::Sqlite(config)
-            }
-            SessionBackend::Redis => {
-                let mut config = RedisConfig::default();
-                if let Some(url) = value.redis_url {
-                    config.url = url;
-                }
-
-                SessionConfig::Redis(config)
             }
         };
 
@@ -252,7 +211,6 @@ impl TryFrom<RawConfig> for Config {
         let config = Self {
             server,
             database,
-            session,
             job,
             storage,
             cron,
@@ -268,14 +226,6 @@ impl TryFrom<RawConfig> for Config {
 pub enum DatabaseBackend {
     #[default]
     Sqlite,
-}
-
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SessionBackend {
-    #[default]
-    Sqlite,
-    Redis,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]

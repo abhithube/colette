@@ -1,6 +1,5 @@
 use colette_netscape::Item;
 use colette_opml::Outline;
-use uuid::Uuid;
 
 use super::Error;
 
@@ -13,10 +12,10 @@ pub trait BackupRepository: Send + Sync + 'static {
 
 pub struct ImportFeedsData {
     pub outlines: Vec<Outline>,
-    pub user_id: Uuid,
+    pub user_id: String,
 }
 
 pub struct ImportBookmarksData {
     pub items: Vec<Item>,
-    pub user_id: Uuid,
+    pub user_id: String,
 }

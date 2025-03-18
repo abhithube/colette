@@ -37,15 +37,15 @@ impl Iden for Subscription {
     }
 }
 
-pub struct SubscriptionSelect<I> {
+pub struct SubscriptionSelect<'a, I> {
     pub id: Option<Uuid>,
     pub tags: Option<I>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<&'a str>,
     pub cursor: Option<(String, Uuid)>,
     pub limit: Option<u64>,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<'_, I> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .columns([
@@ -132,7 +132,7 @@ pub struct SubscriptionInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub feed_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
     pub upsert: bool,
 }
 

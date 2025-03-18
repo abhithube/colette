@@ -1,16 +1,19 @@
 use axum::{
-    Json,
+    Extension, Json,
     extract::State,
-    http::StatusCode,
+    http::{StatusCode, header},
     response::{IntoResponse, Response},
 };
-use colette_core::auth;
+use axum_extra::extract::cookie::Cookie;
+use chrono::Utc;
 use email_address::EmailAddress;
+use time::Duration;
+use torii::ToriiError;
 
 use super::{AUTH_TAG, User};
 use crate::api::{
     ApiState,
-    common::{BaseError, Error, NonEmptyString, SESSION_KEY},
+    common::{BaseError, ConnectionInfo, Error, NonEmptyString, SESSION_COOKIE},
 };
 
 #[utoipa::path(
@@ -18,27 +21,47 @@ use crate::api::{
   path = "/login",
   request_body = Login,
   responses(LoginResponse),
-  operation_id = "login",
+  operation_id = "loginUser",
   description = "Login to a user account",
   tag = AUTH_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    session_store: tower_sessions::Session,
+    Extension(connection_info): Extension<ConnectionInfo>,
     Json(body): Json<Login>,
-) -> Result<LoginResponse, Error> {
-    match state.auth_service.login(body.into()).await {
-        Ok(data) => {
-            session_store.insert(SESSION_KEY, data.id).await?;
+) -> Result<impl IntoResponse, Error> {
+    match state
+        .auth
+        .login_user_with_password(
+            body.email.as_str(),
+            &String::from(body.password),
+            connection_info.user_agent,
+            connection_info.ip_address,
+        )
+        .await
+    {
+        Ok((user, session)) => {
+            let cookie = Cookie::build((SESSION_COOKIE, session.token.into_inner()))
+                .path("/")
+                .http_only(true)
+                .secure(false)
+                .max_age(Duration::seconds(
+                    session.expires_at.timestamp() - Utc::now().timestamp(),
+                ))
+                .build();
 
-            Ok(LoginResponse::Ok(data.into()))
+            Ok((
+                [(header::SET_COOKIE, cookie.to_string())],
+                LoginResponse::Ok(user.into()),
+            )
+                .into_response())
         }
         Err(e) => match e {
-            auth::Error::NotAuthenticated => Ok(LoginResponse::Unauthorized(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
+            ToriiError::AuthError(message) => {
+                Ok(LoginResponse::Unauthorized(BaseError { message }).into_response())
+            }
+            _ => Err(Error::Auth(e)),
         },
     }
 }
@@ -50,15 +73,6 @@ pub struct Login {
     pub email: EmailAddress,
     #[schema(value_type = String, min_length = 1)]
     pub password: NonEmptyString,
-}
-
-impl From<Login> for auth::Login {
-    fn from(value: Login) -> Self {
-        Self {
-            email: value.email.into(),
-            password: value.password.into(),
-        }
-    }
 }
 
 #[allow(dead_code)]

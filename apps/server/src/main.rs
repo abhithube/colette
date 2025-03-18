@@ -1,4 +1,4 @@
-use std::{error::Error, ops::RangeFull, str::FromStr, sync::Arc, time::Duration};
+use std::{error::Error, net::SocketAddr, ops::RangeFull, str::FromStr, sync::Arc};
 
 use apalis::{
     layers::WorkerBuilderExt,
@@ -12,7 +12,9 @@ use api::{
     backup::BackupApi,
     bookmark::BookmarkApi,
     collection::CollectionApi,
-    common::{BaseError, BooleanOp, DateOp, TextOp},
+    common::{
+        BaseError, BooleanOp, DateOp, TextOp, add_connection_info_extension, add_user_extension,
+    },
     feed::FeedApi,
     feed_entry::FeedEntryApi,
     stream::StreamApi,
@@ -22,11 +24,12 @@ use api::{
 };
 use axum::{
     http::{HeaderValue, Method, header},
-    routing,
+    middleware, routing,
 };
 use axum_embed::{FallbackBehavior, ServeEmbed};
+use colette_auth::AuthAdapter;
 use colette_core::{
-    api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
     stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
@@ -35,9 +38,8 @@ use colette_http::ReqwestClient;
 use colette_job::SqliteStorage;
 use colette_migration::SqliteMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
-use colette_session::{RedisStore, SessionAdapter};
 use colette_storage::StorageAdapter;
-use config::{DatabaseConfig, JobConfig, SessionConfig, StorageConfig};
+use config::{DatabaseConfig, JobConfig, StorageConfig};
 use job::{
     archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
 };
@@ -49,17 +51,14 @@ use repository::{
     feed::SqliteFeedRepository, feed_entry::SqliteFeedEntryRepository,
     stream::SqliteStreamRepository, subscription::SqliteSubscriptionRepository,
     subscription_entry::SqliteSubscriptionEntryRepository, tag::SqliteTagRepository,
-    user::SqliteUserRepository,
 };
 use sqlx::{
     Pool,
     sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 use tokio::{net::TcpListener, sync::Mutex};
+use torii::Torii;
 use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
-use tower_sessions::{SessionManagerLayer, cookie};
-use tower_sessions_core::{Expiry, session_store::ExpiredDeletion};
-use tower_sessions_sqlx_store::SqliteStore;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::{OpenApi, openapi::Server};
 use utoipa_axum::router::OpenApiRouter;
@@ -114,31 +113,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             migrations::runner().run_async(&mut migrator).await?;
 
             pool
-        }
-    };
-
-    let (session_adapter, deletion_task) = match app_config.session {
-        SessionConfig::Sqlite(config) => {
-            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
-                .create_if_missing(true)
-                .journal_mode(SqliteJournalMode::Wal);
-
-            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
-
-            let store = SqliteStore::new(pool);
-            store.migrate().await?;
-
-            (
-                SessionAdapter::Sqlite(store.clone()),
-                Some(tokio::task::spawn(
-                    store.continuously_delete_expired(Duration::from_secs(60)),
-                )),
-            )
-        }
-        SessionConfig::Redis(config) => {
-            let redis = redis::Client::open(config.url)?;
-            let conn = redis.get_multiplexed_async_connection().await?;
-            (SessionAdapter::Redis(RedisStore::new(conn)), None)
         }
     };
 
@@ -275,10 +249,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let monitor = monitor.run();
 
     let api_state = ApiState {
+        auth: Arc::new(
+            Torii::new(Arc::new(AuthAdapter::Sqlite(
+                colette_auth::SqliteBackend::new(pool.clone()),
+            )))
+            .with_password_plugin(),
+        ),
         api_key_service: Arc::new(ApiKeyService::new(SqliteApiKeyRepository::new(
             pool.clone(),
         ))),
-        auth_service: Arc::new(AuthService::new(SqliteUserRepository::new(pool.clone()))),
         backup_service: Arc::new(BackupService::new(
             SqliteBackupRepository::new(pool.clone()),
             subscription_repository.clone(),
@@ -322,7 +301,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .nest("/subscriptions", SubscriptionApi::router())
                 .nest("/tags", TagApi::router()),
         )
-        .with_state(api_state)
         .split_for_parts();
 
     openapi.info.title = "Colette API".to_owned();
@@ -344,12 +322,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
             &format!("{}/openapi.json", api_prefix),
             routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
         )
-        .layer(
-            SessionManagerLayer::new(session_adapter.clone())
-                .with_secure(false)
-                .with_expiry(Expiry::OnInactivity(cookie::time::Duration::days(1))),
-        )
+        .layer(middleware::from_fn_with_state(
+            api_state.clone(),
+            add_user_extension,
+        ))
+        .layer(middleware::from_fn(add_connection_info_extension))
         .layer(TraceLayer::new_for_http())
+        .with_state(api_state)
         .fallback_service(ServeEmbed::<Asset>::with_parameters(
             Some(String::from("index.html")),
             FallbackBehavior::Ok,
@@ -377,13 +356,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let listener = TcpListener::bind(format!("0.0.0.0:{}", app_config.server.port)).await?;
-    let server = axum::serve(listener, api);
+    let server = axum::serve(
+        listener,
+        api.into_make_service_with_connect_info::<SocketAddr>(),
+    );
 
     let _ = tokio::join!(monitor, server);
-
-    if let Some(deletion_task) = deletion_task {
-        deletion_task.await??;
-    }
 
     Ok(())
 }

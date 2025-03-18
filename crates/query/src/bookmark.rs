@@ -54,16 +54,16 @@ impl Iden for Bookmark {
     }
 }
 
-pub struct BookmarkSelect<I> {
+pub struct BookmarkSelect<'a, I> {
     pub id: Option<Uuid>,
     pub tags: Option<I>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<&'a str>,
     pub filter: Option<BookmarkFilter>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkSelect<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkSelect<'_, I> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -134,7 +134,7 @@ pub struct BookmarkInsert<'a> {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<&'a str>,
     pub archived_path: Option<&'a str>,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
     pub upsert: Option<BookmarkUpsertType>,
 }
 

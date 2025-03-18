@@ -79,9 +79,9 @@ impl<I: IntoIterator<Item = Uuid>> IntoDelete for SubscriptionTagDelete<I> {
     }
 }
 
-pub struct SubscriptionTagById {
+pub struct SubscriptionTagById<'a> {
     pub id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
 }
 
 pub struct SubscriptionTagInsert<I> {
@@ -89,7 +89,7 @@ pub struct SubscriptionTagInsert<I> {
     pub tags: I,
 }
 
-impl<I: IntoIterator<Item = SubscriptionTagById>> IntoInsert for SubscriptionTagInsert<I> {
+impl<'a, I: IntoIterator<Item = SubscriptionTagById<'a>>> IntoInsert for SubscriptionTagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(SubscriptionTag::Table)

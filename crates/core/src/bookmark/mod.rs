@@ -27,7 +27,7 @@ pub struct Bookmark {
     pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
-    pub user_id: Uuid,
+    pub user_id: String,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]

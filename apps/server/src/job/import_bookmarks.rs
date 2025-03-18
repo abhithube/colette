@@ -16,7 +16,7 @@ pub async fn run(
         storage
             .push(ScrapeBookmarkJob {
                 url,
-                user_id: job.user_id,
+                user_id: job.user_id.clone(),
             })
             .await
             .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;

@@ -42,14 +42,14 @@ impl Iden for ApiKey {
     }
 }
 
-pub struct ApiKeySelect {
+pub struct ApiKeySelect<'a> {
     pub id: Option<Uuid>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<&'a str>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
 }
 
-impl IntoSelect for ApiKeySelect {
+impl IntoSelect for ApiKeySelect<'_> {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -104,13 +104,14 @@ pub struct ApiKeyInsert<'a> {
     pub verification_hash: &'a str,
     pub title: &'a str,
     pub preview: &'a str,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
     pub upsert: bool,
 }
 
 impl IntoInsert for ApiKeyInsert<'_> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
+            .into_table(ApiKey::Table)
             .columns([
                 ApiKey::Id,
                 ApiKey::LookupHash,

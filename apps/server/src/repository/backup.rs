@@ -44,7 +44,7 @@ impl BackupRepository for SqliteBackupRepository {
                 let tag_id = {
                     let (sql, values) = TagSelectOne::Index {
                         title: &outline.text,
-                        user_id: data.user_id,
+                        user_id: &data.user_id,
                     }
                     .into_select()
                     .build_sqlx(SqliteQueryBuilder);
@@ -61,7 +61,7 @@ impl BackupRepository for SqliteBackupRepository {
                             let (sql, values) = TagInsert {
                                 id,
                                 title: &outline.text,
-                                user_id: data.user_id,
+                                user_id: &data.user_id,
                                 upsert: Some(TagUpsertType::Title),
                             }
                             .into_insert()
@@ -100,7 +100,7 @@ impl BackupRepository for SqliteBackupRepository {
                         id: Uuid::new_v4(),
                         title: &title,
                         feed_id,
-                        user_id: data.user_id,
+                        user_id: &data.user_id,
                         upsert: true,
                     }
                     .into_insert()
@@ -116,7 +116,7 @@ impl BackupRepository for SqliteBackupRepository {
                         subscription_id,
                         tags: vec![SubscriptionTagById {
                             id: tag_id,
-                            user_id: data.user_id,
+                            user_id: &data.user_id,
                         }],
                     };
 
@@ -145,7 +145,7 @@ impl BackupRepository for SqliteBackupRepository {
                 let tag_id = {
                     let (sql, values) = TagSelectOne::Index {
                         title: &item.title,
-                        user_id: data.user_id,
+                        user_id: &data.user_id,
                     }
                     .into_select()
                     .build_sqlx(SqliteQueryBuilder);
@@ -162,7 +162,7 @@ impl BackupRepository for SqliteBackupRepository {
                             let (sql, values) = TagInsert {
                                 id,
                                 title: &item.title,
-                                user_id: data.user_id,
+                                user_id: &data.user_id,
                                 upsert: Some(TagUpsertType::Title),
                             }
                             .into_insert()
@@ -179,14 +179,12 @@ impl BackupRepository for SqliteBackupRepository {
                     stack.push((Some(tag_id), child));
                 }
             } else if let Some(link) = item.href {
-                let user_id = data.user_id;
-
                 let bookmark_id = {
                     let (sql, values) = BookmarkInsert {
                         id: Uuid::new_v4(),
                         link: &link,
                         title: &item.title,
-                        user_id: data.user_id,
+                        user_id: &data.user_id,
                         upsert: Some(BookmarkUpsertType::Link),
                         ..Default::default()
                     }
@@ -203,7 +201,7 @@ impl BackupRepository for SqliteBackupRepository {
                         bookmark_id,
                         tags: vec![BookmarkTagById {
                             id: tag_id,
-                            user_id,
+                            user_id: &data.user_id,
                         }],
                     };
 

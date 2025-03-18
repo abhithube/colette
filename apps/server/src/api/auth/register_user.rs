@@ -4,8 +4,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::{auth, user};
 use email_address::EmailAddress;
+use torii::ToriiError;
 
 use super::{AUTH_TAG, User};
 use crate::api::{
@@ -18,7 +18,7 @@ use crate::api::{
     path = "/register",
     request_body = Register,
     responses(RegisterResponse),
-    operation_id = "register",
+    operation_id = "registerUser",
     description = "Register a user account",
     tag = AUTH_TAG
 )]
@@ -27,15 +27,15 @@ pub async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<Register>,
 ) -> Result<RegisterResponse, Error> {
-    match state.auth_service.register(body.into()).await {
+    match state
+        .auth
+        .register_user_with_password(body.email.as_str(), &String::from(body.password))
+        .await
+    {
         Ok(data) => Ok(RegisterResponse::Created(data.into())),
         Err(e) => match e {
-            auth::Error::Users(user::Error::Conflict(_)) => {
-                Ok(RegisterResponse::Conflict(BaseError {
-                    message: e.to_string(),
-                }))
-            }
-            e => Err(Error::Unknown(e.into())),
+            ToriiError::AuthError(message) => Ok(RegisterResponse::Conflict(BaseError { message })),
+            _ => Err(Error::Auth(e)),
         },
     }
 }
@@ -47,15 +47,6 @@ pub struct Register {
     pub email: EmailAddress,
     #[schema(value_type = String, min_length = 1)]
     pub password: NonEmptyString,
-}
-
-impl From<Register> for auth::Register {
-    fn from(value: Register) -> Self {
-        Self {
-            email: value.email.into(),
-            password: value.password.into(),
-        }
-    }
 }
 
 #[allow(dead_code)]

@@ -19,7 +19,7 @@ pub struct TagFindParams {
     pub tag_type: TagType,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,
 }

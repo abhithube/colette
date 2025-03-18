@@ -18,7 +18,7 @@ impl TagService {
     pub async fn list_tags(
         &self,
         query: TagListQuery,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
@@ -35,7 +35,7 @@ impl TagService {
         })
     }
 
-    pub async fn get_tag(&self, id: Uuid, user_id: Uuid) -> Result<Tag, Error> {
+    pub async fn get_tag(&self, id: Uuid, user_id: String) -> Result<Tag, Error> {
         let mut tags = self
             .repository
             .find(TagFindParams {
@@ -55,7 +55,7 @@ impl TagService {
         Ok(tag)
     }
 
-    pub async fn create_tag(&self, data: TagCreate, user_id: Uuid) -> Result<Tag, Error> {
+    pub async fn create_tag(&self, data: TagCreate, user_id: String) -> Result<Tag, Error> {
         let tag = Tag::builder().title(data.title).user_id(user_id).build();
 
         self.repository.save(&tag, None).await?;
@@ -63,7 +63,12 @@ impl TagService {
         Ok(tag)
     }
 
-    pub async fn update_tag(&self, id: Uuid, data: TagUpdate, user_id: Uuid) -> Result<Tag, Error> {
+    pub async fn update_tag(
+        &self,
+        id: Uuid,
+        data: TagUpdate,
+        user_id: String,
+    ) -> Result<Tag, Error> {
         let mut tags = self.repository.find_by_ids(vec![id]).await?;
         if tags.is_empty() {
             return Err(Error::NotFound(id));
@@ -84,7 +89,7 @@ impl TagService {
         Ok(tag)
     }
 
-    pub async fn delete_tag(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    pub async fn delete_tag(&self, id: Uuid, user_id: String) -> Result<(), Error> {
         let mut tags = self.repository.find_by_ids(vec![id]).await?;
         if tags.is_empty() {
             return Err(Error::NotFound(id));

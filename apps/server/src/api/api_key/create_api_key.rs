@@ -35,12 +35,7 @@ pub async fn handler(
         .await
     {
         Ok(data) => Ok(CreateResponse::Created(data.into())),
-        Err(e) => match e {
-            api_key::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
-        },
+        Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
@@ -85,9 +80,6 @@ pub enum CreateResponse {
     #[response(status = 201, description = "Created API key")]
     Created(ApiKeyCreated),
 
-    #[response(status = 409, description = "API key already exists")]
-    Conflict(BaseError),
-
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
 }
@@ -96,7 +88,6 @@ impl IntoResponse for CreateResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
         }
     }

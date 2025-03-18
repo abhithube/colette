@@ -17,7 +17,7 @@ pub trait ApiKeyRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct ApiKeyFindParams {
     pub id: Option<Uuid>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
 }

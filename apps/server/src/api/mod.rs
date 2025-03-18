@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
 use axum::extract::FromRef;
+use colette_auth::AuthAdapter;
 use colette_core::{
-    api_key::ApiKeyService, auth::AuthService, backup::BackupService, bookmark::BookmarkService,
+    api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
     stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
+use torii::Torii;
 use url::Url;
 
 pub mod api_key;
@@ -24,8 +26,8 @@ pub mod tag;
 
 #[derive(Clone, FromRef)]
 pub struct ApiState {
+    pub auth: Arc<Torii<AuthAdapter>>,
     pub api_key_service: Arc<ApiKeyService>,
-    pub auth_service: Arc<AuthService>,
     pub backup_service: Arc<BackupService>,
     pub bookmark_service: Arc<BookmarkService>,
     pub collection_service: Arc<CollectionService>,

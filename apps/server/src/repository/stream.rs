@@ -28,7 +28,7 @@ impl StreamRepository for SqliteStreamRepository {
     async fn find(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error> {
         let (sql, values) = StreamSelect {
             id: params.id,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             cursor: params.cursor.as_deref(),
             limit: params.limit,
         }
@@ -59,7 +59,7 @@ impl StreamRepository for SqliteStreamRepository {
             id: data.id,
             title: &data.title,
             filter_raw: &serde_json::to_string(&data.filter).unwrap(),
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -94,7 +94,7 @@ struct StreamRow {
     id: Uuid,
     title: String,
     filter_raw: String,
-    user_id: Uuid,
+    user_id: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }

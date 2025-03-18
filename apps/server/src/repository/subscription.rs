@@ -39,7 +39,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
         let (sql, values) = SubscriptionSelect {
             id: params.id,
             tags: params.tags,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             cursor: params.cursor,
             limit: params.limit,
         }
@@ -116,7 +116,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
             id: data.id,
             title: &data.title,
             feed_id: data.feed_id,
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -136,7 +136,7 @@ impl SubscriptionRepository for SqliteSubscriptionRepository {
                 subscription_id: data.id,
                 tags: tags.iter().map(|e| SubscriptionTagById {
                     id: e.id,
-                    user_id: e.user_id,
+                    user_id: &e.user_id,
                 }),
             }
             .into_insert()
@@ -176,7 +176,7 @@ pub struct SubscriptionRow {
     pub id: Uuid,
     pub title: String,
     pub feed_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -202,7 +202,7 @@ pub struct SubscriptionTagRow {
     pub subscription_id: Uuid,
     pub id: Uuid,
     pub title: String,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -226,7 +226,7 @@ pub struct SubscriptionWithFeedRow {
     pub id: Uuid,
     pub title: String,
     pub feed_id: Uuid,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 

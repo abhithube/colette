@@ -17,7 +17,7 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
 pub struct SubscriptionFindParams {
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<String>,
     pub cursor: Option<(String, Uuid)>,
     pub limit: Option<u64>,
 }

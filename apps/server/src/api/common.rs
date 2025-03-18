@@ -1,20 +1,24 @@
-use std::{ops::Range, sync::Arc};
+use std::{net::SocketAddr, ops::Range};
 
 use axum::{
     Json,
     extract::{
-        FromRef, FromRequestParts, OptionalFromRequestParts,
+        ConnectInfo, FromRequestParts, Request, State,
         rejection::{JsonRejection, QueryRejection},
     },
     http::{StatusCode, request::Parts},
+    middleware::Next,
     response::{IntoResponse, Response},
 };
+use axum_extra::{TypedHeader, extract::CookieJar, headers::UserAgent};
 use chrono::{DateTime, Utc};
-use colette_core::{api_key::ApiKeyService, auth, common, filter};
-use tower_sessions::session;
+use colette_core::{common, filter};
+use torii::{SessionToken, ToriiError, User, UserId};
 use uuid::Uuid;
 
-pub const SESSION_KEY: &str = "session";
+use super::ApiState;
+
+pub const SESSION_COOKIE: &str = "session_id";
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
@@ -69,69 +73,96 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ApiKey(String);
+#[derive(Clone, Debug)]
+pub struct ConnectionInfo {
+    pub ip_address: Option<String>,
+    pub user_agent: Option<String>,
+}
 
-impl<S> OptionalFromRequestParts<S> for ApiKey
-where
-    Arc<ApiKeyService>: FromRef<S>,
-    S: Send + Sync,
-{
-    type Rejection = StatusCode;
+pub async fn add_connection_info_extension(
+    user_agent: Option<TypedHeader<UserAgent>>,
+    addr: ConnectInfo<SocketAddr>,
+    mut request: Request,
+    next: Next,
+) -> Response {
+    request.extensions_mut().insert(ConnectionInfo {
+        ip_address: Some(addr.ip().to_string()),
+        user_agent: user_agent.map(|e| e.to_string()),
+    });
 
-    async fn from_request_parts(
-        parts: &mut Parts,
-        _state: &S,
-    ) -> Result<Option<Self>, Self::Rejection> {
-        let Some(header) = parts.headers.get("X-Api-Key") else {
-            return Ok(None);
+    next.run(request).await
+}
+
+pub async fn add_user_extension(
+    State(state): State<ApiState>,
+    jar: CookieJar,
+    mut req: Request,
+    next: Next,
+) -> Result<Response, StatusCode> {
+    req.extensions_mut().insert(None::<User>);
+
+    let session_id = jar
+        .get(SESSION_COOKIE)
+        .and_then(|cookie| cookie.value().parse::<String>().ok());
+
+    if let Some(session_id) = session_id {
+        let Ok(session) = state
+            .auth
+            .get_session(&SessionToken::new(&session_id))
+            .await
+        else {
+            return Err(StatusCode::UNAUTHORIZED);
         };
 
-        let header_raw = header
-            .to_str()
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        let Ok(user) = state.auth.get_user(&session.user_id).await else {
+            return Err(StatusCode::UNAUTHORIZED);
+        };
 
-        Ok(Some(ApiKey(header_raw.into())))
+        req.extensions_mut().insert(user.clone());
+        if let Some(valid_user) = user {
+            req.extensions_mut().insert(valid_user);
+        }
+    } else {
+        let header = req.headers().get("X-Api-Key");
+
+        println!("{:#?}", header);
+
+        if let Some(header) = header {
+            let Ok(header) = header.to_str() else {
+                return Err(StatusCode::UNPROCESSABLE_ENTITY);
+            };
+
+            let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
+                return Err(StatusCode::UNAUTHORIZED);
+            };
+
+            let Ok(user) = state.auth.get_user(&UserId::new(&api_key.user_id)).await else {
+                return Err(StatusCode::UNAUTHORIZED);
+            };
+
+            req.extensions_mut().insert(user.clone());
+            if let Some(valid_user) = user {
+                req.extensions_mut().insert(valid_user);
+            }
+        }
     }
+
+    Ok(next.run(req).await)
 }
 
 #[derive(Debug, Clone)]
-pub struct AuthUser(pub Uuid);
+pub struct AuthUser(pub String);
 
-impl<S> FromRequestParts<S> for AuthUser
-where
-    Arc<ApiKeyService>: FromRef<S>,
-    S: Send + Sync,
-{
-    type Rejection = Error;
+impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
+    type Rejection = StatusCode;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let session_store = tower_sessions::Session::from_request_parts(parts, state)
-            .await
-            .unwrap();
-
-        let user_id = session_store
-            .get::<Uuid>(SESSION_KEY)
-            .await
-            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
-
-        if let Some(user_id) = user_id {
-            return Ok(AuthUser(user_id));
-        }
-
-        let api_key = ApiKey::from_request_parts(parts, state)
-            .await
-            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?
-            .ok_or_else(|| Error::Auth(auth::Error::NotAuthenticated))?;
-
-        let service = Arc::<ApiKeyService>::from_ref(state);
-
-        let user_id = service
-            .validate_api_key(api_key.0)
-            .await
-            .map_err(|_| Error::Auth(auth::Error::NotAuthenticated))?;
-
-        Ok(AuthUser(user_id))
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        parts
+            .extensions
+            .get::<User>()
+            .cloned()
+            .map(|e| AuthUser(e.id.into_inner()))
+            .ok_or(StatusCode::UNAUTHORIZED)
     }
 }
 
@@ -280,10 +311,7 @@ pub enum Error {
     JsonRejection(#[from] JsonRejection),
 
     #[error(transparent)]
-    Session(#[from] session::Error),
-
-    #[error(transparent)]
-    Auth(#[from] auth::Error),
+    Auth(#[from] ToriiError),
 
     #[error(transparent)]
     Unknown(#[from] CoreError),
@@ -293,9 +321,6 @@ pub enum Error {
 pub enum CoreError {
     #[error(transparent)]
     ApiKey(#[from] colette_core::api_key::Error),
-
-    #[error(transparent)]
-    Auth(#[from] colette_core::auth::Error),
 
     #[error(transparent)]
     Backup(#[from] colette_core::backup::Error),
@@ -334,9 +359,7 @@ impl IntoResponse for Error {
         match self {
             Error::QueryRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
             Error::JsonRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
-            Error::Auth(auth::Error::NotAuthenticated) => {
-                (StatusCode::UNAUTHORIZED, e).into_response()
-            }
+            Error::Auth(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
             _ => {
                 tracing::error!("{:?}", self);
 

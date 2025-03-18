@@ -39,7 +39,7 @@ impl Iden for Stream {
 
 pub struct StreamSelect<'a> {
     pub id: Option<Uuid>,
-    pub user_id: Option<Uuid>,
+    pub user_id: Option<&'a str>,
     pub cursor: Option<&'a str>,
     pub limit: Option<u64>,
 }
@@ -87,7 +87,7 @@ pub struct StreamInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub filter_raw: &'a str,
-    pub user_id: Uuid,
+    pub user_id: &'a str,
     pub upsert: bool,
 }
 

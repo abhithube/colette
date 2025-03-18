@@ -9,7 +9,7 @@ use super::{
     feed_entry::FeedEntry,
 };
 
-mod list_feed_entries;
+mod list_subscription_entries;
 
 pub const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
@@ -20,7 +20,7 @@ pub struct SubscriptionEntryApi;
 impl SubscriptionEntryApi {
     pub fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(SubscriptionEntryApi::openapi())
-            .routes(routes!(list_feed_entries::handler))
+            .routes(routes!(list_subscription_entries::handler))
     }
 }
 

@@ -32,7 +32,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
         let (sql, values) = BookmarkSelect {
             id: params.id,
             tags: params.tags,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             filter: params.filter,
             cursor: params.cursor,
             limit: params.limit,
@@ -97,7 +97,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             published_at: data.published_at,
             author: data.author.as_deref(),
             archived_path: data.archived_path.as_deref(),
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -127,7 +127,7 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                 bookmark_id: data.id,
                 tags: tags.iter().map(|e| BookmarkTagById {
                     id: e.id,
-                    user_id: e.user_id,
+                    user_id: &e.user_id,
                 }),
             }
             .into_insert()
@@ -161,7 +161,7 @@ pub struct BookmarkRow {
     pub published_at: Option<DateTime<Utc>>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -189,7 +189,7 @@ pub struct BookmarkTagRow {
     pub bookmark_id: Uuid,
     pub id: Uuid,
     pub title: String,
-    pub user_id: Uuid,
+    pub user_id: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

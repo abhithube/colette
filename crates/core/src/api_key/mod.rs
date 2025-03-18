@@ -4,8 +4,6 @@ use chrono::{DateTime, Utc};
 use colette_util::password;
 use uuid::Uuid;
 
-use crate::auth;
-
 mod api_key_repository;
 mod api_key_service;
 
@@ -17,7 +15,7 @@ pub struct ApiKey {
     pub verification_hash: String,
     pub title: String,
     pub preview: String,
-    pub user_id: Uuid,
+    pub user_id: String,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]
@@ -37,14 +35,11 @@ pub enum Error {
     #[error("not authorized to access API key with ID: {0}")]
     Forbidden(Uuid),
 
-    #[error("API key already exists with title: {0}")]
-    Conflict(String),
+    #[error("invalid API key")]
+    Auth,
 
     #[error(transparent)]
     Hash(#[from] password::Error),
-
-    #[error(transparent)]
-    Auth(#[from] auth::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

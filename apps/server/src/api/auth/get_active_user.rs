@@ -3,6 +3,7 @@ use axum::{
     extract::State,
     response::{IntoResponse, Response},
 };
+use torii::{ToriiError, UserId};
 
 use super::{AUTH_TAG, User};
 use crate::api::{
@@ -23,9 +24,9 @@ pub async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetActiveResponse, Error> {
-    match state.auth_service.get_active(user_id).await {
-        Ok(data) => Ok(GetActiveResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+    match state.auth.get_user(&UserId::new(&user_id)).await? {
+        Some(data) => Ok(GetActiveResponse::Ok(data.into())),
+        _ => Err(Error::Auth(ToriiError::AuthError("User not found".into()))),
     }
 }
 

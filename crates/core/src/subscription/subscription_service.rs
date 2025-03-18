@@ -30,7 +30,7 @@ impl SubscriptionService {
     pub async fn list_subscriptions(
         &self,
         query: SubscriptionListQuery,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Paginated<Subscription>, Error> {
         let subscriptions = self
             .subscription_repository
@@ -47,7 +47,7 @@ impl SubscriptionService {
         })
     }
 
-    pub async fn get_subscription(&self, id: Uuid, user_id: Uuid) -> Result<Subscription, Error> {
+    pub async fn get_subscription(&self, id: Uuid, user_id: String) -> Result<Subscription, Error> {
         let mut subscriptions = self
             .subscription_repository
             .find(SubscriptionFindParams {
@@ -70,12 +70,12 @@ impl SubscriptionService {
     pub async fn create_subscription(
         &self,
         data: SubscriptionCreate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Subscription, Error> {
         let builder = Subscription::builder()
             .title(data.title)
             .feed_id(data.feed_id)
-            .user_id(user_id);
+            .user_id(user_id.clone());
 
         let subscription = if let Some(ids) = data.tags {
             let tags = self
@@ -102,7 +102,7 @@ impl SubscriptionService {
         &self,
         id: Uuid,
         data: SubscriptionUpdate,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<Subscription, Error> {
         let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -134,7 +134,7 @@ impl SubscriptionService {
         Ok(subscription)
     }
 
-    pub async fn delete_subscription(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
+    pub async fn delete_subscription(&self, id: Uuid, user_id: String) -> Result<(), Error> {
         let Some(subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
@@ -150,7 +150,7 @@ impl SubscriptionService {
     pub async fn get_subscription_entry(
         &self,
         id: Uuid,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<SubscriptionEntry, Error> {
         let mut subscription_entries = self
             .subscription_entry_repository
@@ -175,7 +175,7 @@ impl SubscriptionService {
         &self,
         feed_entry_id: Uuid,
         subscription_id: Uuid,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository
@@ -201,7 +201,7 @@ impl SubscriptionService {
         &self,
         feed_entry_id: Uuid,
         subscription_id: Uuid,
-        user_id: Uuid,
+        user_id: String,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository

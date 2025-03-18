@@ -80,7 +80,7 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
             let (sql, values) = ReadEntryInsert {
                 feed_entry_id: data.entry_id,
                 subscription_id: data.subscription_id,
-                user_id: data.user_id,
+                user_id: &data.user_id,
             }
             .into_insert()
             .build_sqlx(SqliteQueryBuilder);
@@ -105,7 +105,7 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
 struct SubscriptionEntryWithFeedEntryRow {
     id: Uuid,
     subscription_id: Uuid,
-    user_id: Uuid,
+    user_id: String,
     has_read: bool,
 
     link: String,
@@ -145,7 +145,7 @@ impl From<SubscriptionEntryWithFeedEntryRow> for SubscriptionEntry {
 struct SubscriptionEntryRow {
     id: Uuid,
     subscription_id: Uuid,
-    user_id: Uuid,
+    user_id: String,
 }
 
 impl From<SubscriptionEntryRow> for SubscriptionEntry {

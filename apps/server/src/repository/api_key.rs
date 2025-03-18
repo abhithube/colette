@@ -28,7 +28,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
         let (sql, values) = ApiKeySelect {
             id: params.id,
-            user_id: params.user_id,
+            user_id: params.user_id.as_deref(),
             cursor: params.cursor,
             limit: params.limit,
         }
@@ -64,7 +64,7 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             verification_hash: &data.verification_hash,
             title: &data.title,
             preview: &data.preview,
-            user_id: data.user_id,
+            user_id: &data.user_id,
             upsert,
         }
         .into_insert()
@@ -93,7 +93,7 @@ struct ApiKeyRow {
     verification_hash: String,
     title: String,
     preview: String,
-    user_id: Uuid,
+    user_id: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
