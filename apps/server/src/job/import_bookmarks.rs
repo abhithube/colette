@@ -1,26 +1,86 @@
-use std::sync::Arc;
+use std::{
+    pin::Pin,
+    sync::Arc,
+    task::{Context, Poll},
+};
 
-use apalis::prelude::Data;
-use colette_core::{backup::ImportBookmarksJob, bookmark::ScrapeBookmarkJob, job::Storage};
+use colette_core::{
+    backup::ImportBookmarksJobData,
+    bookmark::{BookmarkListQuery, BookmarkService, ScrapeBookmarkJobData},
+    job::{Job, JobCreate, JobService},
+    queue::JobProducer,
+};
+use futures::FutureExt;
 use tokio::sync::Mutex;
+use tower::Service;
 
-pub async fn run(
-    job: ImportBookmarksJob,
-    data: Data<Arc<Mutex<dyn Storage<ScrapeBookmarkJob>>>>,
-) -> Result<(), apalis::prelude::Error> {
-    tracing::debug!("Importing {} bookmarks", job.urls.len());
+use super::Error;
 
-    let mut storage = data.lock().await;
+pub struct ImportBookmarksHandler {
+    bookmark_service: Arc<BookmarkService>,
+    job_service: Arc<JobService>,
+    scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
+}
 
-    for url in job.urls {
-        storage
-            .push(ScrapeBookmarkJob {
-                url,
-                user_id: job.user_id.clone(),
-            })
-            .await
-            .map_err(|e| apalis::prelude::Error::Failed(Arc::new(Box::new(e))))?;
+impl ImportBookmarksHandler {
+    pub fn new(
+        bookmark_service: Arc<BookmarkService>,
+        job_service: Arc<JobService>,
+        scrape_bookmark_producer: Arc<Mutex<dyn JobProducer>>,
+    ) -> Self {
+        Self {
+            bookmark_service,
+            job_service,
+            scrape_bookmark_producer,
+        }
+    }
+}
+
+impl Service<Job> for ImportBookmarksHandler {
+    type Response = ();
+    type Error = Error;
+    type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
+
+    fn poll_ready(&mut self, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
-    Ok(())
+    fn call(&mut self, job: Job) -> Self::Future {
+        let bookmark_service = self.bookmark_service.clone();
+        let job_service = self.job_service.clone();
+        let scrape_bookmark_producer = self.scrape_bookmark_producer.clone();
+
+        async move {
+            let input_data = serde_json::from_value::<ImportBookmarksJobData>(job.data)?;
+
+            let bookmarks = bookmark_service
+                .list_bookmarks(BookmarkListQuery::default(), input_data.user_id)
+                .await
+                .map_err(|e| Error::Service(e.to_string()))?;
+
+            tracing::debug!("Importing {} bookmarks", bookmarks.data.len());
+
+            for bookmark in bookmarks.data {
+                let data = serde_json::to_value(ScrapeBookmarkJobData {
+                    url: bookmark.link,
+                    user_id: bookmark.user_id,
+                })?;
+
+                let job = job_service
+                    .create_job(JobCreate {
+                        data,
+                        job_type: "scrape_bookmark".into(),
+                        group_id: Some(job.id.into()),
+                    })
+                    .await?;
+
+                let mut scrape_bookmark_producer = scrape_bookmark_producer.lock().await;
+
+                scrape_bookmark_producer.push(job.id).await?;
+            }
+
+            Ok(())
+        }
+        .boxed()
+    }
 }

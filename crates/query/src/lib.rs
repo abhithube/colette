@@ -7,6 +7,7 @@ pub mod collection;
 pub mod feed;
 pub mod feed_entry;
 pub mod filter;
+pub mod job;
 pub mod read_entry;
 pub mod session;
 pub mod stream;

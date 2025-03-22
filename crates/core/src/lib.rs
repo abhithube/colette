@@ -18,6 +18,7 @@ pub mod feed;
 pub mod feed_entry;
 pub mod filter;
 pub mod job;
+pub mod queue;
 pub mod stream;
 pub mod subscription;
 pub mod subscription_entry;

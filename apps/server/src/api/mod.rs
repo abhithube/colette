@@ -5,7 +5,7 @@ use colette_auth::AuthAdapter;
 use colette_core::{
     api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    stream::StreamService, subscription::SubscriptionService,
+    job::JobService, stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use torii::Torii;
@@ -33,6 +33,7 @@ pub struct ApiState {
     pub collection_service: Arc<CollectionService>,
     pub feed_service: Arc<FeedService>,
     pub feed_entry_service: Arc<FeedEntryService>,
+    pub job_service: Arc<JobService>,
     pub stream_service: Arc<StreamService>,
     pub subscription_service: Arc<SubscriptionService>,
     pub subscription_entry_service: Arc<SubscriptionEntryService>,

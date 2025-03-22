@@ -2,7 +2,6 @@ use core::str;
 use std::{collections::HashMap, io::BufReader};
 
 use bytes::Buf;
-use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use futures::stream::BoxStream;
 use url::Url;
@@ -156,15 +155,6 @@ pub struct FeedScrape {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub struct ScrapeFeedJob {
+pub struct ScrapeFeedJobData {
     pub url: Url,
-}
-
-#[derive(Clone, serde::Serialize, serde::Deserialize)]
-pub struct RefreshFeedsJob(pub DateTime<Utc>);
-
-impl From<DateTime<Utc>> for RefreshFeedsJob {
-    fn from(value: DateTime<Utc>) -> Self {
-        Self(value)
-    }
 }

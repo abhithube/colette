@@ -1,16 +1,16 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use bytes::{Buf, Bytes};
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use tokio::sync::Mutex;
-use url::Url;
 use uuid::Uuid;
 
 use super::{Error, ImportBookmarksData, ImportFeedsData, backup_repository::BackupRepository};
 use crate::{
     bookmark::{BookmarkFindParams, BookmarkRepository},
-    job::Storage,
+    job::{Job, JobRepository},
+    queue::JobProducer,
     subscription::{SubscriptionFindParams, SubscriptionRepository},
 };
 
@@ -18,8 +18,9 @@ pub struct BackupService {
     backup_repository: Box<dyn BackupRepository>,
     subscription_repository: Box<dyn SubscriptionRepository>,
     bookmark_repository: Box<dyn BookmarkRepository>,
-    import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
-    import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
+    job_repository: Box<dyn JobRepository>,
+    import_feeds_producer: Box<Mutex<dyn JobProducer>>,
+    import_bookmarks_producer: Box<Mutex<dyn JobProducer>>,
 }
 
 impl BackupService {
@@ -27,37 +28,42 @@ impl BackupService {
         backup_repository: impl BackupRepository,
         subscription_repository: impl SubscriptionRepository,
         bookmark_repository: impl BookmarkRepository,
-        import_feeds_storage: Arc<Mutex<dyn Storage<ImportFeedsJob>>>,
-        import_bookmarks_storage: Arc<Mutex<dyn Storage<ImportBookmarksJob>>>,
+        job_repository: impl JobRepository,
+        import_feeds_producer: impl JobProducer,
+        import_bookmarks_producer: impl JobProducer,
     ) -> Self {
         Self {
             backup_repository: Box::new(backup_repository),
             subscription_repository: Box::new(subscription_repository),
             bookmark_repository: Box::new(bookmark_repository),
-            import_feeds_storage,
-            import_bookmarks_storage,
+            job_repository: Box::new(job_repository),
+            import_feeds_producer: Box::new(Mutex::new(import_feeds_producer)),
+            import_bookmarks_producer: Box::new(Mutex::new(import_bookmarks_producer)),
         }
     }
 
     pub async fn import_opml(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
         let opml = colette_opml::from_reader(raw.reader())?;
 
-        let urls = opml
-            .body
-            .outlines
-            .iter()
-            .filter_map(|e| e.xml_url.as_deref().and_then(|e| Url::parse(e).ok()))
-            .collect::<Vec<Url>>();
-
         self.backup_repository
             .import_feeds(ImportFeedsData {
                 outlines: opml.body.outlines,
-                user_id,
+                user_id: user_id.clone(),
             })
             .await?;
 
-        let mut storage = self.import_feeds_storage.lock().await;
-        storage.push(ImportFeedsJob { urls }).await?;
+        let data = serde_json::to_value(&ImportFeedsJobData { user_id })?;
+
+        let job = Job::builder()
+            .job_type("import_feeds".into())
+            .data(data)
+            .build();
+
+        self.job_repository.save(&job, false).await?;
+
+        let mut producer = self.import_feeds_producer.lock().await;
+
+        producer.push(job.id).await?;
 
         Ok(())
     }
@@ -119,12 +125,6 @@ impl BackupService {
     pub async fn import_netscape(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
         let netscape = colette_netscape::from_reader(raw.reader())?;
 
-        let urls = netscape
-            .items
-            .iter()
-            .filter_map(|e| e.href.as_deref().and_then(|e| Url::parse(e).ok()))
-            .collect::<Vec<Url>>();
-
         self.backup_repository
             .import_bookmarks(ImportBookmarksData {
                 items: netscape.items,
@@ -132,8 +132,18 @@ impl BackupService {
             })
             .await?;
 
-        let mut storage = self.import_bookmarks_storage.lock().await;
-        storage.push(ImportBookmarksJob { urls, user_id }).await?;
+        let data = serde_json::to_value(&ImportBookmarksJobData { user_id })?;
+
+        let job = Job::builder()
+            .job_type("import_bookmarks".into())
+            .data(data)
+            .build();
+
+        self.job_repository.save(&job, false).await?;
+
+        let mut producer = self.import_bookmarks_producer.lock().await;
+
+        producer.push(job.id).await?;
 
         Ok(())
     }
@@ -187,12 +197,11 @@ impl BackupService {
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ImportFeedsJob {
-    pub urls: Vec<Url>,
+pub struct ImportFeedsJobData {
+    pub user_id: String,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct ImportBookmarksJob {
-    pub urls: Vec<Url>,
+pub struct ImportBookmarksJobData {
     pub user_id: String,
 }

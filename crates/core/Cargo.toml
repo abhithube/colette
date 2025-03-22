@@ -4,7 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-apalis-core.workspace = true
 async-trait.workspace = true
 bon = { version = "3.4.0", default-features = false }
 bytes.workspace = true
@@ -22,6 +21,7 @@ redis.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true

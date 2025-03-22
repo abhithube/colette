@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     Tag, collection,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    job, tag,
+    job, queue, tag,
 };
 
 mod bookmark_repository;
@@ -105,6 +105,15 @@ pub enum Error {
     Http(#[from] colette_http::Error),
 
     #[error(transparent)]
+    Tag(#[from] tag::Error),
+
+    #[error(transparent)]
+    Collection(#[from] collection::Error),
+
+    #[error(transparent)]
+    Job(#[from] job::Error),
+
+    #[error(transparent)]
     Image(#[from] ImageError),
 
     #[error(transparent)]
@@ -117,13 +126,10 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Job(#[from] job::Error),
+    Queue(#[from] queue::Error),
 
     #[error(transparent)]
-    Tag(#[from] tag::Error),
-
-    #[error(transparent)]
-    Collection(#[from] collection::Error),
+    Serialize(#[from] serde_json::Error),
 
     #[error(transparent)]
     Database(#[from] sqlx::Error),

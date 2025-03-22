@@ -4,11 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-apalis = { version = "0.6.4", default-features = false, features = [
-  "limit",
-  "tracing",
-] }
-apalis-cron = { version = "0.6.4", default-features = false }
 async-trait.workspace = true
 axum = { version = "0.8.1", default-features = false, features = [
   "http1",
@@ -29,12 +24,12 @@ chrono.workspace = true
 colette-auth.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
-colette-job.workspace = true
 colette-migration.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-query.workspace = true
+colette-queue.workspace = true
 colette-storage.workspace = true
 colette-util.workspace = true
 dirs = { version = "6.0.0", default-features = false }
@@ -63,6 +58,7 @@ torii = { git = "https://github.com/cmackenzie1/torii-rs", default-features = fa
   "password",
 ] }
 tower = { version = "0.5.2", default-features = false, features = [
+  "buffer",
   "limit",
   "tracing",
 ] }

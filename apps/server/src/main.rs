@@ -1,10 +1,5 @@
 use std::{error::Error, net::SocketAddr, ops::RangeFull, str::FromStr, sync::Arc};
 
-use apalis::{
-    layers::WorkerBuilderExt,
-    prelude::{Monitor, WorkerBuilder, WorkerFactoryFn},
-};
-use apalis_cron::CronStream;
 use api::{
     ApiState,
     api_key::ApiKeyApi,
@@ -31,24 +26,27 @@ use colette_auth::AuthAdapter;
 use colette_core::{
     api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
     collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    stream::StreamService, subscription::SubscriptionService,
+    job::JobService, stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
-use colette_job::SqliteStorage;
 use colette_migration::SqliteMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
+use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_storage::StorageAdapter;
-use config::{DatabaseConfig, JobConfig, StorageConfig};
+use config::{DatabaseConfig, StorageConfig};
 use job::{
-    archive_thumbnail, import_bookmarks, import_feeds, refresh_feeds, scrape_bookmark, scrape_feed,
+    JobWorker, archive_thumbnail::ArchiveThumbnailHandler,
+    import_bookmarks::ImportBookmarksHandler, import_feeds::ImportFeedsHandler,
+    refresh_feeds::RefreshFeedsHandler, scrape_bookmark::ScrapeBookmarkHandler,
+    scrape_feed::ScrapeFeedHandler,
 };
 use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use refinery::embed_migrations;
 use repository::{
     api_key::SqliteApiKeyRepository, backup::SqliteBackupRepository,
     bookmark::SqliteBookmarkRepository, collection::SqliteCollectionRepository,
-    feed::SqliteFeedRepository, feed_entry::SqliteFeedEntryRepository,
+    feed::SqliteFeedRepository, feed_entry::SqliteFeedEntryRepository, job::SqliteJobRepository,
     stream::SqliteStreamRepository, subscription::SqliteSubscriptionRepository,
     subscription_entry::SqliteSubscriptionEntryRepository, tag::SqliteTagRepository,
 };
@@ -58,6 +56,7 @@ use sqlx::{
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use torii::Torii;
+use tower::{ServiceBuilder, ServiceExt};
 use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa::{OpenApi, openapi::Server};
@@ -116,19 +115,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let job_pool = match app_config.job {
-        JobConfig::Sqlite(config) => {
-            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
-                .create_if_missing(true);
-
-            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
-
-            SqliteStorage::setup(&pool).await?;
-
-            pool
-        }
-    };
-
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
         StorageConfig::Fs(config) => {
             let fs = LocalFileSystem::new_with_prefix(config.path)?.with_automatic_cleanup(true);
@@ -162,15 +148,51 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
-    let scrape_feed_storage = SqliteStorage::new(job_pool.clone());
-    let scrape_bookmark_storage = SqliteStorage::new(job_pool.clone());
-    let archive_thumbnail_storage = SqliteStorage::new(job_pool.clone());
-    let import_feeds_storage = SqliteStorage::new(job_pool.clone());
-    let import_bookmarks_storage = SqliteStorage::new(job_pool);
+    let (scrape_feed_producer, scrape_feed_consumer) = {
+        let queue = LocalQueue::new().split();
+
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
+    };
+    let (scrape_bookmark_producer, scrape_bookmark_consumer) = {
+        let queue = LocalQueue::new().split();
+
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
+    };
+    let (archive_thumbnail_producer, archive_thumbnail_consumer) = {
+        let queue = LocalQueue::new().split();
+
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
+    };
+    let (import_feeds_producer, import_feeds_consumer) = {
+        let queue = LocalQueue::new().split();
+
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
+    };
+    let (import_bookmarks_producer, import_bookmarks_consumer) = {
+        let queue = LocalQueue::new().split();
+
+        (
+            JobProducerAdapter::Local(queue.0),
+            JobConsumerAdapter::Local(queue.1),
+        )
+    };
 
     let bookmark_repository = SqliteBookmarkRepository::new(pool.clone());
     let collection_repository = SqliteCollectionRepository::new(pool.clone());
     let feed_repository = SqliteFeedRepository::new(pool.clone());
+    let job_repository = SqliteJobRepository::new(pool.clone());
     let stream_repository = SqliteStreamRepository::new(pool.clone());
     let subscription_repository = SqliteSubscriptionRepository::new(pool.clone());
     let subscription_entry_repository = SqliteSubscriptionEntryRepository::new(pool.clone());
@@ -180,9 +202,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_repository.clone(),
         tag_repository.clone(),
         collection_repository.clone(),
+        job_repository.clone(),
         http_client.clone(),
         storage_adapter,
-        Arc::new(Mutex::new(archive_thumbnail_storage.clone())),
+        archive_thumbnail_producer.clone(),
         register_bookmark_plugins(reqwest_client.clone()),
     ));
     let feed_service = Arc::new(FeedService::new(
@@ -190,63 +213,25 @@ async fn main() -> Result<(), Box<dyn Error>> {
         http_client.clone(),
         register_feed_plugins(reqwest_client),
     ));
-
-    let scrape_feed_worker = WorkerBuilder::new("scrape-feed")
-        .enable_tracing()
-        .concurrency(5)
-        .data(feed_service.clone())
-        .backend(scrape_feed_storage.clone())
-        .build_fn(scrape_feed::run);
-
-    let scrape_bookmark_worker = WorkerBuilder::new("scrape-bookmark")
-        .enable_tracing()
-        .concurrency(5)
-        .data(bookmark_service.clone())
-        .backend(scrape_bookmark_storage.clone())
-        .build_fn(scrape_bookmark::run);
-
-    let archive_thumbnail_worker = WorkerBuilder::new("archive-thumbnail")
-        .enable_tracing()
-        .concurrency(5)
-        .data(bookmark_service.clone())
-        .backend(archive_thumbnail_storage)
-        .build_fn(archive_thumbnail::run);
-
-    let import_feeds_worker = WorkerBuilder::new("import-feeds")
-        .enable_tracing()
-        .data(scrape_feed_storage.clone())
-        .backend(import_feeds_storage.clone())
-        .build_fn(import_feeds::run);
-
-    let import_bookmarks_worker = WorkerBuilder::new("import-bookmarks")
-        .enable_tracing()
-        .data(scrape_bookmark_storage)
-        .backend(import_bookmarks_storage.clone())
-        .build_fn(import_bookmarks::run);
-
-    let mut monitor = Monitor::new()
-        .register(scrape_feed_worker)
-        .register(scrape_bookmark_worker)
-        .register(archive_thumbnail_worker)
-        .register(import_feeds_worker)
-        .register(import_bookmarks_worker);
+    let job_service = Arc::new(JobService::new(job_repository.clone()));
+    let subscription_service = Arc::new(SubscriptionService::new(
+        subscription_repository.clone(),
+        tag_repository.clone(),
+        subscription_entry_repository.clone(),
+    ));
 
     if let Some(config) = app_config.cron {
-        let schedule = config.schedule.parse()?;
+        // let schedule = config.schedule.parse()?;
 
-        let refresh_feeds_worker = WorkerBuilder::new("refresh-feeds")
-            .enable_tracing()
-            .data(refresh_feeds::State::new(
+        ServiceBuilder::new()
+            .concurrency_limit(5)
+            .service(RefreshFeedsHandler::new(
                 feed_service.clone(),
-                Arc::new(Mutex::new(scrape_feed_storage)),
+                job_service.clone(),
+                Arc::new(Mutex::new(scrape_feed_producer.clone())),
             ))
-            .backend(CronStream::new(schedule))
-            .build_fn(refresh_feeds::run);
-
-        monitor = monitor.register(refresh_feeds_worker)
+            .boxed();
     }
-
-    let monitor = monitor.run();
 
     let api_state = ApiState {
         auth: Arc::new(
@@ -260,21 +245,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ))),
         backup_service: Arc::new(BackupService::new(
             SqliteBackupRepository::new(pool.clone()),
-            subscription_repository.clone(),
-            bookmark_repository,
-            Arc::new(Mutex::new(import_feeds_storage)),
-            Arc::new(Mutex::new(import_bookmarks_storage)),
-        )),
-        bookmark_service,
-        collection_service: Arc::new(CollectionService::new(collection_repository)),
-        feed_service,
-        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(pool))),
-        stream_service: Arc::new(StreamService::new(stream_repository.clone())),
-        subscription_service: Arc::new(SubscriptionService::new(
             subscription_repository,
-            tag_repository.clone(),
-            subscription_entry_repository.clone(),
+            bookmark_repository,
+            job_repository,
+            import_feeds_producer,
+            import_bookmarks_producer,
         )),
+        bookmark_service: bookmark_service.clone(),
+        collection_service: Arc::new(CollectionService::new(collection_repository)),
+        feed_service: feed_service.clone(),
+        feed_entry_service: Arc::new(FeedEntryService::new(SqliteFeedEntryRepository::new(pool))),
+        job_service: job_service.clone(),
+        stream_service: Arc::new(StreamService::new(stream_repository.clone())),
+        subscription_service: subscription_service.clone(),
         subscription_entry_service: Arc::new(SubscriptionEntryService::new(
             subscription_entry_repository,
             stream_repository,
@@ -361,7 +344,61 @@ async fn main() -> Result<(), Box<dyn Error>> {
         api.into_make_service_with_connect_info::<SocketAddr>(),
     );
 
-    let _ = tokio::join!(monitor, server);
+    let mut scrape_feed_worker = JobWorker::new(
+        job_service.clone(),
+        scrape_feed_consumer,
+        ServiceBuilder::new()
+            .concurrency_limit(5)
+            .service(ScrapeFeedHandler::new(feed_service))
+            .boxed(),
+    );
+    let mut scrape_bookmark_worker = JobWorker::new(
+        job_service.clone(),
+        scrape_bookmark_consumer,
+        ServiceBuilder::new()
+            .concurrency_limit(5)
+            .service(ScrapeBookmarkHandler::new(bookmark_service.clone()))
+            .boxed(),
+    );
+    let mut archive_thumbnail_worker = JobWorker::new(
+        job_service.clone(),
+        archive_thumbnail_consumer,
+        ServiceBuilder::new()
+            .concurrency_limit(5)
+            .service(ArchiveThumbnailHandler::new(bookmark_service.clone()))
+            .boxed(),
+    );
+    let mut import_feeds_worker = JobWorker::new(
+        job_service.clone(),
+        import_feeds_consumer,
+        ServiceBuilder::new()
+            .service(ImportFeedsHandler::new(
+                subscription_service,
+                job_service.clone(),
+                Arc::new(Mutex::new(scrape_feed_producer)),
+            ))
+            .boxed(),
+    );
+    let mut import_bookmarks_worker = JobWorker::new(
+        job_service.clone(),
+        import_bookmarks_consumer,
+        ServiceBuilder::new()
+            .service(ImportBookmarksHandler::new(
+                bookmark_service,
+                job_service,
+                Arc::new(Mutex::new(scrape_bookmark_producer)),
+            ))
+            .boxed(),
+    );
+
+    let _ = tokio::join!(
+        server,
+        scrape_feed_worker.start(),
+        scrape_bookmark_worker.start(),
+        archive_thumbnail_worker.start(),
+        import_feeds_worker.start(),
+        import_bookmarks_worker.start()
+    );
 
     Ok(())
 }

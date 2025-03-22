@@ -30,6 +30,17 @@ CREATE TABLE api_keys (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE jobs (
+  id TEXT NOT NULL PRIMARY KEY,
+  job_type TEXT NOT NULL,
+  data BLOB NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  group_id TEXT,
+  message TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  completed_at TEXT
+);
+
 CREATE TABLE feeds (
   id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,

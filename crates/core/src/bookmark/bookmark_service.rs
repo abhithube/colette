@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
 use bytes::Buf;
 use chrono::{DateTime, Utc};
@@ -17,7 +17,8 @@ use super::{
 use crate::{
     collection::{CollectionFindParams, CollectionRepository},
     common::{PAGINATION_LIMIT, Paginated},
-    job::Storage,
+    job::{Job, JobRepository},
+    queue::JobProducer,
     tag::TagRepository,
 };
 
@@ -27,9 +28,10 @@ pub struct BookmarkService {
     bookmark_repository: Box<dyn BookmarkRepository>,
     tag_repository: Box<dyn TagRepository>,
     collection_repository: Box<dyn CollectionRepository>,
+    job_repository: Box<dyn JobRepository>,
     client: Box<dyn HttpClient>,
     object_store: Box<dyn ObjectStore>,
-    archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
+    archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }
 
@@ -39,18 +41,20 @@ impl BookmarkService {
         bookmark_repository: impl BookmarkRepository,
         tag_repository: impl TagRepository,
         collection_repository: impl CollectionRepository,
+        job_repository: impl JobRepository,
         http_client: impl HttpClient,
         object_store: impl ObjectStore,
-        archive_thumbnail_storage: Arc<Mutex<dyn Storage<ArchiveThumbnailJob>>>,
+        archive_thumbnail_producer: impl JobProducer,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
         Self {
             bookmark_repository: Box::new(bookmark_repository),
             tag_repository: Box::new(tag_repository),
             collection_repository: Box::new(collection_repository),
+            job_repository: Box::new(job_repository),
             client: Box::new(http_client),
             object_store: Box::new(object_store),
-            archive_thumbnail_storage,
+            archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
             plugins,
         }
     }
@@ -165,15 +169,22 @@ impl BookmarkService {
         self.bookmark_repository.save(&bookmark, None).await?;
 
         if let Some(thumbnail_url) = bookmark.thumbnail_url.clone() {
-            let mut storage = self.archive_thumbnail_storage.lock().await;
+            let data = serde_json::to_value(&ArchiveThumbnailJobData {
+                operation: ThumbnailOperation::Upload(thumbnail_url),
+                archived_path: None,
+                bookmark_id: bookmark.id,
+            })?;
 
-            storage
-                .push(ArchiveThumbnailJob {
-                    operation: ThumbnailOperation::Upload(thumbnail_url),
-                    archived_path: None,
-                    bookmark_id: bookmark.id,
-                })
-                .await?;
+            let job = Job::builder()
+                .job_type("archive_thumbnail".into())
+                .data(data)
+                .build();
+
+            self.job_repository.save(&job, false).await?;
+
+            let mut producer = self.archive_thumbnail_producer.lock().await;
+
+            producer.push(job.id).await?;
         }
 
         Ok(bookmark)
@@ -226,19 +237,26 @@ impl BookmarkService {
 
         if let Some(thumbnail_url) = new_thumbnail {
             if thumbnail_url == bookmark.thumbnail_url {
-                let mut storage = self.archive_thumbnail_storage.lock().await;
+                let data = serde_json::to_value(&ArchiveThumbnailJobData {
+                    operation: if let Some(thumbnail_url) = thumbnail_url {
+                        ThumbnailOperation::Upload(thumbnail_url)
+                    } else {
+                        ThumbnailOperation::Delete
+                    },
+                    archived_path: bookmark.archived_path.clone(),
+                    bookmark_id: bookmark.id,
+                })?;
 
-                storage
-                    .push(ArchiveThumbnailJob {
-                        operation: if let Some(thumbnail_url) = thumbnail_url {
-                            ThumbnailOperation::Upload(thumbnail_url)
-                        } else {
-                            ThumbnailOperation::Delete
-                        },
-                        archived_path: bookmark.archived_path.clone(),
-                        bookmark_id: bookmark.id,
-                    })
-                    .await?;
+                let job = Job::builder()
+                    .job_type("archive_thumbnail".into())
+                    .data(data)
+                    .build();
+
+                self.job_repository.save(&job, false).await?;
+
+                let mut producer = self.archive_thumbnail_producer.lock().await;
+
+                producer.push(job.id).await?;
             }
         }
 
@@ -255,15 +273,22 @@ impl BookmarkService {
 
         self.bookmark_repository.delete_by_id(id).await?;
 
-        let mut storage = self.archive_thumbnail_storage.lock().await;
+        let data = serde_json::to_value(&ArchiveThumbnailJobData {
+            operation: ThumbnailOperation::Delete,
+            archived_path: bookmark.archived_path,
+            bookmark_id: bookmark.id,
+        })?;
 
-        storage
-            .push(ArchiveThumbnailJob {
-                operation: ThumbnailOperation::Delete,
-                archived_path: bookmark.archived_path,
-                bookmark_id: bookmark.id,
-            })
-            .await?;
+        let job = Job::builder()
+            .job_type("archive_thumbnail".into())
+            .data(data)
+            .build();
+
+        self.job_repository.save(&job, false).await?;
+
+        let mut producer = self.archive_thumbnail_producer.lock().await;
+
+        producer.push(job.id).await?;
 
         Ok(())
     }
@@ -439,13 +464,13 @@ pub enum ThumbnailOperation {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ScrapeBookmarkJob {
+pub struct ScrapeBookmarkJobData {
     pub url: Url,
     pub user_id: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct ArchiveThumbnailJob {
+pub struct ArchiveThumbnailJobData {
     pub operation: ThumbnailOperation,
     pub archived_path: Option<String>,
     pub bookmark_id: Uuid,
