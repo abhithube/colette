@@ -8,26 +8,25 @@ use colette_query::{
     feed_entry::{SubscriptionEntrySelect, SubscriptionEntrySelectOne},
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
-use super::feed_entry::FeedEntryRow;
+use super::{LibsqlBinder, feed_entry::FeedEntryRow};
 
 #[derive(Debug, Clone)]
-pub struct SqliteSubscriptionEntryRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlSubscriptionEntryRepository {
+    conn: Connection,
 }
 
-impl SqliteSubscriptionEntryRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlSubscriptionEntryRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
+impl SubscriptionEntryRepository for LibsqlSubscriptionEntryRepository {
     async fn find(
         &self,
         params: SubscriptionEntryFindParams,
@@ -43,13 +42,18 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, SubscriptionEntryWithFeedEntryRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut subscription_entries = Vec::<SubscriptionEntry>::new();
+        while let Some(row) = rows.next().await? {
+            subscription_entries
+                .push(libsql::de::from_row::<SubscriptionEntryWithFeedEntryRow>(&row)?.into());
+        }
+
+        Ok(subscription_entries)
     }
 
     async fn find_by_id(
@@ -62,13 +66,18 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
             subscription_id,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let row = sqlx::query_as_with::<_, SubscriptionEntryRow, _>(&sql, values)
-            .fetch_optional(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(row.map(Into::into))
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(
+            libsql::de::from_row::<SubscriptionEntryRow>(&row)?.into(),
+        ))
     }
 
     async fn save(&self, data: &SubscriptionEntry) -> Result<(), Error> {
@@ -83,25 +92,27 @@ impl SubscriptionEntryRepository for SqliteSubscriptionEntryRepository {
                 user_id: &data.user_id,
             }
             .into_insert()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values).execute(&self.pool).await?;
+            let mut stmt = self.conn.prepare(&sql).await?;
+            stmt.execute(values.into_params()).await?;
         } else {
             let (sql, values) = ReadEntryDelete {
                 feed_entry_id: data.entry_id,
                 subscription_id: data.subscription_id,
             }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values).execute(&self.pool).await?;
+            let mut stmt = self.conn.prepare(&sql).await?;
+            stmt.execute(values.into_params()).await?;
         }
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 struct SubscriptionEntryWithFeedEntryRow {
     id: Uuid,
     subscription_id: Uuid,
@@ -141,7 +152,7 @@ impl From<SubscriptionEntryWithFeedEntryRow> for SubscriptionEntry {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 struct SubscriptionEntryRow {
     id: Uuid,
     subscription_id: Uuid,

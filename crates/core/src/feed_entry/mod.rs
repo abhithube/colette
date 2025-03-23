@@ -43,5 +43,8 @@ pub enum Error {
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] libsql::Error),
+
+    #[error(transparent)]
+    Serde(#[from] serde::de::value::Error),
 }

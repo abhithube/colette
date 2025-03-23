@@ -129,8 +129,11 @@ pub enum Error {
     Queue(#[from] queue::Error),
 
     #[error(transparent)]
-    Serialize(#[from] serde_json::Error),
+    SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] libsql::Error),
+
+    #[error(transparent)]
+    Serde(#[from] serde::de::value::Error),
 }

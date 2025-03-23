@@ -10,24 +10,25 @@ use colette_query::{
     bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkSelectOne},
     bookmark_tag::{BookmarkTagById, BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
 };
+use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteBookmarkRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlBookmarkRepository {
+    conn: Connection,
 }
 
-impl SqliteBookmarkRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlBookmarkRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl BookmarkRepository for SqliteBookmarkRepository {
+impl BookmarkRepository for LibsqlBookmarkRepository {
     async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
         let (sql, values) = BookmarkSelect {
             id: params.id,
@@ -38,24 +39,31 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let bookmark_rows = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
+
+        let mut bookmark_rows = Vec::<BookmarkRow>::new();
+        while let Some(row) = rows.next().await? {
+            bookmark_rows.push(libsql::de::from_row(&row)?);
+        }
 
         let (sql, values) = BookmarkTagSelect {
             bookmark_ids: bookmark_rows.iter().map(|e| e.id),
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let tag_rows = sqlx::query_as_with::<_, BookmarkTagRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
+
+        let mut tag_rows = Vec::<BookmarkTagRow>::new();
+        while let Some(row) = rows.next().await? {
+            tag_rows.push(libsql::de::from_row(&row)?);
+        }
 
         let mut tag_row_map = HashMap::<Uuid, Vec<BookmarkTagRow>>::new();
-
         for row in tag_rows {
             tag_row_map.entry(row.bookmark_id).or_default().push(row);
         }
@@ -77,17 +85,20 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Bookmark>, Error> {
         let (sql, values) = BookmarkSelectOne { id }
             .into_select()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        let row = sqlx::query_as_with::<_, BookmarkRow, _>(&sql, values)
-            .fetch_optional(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(row.map(Into::into))
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(libsql::de::from_row::<BookmarkRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Bookmark, upsert: Option<BookmarkUpsertType>) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.conn.transaction().await?;
 
         let (sql, values) = BookmarkInsert {
             id: data.id,
@@ -101,13 +112,13 @@ impl BookmarkRepository for SqliteBookmarkRepository {
             upsert,
         }
         .into_insert()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values)
-            .execute(&mut *tx)
+        let mut stmt = tx.prepare(&sql).await?;
+        stmt.execute(values.into_params())
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
                     Error::Conflict(data.link.clone())
                 }
                 _ => Error::Database(e),
@@ -119,9 +130,10 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                 tag_ids: tags.iter().map(|e| e.id),
             }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+            let mut stmt = tx.prepare(&sql).await?;
+            stmt.execute(values.into_params()).await?;
 
             let (sql, values) = BookmarkTagInsert {
                 bookmark_id: data.id,
@@ -131,9 +143,10 @@ impl BookmarkRepository for SqliteBookmarkRepository {
                 }),
             }
             .into_insert()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+            let mut stmt = tx.prepare(&sql).await?;
+            stmt.execute(values.into_params()).await?;
         }
 
         tx.commit().await?;
@@ -144,15 +157,16 @@ impl BookmarkRepository for SqliteBookmarkRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let (sql, values) = BookmarkDelete { id }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub struct BookmarkRow {
     pub id: Uuid,
     pub link: String,
@@ -184,7 +198,7 @@ impl From<BookmarkRow> for Bookmark {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub struct BookmarkTagRow {
     pub bookmark_id: Uuid,
     pub id: Uuid,

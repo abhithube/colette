@@ -7,24 +7,25 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     tag::{TagDelete, TagInsert, TagSelect, TagSelectOne},
 };
+use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteTagRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlTagRepository {
+    conn: Connection,
 }
 
-impl SqliteTagRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlTagRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl TagRepository for SqliteTagRepository {
+impl TagRepository for LibsqlTagRepository {
     async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
         let (sql, values) = TagSelect {
             ids: params.ids,
@@ -36,25 +37,33 @@ impl TagRepository for SqliteTagRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, TagRowWithCounts, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut tags = Vec::<Tag>::new();
+        while let Some(row) = rows.next().await? {
+            tags.push(libsql::de::from_row::<TagRow>(&row)?.into());
+        }
+
+        Ok(tags)
     }
 
     async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error> {
         let (sql, values) = TagSelectOne::Ids(ids)
             .into_select()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, TagRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut tags = Vec::<Tag>::new();
+        while let Some(row) = rows.next().await? {
+            tags.push(libsql::de::from_row::<TagRow>(&row)?.into());
+        }
+
+        Ok(tags)
     }
 
     async fn save(&self, data: &Tag, upsert: Option<TagUpsertType>) -> Result<(), Error> {
@@ -65,13 +74,13 @@ impl TagRepository for SqliteTagRepository {
             upsert,
         }
         .into_insert()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params())
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
                     Error::Conflict(data.title.clone())
                 }
                 _ => Error::Database(e),
@@ -83,15 +92,16 @@ impl TagRepository for SqliteTagRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let (sql, values) = TagDelete { id }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub struct TagRow {
     pub id: Uuid,
     pub title: String,
@@ -114,7 +124,7 @@ impl From<TagRow> for Tag {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub struct TagRowWithCounts {
     pub id: Uuid,
     pub title: String,

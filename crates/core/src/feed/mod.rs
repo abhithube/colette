@@ -48,5 +48,8 @@ pub enum Error {
     Scraper(#[from] ScraperError),
 
     #[error(transparent)]
-    Database(#[from] sqlx::Error),
+    Database(#[from] libsql::Error),
+
+    #[error(transparent)]
+    Serde(#[from] serde::de::value::Error),
 }

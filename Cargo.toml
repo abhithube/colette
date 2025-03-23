@@ -42,6 +42,11 @@ futures = { version = "0.3.31", default-features = false }
 html5gum = { version = "0.7.0", default-features = false }
 http = { version = "1.2.0", default-features = false }
 http-body-util = { version = "0.1.2", default-features = false }
+libsql = { version = "0.9.1", default-features = false, features = [
+  "core",
+  "serde",
+  "stream",
+] }
 object_store = { version = "0.11.2", default-features = false, features = [
   "aws",
   "tls-webpki-roots",
@@ -76,7 +81,7 @@ sqlx = { version = "0.8.3", default-features = false, features = [
   "runtime-tokio",
 ] }
 thiserror = { version = "2.0.11", default-features = false }
-time = { version = "0.3.39", default-features = false }
+time = { version = "0.3.39", default-features = false, features = ["serde"] }
 tokio = { version = "1.43.0", default-features = false, features = [
   "macros",
   "rt-multi-thread",

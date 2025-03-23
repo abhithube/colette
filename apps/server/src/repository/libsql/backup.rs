@@ -12,32 +12,38 @@ use colette_query::{
     subscription_tag::{SubscriptionTagById, SubscriptionTagInsert},
     tag::{TagInsert, TagSelectOne},
 };
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Row, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteBackupRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlBackupRepository {
+    conn: Connection,
 }
 
-impl SqliteBackupRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlBackupRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl BackupRepository for SqliteBackupRepository {
+impl BackupRepository for LibsqlBackupRepository {
     async fn import_feeds(&self, data: ImportFeedsData) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.conn.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = data
             .outlines
             .into_iter()
             .map(|outline| (None, outline))
             .collect();
+
+        #[derive(serde::Deserialize)]
+        struct Row {
+            id: Uuid,
+        }
 
         while let Some((parent_id, outline)) = stack.pop() {
             if !outline.outline.is_empty() {
@@ -47,14 +53,16 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id: &data.user_id,
                     }
                     .into_select()
-                    .build_sqlx(SqliteQueryBuilder);
+                    .build_libsql(SqliteQueryBuilder);
 
-                    let row = sqlx::query_with(&sql, values)
-                        .fetch_optional(&mut *tx)
-                        .await?;
+                    let mut stmt = tx.prepare(&sql).await?;
+                    let mut rows = stmt.query(values.into_params()).await?;
 
-                    match row {
-                        Some(row) => row.get::<Uuid, _>(0),
+                    match rows.next().await? {
+                        Some(row) => {
+                            let row = libsql::de::from_row::<Row>(&row)?;
+                            row.id
+                        }
                         _ => {
                             let id = Uuid::new_v4();
 
@@ -65,9 +73,10 @@ impl BackupRepository for SqliteBackupRepository {
                                 upsert: Some(TagUpsertType::Title),
                             }
                             .into_insert()
-                            .build_sqlx(SqliteQueryBuilder);
+                            .build_libsql(SqliteQueryBuilder);
 
-                            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+                            let mut stmt = tx.prepare(&sql).await?;
+                            stmt.execute(values.into_params()).await?;
 
                             id
                         }
@@ -89,26 +98,28 @@ impl BackupRepository for SqliteBackupRepository {
                     refreshed_at: None,
                 };
 
-                let (sql, values) = feed.into_insert().build_sqlx(SqliteQueryBuilder);
+                let (sql, values) = feed.into_insert().build_libsql(SqliteQueryBuilder);
 
-                let feed_id = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                    .fetch_one(&mut *tx)
-                    .await?;
+                let mut stmt = self.conn.prepare(&sql).await?;
+                let row = stmt.query_row(values.into_params()).await?;
+                let row = libsql::de::from_row::<Row>(&row)?;
 
                 let subscription_id = {
                     let (sql, values) = SubscriptionInsert {
                         id: Uuid::new_v4(),
                         title: &title,
-                        feed_id,
+                        feed_id: row.id,
                         user_id: &data.user_id,
                         upsert: true,
                     }
                     .into_insert()
-                    .build_sqlx(SqliteQueryBuilder);
+                    .build_libsql(SqliteQueryBuilder);
 
-                    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_one(&mut *tx)
-                        .await?
+                    let mut stmt = self.conn.prepare(&sql).await?;
+                    let row = stmt.query_row(values.into_params()).await?;
+                    let row = libsql::de::from_row::<Row>(&row)?;
+
+                    row.id
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -122,9 +133,10 @@ impl BackupRepository for SqliteBackupRepository {
 
                     let (sql, values) = subscription_tag
                         .into_insert()
-                        .build_sqlx(SqliteQueryBuilder);
+                        .build_libsql(SqliteQueryBuilder);
 
-                    sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+                    let mut stmt = tx.prepare(&sql).await?;
+                    stmt.execute(values.into_params()).await?;
                 }
             }
         }
@@ -135,10 +147,15 @@ impl BackupRepository for SqliteBackupRepository {
     }
 
     async fn import_bookmarks(&self, data: ImportBookmarksData) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.conn.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
             data.items.into_iter().map(|item| (None, item)).collect();
+
+        #[derive(serde::Deserialize)]
+        struct Row {
+            id: Uuid,
+        }
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
@@ -148,14 +165,16 @@ impl BackupRepository for SqliteBackupRepository {
                         user_id: &data.user_id,
                     }
                     .into_select()
-                    .build_sqlx(SqliteQueryBuilder);
+                    .build_libsql(SqliteQueryBuilder);
 
-                    let row = sqlx::query_with(&sql, values)
-                        .fetch_optional(&mut *tx)
-                        .await?;
+                    let mut stmt = tx.prepare(&sql).await?;
+                    let mut rows = stmt.query(values.into_params()).await?;
 
-                    match row {
-                        Some(row) => row.get::<Uuid, _>(0),
+                    match rows.next().await? {
+                        Some(row) => {
+                            let row = libsql::de::from_row::<Row>(&row)?;
+                            row.id
+                        }
                         _ => {
                             let id = Uuid::new_v4();
 
@@ -166,9 +185,10 @@ impl BackupRepository for SqliteBackupRepository {
                                 upsert: Some(TagUpsertType::Title),
                             }
                             .into_insert()
-                            .build_sqlx(SqliteQueryBuilder);
+                            .build_libsql(SqliteQueryBuilder);
 
-                            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+                            let mut stmt = tx.prepare(&sql).await?;
+                            stmt.execute(values.into_params()).await?;
 
                             id
                         }
@@ -189,11 +209,13 @@ impl BackupRepository for SqliteBackupRepository {
                         ..Default::default()
                     }
                     .into_insert()
-                    .build_sqlx(SqliteQueryBuilder);
+                    .build_libsql(SqliteQueryBuilder);
 
-                    sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-                        .fetch_one(&mut *tx)
-                        .await?
+                    let mut stmt = self.conn.prepare(&sql).await?;
+                    let row = stmt.query_row(values.into_params()).await?;
+                    let row = libsql::de::from_row::<Row>(&row)?;
+
+                    row.id
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -205,9 +227,10 @@ impl BackupRepository for SqliteBackupRepository {
                         }],
                     };
 
-                    let (sql, values) = bookmark_tag.into_insert().build_sqlx(SqliteQueryBuilder);
+                    let (sql, values) = bookmark_tag.into_insert().build_libsql(SqliteQueryBuilder);
 
-                    sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+                    let mut stmt = tx.prepare(&sql).await?;
+                    stmt.execute(values.into_params()).await?;
                 }
             }
         }

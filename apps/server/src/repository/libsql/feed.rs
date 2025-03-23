@@ -8,29 +8,27 @@ use colette_query::{
     feed::{FeedInsert, FeedSelect},
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
-use futures::{
-    StreamExt,
-    stream::{self, BoxStream},
-};
+use futures::{StreamExt, stream::BoxStream};
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use url::Url;
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteFeedRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlFeedRepository {
+    conn: Connection,
 }
 
-impl SqliteFeedRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlFeedRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl FeedRepository for SqliteFeedRepository {
+impl FeedRepository for LibsqlFeedRepository {
     async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
         let (sql, values) = FeedSelect {
             id: params.id,
@@ -38,17 +36,21 @@ impl FeedRepository for SqliteFeedRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut feeds = Vec::<Feed>::new();
+        while let Some(row) = rows.next().await? {
+            feeds.push(libsql::de::from_row::<FeedRow>(&row)?.into());
+        }
+
+        Ok(feeds)
     }
 
     async fn save(&self, data: &Feed) -> Result<(), Error> {
-        let mut tx = self.pool.begin().await?;
+        let tx = self.conn.transaction().await?;
 
         let feed = FeedInsert {
             id: data.id,
@@ -59,11 +61,16 @@ impl FeedRepository for SqliteFeedRepository {
             refreshed_at: data.refreshed_at,
         };
 
-        let (sql, values) = feed.into_insert().build_sqlx(SqliteQueryBuilder);
+        let (sql, values) = feed.into_insert().build_libsql(SqliteQueryBuilder);
 
-        let id = sqlx::query_scalar_with::<_, Uuid, _>(&sql, values)
-            .fetch_one(&mut *tx)
-            .await?;
+        #[derive(serde::Deserialize)]
+        struct Row {
+            id: Uuid,
+        }
+
+        let mut stmt = tx.prepare(&sql).await?;
+        let row = stmt.query_row(values.into_params()).await?;
+        let row = libsql::de::from_row::<Row>(&row)?;
 
         if let Some(ref entries) = data.entries {
             let entries = entries.iter().map(|e| FeedEntryInsert {
@@ -74,14 +81,15 @@ impl FeedRepository for SqliteFeedRepository {
                 description: e.description.as_deref(),
                 author: e.author.as_deref(),
                 thumbnail_url: e.thumbnail_url.as_ref().map(|e| e.as_str()),
-                feed_id: id,
+                feed_id: row.id,
             });
 
             let (sql, values) = FeedEntryInsertBatch(entries)
                 .into_insert()
-                .build_sqlx(SqliteQueryBuilder);
+                .build_libsql(SqliteQueryBuilder);
 
-            sqlx::query_with(&sql, values).execute(&mut *tx).await?;
+            let mut stmt = tx.prepare(&sql).await?;
+            stmt.execute(values.into_params()).await?;
         }
 
         tx.commit().await?;
@@ -92,21 +100,26 @@ impl FeedRepository for SqliteFeedRepository {
     async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
         let (sql, values) = FeedSelect::default()
             .into_select()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, FeedRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let rows = self.conn.query(&sql, values.into_params()).await?;
 
-        Ok(stream::iter(
-            rows.into_iter()
-                .map(|e| Ok(e.xml_url.unwrap_or(e.link).parse().unwrap())),
-        )
-        .boxed())
+        let stream = rows
+            .into_stream()
+            .map(|e| match e {
+                Ok(row) => {
+                    let row = libsql::de::from_row::<FeedRow>(&row)?;
+                    Ok(row.xml_url.unwrap_or(row.link).parse::<Url>().unwrap())
+                }
+                Err(e) => Err(Error::Database(e)),
+            })
+            .boxed();
+
+        Ok(stream)
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub(crate) struct FeedRow {
     pub(crate) id: Uuid,
     pub(crate) link: String,

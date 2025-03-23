@@ -4,50 +4,58 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     job::{JobDelete, JobInsert, JobSelect, JobSelectOne},
 };
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
 use serde_json::Value;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteJobRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlJobRepository {
+    conn: Connection,
 }
 
-impl SqliteJobRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlJobRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl JobRepository for SqliteJobRepository {
+impl JobRepository for LibsqlJobRepository {
     async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, Error> {
         let (sql, values) = JobSelect {
             id: params.id,
             group_id: params.group_id.as_deref(),
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, JobRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut jobs = Vec::<Job>::new();
+        while let Some(row) = rows.next().await? {
+            jobs.push(libsql::de::from_row::<JobRow>(&row)?.into());
+        }
+
+        Ok(jobs)
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Job>, Error> {
         let (sql, values) = JobSelectOne { id }
             .into_select()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        let row = sqlx::query_as_with::<_, JobRow, _>(&sql, values)
-            .fetch_optional(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(row.map(Into::into))
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(libsql::de::from_row::<JobRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Job, upsert: bool) -> Result<(), Error> {
@@ -62,9 +70,10 @@ impl JobRepository for SqliteJobRepository {
             upsert,
         }
         .into_insert()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
@@ -72,15 +81,16 @@ impl JobRepository for SqliteJobRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let (sql, values) = JobDelete { id }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 struct JobRow {
     pub id: Uuid,
     pub job_type: String,

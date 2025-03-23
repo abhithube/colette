@@ -7,24 +7,25 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     api_key::{ApiKeyDelete, ApiKeyInsert, ApiKeySelect, ApiKeySelectOne},
 };
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteApiKeyRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlApiKeyRepository {
+    conn: Connection,
 }
 
-impl SqliteApiKeyRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlApiKeyRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl ApiKeyRepository for SqliteApiKeyRepository {
+impl ApiKeyRepository for LibsqlApiKeyRepository {
     async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
         let (sql, values) = ApiKeySelect {
             id: params.id,
@@ -33,13 +34,17 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, ApiKeyRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut api_keys = Vec::<ApiKey>::new();
+        while let Some(row) = rows.next().await? {
+            api_keys.push(libsql::de::from_row::<ApiKeyRow>(&row)?.into());
+        }
+
+        Ok(api_keys)
     }
 
     async fn find_one(&self, key: ApiKeyFindOne) -> Result<Option<ApiKey>, Error> {
@@ -48,13 +53,16 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             ApiKeyFindOne::LookupHash(lookup_hash) => ApiKeySelectOne::LookupHash(lookup_hash),
         };
 
-        let (sql, values) = key.into_select().build_sqlx(SqliteQueryBuilder);
+        let (sql, values) = key.into_select().build_libsql(SqliteQueryBuilder);
 
-        let row = sqlx::query_as_with::<_, ApiKeyRow, _>(&sql, values)
-            .fetch_optional(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(row.map(Into::into))
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(libsql::de::from_row::<ApiKeyRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &ApiKey, upsert: bool) -> Result<(), Error> {
@@ -68,9 +76,10 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
             upsert,
         }
         .into_insert()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
@@ -78,15 +87,16 @@ impl ApiKeyRepository for SqliteApiKeyRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let (sql, values) = ApiKeyDelete { id }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 struct ApiKeyRow {
     id: Uuid,
     lookup_hash: String,

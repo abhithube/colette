@@ -4,24 +4,25 @@ use colette_core::{
     feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
 };
 use colette_query::{IntoSelect, feed_entry::FeedEntrySelect};
+use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteFeedEntryRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlFeedEntryRepository {
+    conn: Connection,
 }
 
-impl SqliteFeedEntryRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlFeedEntryRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl FeedEntryRepository for SqliteFeedEntryRepository {
+impl FeedEntryRepository for LibsqlFeedEntryRepository {
     async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
         let (sql, values) = FeedEntrySelect {
             id: params.id,
@@ -30,17 +31,21 @@ impl FeedEntryRepository for SqliteFeedEntryRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, FeedEntryRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut feed_entries = Vec::<FeedEntry>::new();
+        while let Some(row) = rows.next().await? {
+            feed_entries.push(libsql::de::from_row::<FeedEntryRow>(&row)?.into());
+        }
+
+        Ok(feed_entries)
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 pub(crate) struct FeedEntryRow {
     pub(crate) id: Uuid,
     pub(crate) link: String,

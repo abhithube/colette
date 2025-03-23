@@ -7,24 +7,25 @@ use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     collection::{CollectionDelete, CollectionInsert, CollectionSelect, CollectionSelectOne},
 };
+use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
-use sea_query_binder::SqlxBinder;
-use sqlx::{Pool, Sqlite};
 use uuid::Uuid;
 
+use super::LibsqlBinder;
+
 #[derive(Debug, Clone)]
-pub struct SqliteCollectionRepository {
-    pool: Pool<Sqlite>,
+pub struct LibsqlCollectionRepository {
+    conn: Connection,
 }
 
-impl SqliteCollectionRepository {
-    pub fn new(pool: Pool<Sqlite>) -> Self {
-        Self { pool }
+impl LibsqlCollectionRepository {
+    pub fn new(conn: Connection) -> Self {
+        Self { conn }
     }
 }
 
 #[async_trait::async_trait]
-impl CollectionRepository for SqliteCollectionRepository {
+impl CollectionRepository for LibsqlCollectionRepository {
     async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, Error> {
         let (sql, values) = CollectionSelect {
             id: params.id,
@@ -33,25 +34,32 @@ impl CollectionRepository for SqliteCollectionRepository {
             limit: params.limit,
         }
         .into_select()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        let rows = sqlx::query_as_with::<_, CollectionRow, _>(&sql, values)
-            .fetch_all(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(rows.into_iter().map(Into::into).collect())
+        let mut collections = Vec::<Collection>::new();
+        while let Some(row) = rows.next().await? {
+            collections.push(libsql::de::from_row::<CollectionRow>(&row)?.into());
+        }
+
+        Ok(collections)
     }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Collection>, Error> {
         let (sql, values) = CollectionSelectOne { id }
             .into_select()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        let row = sqlx::query_as_with::<_, CollectionRow, _>(&sql, values)
-            .fetch_optional(&self.pool)
-            .await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
 
-        Ok(row.map(Into::into))
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(libsql::de::from_row::<CollectionRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Collection, upsert: bool) -> Result<(), Error> {
@@ -63,13 +71,13 @@ impl CollectionRepository for SqliteCollectionRepository {
             upsert,
         }
         .into_insert()
-        .build_sqlx(SqliteQueryBuilder);
+        .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values)
-            .execute(&self.pool)
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params())
             .await
             .map_err(|e| match e {
-                sqlx::Error::Database(e) if e.is_unique_violation() => {
+                libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
                     Error::Conflict(data.title.clone())
                 }
                 _ => Error::Database(e),
@@ -81,15 +89,16 @@ impl CollectionRepository for SqliteCollectionRepository {
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
         let (sql, values) = CollectionDelete { id }
             .into_delete()
-            .build_sqlx(SqliteQueryBuilder);
+            .build_libsql(SqliteQueryBuilder);
 
-        sqlx::query_with(&sql, values).execute(&self.pool).await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(serde::Deserialize)]
 struct CollectionRow {
     id: Uuid,
     title: String,

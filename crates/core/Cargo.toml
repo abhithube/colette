@@ -16,13 +16,13 @@ colette-opml.workspace = true
 colette-util.workspace = true
 futures.workspace = true
 image = { version = "0.25.5", default-features = false }
+libsql.workspace = true
 object_store.workspace = true
 redis.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-sqlx.workspace = true
 thiserror.workspace = true
 tokio.workspace = true
 url.workspace = true
