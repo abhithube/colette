@@ -25,6 +25,37 @@ pub struct Feed {
     pub entries: Option<Vec<FeedEntry>>,
 }
 
+impl From<ProcessedFeed> for Feed {
+    fn from(value: ProcessedFeed) -> Self {
+        let feed_id = Uuid::new_v4();
+
+        let entries = value
+            .entries
+            .into_iter()
+            .map(|e| {
+                FeedEntry::builder()
+                    .link(e.link)
+                    .title(e.title)
+                    .published_at(e.published)
+                    .maybe_description(e.description)
+                    .maybe_author(e.author)
+                    .maybe_thumbnail_url(e.thumbnail)
+                    .feed_id(feed_id)
+                    .build()
+            })
+            .collect();
+
+        Feed::builder()
+            .id(feed_id)
+            .link(value.link)
+            .title(value.title)
+            .maybe_description(value.description)
+            .maybe_refreshed_at(value.refreshed)
+            .entries(entries)
+            .build()
+    }
+}
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Cursor {
     pub link: Url,

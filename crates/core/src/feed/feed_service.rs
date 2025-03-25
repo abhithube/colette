@@ -34,12 +34,8 @@ impl FeedService {
             Some(plugin) => {
                 let processed = plugin.scrape(&mut data.url).await?;
 
-                let feed = Feed::builder()
-                    .link(processed.link)
-                    .title(processed.title)
-                    .maybe_description(processed.description)
-                    .maybe_refreshed_at(processed.refreshed)
-                    .build();
+                let mut feed: Feed = processed.into();
+                feed.xml_url = Some(data.url);
 
                 self.repository.save(&feed).await?;
 
@@ -72,13 +68,8 @@ impl FeedService {
                         let processed =
                             ProcessedFeed::try_from(feed).map_err(|e| Error::Scraper(e.into()))?;
 
-                        let feed = Feed::builder()
-                            .link(processed.link)
-                            .xml_url(data.url)
-                            .title(processed.title)
-                            .maybe_description(processed.description)
-                            .maybe_refreshed_at(processed.refreshed)
-                            .build();
+                        let mut feed: Feed = processed.into();
+                        feed.xml_url = Some(data.url);
 
                         self.repository.save(&feed).await?;
 
@@ -105,12 +96,8 @@ impl FeedService {
             }
         }?;
 
-        let feed = Feed::builder()
-            .link(processed.link)
-            .title(processed.title)
-            .maybe_description(processed.description)
-            .maybe_refreshed_at(processed.refreshed)
-            .build();
+        let mut feed: Feed = processed.into();
+        feed.xml_url = Some(data.url);
 
         self.repository.save(&feed).await?;
 
