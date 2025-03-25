@@ -1,8 +1,5 @@
-use colette_core::{
-    backup::{BackupRepository, Error, ImportBookmarksData, ImportFeedsData},
-    bookmark::BookmarkUpsertType,
-    tag::TagUpsertType,
-};
+use chrono::Utc;
+use colette_core::backup::{BackupRepository, Error, ImportBookmarksData, ImportFeedsData};
 use colette_query::{
     IntoInsert, IntoSelect,
     bookmark::BookmarkInsert,
@@ -70,7 +67,9 @@ impl BackupRepository for LibsqlBackupRepository {
                                 id,
                                 title: &outline.text,
                                 user_id: &data.user_id,
-                                upsert: Some(TagUpsertType::Title),
+                                created_at: Utc::now(),
+                                updated_at: Utc::now(),
+                                upsert: true,
                             }
                             .into_insert()
                             .build_libsql(SqliteQueryBuilder);
@@ -110,6 +109,8 @@ impl BackupRepository for LibsqlBackupRepository {
                         title: &title,
                         feed_id: row.id,
                         user_id: &data.user_id,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
                         upsert: true,
                     }
                     .into_insert()
@@ -182,7 +183,9 @@ impl BackupRepository for LibsqlBackupRepository {
                                 id,
                                 title: &item.title,
                                 user_id: &data.user_id,
-                                upsert: Some(TagUpsertType::Title),
+                                created_at: Utc::now(),
+                                updated_at: Utc::now(),
+                                upsert: true,
                             }
                             .into_insert()
                             .build_libsql(SqliteQueryBuilder);
@@ -204,9 +207,14 @@ impl BackupRepository for LibsqlBackupRepository {
                         id: Uuid::new_v4(),
                         link: &link,
                         title: &item.title,
+                        thumbnail_url: None,
+                        published_at: None,
+                        author: None,
+                        archived_path: None,
                         user_id: &data.user_id,
-                        upsert: Some(BookmarkUpsertType::Link),
-                        ..Default::default()
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                        upsert: true,
                     }
                     .into_insert()
                     .build_libsql(SqliteQueryBuilder);

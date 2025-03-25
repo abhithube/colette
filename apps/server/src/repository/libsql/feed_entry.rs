@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     FeedEntry,
-    feed_entry::{Error, FeedEntryFindParams, FeedEntryRepository},
+    feed_entry::{Error, FeedEntryParams, FeedEntryRepository},
 };
 use colette_query::{IntoSelect, feed_entry::FeedEntrySelect};
 use libsql::Connection;
@@ -23,7 +23,7 @@ impl LibsqlFeedEntryRepository {
 
 #[async_trait::async_trait]
 impl FeedEntryRepository for LibsqlFeedEntryRepository {
-    async fn find(&self, params: FeedEntryFindParams) -> Result<Vec<FeedEntry>, Error> {
+    async fn query(&self, params: FeedEntryParams) -> Result<Vec<FeedEntry>, Error> {
         let (sql, values) = FeedEntrySelect {
             id: params.id,
             feed_id: params.feed_id,

@@ -1,10 +1,10 @@
 use uuid::Uuid;
 
-use super::{Error, Subscription, SubscriptionFindParams, SubscriptionRepository};
+use super::{Error, Subscription, SubscriptionParams, SubscriptionRepository};
 use crate::{
     SubscriptionEntry,
     common::Paginated,
-    subscription_entry::{SubscriptionEntryFindParams, SubscriptionEntryRepository},
+    subscription_entry::{SubscriptionEntryParams, SubscriptionEntryRepository},
     tag::TagRepository,
 };
 
@@ -34,7 +34,7 @@ impl SubscriptionService {
     ) -> Result<Paginated<Subscription>, Error> {
         let subscriptions = self
             .subscription_repository
-            .find(SubscriptionFindParams {
+            .query(SubscriptionParams {
                 tags: query.tags,
                 user_id: Some(user_id),
                 ..Default::default()
@@ -50,7 +50,7 @@ impl SubscriptionService {
     pub async fn get_subscription(&self, id: Uuid, user_id: String) -> Result<Subscription, Error> {
         let mut subscriptions = self
             .subscription_repository
-            .find(SubscriptionFindParams {
+            .query(SubscriptionParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -91,9 +91,7 @@ impl SubscriptionService {
             builder.build()
         };
 
-        self.subscription_repository
-            .save(&subscription, false)
-            .await?;
+        self.subscription_repository.save(&subscription).await?;
 
         Ok(subscription)
     }
@@ -127,9 +125,7 @@ impl SubscriptionService {
             subscription.tags = Some(tags);
         }
 
-        self.subscription_repository
-            .save(&subscription, true)
-            .await?;
+        self.subscription_repository.save(&subscription).await?;
 
         Ok(subscription)
     }
@@ -154,7 +150,7 @@ impl SubscriptionService {
     ) -> Result<SubscriptionEntry, Error> {
         let mut subscription_entries = self
             .subscription_entry_repository
-            .find(SubscriptionEntryFindParams {
+            .query(SubscriptionEntryParams {
                 id: Some(id),
                 ..Default::default()
             })

@@ -76,12 +76,12 @@ impl IntoSelect for ApiKeySelect<'_> {
     }
 }
 
-pub enum ApiKeySelectOne {
+pub enum ApiKeySelectOne<'a> {
     Id(Uuid),
-    LookupHash(String),
+    LookupHash(&'a str),
 }
 
-impl IntoSelect for ApiKeySelectOne {
+impl IntoSelect for ApiKeySelectOne<'_> {
     fn into_select(self) -> SelectStatement {
         let r#where = match self {
             ApiKeySelectOne::Id(id) => Expr::col(ApiKey::Id).eq(id),
@@ -105,12 +105,13 @@ pub struct ApiKeyInsert<'a> {
     pub title: &'a str,
     pub preview: &'a str,
     pub user_id: &'a str,
-    pub upsert: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl IntoInsert for ApiKeyInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        let mut query = Query::insert()
+        Query::insert()
             .into_table(ApiKey::Table)
             .columns([
                 ApiKey::Id,
@@ -118,6 +119,8 @@ impl IntoInsert for ApiKeyInsert<'_> {
                 ApiKey::VerificationHash,
                 ApiKey::Title,
                 ApiKey::Preview,
+                ApiKey::CreatedAt,
+                ApiKey::UpdatedAt,
                 ApiKey::UserId,
             ])
             .values_panic([
@@ -126,21 +129,16 @@ impl IntoInsert for ApiKeyInsert<'_> {
                 self.verification_hash.into(),
                 self.title.into(),
                 self.preview.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
                 self.user_id.into(),
             ])
-            .returning_col(ApiKey::Id)
-            .to_owned();
-
-        if self.upsert {
-            query.on_conflict(
+            .on_conflict(
                 OnConflict::column(ApiKey::Id)
-                    .update_columns([ApiKey::Title])
-                    .value(ApiKey::UpdatedAt, Expr::current_timestamp())
+                    .update_columns([ApiKey::Title, ApiKey::UpdatedAt])
                     .to_owned(),
-            );
-        }
-
-        query
+            )
+            .to_owned()
     }
 }
 

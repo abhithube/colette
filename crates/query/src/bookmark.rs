@@ -1,17 +1,15 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{
-    BookmarkDateField, BookmarkFilter, BookmarkTextField, BookmarkUpsertType,
-};
+use colette_core::bookmark::{BookmarkDateField, BookmarkFilter, BookmarkTextField};
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement, SimpleExpr,
+    SelectStatement, SimpleExpr, UpdateStatement,
 };
 use uuid::Uuid;
 
 use crate::{
-    IntoDelete, IntoInsert, IntoSelect,
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark_tag::BookmarkTag,
     filter::{ToColumn, ToSql},
     tag::Tag,
@@ -125,7 +123,6 @@ impl IntoSelect for BookmarkSelectOne {
     }
 }
 
-#[derive(Default)]
 pub struct BookmarkInsert<'a> {
     pub id: Uuid,
     pub link: &'a str,
@@ -135,7 +132,9 @@ pub struct BookmarkInsert<'a> {
     pub author: Option<&'a str>,
     pub archived_path: Option<&'a str>,
     pub user_id: &'a str,
-    pub upsert: Option<BookmarkUpsertType>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub upsert: bool,
 }
 
 impl IntoInsert for BookmarkInsert<'_> {
@@ -151,6 +150,8 @@ impl IntoInsert for BookmarkInsert<'_> {
                 Bookmark::Author,
                 Bookmark::ArchivedPath,
                 Bookmark::UserId,
+                Bookmark::CreatedAt,
+                Bookmark::UpdatedAt,
             ])
             .values_panic([
                 self.id.into(),
@@ -161,28 +162,62 @@ impl IntoInsert for BookmarkInsert<'_> {
                 self.author.into(),
                 self.archived_path.into(),
                 self.user_id.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
             ])
-            .returning_col(Bookmark::Id)
             .to_owned();
 
-        if let Some(upsert) = self.upsert {
-            let mut on_conflict = match upsert {
-                BookmarkUpsertType::Id => OnConflict::column(Bookmark::Id),
-                BookmarkUpsertType::Link => OnConflict::columns([Bookmark::UserId, Bookmark::Link]),
-            };
-
+        if self.upsert {
+            query
+                .on_conflict(
+                    OnConflict::columns([Bookmark::UserId, Bookmark::Link])
+                        .update_columns([
+                            Bookmark::Title,
+                            Bookmark::ThumbnailUrl,
+                            Bookmark::PublishedAt,
+                            Bookmark::Author,
+                            Bookmark::ArchivedPath,
+                            Bookmark::UpdatedAt,
+                        ])
+                        .to_owned(),
+                )
+                .returning_col(Bookmark::Id);
+        } else {
             query.on_conflict(
-                on_conflict
+                OnConflict::columns([Bookmark::Id])
                     .update_columns([
                         Bookmark::Title,
                         Bookmark::ThumbnailUrl,
                         Bookmark::PublishedAt,
                         Bookmark::Author,
                         Bookmark::ArchivedPath,
+                        Bookmark::UpdatedAt,
                     ])
-                    .value(Bookmark::UpdatedAt, Expr::current_timestamp())
                     .to_owned(),
             );
+        }
+
+        query
+    }
+}
+
+#[derive(Default)]
+pub struct BookmarkUpdate<'a> {
+    pub id: Uuid,
+    pub archived_path: Option<Option<&'a str>>,
+    pub updated_at: DateTime<Utc>,
+}
+
+impl IntoUpdate for BookmarkUpdate<'_> {
+    fn into_update(self) -> UpdateStatement {
+        let mut query = Query::update()
+            .table(Bookmark::Table)
+            .value(Bookmark::UpdatedAt, self.updated_at)
+            .and_where(Expr::col(Bookmark::Id).eq(self.id))
+            .to_owned();
+
+        if let Some(archived_path) = self.archived_path {
+            query.value(Bookmark::ArchivedPath, archived_path);
         }
 
         query

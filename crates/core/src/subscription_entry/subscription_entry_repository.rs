@@ -5,10 +5,8 @@ use super::{Error, SubscriptionEntry, SubscriptionEntryFilter};
 
 #[async_trait::async_trait]
 pub trait SubscriptionEntryRepository: Send + Sync + 'static {
-    async fn find(
-        &self,
-        params: SubscriptionEntryFindParams,
-    ) -> Result<Vec<SubscriptionEntry>, Error>;
+    async fn query(&self, params: SubscriptionEntryParams)
+    -> Result<Vec<SubscriptionEntry>, Error>;
 
     async fn find_by_id(
         &self,
@@ -20,7 +18,7 @@ pub trait SubscriptionEntryRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct SubscriptionEntryFindParams {
+pub struct SubscriptionEntryParams {
     pub filter: Option<SubscriptionEntryFilter>,
     pub id: Option<Uuid>,
     pub subscription_id: Option<Uuid>,

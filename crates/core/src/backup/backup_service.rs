@@ -8,10 +8,10 @@ use uuid::Uuid;
 
 use super::{Error, ImportBookmarksData, ImportFeedsData, backup_repository::BackupRepository};
 use crate::{
-    bookmark::{BookmarkFindParams, BookmarkRepository},
+    bookmark::{BookmarkParams, BookmarkRepository},
     job::{Job, JobRepository},
     queue::JobProducer,
-    subscription::{SubscriptionFindParams, SubscriptionRepository},
+    subscription::{SubscriptionParams, SubscriptionRepository},
 };
 
 pub struct BackupService {
@@ -59,7 +59,7 @@ impl BackupService {
             .data(data)
             .build();
 
-        self.job_repository.save(&job, false).await?;
+        self.job_repository.save(&job).await?;
 
         let mut producer = self.import_feeds_producer.lock().await;
 
@@ -73,7 +73,7 @@ impl BackupService {
 
         let subscriptions = self
             .subscription_repository
-            .find(SubscriptionFindParams {
+            .query(SubscriptionParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -139,7 +139,7 @@ impl BackupService {
             .data(data)
             .build();
 
-        self.job_repository.save(&job, false).await?;
+        self.job_repository.save(&job).await?;
 
         let mut producer = self.import_bookmarks_producer.lock().await;
 
@@ -153,7 +153,7 @@ impl BackupService {
 
         let bookmarks = self
             .bookmark_repository
-            .find(BookmarkFindParams {
+            .query(BookmarkParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })

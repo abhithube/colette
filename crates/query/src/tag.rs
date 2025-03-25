@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
-use colette_core::tag::{TagType, TagUpsertType};
+use chrono::{DateTime, Utc};
+use colette_core::tag::TagType;
 use sea_query::{
     Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -143,30 +144,41 @@ pub struct TagInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub user_id: &'a str,
-    pub upsert: Option<TagUpsertType>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub upsert: bool,
 }
 
 impl IntoInsert for TagInsert<'_> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(Tag::Table)
-            .columns([Tag::Id, Tag::Title, Tag::UserId])
-            .values_panic([self.id.into(), self.title.into(), self.user_id.into()])
+            .columns([
+                Tag::Id,
+                Tag::Title,
+                Tag::UserId,
+                Tag::CreatedAt,
+                Tag::UpdatedAt,
+            ])
+            .values_panic([
+                self.id.into(),
+                self.title.into(),
+                self.user_id.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
+            ])
             .to_owned();
 
-        if let Some(upsert) = self.upsert {
-            let mut on_conflict = match upsert {
-                TagUpsertType::Id => OnConflict::column(Tag::Id)
-                    .update_column(Tag::Title)
-                    .to_owned(),
-                TagUpsertType::Title => OnConflict::columns([Tag::UserId, Tag::Title])
-                    .do_nothing()
-                    .to_owned(),
-            };
-
+        if self.upsert {
             query.on_conflict(
-                on_conflict
-                    .value(Tag::UpdatedAt, Expr::current_timestamp())
+                OnConflict::columns([Tag::UserId, Tag::Title])
+                    .update_column(Tag::UpdatedAt)
+                    .to_owned(),
+            );
+        } else {
+            query.on_conflict(
+                OnConflict::column(Tag::Id)
+                    .update_columns([Tag::Title, Tag::UpdatedAt])
                     .to_owned(),
             );
         }

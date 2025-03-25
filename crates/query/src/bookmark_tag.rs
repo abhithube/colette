@@ -12,8 +12,6 @@ pub enum BookmarkTag {
     BookmarkId,
     TagId,
     UserId,
-    CreatedAt,
-    UpdatedAt,
 }
 
 impl Iden for BookmarkTag {
@@ -26,8 +24,6 @@ impl Iden for BookmarkTag {
                 Self::BookmarkId => "bookmark_id",
                 Self::TagId => "tag_id",
                 Self::UserId => "user_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
             }
         )
         .unwrap();

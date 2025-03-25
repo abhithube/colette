@@ -1,7 +1,7 @@
 use colette_util::base64;
 use uuid::Uuid;
 
-use super::{Cursor, Error, FeedEntry, FeedEntryFindParams, FeedEntryRepository};
+use super::{Cursor, Error, FeedEntry, FeedEntryParams, FeedEntryRepository};
 use crate::common::{PAGINATION_LIMIT, Paginated};
 
 pub struct FeedEntryService {
@@ -23,7 +23,7 @@ impl FeedEntryService {
 
         let mut feed_entries = self
             .feed_entry_repository
-            .find(FeedEntryFindParams {
+            .query(FeedEntryParams {
                 feed_id: query.feed_id,
                 cursor,
                 limit: Some(PAGINATION_LIMIT + 1),
@@ -56,7 +56,7 @@ impl FeedEntryService {
     pub async fn get_feed_entry(&self, id: Uuid) -> Result<FeedEntry, Error> {
         let mut feed_entries = self
             .feed_entry_repository
-            .find(FeedEntryFindParams {
+            .query(FeedEntryParams {
                 id: Some(id),
                 ..Default::default()
             })

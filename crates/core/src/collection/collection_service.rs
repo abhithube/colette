@@ -1,7 +1,7 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Collection, CollectionFindParams, CollectionRepository, Error};
+use super::{Collection, CollectionParams, CollectionRepository, Error};
 use crate::{bookmark::BookmarkFilter, common::Paginated};
 
 pub struct CollectionService {
@@ -18,7 +18,7 @@ impl CollectionService {
     pub async fn list_collections(&self, user_id: String) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repository
-            .find(CollectionFindParams {
+            .query(CollectionParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -33,7 +33,7 @@ impl CollectionService {
     pub async fn get_collection(&self, id: Uuid, user_id: String) -> Result<Collection, Error> {
         let mut collections = self
             .repository
-            .find(CollectionFindParams {
+            .query(CollectionParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -61,7 +61,7 @@ impl CollectionService {
             .user_id(user_id)
             .build();
 
-        self.repository.save(&collection, false).await?;
+        self.repository.save(&collection).await?;
 
         Ok(collection)
     }
@@ -87,7 +87,7 @@ impl CollectionService {
         }
 
         collection.updated_at = Utc::now();
-        self.repository.save(&collection, true).await?;
+        self.repository.save(&collection).await?;
 
         Ok(collection)
     }

@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::{DateTime, Utc};
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -90,36 +91,39 @@ pub struct CollectionInsert<'a> {
     pub title: &'a str,
     pub filter_raw: &'a str,
     pub user_id: &'a str,
-    pub upsert: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl IntoInsert for CollectionInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        let mut query = Query::insert()
+        Query::insert()
             .columns([
                 Collection::Id,
                 Collection::Title,
                 Collection::FilterRaw,
                 Collection::UserId,
+                Collection::CreatedAt,
+                Collection::UpdatedAt,
             ])
             .values_panic([
                 self.id.into(),
                 self.title.into(),
                 self.filter_raw.into(),
                 self.user_id.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
             ])
-            .to_owned();
-
-        if self.upsert {
-            query.on_conflict(
+            .on_conflict(
                 OnConflict::column(Collection::Id)
-                    .update_columns([Collection::Title, Collection::FilterRaw])
-                    .value(Collection::UpdatedAt, Expr::current_timestamp())
+                    .update_columns([
+                        Collection::Title,
+                        Collection::FilterRaw,
+                        Collection::UpdatedAt,
+                    ])
                     .to_owned(),
-            );
-        }
-
-        query
+            )
+            .to_owned()
     }
 }
 

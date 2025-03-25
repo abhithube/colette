@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     ApiKey,
-    api_key::{ApiKeyFindOne, ApiKeyFindParams, ApiKeyRepository, Error},
+    api_key::{ApiKeyParams, ApiKeyRepository, Error},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -26,7 +26,7 @@ impl LibsqlApiKeyRepository {
 
 #[async_trait::async_trait]
 impl ApiKeyRepository for LibsqlApiKeyRepository {
-    async fn find(&self, params: ApiKeyFindParams) -> Result<Vec<ApiKey>, Error> {
+    async fn query(&self, params: ApiKeyParams) -> Result<Vec<ApiKey>, Error> {
         let (sql, values) = ApiKeySelect {
             id: params.id,
             user_id: params.user_id.as_deref(),
@@ -47,13 +47,10 @@ impl ApiKeyRepository for LibsqlApiKeyRepository {
         Ok(api_keys)
     }
 
-    async fn find_one(&self, key: ApiKeyFindOne) -> Result<Option<ApiKey>, Error> {
-        let key = match key {
-            ApiKeyFindOne::Id(id) => ApiKeySelectOne::Id(id),
-            ApiKeyFindOne::LookupHash(lookup_hash) => ApiKeySelectOne::LookupHash(lookup_hash),
-        };
-
-        let (sql, values) = key.into_select().build_libsql(SqliteQueryBuilder);
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKey>, Error> {
+        let (sql, values) = ApiKeySelectOne::Id(id)
+            .into_select()
+            .build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -65,7 +62,22 @@ impl ApiKeyRepository for LibsqlApiKeyRepository {
         Ok(Some(libsql::de::from_row::<ApiKeyRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &ApiKey, upsert: bool) -> Result<(), Error> {
+    async fn find_by_lookup_hash(&self, lookup_hash: String) -> Result<Option<ApiKey>, Error> {
+        let (sql, values) = ApiKeySelectOne::LookupHash(&lookup_hash)
+            .into_select()
+            .build_libsql(SqliteQueryBuilder);
+
+        let mut stmt = self.conn.prepare(&sql).await?;
+        let mut rows = stmt.query(values.into_params()).await?;
+
+        let Some(row) = rows.next().await? else {
+            return Ok(None);
+        };
+
+        Ok(Some(libsql::de::from_row::<ApiKeyRow>(&row)?.into()))
+    }
+
+    async fn save(&self, data: &ApiKey) -> Result<(), Error> {
         let (sql, values) = ApiKeyInsert {
             id: data.id,
             lookup_hash: &data.lookup_hash,
@@ -73,7 +85,8 @@ impl ApiKeyRepository for LibsqlApiKeyRepository {
             title: &data.title,
             preview: &data.preview,
             user_id: &data.user_id,
-            upsert,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);

@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::{DateTime, Utc};
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -88,31 +89,28 @@ pub struct StreamInsert<'a> {
     pub title: &'a str,
     pub filter_raw: &'a str,
     pub user_id: &'a str,
-    pub upsert: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl IntoInsert for StreamInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        let mut query = Query::insert()
+        Query::insert()
             .columns([Stream::Id, Stream::Title, Stream::FilterRaw, Stream::UserId])
             .values_panic([
                 self.id.into(),
                 self.title.into(),
                 self.filter_raw.into(),
                 self.user_id.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
             ])
-            .to_owned();
-
-        if self.upsert {
-            query.on_conflict(
+            .on_conflict(
                 OnConflict::column(Stream::Id)
-                    .update_columns([Stream::Title, Stream::FilterRaw])
-                    .value(Stream::UpdatedAt, Expr::current_timestamp())
+                    .update_columns([Stream::Title, Stream::FilterRaw, Stream::UpdatedAt])
                     .to_owned(),
-            );
-        }
-
-        query
+            )
+            .to_owned()
     }
 }
 

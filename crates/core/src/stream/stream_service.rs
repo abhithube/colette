@@ -1,7 +1,7 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Error, Stream, StreamFindParams, StreamRepository, SubscriptionEntryFilter};
+use super::{Error, Stream, StreamParams, StreamRepository, SubscriptionEntryFilter};
 use crate::common::Paginated;
 
 pub struct StreamService {
@@ -18,7 +18,7 @@ impl StreamService {
     pub async fn list_streams(&self, user_id: String) -> Result<Paginated<Stream>, Error> {
         let streams = self
             .repository
-            .find(StreamFindParams {
+            .query(StreamParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -33,7 +33,7 @@ impl StreamService {
     pub async fn get_stream(&self, id: Uuid, user_id: String) -> Result<Stream, Error> {
         let mut streams = self
             .repository
-            .find(StreamFindParams {
+            .query(StreamParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -50,14 +50,18 @@ impl StreamService {
         Ok(stream)
     }
 
-    pub async fn create_stream(&self, data: StreamCreate, user_id: String) -> Result<Stream, Error> {
+    pub async fn create_stream(
+        &self,
+        data: StreamCreate,
+        user_id: String,
+    ) -> Result<Stream, Error> {
         let stream = Stream::builder()
             .title(data.title)
             .filter(data.filter)
             .user_id(user_id)
             .build();
 
-        self.repository.save(&stream, false).await?;
+        self.repository.save(&stream).await?;
 
         Ok(stream)
     }
@@ -83,7 +87,7 @@ impl StreamService {
         }
 
         stream.updated_at = Utc::now();
-        self.repository.save(&stream, true).await?;
+        self.repository.save(&stream).await?;
 
         Ok(stream)
     }

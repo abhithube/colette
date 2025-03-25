@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use colette_core::{
     Subscription, Tag,
-    subscription::{Error, SubscriptionFindParams, SubscriptionRepository},
+    subscription::{Error, SubscriptionParams, SubscriptionRepository},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -34,7 +34,7 @@ impl LibsqlSubscriptionRepository {
 
 #[async_trait::async_trait]
 impl SubscriptionRepository for LibsqlSubscriptionRepository {
-    async fn find(&self, params: SubscriptionFindParams) -> Result<Vec<Subscription>, Error> {
+    async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
         let (sql, values) = SubscriptionSelect {
             id: params.id,
             tags: params.tags,
@@ -133,18 +133,32 @@ impl SubscriptionRepository for LibsqlSubscriptionRepository {
         Ok(Some(libsql::de::from_row::<SubscriptionRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &Subscription, upsert: bool) -> Result<(), Error> {
+    async fn save(&self, data: &Subscription) -> Result<(), Error> {
         let tx = self.conn.transaction().await?;
 
-        let (sql, values) = SubscriptionInsert {
-            id: data.id,
-            title: &data.title,
-            feed_id: data.feed_id,
-            user_id: &data.user_id,
-            upsert,
+        {
+            let (sql, values) = SubscriptionInsert {
+                id: data.id,
+                title: &data.title,
+                feed_id: data.feed_id,
+                user_id: &data.user_id,
+                created_at: data.created_at,
+                updated_at: data.updated_at,
+                upsert: false,
+            }
+            .into_insert()
+            .build_libsql(SqliteQueryBuilder);
+
+            let mut stmt = tx.prepare(&sql).await?;
+            stmt.execute(values.into_params())
+                .await
+                .map_err(|e| match e {
+                    libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
+                        Error::Conflict(data.feed_id)
+                    }
+                    _ => Error::Database(e),
+                })?;
         }
-        .into_insert()
-        .build_libsql(SqliteQueryBuilder);
 
         if let Some(ref tags) = data.tags {
             let (sql, values) = SubscriptionTagDelete {
@@ -170,16 +184,6 @@ impl SubscriptionRepository for LibsqlSubscriptionRepository {
             let mut stmt = tx.prepare(&sql).await?;
             stmt.execute(values.into_params()).await?;
         }
-
-        let mut stmt = tx.prepare(&sql).await?;
-        stmt.execute(values.into_params())
-            .await
-            .map_err(|e| match e {
-                libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
-                    Error::Conflict(data.feed_id)
-                }
-                _ => Error::Database(e),
-            })?;
 
         tx.commit().await?;
 

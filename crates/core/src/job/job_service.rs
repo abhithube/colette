@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde_json::Value;
 use uuid::Uuid;
 
-use super::{Error, Job, JobFindParams, JobRepository, JobStatus};
+use super::{Error, Job, JobParams, JobRepository, JobStatus};
 
 pub struct JobService {
     job_repository: Box<dyn JobRepository>,
@@ -18,7 +18,7 @@ impl JobService {
     pub async fn get_job(&self, id: Uuid) -> Result<Job, Error> {
         let mut jobs = self
             .job_repository
-            .find(JobFindParams {
+            .query(JobParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -37,7 +37,7 @@ impl JobService {
             .maybe_group_id(data.group_id)
             .build();
 
-        self.job_repository.save(&job, false).await?;
+        self.job_repository.save(&job).await?;
 
         Ok(job)
     }
@@ -60,7 +60,7 @@ impl JobService {
             job.completed_at = completed_at;
         }
 
-        self.job_repository.save(&job, true).await?;
+        self.job_repository.save(&job).await?;
 
         Ok(job)
     }

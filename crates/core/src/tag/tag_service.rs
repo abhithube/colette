@@ -1,7 +1,7 @@
 use chrono::Utc;
 use uuid::Uuid;
 
-use super::{Error, Tag, TagFindParams, TagRepository, TagType, TagUpsertType};
+use super::{Error, Tag, TagParams, TagRepository, TagType};
 use crate::common::Paginated;
 
 pub struct TagService {
@@ -22,7 +22,7 @@ impl TagService {
     ) -> Result<Paginated<Tag>, Error> {
         let tags = self
             .repository
-            .find(TagFindParams {
+            .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
                 ..Default::default()
@@ -38,7 +38,7 @@ impl TagService {
     pub async fn get_tag(&self, id: Uuid, user_id: String) -> Result<Tag, Error> {
         let mut tags = self
             .repository
-            .find(TagFindParams {
+            .query(TagParams {
                 ids: Some(vec![id]),
                 ..Default::default()
             })
@@ -58,7 +58,7 @@ impl TagService {
     pub async fn create_tag(&self, data: TagCreate, user_id: String) -> Result<Tag, Error> {
         let tag = Tag::builder().title(data.title).user_id(user_id).build();
 
-        self.repository.save(&tag, None).await?;
+        self.repository.save(&tag).await?;
 
         Ok(tag)
     }
@@ -69,12 +69,9 @@ impl TagService {
         data: TagUpdate,
         user_id: String,
     ) -> Result<Tag, Error> {
-        let mut tags = self.repository.find_by_ids(vec![id]).await?;
-        if tags.is_empty() {
+        let Some(mut tag) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
-        }
-
-        let mut tag = tags.swap_remove(0);
+        };
         if tag.user_id != user_id {
             return Err(Error::Forbidden(id));
         }
@@ -84,18 +81,15 @@ impl TagService {
         }
 
         tag.updated_at = Utc::now();
-        self.repository.save(&tag, Some(TagUpsertType::Id)).await?;
+        self.repository.save(&tag).await?;
 
         Ok(tag)
     }
 
     pub async fn delete_tag(&self, id: Uuid, user_id: String) -> Result<(), Error> {
-        let mut tags = self.repository.find_by_ids(vec![id]).await?;
-        if tags.is_empty() {
+        let Some(tag) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
-        }
-
-        let tag = tags.swap_remove(0);
+        };
         if tag.user_id != user_id {
             return Err(Error::Forbidden(id));
         }

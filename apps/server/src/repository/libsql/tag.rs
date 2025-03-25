@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Tag,
-    tag::{Error, TagFindParams, TagRepository, TagUpsertType},
+    tag::{Error, TagParams, TagRepository},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -26,7 +26,7 @@ impl LibsqlTagRepository {
 
 #[async_trait::async_trait]
 impl TagRepository for LibsqlTagRepository {
-    async fn find(&self, params: TagFindParams) -> Result<Vec<Tag>, Error> {
+    async fn query(&self, params: TagParams) -> Result<Vec<Tag>, Error> {
         let (sql, values) = TagSelect {
             ids: params.ids,
             tag_type: params.tag_type,
@@ -66,12 +66,14 @@ impl TagRepository for LibsqlTagRepository {
         Ok(tags)
     }
 
-    async fn save(&self, data: &Tag, upsert: Option<TagUpsertType>) -> Result<(), Error> {
+    async fn save(&self, data: &Tag) -> Result<(), Error> {
         let (sql, values) = TagInsert {
             id: data.id,
             title: &data.title,
             user_id: &data.user_id,
-            upsert,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            upsert: false,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);

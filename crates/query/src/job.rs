@@ -83,13 +83,13 @@ pub struct JobInsert<'a> {
     pub status: &'a str,
     pub group_id: Option<&'a str>,
     pub message: Option<&'a str>,
+    pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
-    pub upsert: bool,
 }
 
 impl IntoInsert for JobInsert<'_> {
     fn into_insert(self) -> InsertStatement {
-        let mut query = Query::insert()
+        Query::insert()
             .into_table(Job::Table)
             .columns([
                 Job::Id,
@@ -98,6 +98,7 @@ impl IntoInsert for JobInsert<'_> {
                 Job::Status,
                 Job::GroupId,
                 Job::Message,
+                Job::CreatedAt,
                 Job::CompletedAt,
             ])
             .values_panic([
@@ -107,12 +108,10 @@ impl IntoInsert for JobInsert<'_> {
                 self.status.into(),
                 self.group_id.into(),
                 self.message.into(),
+                self.created_at.into(),
                 self.completed_at.into(),
             ])
-            .to_owned();
-
-        if self.upsert {
-            query.on_conflict(
+            .on_conflict(
                 OnConflict::column(Job::Id)
                     .update_columns([
                         Job::JobType,
@@ -123,10 +122,8 @@ impl IntoInsert for JobInsert<'_> {
                         Job::CompletedAt,
                     ])
                     .to_owned(),
-            );
-        }
-
-        query
+            )
+            .to_owned()
     }
 }
 

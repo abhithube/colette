@@ -10,12 +10,11 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkFilter, BookmarkScraper, BookmarkUpsertType, Cursor, Error,
-    ExtractedBookmark, ScraperError,
-    bookmark_repository::{BookmarkFindParams, BookmarkRepository},
+    Bookmark, BookmarkFilter, BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
+    bookmark_repository::{BookmarkParams, BookmarkRepository},
 };
 use crate::{
-    collection::{CollectionFindParams, CollectionRepository},
+    collection::{CollectionParams, CollectionRepository},
     common::{PAGINATION_LIMIT, Paginated},
     job::{Job, JobRepository},
     queue::JobProducer,
@@ -70,7 +69,7 @@ impl BookmarkService {
         if let Some(collection_id) = query.collection_id {
             let mut collections = self
                 .collection_repository
-                .find(CollectionFindParams {
+                .query(CollectionParams {
                     id: Some(collection_id),
                     user_id: Some(user_id.clone()),
                     ..Default::default()
@@ -88,7 +87,7 @@ impl BookmarkService {
 
         let mut bookmarks = self
             .bookmark_repository
-            .find(BookmarkFindParams {
+            .query(BookmarkParams {
                 filter,
                 tags: query.tags,
                 user_id: Some(user_id),
@@ -122,7 +121,7 @@ impl BookmarkService {
     pub async fn get_bookmark(&self, id: Uuid, user_id: String) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .bookmark_repository
-            .find(BookmarkFindParams {
+            .query(BookmarkParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -166,7 +165,7 @@ impl BookmarkService {
             builder.build()
         };
 
-        self.bookmark_repository.save(&bookmark, None).await?;
+        self.bookmark_repository.save(&bookmark).await?;
 
         if let Some(thumbnail_url) = bookmark.thumbnail_url.clone() {
             let data = serde_json::to_value(&ArchiveThumbnailJobData {
@@ -180,7 +179,7 @@ impl BookmarkService {
                 .data(data)
                 .build();
 
-            self.job_repository.save(&job, false).await?;
+            self.job_repository.save(&job).await?;
 
             let mut producer = self.archive_thumbnail_producer.lock().await;
 
@@ -231,9 +230,7 @@ impl BookmarkService {
         }
 
         bookmark.updated_at = Utc::now();
-        self.bookmark_repository
-            .save(&bookmark, Some(BookmarkUpsertType::Id))
-            .await?;
+        self.bookmark_repository.save(&bookmark).await?;
 
         if let Some(thumbnail_url) = new_thumbnail {
             if thumbnail_url == bookmark.thumbnail_url {
@@ -252,7 +249,7 @@ impl BookmarkService {
                     .data(data)
                     .build();
 
-                self.job_repository.save(&job, false).await?;
+                self.job_repository.save(&job).await?;
 
                 let mut producer = self.archive_thumbnail_producer.lock().await;
 
@@ -284,7 +281,7 @@ impl BookmarkService {
             .data(data)
             .build();
 
-        self.job_repository.save(&job, false).await?;
+        self.job_repository.save(&job).await?;
 
         let mut producer = self.archive_thumbnail_producer.lock().await;
 
@@ -351,9 +348,7 @@ impl BookmarkService {
             .user_id(data.user_id)
             .build();
 
-        self.bookmark_repository
-            .save(&bookmark, Some(BookmarkUpsertType::Link))
-            .await
+        self.bookmark_repository.upsert(&bookmark).await
     }
 
     pub async fn archive_thumbnail(
@@ -361,10 +356,6 @@ impl BookmarkService {
         bookmark_id: Uuid,
         data: ThumbnailArchive,
     ) -> Result<(), Error> {
-        let Some(mut bookmark) = self.bookmark_repository.find_by_id(bookmark_id).await? else {
-            return Err(Error::NotFound(bookmark_id));
-        };
-
         match data.operation {
             ThumbnailOperation::Upload(thumbnail_url) => {
                 let file_name = thumbnail::generate_filename(&thumbnail_url);
@@ -380,10 +371,8 @@ impl BookmarkService {
                     .put(&Path::parse(&object_path).unwrap(), body.into())
                     .await?;
 
-                bookmark.archived_path = Some(object_path);
-
                 self.bookmark_repository
-                    .save(&bookmark, Some(BookmarkUpsertType::Id))
+                    .set_archived_path(bookmark_id, Some(object_path))
                     .await?;
             }
             ThumbnailOperation::Delete => {}
@@ -394,10 +383,8 @@ impl BookmarkService {
                 .delete(&Path::parse(&archived_path).unwrap())
                 .await?;
 
-            bookmark.archived_path = None;
-
             self.bookmark_repository
-                .save(&bookmark, Some(BookmarkUpsertType::Id))
+                .set_archived_path(bookmark_id, None)
                 .await?;
         }
 

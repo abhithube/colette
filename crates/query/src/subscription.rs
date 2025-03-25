@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::{DateTime, Utc};
 use sea_query::{
     Alias, Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -133,6 +134,8 @@ pub struct SubscriptionInsert<'a> {
     pub title: &'a str,
     pub feed_id: Uuid,
     pub user_id: &'a str,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub upsert: bool,
 }
 
@@ -145,12 +148,16 @@ impl IntoInsert for SubscriptionInsert<'_> {
                 Subscription::Title,
                 Subscription::FeedId,
                 Subscription::UserId,
+                Subscription::CreatedAt,
+                Subscription::UpdatedAt,
             ])
             .values_panic([
                 self.id.into(),
                 self.title.into(),
                 self.feed_id.into(),
                 self.user_id.into(),
+                self.created_at.into(),
+                self.updated_at.into(),
             ])
             .to_owned();
 
@@ -158,7 +165,7 @@ impl IntoInsert for SubscriptionInsert<'_> {
             query
                 .on_conflict(
                     OnConflict::columns([Subscription::UserId, Subscription::FeedId])
-                        .update_column(Subscription::Title)
+                        .update_columns([Subscription::Title, Subscription::UpdatedAt])
                         .to_owned(),
                 )
                 .returning_col(Subscription::Id);

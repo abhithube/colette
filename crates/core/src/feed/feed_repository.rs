@@ -6,7 +6,7 @@ use super::{Error, Feed};
 
 #[async_trait::async_trait]
 pub trait FeedRepository: Send + Sync + 'static {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error>;
+    async fn query(&self, params: FeedParams) -> Result<Vec<Feed>, Error>;
 
     async fn save(&self, data: &Feed) -> Result<(), Error>;
 
@@ -14,7 +14,7 @@ pub trait FeedRepository: Send + Sync + 'static {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct FeedFindParams {
+pub struct FeedParams {
     pub id: Option<Uuid>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,

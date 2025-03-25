@@ -2,12 +2,12 @@ use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
-    Cursor, Error, SubscriptionEntry, SubscriptionEntryFilter, SubscriptionEntryFindParams,
+    Cursor, Error, SubscriptionEntry, SubscriptionEntryFilter, SubscriptionEntryParams,
     SubscriptionEntryRepository,
 };
 use crate::{
     common::{PAGINATION_LIMIT, Paginated},
-    stream::{StreamFindParams, StreamRepository},
+    stream::{StreamParams, StreamRepository},
 };
 
 pub struct SubscriptionEntryService {
@@ -17,11 +17,11 @@ pub struct SubscriptionEntryService {
 
 impl SubscriptionEntryService {
     pub fn new(
-        feed_entry_repository: impl SubscriptionEntryRepository,
+        subscription_entry_repository: impl SubscriptionEntryRepository,
         stream_repository: impl StreamRepository,
     ) -> Self {
         Self {
-            subscription_entry_repository: Box::new(feed_entry_repository),
+            subscription_entry_repository: Box::new(subscription_entry_repository),
             stream_repository: Box::new(stream_repository),
         }
     }
@@ -37,7 +37,7 @@ impl SubscriptionEntryService {
         if let Some(stream_id) = query.stream_id {
             let mut streams = self
                 .stream_repository
-                .find(StreamFindParams {
+                .query(StreamParams {
                     id: Some(stream_id),
                     user_id: Some(user_id.clone()),
                     ..Default::default()
@@ -55,7 +55,7 @@ impl SubscriptionEntryService {
 
         let mut subscription_entries = self
             .subscription_entry_repository
-            .find(SubscriptionEntryFindParams {
+            .query(SubscriptionEntryParams {
                 filter,
                 subscription_id: query.feed_id,
                 has_read: query.has_read,

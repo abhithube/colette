@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use colette_util::{api_key, password};
 use uuid::Uuid;
 
-use super::{ApiKey, ApiKeyFindOne, ApiKeyFindParams, ApiKeyRepository, Error};
+use super::{ApiKey, ApiKeyParams, ApiKeyRepository, Error};
 use crate::common::Paginated;
 
 pub struct ApiKeyService {
@@ -19,7 +19,7 @@ impl ApiKeyService {
     pub async fn list_api_keys(&self, user_id: String) -> Result<Paginated<ApiKey>, Error> {
         let api_keys = self
             .repository
-            .find(ApiKeyFindParams {
+            .query(ApiKeyParams {
                 user_id: Some(user_id),
                 ..Default::default()
             })
@@ -34,11 +34,7 @@ impl ApiKeyService {
     pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
         let lookup_hash = api_key::hash(&value);
 
-        let Some(api_key) = self
-            .repository
-            .find_one(ApiKeyFindOne::LookupHash(lookup_hash))
-            .await?
-        else {
+        let Some(api_key) = self.repository.find_by_lookup_hash(lookup_hash).await? else {
             return Err(Error::Auth);
         };
 
@@ -53,7 +49,7 @@ impl ApiKeyService {
     pub async fn get_api_key(&self, id: Uuid, user_id: String) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
-            .find(ApiKeyFindParams {
+            .query(ApiKeyParams {
                 id: Some(id),
                 ..Default::default()
             })
@@ -89,7 +85,7 @@ impl ApiKeyService {
             .user_id(user_id)
             .build();
 
-        self.repository.save(&api_key, false).await?;
+        self.repository.save(&api_key).await?;
 
         Ok(ApiKeyCreated {
             id: api_key.id,
@@ -105,7 +101,7 @@ impl ApiKeyService {
         data: ApiKeyUpdate,
         user_id: String,
     ) -> Result<ApiKey, Error> {
-        let Some(mut api_key) = self.repository.find_one(ApiKeyFindOne::Id(id)).await? else {
+        let Some(mut api_key) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if api_key.user_id != user_id {
@@ -117,13 +113,13 @@ impl ApiKeyService {
         }
 
         api_key.updated_at = Utc::now();
-        self.repository.save(&api_key, true).await?;
+        self.repository.save(&api_key).await?;
 
         Ok(api_key)
     }
 
     pub async fn delete_api_key(&self, id: Uuid, user_id: String) -> Result<(), Error> {
-        let Some(api_key) = self.repository.find_one(ApiKeyFindOne::Id(id)).await? else {
+        let Some(api_key) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
         if api_key.user_id != user_id {

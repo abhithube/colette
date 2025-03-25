@@ -12,8 +12,6 @@ pub enum SubscriptionTag {
     SubscriptionId,
     TagId,
     UserId,
-    CreatedAt,
-    UpdatedAt,
 }
 
 impl Iden for SubscriptionTag {
@@ -26,8 +24,6 @@ impl Iden for SubscriptionTag {
                 Self::SubscriptionId => "subscription_id",
                 Self::TagId => "tag_id",
                 Self::UserId => "user_id",
-                Self::CreatedAt => "created_at",
-                Self::UpdatedAt => "updated_at",
             }
         )
         .unwrap();

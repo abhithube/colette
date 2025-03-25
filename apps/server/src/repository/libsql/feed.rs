@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Feed,
-    feed::{Error, FeedFindParams, FeedRepository},
+    feed::{Error, FeedParams, FeedRepository},
 };
 use colette_query::{
     IntoInsert, IntoSelect,
@@ -29,7 +29,7 @@ impl LibsqlFeedRepository {
 
 #[async_trait::async_trait]
 impl FeedRepository for LibsqlFeedRepository {
-    async fn find(&self, params: FeedFindParams) -> Result<Vec<Feed>, Error> {
+    async fn query(&self, params: FeedParams) -> Result<Vec<Feed>, Error> {
         let (sql, values) = FeedSelect {
             id: params.id,
             cursor: params.cursor.as_deref(),
@@ -52,25 +52,28 @@ impl FeedRepository for LibsqlFeedRepository {
     async fn save(&self, data: &Feed) -> Result<(), Error> {
         let tx = self.conn.transaction().await?;
 
-        let feed = FeedInsert {
-            id: data.id,
-            link: data.link.as_str(),
-            xml_url: data.xml_url.as_ref().map(|e| e.as_str()),
-            title: &data.title,
-            description: data.description.as_deref(),
-            refreshed_at: data.refreshed_at,
+        let feed_id = {
+            let feed = FeedInsert {
+                id: data.id,
+                link: data.link.as_str(),
+                xml_url: data.xml_url.as_ref().map(|e| e.as_str()),
+                title: &data.title,
+                description: data.description.as_deref(),
+                refreshed_at: data.refreshed_at,
+            };
+
+            let (sql, values) = feed.into_insert().build_libsql(SqliteQueryBuilder);
+
+            #[derive(serde::Deserialize)]
+            struct Row {
+                id: Uuid,
+            }
+
+            let mut stmt = tx.prepare(&sql).await?;
+            let row = stmt.query_row(values.into_params()).await?;
+
+            libsql::de::from_row::<Row>(&row)?.id
         };
-
-        let (sql, values) = feed.into_insert().build_libsql(SqliteQueryBuilder);
-
-        #[derive(serde::Deserialize)]
-        struct Row {
-            id: Uuid,
-        }
-
-        let mut stmt = tx.prepare(&sql).await?;
-        let row = stmt.query_row(values.into_params()).await?;
-        let row = libsql::de::from_row::<Row>(&row)?;
 
         if let Some(ref entries) = data.entries {
             let entries = entries.iter().map(|e| FeedEntryInsert {
@@ -81,7 +84,7 @@ impl FeedRepository for LibsqlFeedRepository {
                 description: e.description.as_deref(),
                 author: e.author.as_deref(),
                 thumbnail_url: e.thumbnail_url.as_ref().map(|e| e.as_str()),
-                feed_id: row.id,
+                feed_id,
             });
 
             let (sql, values) = FeedEntryInsertBatch(entries)

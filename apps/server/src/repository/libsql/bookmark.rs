@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use colette_core::{
     Bookmark, Tag,
-    bookmark::{BookmarkFindParams, BookmarkRepository, BookmarkUpsertType, Error},
+    bookmark::{BookmarkParams, BookmarkRepository, Error},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect,
-    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkSelectOne},
+    IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
+    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkSelectOne, BookmarkUpdate},
     bookmark_tag::{BookmarkTagById, BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
 };
-use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
+use libsql::{Connection, Transaction, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
 use uuid::Uuid;
 
@@ -29,7 +29,7 @@ impl LibsqlBookmarkRepository {
 
 #[async_trait::async_trait]
 impl BookmarkRepository for LibsqlBookmarkRepository {
-    async fn find(&self, params: BookmarkFindParams) -> Result<Vec<Bookmark>, Error> {
+    async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
         let (sql, values) = BookmarkSelect {
             id: params.id,
             tags: params.tags,
@@ -97,9 +97,47 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
         Ok(Some(libsql::de::from_row::<BookmarkRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &Bookmark, upsert: Option<BookmarkUpsertType>) -> Result<(), Error> {
+    async fn save(&self, data: &Bookmark) -> Result<(), Error> {
         let tx = self.conn.transaction().await?;
 
+        {
+            let (sql, values) = BookmarkInsert {
+                id: data.id,
+                link: data.link.as_str(),
+                title: &data.title,
+                thumbnail_url: data.thumbnail_url.as_ref().map(|e| e.as_str()),
+                published_at: data.published_at,
+                author: data.author.as_deref(),
+                archived_path: data.archived_path.as_deref(),
+                user_id: &data.user_id,
+                created_at: data.created_at,
+                updated_at: data.updated_at,
+                upsert: false,
+            }
+            .into_insert()
+            .build_libsql(SqliteQueryBuilder);
+
+            let mut stmt = tx.prepare(&sql).await?;
+            stmt.execute(values.into_params())
+                .await
+                .map_err(|e| match e {
+                    libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
+                        Error::Conflict(data.link.clone())
+                    }
+                    _ => Error::Database(e),
+                })?;
+        }
+
+        if let Some(ref tags) = data.tags {
+            self.link_tags(&tx, data.id, tags).await?;
+        }
+
+        tx.commit().await?;
+
+        Ok(())
+    }
+
+    async fn upsert(&self, data: &Bookmark) -> Result<(), Error> {
         let (sql, values) = BookmarkInsert {
             id: data.id,
             link: data.link.as_str(),
@@ -109,47 +147,34 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
             author: data.author.as_deref(),
             archived_path: data.archived_path.as_deref(),
             user_id: &data.user_id,
-            upsert,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
+            upsert: true,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);
 
-        let mut stmt = tx.prepare(&sql).await?;
-        stmt.execute(values.into_params())
-            .await
-            .map_err(|e| match e {
-                libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
-                    Error::Conflict(data.link.clone())
-                }
-                _ => Error::Database(e),
-            })?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
-        if let Some(ref tags) = data.tags {
-            let (sql, values) = BookmarkTagDelete {
-                bookmark_id: data.id,
-                tag_ids: tags.iter().map(|e| e.id),
-            }
-            .into_delete()
-            .build_libsql(SqliteQueryBuilder);
+        Ok(())
+    }
 
-            let mut stmt = tx.prepare(&sql).await?;
-            stmt.execute(values.into_params()).await?;
-
-            let (sql, values) = BookmarkTagInsert {
-                bookmark_id: data.id,
-                tags: tags.iter().map(|e| BookmarkTagById {
-                    id: e.id,
-                    user_id: &e.user_id,
-                }),
-            }
-            .into_insert()
-            .build_libsql(SqliteQueryBuilder);
-
-            let mut stmt = tx.prepare(&sql).await?;
-            stmt.execute(values.into_params()).await?;
+    async fn set_archived_path(
+        &self,
+        bookmark_id: Uuid,
+        archived_path: Option<String>,
+    ) -> Result<(), Error> {
+        let (sql, values) = BookmarkUpdate {
+            id: bookmark_id,
+            archived_path: Some(archived_path.as_deref()),
+            updated_at: Utc::now(),
         }
+        .into_update()
+        .build_libsql(SqliteQueryBuilder);
 
-        tx.commit().await?;
+        let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
 
         Ok(())
     }
@@ -160,6 +185,40 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
             .build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
+
+        Ok(())
+    }
+}
+
+impl LibsqlBookmarkRepository {
+    async fn link_tags(
+        &self,
+        tx: &Transaction,
+        bookmark_id: Uuid,
+        tags: &[Tag],
+    ) -> Result<(), Error> {
+        let (sql, values) = BookmarkTagDelete {
+            bookmark_id,
+            tag_ids: tags.iter().map(|e| e.id),
+        }
+        .into_delete()
+        .build_libsql(SqliteQueryBuilder);
+
+        let mut stmt = tx.prepare(&sql).await?;
+        stmt.execute(values.into_params()).await?;
+
+        let (sql, values) = BookmarkTagInsert {
+            bookmark_id,
+            tags: tags.iter().map(|e| BookmarkTagById {
+                id: e.id,
+                user_id: &e.user_id,
+            }),
+        }
+        .into_insert()
+        .build_libsql(SqliteQueryBuilder);
+
+        let mut stmt = tx.prepare(&sql).await?;
         stmt.execute(values.into_params()).await?;
 
         Ok(())

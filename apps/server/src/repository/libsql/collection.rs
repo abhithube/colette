@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Collection,
-    collection::{CollectionFindParams, CollectionRepository, Error},
+    collection::{CollectionParams, CollectionRepository, Error},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -26,7 +26,7 @@ impl LibsqlCollectionRepository {
 
 #[async_trait::async_trait]
 impl CollectionRepository for LibsqlCollectionRepository {
-    async fn find(&self, params: CollectionFindParams) -> Result<Vec<Collection>, Error> {
+    async fn query(&self, params: CollectionParams) -> Result<Vec<Collection>, Error> {
         let (sql, values) = CollectionSelect {
             id: params.id,
             user_id: params.user_id.as_deref(),
@@ -62,13 +62,14 @@ impl CollectionRepository for LibsqlCollectionRepository {
         Ok(Some(libsql::de::from_row::<CollectionRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &Collection, upsert: bool) -> Result<(), Error> {
+    async fn save(&self, data: &Collection) -> Result<(), Error> {
         let (sql, values) = CollectionInsert {
             id: data.id,
             title: &data.title,
             filter_raw: &serde_json::to_string(&data.filter).unwrap(),
             user_id: &data.user_id,
-            upsert,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);

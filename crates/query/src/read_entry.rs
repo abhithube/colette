@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use chrono::{DateTime, Utc};
 use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
@@ -34,6 +35,7 @@ pub struct ReadEntryInsert<'a> {
     pub feed_entry_id: Uuid,
     pub subscription_id: Uuid,
     pub user_id: &'a str,
+    pub created_at: DateTime<Utc>,
 }
 
 impl IntoInsert for ReadEntryInsert<'_> {
@@ -44,11 +46,13 @@ impl IntoInsert for ReadEntryInsert<'_> {
                 ReadEntry::SubscriptionId,
                 ReadEntry::FeedEntryId,
                 ReadEntry::UserId,
+                ReadEntry::CreatedAt,
             ])
             .values_panic([
                 self.subscription_id.into(),
                 self.feed_entry_id.into(),
                 self.user_id.into(),
+                self.created_at.into(),
             ])
             .on_conflict(
                 OnConflict::columns([ReadEntry::SubscriptionId, ReadEntry::FeedEntryId])

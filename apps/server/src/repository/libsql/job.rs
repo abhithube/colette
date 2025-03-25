@@ -1,12 +1,11 @@
 use chrono::{DateTime, Utc};
-use colette_core::job::{Error, Job, JobFindParams, JobRepository};
+use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     job::{JobDelete, JobInsert, JobSelect, JobSelectOne},
 };
 use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
-use serde_json::Value;
 use uuid::Uuid;
 
 use super::LibsqlBinder;
@@ -24,7 +23,7 @@ impl LibsqlJobRepository {
 
 #[async_trait::async_trait]
 impl JobRepository for LibsqlJobRepository {
-    async fn find(&self, params: JobFindParams) -> Result<Vec<Job>, Error> {
+    async fn query(&self, params: JobParams) -> Result<Vec<Job>, Error> {
         let (sql, values) = JobSelect {
             id: params.id,
             group_id: params.group_id.as_deref(),
@@ -58,7 +57,7 @@ impl JobRepository for LibsqlJobRepository {
         Ok(Some(libsql::de::from_row::<JobRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &Job, upsert: bool) -> Result<(), Error> {
+    async fn save(&self, data: &Job) -> Result<(), Error> {
         let (sql, values) = JobInsert {
             id: data.id,
             job_type: &data.job_type,
@@ -66,8 +65,8 @@ impl JobRepository for LibsqlJobRepository {
             status: &data.status.to_string(),
             group_id: data.group_id.as_deref(),
             message: data.message.as_deref(),
+            created_at: data.created_at,
             completed_at: data.completed_at,
-            upsert,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);
@@ -94,7 +93,7 @@ impl JobRepository for LibsqlJobRepository {
 struct JobRow {
     pub id: Uuid,
     pub job_type: String,
-    pub data: Value,
+    pub data: String,
     pub status: String,
     pub group_id: Option<String>,
     pub message: Option<String>,
@@ -107,7 +106,7 @@ impl From<JobRow> for Job {
         Self {
             id: value.id,
             job_type: value.job_type,
-            data: value.data,
+            data: serde_json::from_str(&value.data).unwrap(),
             status: value.status.parse().unwrap(),
             group_id: value.group_id,
             message: value.message,

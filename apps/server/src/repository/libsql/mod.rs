@@ -47,30 +47,12 @@ impl From<LibsqlValue> for Value {
         match value.0 {
             sea_query::Value::Bool(v) => v.into(),
             sea_query::Value::Int(v) => v.into(),
-            sea_query::Value::BigInt(v) => v.into(),
-            // sea_query::Value::BigUnsigned(v) => v.into_value(),
-            sea_query::Value::Float(v) => v.into(),
-            sea_query::Value::Double(v) => v.into(),
-            sea_query::Value::String(v) => match v {
-                Some(v) => (*v).into(),
-                None => Value::Null,
-            },
-            sea_query::Value::Char(v) => match v {
-                Some(v) => v.to_string().into(),
-                None => Value::Null,
-            },
-            sea_query::Value::Bytes(v) => match v {
-                Some(v) => (*v).into(),
-                None => Value::Null,
-            },
-            sea_query::Value::ChronoDateTimeUtc(v) => match v {
-                Some(v) => (*v).format("%F %T%.f%:z").to_string().into(),
-                None => Value::Null,
-            },
-            sea_query::Value::Uuid(v) => match v {
-                Some(v) => (*v).to_string().into(),
-                None => Value::Null,
-            },
+            sea_query::Value::BigUnsigned(v) => v.map(|e| e as i64).into(),
+            sea_query::Value::String(v) => v.map(|e| *e).into(),
+            sea_query::Value::ChronoDateTimeUtc(v) => {
+                v.map(|e| (*e).format("%F %T%.f%:z").to_string()).into()
+            }
+            sea_query::Value::Uuid(v) => v.map(|e| (*e).to_string()).into(),
             _ => unimplemented!(),
         }
     }

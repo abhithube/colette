@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     SubscriptionEntry,
-    subscription_entry::{Error, SubscriptionEntryFindParams, SubscriptionEntryRepository},
+    subscription_entry::{Error, SubscriptionEntryParams, SubscriptionEntryRepository},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -27,9 +27,9 @@ impl LibsqlSubscriptionEntryRepository {
 
 #[async_trait::async_trait]
 impl SubscriptionEntryRepository for LibsqlSubscriptionEntryRepository {
-    async fn find(
+    async fn query(
         &self,
-        params: SubscriptionEntryFindParams,
+        params: SubscriptionEntryParams,
     ) -> Result<Vec<SubscriptionEntry>, Error> {
         let (sql, values) = SubscriptionEntrySelect {
             filter: params.filter,
@@ -90,6 +90,7 @@ impl SubscriptionEntryRepository for LibsqlSubscriptionEntryRepository {
                 feed_entry_id: data.entry_id,
                 subscription_id: data.subscription_id,
                 user_id: &data.user_id,
+                created_at: Utc::now(),
             }
             .into_insert()
             .build_libsql(SqliteQueryBuilder);

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use colette_core::{
     Stream,
-    stream::{Error, StreamFindParams, StreamRepository},
+    stream::{Error, StreamParams, StreamRepository},
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -26,7 +26,7 @@ impl LibsqlStreamRepository {
 
 #[async_trait::async_trait]
 impl StreamRepository for LibsqlStreamRepository {
-    async fn find(&self, params: StreamFindParams) -> Result<Vec<Stream>, Error> {
+    async fn query(&self, params: StreamParams) -> Result<Vec<Stream>, Error> {
         let (sql, values) = StreamSelect {
             id: params.id,
             user_id: params.user_id.as_deref(),
@@ -62,13 +62,14 @@ impl StreamRepository for LibsqlStreamRepository {
         Ok(Some(libsql::de::from_row::<StreamRow>(&row)?.into()))
     }
 
-    async fn save(&self, data: &Stream, upsert: bool) -> Result<(), Error> {
+    async fn save(&self, data: &Stream) -> Result<(), Error> {
         let (sql, values) = StreamInsert {
             id: data.id,
             title: &data.title,
             filter_raw: &serde_json::to_string(&data.filter).unwrap(),
             user_id: &data.user_id,
-            upsert,
+            created_at: data.created_at,
+            updated_at: data.updated_at,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);
