@@ -125,8 +125,6 @@ pub async fn add_user_extension(
     } else {
         let header = req.headers().get("X-Api-Key");
 
-        println!("{:#?}", header);
-
         if let Some(header) = header {
             let Ok(header) = header.to_str() else {
                 return Err(StatusCode::UNPROCESSABLE_ENTITY);

@@ -1,4 +1,4 @@
-use std::{error::Error, net::SocketAddr, ops::RangeFull, str::FromStr, sync::Arc};
+use std::{error::Error, net::SocketAddr, ops::RangeFull, sync::Arc};
 
 use api::{
     ApiState,
@@ -30,7 +30,7 @@ use colette_core::{
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
-use colette_migration::{LibsqlMigrator, SqliteMigrator};
+use colette_migration::LibsqlMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_storage::StorageAdapter;
@@ -48,10 +48,6 @@ use repository::libsql::{
     LibsqlCollectionRepository, LibsqlFeedEntryRepository, LibsqlFeedRepository,
     LibsqlJobRepository, LibsqlStreamRepository, LibsqlSubscriptionEntryRepository,
     LibsqlSubscriptionRepository, LibsqlTagRepository,
-};
-use sqlx::{
-    Pool,
-    sqlite::{SqliteConnectOptions, SqliteJournalMode},
 };
 use tokio::{net::TcpListener, sync::Mutex};
 use torii::Torii;
@@ -99,26 +95,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = config::from_env()?;
 
-    let (pool, conn) = match app_config.database {
-        DatabaseConfig::Sqlite(mut config) => {
-            let options = SqliteConnectOptions::from_str(config.url.to_str().unwrap())?
-                .create_if_missing(true)
-                .journal_mode(SqliteJournalMode::Wal);
-
-            let pool = Pool::connect_with(options.journal_mode(SqliteJournalMode::Wal)).await?;
-
-            let mut migrator = SqliteMigrator::new(pool.clone());
-            migrations::runner().run_async(&mut migrator).await?;
-
-            config.url.set_file_name("app.sqlite");
-
+    let conn = match app_config.database {
+        DatabaseConfig::Sqlite(config) => {
             let database = libsql::Builder::new_local(config.url).build().await?;
             let conn = database.connect()?;
 
             let mut migrator = LibsqlMigrator::new(conn.clone());
             migrations::runner().run_async(&mut migrator).await?;
 
-            (pool, conn)
+            conn
         }
     };
 
@@ -242,8 +227,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState {
         auth: Arc::new(
-            Torii::new(Arc::new(AuthAdapter::Sqlite(
-                colette_auth::SqliteBackend::new(pool.clone()),
+            Torii::new(Arc::new(AuthAdapter::Libsql(
+                colette_auth::LibsqlBackend::new(conn.clone()),
             )))
             .with_password_plugin(),
         ),

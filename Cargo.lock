@@ -448,10 +448,8 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
- "colette-query",
- "sea-query",
- "sea-query-binder",
- "sqlx",
+ "libsql",
+ "serde",
  "torii-core",
 ]
 
