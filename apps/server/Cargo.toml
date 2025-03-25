@@ -47,11 +47,9 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
 sea-query.workspace = true
-sea-query-binder.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { version = "3.12.0", default-features = false }
-sqlx.workspace = true
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true

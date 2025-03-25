@@ -8,5 +8,4 @@ async-trait.workspace = true
 libsql.workspace = true
 refinery-core = { version = "0.8.16", default-features = false }
 serde.workspace = true
-sqlx.workspace = true
 time.workspace = true
