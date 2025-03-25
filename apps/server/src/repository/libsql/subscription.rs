@@ -258,14 +258,14 @@ pub struct SubscriptionWithFeedRow {
     pub title: String,
     pub feed_id: Uuid,
     pub user_id: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: i64,
+    pub updated_at: i64,
 
     pub link: Option<String>,
     pub xml_url: Option<String>,
     pub feed_title: Option<String>,
     pub description: Option<String>,
-    pub refreshed_at: Option<DateTime<Utc>>,
+    pub refreshed_at: Option<i64>,
 }
 
 pub struct SubscriptionWithTagsAndCount {
@@ -281,8 +281,8 @@ impl From<SubscriptionWithTagsAndCount> for Subscription {
             title: value.subscription.title,
             feed_id: value.subscription.feed_id,
             user_id: value.subscription.user_id,
-            created_at: value.subscription.created_at,
-            updated_at: value.subscription.updated_at,
+            created_at: DateTime::from_timestamp(value.subscription.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.subscription.updated_at, 0).unwrap(),
             feed: Some(
                 FeedRow {
                     id: value.subscription.feed_id,

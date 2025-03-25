@@ -231,12 +231,12 @@ pub struct BookmarkRow {
     pub link: String,
     pub title: String,
     pub thumbnail_url: Option<String>,
-    pub published_at: Option<DateTime<Utc>>,
+    pub published_at: Option<i64>,
     pub archived_path: Option<String>,
     pub author: Option<String>,
     pub user_id: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 impl From<BookmarkRow> for Bookmark {
@@ -246,12 +246,14 @@ impl From<BookmarkRow> for Bookmark {
             link: value.link.parse().unwrap(),
             title: value.title,
             thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),
-            published_at: value.published_at,
+            published_at: value
+                .published_at
+                .and_then(|e| DateTime::from_timestamp(e, 0)),
             author: value.author,
             archived_path: value.archived_path,
             user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
             tags: None,
         }
     }
@@ -263,8 +265,8 @@ pub struct BookmarkTagRow {
     pub id: Uuid,
     pub title: String,
     pub user_id: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub created_at: i64,
+    pub updated_at: i64,
 }
 
 impl From<BookmarkTagRow> for Tag {
@@ -273,8 +275,8 @@ impl From<BookmarkTagRow> for Tag {
             id: value.id,
             title: value.title,
             user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
             feed_count: None,
             bookmark_count: None,
         }
@@ -293,12 +295,15 @@ impl From<BookmarkRowWithTagRows> for Bookmark {
             link: value.bookmark.link.parse().unwrap(),
             title: value.bookmark.title,
             thumbnail_url: value.bookmark.thumbnail_url.and_then(|e| e.parse().ok()),
-            published_at: value.bookmark.published_at,
+            published_at: value
+                .bookmark
+                .published_at
+                .and_then(|e| DateTime::from_timestamp(e, 0)),
             author: value.bookmark.author,
             archived_path: value.bookmark.archived_path,
             user_id: value.bookmark.user_id,
-            created_at: value.bookmark.created_at,
-            updated_at: value.bookmark.updated_at,
+            created_at: DateTime::from_timestamp(value.bookmark.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.bookmark.updated_at, 0).unwrap(),
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }

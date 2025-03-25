@@ -49,9 +49,7 @@ impl From<LibsqlValue> for Value {
             sea_query::Value::Int(v) => v.into(),
             sea_query::Value::BigUnsigned(v) => v.map(|e| e as i64).into(),
             sea_query::Value::String(v) => v.map(|e| *e).into(),
-            sea_query::Value::ChronoDateTimeUtc(v) => {
-                v.map(|e| (*e).format("%F %T%.f%:z").to_string()).into()
-            }
+            sea_query::Value::ChronoDateTimeUtc(v) => v.map(|e| (*e).timestamp()).into(),
             sea_query::Value::Uuid(v) => v.map(|e| (*e).to_string()).into(),
             _ => unimplemented!(),
         }

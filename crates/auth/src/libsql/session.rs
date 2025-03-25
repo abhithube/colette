@@ -24,9 +24,9 @@ impl SessionStorage for LibsqlBackend {
                 session.user_id.as_str(),
                 session.user_agent.as_deref(),
                 session.ip_address.as_deref(),
-                session.created_at.to_rfc3339(),
-                session.updated_at.to_rfc3339(),
-                session.expires_at.to_rfc3339(),
+                session.created_at.timestamp(),
+                session.updated_at.timestamp(),
+                session.expires_at.timestamp(),
             ])
             .await
             .map_err(|_| StorageError::Database("Failed to create session".to_string()))?;
@@ -83,7 +83,7 @@ impl SessionStorage for LibsqlBackend {
             .await
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
-        stmt.execute(libsql::params![Utc::now().to_rfc3339()])
+        stmt.execute(libsql::params![Utc::now().timestamp()])
             .await
             .map_err(|_| {
                 StorageError::Database("Failed to cleanup expired sessions".to_string())
@@ -112,10 +112,10 @@ struct SessionRow {
     token: String,
     user_agent: Option<String>,
     ip_address: Option<String>,
-    expires_at: DateTime<Utc>,
+    expires_at: i64,
     user_id: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: i64,
+    updated_at: i64,
 }
 
 impl From<SessionRow> for Session {
@@ -124,10 +124,10 @@ impl From<SessionRow> for Session {
             .token(value.token.into())
             .user_agent(value.user_agent)
             .ip_address(value.ip_address)
-            .expires_at(value.expires_at)
+            .expires_at(DateTime::from_timestamp(value.expires_at, 0).unwrap())
             .user_id(UserId::new(&value.user_id))
-            .created_at(value.created_at)
-            .updated_at(value.updated_at)
+            .created_at(DateTime::from_timestamp(value.created_at, 0).unwrap())
+            .updated_at(DateTime::from_timestamp(value.updated_at, 0).unwrap())
             .build()
             .unwrap()
     }

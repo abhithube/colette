@@ -1,4 +1,5 @@
-h1:KXgi52fQHKjSIRn+rOYrvL36X1nFgOwT69EcJG9bcLU=
+h1:W7lvSvL9BFi9wUiDpQ4Sw7Im1esmv3adpx3fOBaIvJc=
 V0001__init.sql h1:e37K89OR+Sf/wu0MIYy40i2Do4pr00hOZ8rQJVwZq08=
 V0002__add_sessions.sql h1:dSXUTrIPnNdARCSy4dlDuCHyG8oCPE/dYmF68Px8Itc=
 V0003__add_jobs.sql h1:fMxSUdU6nEizfdZ5yPEkIW4KaNEekYUdL+Ye5IHGp0U=
+V0004__improve_dates.sql h1:Id/aY9UREQMl4rhn9PbmrlVY9SOQm2KQf/VPbgHWKFE=

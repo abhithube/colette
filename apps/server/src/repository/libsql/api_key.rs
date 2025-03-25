@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use colette_core::{
     ApiKey,
     api_key::{ApiKeyParams, ApiKeyRepository, Error},
@@ -117,8 +117,8 @@ struct ApiKeyRow {
     title: String,
     preview: String,
     user_id: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: i64,
+    updated_at: i64,
 }
 
 impl From<ApiKeyRow> for ApiKey {
@@ -130,8 +130,8 @@ impl From<ApiKeyRow> for ApiKey {
             title: value.title,
             preview: value.preview,
             user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
         }
     }
 }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use colette_core::{
     SubscriptionEntry,
     subscription_entry::{Error, SubscriptionEntryParams, SubscriptionEntryRepository},
@@ -122,7 +122,7 @@ struct SubscriptionEntryWithFeedEntryRow {
 
     link: String,
     title: String,
-    published_at: DateTime<Utc>,
+    published_at: i64,
     description: Option<String>,
     author: Option<String>,
     thumbnail_url: Option<String>,

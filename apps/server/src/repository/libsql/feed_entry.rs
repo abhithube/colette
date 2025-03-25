@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use colette_core::{
     FeedEntry,
     feed_entry::{Error, FeedEntryParams, FeedEntryRepository},
@@ -50,7 +50,7 @@ pub(crate) struct FeedEntryRow {
     pub(crate) id: Uuid,
     pub(crate) link: String,
     pub(crate) title: String,
-    pub(crate) published_at: DateTime<Utc>,
+    pub(crate) published_at: i64,
     pub(crate) description: Option<String>,
     pub(crate) author: Option<String>,
     pub(crate) thumbnail_url: Option<String>,
@@ -63,7 +63,7 @@ impl From<FeedEntryRow> for FeedEntry {
             id: value.id,
             link: value.link.parse().unwrap(),
             title: value.title,
-            published_at: value.published_at,
+            published_at: DateTime::from_timestamp(value.published_at, 0).unwrap(),
             description: value.description,
             author: value.author,
             thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),

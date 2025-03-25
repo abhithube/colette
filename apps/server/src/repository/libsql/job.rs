@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
@@ -97,8 +97,8 @@ struct JobRow {
     pub status: String,
     pub group_id: Option<String>,
     pub message: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub completed_at: Option<DateTime<Utc>>,
+    pub created_at: i64,
+    pub completed_at: Option<i64>,
 }
 
 impl From<JobRow> for Job {
@@ -110,8 +110,10 @@ impl From<JobRow> for Job {
             status: value.status.parse().unwrap(),
             group_id: value.group_id,
             message: value.message,
-            created_at: value.created_at,
-            completed_at: value.completed_at,
+            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
+            completed_at: value
+                .completed_at
+                .and_then(|e| DateTime::from_timestamp(e, 0)),
         }
     }
 }

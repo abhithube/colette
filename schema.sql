@@ -2,10 +2,10 @@ CREATE TABLE users (
   id TEXT NOT NULL PRIMARY KEY,
   name TEXT,
   email TEXT NOT NULL UNIQUE,
-  verified_at TEXT,
+  verified_at INTEGER,
   password_hash TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE sessions (
@@ -13,10 +13,10 @@ CREATE TABLE sessions (
   token TEXT NOT NULL,
   user_agent TEXT,
   ip_address TEXT,
-  expires_at TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE api_keys (
@@ -26,8 +26,8 @@ CREATE TABLE api_keys (
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 
 CREATE TABLE jobs (
@@ -37,8 +37,8 @@ CREATE TABLE jobs (
   status TEXT NOT NULL DEFAULT 'pending',
   group_id TEXT,
   message TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  completed_at TEXT
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  completed_at INTEGER
 );
 
 CREATE TABLE feeds (
@@ -47,14 +47,14 @@ CREATE TABLE feeds (
   xml_url TEXT,
   title TEXT NOT NULL,
   description TEXT,
-  refreshed_at TEXT
+  refreshed_at INTEGER
 );
 
 CREATE TABLE feed_entries (
   id TEXT NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
-  published_at TEXT NOT NULL,
+  published_at INTEGER NOT NULL,
   description TEXT,
   author TEXT,
   thumbnail_url TEXT,
@@ -67,8 +67,8 @@ CREATE TABLE subscriptions (
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE (user_id, feed_id)
 );
 
@@ -76,7 +76,7 @@ CREATE TABLE read_entries (
   subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   feed_entry_id TEXT NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
   PRIMARY KEY (subscription_id, feed_entry_id)
 );
 
@@ -85,12 +85,12 @@ CREATE TABLE bookmarks (
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
-  published_at TEXT,
+  published_at INTEGER,
   author TEXT,
   archived_path TEXT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE (user_id, link)
 );
 
@@ -98,8 +98,8 @@ CREATE TABLE tags (
   id TEXT NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE (user_id, title)
 );
 
@@ -107,8 +107,6 @@ CREATE TABLE subscription_tags (
   subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (subscription_id, tag_id)
 );
 
@@ -116,8 +114,6 @@ CREATE TABLE bookmark_tags (
   bookmark_id TEXT NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
   tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (bookmark_id, tag_id)
 );
 
@@ -127,8 +123,8 @@ CREATE TABLE streams (
   description TEXT,
   filter_raw TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE (user_id, title)
 );
 
@@ -138,7 +134,7 @@ CREATE TABLE collections (
   description TEXT,
   filter_raw TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE (user_id, title)
 );

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use colette_core::{
     Collection,
     collection::{CollectionParams, CollectionRepository, Error},
@@ -105,8 +105,8 @@ struct CollectionRow {
     title: String,
     filter_raw: String,
     user_id: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: i64,
+    updated_at: i64,
 }
 
 impl From<CollectionRow> for Collection {
@@ -116,8 +116,8 @@ impl From<CollectionRow> for Collection {
             title: value.title,
             filter: serde_json::from_str(&value.filter_raw).unwrap(),
             user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
+            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
+            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
         }
     }
 }

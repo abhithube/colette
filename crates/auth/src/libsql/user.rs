@@ -23,9 +23,9 @@ impl UserStorage for LibsqlBackend {
                 user.id.as_str(),
                 user.email.as_str(),
                 user.name.as_deref(),
-                user.email_verified_at.map(|e| e.to_rfc3339()),
-                Utc::now().to_rfc3339(),
-                Utc::now().to_rfc3339(),
+                user.email_verified_at.map(|e| e.timestamp()),
+                Utc::now().timestamp(),
+                Utc::now().timestamp(),
             ])
             .await
             .map_err(|_| StorageError::Database("Failed to create user".to_string()))?;
@@ -116,8 +116,8 @@ impl UserStorage for LibsqlBackend {
             .query_row(libsql::params![
                 user.email.as_str(),
                 user.name.as_deref(),
-                user.email_verified_at.map(|e| e.to_rfc3339()),
-                user.updated_at.to_rfc3339(),
+                user.email_verified_at.map(|e| e.timestamp()),
+                user.updated_at.timestamp(),
                 user.id.as_str()
             ])
             .await
@@ -150,7 +150,7 @@ impl UserStorage for LibsqlBackend {
             .await
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
-        stmt.execute(libsql::params![Utc::now().to_rfc3339(), user_id.as_str()])
+        stmt.execute(libsql::params![Utc::now().timestamp(), user_id.as_str()])
             .await
             .map_err(|_| StorageError::Database("Failed to mark user as verified".into()))?;
 
@@ -163,9 +163,9 @@ struct UserRow {
     id: String,
     name: Option<String>,
     email: String,
-    verified_at: Option<DateTime<Utc>>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    verified_at: Option<i64>,
+    created_at: i64,
+    updated_at: i64,
 }
 
 impl From<UserRow> for User {
@@ -173,10 +173,14 @@ impl From<UserRow> for User {
         User::builder()
             .id(value.id.into())
             .email(value.email)
-            .email_verified_at(value.verified_at)
+            .email_verified_at(
+                value
+                    .verified_at
+                    .and_then(|e| DateTime::from_timestamp(e, 0)),
+            )
             .name(value.name)
-            .created_at(value.created_at)
-            .updated_at(value.updated_at)
+            .created_at(DateTime::from_timestamp(value.created_at, 0).unwrap())
+            .updated_at(DateTime::from_timestamp(value.updated_at, 0).unwrap())
             .build()
             .unwrap()
     }

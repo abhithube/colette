@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::DateTime;
 use colette_core::{
     Feed,
     feed::{Error, FeedParams, FeedRepository},
@@ -129,7 +129,7 @@ pub(crate) struct FeedRow {
     pub(crate) xml_url: Option<String>,
     pub(crate) title: String,
     pub(crate) description: Option<String>,
-    pub(crate) refreshed_at: Option<DateTime<Utc>>,
+    pub(crate) refreshed_at: Option<i64>,
 }
 
 impl From<FeedRow> for Feed {
@@ -140,7 +140,9 @@ impl From<FeedRow> for Feed {
             xml_url: value.xml_url.and_then(|e| e.parse().ok()),
             title: value.title,
             description: value.description,
-            refreshed_at: value.refreshed_at,
+            refreshed_at: value
+                .refreshed_at
+                .and_then(|e| DateTime::from_timestamp(e, 0)),
             entries: None,
         }
     }
