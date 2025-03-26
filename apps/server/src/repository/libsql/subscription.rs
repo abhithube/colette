@@ -8,12 +8,8 @@ use colette_core::{
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     feed_entry::UnreadCountSelectMany,
-    subscription::{
-        SubscriptionDelete, SubscriptionInsert, SubscriptionSelect, SubscriptionSelectOne,
-    },
-    subscription_tag::{
-        SubscriptionTagById, SubscriptionTagDelete, SubscriptionTagInsert, SubscriptionTagSelect,
-    },
+    subscription::{SubscriptionDelete, SubscriptionInsert},
+    subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert, SubscriptionTagSelect},
 };
 use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
@@ -35,15 +31,7 @@ impl LibsqlSubscriptionRepository {
 #[async_trait::async_trait]
 impl SubscriptionRepository for LibsqlSubscriptionRepository {
     async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
-        let (sql, values) = SubscriptionSelect {
-            id: params.id,
-            tags: params.tags,
-            user_id: params.user_id.as_deref(),
-            cursor: params.cursor,
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -118,21 +106,6 @@ impl SubscriptionRepository for LibsqlSubscriptionRepository {
         Ok(subscriptions)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Subscription>, Error> {
-        let (sql, values) = SubscriptionSelectOne { id }
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<SubscriptionRow>(&row)?.into()))
-    }
-
     async fn save(&self, data: &Subscription) -> Result<(), Error> {
         let tx = self.conn.transaction().await?;
 
@@ -173,10 +146,8 @@ impl SubscriptionRepository for LibsqlSubscriptionRepository {
 
             let (sql, values) = SubscriptionTagInsert {
                 subscription_id: data.id,
-                tags: tags.iter().map(|e| SubscriptionTagById {
-                    id: e.id,
-                    user_id: &e.user_id,
-                }),
+                user_id: &data.user_id,
+                tag_ids: tags.iter().map(|e| e.id),
             }
             .into_insert()
             .build_libsql(SqliteQueryBuilder);

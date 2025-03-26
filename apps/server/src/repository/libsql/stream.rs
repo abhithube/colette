@@ -4,8 +4,8 @@ use colette_core::{
     stream::{Error, StreamParams, StreamRepository},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect,
-    stream::{StreamDelete, StreamInsert, StreamSelect, StreamSelectOne},
+    IntoInsert, IntoDelete, IntoSelect,
+    stream::{StreamDelete, StreamInsert},
 };
 use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
@@ -27,14 +27,7 @@ impl LibsqlStreamRepository {
 #[async_trait::async_trait]
 impl StreamRepository for LibsqlStreamRepository {
     async fn query(&self, params: StreamParams) -> Result<Vec<Stream>, Error> {
-        let (sql, values) = StreamSelect {
-            id: params.id,
-            user_id: params.user_id.as_deref(),
-            cursor: params.cursor.as_deref(),
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -45,21 +38,6 @@ impl StreamRepository for LibsqlStreamRepository {
         }
 
         Ok(streams)
-    }
-
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Stream>, Error> {
-        let (sql, values) = StreamSelectOne { id }
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<StreamRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Stream) -> Result<(), Error> {

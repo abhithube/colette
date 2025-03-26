@@ -1,9 +1,9 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
+use colette_core::subscription::SubscriptionParams;
 use sea_query::{
-    Alias, Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement,
+    Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
 };
 use uuid::Uuid;
 
@@ -38,15 +38,7 @@ impl Iden for Subscription {
     }
 }
 
-pub struct SubscriptionSelect<'a, I> {
-    pub id: Option<Uuid>,
-    pub tags: Option<I>,
-    pub user_id: Option<&'a str>,
-    pub cursor: Option<(String, Uuid)>,
-    pub limit: Option<u64>,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<'_, I> {
+impl IntoSelect for SubscriptionParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .columns([
@@ -56,23 +48,7 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<'_, I> {
                 (Subscription::Table, Subscription::CreatedAt),
                 (Subscription::Table, Subscription::UpdatedAt),
             ])
-            .columns([
-                (Feed::Table, Feed::Link),
-                (Feed::Table, Feed::XmlUrl),
-                (Feed::Table, Feed::Description),
-                (Feed::Table, Feed::RefreshedAt),
-            ])
-            .expr_as(Expr::col((Feed::Table, Feed::Id)), Alias::new("feed_id"))
-            .expr_as(
-                Expr::col((Feed::Table, Feed::Title)),
-                Alias::new("feed_title"),
-            )
             .from(Subscription::Table)
-            .inner_join(
-                Feed::Table,
-                Expr::col((Feed::Table, Feed::Id))
-                    .eq(Expr::col((Subscription::Table, Subscription::FeedId))),
-            )
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(id));
             })
@@ -107,25 +83,31 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionSelect<'_, I> {
             .order_by((Subscription::Table, Subscription::Id), Order::Asc)
             .to_owned();
 
+        if self.with_feeds {
+            query
+                .columns([
+                    (Feed::Table, Feed::Link),
+                    (Feed::Table, Feed::XmlUrl),
+                    (Feed::Table, Feed::Description),
+                    (Feed::Table, Feed::RefreshedAt),
+                ])
+                .expr_as(Expr::col((Feed::Table, Feed::Id)), Alias::new("feed_id"))
+                .expr_as(
+                    Expr::col((Feed::Table, Feed::Title)),
+                    Alias::new("feed_title"),
+                )
+                .inner_join(
+                    Feed::Table,
+                    Expr::col((Feed::Table, Feed::Id))
+                        .eq(Expr::col((Subscription::Table, Subscription::FeedId))),
+                );
+        }
+
         if let Some(limit) = self.limit {
             query.limit(limit);
         }
 
         query
-    }
-}
-
-pub struct SubscriptionSelectOne {
-    pub id: Uuid,
-}
-
-impl IntoSelect for SubscriptionSelectOne {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column(Asterisk)
-            .from(Subscription::Table)
-            .and_where(Expr::col(Subscription::Id).eq(self.id))
-            .to_owned()
     }
 }
 

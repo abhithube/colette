@@ -63,6 +63,7 @@ impl SubscriptionEntryService {
                 user_id: Some(user_id),
                 cursor,
                 limit: Some(PAGINATION_LIMIT + 1),
+                with_read_entries: true,
                 ..Default::default()
             })
             .await?;

@@ -25,6 +25,7 @@ impl TagService {
             .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
+                with_counts: true,
                 ..Default::default()
             })
             .await?;

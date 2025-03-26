@@ -14,10 +14,10 @@ impl ToSql for (Expr, TextOp) {
         let (column, op) = self;
 
         match op {
-            TextOp::Equals(value) => column.to_owned().eq(value),
-            TextOp::Contains(value) => column.to_owned().like(format!("%{}%", value)),
-            TextOp::StartsWith(value) => column.to_owned().like(format!("{}%", value)),
-            TextOp::EndsWith(value) => column.to_owned().like(format!("%{}", value)),
+            TextOp::Equals(value) => column.eq(value),
+            TextOp::Contains(value) => column.like(format!("%{}%", value)),
+            TextOp::StartsWith(value) => column.like(format!("{}%", value)),
+            TextOp::EndsWith(value) => column.like(format!("%{}", value)),
         }
     }
 }
@@ -27,10 +27,10 @@ impl ToSql for (Expr, NumberOp) {
         let (column, op) = self;
 
         match op {
-            NumberOp::Equals(value) => column.to_owned().eq(value),
-            NumberOp::LessThan(value) => column.to_owned().lt(value),
-            NumberOp::GreaterThan(value) => column.to_owned().gt(value),
-            NumberOp::Between(value) => column.to_owned().between(value.start, value.end),
+            NumberOp::Equals(value) => column.eq(value),
+            NumberOp::LessThan(value) => column.lt(value),
+            NumberOp::GreaterThan(value) => column.gt(value),
+            NumberOp::Between(value) => column.between(value.start, value.end),
         }
     }
 }
@@ -40,7 +40,7 @@ impl ToSql for (Expr, BooleanOp) {
         let (column, op) = self;
 
         match op {
-            BooleanOp::Equals(value) => column.to_owned().eq(value),
+            BooleanOp::Equals(value) => column.eq(value),
         }
     }
 }
@@ -50,12 +50,10 @@ impl ToSql for (Expr, DateOp) {
         let (column, op) = self;
 
         match op {
-            DateOp::Before(value) => column.to_owned().lt(value),
-            DateOp::After(value) => column.to_owned().gt(value),
-            DateOp::Between(value) => column.to_owned().between(value.start, value.end),
-            DateOp::InLast(value) => Expr::cust("strftime('%s', 'now')")
-                .sub(column.to_owned())
-                .lt(value),
+            DateOp::Before(value) => column.lt(value),
+            DateOp::After(value) => column.gt(value),
+            DateOp::Between(value) => column.between(value.start, value.end),
+            DateOp::InLast(value) => Expr::cust("unixepoch()").sub(column).lt(value),
         }
     }
 }

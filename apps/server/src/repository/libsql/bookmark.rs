@@ -7,8 +7,8 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
-    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkSelect, BookmarkSelectOne, BookmarkUpdate},
-    bookmark_tag::{BookmarkTagById, BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
+    bookmark::{BookmarkDelete, BookmarkInsert, BookmarkUpdate},
+    bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
 };
 use libsql::{Connection, Transaction, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
@@ -30,16 +30,7 @@ impl LibsqlBookmarkRepository {
 #[async_trait::async_trait]
 impl BookmarkRepository for LibsqlBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
-        let (sql, values) = BookmarkSelect {
-            id: params.id,
-            tags: params.tags,
-            user_id: params.user_id.as_deref(),
-            filter: params.filter,
-            cursor: params.cursor,
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -82,21 +73,6 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
         Ok(bookmarks)
     }
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Bookmark>, Error> {
-        let (sql, values) = BookmarkSelectOne { id }
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<BookmarkRow>(&row)?.into()))
-    }
-
     async fn save(&self, data: &Bookmark) -> Result<(), Error> {
         let tx = self.conn.transaction().await?;
 
@@ -129,7 +105,8 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
         }
 
         if let Some(ref tags) = data.tags {
-            self.link_tags(&tx, data.id, tags).await?;
+            self.link_tags(&tx, data.id, &data.user_id, tags.iter().map(|e| e.id))
+                .await?;
         }
 
         tx.commit().await?;
@@ -196,11 +173,12 @@ impl LibsqlBookmarkRepository {
         &self,
         tx: &Transaction,
         bookmark_id: Uuid,
-        tags: &[Tag],
+        user_id: &str,
+        tag_ids: impl IntoIterator<Item = Uuid> + Clone,
     ) -> Result<(), Error> {
         let (sql, values) = BookmarkTagDelete {
             bookmark_id,
-            tag_ids: tags.iter().map(|e| e.id),
+            tag_ids: tag_ids.clone(),
         }
         .into_delete()
         .build_libsql(SqliteQueryBuilder);
@@ -210,10 +188,8 @@ impl LibsqlBookmarkRepository {
 
         let (sql, values) = BookmarkTagInsert {
             bookmark_id,
-            tags: tags.iter().map(|e| BookmarkTagById {
-                id: e.id,
-                user_id: &e.user_id,
-            }),
+            user_id,
+            tag_ids,
         }
         .into_insert()
         .build_libsql(SqliteQueryBuilder);

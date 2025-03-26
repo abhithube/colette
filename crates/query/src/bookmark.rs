@@ -1,7 +1,9 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::bookmark::{BookmarkDateField, BookmarkFilter, BookmarkTextField};
+use colette_core::bookmark::{
+    BookmarkDateField, BookmarkFilter, BookmarkParams, BookmarkTextField,
+};
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement, SimpleExpr, UpdateStatement,
@@ -52,16 +54,7 @@ impl Iden for Bookmark {
     }
 }
 
-pub struct BookmarkSelect<'a, I> {
-    pub id: Option<Uuid>,
-    pub tags: Option<I>,
-    pub user_id: Option<&'a str>,
-    pub filter: Option<BookmarkFilter>,
-    pub cursor: Option<DateTime<Utc>>,
-    pub limit: Option<u64>,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkSelect<'_, I> {
+impl IntoSelect for BookmarkParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -106,20 +99,6 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkSelect<'_, I> {
         }
 
         query
-    }
-}
-
-pub struct BookmarkSelectOne {
-    pub id: Uuid,
-}
-
-impl IntoSelect for BookmarkSelectOne {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column(Asterisk)
-            .from(Bookmark::Table)
-            .and_where(Expr::col(Bookmark::Id).eq(self.id))
-            .to_owned()
     }
 }
 
@@ -201,7 +180,6 @@ impl IntoInsert for BookmarkInsert<'_> {
     }
 }
 
-#[derive(Default)]
 pub struct BookmarkUpdate<'a> {
     pub id: Uuid,
     pub archived_path: Option<Option<&'a str>>,

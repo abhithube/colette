@@ -5,7 +5,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoInsert, IntoSelect,
-    feed::{FeedInsert, FeedSelect},
+    feed::FeedInsert,
     feed_entry::{FeedEntryInsert, FeedEntryInsertBatch},
 };
 use futures::{StreamExt, stream::BoxStream};
@@ -30,13 +30,7 @@ impl LibsqlFeedRepository {
 #[async_trait::async_trait]
 impl FeedRepository for LibsqlFeedRepository {
     async fn query(&self, params: FeedParams) -> Result<Vec<Feed>, Error> {
-        let (sql, values) = FeedSelect {
-            id: params.id,
-            cursor: params.cursor.as_deref(),
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -101,7 +95,7 @@ impl FeedRepository for LibsqlFeedRepository {
     }
 
     async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error> {
-        let (sql, values) = FeedSelect::default()
+        let (sql, values) = FeedParams::default()
             .into_select()
             .build_libsql(SqliteQueryBuilder);
 

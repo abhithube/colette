@@ -1,9 +1,12 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::subscription_entry::{
-    SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
-    SubscriptionEntryTextField,
+use colette_core::{
+    feed_entry::FeedEntryParams,
+    subscription_entry::{
+        SubscriptionEntryBooleanField, SubscriptionEntryDateField, SubscriptionEntryFilter,
+        SubscriptionEntryParams, SubscriptionEntryTextField,
+    },
 };
 use sea_query::{
     Alias, Asterisk, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
@@ -53,14 +56,7 @@ impl Iden for FeedEntry {
     }
 }
 
-pub struct FeedEntrySelect {
-    pub id: Option<Uuid>,
-    pub feed_id: Option<Uuid>,
-    pub cursor: Option<(DateTime<Utc>, Uuid)>,
-    pub limit: Option<u64>,
-}
-
-impl IntoSelect for FeedEntrySelect {
+impl IntoSelect for FeedEntryParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -152,18 +148,7 @@ impl<'a, I: IntoIterator<Item = FeedEntryInsert<'a>>> IntoInsert for FeedEntryIn
     }
 }
 
-pub struct SubscriptionEntrySelect<I> {
-    pub filter: Option<SubscriptionEntryFilter>,
-    pub id: Option<Uuid>,
-    pub subscription_id: Option<Uuid>,
-    pub has_read: Option<bool>,
-    pub tags: Option<I>,
-    pub user_id: Option<String>,
-    pub cursor: Option<(DateTime<Utc>, Uuid)>,
-    pub limit: Option<u64>,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionEntrySelect<I> {
+impl IntoSelect for SubscriptionEntryParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column((FeedEntry::Table, Asterisk))
@@ -172,24 +157,11 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionEntrySelect<I> {
                 Alias::new("subscription_id"),
             )
             .column((Subscription::Table, Subscription::UserId))
-            .expr_as(
-                Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId)).is_not_null(),
-                Alias::new("has_read"),
-            )
             .from(FeedEntry::Table)
             .inner_join(
                 Subscription::Table,
                 Expr::col((Subscription::Table, Subscription::FeedId))
                     .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
-            )
-            .left_join(
-                ReadEntry::Table,
-                Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
-                    .eq(Expr::col((Subscription::Table, Subscription::Id)))
-                    .and(
-                        Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
-                            .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
-                    ),
             )
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::UserId)).eq(user_id));
@@ -214,8 +186,8 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionEntrySelect<I> {
             query.and_where(filter.to_sql());
         } else {
             query
-                .apply_if(self.id, |query, id| {
-                    query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(id));
+                .apply_if(self.feed_entry_id, |query, feed_entry_id| {
+                    query.and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(feed_entry_id));
                 })
                 .apply_if(self.subscription_id, |query, subscription_id| {
                     query.and_where(
@@ -265,34 +237,28 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionEntrySelect<I> {
                 });
         }
 
+        if self.with_read_entries {
+            query
+                .expr_as(
+                    Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId)).is_not_null(),
+                    Alias::new("has_read"),
+                )
+                .left_join(
+                    ReadEntry::Table,
+                    Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
+                        .eq(Expr::col((Subscription::Table, Subscription::Id)))
+                        .and(
+                            Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
+                                .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
+                        ),
+                );
+        }
+
         if let Some(limit) = self.limit {
             query.limit(limit);
         }
 
         query
-    }
-}
-
-pub struct SubscriptionEntrySelectOne {
-    pub feed_entry_id: Uuid,
-    pub subscription_id: Uuid,
-}
-
-impl IntoSelect for SubscriptionEntrySelectOne {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column((FeedEntry::Table, FeedEntry::Id))
-            .columns([
-                (Subscription::Table, Subscription::UserId),
-                (Subscription::Table, Subscription::Id),
-            ])
-            .from(FeedEntry::Table)
-            .inner_join(
-                Subscription::Table,
-                Expr::col((Subscription::Table, Subscription::Id)).eq(self.subscription_id),
-            )
-            .and_where(Expr::col((FeedEntry::Table, FeedEntry::Id)).eq(self.feed_entry_id))
-            .to_owned()
     }
 }
 

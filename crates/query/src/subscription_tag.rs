@@ -60,32 +60,13 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionTagSelect<I> {
     }
 }
 
-pub struct SubscriptionTagDelete<I> {
+pub struct SubscriptionTagInsert<'a, I> {
     pub subscription_id: Uuid,
+    pub user_id: &'a str,
     pub tag_ids: I,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoDelete for SubscriptionTagDelete<I> {
-    fn into_delete(self) -> DeleteStatement {
-        Query::delete()
-            .from_table(SubscriptionTag::Table)
-            .and_where(Expr::col(SubscriptionTag::SubscriptionId).eq(self.subscription_id))
-            .and_where(Expr::col(SubscriptionTag::TagId).is_not_in(self.tag_ids))
-            .to_owned()
-    }
-}
-
-pub struct SubscriptionTagById<'a> {
-    pub id: Uuid,
-    pub user_id: &'a str,
-}
-
-pub struct SubscriptionTagInsert<I> {
-    pub subscription_id: Uuid,
-    pub tags: I,
-}
-
-impl<'a, I: IntoIterator<Item = SubscriptionTagById<'a>>> IntoInsert for SubscriptionTagInsert<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoInsert for SubscriptionTagInsert<'_, I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(SubscriptionTag::Table)
@@ -101,14 +82,29 @@ impl<'a, I: IntoIterator<Item = SubscriptionTagById<'a>>> IntoInsert for Subscri
             )
             .to_owned();
 
-        for tag in self.tags {
+        for tag_id in self.tag_ids {
             query.values_panic([
                 self.subscription_id.into(),
-                tag.id.into(),
-                tag.user_id.into(),
+                tag_id.into(),
+                self.user_id.into(),
             ]);
         }
 
         query
+    }
+}
+
+pub struct SubscriptionTagDelete<I> {
+    pub subscription_id: Uuid,
+    pub tag_ids: I,
+}
+
+impl<I: IntoIterator<Item = Uuid>> IntoDelete for SubscriptionTagDelete<I> {
+    fn into_delete(self) -> DeleteStatement {
+        Query::delete()
+            .from_table(SubscriptionTag::Table)
+            .and_where(Expr::col(SubscriptionTag::SubscriptionId).eq(self.subscription_id))
+            .and_where(Expr::col(SubscriptionTag::TagId).is_not_in(self.tag_ids))
+            .to_owned()
     }
 }

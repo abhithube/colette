@@ -1,9 +1,9 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
-use colette_core::tag::TagType;
+use colette_core::tag::{TagParams, TagType};
 use sea_query::{
-    Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
+    Alias, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
 };
 use uuid::Uuid;
@@ -40,21 +40,8 @@ impl Iden for Tag {
     }
 }
 
-pub struct TagSelect<'a, I> {
-    pub ids: Option<I>,
-    pub tag_type: TagType,
-    pub feed_id: Option<Uuid>,
-    pub bookmark_id: Option<Uuid>,
-    pub user_id: Option<&'a str>,
-    pub cursor: Option<&'a str>,
-    pub limit: Option<u64>,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for TagSelect<'_, I> {
+impl IntoSelect for TagParams {
     fn into_select(self) -> SelectStatement {
-        let feed_count = Alias::new("feed_count");
-        let bookmark_count = Alias::new("bookmark_count");
-
         let mut query = Query::select()
             .columns([
                 (Tag::Table, Tag::Id),
@@ -63,30 +50,12 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for TagSelect<'_, I> {
                 (Tag::Table, Tag::CreatedAt),
                 (Tag::Table, Tag::UpdatedAt),
             ])
-            .expr_as(
-                Func::count(Expr::col((
-                    SubscriptionTag::Table,
-                    SubscriptionTag::SubscriptionId,
-                ))),
-                feed_count.clone(),
-            )
-            .expr_as(
-                Func::count(Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))),
-                bookmark_count.clone(),
-            )
             .from(Tag::Table)
-            .left_join(
-                SubscriptionTag::Table,
-                Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
-                    .eq(Expr::col((Tag::Table, Tag::Id))),
-            )
-            .left_join(
-                BookmarkTag::Table,
-                Expr::col((BookmarkTag::Table, BookmarkTag::TagId))
-                    .eq(Expr::col((Tag::Table, Tag::Id))),
-            )
             .apply_if(self.ids, |query, ids| {
                 query.and_where(Expr::col((Tag::Table, Tag::Id)).is_in(ids));
+            })
+            .apply_if(self.title, |query, title| {
+                query.and_where(Expr::col((Tag::Table, Tag::Title)).eq(title));
             })
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Tag::Table, Tag::UserId)).eq(user_id));
@@ -94,18 +63,46 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for TagSelect<'_, I> {
             .apply_if(self.cursor, |query, title| {
                 query.and_where(Expr::col((Tag::Table, Tag::Title)).gt(Expr::val(title)));
             })
-            .group_by_col((Tag::Table, Tag::Id))
             .order_by((Tag::Table, Tag::CreatedAt), Order::Asc)
             .to_owned();
 
-        match self.tag_type {
-            TagType::Feeds => {
-                query.and_having(Expr::col(feed_count).gt(Expr::val(0)));
+        if self.with_counts {
+            let feed_count = Alias::new("feed_count");
+            let bookmark_count = Alias::new("bookmark_count");
+
+            query
+                .expr_as(
+                    Func::count(Expr::col((
+                        SubscriptionTag::Table,
+                        SubscriptionTag::SubscriptionId,
+                    ))),
+                    feed_count.clone(),
+                )
+                .expr_as(
+                    Func::count(Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))),
+                    bookmark_count.clone(),
+                )
+                .left_join(
+                    SubscriptionTag::Table,
+                    Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
+                        .eq(Expr::col((Tag::Table, Tag::Id))),
+                )
+                .left_join(
+                    BookmarkTag::Table,
+                    Expr::col((BookmarkTag::Table, BookmarkTag::TagId))
+                        .eq(Expr::col((Tag::Table, Tag::Id))),
+                )
+                .group_by_col((Tag::Table, Tag::Id));
+
+            match self.tag_type {
+                TagType::Feeds => {
+                    query.and_having(Expr::col(feed_count).gt(Expr::val(0)));
+                }
+                TagType::Bookmarks => {
+                    query.and_having(Expr::col(bookmark_count).gt(Expr::val(0)));
+                }
+                _ => {}
             }
-            TagType::Bookmarks => {
-                query.and_having(Expr::col(bookmark_count).gt(Expr::val(0)));
-            }
-            _ => {}
         }
 
         if let Some(limit) = self.limit {
@@ -113,30 +110,6 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for TagSelect<'_, I> {
         }
 
         query
-    }
-}
-
-pub enum TagSelectOne<'a> {
-    Id(Uuid),
-    Ids(Vec<Uuid>),
-    Index { title: &'a str, user_id: &'a str },
-}
-
-impl IntoSelect for TagSelectOne<'_> {
-    fn into_select(self) -> SelectStatement {
-        let r#where = match self {
-            Self::Id(id) => Expr::col(Tag::Id).eq(id),
-            Self::Ids(ids) => Expr::col(Tag::Id).is_in(ids),
-            Self::Index { title, user_id } => Expr::col(Tag::UserId)
-                .eq(user_id)
-                .and(Expr::col(Tag::Title).eq(title)),
-        };
-
-        Query::select()
-            .column(Asterisk)
-            .from(Tag::Table)
-            .and_where(r#where)
-            .to_owned()
     }
 }
 

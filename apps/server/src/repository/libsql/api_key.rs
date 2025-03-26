@@ -5,7 +5,7 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    api_key::{ApiKeyDelete, ApiKeyInsert, ApiKeySelect, ApiKeySelectOne},
+    api_key::{ApiKeyDelete, ApiKeyInsert},
 };
 use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
@@ -27,14 +27,7 @@ impl LibsqlApiKeyRepository {
 #[async_trait::async_trait]
 impl ApiKeyRepository for LibsqlApiKeyRepository {
     async fn query(&self, params: ApiKeyParams) -> Result<Vec<ApiKey>, Error> {
-        let (sql, values) = ApiKeySelect {
-            id: params.id,
-            user_id: params.user_id.as_deref(),
-            cursor: params.cursor,
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -45,36 +38,6 @@ impl ApiKeyRepository for LibsqlApiKeyRepository {
         }
 
         Ok(api_keys)
-    }
-
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<ApiKey>, Error> {
-        let (sql, values) = ApiKeySelectOne::Id(id)
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<ApiKeyRow>(&row)?.into()))
-    }
-
-    async fn find_by_lookup_hash(&self, lookup_hash: String) -> Result<Option<ApiKey>, Error> {
-        let (sql, values) = ApiKeySelectOne::LookupHash(&lookup_hash)
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<ApiKeyRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &ApiKey) -> Result<(), Error> {

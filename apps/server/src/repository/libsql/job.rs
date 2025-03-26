@@ -2,7 +2,7 @@ use chrono::DateTime;
 use colette_core::job::{Error, Job, JobParams, JobRepository};
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    job::{JobDelete, JobInsert, JobSelect, JobSelectOne},
+    job::{JobDelete, JobInsert},
 };
 use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
@@ -24,12 +24,7 @@ impl LibsqlJobRepository {
 #[async_trait::async_trait]
 impl JobRepository for LibsqlJobRepository {
     async fn query(&self, params: JobParams) -> Result<Vec<Job>, Error> {
-        let (sql, values) = JobSelect {
-            id: params.id,
-            group_id: params.group_id.as_deref(),
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -40,21 +35,6 @@ impl JobRepository for LibsqlJobRepository {
         }
 
         Ok(jobs)
-    }
-
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Job>, Error> {
-        let (sql, values) = JobSelectOne { id }
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<JobRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Job) -> Result<(), Error> {

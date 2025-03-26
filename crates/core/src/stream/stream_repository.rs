@@ -6,7 +6,16 @@ use super::{Error, Stream};
 pub trait StreamRepository: Send + Sync + 'static {
     async fn query(&self, params: StreamParams) -> Result<Vec<Stream>, Error>;
 
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Stream>, Error>;
+    async fn find_by_id(&self, id: Uuid) -> Result<Option<Stream>, Error> {
+        Ok(self
+            .query(StreamParams {
+                id: Some(id),
+                ..Default::default()
+            })
+            .await?
+            .into_iter()
+            .next())
+    }
 
     async fn save(&self, data: &Stream) -> Result<(), Error>;
 

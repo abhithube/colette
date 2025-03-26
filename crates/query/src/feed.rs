@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
+use colette_core::feed::FeedParams;
 use sea_query::{Asterisk, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement};
 use uuid::Uuid;
 
@@ -35,14 +36,7 @@ impl Iden for Feed {
     }
 }
 
-#[derive(Default)]
-pub struct FeedSelect<'a> {
-    pub id: Option<Uuid>,
-    pub cursor: Option<&'a str>,
-    pub limit: Option<u64>,
-}
-
-impl IntoSelect for FeedSelect<'_> {
+impl IntoSelect for FeedParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)

@@ -6,7 +6,13 @@ use super::{Error, Tag, TagType};
 pub trait TagRepository: Send + Sync + 'static {
     async fn query(&self, params: TagParams) -> Result<Vec<Tag>, Error>;
 
-    async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error>;
+    async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error> {
+        self.query(TagParams {
+            ids: Some(ids),
+            ..Default::default()
+        })
+        .await
+    }
 
     async fn find_by_id(&self, id: Uuid) -> Result<Option<Tag>, Error> {
         Ok(self.find_by_ids(vec![id]).await?.into_iter().next())
@@ -20,10 +26,12 @@ pub trait TagRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct TagParams {
     pub ids: Option<Vec<Uuid>>,
+    pub title: Option<String>,
     pub tag_type: TagType,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
     pub user_id: Option<String>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,
+    pub with_counts: bool,
 }

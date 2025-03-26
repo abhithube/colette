@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
+use colette_core::stream::StreamParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -38,14 +39,7 @@ impl Iden for Stream {
     }
 }
 
-pub struct StreamSelect<'a> {
-    pub id: Option<Uuid>,
-    pub user_id: Option<&'a str>,
-    pub cursor: Option<&'a str>,
-    pub limit: Option<u64>,
-}
-
-impl IntoSelect for StreamSelect<'_> {
+impl IntoSelect for StreamParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
@@ -67,20 +61,6 @@ impl IntoSelect for StreamSelect<'_> {
         }
 
         query
-    }
-}
-
-pub struct StreamSelectOne {
-    pub id: Uuid,
-}
-
-impl IntoSelect for StreamSelectOne {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column(Asterisk)
-            .from(Stream::Table)
-            .and_where(Expr::col(Stream::Id).eq(self.id))
-            .to_owned()
     }
 }
 

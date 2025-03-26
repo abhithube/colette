@@ -3,7 +3,7 @@ use colette_core::{
     FeedEntry,
     feed_entry::{Error, FeedEntryParams, FeedEntryRepository},
 };
-use colette_query::{IntoSelect, feed_entry::FeedEntrySelect};
+use colette_query::IntoSelect;
 use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
 use uuid::Uuid;
@@ -24,14 +24,7 @@ impl LibsqlFeedEntryRepository {
 #[async_trait::async_trait]
 impl FeedEntryRepository for LibsqlFeedEntryRepository {
     async fn query(&self, params: FeedEntryParams) -> Result<Vec<FeedEntry>, Error> {
-        let (sql, values) = FeedEntrySelect {
-            id: params.id,
-            feed_id: params.feed_id,
-            cursor: params.cursor,
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;

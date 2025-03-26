@@ -1,13 +1,12 @@
 use chrono::Utc;
-use colette_core::backup::{BackupRepository, Error, ImportBookmarksData, ImportFeedsData};
+use colette_core::{
+    backup::{BackupRepository, Error, ImportBookmarksData, ImportFeedsData},
+    tag::TagParams,
+};
 use colette_query::{
-    IntoInsert, IntoSelect,
-    bookmark::BookmarkInsert,
-    bookmark_tag::{BookmarkTagById, BookmarkTagInsert},
-    feed::FeedInsert,
-    subscription::SubscriptionInsert,
-    subscription_tag::{SubscriptionTagById, SubscriptionTagInsert},
-    tag::{TagInsert, TagSelectOne},
+    IntoInsert, IntoSelect, bookmark::BookmarkInsert, bookmark_tag::BookmarkTagInsert,
+    feed::FeedInsert, subscription::SubscriptionInsert, subscription_tag::SubscriptionTagInsert,
+    tag::TagInsert,
 };
 use libsql::Connection;
 use sea_query::SqliteQueryBuilder;
@@ -45,9 +44,10 @@ impl BackupRepository for LibsqlBackupRepository {
         while let Some((parent_id, outline)) = stack.pop() {
             if !outline.outline.is_empty() {
                 let tag_id = {
-                    let (sql, values) = TagSelectOne::Index {
-                        title: &outline.text,
-                        user_id: &data.user_id,
+                    let (sql, values) = TagParams {
+                        title: Some(outline.text.clone()),
+                        user_id: Some(data.user_id.clone()),
+                        ..Default::default()
                     }
                     .into_select()
                     .build_libsql(SqliteQueryBuilder);
@@ -126,10 +126,8 @@ impl BackupRepository for LibsqlBackupRepository {
                 if let Some(tag_id) = parent_id {
                     let subscription_tag = SubscriptionTagInsert {
                         subscription_id,
-                        tags: vec![SubscriptionTagById {
-                            id: tag_id,
-                            user_id: &data.user_id,
-                        }],
+                        user_id: &data.user_id,
+                        tag_ids: vec![tag_id],
                     };
 
                     let (sql, values) = subscription_tag
@@ -161,9 +159,10 @@ impl BackupRepository for LibsqlBackupRepository {
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
                 let tag_id = {
-                    let (sql, values) = TagSelectOne::Index {
-                        title: &item.title,
-                        user_id: &data.user_id,
+                    let (sql, values) = TagParams {
+                        title: Some(item.title.clone()),
+                        user_id: Some(data.user_id.clone()),
+                        ..Default::default()
                     }
                     .into_select()
                     .build_libsql(SqliteQueryBuilder);
@@ -229,10 +228,8 @@ impl BackupRepository for LibsqlBackupRepository {
                 if let Some(tag_id) = parent_id {
                     let bookmark_tag = BookmarkTagInsert {
                         bookmark_id,
-                        tags: vec![BookmarkTagById {
-                            id: tag_id,
-                            user_id: &data.user_id,
-                        }],
+                        user_id: &data.user_id,
+                        tag_ids: vec![tag_id],
                     };
 
                     let (sql, values) = bookmark_tag.into_insert().build_libsql(SqliteQueryBuilder);

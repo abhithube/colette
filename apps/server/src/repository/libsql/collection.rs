@@ -4,8 +4,8 @@ use colette_core::{
     collection::{CollectionParams, CollectionRepository, Error},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect,
-    collection::{CollectionDelete, CollectionInsert, CollectionSelect, CollectionSelectOne},
+    IntoInsert, IntoDelete, IntoSelect,
+    collection::{CollectionDelete, CollectionInsert},
 };
 use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
@@ -27,14 +27,7 @@ impl LibsqlCollectionRepository {
 #[async_trait::async_trait]
 impl CollectionRepository for LibsqlCollectionRepository {
     async fn query(&self, params: CollectionParams) -> Result<Vec<Collection>, Error> {
-        let (sql, values) = CollectionSelect {
-            id: params.id,
-            user_id: params.user_id.as_deref(),
-            cursor: params.cursor.as_deref(),
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -45,21 +38,6 @@ impl CollectionRepository for LibsqlCollectionRepository {
         }
 
         Ok(collections)
-    }
-
-    async fn find_by_id(&self, id: Uuid) -> Result<Option<Collection>, Error> {
-        let (sql, values) = CollectionSelectOne { id }
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(libsql::de::from_row::<CollectionRow>(&row)?.into()))
     }
 
     async fn save(&self, data: &Collection) -> Result<(), Error> {

@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
+use colette_core::job::JobParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement,
 };
@@ -41,12 +42,7 @@ impl Iden for Job {
     }
 }
 
-pub struct JobSelect<'a> {
-    pub id: Option<Uuid>,
-    pub group_id: Option<&'a str>,
-}
-
-impl IntoSelect for JobSelect<'_> {
+impl IntoSelect for JobParams {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column(Asterisk)
@@ -57,20 +53,6 @@ impl IntoSelect for JobSelect<'_> {
             .apply_if(self.group_id, |query, group_id| {
                 query.and_where(Expr::col((Job::Table, Job::GroupId)).eq(group_id));
             })
-            .to_owned()
-    }
-}
-
-pub struct JobSelectOne {
-    pub id: Uuid,
-}
-
-impl IntoSelect for JobSelectOne {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column(Asterisk)
-            .from(Job::Table)
-            .and_where(Expr::col(Job::Id).eq(self.id))
             .to_owned()
     }
 }

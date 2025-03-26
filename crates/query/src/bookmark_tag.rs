@@ -59,17 +59,13 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkTagSelect<I> {
     }
 }
 
-pub struct BookmarkTagById<'a> {
-    pub id: Uuid,
-    pub user_id: &'a str,
-}
-
-pub struct BookmarkTagInsert<I> {
+pub struct BookmarkTagInsert<'a, I> {
     pub bookmark_id: Uuid,
-    pub tags: I,
+    pub user_id: &'a str,
+    pub tag_ids: I,
 }
 
-impl<'a, I: IntoIterator<Item = BookmarkTagById<'a>>> IntoInsert for BookmarkTagInsert<I> {
+impl<I: IntoIterator<Item = Uuid>> IntoInsert for BookmarkTagInsert<'_, I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(BookmarkTag::Table)
@@ -85,8 +81,8 @@ impl<'a, I: IntoIterator<Item = BookmarkTagById<'a>>> IntoInsert for BookmarkTag
             )
             .to_owned();
 
-        for tag in self.tags {
-            query.values_panic([self.bookmark_id.into(), tag.id.into(), tag.user_id.into()]);
+        for tag_id in self.tag_ids {
+            query.values_panic([self.bookmark_id.into(), tag_id.into(), self.user_id.into()]);
         }
 
         query

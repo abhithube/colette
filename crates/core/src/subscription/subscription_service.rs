@@ -37,6 +37,7 @@ impl SubscriptionService {
             .query(SubscriptionParams {
                 tags: query.tags,
                 user_id: Some(user_id),
+                with_feeds: true,
                 ..Default::default()
             })
             .await?;
@@ -151,7 +152,7 @@ impl SubscriptionService {
         let mut subscription_entries = self
             .subscription_entry_repository
             .query(SubscriptionEntryParams {
-                id: Some(id),
+                feed_entry_id: Some(id),
                 ..Default::default()
             })
             .await?;

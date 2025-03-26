@@ -4,8 +4,8 @@ use colette_core::{
     tag::{Error, TagParams, TagRepository},
 };
 use colette_query::{
-    IntoDelete, IntoInsert, IntoSelect,
-    tag::{TagDelete, TagInsert, TagSelect, TagSelectOne},
+    IntoInsert, IntoDelete, IntoSelect,
+    tag::{TagDelete, TagInsert},
 };
 use libsql::{Connection, ffi::SQLITE_CONSTRAINT_UNIQUE};
 use sea_query::SqliteQueryBuilder;
@@ -27,33 +27,7 @@ impl LibsqlTagRepository {
 #[async_trait::async_trait]
 impl TagRepository for LibsqlTagRepository {
     async fn query(&self, params: TagParams) -> Result<Vec<Tag>, Error> {
-        let (sql, values) = TagSelect {
-            ids: params.ids,
-            tag_type: params.tag_type,
-            feed_id: params.feed_id,
-            bookmark_id: params.bookmark_id,
-            user_id: params.user_id.as_deref(),
-            cursor: params.cursor.as_deref(),
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let mut tags = Vec::<Tag>::new();
-        while let Some(row) = rows.next().await? {
-            tags.push(libsql::de::from_row::<TagRow>(&row)?.into());
-        }
-
-        Ok(tags)
-    }
-
-    async fn find_by_ids(&self, ids: Vec<Uuid>) -> Result<Vec<Tag>, Error> {
-        let (sql, values) = TagSelectOne::Ids(ids)
-            .into_select()
-            .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;

@@ -5,7 +5,6 @@ use colette_core::{
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
-    feed_entry::{SubscriptionEntrySelect, SubscriptionEntrySelectOne},
     read_entry::{ReadEntryDelete, ReadEntryInsert},
 };
 use libsql::Connection;
@@ -31,18 +30,7 @@ impl SubscriptionEntryRepository for LibsqlSubscriptionEntryRepository {
         &self,
         params: SubscriptionEntryParams,
     ) -> Result<Vec<SubscriptionEntry>, Error> {
-        let (sql, values) = SubscriptionEntrySelect {
-            filter: params.filter,
-            id: params.id,
-            subscription_id: params.subscription_id,
-            has_read: params.has_read,
-            tags: params.tags,
-            user_id: params.user_id,
-            cursor: params.cursor,
-            limit: params.limit,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
 
         let mut stmt = self.conn.prepare(&sql).await?;
         let mut rows = stmt.query(values.into_params()).await?;
@@ -54,30 +42,6 @@ impl SubscriptionEntryRepository for LibsqlSubscriptionEntryRepository {
         }
 
         Ok(subscription_entries)
-    }
-
-    async fn find_by_id(
-        &self,
-        feed_entry_id: Uuid,
-        subscription_id: Uuid,
-    ) -> Result<Option<SubscriptionEntry>, Error> {
-        let (sql, values) = SubscriptionEntrySelectOne {
-            feed_entry_id,
-            subscription_id,
-        }
-        .into_select()
-        .build_libsql(SqliteQueryBuilder);
-
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let Some(row) = rows.next().await? else {
-            return Ok(None);
-        };
-
-        Ok(Some(
-            libsql::de::from_row::<SubscriptionEntryRow>(&row)?.into(),
-        ))
     }
 
     async fn save(&self, data: &SubscriptionEntry) -> Result<(), Error> {

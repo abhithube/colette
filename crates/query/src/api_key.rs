@@ -1,6 +1,7 @@
 use std::fmt::Write;
 
 use chrono::{DateTime, Utc};
+use colette_core::api_key::ApiKeyParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
@@ -42,20 +43,16 @@ impl Iden for ApiKey {
     }
 }
 
-pub struct ApiKeySelect<'a> {
-    pub id: Option<Uuid>,
-    pub user_id: Option<&'a str>,
-    pub cursor: Option<DateTime<Utc>>,
-    pub limit: Option<u64>,
-}
-
-impl IntoSelect for ApiKeySelect<'_> {
+impl IntoSelect for ApiKeyParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
             .column(Asterisk)
             .from(ApiKey::Table)
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((ApiKey::Table, ApiKey::Id)).eq(id));
+            })
+            .apply_if(self.lookup_hash, |query, lookup_hash| {
+                query.and_where(Expr::col((ApiKey::Table, ApiKey::LookupHash)).eq(lookup_hash));
             })
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((ApiKey::Table, ApiKey::UserId)).eq(user_id));
@@ -73,28 +70,6 @@ impl IntoSelect for ApiKeySelect<'_> {
         }
 
         query
-    }
-}
-
-pub enum ApiKeySelectOne<'a> {
-    Id(Uuid),
-    LookupHash(&'a str),
-}
-
-impl IntoSelect for ApiKeySelectOne<'_> {
-    fn into_select(self) -> SelectStatement {
-        let r#where = match self {
-            ApiKeySelectOne::Id(id) => Expr::col(ApiKey::Id).eq(id),
-            ApiKeySelectOne::LookupHash(lookup_hash) => {
-                Expr::col(ApiKey::LookupHash).eq(lookup_hash)
-            }
-        };
-
-        Query::select()
-            .column(Asterisk)
-            .from(ApiKey::Table)
-            .and_where(r#where)
-            .to_owned()
     }
 }
 
