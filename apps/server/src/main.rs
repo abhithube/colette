@@ -33,6 +33,12 @@ use colette_http::ReqwestClient;
 use colette_migration::LibsqlMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
+use colette_repository::libsql::{
+    LibsqlApiKeyRepository, LibsqlBackupRepository, LibsqlBookmarkRepository,
+    LibsqlCollectionRepository, LibsqlFeedEntryRepository, LibsqlFeedRepository,
+    LibsqlJobRepository, LibsqlStreamRepository, LibsqlSubscriptionEntryRepository,
+    LibsqlSubscriptionRepository, LibsqlTagRepository,
+};
 use colette_storage::StorageAdapter;
 use config::{DatabaseConfig, StorageConfig};
 use job::{
@@ -43,12 +49,6 @@ use job::{
 };
 use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use refinery::embed_migrations;
-use repository::libsql::{
-    LibsqlApiKeyRepository, LibsqlBackupRepository, LibsqlBookmarkRepository,
-    LibsqlCollectionRepository, LibsqlFeedEntryRepository, LibsqlFeedRepository,
-    LibsqlJobRepository, LibsqlStreamRepository, LibsqlSubscriptionEntryRepository,
-    LibsqlSubscriptionRepository, LibsqlTagRepository,
-};
 use tokio::{net::TcpListener, sync::Mutex};
 use torii::Torii;
 use tower::{ServiceBuilder, ServiceExt};
@@ -61,7 +61,6 @@ use utoipa_scalar::{Scalar, Servable};
 mod api;
 mod config;
 mod job;
-mod repository;
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]

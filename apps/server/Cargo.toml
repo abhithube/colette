@@ -28,8 +28,8 @@ colette-migration.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-plugins.workspace = true
-colette-query.workspace = true
 colette-queue.workspace = true
+colette-repository.workspace = true
 colette-storage.workspace = true
 colette-util.workspace = true
 dirs = { version = "6.0.0", default-features = false }
@@ -46,7 +46,6 @@ reqwest.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
-sea-query.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_with = { version = "3.12.0", default-features = false }

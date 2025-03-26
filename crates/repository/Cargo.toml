@@ -1,0 +1,19 @@
+[package]
+name = "colette-repository"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+async-trait.workspace = true
+chrono.workspace = true
+colette-core.workspace = true
+colette-netscape.workspace = true
+colette-opml.workspace = true
+colette-query.workspace = true
+futures.workspace = true
+libsql.workspace = true
+sea-query.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+url.workspace = true
+uuid.workspace = true

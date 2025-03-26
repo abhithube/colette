@@ -561,6 +561,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-repository"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "colette-core",
+ "colette-netscape",
+ "colette-opml",
+ "colette-query",
+ "futures",
+ "libsql",
+ "sea-query",
+ "serde",
+ "serde_json",
+ "url",
+ "uuid",
+]
+
+[[package]]
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
@@ -577,8 +596,8 @@ dependencies = [
  "colette-netscape",
  "colette-opml",
  "colette-plugins",
- "colette-query",
  "colette-queue",
+ "colette-repository",
  "colette-storage",
  "colette-util",
  "dirs 6.0.0",
@@ -591,7 +610,6 @@ dependencies = [
  "refinery",
  "reqwest",
  "rust-embed",
- "sea-query",
  "serde",
  "serde_json",
  "serde_with",
