@@ -8,8 +8,8 @@ use colette_core::{
     backup::ImportBookmarksJobData,
     bookmark::{BookmarkListQuery, BookmarkService, ScrapeBookmarkJobData},
     job::{Job, JobCreate, JobService},
-    queue::JobProducer,
 };
+use colette_queue::JobProducer;
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;

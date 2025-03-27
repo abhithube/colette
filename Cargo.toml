@@ -49,10 +49,6 @@ libsql = { version = "0.9.1", default-features = false, features = [
   "serde",
   "stream",
 ] }
-object_store = { version = "0.11.2", default-features = false, features = [
-  "aws",
-  "tls-webpki-roots",
-] }
 quick-xml = { version = "0.37.2", default-features = false }
 redis = { version = "0.27", default-features = false, features = [
   "tokio-rustls-comp",

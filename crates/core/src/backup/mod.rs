@@ -1,7 +1,7 @@
 pub use backup_repository::*;
 pub use backup_service::*;
 
-use crate::{job, queue};
+use crate::job;
 
 mod backup_repository;
 mod backup_service;
@@ -18,7 +18,7 @@ pub enum Error {
     Job(#[from] job::Error),
 
     #[error(transparent)]
-    Queue(#[from] queue::Error),
+    Queue(#[from] colette_queue::Error),
 
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),

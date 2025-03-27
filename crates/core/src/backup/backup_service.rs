@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use bytes::{Buf, Bytes};
 use colette_netscape::{Item, Netscape};
 use colette_opml::{Body, Opml, Outline, OutlineType};
+use colette_queue::JobProducer;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 
@@ -10,7 +11,6 @@ use super::{Error, ImportBookmarksData, ImportFeedsData, backup_repository::Back
 use crate::{
     bookmark::{BookmarkParams, BookmarkRepository},
     job::{Job, JobRepository},
-    queue::JobProducer,
     subscription::{SubscriptionParams, SubscriptionRepository},
 };
 

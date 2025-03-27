@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 async-trait.workspace = true
-colette-core.workspace = true
+thiserror.workspace = true
 tokio.workspace = true
 uuid.workspace = true

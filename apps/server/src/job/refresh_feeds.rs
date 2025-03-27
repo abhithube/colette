@@ -7,8 +7,8 @@ use std::{
 use colette_core::{
     feed::{FeedService, ScrapeFeedJobData},
     job::{Job, JobCreate, JobService},
-    queue::JobProducer,
 };
+use colette_queue::JobProducer;
 use futures::{FutureExt, StreamExt};
 use tokio::sync::Mutex;
 use tower::Service;

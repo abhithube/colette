@@ -6,4 +6,4 @@ edition = "2024"
 [dependencies]
 async-trait.workspace = true
 futures.workspace = true
-object_store.workspace = true
+tokio.workspace = true

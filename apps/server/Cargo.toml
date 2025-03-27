@@ -39,7 +39,6 @@ email_address = { version = "0.2.9", default-features = false, features = [
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
 libsql.workspace = true
-object_store.workspace = true
 redis.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest.workspace = true

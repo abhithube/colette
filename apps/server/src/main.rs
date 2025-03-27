@@ -39,15 +39,14 @@ use colette_repository::libsql::{
     LibsqlJobRepository, LibsqlStreamRepository, LibsqlSubscriptionEntryRepository,
     LibsqlSubscriptionRepository, LibsqlTagRepository,
 };
-use colette_storage::StorageAdapter;
-use config::{DatabaseConfig, StorageConfig};
+use colette_storage::{LocalStorageClient, StorageAdapter};
+use config::{DatabaseConfig, QueueConfig, StorageConfig};
 use job::{
     JobWorker, archive_thumbnail::ArchiveThumbnailHandler,
     import_bookmarks::ImportBookmarksHandler, import_feeds::ImportFeedsHandler,
     refresh_feeds::RefreshFeedsHandler, scrape_bookmark::ScrapeBookmarkHandler,
     scrape_feed::ScrapeFeedHandler,
 };
-use object_store::{aws::AmazonS3Builder, local::LocalFileSystem};
 use refinery::embed_migrations;
 use tokio::{net::TcpListener, sync::Mutex};
 use torii::Torii;
@@ -95,7 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_config = config::from_env()?;
 
     let conn = match app_config.database {
-        DatabaseConfig::Sqlite(config) => {
+        DatabaseConfig::Libsql(config) => {
             let database = libsql::Builder::new_local(config.url).build().await?;
             let conn = database.connect()?;
 
@@ -107,77 +106,82 @@ async fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
-        StorageConfig::Fs(config) => {
-            let fs = LocalFileSystem::new_with_prefix(config.path)?.with_automatic_cleanup(true);
+        StorageConfig::Local(config) => (
+            StorageAdapter::Local(LocalStorageClient::new(config.path)),
+            format!("http://0.0.0.0:{}/uploads/", app_config.server.port)
+                .parse()
+                .unwrap(),
+        ), // StorageConfig::S3(config) => {
+           //     let s3 = AmazonS3Builder::new()
+           //         .with_access_key_id(config.access_key_id)
+           //         .with_secret_access_key(config.secret_access_key)
+           //         .with_region(config.region)
+           //         .with_endpoint(config.endpoint.origin().ascii_serialization())
+           //         .with_bucket_name(&config.bucket_name)
+           //         .with_allow_http(true)
+           //         .build()?;
 
-            (
-                StorageAdapter::Local(Arc::new(fs)),
-                format!("http://0.0.0.0:{}/uploads/", app_config.server.port)
-                    .parse()
-                    .unwrap(),
-            )
-        }
-        StorageConfig::S3(config) => {
-            let s3 = AmazonS3Builder::new()
-                .with_access_key_id(config.access_key_id)
-                .with_secret_access_key(config.secret_access_key)
-                .with_region(config.region)
-                .with_endpoint(config.endpoint.origin().ascii_serialization())
-                .with_bucket_name(&config.bucket_name)
-                .with_allow_http(true)
-                .build()?;
+           //     let base_url = config
+           //         .endpoint
+           //         .join(&format!("{}/", config.bucket_name))
+           //         .unwrap();
 
-            let base_url = config
-                .endpoint
-                .join(&format!("{}/", config.bucket_name))
-                .unwrap();
-
-            (StorageAdapter::S3(s3), base_url)
-        }
+           //     (StorageAdapter::S3(s3), base_url)
+           // }
     };
 
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
 
-    let (scrape_feed_producer, scrape_feed_consumer) = {
-        let queue = LocalQueue::new().split();
+    let (scrape_feed_producer, scrape_feed_consumer) = match &app_config.queue {
+        QueueConfig::Local => {
+            let queue = LocalQueue::new().split();
 
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
+            (
+                JobProducerAdapter::Local(queue.0),
+                JobConsumerAdapter::Local(queue.1),
+            )
+        }
     };
-    let (scrape_bookmark_producer, scrape_bookmark_consumer) = {
-        let queue = LocalQueue::new().split();
+    let (scrape_bookmark_producer, scrape_bookmark_consumer) = match &app_config.queue {
+        QueueConfig::Local => {
+            let queue = LocalQueue::new().split();
 
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
+            (
+                JobProducerAdapter::Local(queue.0),
+                JobConsumerAdapter::Local(queue.1),
+            )
+        }
     };
-    let (archive_thumbnail_producer, archive_thumbnail_consumer) = {
-        let queue = LocalQueue::new().split();
+    let (archive_thumbnail_producer, archive_thumbnail_consumer) = match &app_config.queue {
+        QueueConfig::Local => {
+            let queue = LocalQueue::new().split();
 
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
+            (
+                JobProducerAdapter::Local(queue.0),
+                JobConsumerAdapter::Local(queue.1),
+            )
+        }
     };
-    let (import_feeds_producer, import_feeds_consumer) = {
-        let queue = LocalQueue::new().split();
+    let (import_feeds_producer, import_feeds_consumer) = match &app_config.queue {
+        QueueConfig::Local => {
+            let queue = LocalQueue::new().split();
 
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
+            (
+                JobProducerAdapter::Local(queue.0),
+                JobConsumerAdapter::Local(queue.1),
+            )
+        }
     };
-    let (import_bookmarks_producer, import_bookmarks_consumer) = {
-        let queue = LocalQueue::new().split();
+    let (import_bookmarks_producer, import_bookmarks_consumer) = match &app_config.queue {
+        QueueConfig::Local => {
+            let queue = LocalQueue::new().split();
 
-        (
-            JobProducerAdapter::Local(queue.0),
-            JobConsumerAdapter::Local(queue.1),
-        )
+            (
+                JobProducerAdapter::Local(queue.0),
+                JobConsumerAdapter::Local(queue.1),
+            )
+        }
     };
 
     let bookmark_repository = LibsqlBookmarkRepository::new(conn.clone());
@@ -309,7 +313,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             None,
         ));
 
-    if let StorageConfig::Fs(config) = app_config.storage {
+    if let StorageConfig::Local(config) = app_config.storage {
         api = api.nest_service("/uploads", ServeDir::new(config.path))
     }
 

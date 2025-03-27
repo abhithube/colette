@@ -3,8 +3,9 @@ use std::collections::HashMap;
 use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
+use colette_queue::JobProducer;
+use colette_storage::StorageClient;
 use colette_util::{base64, thumbnail};
-use object_store::{ObjectStore, path::Path};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
@@ -17,7 +18,6 @@ use crate::{
     collection::{CollectionParams, CollectionRepository},
     common::{PAGINATION_LIMIT, Paginated},
     job::{Job, JobRepository},
-    queue::JobProducer,
     tag::TagRepository,
 };
 
@@ -28,8 +28,8 @@ pub struct BookmarkService {
     tag_repository: Box<dyn TagRepository>,
     collection_repository: Box<dyn CollectionRepository>,
     job_repository: Box<dyn JobRepository>,
-    client: Box<dyn HttpClient>,
-    object_store: Box<dyn ObjectStore>,
+    http_client: Box<dyn HttpClient>,
+    storage_client: Box<dyn StorageClient>,
     archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }
@@ -42,7 +42,7 @@ impl BookmarkService {
         collection_repository: impl CollectionRepository,
         job_repository: impl JobRepository,
         http_client: impl HttpClient,
-        object_store: impl ObjectStore,
+        storage_client: impl StorageClient,
         archive_thumbnail_producer: impl JobProducer,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
@@ -51,8 +51,8 @@ impl BookmarkService {
             tag_repository: Box::new(tag_repository),
             collection_repository: Box::new(collection_repository),
             job_repository: Box::new(job_repository),
-            client: Box::new(http_client),
-            object_store: Box::new(object_store),
+            http_client: Box::new(http_client),
+            storage_client: Box::new(storage_client),
             archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
             plugins,
         }
@@ -299,7 +299,7 @@ impl BookmarkService {
         let bookmark = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
-                let body = self.client.get(&data.url).await?;
+                let body = self.http_client.get(&data.url).await?;
                 let metadata =
                     colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
 
@@ -329,7 +329,7 @@ impl BookmarkService {
         let processed = match self.plugins.get(host) {
             Some(plugin) => plugin.scrape(&mut data.url).await,
             None => {
-                let body = self.client.get(&data.url).await?;
+                let body = self.http_client.get(&data.url).await?;
                 let metadata =
                     colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
 
@@ -360,15 +360,15 @@ impl BookmarkService {
             ThumbnailOperation::Upload(thumbnail_url) => {
                 let file_name = thumbnail::generate_filename(&thumbnail_url);
 
-                let body = self.client.get(&thumbnail_url).await?;
+                let body = self.http_client.get(&thumbnail_url).await?;
 
                 let format = image::guess_format(&body)?;
                 let extension = format.extensions_str()[0];
 
                 let object_path = format!("{}/{}.{}", BOOKMARKS_DIR, file_name, extension);
 
-                self.object_store
-                    .put(&Path::parse(&object_path).unwrap(), body.into())
+                self.storage_client
+                    .upload(&object_path, body.into())
                     .await?;
 
                 self.bookmark_repository
@@ -379,9 +379,7 @@ impl BookmarkService {
         }
 
         if let Some(archived_path) = data.archived_path {
-            self.object_store
-                .delete(&Path::parse(&archived_path).unwrap())
-                .await?;
+            self.storage_client.delete(&archived_path).await?;
 
             self.bookmark_repository
                 .set_archived_path(bookmark_id, None)

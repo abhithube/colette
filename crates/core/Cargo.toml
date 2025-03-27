@@ -13,11 +13,12 @@ colette-http.workspace = true
 colette-meta.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
+colette-queue.workspace = true
+colette-storage.workspace = true
 colette-util.workspace = true
 futures.workspace = true
 image = { version = "0.25.5", default-features = false }
 libsql.workspace = true
-object_store.workspace = true
 redis.workspace = true
 reqwest.workspace = true
 scraper.workspace = true

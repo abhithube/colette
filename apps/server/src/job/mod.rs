@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use colette_core::{
-    job::{self, Job, JobService, JobStatus, JobUpdate},
-    queue::{self, JobConsumer},
-};
+use colette_core::job::{self, Job, JobService, JobStatus, JobUpdate};
+use colette_queue::JobConsumer;
 use tower::{Service, ServiceExt, util::BoxService};
 
 pub mod archive_thumbnail;
@@ -77,7 +75,7 @@ pub enum Error {
     Job(#[from] job::Error),
 
     #[error(transparent)]
-    Queue(#[from] queue::Error),
+    Queue(#[from] colette_queue::Error),
 
     #[error(transparent)]
     Serialize(#[from] serde_json::Error),

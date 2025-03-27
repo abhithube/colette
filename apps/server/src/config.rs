@@ -15,41 +15,10 @@ pub fn from_env() -> Result<Config, envy::Error> {
 pub struct Config {
     pub server: ServerConfig,
     pub database: DatabaseConfig,
-    pub job: JobConfig,
+    pub queue: QueueConfig,
     pub storage: StorageConfig,
     pub cron: Option<CronConfig>,
     pub cors: Option<CorsConfig>,
-}
-
-#[derive(Debug, Clone)]
-pub struct SqliteConfig {
-    pub url: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct FsConfig {
-    pub path: PathBuf,
-}
-
-#[derive(Debug, Clone)]
-pub struct S3Config {
-    pub access_key_id: String,
-    pub secret_access_key: String,
-    pub region: String,
-    pub endpoint: Url,
-    pub bucket_name: String,
-}
-
-impl Default for S3Config {
-    fn default() -> Self {
-        Self {
-            access_key_id: "minioadmin".into(),
-            secret_access_key: "minioadmin".into(),
-            region: "us-east-1".into(),
-            endpoint: "http://localhost:9000".parse().unwrap(),
-            bucket_name: APP_NAME.into(),
-        }
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -65,19 +34,50 @@ impl Default for ServerConfig {
 
 #[derive(Debug, Clone)]
 pub enum DatabaseConfig {
-    Sqlite(SqliteConfig),
+    Libsql(LibsqlConfig),
 }
 
 #[derive(Debug, Clone)]
-pub enum JobConfig {
-    Sqlite(SqliteConfig),
+pub struct LibsqlConfig {
+    pub url: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+pub enum QueueConfig {
+    Local,
 }
 
 #[derive(Debug, Clone)]
 pub enum StorageConfig {
-    Fs(FsConfig),
-    S3(S3Config),
+    Local(LocalStorageConfig),
+    // S3(S3StorageConfig),
 }
+
+#[derive(Debug, Clone)]
+pub struct LocalStorageConfig {
+    pub path: PathBuf,
+}
+
+// #[derive(Debug, Clone)]
+// pub struct S3StorageConfig {
+//     pub access_key_id: String,
+//     pub secret_access_key: String,
+//     pub region: String,
+//     pub endpoint: Url,
+//     pub bucket_name: String,
+// }
+
+// impl Default for S3StorageConfig {
+//     fn default() -> Self {
+//         Self {
+//             access_key_id: "minioadmin".into(),
+//             secret_access_key: "minioadmin".into(),
+//             region: "us-east-1".into(),
+//             endpoint: "http://localhost:9000".parse().unwrap(),
+//             bucket_name: APP_NAME.into(),
+//         }
+//     }
+// }
 
 #[derive(Debug, Clone)]
 pub struct CronConfig {
@@ -103,8 +103,8 @@ struct RawConfig {
     server_port: Option<u32>,
     #[serde(default = "DatabaseBackend::default")]
     database_backend: DatabaseBackend,
-    #[serde(default = "JobBackend::default")]
-    job_backend: JobBackend,
+    #[serde(default = "QueueBackend::default")]
+    queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]
     storage_backend: StorageBackend,
     aws_access_key_id: Option<String>,
@@ -136,56 +136,49 @@ impl TryFrom<RawConfig> for Config {
         }
 
         let database = match value.database_backend {
-            DatabaseBackend::Sqlite => {
-                let config = SqliteConfig {
+            DatabaseBackend::Libsql => {
+                let config = LibsqlConfig {
                     url: data_dir.join("db.sqlite"),
                 };
 
-                DatabaseConfig::Sqlite(config)
+                DatabaseConfig::Libsql(config)
             }
         };
 
-        let job = match value.job_backend {
-            JobBackend::Sqlite => {
-                let config = SqliteConfig {
-                    url: data_dir.join("job.sqlite"),
-                };
-
-                JobConfig::Sqlite(config)
-            }
+        let queue = match value.queue_backend {
+            QueueBackend::Local => QueueConfig::Local,
         };
 
         let storage = match value.storage_backend {
-            StorageBackend::Fs => {
-                let config = FsConfig {
+            StorageBackend::Local => {
+                let config = LocalStorageConfig {
                     path: data_dir.join("storage"),
                 };
                 if !std::fs::exists(&config.path).unwrap() {
                     let _ = std::fs::create_dir(&config.path);
                 }
 
-                StorageConfig::Fs(config)
-            }
-            StorageBackend::S3 => {
-                let mut config = S3Config::default();
-                if let Some(access_key_id) = value.aws_access_key_id {
-                    config.access_key_id = access_key_id;
-                }
-                if let Some(secret_access_key) = value.aws_secret_access_key {
-                    config.secret_access_key = secret_access_key;
-                }
-                if let Some(region) = value.aws_region {
-                    config.region = region;
-                }
-                if let Some(endpoint) = value.s3_endpoint {
-                    config.endpoint = endpoint;
-                }
-                if let Some(bucket_name) = value.s3_bucket_name {
-                    config.bucket_name = bucket_name;
-                }
+                StorageConfig::Local(config)
+            } // StorageBackend::S3 => {
+              //     let mut config = S3StorageConfig::default();
+              //     if let Some(access_key_id) = value.aws_access_key_id {
+              //         config.access_key_id = access_key_id;
+              //     }
+              //     if let Some(secret_access_key) = value.aws_secret_access_key {
+              //         config.secret_access_key = secret_access_key;
+              //     }
+              //     if let Some(region) = value.aws_region {
+              //         config.region = region;
+              //     }
+              //     if let Some(endpoint) = value.s3_endpoint {
+              //         config.endpoint = endpoint;
+              //     }
+              //     if let Some(bucket_name) = value.s3_bucket_name {
+              //         config.bucket_name = bucket_name;
+              //     }
 
-                StorageConfig::S3(config)
-            }
+              //     StorageConfig::S3(config)
+              // }
         };
 
         let mut cron = None;
@@ -208,39 +201,37 @@ impl TryFrom<RawConfig> for Config {
             cors = Some(config);
         }
 
-        let config = Self {
+        Ok(Self {
             server,
             database,
-            job,
+            queue,
             storage,
             cron,
             cors,
-        };
-
-        Ok(config)
+        })
     }
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum DatabaseBackend {
     #[default]
-    Sqlite,
+    Libsql,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum JobBackend {
+#[serde(rename_all = "kebab-case")]
+pub enum QueueBackend {
     #[default]
-    Sqlite,
+    Local,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "kebab-case")]
 pub enum StorageBackend {
     #[default]
-    Fs,
-    S3,
+    Local,
+    // S3,
 }
 
 fn cron_enabled() -> bool {

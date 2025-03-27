@@ -1,6 +1,7 @@
-use colette_core::queue::{Error, JobConsumer, JobProducer};
 use tokio::sync::mpsc::{self, Receiver, Sender};
 use uuid::Uuid;
+
+use crate::{Error, JobConsumer, JobProducer};
 
 #[derive(Debug)]
 pub struct LocalQueue {

@@ -8,9 +8,9 @@ use colette_core::{
     backup::ImportFeedsJobData,
     feed::ScrapeFeedJobData,
     job::{Job, JobCreate, JobService},
-    queue::JobProducer,
     subscription::{SubscriptionListQuery, SubscriptionService},
 };
+use colette_queue::JobProducer;
 use futures::FutureExt;
 use tokio::sync::Mutex;
 use tower::Service;

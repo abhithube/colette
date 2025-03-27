@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::{
     Tag, collection,
     filter::{BooleanOp, DateOp, NumberOp, TextOp},
-    job, queue, tag,
+    job, tag,
 };
 
 mod bookmark_repository;
@@ -117,7 +117,7 @@ pub enum Error {
     Image(#[from] ImageError),
 
     #[error(transparent)]
-    Storage(#[from] object_store::Error),
+    Io(#[from] std::io::Error),
 
     #[error(transparent)]
     Scraper(#[from] ScraperError),
@@ -126,7 +126,7 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Queue(#[from] queue::Error),
+    Queue(#[from] colette_queue::Error),
 
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),
