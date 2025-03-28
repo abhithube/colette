@@ -19,7 +19,6 @@ colette-util.workspace = true
 deadpool-postgres.workspace = true
 futures.workspace = true
 image = { version = "0.25.5", default-features = false }
-redis.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
 serde.workspace = true

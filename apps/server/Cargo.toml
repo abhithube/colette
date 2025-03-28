@@ -4,42 +4,22 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-async-trait.workspace = true
-axum = { version = "0.8.1", default-features = false, features = [
-  "http1",
-  "json",
-  "query",
-  "macros",
-  "tokio",
-] }
+axum.workspace = true
 axum-embed = { version = "0.1.0", default-features = false }
-axum-extra = { version = "0.10.0", default-features = false, features = [
-  "cookie",
-  "query",
-  "tracing",
-  "typed-header",
-] }
-bytes.workspace = true
 chrono.workspace = true
+colette-api.workspace = true
 colette-auth.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-migration.workspace = true
-colette-netscape.workspace = true
-colette-opml.workspace = true
 colette-plugins.workspace = true
 colette-queue.workspace = true
 colette-repository.workspace = true
 colette-storage.workspace = true
-colette-util.workspace = true
 deadpool-postgres.workspace = true
 dirs = { version = "6.0.0", default-features = false }
-email_address = { version = "0.2.9", default-features = false, features = [
-  "serde_support",
-] }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
-redis.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest.workspace = true
 rust-embed = { version = "8.5.0", default-features = false, features = [
@@ -47,41 +27,20 @@ rust-embed = { version = "8.5.0", default-features = false, features = [
 ] }
 serde.workspace = true
 serde_json.workspace = true
-serde_with = { version = "3.12.0", default-features = false }
 thiserror.workspace = true
-time.workspace = true
 tokio.workspace = true
 tokio-postgres.workspace = true
-torii = { git = "https://github.com/cmackenzie1/torii-rs", default-features = false, features = [
-  "password",
-] }
+torii.workspace = true
 tower = { version = "0.5.2", default-features = false, features = [
   "buffer",
   "limit",
   "tracing",
 ] }
-tower-http = { version = "0.6.2", default-features = false, features = [
-  "cors",
-  "fs",
-  "trace",
-] }
-tracing = { version = "0.1.41", default-features = false }
+tower-http = { workspace = true, features = ["fs"] }
+tracing.workspace = true
 tracing-subscriber = { version = "0.3.19", default-features = false, features = [
   "ansi",
   "env-filter",
   "tracing-log",
 ] }
 url.workspace = true
-utoipa = { version = "5.3.1", default-features = false, features = [
-  "chrono",
-  "macros",
-  "preserve_order",
-  "preserve_path_order",
-  "url",
-  "uuid",
-] }
-utoipa-axum = { version = "0.2.0", default-features = false }
-utoipa-scalar = { version = "0.3.0", default-features = false, features = [
-  "axum",
-] }
-uuid.workspace = true
