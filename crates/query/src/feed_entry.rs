@@ -197,7 +197,7 @@ impl IntoSelect for SubscriptionEntryParams {
                 .apply_if(self.has_read, |query, has_read| {
                     let mut subquery = Expr::exists(
                         Query::select()
-                            .expr(Expr::val(1))
+                            .expr(Expr::val("1"))
                             .from(ReadEntry::Table)
                             .and_where(
                                 Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
@@ -219,7 +219,7 @@ impl IntoSelect for SubscriptionEntryParams {
                 .apply_if(self.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
-                            .expr(Expr::val(1))
+                            .expr(Expr::val("1"))
                             .from(SubscriptionTag::Table)
                             .and_where(
                                 Expr::col((
@@ -270,7 +270,10 @@ impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for UnreadCountS
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column((Subscription::Table, Subscription::Id))
-            .expr(Func::count(Expr::col((FeedEntry::Table, FeedEntry::Id))))
+            .expr_as(
+                Func::count(Expr::col((FeedEntry::Table, FeedEntry::Id))),
+                Alias::new("unread_count"),
+            )
             .from(FeedEntry::Table)
             .inner_join(
                 Subscription::Table,
@@ -283,7 +286,7 @@ impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for UnreadCountS
             .and_where(
                 Expr::exists(
                     Query::select()
-                        .expr(Expr::val(1))
+                        .expr(Expr::val("1"))
                         .from(ReadEntry::Table)
                         .and_where(
                             Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
@@ -336,7 +339,7 @@ impl ToSql for SubscriptionEntryFilter {
             Self::Text { field, op } => match field {
                 SubscriptionEntryTextField::Tag => Expr::exists(
                     Query::select()
-                        .expr(Expr::val(1))
+                        .expr(Expr::val("1"))
                         .from(SubscriptionTag::Table)
                         .inner_join(
                             Tag::Table,

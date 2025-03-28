@@ -32,13 +32,13 @@ colette-queue.workspace = true
 colette-repository.workspace = true
 colette-storage.workspace = true
 colette-util.workspace = true
+deadpool-postgres.workspace = true
 dirs = { version = "6.0.0", default-features = false }
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
 ] }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
-libsql.workspace = true
 redis.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest.workspace = true
@@ -51,6 +51,7 @@ serde_with = { version = "3.12.0", default-features = false }
 thiserror.workspace = true
 time.workspace = true
 tokio.workspace = true
+tokio-postgres.workspace = true
 torii = { git = "https://github.com/cmackenzie1/torii-rs", default-features = false, features = [
   "password",
 ] }

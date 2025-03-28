@@ -143,11 +143,13 @@ impl IntoInsert for TagInsert<'_> {
             .to_owned();
 
         if self.upsert {
-            query.on_conflict(
-                OnConflict::columns([Tag::UserId, Tag::Title])
-                    .update_column(Tag::UpdatedAt)
-                    .to_owned(),
-            );
+            query
+                .on_conflict(
+                    OnConflict::columns([Tag::UserId, Tag::Title])
+                        .update_column(Tag::UpdatedAt)
+                        .to_owned(),
+                )
+                .returning_col(Tag::Id);
         } else {
             query.on_conflict(
                 OnConflict::column(Tag::Id)

@@ -30,17 +30,18 @@ use colette_core::{
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
-use colette_migration::LibsqlMigrator;
+use colette_migration::PostgresMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
-use colette_repository::libsql::{
-    LibsqlApiKeyRepository, LibsqlBackupRepository, LibsqlBookmarkRepository,
-    LibsqlCollectionRepository, LibsqlFeedEntryRepository, LibsqlFeedRepository,
-    LibsqlJobRepository, LibsqlStreamRepository, LibsqlSubscriptionEntryRepository,
-    LibsqlSubscriptionRepository, LibsqlTagRepository,
+use colette_repository::postgres::{
+    PostgresApiKeyRepository, PostgresBackupRepository, PostgresBookmarkRepository,
+    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
+    PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
+    PostgresSubscriptionRepository, PostgresTagRepository,
 };
 use colette_storage::{LocalStorageClient, StorageAdapter};
-use config::{DatabaseConfig, QueueConfig, StorageConfig};
+use config::{QueueConfig, StorageConfig};
+use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use job::{
     JobWorker, archive_thumbnail::ArchiveThumbnailHandler,
     import_bookmarks::ImportBookmarksHandler, import_feeds::ImportFeedsHandler,
@@ -49,6 +50,7 @@ use job::{
 };
 use refinery::embed_migrations;
 use tokio::{net::TcpListener, sync::Mutex};
+use tokio_postgres::NoTls;
 use torii::Torii;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::{cors::CorsLayer, services::ServeDir, trace::TraceLayer};
@@ -93,17 +95,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let app_config = config::from_env()?;
 
-    let conn = match app_config.database {
-        DatabaseConfig::Libsql(config) => {
-            let database = libsql::Builder::new_local(config.url).build().await?;
-            let conn = database.connect()?;
+    let manager = Manager::from_config(
+        app_config.database_url.parse()?,
+        NoTls,
+        ManagerConfig::default(),
+    );
 
-            let mut migrator = LibsqlMigrator::new(conn.clone());
-            migrations::runner().run_async(&mut migrator).await?;
+    let pool = Pool::builder(manager).build()?;
 
-            conn
-        }
-    };
+    let mut migrator = PostgresMigrator::new(pool.clone());
+    migrations::runner().run_async(&mut migrator).await?;
 
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
         StorageConfig::Local(config) => (
@@ -184,14 +185,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let bookmark_repository = LibsqlBookmarkRepository::new(conn.clone());
-    let collection_repository = LibsqlCollectionRepository::new(conn.clone());
-    let feed_repository = LibsqlFeedRepository::new(conn.clone());
-    let job_repository = LibsqlJobRepository::new(conn.clone());
-    let stream_repository = LibsqlStreamRepository::new(conn.clone());
-    let subscription_repository = LibsqlSubscriptionRepository::new(conn.clone());
-    let subscription_entry_repository = LibsqlSubscriptionEntryRepository::new(conn.clone());
-    let tag_repository = LibsqlTagRepository::new(conn.clone());
+    let bookmark_repository = PostgresBookmarkRepository::new(pool.clone());
+    let collection_repository = PostgresCollectionRepository::new(pool.clone());
+    let feed_repository = PostgresFeedRepository::new(pool.clone());
+    let job_repository = PostgresJobRepository::new(pool.clone());
+    let stream_repository = PostgresStreamRepository::new(pool.clone());
+    let subscription_repository = PostgresSubscriptionRepository::new(pool.clone());
+    let subscription_entry_repository = PostgresSubscriptionEntryRepository::new(pool.clone());
+    let tag_repository = PostgresTagRepository::new(pool.clone());
 
     let bookmark_service = Arc::new(BookmarkService::new(
         bookmark_repository.clone(),
@@ -230,16 +231,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let api_state = ApiState {
         auth: Arc::new(
-            Torii::new(Arc::new(AuthAdapter::Libsql(
-                colette_auth::LibsqlBackend::new(conn.clone()),
+            Torii::new(Arc::new(AuthAdapter::Postgres(
+                colette_auth::PostgresBackend::new(pool.clone()),
             )))
             .with_password_plugin(),
         ),
-        api_key_service: Arc::new(ApiKeyService::new(LibsqlApiKeyRepository::new(
-            conn.clone(),
+        api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
+            pool.clone(),
         ))),
         backup_service: Arc::new(BackupService::new(
-            LibsqlBackupRepository::new(conn.clone()),
+            PostgresBackupRepository::new(pool.clone()),
             subscription_repository,
             bookmark_repository,
             job_repository,
@@ -249,7 +250,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         bookmark_service: bookmark_service.clone(),
         collection_service: Arc::new(CollectionService::new(collection_repository)),
         feed_service: feed_service.clone(),
-        feed_entry_service: Arc::new(FeedEntryService::new(LibsqlFeedEntryRepository::new(conn))),
+        feed_entry_service: Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
+            pool,
+        ))),
         job_service: job_service.clone(),
         stream_service: Arc::new(StreamService::new(stream_repository.clone())),
         subscription_service: subscription_service.clone(),

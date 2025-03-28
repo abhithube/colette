@@ -94,7 +94,10 @@ pub enum Error {
     Stream(#[from] stream::Error),
 
     #[error(transparent)]
-    Database(#[from] libsql::Error),
+    Database(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    Pool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]
     Serde(#[from] serde::de::value::Error),

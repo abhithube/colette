@@ -2,139 +2,139 @@ CREATE TABLE users (
   id TEXT NOT NULL PRIMARY KEY,
   name TEXT,
   email TEXT NOT NULL UNIQUE,
-  verified_at INTEGER,
+  verified_at TIMESTAMPTZ,
   password_hash TEXT,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE sessions (
-  id INTEGER NOT NULL PRIMARY KEY,
+  id INTEGER GENERATED ALWAYS AS IDENTITY,
   token TEXT NOT NULL,
   user_agent TEXT,
   ip_address TEXT,
-  expires_at INTEGER NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE api_keys (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   lookup_hash TEXT NOT NULL UNIQUE,
   verification_hash TEXT NOT NULL,
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE jobs (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   job_type TEXT NOT NULL,
-  data BLOB NOT NULL,
+  data_json JSONB NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
-  group_id TEXT,
+  group_identifier TEXT,
   message TEXT,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  completed_at INTEGER
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ
 );
 
 CREATE TABLE feeds (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   link TEXT NOT NULL UNIQUE,
   xml_url TEXT,
   title TEXT NOT NULL,
   description TEXT,
-  refreshed_at INTEGER
+  refreshed_at TIMESTAMPTZ
 );
 
 CREATE TABLE feed_entries (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
-  published_at INTEGER NOT NULL,
+  published_at TIMESTAMPTZ NOT NULL,
   description TEXT,
   author TEXT,
   thumbnail_url TEXT,
-  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
+  feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE CASCADE,
   UNIQUE (feed_id, link)
 );
 
 CREATE TABLE subscriptions (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  feed_id TEXT NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, feed_id)
 );
 
 CREATE TABLE read_entries (
-  subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
-  feed_entry_id TEXT NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
+  subscription_id uuid NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
+  feed_entry_id uuid NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (subscription_id, feed_entry_id)
 );
 
 CREATE TABLE bookmarks (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   link TEXT NOT NULL,
   title TEXT NOT NULL,
   thumbnail_url TEXT,
-  published_at INTEGER,
+  published_at TIMESTAMPTZ,
   author TEXT,
   archived_path TEXT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, link)
 );
 
 CREATE TABLE tags (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
 );
 
 CREATE TABLE subscription_tags (
-  subscription_id TEXT NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
-  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  subscription_id uuid NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   PRIMARY KEY (subscription_id, tag_id)
 );
 
 CREATE TABLE bookmark_tags (
-  bookmark_id TEXT NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
-  tag_id TEXT NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+  bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   PRIMARY KEY (bookmark_id, tag_id)
 );
 
 CREATE TABLE streams (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  filter_raw TEXT NOT NULL,
+  filter_json JSONB NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
 );
 
 CREATE TABLE collections (
-  id TEXT NOT NULL PRIMARY KEY,
+  id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  filter_raw TEXT NOT NULL,
+  filter_json JSONB NOT NULL,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
 );

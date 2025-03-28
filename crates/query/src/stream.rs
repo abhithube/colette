@@ -6,6 +6,7 @@ use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
 };
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{IntoDelete, IntoInsert, IntoSelect};
@@ -14,7 +15,7 @@ pub enum Stream {
     Table,
     Id,
     Title,
-    FilterRaw,
+    FilterJson,
     UserId,
     CreatedAt,
     UpdatedAt,
@@ -29,7 +30,7 @@ impl Iden for Stream {
                 Self::Table => "streams",
                 Self::Id => "id",
                 Self::Title => "title",
-                Self::FilterRaw => "filter_raw",
+                Self::FilterJson => "filter_json",
                 Self::UserId => "user_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
@@ -67,7 +68,7 @@ impl IntoSelect for StreamParams {
 pub struct StreamInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
-    pub filter_raw: &'a str,
+    pub filter: Value,
     pub user_id: &'a str,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -76,18 +77,23 @@ pub struct StreamInsert<'a> {
 impl IntoInsert for StreamInsert<'_> {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
-            .columns([Stream::Id, Stream::Title, Stream::FilterRaw, Stream::UserId])
+            .columns([
+                Stream::Id,
+                Stream::Title,
+                Stream::FilterJson,
+                Stream::UserId,
+            ])
             .values_panic([
                 self.id.into(),
                 self.title.into(),
-                self.filter_raw.into(),
+                self.filter.into(),
                 self.user_id.into(),
                 self.created_at.into(),
                 self.updated_at.into(),
             ])
             .on_conflict(
                 OnConflict::column(Stream::Id)
-                    .update_columns([Stream::Title, Stream::FilterRaw, Stream::UpdatedAt])
+                    .update_columns([Stream::Title, Stream::FilterJson, Stream::UpdatedAt])
                     .to_owned(),
             )
             .to_owned()

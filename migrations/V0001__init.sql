@@ -1,191 +1,185 @@
--- Create "users" table
-CREATE TABLE `users` (
-  `id` TEXT NOT NULL,
-  `email` TEXT NOT NULL,
-  `display_name` TEXT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`)
+-- Create "jobs" table
+CREATE TABLE "public"."jobs" (
+  "id" uuid NOT NULL,
+  "job_type" TEXT NOT NULL,
+  "data_json" JSONB NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "group_identifier" TEXT NULL,
+  "message" TEXT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "completed_at" TIMESTAMPTZ NULL,
+  PRIMARY KEY ("id")
 );
 
--- Create index "users_email" to table: "users"
-CREATE UNIQUE INDEX `users_email` ON `users` (`email`);
-
--- Create "accounts" table
-CREATE TABLE `accounts` (
-  `provider_id` TEXT NOT NULL,
-  `account_id` TEXT NOT NULL,
-  `password_hash` TEXT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`provider_id`, `account_id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+-- Create "users" table
+CREATE TABLE "public"."users" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NULL,
+  "email" TEXT NOT NULL,
+  "verified_at" TIMESTAMPTZ NULL,
+  "password_hash" TEXT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "users_email_key" UNIQUE ("email")
 );
 
 -- Create "api_keys" table
-CREATE TABLE `api_keys` (
-  `id` TEXT NOT NULL,
-  `lookup_hash` TEXT NOT NULL,
-  `verification_hash` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `preview` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
--- Create index "api_keys_lookup_hash" to table: "api_keys"
-CREATE UNIQUE INDEX `api_keys_lookup_hash` ON `api_keys` (`lookup_hash`);
-
--- Create "feeds" table
-CREATE TABLE `feeds` (
-  `id` TEXT NOT NULL,
-  `link` TEXT NOT NULL,
-  `xml_url` TEXT NULL,
-  `title` TEXT NOT NULL,
-  `description` TEXT NULL,
-  `refreshed_at` TEXT NULL,
-  PRIMARY KEY (`id`)
-);
-
--- Create index "feeds_link" to table: "feeds"
-CREATE UNIQUE INDEX `feeds_link` ON `feeds` (`link`);
-
--- Create "feed_entries" table
-CREATE TABLE `feed_entries` (
-  `id` TEXT NOT NULL,
-  `link` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `published_at` TEXT NOT NULL,
-  `description` TEXT NULL,
-  `author` TEXT NULL,
-  `thumbnail_url` TEXT NULL,
-  `feed_id` TEXT NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`feed_id`) REFERENCES `feeds` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
--- Create index "feed_entries_feed_id_link" to table: "feed_entries"
-CREATE UNIQUE INDEX `feed_entries_feed_id_link` ON `feed_entries` (`feed_id`, `link`);
-
--- Create "subscriptions" table
-CREATE TABLE `subscriptions` (
-  `id` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `feed_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`feed_id`) REFERENCES `feeds` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
-  CONSTRAINT `1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
--- Create index "subscriptions_user_id_feed_id" to table: "subscriptions"
-CREATE UNIQUE INDEX `subscriptions_user_id_feed_id` ON `subscriptions` (`user_id`, `feed_id`);
-
--- Create "read_entries" table
-CREATE TABLE `read_entries` (
-  `subscription_id` TEXT NOT NULL,
-  `feed_entry_id` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`subscription_id`, `feed_entry_id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT `1` FOREIGN KEY (`feed_entry_id`) REFERENCES `feed_entries` (`id`) ON UPDATE NO ACTION ON DELETE RESTRICT,
-  CONSTRAINT `2` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+CREATE TABLE "public"."api_keys" (
+  "id" uuid NOT NULL,
+  "lookup_hash" TEXT NOT NULL,
+  "verification_hash" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "preview" TEXT NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "api_keys_lookup_hash_key" UNIQUE ("lookup_hash"),
+  CONSTRAINT "api_keys_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Create "bookmarks" table
-CREATE TABLE `bookmarks` (
-  `id` TEXT NOT NULL,
-  `link` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `thumbnail_url` TEXT NULL,
-  `published_at` TEXT NULL,
-  `author` TEXT NULL,
-  `archived_path` TEXT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+CREATE TABLE "public"."bookmarks" (
+  "id" uuid NOT NULL,
+  "link" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "thumbnail_url" TEXT NULL,
+  "published_at" TIMESTAMPTZ NULL,
+  "author" TEXT NULL,
+  "archived_path" TEXT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "bookmarks_user_id_link_key" UNIQUE ("user_id", "link"),
+  CONSTRAINT "bookmarks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
-
--- Create index "bookmarks_user_id_link" to table: "bookmarks"
-CREATE UNIQUE INDEX `bookmarks_user_id_link` ON `bookmarks` (`user_id`, `link`);
 
 -- Create "tags" table
-CREATE TABLE `tags` (
-  `id` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
--- Create index "tags_user_id_title" to table: "tags"
-CREATE UNIQUE INDEX `tags_user_id_title` ON `tags` (`user_id`, `title`);
-
--- Create "subscription_tags" table
-CREATE TABLE `subscription_tags` (
-  `subscription_id` TEXT NOT NULL,
-  `tag_id` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`subscription_id`, `tag_id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT `1` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT `2` FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+CREATE TABLE "public"."tags" (
+  "id" uuid NOT NULL,
+  "title" TEXT NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "tags_user_id_title_key" UNIQUE ("user_id", "title"),
+  CONSTRAINT "tags_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Create "bookmark_tags" table
-CREATE TABLE `bookmark_tags` (
-  `bookmark_id` TEXT NOT NULL,
-  `tag_id` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`bookmark_id`, `tag_id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT `1` FOREIGN KEY (`tag_id`) REFERENCES `tags` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE,
-  CONSTRAINT `2` FOREIGN KEY (`bookmark_id`) REFERENCES `bookmarks` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+CREATE TABLE "public"."bookmark_tags" (
+  "bookmark_id" uuid NOT NULL,
+  "tag_id" uuid NOT NULL,
+  "user_id" TEXT NOT NULL,
+  PRIMARY KEY ("bookmark_id", "tag_id"),
+  CONSTRAINT "bookmark_tags_bookmark_id_fkey" FOREIGN KEY ("bookmark_id") REFERENCES "public"."bookmarks" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "bookmark_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "public"."tags" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "bookmark_tags_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Create "collections" table
+CREATE TABLE "public"."collections" (
+  "id" uuid NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NULL,
+  "filter_json" JSONB NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "collections_user_id_title_key" UNIQUE ("user_id", "title"),
+  CONSTRAINT "collections_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Create "feeds" table
+CREATE TABLE "public"."feeds" (
+  "id" uuid NOT NULL,
+  "link" TEXT NOT NULL,
+  "xml_url" TEXT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NULL,
+  "refreshed_at" TIMESTAMPTZ NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "feeds_link_key" UNIQUE ("link")
+);
+
+-- Create "feed_entries" table
+CREATE TABLE "public"."feed_entries" (
+  "id" uuid NOT NULL,
+  "link" TEXT NOT NULL,
+  "title" TEXT NOT NULL,
+  "published_at" TIMESTAMPTZ NOT NULL,
+  "description" TEXT NULL,
+  "author" TEXT NULL,
+  "thumbnail_url" TEXT NULL,
+  "feed_id" uuid NOT NULL,
+  PRIMARY KEY ("id"),
+  CONSTRAINT "feed_entries_feed_id_link_key" UNIQUE ("feed_id", "link"),
+  CONSTRAINT "feed_entries_feed_id_fkey" FOREIGN KEY ("feed_id") REFERENCES "public"."feeds" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Create "subscriptions" table
+CREATE TABLE "public"."subscriptions" (
+  "id" uuid NOT NULL,
+  "title" TEXT NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "feed_id" uuid NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "subscriptions_user_id_feed_id_key" UNIQUE ("user_id", "feed_id"),
+  CONSTRAINT "subscriptions_feed_id_fkey" FOREIGN KEY ("feed_id") REFERENCES "public"."feeds" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT "subscriptions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Create "read_entries" table
+CREATE TABLE "public"."read_entries" (
+  "subscription_id" uuid NOT NULL,
+  "feed_entry_id" uuid NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("subscription_id", "feed_entry_id"),
+  CONSTRAINT "read_entries_feed_entry_id_fkey" FOREIGN KEY ("feed_entry_id") REFERENCES "public"."feed_entries" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT,
+  CONSTRAINT "read_entries_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "read_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
+);
+
+-- Create "sessions" table
+CREATE TABLE "public"."sessions" (
+  "id" INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
+  "token" TEXT NOT NULL,
+  "user_agent" TEXT NULL,
+  "ip_address" TEXT NULL,
+  "expires_at" TIMESTAMPTZ NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Create "streams" table
-CREATE TABLE `streams` (
-  `id` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `description` TEXT NULL,
-  `filter_raw` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+CREATE TABLE "public"."streams" (
+  "id" uuid NOT NULL,
+  "title" TEXT NOT NULL,
+  "description" TEXT NULL,
+  "filter_json" JSONB NOT NULL,
+  "user_id" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY ("id"),
+  CONSTRAINT "streams_user_id_title_key" UNIQUE ("user_id", "title"),
+  CONSTRAINT "streams_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
--- Create index "streams_user_id_title" to table: "streams"
-CREATE UNIQUE INDEX `streams_user_id_title` ON `streams` (`user_id`, `title`);
-
--- Create "collections" table
-CREATE TABLE `collections` (
-  `id` TEXT NOT NULL,
-  `title` TEXT NOT NULL,
-  `description` TEXT NULL,
-  `filter_raw` TEXT NOT NULL,
-  `user_id` TEXT NOT NULL,
-  `created_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  `updated_at` TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),
-  PRIMARY KEY (`id`),
-  CONSTRAINT `0` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON UPDATE NO ACTION ON DELETE CASCADE
+-- Create "subscription_tags" table
+CREATE TABLE "public"."subscription_tags" (
+  "subscription_id" uuid NOT NULL,
+  "tag_id" uuid NOT NULL,
+  "user_id" TEXT NOT NULL,
+  PRIMARY KEY ("subscription_id", "tag_id"),
+  CONSTRAINT "subscription_tags_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "subscription_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "public"."tags" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
+  CONSTRAINT "subscription_tags_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
-
--- Create index "collections_user_id_title" to table: "collections"
-CREATE UNIQUE INDEX `collections_user_id_title` ON `collections` (`user_id`, `title`);

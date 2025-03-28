@@ -1,0 +1,23 @@
+pub use api_key::PostgresApiKeyRepository;
+pub use backup::PostgresBackupRepository;
+pub use bookmark::PostgresBookmarkRepository;
+pub use collection::PostgresCollectionRepository;
+pub use feed::PostgresFeedRepository;
+pub use feed_entry::PostgresFeedEntryRepository;
+pub use job::PostgresJobRepository;
+pub use stream::PostgresStreamRepository;
+pub use subscription::PostgresSubscriptionRepository;
+pub use subscription_entry::PostgresSubscriptionEntryRepository;
+pub use tag::PostgresTagRepository;
+
+mod api_key;
+mod backup;
+mod bookmark;
+mod collection;
+mod feed;
+mod feed_entry;
+mod job;
+mod stream;
+mod subscription;
+mod subscription_entry;
+mod tag;

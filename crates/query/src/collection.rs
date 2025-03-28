@@ -6,6 +6,7 @@ use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
 };
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{IntoDelete, IntoInsert, IntoSelect};
@@ -14,7 +15,7 @@ pub enum Collection {
     Table,
     Id,
     Title,
-    FilterRaw,
+    FilterJson,
     UserId,
     CreatedAt,
     UpdatedAt,
@@ -29,7 +30,7 @@ impl Iden for Collection {
                 Self::Table => "collections",
                 Self::Id => "id",
                 Self::Title => "title",
-                Self::FilterRaw => "filter_raw",
+                Self::FilterJson => "filter_json",
                 Self::UserId => "user_id",
                 Self::CreatedAt => "created_at",
                 Self::UpdatedAt => "updated_at",
@@ -69,7 +70,7 @@ impl IntoSelect for CollectionParams {
 pub struct CollectionInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
-    pub filter_raw: &'a str,
+    pub filter: Value,
     pub user_id: &'a str,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -81,7 +82,7 @@ impl IntoInsert for CollectionInsert<'_> {
             .columns([
                 Collection::Id,
                 Collection::Title,
-                Collection::FilterRaw,
+                Collection::FilterJson,
                 Collection::UserId,
                 Collection::CreatedAt,
                 Collection::UpdatedAt,
@@ -89,7 +90,7 @@ impl IntoInsert for CollectionInsert<'_> {
             .values_panic([
                 self.id.into(),
                 self.title.into(),
-                self.filter_raw.into(),
+                self.filter.into(),
                 self.user_id.into(),
                 self.created_at.into(),
                 self.updated_at.into(),
@@ -98,7 +99,7 @@ impl IntoInsert for CollectionInsert<'_> {
                 OnConflict::column(Collection::Id)
                     .update_columns([
                         Collection::Title,
-                        Collection::FilterRaw,
+                        Collection::FilterJson,
                         Collection::UpdatedAt,
                     ])
                     .to_owned(),

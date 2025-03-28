@@ -80,7 +80,7 @@ impl IntoSelect for BookmarkParams {
                 .apply_if(self.tags, |query, tags| {
                     query.and_where(Expr::exists(
                         Query::select()
-                            .expr(Expr::val(1))
+                            .expr(Expr::val("1"))
                             .from(BookmarkTag::Table)
                             .and_where(
                                 Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))
@@ -242,7 +242,7 @@ impl ToSql for BookmarkFilter {
             Self::Text { field, op } => match field {
                 BookmarkTextField::Tag => Expr::exists(
                     Query::select()
-                        .expr(Expr::val(1))
+                        .expr(Expr::val("1"))
                         .from(BookmarkTag::Table)
                         .inner_join(
                             Tag::Table,

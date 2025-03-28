@@ -10,10 +10,16 @@ colette-core.workspace = true
 colette-netscape.workspace = true
 colette-opml.workspace = true
 colette-query.workspace = true
+deadpool-postgres.workspace = true
 futures.workspace = true
-libsql.workspace = true
 sea-query.workspace = true
+sea-query-postgres = { version = "0.5.0", default-features = false, features = [
+  "with-chrono",
+  "with-json",
+  "with-uuid",
+] }
 serde.workspace = true
 serde_json.workspace = true
+tokio-postgres.workspace = true
 url.workspace = true
 uuid.workspace = true

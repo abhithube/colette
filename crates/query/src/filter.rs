@@ -53,7 +53,9 @@ impl ToSql for (Expr, DateOp) {
             DateOp::Before(value) => column.lt(value),
             DateOp::After(value) => column.gt(value),
             DateOp::Between(value) => column.between(value.start, value.end),
-            DateOp::InLast(value) => Expr::cust("unixepoch()").sub(column).lt(value),
+            DateOp::InLast(value) => Expr::cust("extract(epoch from now())")
+                .sub(column)
+                .lt(value),
         }
     }
 }

@@ -70,7 +70,7 @@ impl Service<Job> for ImportBookmarksHandler {
                     .create_job(JobCreate {
                         data,
                         job_type: "scrape_bookmark".into(),
-                        group_id: Some(job.id.into()),
+                        group_identifier: Some(job.id.into()),
                     })
                     .await?;
 

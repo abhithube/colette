@@ -20,7 +20,7 @@ pub struct Job {
     pub data: Value,
     #[builder(default = Default::default())]
     pub status: JobStatus,
-    pub group_id: Option<String>,
+    pub group_identifier: Option<String>,
     pub message: Option<String>,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
@@ -69,7 +69,10 @@ pub enum Error {
     NotFound(Uuid),
 
     #[error(transparent)]
-    Database(#[from] libsql::Error),
+    Database(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    Pool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]
     Serde(#[from] serde::de::value::Error),

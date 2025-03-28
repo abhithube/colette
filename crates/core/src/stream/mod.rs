@@ -42,7 +42,10 @@ pub enum Error {
     Base64(#[from] base64::Error),
 
     #[error(transparent)]
-    Database(#[from] libsql::Error),
+    Database(#[from] tokio_postgres::Error),
+
+    #[error(transparent)]
+    Pool(#[from] deadpool_postgres::PoolError),
 
     #[error(transparent)]
     Serde(#[from] serde::de::value::Error),

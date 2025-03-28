@@ -25,5 +25,5 @@ pub trait JobRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct JobParams {
     pub id: Option<Uuid>,
-    pub group_id: Option<String>,
+    pub group_identifier: Option<String>,
 }

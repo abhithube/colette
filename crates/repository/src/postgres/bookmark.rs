@@ -10,51 +10,53 @@ use colette_query::{
     bookmark::{BookmarkDelete, BookmarkInsert, BookmarkUpdate},
     bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
 };
-use libsql::{Connection, Transaction, ffi::SQLITE_CONSTRAINT_UNIQUE};
-use sea_query::SqliteQueryBuilder;
+use deadpool_postgres::{Pool, Transaction};
+use sea_query::PostgresQueryBuilder;
+use sea_query_postgres::PostgresBinder;
+use tokio_postgres::{Row, error::SqlState};
 use uuid::Uuid;
 
-use super::LibsqlBinder;
-
 #[derive(Debug, Clone)]
-pub struct LibsqlBookmarkRepository {
-    conn: Connection,
+pub struct PostgresBookmarkRepository {
+    pool: Pool,
 }
 
-impl LibsqlBookmarkRepository {
-    pub fn new(conn: Connection) -> Self {
-        Self { conn }
+impl PostgresBookmarkRepository {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
-impl BookmarkRepository for LibsqlBookmarkRepository {
+impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
-        let (sql, values) = params.into_select().build_libsql(SqliteQueryBuilder);
+        let client = self.pool.get().await?;
 
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
+        let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
 
-        let mut bookmark_rows = Vec::<BookmarkRow>::new();
-        while let Some(row) = rows.next().await? {
-            bookmark_rows.push(libsql::de::from_row(&row)?);
+        let stmt = client.prepare_cached(&sql).await?;
+        let rows = client.query(&stmt, &values.as_params()).await?;
+        if rows.is_empty() {
+            return Ok(Vec::new());
         }
+
+        let bookmark_rows = rows
+            .iter()
+            .map(|e| Bookmark::from(BookmarkRow(e)))
+            .collect::<Vec<_>>();
 
         let (sql, values) = BookmarkTagSelect {
             bookmark_ids: bookmark_rows.iter().map(|e| e.id),
         }
         .into_select()
-        .build_libsql(SqliteQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = self.conn.prepare(&sql).await?;
-        let mut rows = stmt.query(values.into_params()).await?;
-
-        let mut tag_rows = Vec::<BookmarkTagRow>::new();
-        while let Some(row) = rows.next().await? {
-            tag_rows.push(libsql::de::from_row(&row)?);
-        }
+        let stmt = client.prepare_cached(&sql).await?;
+        let rows = client.query(&stmt, &values.as_params()).await?;
 
         let mut tag_row_map = HashMap::<Uuid, Vec<BookmarkTagRow>>::new();
+
+        let tag_rows = rows.iter().map(BookmarkTagRow::from).collect::<Vec<_>>();
         for row in tag_rows {
             tag_row_map.entry(row.bookmark_id).or_default().push(row);
         }
@@ -74,7 +76,8 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
     }
 
     async fn save(&self, data: &Bookmark) -> Result<(), Error> {
-        let tx = self.conn.transaction().await?;
+        let mut client = self.pool.get().await?;
+        let tx = client.transaction().await?;
 
         {
             let (sql, values) = BookmarkInsert {
@@ -91,15 +94,13 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
                 upsert: false,
             }
             .into_insert()
-            .build_libsql(SqliteQueryBuilder);
+            .build_postgres(PostgresQueryBuilder);
 
-            let mut stmt = tx.prepare(&sql).await?;
-            stmt.execute(values.into_params())
+            let stmt = tx.prepare_cached(&sql).await?;
+            tx.execute(&stmt, &values.as_params())
                 .await
-                .map_err(|e| match e {
-                    libsql::Error::SqliteFailure(SQLITE_CONSTRAINT_UNIQUE, _) => {
-                        Error::Conflict(data.link.clone())
-                    }
+                .map_err(|e| match e.code() {
+                    Some(&SqlState::UNIQUE_VIOLATION) => Error::Conflict(data.link.clone()),
                     _ => Error::Database(e),
                 })?;
         }
@@ -115,6 +116,8 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
     }
 
     async fn upsert(&self, data: &Bookmark) -> Result<(), Error> {
+        let client = self.pool.get().await?;
+
         let (sql, values) = BookmarkInsert {
             id: data.id,
             link: data.link.as_str(),
@@ -129,10 +132,10 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
             upsert: true,
         }
         .into_insert()
-        .build_libsql(SqliteQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = self.conn.prepare(&sql).await?;
-        stmt.execute(values.into_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+        client.execute(&stmt, &values.as_params()).await?;
 
         Ok(())
     }
@@ -142,36 +145,40 @@ impl BookmarkRepository for LibsqlBookmarkRepository {
         bookmark_id: Uuid,
         archived_path: Option<String>,
     ) -> Result<(), Error> {
+        let client = self.pool.get().await?;
+
         let (sql, values) = BookmarkUpdate {
             id: bookmark_id,
             archived_path: Some(archived_path.as_deref()),
             updated_at: Utc::now(),
         }
         .into_update()
-        .build_libsql(SqliteQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = self.conn.prepare(&sql).await?;
-        stmt.execute(values.into_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+        client.execute(&stmt, &values.as_params()).await?;
 
         Ok(())
     }
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error> {
+        let client = self.pool.get().await?;
+
         let (sql, values) = BookmarkDelete { id }
             .into_delete()
-            .build_libsql(SqliteQueryBuilder);
+            .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = self.conn.prepare(&sql).await?;
-        stmt.execute(values.into_params()).await?;
+        let stmt = client.prepare_cached(&sql).await?;
+        client.execute(&stmt, &values.as_params()).await?;
 
         Ok(())
     }
 }
 
-impl LibsqlBookmarkRepository {
+impl PostgresBookmarkRepository {
     async fn link_tags(
         &self,
-        tx: &Transaction,
+        tx: &Transaction<'_>,
         bookmark_id: Uuid,
         user_id: &str,
         tag_ids: impl IntoIterator<Item = Uuid> + Clone,
@@ -181,10 +188,10 @@ impl LibsqlBookmarkRepository {
             tag_ids: tag_ids.clone(),
         }
         .into_delete()
-        .build_libsql(SqliteQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = tx.prepare(&sql).await?;
-        stmt.execute(values.into_params()).await?;
+        let stmt = tx.prepare_cached(&sql).await?;
+        tx.execute(&stmt, &values.as_params()).await?;
 
         let (sql, values) = BookmarkTagInsert {
             bookmark_id,
@@ -192,57 +199,57 @@ impl LibsqlBookmarkRepository {
             tag_ids,
         }
         .into_insert()
-        .build_libsql(SqliteQueryBuilder);
+        .build_postgres(PostgresQueryBuilder);
 
-        let mut stmt = tx.prepare(&sql).await?;
-        stmt.execute(values.into_params()).await?;
+        let stmt = tx.prepare_cached(&sql).await?;
+        tx.execute(&stmt, &values.as_params()).await?;
 
         Ok(())
     }
 }
 
-#[derive(serde::Deserialize)]
-pub struct BookmarkRow {
-    pub id: Uuid,
-    pub link: String,
-    pub title: String,
-    pub thumbnail_url: Option<String>,
-    pub published_at: Option<i64>,
-    pub archived_path: Option<String>,
-    pub author: Option<String>,
-    pub user_id: String,
-    pub created_at: i64,
-    pub updated_at: i64,
-}
+struct BookmarkRow<'a>(&'a Row);
 
-impl From<BookmarkRow> for Bookmark {
-    fn from(value: BookmarkRow) -> Self {
+impl From<BookmarkRow<'_>> for Bookmark {
+    fn from(BookmarkRow(value): BookmarkRow<'_>) -> Self {
         Self {
-            id: value.id,
-            link: value.link.parse().unwrap(),
-            title: value.title,
-            thumbnail_url: value.thumbnail_url.and_then(|e| e.parse().ok()),
-            published_at: value
-                .published_at
-                .and_then(|e| DateTime::from_timestamp(e, 0)),
-            author: value.author,
-            archived_path: value.archived_path,
-            user_id: value.user_id,
-            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
-            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
+            id: value.get("id"),
+            link: value.get::<_, String>("link").parse().unwrap(),
+            title: value.get("title"),
+            thumbnail_url: value
+                .get::<_, Option<String>>("thumbnail_url")
+                .and_then(|e| e.parse().ok()),
+            published_at: value.get("published_at"),
+            archived_path: value.get("archived_path"),
+            author: value.get("author"),
+            user_id: value.get("user_id"),
+            created_at: value.get("created_at"),
+            updated_at: value.get("updated_at"),
             tags: None,
         }
     }
 }
 
-#[derive(serde::Deserialize)]
-pub struct BookmarkTagRow {
-    pub bookmark_id: Uuid,
-    pub id: Uuid,
-    pub title: String,
-    pub user_id: String,
-    pub created_at: i64,
-    pub updated_at: i64,
+struct BookmarkTagRow {
+    bookmark_id: Uuid,
+    id: Uuid,
+    title: String,
+    user_id: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+}
+
+impl From<&Row> for BookmarkTagRow {
+    fn from(value: &Row) -> Self {
+        Self {
+            bookmark_id: value.get("bookmark_id"),
+            id: value.get("id"),
+            title: value.get("title"),
+            user_id: value.get("user_id"),
+            created_at: value.get("created_at"),
+            updated_at: value.get("updated_at"),
+        }
+    }
 }
 
 impl From<BookmarkTagRow> for Tag {
@@ -251,35 +258,32 @@ impl From<BookmarkTagRow> for Tag {
             id: value.id,
             title: value.title,
             user_id: value.user_id,
-            created_at: DateTime::from_timestamp(value.created_at, 0).unwrap(),
-            updated_at: DateTime::from_timestamp(value.updated_at, 0).unwrap(),
-            feed_count: None,
+            created_at: value.created_at,
+            updated_at: value.updated_at,
             bookmark_count: None,
+            feed_count: None,
         }
     }
 }
 
-pub struct BookmarkRowWithTagRows {
-    pub bookmark: BookmarkRow,
-    pub tags: Option<Vec<BookmarkTagRow>>,
+struct BookmarkRowWithTagRows {
+    bookmark: Bookmark,
+    tags: Option<Vec<BookmarkTagRow>>,
 }
 
 impl From<BookmarkRowWithTagRows> for Bookmark {
     fn from(value: BookmarkRowWithTagRows) -> Self {
         Self {
             id: value.bookmark.id,
-            link: value.bookmark.link.parse().unwrap(),
+            link: value.bookmark.link,
             title: value.bookmark.title,
-            thumbnail_url: value.bookmark.thumbnail_url.and_then(|e| e.parse().ok()),
-            published_at: value
-                .bookmark
-                .published_at
-                .and_then(|e| DateTime::from_timestamp(e, 0)),
+            thumbnail_url: value.bookmark.thumbnail_url,
+            published_at: value.bookmark.published_at,
             author: value.bookmark.author,
             archived_path: value.bookmark.archived_path,
             user_id: value.bookmark.user_id,
-            created_at: DateTime::from_timestamp(value.bookmark.created_at, 0).unwrap(),
-            updated_at: DateTime::from_timestamp(value.bookmark.updated_at, 0).unwrap(),
+            created_at: value.bookmark.created_at,
+            updated_at: value.bookmark.updated_at,
             tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
         }
     }

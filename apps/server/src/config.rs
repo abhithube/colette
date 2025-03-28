@@ -14,7 +14,7 @@ pub fn from_env() -> Result<Config, envy::Error> {
 #[derive(Debug, Clone)]
 pub struct Config {
     pub server: ServerConfig,
-    pub database: DatabaseConfig,
+    pub database_url: String,
     pub queue: QueueConfig,
     pub storage: StorageConfig,
     pub cron: Option<CronConfig>,
@@ -30,16 +30,6 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self { port: 8000 }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum DatabaseConfig {
-    Libsql(LibsqlConfig),
-}
-
-#[derive(Debug, Clone)]
-pub struct LibsqlConfig {
-    pub url: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -101,8 +91,8 @@ pub struct CorsConfig {
 struct RawConfig {
     data_dir: Option<PathBuf>,
     server_port: Option<u32>,
-    #[serde(default = "DatabaseBackend::default")]
-    database_backend: DatabaseBackend,
+    #[serde(default = "database_url")]
+    database_url: String,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]
@@ -134,16 +124,6 @@ impl TryFrom<RawConfig> for Config {
         if let Some(port) = value.server_port {
             server.port = port;
         }
-
-        let database = match value.database_backend {
-            DatabaseBackend::Libsql => {
-                let config = LibsqlConfig {
-                    url: data_dir.join("db.sqlite"),
-                };
-
-                DatabaseConfig::Libsql(config)
-            }
-        };
 
         let queue = match value.queue_backend {
             QueueBackend::Local => QueueConfig::Local,
@@ -203,20 +183,13 @@ impl TryFrom<RawConfig> for Config {
 
         Ok(Self {
             server,
-            database,
+            database_url: value.database_url,
             queue,
             storage,
             cron,
             cors,
         })
     }
-}
-
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum DatabaseBackend {
-    #[default]
-    Libsql,
 }
 
 #[derive(Debug, Clone, Default, serde::Deserialize)]
@@ -232,6 +205,10 @@ pub enum StorageBackend {
     #[default]
     Local,
     // S3,
+}
+
+fn database_url() -> String {
+    "postgres://localhost/colette".into()
 }
 
 fn cron_enabled() -> bool {

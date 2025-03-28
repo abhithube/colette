@@ -75,7 +75,7 @@ impl Service<Job> for ImportFeedsHandler {
                     .create_job(JobCreate {
                         data,
                         job_type: "scrape_feed".into(),
-                        group_id: Some(job.id.into()),
+                        group_identifier: Some(job.id.into()),
                     })
                     .await?;
 

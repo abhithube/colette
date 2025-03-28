@@ -1,3 +1,3 @@
-pub use libsql::LibsqlMigrator;
+pub use postgres::PostgresMigrator;
 
-mod libsql;
+mod postgres;

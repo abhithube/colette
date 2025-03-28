@@ -45,6 +45,7 @@ impl IntoSelect for SubscriptionParams {
                 (Subscription::Table, Subscription::Id),
                 (Subscription::Table, Subscription::Title),
                 (Subscription::Table, Subscription::UserId),
+                (Subscription::Table, Subscription::FeedId),
                 (Subscription::Table, Subscription::CreatedAt),
                 (Subscription::Table, Subscription::UpdatedAt),
             ])
@@ -58,7 +59,7 @@ impl IntoSelect for SubscriptionParams {
             .apply_if(self.tags, |query, tags| {
                 query.and_where(Expr::exists(
                     Query::select()
-                        .expr(Expr::val(1))
+                        .expr(Expr::val("1"))
                         .from(SubscriptionTag::Table)
                         .and_where(
                             Expr::col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
@@ -91,7 +92,6 @@ impl IntoSelect for SubscriptionParams {
                     (Feed::Table, Feed::Description),
                     (Feed::Table, Feed::RefreshedAt),
                 ])
-                .expr_as(Expr::col((Feed::Table, Feed::Id)), Alias::new("feed_id"))
                 .expr_as(
                     Expr::col((Feed::Table, Feed::Title)),
                     Alias::new("feed_title"),
@@ -151,6 +151,12 @@ impl IntoInsert for SubscriptionInsert<'_> {
                         .to_owned(),
                 )
                 .returning_col(Subscription::Id);
+        } else {
+            query.on_conflict(
+                OnConflict::column(Subscription::Id)
+                    .update_columns([Subscription::Title, Subscription::UpdatedAt])
+                    .to_owned(),
+            );
         }
 
         query

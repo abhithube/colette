@@ -34,7 +34,7 @@ impl JobService {
         let job = Job::builder()
             .job_type(data.job_type)
             .data(data.data)
-            .maybe_group_id(data.group_id)
+            .maybe_group_identifier(data.group_identifier)
             .build();
 
         self.job_repository.save(&job).await?;
@@ -70,7 +70,7 @@ impl JobService {
 pub struct JobCreate {
     pub job_type: String,
     pub data: Value,
-    pub group_id: Option<String>,
+    pub group_identifier: Option<String>,
 }
 
 #[derive(Debug, Clone, Default)]

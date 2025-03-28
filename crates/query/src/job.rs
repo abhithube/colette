@@ -5,6 +5,7 @@ use colette_core::job::JobParams;
 use sea_query::{
     Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query, SelectStatement,
 };
+use serde_json::Value;
 use uuid::Uuid;
 
 use crate::{IntoDelete, IntoInsert, IntoSelect};
@@ -13,9 +14,9 @@ pub enum Job {
     Table,
     Id,
     JobType,
-    Data,
+    DataJson,
     Status,
-    GroupId,
+    GroupIdentifier,
     Message,
     CreatedAt,
     CompletedAt,
@@ -30,9 +31,9 @@ impl Iden for Job {
                 Self::Table => "jobs",
                 Self::Id => "id",
                 Self::JobType => "job_type",
-                Self::Data => "data",
+                Self::DataJson => "data_json",
                 Self::Status => "status",
-                Self::GroupId => "group_id",
+                Self::GroupIdentifier => "group_identifier",
                 Self::Message => "message",
                 Self::CreatedAt => "created_at",
                 Self::CompletedAt => "completed_at",
@@ -50,8 +51,8 @@ impl IntoSelect for JobParams {
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Job::Table, Job::Id)).eq(id));
             })
-            .apply_if(self.group_id, |query, group_id| {
-                query.and_where(Expr::col((Job::Table, Job::GroupId)).eq(group_id));
+            .apply_if(self.group_identifier, |query, group_identifier| {
+                query.and_where(Expr::col((Job::Table, Job::GroupIdentifier)).eq(group_identifier));
             })
             .to_owned()
     }
@@ -61,9 +62,9 @@ impl IntoSelect for JobParams {
 pub struct JobInsert<'a> {
     pub id: Uuid,
     pub job_type: &'a str,
-    pub data: &'a str,
+    pub data: Value,
     pub status: &'a str,
-    pub group_id: Option<&'a str>,
+    pub group_identifier: Option<&'a str>,
     pub message: Option<&'a str>,
     pub created_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
@@ -76,9 +77,9 @@ impl IntoInsert for JobInsert<'_> {
             .columns([
                 Job::Id,
                 Job::JobType,
-                Job::Data,
+                Job::DataJson,
                 Job::Status,
-                Job::GroupId,
+                Job::GroupIdentifier,
                 Job::Message,
                 Job::CreatedAt,
                 Job::CompletedAt,
@@ -88,7 +89,7 @@ impl IntoInsert for JobInsert<'_> {
                 self.job_type.into(),
                 self.data.into(),
                 self.status.into(),
-                self.group_id.into(),
+                self.group_identifier.into(),
                 self.message.into(),
                 self.created_at.into(),
                 self.completed_at.into(),
@@ -97,9 +98,9 @@ impl IntoInsert for JobInsert<'_> {
                 OnConflict::column(Job::Id)
                     .update_columns([
                         Job::JobType,
-                        Job::Data,
+                        Job::DataJson,
                         Job::Status,
-                        Job::GroupId,
+                        Job::GroupIdentifier,
                         Job::Message,
                         Job::CompletedAt,
                     ])

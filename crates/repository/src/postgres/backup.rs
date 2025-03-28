@@ -8,38 +8,34 @@ use colette_query::{
     feed::FeedInsert, subscription::SubscriptionInsert, subscription_tag::SubscriptionTagInsert,
     tag::TagInsert,
 };
-use libsql::Connection;
-use sea_query::SqliteQueryBuilder;
+use deadpool_postgres::Pool;
+use sea_query::PostgresQueryBuilder;
+use sea_query_postgres::PostgresBinder;
 use uuid::Uuid;
 
-use super::LibsqlBinder;
-
 #[derive(Debug, Clone)]
-pub struct LibsqlBackupRepository {
-    conn: Connection,
+pub struct PostgresBackupRepository {
+    pool: Pool,
 }
 
-impl LibsqlBackupRepository {
-    pub fn new(conn: Connection) -> Self {
-        Self { conn }
+impl PostgresBackupRepository {
+    pub fn new(pool: Pool) -> Self {
+        Self { pool }
     }
 }
 
 #[async_trait::async_trait]
-impl BackupRepository for LibsqlBackupRepository {
+impl BackupRepository for PostgresBackupRepository {
     async fn import_feeds(&self, data: ImportFeedsData) -> Result<(), Error> {
-        let tx = self.conn.transaction().await?;
+        let mut client = self.pool.get().await?;
+
+        let tx = client.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = data
             .outlines
             .into_iter()
             .map(|outline| (None, outline))
             .collect();
-
-        #[derive(serde::Deserialize)]
-        struct Row {
-            id: Uuid,
-        }
 
         while let Some((parent_id, outline)) = stack.pop() {
             if !outline.outline.is_empty() {
@@ -50,21 +46,16 @@ impl BackupRepository for LibsqlBackupRepository {
                         ..Default::default()
                     }
                     .into_select()
-                    .build_libsql(SqliteQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = tx.prepare(&sql).await?;
-                    let mut rows = stmt.query(values.into_params()).await?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_opt(&stmt, &values.as_params()).await?;
 
-                    match rows.next().await? {
-                        Some(row) => {
-                            let row = libsql::de::from_row::<Row>(&row)?;
-                            row.id
-                        }
+                    match row {
+                        Some(row) => row.get("id"),
                         _ => {
-                            let id = Uuid::new_v4();
-
                             let (sql, values) = TagInsert {
-                                id,
+                                id: Uuid::new_v4(),
                                 title: &outline.text,
                                 user_id: &data.user_id,
                                 created_at: Utc::now(),
@@ -72,12 +63,12 @@ impl BackupRepository for LibsqlBackupRepository {
                                 upsert: true,
                             }
                             .into_insert()
-                            .build_libsql(SqliteQueryBuilder);
+                            .build_postgres(PostgresQueryBuilder);
 
-                            let mut stmt = tx.prepare(&sql).await?;
-                            stmt.execute(values.into_params()).await?;
+                            let stmt = tx.prepare_cached(&sql).await?;
+                            let row = tx.query_one(&stmt, &values.as_params()).await?;
 
-                            id
+                            row.get("id")
                         }
                     }
                 };
@@ -97,30 +88,28 @@ impl BackupRepository for LibsqlBackupRepository {
                     refreshed_at: None,
                 };
 
-                let (sql, values) = feed.into_insert().build_libsql(SqliteQueryBuilder);
+                let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
 
-                let mut stmt = self.conn.prepare(&sql).await?;
-                let row = stmt.query_row(values.into_params()).await?;
-                let row = libsql::de::from_row::<Row>(&row)?;
+                let stmt = tx.prepare_cached(&sql).await?;
+                let row = tx.query_one(&stmt, &values.as_params()).await?;
 
                 let subscription_id = {
                     let (sql, values) = SubscriptionInsert {
                         id: Uuid::new_v4(),
                         title: &title,
-                        feed_id: row.id,
+                        feed_id: row.get("id"),
                         user_id: &data.user_id,
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
                         upsert: true,
                     }
                     .into_insert()
-                    .build_libsql(SqliteQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = self.conn.prepare(&sql).await?;
-                    let row = stmt.query_row(values.into_params()).await?;
-                    let row = libsql::de::from_row::<Row>(&row)?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_one(&stmt, &values.as_params()).await?;
 
-                    row.id
+                    row.get("id")
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -132,10 +121,10 @@ impl BackupRepository for LibsqlBackupRepository {
 
                     let (sql, values) = subscription_tag
                         .into_insert()
-                        .build_libsql(SqliteQueryBuilder);
+                        .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = tx.prepare(&sql).await?;
-                    stmt.execute(values.into_params()).await?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    tx.execute(&stmt, &values.as_params()).await?;
                 }
             }
         }
@@ -146,15 +135,12 @@ impl BackupRepository for LibsqlBackupRepository {
     }
 
     async fn import_bookmarks(&self, data: ImportBookmarksData) -> Result<(), Error> {
-        let tx = self.conn.transaction().await?;
+        let mut client = self.pool.get().await?;
+
+        let tx = client.transaction().await?;
 
         let mut stack: Vec<(Option<Uuid>, colette_netscape::Item)> =
             data.items.into_iter().map(|item| (None, item)).collect();
-
-        #[derive(serde::Deserialize)]
-        struct Row {
-            id: Uuid,
-        }
 
         while let Some((parent_id, item)) = stack.pop() {
             if !item.item.is_empty() {
@@ -165,21 +151,16 @@ impl BackupRepository for LibsqlBackupRepository {
                         ..Default::default()
                     }
                     .into_select()
-                    .build_libsql(SqliteQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = tx.prepare(&sql).await?;
-                    let mut rows = stmt.query(values.into_params()).await?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_opt(&stmt, &values.as_params()).await?;
 
-                    match rows.next().await? {
-                        Some(row) => {
-                            let row = libsql::de::from_row::<Row>(&row)?;
-                            row.id
-                        }
+                    match row {
+                        Some(row) => row.get("id"),
                         _ => {
-                            let id = Uuid::new_v4();
-
                             let (sql, values) = TagInsert {
-                                id,
+                                id: Uuid::new_v4(),
                                 title: &item.title,
                                 user_id: &data.user_id,
                                 created_at: Utc::now(),
@@ -187,12 +168,12 @@ impl BackupRepository for LibsqlBackupRepository {
                                 upsert: true,
                             }
                             .into_insert()
-                            .build_libsql(SqliteQueryBuilder);
+                            .build_postgres(PostgresQueryBuilder);
 
-                            let mut stmt = tx.prepare(&sql).await?;
-                            stmt.execute(values.into_params()).await?;
+                            let stmt = tx.prepare_cached(&sql).await?;
+                            let row = tx.query_one(&stmt, &values.as_params()).await?;
 
-                            id
+                            row.get("id")
                         }
                     }
                 };
@@ -216,13 +197,12 @@ impl BackupRepository for LibsqlBackupRepository {
                         upsert: true,
                     }
                     .into_insert()
-                    .build_libsql(SqliteQueryBuilder);
+                    .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = self.conn.prepare(&sql).await?;
-                    let row = stmt.query_row(values.into_params()).await?;
-                    let row = libsql::de::from_row::<Row>(&row)?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_one(&stmt, &values.as_params()).await?;
 
-                    row.id
+                    row.get("id")
                 };
 
                 if let Some(tag_id) = parent_id {
@@ -232,10 +212,12 @@ impl BackupRepository for LibsqlBackupRepository {
                         tag_ids: vec![tag_id],
                     };
 
-                    let (sql, values) = bookmark_tag.into_insert().build_libsql(SqliteQueryBuilder);
+                    let (sql, values) = bookmark_tag
+                        .into_insert()
+                        .build_postgres(PostgresQueryBuilder);
 
-                    let mut stmt = tx.prepare(&sql).await?;
-                    stmt.execute(values.into_params()).await?;
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    tx.execute(&stmt, &values.as_params()).await?;
                 }
             }
         }
