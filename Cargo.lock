@@ -437,6 +437,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-job"
+version = "0.1.0"
+dependencies = [
+ "colette-core",
+ "colette-queue",
+ "futures",
+ "serde_json",
+ "thiserror 2.0.12",
+ "tokio",
+ "tower",
+ "tracing",
+]
+
+[[package]]
 name = "colette-meta"
 version = "0.1.0"
 dependencies = [
@@ -544,6 +558,7 @@ dependencies = [
  "colette-auth",
  "colette-core",
  "colette-http",
+ "colette-job",
  "colette-migration",
  "colette-plugins",
  "colette-queue",

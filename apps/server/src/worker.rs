@@ -1,16 +1,10 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use colette_core::job::{self, Job, JobService, JobStatus, JobUpdate};
+use colette_core::job::{Job, JobService, JobStatus, JobUpdate};
+use colette_job::Error;
 use colette_queue::JobConsumer;
 use tower::{Service, ServiceExt, util::BoxService};
-
-pub mod archive_thumbnail;
-pub mod import_bookmarks;
-pub mod import_feeds;
-pub mod refresh_feeds;
-pub mod scrape_bookmark;
-pub mod scrape_feed;
 
 pub struct JobWorker {
     service: Arc<JobService>,
@@ -67,19 +61,4 @@ impl JobWorker {
 
         Ok(())
     }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    Job(#[from] job::Error),
-
-    #[error(transparent)]
-    Queue(#[from] colette_queue::Error),
-
-    #[error(transparent)]
-    Serialize(#[from] serde_json::Error),
-
-    #[error("service error: {0}")]
-    Service(String),
 }

@@ -10,6 +10,11 @@ use colette_core::{
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use colette_http::ReqwestClient;
+use colette_job::{
+    archive_thumbnail::ArchiveThumbnailHandler, import_bookmarks::ImportBookmarksHandler,
+    import_feeds::ImportFeedsHandler, refresh_feeds::RefreshFeedsHandler,
+    scrape_bookmark::ScrapeBookmarkHandler, scrape_feed::ScrapeFeedHandler,
+};
 use colette_migration::PostgresMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
@@ -22,12 +27,6 @@ use colette_repository::postgres::{
 use colette_storage::{LocalStorageClient, StorageAdapter};
 use config::{QueueConfig, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
-use job::{
-    JobWorker, archive_thumbnail::ArchiveThumbnailHandler,
-    import_bookmarks::ImportBookmarksHandler, import_feeds::ImportFeedsHandler,
-    refresh_feeds::RefreshFeedsHandler, scrape_bookmark::ScrapeBookmarkHandler,
-    scrape_feed::ScrapeFeedHandler,
-};
 use refinery::embed_migrations;
 use tokio::{net::TcpListener, sync::Mutex};
 use tokio_postgres::NoTls;
@@ -35,9 +34,10 @@ use torii::Torii;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use worker::JobWorker;
 
 mod config;
-mod job;
+mod worker;
 
 #[derive(Clone, rust_embed::Embed)]
 #[folder = "$CARGO_MANIFEST_DIR/../web/dist/"]

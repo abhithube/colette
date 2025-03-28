@@ -6,6 +6,7 @@ members = [
   "crates/core",
   "crates/feed",
   "crates/http",
+  "crates/job",
   "crates/meta",
   "crates/migration",
   "crates/netscape",
@@ -39,6 +40,7 @@ colette-auth.path = "crates/auth"
 colette-core.path = "crates/core"
 colette-feed.path = "crates/feed"
 colette-http.path = "crates/http"
+colette-job.path = "crates/job"
 colette-meta.path = "crates/meta"
 colette-migration.path = "crates/migration"
 colette-netscape.path = "crates/netscape"
@@ -89,6 +91,7 @@ tokio-postgres = { version = "0.7.13", default-features = false, features = [
 torii = { git = "https://github.com/cmackenzie1/torii-rs", default-features = false, features = [
   "password",
 ] }
+tower = { version = "0.5.2", default-features = false }
 tower-http = { version = "0.6.2", default-features = false, features = [
   "cors",
   "trace",
