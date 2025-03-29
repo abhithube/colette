@@ -6,5 +6,8 @@ edition = "2021"
 [dependencies]
 async-trait.workspace = true
 thiserror.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, optional = true }
 uuid.workspace = true
+
+[features]
+local = ['dep:tokio']

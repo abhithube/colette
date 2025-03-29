@@ -1,7 +1,11 @@
+#[cfg(not(any(feature = "local")))]
+panic!("at least one of 'local' must be enabled");
+
+#[cfg(feature = "local")]
 pub use local::LocalQueue;
-use local::{LocalJobConsumer, LocalJobProducer};
 use uuid::Uuid;
 
+#[cfg(feature = "local")]
 mod local;
 
 #[async_trait::async_trait]
@@ -22,13 +26,15 @@ pub enum Error {
 
 #[derive(Debug, Clone)]
 pub enum JobProducerAdapter {
-    Local(LocalJobProducer),
+    #[cfg(feature = "local")]
+    Local(local::LocalJobProducer),
 }
 
 #[async_trait::async_trait]
 impl JobProducer for JobProducerAdapter {
     async fn push(&mut self, job_id: Uuid) -> Result<(), Error> {
         match self {
+            #[cfg(feature = "local")]
             Self::Local(producer) => producer.push(job_id).await,
         }
     }
@@ -36,13 +42,15 @@ impl JobProducer for JobProducerAdapter {
 
 #[derive(Debug)]
 pub enum JobConsumerAdapter {
-    Local(LocalJobConsumer),
+    #[cfg(feature = "local")]
+    Local(local::LocalJobConsumer),
 }
 
 #[async_trait::async_trait]
 impl JobConsumer for JobConsumerAdapter {
     async fn pop(&mut self) -> Result<Option<Uuid>, Error> {
         match self {
+            #[cfg(feature = "local")]
             Self::Local(consumer) => consumer.pop().await,
         }
     }

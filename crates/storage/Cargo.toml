@@ -6,4 +6,7 @@ edition = "2024"
 [dependencies]
 async-trait.workspace = true
 futures.workspace = true
-tokio.workspace = true
+tokio = { workspace = true, optional = true }
+
+[features]
+local = ['dep:tokio']
