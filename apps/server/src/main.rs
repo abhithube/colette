@@ -24,10 +24,11 @@ use colette_repository::postgres::{
     PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
     PostgresSubscriptionRepository, PostgresTagRepository,
 };
-use colette_storage::{LocalStorageClient, StorageAdapter};
+use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use refinery::embed_migrations;
+use s3::{Bucket, BucketConfiguration, Region, creds::Credentials};
 use tokio::{net::TcpListener, sync::Mutex};
 use tokio_postgres::NoTls;
 use torii::Torii;
@@ -79,28 +80,44 @@ async fn main() -> Result<(), Box<dyn Error>> {
     migrations::runner().run_async(&mut migrator).await?;
 
     let (storage_adapter, image_base_url) = match app_config.storage.clone() {
-        StorageConfig::Local(config) => (
-            StorageAdapter::Local(LocalStorageClient::new(config.path)),
+        StorageConfig::Fs(config) => (
+            StorageAdapter::Fs(FsStorageClient::new(config.path)),
             format!("http://0.0.0.0:{}/uploads/", app_config.server.port)
                 .parse()
                 .unwrap(),
-        ), // StorageConfig::S3(config) => {
-           //     let s3 = AmazonS3Builder::new()
-           //         .with_access_key_id(config.access_key_id)
-           //         .with_secret_access_key(config.secret_access_key)
-           //         .with_region(config.region)
-           //         .with_endpoint(config.endpoint.origin().ascii_serialization())
-           //         .with_bucket_name(&config.bucket_name)
-           //         .with_allow_http(true)
-           //         .build()?;
+        ),
+        StorageConfig::S3(config) => {
+            let region = Region::Custom {
+                region: config.region,
+                endpoint: config.endpoint.origin().ascii_serialization(),
+            };
+            let credentials = Credentials::new(
+                Some(&config.access_key_id),
+                Some(&config.secret_access_key),
+                None,
+                None,
+                Some("colette"),
+            )?;
 
-           //     let base_url = config
-           //         .endpoint
-           //         .join(&format!("{}/", config.bucket_name))
-           //         .unwrap();
+            let mut bucket = Bucket::new(&config.bucket_name, region.clone(), credentials.clone())?
+                .with_path_style();
 
-           //     (StorageAdapter::S3(s3), base_url)
-           // }
+            let exists = bucket.exists().await?;
+            if !exists {
+                bucket = Bucket::create_with_path_style(
+                    &config.bucket_name,
+                    region,
+                    credentials,
+                    BucketConfiguration::public(),
+                )
+                .await?
+                .bucket;
+            }
+
+            let base_url = config.endpoint.join(&format!("{}/", bucket.name)).unwrap();
+
+            (StorageAdapter::S3(S3StorageClient::new(bucket)), base_url)
+        }
     };
 
     let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
@@ -238,7 +255,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let mut api = colette_api::create_router(api_state, app_config.cors.map(|e| e.origin_urls));
 
-    if let StorageConfig::Local(config) = app_config.storage {
+    if let StorageConfig::Fs(config) = app_config.storage {
         api = api.nest_service("/uploads", ServeDir::new(config.path))
     }
 

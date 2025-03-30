@@ -6,7 +6,9 @@ edition = "2024"
 [dependencies]
 async-trait.workspace = true
 futures.workspace = true
+rust-s3 = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 [features]
-local = ['dep:tokio']
+fs = ['dep:tokio']
+s3 = ["dep:rust-s3"]

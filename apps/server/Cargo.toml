@@ -16,7 +16,7 @@ colette-migration.workspace = true
 colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["local"] }
 colette-repository.workspace = true
-colette-storage = { workspace = true, features = ["local"] }
+colette-storage = { workspace = true, features = ["fs", "s3"] }
 deadpool-postgres = { workspace = true, features = ["rt_tokio_1"] }
 dirs = { version = "6.0.0", default-features = false }
 envy = { version = "0.4.2", default-features = false }
@@ -26,6 +26,7 @@ reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rust-embed = { version = "8.5.0", default-features = false, features = [
   "interpolate-folder-path",
 ] }
+rust-s3 = { workspace = true, features = ["tokio-rustls-tls"] }
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true

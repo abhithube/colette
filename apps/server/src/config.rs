@@ -39,35 +39,35 @@ pub enum QueueConfig {
 
 #[derive(Debug, Clone)]
 pub enum StorageConfig {
-    Local(LocalStorageConfig),
-    // S3(S3StorageConfig),
+    Fs(FsStorageConfig),
+    S3(S3StorageConfig),
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalStorageConfig {
+pub struct FsStorageConfig {
     pub path: PathBuf,
 }
 
-// #[derive(Debug, Clone)]
-// pub struct S3StorageConfig {
-//     pub access_key_id: String,
-//     pub secret_access_key: String,
-//     pub region: String,
-//     pub endpoint: Url,
-//     pub bucket_name: String,
-// }
+#[derive(Debug, Clone)]
+pub struct S3StorageConfig {
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub region: String,
+    pub endpoint: Url,
+    pub bucket_name: String,
+}
 
-// impl Default for S3StorageConfig {
-//     fn default() -> Self {
-//         Self {
-//             access_key_id: "minioadmin".into(),
-//             secret_access_key: "minioadmin".into(),
-//             region: "us-east-1".into(),
-//             endpoint: "http://localhost:9000".parse().unwrap(),
-//             bucket_name: APP_NAME.into(),
-//         }
-//     }
-// }
+impl Default for S3StorageConfig {
+    fn default() -> Self {
+        Self {
+            access_key_id: "minioadmin".into(),
+            secret_access_key: "minioadmin".into(),
+            region: "us-east-1".into(),
+            endpoint: "http://localhost:9000".parse().unwrap(),
+            bucket_name: APP_NAME.into(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CronConfig {
@@ -130,35 +130,36 @@ impl TryFrom<RawConfig> for Config {
         };
 
         let storage = match value.storage_backend {
-            StorageBackend::Local => {
-                let config = LocalStorageConfig {
+            StorageBackend::Fs => {
+                let config = FsStorageConfig {
                     path: data_dir.join("storage"),
                 };
                 if !std::fs::exists(&config.path).unwrap() {
                     let _ = std::fs::create_dir(&config.path);
                 }
 
-                StorageConfig::Local(config)
-            } // StorageBackend::S3 => {
-              //     let mut config = S3StorageConfig::default();
-              //     if let Some(access_key_id) = value.aws_access_key_id {
-              //         config.access_key_id = access_key_id;
-              //     }
-              //     if let Some(secret_access_key) = value.aws_secret_access_key {
-              //         config.secret_access_key = secret_access_key;
-              //     }
-              //     if let Some(region) = value.aws_region {
-              //         config.region = region;
-              //     }
-              //     if let Some(endpoint) = value.s3_endpoint {
-              //         config.endpoint = endpoint;
-              //     }
-              //     if let Some(bucket_name) = value.s3_bucket_name {
-              //         config.bucket_name = bucket_name;
-              //     }
+                StorageConfig::Fs(config)
+            }
+            StorageBackend::S3 => {
+                let mut config = S3StorageConfig::default();
+                if let Some(access_key_id) = value.aws_access_key_id {
+                    config.access_key_id = access_key_id;
+                }
+                if let Some(secret_access_key) = value.aws_secret_access_key {
+                    config.secret_access_key = secret_access_key;
+                }
+                if let Some(region) = value.aws_region {
+                    config.region = region;
+                }
+                if let Some(endpoint) = value.s3_endpoint {
+                    config.endpoint = endpoint;
+                }
+                if let Some(bucket_name) = value.s3_bucket_name {
+                    config.bucket_name = bucket_name;
+                }
 
-              //     StorageConfig::S3(config)
-              // }
+                StorageConfig::S3(config)
+            }
         };
 
         let mut cron = None;
@@ -203,8 +204,8 @@ pub enum QueueBackend {
 #[serde(rename_all = "kebab-case")]
 pub enum StorageBackend {
     #[default]
-    Local,
-    // S3,
+    Fs,
+    S3,
 }
 
 fn database_url() -> String {
