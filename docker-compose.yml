@@ -1,20 +1,36 @@
 services:
-  db:
+  postgres:
     image: postgres:17-alpine
-    restart: unless-stopped
     ports:
       - 5432:5432
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+    volumes:
+      - ./data/postgres:/data
     environment:
       - POSTGRES_PASSWORD=postgres
-  redis:
-    image: redis:7-alpine
-    restart: unless-stopped
+  pgadmin:
+    image: dpage/pgadmin4:9
     ports:
-      - 6379:6379
-  minio:
-    image: quay.io/minio/minio
+      - 5050:80
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data/pgadmin:/var/lib/pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@postgres.com
+      - PGADMIN_DEFAULT_PASSWORD=postgres
+  minio:
+    image: minio/minio
     ports:
       - 9000:9000
       - 9001:9001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+    volumes:
+      - ./data/minio:/data
     command: server /data --console-address ":9001"

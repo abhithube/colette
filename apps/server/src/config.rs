@@ -209,7 +209,7 @@ pub enum StorageBackend {
 }
 
 fn database_url() -> String {
-    "postgres://localhost/colette".into()
+    "postgres://localhost/postgres".into()
 }
 
 fn cron_enabled() -> bool {

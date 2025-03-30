@@ -26,7 +26,7 @@ args = [
   "--to",
   "file://schema.sql",
   "--dev-url",
-  "docker://postgres/17/dev",
+  "docker://postgres/17-alpine/dev",
 ]
 
 [tasks.build-docker]
