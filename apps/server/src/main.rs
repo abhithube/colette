@@ -4,25 +4,25 @@ use axum_embed::{FallbackBehavior, ServeEmbed};
 use colette_api::ApiState;
 use colette_auth::AuthAdapter;
 use colette_core::{
-    api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, feed::FeedService, feed_entry::FeedEntryService,
-    job::JobService, stream::StreamService, subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService, tag::TagService,
+    api_key::ApiKeyService, bookmark::BookmarkService, collection::CollectionService,
+    feed::FeedService, feed_entry::FeedEntryService, job::JobService, stream::StreamService,
+    subscription::SubscriptionService, subscription_entry::SubscriptionEntryService,
+    tag::TagService,
 };
 use colette_http::ReqwestClient;
 use colette_job::{
     archive_thumbnail::ArchiveThumbnailHandler, import_bookmarks::ImportBookmarksHandler,
-    import_feeds::ImportFeedsHandler, refresh_feeds::RefreshFeedsHandler,
+    import_subscriptions::ImportSubscriptionsHandler, refresh_feeds::RefreshFeedsHandler,
     scrape_bookmark::ScrapeBookmarkHandler, scrape_feed::ScrapeFeedHandler,
 };
 use colette_migration::PostgresMigrator;
 use colette_plugins::{register_bookmark_plugins, register_feed_plugins};
 use colette_queue::{JobConsumerAdapter, JobProducerAdapter, LocalQueue};
 use colette_repository::postgres::{
-    PostgresApiKeyRepository, PostgresBackupRepository, PostgresBookmarkRepository,
-    PostgresCollectionRepository, PostgresFeedEntryRepository, PostgresFeedRepository,
-    PostgresJobRepository, PostgresStreamRepository, PostgresSubscriptionEntryRepository,
-    PostgresSubscriptionRepository, PostgresTagRepository,
+    PostgresApiKeyRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
+    PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
+    PostgresStreamRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
+    PostgresTagRepository,
 };
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, StorageConfig};
@@ -153,7 +153,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             )
         }
     };
-    let (import_feeds_producer, import_feeds_consumer) = match &app_config.queue {
+    let (import_subscriptions_producer, import_subscriptions_consumer) = match &app_config.queue {
         QueueConfig::Local => {
             let queue = LocalQueue::new().split();
 
@@ -191,6 +191,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         http_client.clone(),
         storage_adapter,
         archive_thumbnail_producer.clone(),
+        import_bookmarks_producer.clone(),
         register_bookmark_plugins(reqwest_client.clone()),
     ));
     let feed_service = Arc::new(FeedService::new(
@@ -203,6 +204,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         subscription_repository.clone(),
         tag_repository.clone(),
         subscription_entry_repository.clone(),
+        job_repository.clone(),
+        import_subscriptions_producer.clone(),
     ));
 
     if let Some(config) = app_config.cron {
@@ -228,14 +231,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
             pool.clone(),
         ))),
-        backup_service: Arc::new(BackupService::new(
-            PostgresBackupRepository::new(pool.clone()),
-            subscription_repository,
-            bookmark_repository,
-            job_repository,
-            import_feeds_producer,
-            import_bookmarks_producer,
-        )),
         bookmark_service: bookmark_service.clone(),
         collection_service: Arc::new(CollectionService::new(collection_repository)),
         feed_service: feed_service.clone(),
@@ -295,11 +290,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .service(ArchiveThumbnailHandler::new(bookmark_service.clone()))
             .boxed(),
     );
-    let mut import_feeds_worker = JobWorker::new(
+    let mut import_subscriptions_worker = JobWorker::new(
         job_service.clone(),
-        import_feeds_consumer,
+        import_subscriptions_consumer,
         ServiceBuilder::new()
-            .service(ImportFeedsHandler::new(
+            .service(ImportSubscriptionsHandler::new(
                 subscription_service,
                 job_service.clone(),
                 Arc::new(Mutex::new(scrape_feed_producer)),
@@ -323,7 +318,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         scrape_feed_worker.start(),
         scrape_bookmark_worker.start(),
         archive_thumbnail_worker.start(),
-        import_feeds_worker.start(),
+        import_subscriptions_worker.start(),
         import_bookmarks_worker.start()
     );
 

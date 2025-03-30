@@ -1,9 +1,18 @@
+use std::collections::HashMap;
+
+use bytes::{Buf, Bytes};
+use colette_opml::{Body, Opml, Outline, OutlineType};
+use colette_queue::JobProducer;
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
-use super::{Error, Subscription, SubscriptionParams, SubscriptionRepository};
+use super::{
+    Error, ImportSubscriptionsData, Subscription, SubscriptionParams, SubscriptionRepository,
+};
 use crate::{
     SubscriptionEntry,
     common::Paginated,
+    job::{Job, JobRepository},
     subscription_entry::{SubscriptionEntryParams, SubscriptionEntryRepository},
     tag::TagRepository,
 };
@@ -12,6 +21,8 @@ pub struct SubscriptionService {
     subscription_repository: Box<dyn SubscriptionRepository>,
     tag_repository: Box<dyn TagRepository>,
     subscription_entry_repository: Box<dyn SubscriptionEntryRepository>,
+    job_repository: Box<dyn JobRepository>,
+    import_subscriptions_producer: Box<Mutex<dyn JobProducer>>,
 }
 
 impl SubscriptionService {
@@ -19,11 +30,15 @@ impl SubscriptionService {
         subscription_repository: impl SubscriptionRepository,
         tag_repository: impl TagRepository,
         subscription_entry_repository: impl SubscriptionEntryRepository,
+        job_repository: impl JobRepository,
+        import_subscriptions_producer: impl JobProducer,
     ) -> Self {
         Self {
             subscription_repository: Box::new(subscription_repository),
             tag_repository: Box::new(tag_repository),
             subscription_entry_repository: Box::new(subscription_entry_repository),
+            job_repository: Box::new(job_repository),
+            import_subscriptions_producer: Box::new(Mutex::new(import_subscriptions_producer)),
         }
     }
 
@@ -219,6 +234,85 @@ impl SubscriptionService {
 
         Ok(subscription_entry)
     }
+
+    pub async fn import_subscriptions(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
+        let opml = colette_opml::from_reader(raw.reader())?;
+
+        self.subscription_repository
+            .import(ImportSubscriptionsData {
+                outlines: opml.body.outlines,
+                user_id: user_id.clone(),
+            })
+            .await?;
+
+        let data = serde_json::to_value(&ImportSubscriptionsJobData { user_id })?;
+
+        let job = Job::builder()
+            .job_type("import_subscriptions".into())
+            .data(data)
+            .build();
+
+        self.job_repository.save(&job).await?;
+
+        let mut producer = self.import_subscriptions_producer.lock().await;
+
+        producer.push(job.id).await?;
+
+        Ok(())
+    }
+
+    pub async fn export_subscriptions(&self, user_id: String) -> Result<Bytes, Error> {
+        let mut outline_map = HashMap::<Uuid, Outline>::new();
+
+        let subscriptions = self
+            .subscription_repository
+            .query(SubscriptionParams {
+                user_id: Some(user_id),
+                ..Default::default()
+            })
+            .await?;
+
+        for subscription in subscriptions {
+            let Some(feed) = subscription.feed else {
+                continue;
+            };
+
+            let outline = Outline {
+                r#type: Some(OutlineType::default()),
+                text: subscription.title.clone(),
+                xml_url: feed.xml_url.map(Into::into),
+                title: Some(subscription.title),
+                html_url: Some(feed.link.into()),
+                ..Default::default()
+            };
+
+            if let Some(tags) = subscription.tags {
+                for tag in tags {
+                    outline_map
+                        .entry(tag.id)
+                        .or_insert_with(|| Outline {
+                            text: tag.title,
+                            ..Default::default()
+                        })
+                        .outline
+                        .push(outline.clone());
+                }
+            }
+        }
+
+        let opml = Opml {
+            body: Body {
+                outlines: outline_map.into_values().collect(),
+            },
+            ..Default::default()
+        };
+
+        let mut raw = Vec::<u8>::new();
+
+        colette_opml::to_writer(&mut raw, opml)?;
+
+        Ok(raw.into())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -237,4 +331,9 @@ pub struct SubscriptionCreate {
 pub struct SubscriptionUpdate {
     pub title: Option<String>,
     pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ImportSubscriptionsJobData {
+    pub user_id: String,
 }

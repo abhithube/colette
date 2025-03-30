@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use super::BACKUPS_TAG;
+use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
     common::{AuthUser, Error},
@@ -12,39 +12,39 @@ use crate::{
 
 #[utoipa::path(
   post,
-  path = "/opml/export",
-  responses(ExportOpmlResponse),
-  operation_id = "exportOpml",
-  description = "Export OPML feeds",
-  tag = BACKUPS_TAG
+  path = "/export",
+  responses(ExportBookmarksResponse),
+  operation_id = "exportBookmarks",
+  description = "Export user bookmarks",
+  tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
-) -> Result<ExportOpmlResponse, Error> {
-    match state.backup_service.export_opml(user_id).await {
-        Ok(data) => Ok(ExportOpmlResponse::Ok(data.into())),
+) -> Result<ExportBookmarksResponse, Error> {
+    match state.bookmark_service.export_bookmarks(user_id).await {
+        Ok(data) => Ok(ExportBookmarksResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
-pub enum ExportOpmlResponse {
+pub enum ExportBookmarksResponse {
     #[response(
         status = 200,
-        description = "OPML file",
-        content_type = "application/xml"
+        description = "Bookmarks file",
+        content_type = "text/html"
     )]
     Ok(Vec<u8>),
 }
 
-impl IntoResponse for ExportOpmlResponse {
+impl IntoResponse for ExportBookmarksResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => {
                 let mut headers = HeaderMap::new();
-                headers.insert("Content-Type", HeaderValue::from_static("application/xml"));
+                headers.insert("Content-Type", HeaderValue::from_static("text/html"));
 
                 (headers, data).into_response()
             }

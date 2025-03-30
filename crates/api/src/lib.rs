@@ -7,7 +7,6 @@ use axum::{
     http::{HeaderValue, Method, header},
     middleware, routing,
 };
-use backup::BackupApi;
 use bookmark::BookmarkApi;
 use collection::CollectionApi;
 pub use common::ApiState;
@@ -27,7 +26,6 @@ use utoipa_scalar::{Scalar, Servable};
 
 mod api_key;
 mod auth;
-mod backup;
 mod bookmark;
 mod collection;
 mod common;
@@ -51,7 +49,6 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
             OpenApiRouter::new()
                 .nest("/apiKeys", ApiKeyApi::router())
                 .nest("/auth", AuthApi::router())
-                .nest("/backups", BackupApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
                 .nest("/collections", CollectionApi::router())
                 .nest("/feedEntries", FeedEntryApi::router())

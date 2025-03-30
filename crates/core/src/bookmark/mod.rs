@@ -114,6 +114,12 @@ pub enum Error {
     Job(#[from] job::Error),
 
     #[error(transparent)]
+    Queue(#[from] colette_queue::Error),
+
+    #[error(transparent)]
+    Netscape(#[from] colette_netscape::Error),
+
+    #[error(transparent)]
     Image(#[from] ImageError),
 
     #[error(transparent)]
@@ -124,9 +130,6 @@ pub enum Error {
 
     #[error(transparent)]
     Base64(#[from] base64::Error),
-
-    #[error(transparent)]
-    Queue(#[from] colette_queue::Error),
 
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),

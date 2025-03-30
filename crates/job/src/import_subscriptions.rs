@@ -5,10 +5,9 @@ use std::{
 };
 
 use colette_core::{
-    backup::ImportFeedsJobData,
     feed::ScrapeFeedJobData,
     job::{Job, JobCreate, JobService},
-    subscription::{SubscriptionListQuery, SubscriptionService},
+    subscription::{ImportSubscriptionsJobData, SubscriptionListQuery, SubscriptionService},
 };
 use colette_queue::JobProducer;
 use futures::FutureExt;
@@ -17,13 +16,13 @@ use tower::Service;
 
 use super::Error;
 
-pub struct ImportFeedsHandler {
+pub struct ImportSubscriptionsHandler {
     subscription_service: Arc<SubscriptionService>,
     job_service: Arc<JobService>,
     scrape_feed_producer: Arc<Mutex<dyn JobProducer>>,
 }
 
-impl ImportFeedsHandler {
+impl ImportSubscriptionsHandler {
     pub fn new(
         subscription_service: Arc<SubscriptionService>,
         job_service: Arc<JobService>,
@@ -37,7 +36,7 @@ impl ImportFeedsHandler {
     }
 }
 
-impl Service<Job> for ImportFeedsHandler {
+impl Service<Job> for ImportSubscriptionsHandler {
     type Response = ();
     type Error = Error;
     type Future = Pin<Box<dyn Future<Output = Result<Self::Response, Self::Error>> + Send>>;
@@ -52,7 +51,7 @@ impl Service<Job> for ImportFeedsHandler {
         let scrape_feed_producer = self.scrape_feed_producer.clone();
 
         async move {
-            let input_data = serde_json::from_value::<ImportFeedsJobData>(job.data)?;
+            let input_data = serde_json::from_value::<ImportSubscriptionsJobData>(job.data)?;
 
             let subscriptions = subscription_service
                 .list_subscriptions(SubscriptionListQuery::default(), input_data.user_id)

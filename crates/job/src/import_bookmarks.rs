@@ -5,8 +5,7 @@ use std::{
 };
 
 use colette_core::{
-    backup::ImportBookmarksJobData,
-    bookmark::{BookmarkListQuery, BookmarkService, ScrapeBookmarkJobData},
+    bookmark::{BookmarkListQuery, BookmarkService, ImportBookmarksJobData, ScrapeBookmarkJobData},
     job::{Job, JobCreate, JobService},
 };
 use colette_queue::JobProducer;

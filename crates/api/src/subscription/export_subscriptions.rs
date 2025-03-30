@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
-use super::BACKUPS_TAG;
+use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
     common::{AuthUser, Error},
@@ -12,39 +12,43 @@ use crate::{
 
 #[utoipa::path(
   post,
-  path = "/netscape/export",
-  responses(ExportNetscapeResponse),
-  operation_id = "exportNetscape",
-  description = "Export Netscape bookmarks",
-  tag = BACKUPS_TAG
+  path = "/export",
+  responses(ExportSubscriptionsResponse),
+  operation_id = "exportSubscriptions",
+  description = "Export user subscriptions",
+  tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
-) -> Result<ExportNetscapeResponse, Error> {
-    match state.backup_service.export_netscape(user_id).await {
-        Ok(data) => Ok(ExportNetscapeResponse::Ok(data.into())),
+) -> Result<ExportSubscriptionsResponse, Error> {
+    match state
+        .subscription_service
+        .export_subscriptions(user_id)
+        .await
+    {
+        Ok(data) => Ok(ExportSubscriptionsResponse::Ok(data.into())),
         Err(e) => Err(Error::Unknown(e.into())),
     }
 }
 
 #[derive(Debug, utoipa::IntoResponses)]
-pub enum ExportNetscapeResponse {
+pub enum ExportSubscriptionsResponse {
     #[response(
         status = 200,
-        description = "Netscape file",
-        content_type = "text/html"
+        description = "OPML file",
+        content_type = "application/xml"
     )]
     Ok(Vec<u8>),
 }
 
-impl IntoResponse for ExportNetscapeResponse {
+impl IntoResponse for ExportSubscriptionsResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => {
                 let mut headers = HeaderMap::new();
-                headers.insert("Content-Type", HeaderValue::from_static("text/html"));
+                headers.insert("Content-Type", HeaderValue::from_static("application/xml"));
 
                 (headers, data).into_response()
             }

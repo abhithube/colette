@@ -14,9 +14,9 @@ use axum_extra::{TypedHeader, extract::CookieJar, headers::UserAgent};
 use chrono::{DateTime, Utc};
 use colette_auth::AuthAdapter;
 use colette_core::{
-    api_key::ApiKeyService, backup::BackupService, bookmark::BookmarkService,
-    collection::CollectionService, common, feed::FeedService, feed_entry::FeedEntryService, filter,
-    job::JobService, stream::StreamService, subscription::SubscriptionService,
+    api_key::ApiKeyService, bookmark::BookmarkService, collection::CollectionService, common,
+    feed::FeedService, feed_entry::FeedEntryService, filter, job::JobService,
+    stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
 use torii::{SessionToken, Torii, ToriiError, User, UserId};
@@ -29,7 +29,6 @@ pub const SESSION_COOKIE: &str = "session_id";
 pub struct ApiState {
     pub auth: Arc<Torii<AuthAdapter>>,
     pub api_key_service: Arc<ApiKeyService>,
-    pub backup_service: Arc<BackupService>,
     pub bookmark_service: Arc<BookmarkService>,
     pub collection_service: Arc<CollectionService>,
     pub feed_service: Arc<FeedService>,
@@ -341,9 +340,6 @@ pub enum Error {
 pub enum CoreError {
     #[error(transparent)]
     ApiKey(#[from] colette_core::api_key::Error),
-
-    #[error(transparent)]
-    Backup(#[from] colette_core::backup::Error),
 
     #[error(transparent)]
     Bookmark(#[from] colette_core::bookmark::Error),

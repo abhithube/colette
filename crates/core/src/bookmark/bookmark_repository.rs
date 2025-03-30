@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use colette_netscape::Item;
 use uuid::Uuid;
 
 use super::{Bookmark, Error};
@@ -30,6 +31,8 @@ pub trait BookmarkRepository: Send + Sync + 'static {
     ) -> Result<(), Error>;
 
     async fn delete_by_id(&self, id: Uuid) -> Result<(), Error>;
+
+    async fn import(&self, data: ImportBookmarksData) -> Result<(), Error>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -45,4 +48,9 @@ pub struct BookmarkParams {
 pub enum BookmarkUpsertType {
     Id,
     Link,
+}
+
+pub struct ImportBookmarksData {
+    pub items: Vec<Item>,
+    pub user_id: String,
 }

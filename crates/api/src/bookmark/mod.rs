@@ -14,7 +14,9 @@ use crate::common::Paginated;
 
 mod create_bookmark;
 mod delete_bookmark;
+mod export_bookmarks;
 mod get_bookmark;
+mod import_bookmarks;
 mod list_bookmarks;
 mod scrape_bookmark;
 mod update_bookmark;
@@ -35,6 +37,8 @@ impl BookmarkApi {
                 delete_bookmark::handler
             ))
             .routes(routes!(scrape_bookmark::handler))
+            .routes(routes!(import_bookmarks::handler))
+            .routes(routes!(export_bookmarks::handler))
     }
 }
 

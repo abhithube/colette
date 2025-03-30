@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use bytes::Buf;
+use bytes::{Buf, Bytes};
 use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
+use colette_netscape::{Item, Netscape};
 use colette_queue::JobProducer;
 use colette_storage::StorageClient;
 use colette_util::{base64, thumbnail};
@@ -11,7 +12,8 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkFilter, BookmarkScraper, Cursor, Error, ExtractedBookmark, ScraperError,
+    Bookmark, BookmarkFilter, BookmarkScraper, Cursor, Error, ExtractedBookmark,
+    ImportBookmarksData, ScraperError,
     bookmark_repository::{BookmarkParams, BookmarkRepository},
 };
 use crate::{
@@ -31,6 +33,7 @@ pub struct BookmarkService {
     http_client: Box<dyn HttpClient>,
     storage_client: Box<dyn StorageClient>,
     archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
+    import_bookmarks_producer: Box<Mutex<dyn JobProducer>>,
     plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }
 
@@ -44,6 +47,7 @@ impl BookmarkService {
         http_client: impl HttpClient,
         storage_client: impl StorageClient,
         archive_thumbnail_producer: impl JobProducer,
+        import_bookmarks_producer: impl JobProducer,
         plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
         Self {
@@ -54,6 +58,7 @@ impl BookmarkService {
             http_client: Box::new(http_client),
             storage_client: Box::new(storage_client),
             archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
+            import_bookmarks_producer: Box::new(Mutex::new(import_bookmarks_producer)),
             plugins,
         }
     }
@@ -388,6 +393,78 @@ impl BookmarkService {
 
         Ok(())
     }
+
+    pub async fn import_bookmarks(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
+        let netscape = colette_netscape::from_reader(raw.reader())?;
+
+        self.bookmark_repository
+            .import(ImportBookmarksData {
+                items: netscape.items,
+                user_id: user_id.clone(),
+            })
+            .await?;
+
+        let data = serde_json::to_value(&ImportBookmarksJobData { user_id })?;
+
+        let job = Job::builder()
+            .job_type("import_bookmarks".into())
+            .data(data)
+            .build();
+
+        self.job_repository.save(&job).await?;
+
+        let mut producer = self.import_bookmarks_producer.lock().await;
+
+        producer.push(job.id).await?;
+
+        Ok(())
+    }
+
+    pub async fn export_bookmarks(&self, user_id: String) -> Result<Bytes, Error> {
+        let mut item_map = HashMap::<Uuid, Item>::new();
+
+        let bookmarks = self
+            .bookmark_repository
+            .query(BookmarkParams {
+                user_id: Some(user_id),
+                ..Default::default()
+            })
+            .await?;
+
+        for bookmark in bookmarks {
+            let item = Item {
+                title: bookmark.title,
+                add_date: Some(bookmark.created_at.timestamp()),
+                last_modified: Some(bookmark.updated_at.timestamp()),
+                href: Some(bookmark.link.into()),
+                ..Default::default()
+            };
+
+            if let Some(tags) = bookmark.tags {
+                for tag in tags {
+                    item_map
+                        .entry(tag.id)
+                        .or_insert_with(|| Item {
+                            title: tag.title,
+                            ..Default::default()
+                        })
+                        .item
+                        .push(item.clone());
+                }
+            }
+        }
+
+        let netscape = Netscape {
+            items: item_map.into_values().collect(),
+            ..Default::default()
+        };
+
+        let mut raw = Vec::<u8>::new();
+
+        colette_netscape::to_writer(&mut raw, netscape)?;
+
+        Ok(raw.into())
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -459,4 +536,9 @@ pub struct ArchiveThumbnailJobData {
     pub operation: ThumbnailOperation,
     pub archived_path: Option<String>,
     pub bookmark_id: Uuid,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct ImportBookmarksJobData {
+    pub user_id: String,
 }

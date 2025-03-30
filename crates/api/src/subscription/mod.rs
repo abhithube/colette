@@ -7,7 +7,9 @@ use super::{ApiState, common::Paginated, feed::Feed, tag::Tag};
 
 mod create_subscription;
 mod delete_subscription;
+mod export_subscriptions;
 mod get_subscription;
+mod import_subscriptions;
 mod list_subscriptions;
 mod mark_subscription_entry_as_read;
 mod mark_subscription_entry_as_unread;
@@ -38,6 +40,8 @@ impl SubscriptionApi {
             ))
             .routes(routes!(mark_subscription_entry_as_read::handler))
             .routes(routes!(mark_subscription_entry_as_unread::handler))
+            .routes(routes!(import_subscriptions::handler))
+            .routes(routes!(export_subscriptions::handler))
     }
 }
 

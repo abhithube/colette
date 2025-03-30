@@ -3,13 +3,16 @@ use std::collections::HashMap;
 use chrono::{DateTime, Utc};
 use colette_core::{
     Subscription, Tag,
-    subscription::{Error, SubscriptionParams, SubscriptionRepository},
+    subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
+    tag::TagParams,
 };
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
+    feed::FeedInsert,
     feed_entry::UnreadCountSelectMany,
     subscription::{SubscriptionDelete, SubscriptionInsert},
     subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert, SubscriptionTagSelect},
+    tag::TagInsert,
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
@@ -161,6 +164,114 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
         let stmt = client.prepare_cached(&sql).await?;
         client.execute(&stmt, &values.as_params()).await?;
+
+        Ok(())
+    }
+
+    async fn import(&self, data: ImportSubscriptionsData) -> Result<(), Error> {
+        let mut client = self.pool.get().await?;
+
+        let tx = client.transaction().await?;
+
+        let mut stack: Vec<(Option<Uuid>, colette_opml::Outline)> = data
+            .outlines
+            .into_iter()
+            .map(|outline| (None, outline))
+            .collect();
+
+        while let Some((parent_id, outline)) = stack.pop() {
+            if !outline.outline.is_empty() {
+                let tag_id = {
+                    let (sql, values) = TagParams {
+                        title: Some(outline.text.clone()),
+                        user_id: Some(data.user_id.clone()),
+                        ..Default::default()
+                    }
+                    .into_select()
+                    .build_postgres(PostgresQueryBuilder);
+
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_opt(&stmt, &values.as_params()).await?;
+
+                    match row {
+                        Some(row) => row.get("id"),
+                        _ => {
+                            let (sql, values) = TagInsert {
+                                id: Uuid::new_v4(),
+                                title: &outline.text,
+                                user_id: &data.user_id,
+                                created_at: Utc::now(),
+                                updated_at: Utc::now(),
+                                upsert: true,
+                            }
+                            .into_insert()
+                            .build_postgres(PostgresQueryBuilder);
+
+                            let stmt = tx.prepare_cached(&sql).await?;
+                            let row = tx.query_one(&stmt, &values.as_params()).await?;
+
+                            row.get("id")
+                        }
+                    }
+                };
+
+                for child in outline.outline {
+                    stack.push((Some(tag_id), child));
+                }
+            } else if let Some(link) = outline.html_url {
+                let title = outline.title.unwrap_or(outline.text);
+
+                let feed = FeedInsert {
+                    id: Uuid::new_v4(),
+                    link: &link,
+                    xml_url: outline.xml_url.as_deref(),
+                    title: &title,
+                    description: None,
+                    refreshed_at: None,
+                };
+
+                let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
+
+                let stmt = tx.prepare_cached(&sql).await?;
+                let row = tx.query_one(&stmt, &values.as_params()).await?;
+
+                let subscription_id = {
+                    let (sql, values) = SubscriptionInsert {
+                        id: Uuid::new_v4(),
+                        title: &title,
+                        feed_id: row.get("id"),
+                        user_id: &data.user_id,
+                        created_at: Utc::now(),
+                        updated_at: Utc::now(),
+                        upsert: true,
+                    }
+                    .into_insert()
+                    .build_postgres(PostgresQueryBuilder);
+
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    let row = tx.query_one(&stmt, &values.as_params()).await?;
+
+                    row.get("id")
+                };
+
+                if let Some(tag_id) = parent_id {
+                    let subscription_tag = SubscriptionTagInsert {
+                        subscription_id,
+                        user_id: &data.user_id,
+                        tag_ids: vec![tag_id],
+                    };
+
+                    let (sql, values) = subscription_tag
+                        .into_insert()
+                        .build_postgres(PostgresQueryBuilder);
+
+                    let stmt = tx.prepare_cached(&sql).await?;
+                    tx.execute(&stmt, &values.as_params()).await?;
+                }
+            }
+        }
+
+        tx.commit().await?;
 
         Ok(())
     }

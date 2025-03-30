@@ -3,7 +3,7 @@ pub use subscription_repository::*;
 pub use subscription_service::*;
 use uuid::Uuid;
 
-use crate::{Feed, Tag, subscription_entry, tag};
+use crate::{Feed, Tag, job, subscription_entry, tag};
 
 mod subscription_repository;
 mod subscription_service;
@@ -46,6 +46,18 @@ pub enum Error {
 
     #[error(transparent)]
     SubscriptionEntry(#[from] subscription_entry::Error),
+
+    #[error(transparent)]
+    Job(#[from] job::Error),
+
+    #[error(transparent)]
+    Queue(#[from] colette_queue::Error),
+
+    #[error(transparent)]
+    Opml(#[from] colette_opml::Error),
+
+    #[error(transparent)]
+    SerdeJson(#[from] serde_json::Error),
 
     #[error(transparent)]
     Database(#[from] tokio_postgres::Error),

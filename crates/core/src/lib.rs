@@ -10,7 +10,6 @@ pub use subscription_entry::SubscriptionEntry;
 pub use tag::Tag;
 
 pub mod api_key;
-pub mod backup;
 pub mod bookmark;
 pub mod collection;
 pub mod common;
