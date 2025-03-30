@@ -46,6 +46,9 @@ impl JobService {
         let Some(mut job) = self.job_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
+        if job.status == JobStatus::Completed {
+            return Err(Error::AlreadyCompleted(id));
+        }
 
         if let Some(data) = data.data {
             job.data = data;

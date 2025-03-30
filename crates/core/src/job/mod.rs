@@ -27,7 +27,7 @@ pub struct Job {
     pub completed_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub enum JobStatus {
     #[default]
     Pending,
@@ -67,6 +67,9 @@ impl FromStr for JobStatus {
 pub enum Error {
     #[error("Job not found with ID: {0}")]
     NotFound(Uuid),
+
+    #[error("Already completed job with ID: {0}")]
+    AlreadyCompleted(Uuid),
 
     #[error(transparent)]
     Database(#[from] tokio_postgres::Error),

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use colette_core::job::{Job, JobService, JobStatus, JobUpdate};
+use colette_core::job::{self, Job, JobService, JobStatus, JobUpdate};
 use colette_job::Error;
 use colette_queue::JobConsumer;
 use tower::{Service, ServiceExt, util::BoxService};
@@ -27,7 +27,23 @@ impl JobWorker {
 
     pub async fn start(&mut self) -> Result<(), Error> {
         while let Some(job_id) = self.consumer.pop().await? {
-            let job = self.service.get_job(job_id).await?;
+            let job = match self
+                .service
+                .update_job(
+                    job_id,
+                    JobUpdate {
+                        status: Some(JobStatus::Running),
+                        ..Default::default()
+                    },
+                )
+                .await
+            {
+                Ok(job) => job,
+                Err(job::Error::AlreadyCompleted(_)) => {
+                    continue;
+                }
+                Err(e) => return Err(Error::Job(e)),
+            };
 
             self.handler.ready().await?;
 
