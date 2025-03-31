@@ -1,6 +1,6 @@
 import { listTagsOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
-import type { FieldState, Updater } from '@tanstack/react-form'
+import { type FieldState, type Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
 import { type FC, useState } from 'react'
@@ -21,8 +21,28 @@ import {
 } from '~/components/ui/popover'
 import { cn } from '~/lib/utils'
 
+type TagsState = FieldState<
+  any,
+  any,
+  string[],
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any
+>
+
 export const TagsInput: FC<{
-  state: FieldState<string[]>
+  state: TagsState
   handleChange: (updater: Updater<string[]>) => void
 }> = (props) => {
   const [isOpen, setOpen] = useState(false)
@@ -58,7 +78,7 @@ export const TagsInput: FC<{
 }
 
 export const TagsInner: FC<{
-  state: FieldState<string[]>
+  state: TagsState
   handleChange: (updater: Updater<string[]>) => void
 }> = (props) => {
   const api = useAPI()
