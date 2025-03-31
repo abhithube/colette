@@ -34,3 +34,14 @@ services:
     volumes:
       - ./data/minio:/data
     command: server /data --console-address ":9001"
+  mc:
+    image: minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set local http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb -p local/colette;
+      /usr/bin/mc anonymous set download local/colette/thumbnails;
+      "

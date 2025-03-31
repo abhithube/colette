@@ -25,10 +25,10 @@ use colette_repository::postgres::{
     PostgresTagRepository,
 };
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
-use config::{QueueConfig, StorageConfig};
+use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
 use refinery::embed_migrations;
-use s3::{Bucket, BucketConfiguration, Region, creds::Credentials};
+use s3::{Bucket, Region, creds::Credentials};
 use tokio::{net::TcpListener, sync::Mutex};
 use tokio_postgres::NoTls;
 use torii::Torii;
@@ -87,34 +87,40 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 .unwrap(),
         ),
         StorageConfig::S3(config) => {
-            let region = Region::Custom {
-                region: config.region,
-                endpoint: config.endpoint.origin().ascii_serialization(),
-            };
-            let credentials = Credentials::new(
-                Some(&config.access_key_id),
-                Some(&config.secret_access_key),
-                None,
-                None,
-                Some("colette"),
-            )?;
+            let mut base_url = config.endpoint;
 
-            let mut bucket = Bucket::new(&config.bucket_name, region.clone(), credentials.clone())?
-                .with_path_style();
+            let mut bucket = Bucket::new(
+                &config.bucket_name,
+                Region::Custom {
+                    region: config.region,
+                    endpoint: base_url.origin().ascii_serialization(),
+                },
+                Credentials::new(
+                    Some(&config.access_key_id),
+                    Some(&config.secret_access_key),
+                    None,
+                    None,
+                    None,
+                )?,
+            )?;
+            match config.path_style {
+                S3RequestStyle::Path => {
+                    base_url.set_path(&format!("{}/", bucket.name));
+                    bucket.set_path_style();
+                }
+                S3RequestStyle::VirtualHost => {
+                    base_url.set_host(Some(&format!(
+                        "{}.{}",
+                        bucket.name,
+                        base_url.host_str().unwrap()
+                    )))?;
+                }
+            }
 
             let exists = bucket.exists().await?;
             if !exists {
-                bucket = Bucket::create_with_path_style(
-                    &config.bucket_name,
-                    region,
-                    credentials,
-                    BucketConfiguration::public(),
-                )
-                .await?
-                .bucket;
+                panic!("bucket does not exist with name: {}", config.bucket_name);
             }
-
-            let base_url = config.endpoint.join(&format!("{}/", bucket.name)).unwrap();
 
             (StorageAdapter::S3(S3StorageClient::new(bucket)), base_url)
         }

@@ -55,18 +55,14 @@ pub struct S3StorageConfig {
     pub region: String,
     pub endpoint: Url,
     pub bucket_name: String,
+    pub path_style: S3RequestStyle,
 }
 
-impl Default for S3StorageConfig {
-    fn default() -> Self {
-        Self {
-            access_key_id: "minioadmin".into(),
-            secret_access_key: "minioadmin".into(),
-            region: "us-east-1".into(),
-            endpoint: "http://localhost:9000".parse().unwrap(),
-            bucket_name: APP_NAME.into(),
-        }
-    }
+#[derive(Debug, Clone, Default)]
+pub enum S3RequestStyle {
+    #[default]
+    Path,
+    VirtualHost,
 }
 
 #[derive(Debug, Clone)]
@@ -91,7 +87,6 @@ pub struct CorsConfig {
 struct RawConfig {
     data_dir: Option<PathBuf>,
     server_port: Option<u32>,
-    #[serde(default = "database_url")]
     database_url: String,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
@@ -100,8 +95,10 @@ struct RawConfig {
     aws_access_key_id: Option<String>,
     aws_secret_access_key: Option<String>,
     aws_region: Option<String>,
+    aws_endpoint: Option<Url>,
     s3_bucket_name: Option<String>,
-    s3_endpoint: Option<Url>,
+    #[serde(default = "s3_path_style_enabled")]
+    s3_path_style_enabled: bool,
     #[serde(default = "cron_enabled")]
     cron_enabled: bool,
     cron_schedule: Option<String>,
@@ -141,22 +138,26 @@ impl TryFrom<RawConfig> for Config {
                 StorageConfig::Fs(config)
             }
             StorageBackend::S3 => {
-                let mut config = S3StorageConfig::default();
-                if let Some(access_key_id) = value.aws_access_key_id {
-                    config.access_key_id = access_key_id;
-                }
-                if let Some(secret_access_key) = value.aws_secret_access_key {
-                    config.secret_access_key = secret_access_key;
-                }
-                if let Some(region) = value.aws_region {
-                    config.region = region;
-                }
-                if let Some(endpoint) = value.s3_endpoint {
-                    config.endpoint = endpoint;
-                }
-                if let Some(bucket_name) = value.s3_bucket_name {
-                    config.bucket_name = bucket_name;
-                }
+                let access_key_id = value
+                    .aws_access_key_id
+                    .expect("'AWS_ACCESS_KEY_ID' not specified");
+                let secret_access_key = value
+                    .aws_secret_access_key
+                    .expect("'AWS_SECRET_ACCESS_KEY' not specified");
+                let endpoint = value.aws_endpoint.expect("'AWS_ENDPOINT' not specified");
+
+                let config = S3StorageConfig {
+                    access_key_id,
+                    secret_access_key,
+                    region: value.aws_region.unwrap_or_else(|| "us-east-1".into()),
+                    endpoint,
+                    bucket_name: value.s3_bucket_name.unwrap_or_else(|| APP_NAME.into()),
+                    path_style: if value.s3_path_style_enabled {
+                        S3RequestStyle::Path
+                    } else {
+                        S3RequestStyle::VirtualHost
+                    },
+                };
 
                 StorageConfig::S3(config)
             }
@@ -208,8 +209,8 @@ pub enum StorageBackend {
     S3,
 }
 
-fn database_url() -> String {
-    "postgres://localhost/postgres".into()
+fn s3_path_style_enabled() -> bool {
+    true
 }
 
 fn cron_enabled() -> bool {

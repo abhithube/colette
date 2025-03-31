@@ -23,7 +23,7 @@ use crate::{
     tag::TagRepository,
 };
 
-const BOOKMARKS_DIR: &str = "bookmarks";
+const THUMBNAILS_DIR: &str = "thumbnails";
 
 pub struct BookmarkService {
     bookmark_repository: Box<dyn BookmarkRepository>,
@@ -370,7 +370,7 @@ impl BookmarkService {
                 let format = image::guess_format(&body)?;
                 let extension = format.extensions_str()[0];
 
-                let object_path = format!("{}/{}.{}", BOOKMARKS_DIR, file_name, extension);
+                let object_path = format!("{}/{}.{}", THUMBNAILS_DIR, file_name, extension);
 
                 self.storage_client
                     .upload(&object_path, body.into())
