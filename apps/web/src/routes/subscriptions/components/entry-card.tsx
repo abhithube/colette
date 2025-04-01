@@ -1,4 +1,4 @@
-import type { SubscriptionEntry } from '@colette/core'
+import type { SubscriptionEntryDetails } from '@colette/core'
 import { formatRelativeDate } from '@colette/util'
 import type { FC } from 'react'
 import { Favicon } from '~/components/favicon'
@@ -12,8 +12,8 @@ import {
 } from '~/components/ui/card'
 import { Separator } from '~/components/ui/separator'
 
-export const EntryCard: FC<{ entry: SubscriptionEntry }> = (props) => {
-  const entry = props.entry.entry
+export const EntryCard: FC<{ details: SubscriptionEntryDetails }> = (props) => {
+  const entry = props.details.feedEntry!
 
   return (
     <Card className="flex h-[160px] overflow-hidden">

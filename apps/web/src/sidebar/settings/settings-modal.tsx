@@ -1,4 +1,4 @@
-import { useImportOPMLMutation } from '@colette/query'
+import { useImportSubscriptionsMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
 import { FormMessage } from '~/components/form'
@@ -17,7 +17,7 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
       file: undefined as unknown as File,
     },
     onSubmit: ({ value }) =>
-      importOPML.mutate(value.file, {
+      importSubscriptions.mutate(value.file, {
         onSuccess: () => {
           form.reset()
           props.close()
@@ -25,7 +25,7 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
       }),
   })
 
-  const importOPML = useImportOPMLMutation()
+  const importSubscriptions = useImportSubscriptionsMutation()
 
   return (
     <DialogContent className="p-6">
@@ -67,7 +67,7 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
           </form.Field>
         </div>
         <div className="mt-4 flex justify-end">
-          <Button disabled={importOPML.isPending}>Submit</Button>
+          <Button disabled={importSubscriptions.isPending}>Submit</Button>
         </div>
       </form>
     </DialogContent>

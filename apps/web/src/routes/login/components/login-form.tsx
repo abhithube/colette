@@ -1,4 +1,4 @@
-import { useLoginMutation } from '@colette/query'
+import { useLoginUserMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { UserCheck } from 'lucide-react'
 import type { FC } from 'react'
@@ -43,7 +43,7 @@ export const LoginForm: FC = () => {
       }),
   })
 
-  const login = useLoginMutation()
+  const login = useLoginUserMutation()
 
   return (
     <form

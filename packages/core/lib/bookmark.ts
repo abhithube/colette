@@ -1,25 +1,30 @@
 import {
   type ApiClient,
   Bookmark,
+  BookmarkDetails,
   BookmarkCreate,
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
-  Paginated_Bookmark,
+  Paginated_BookmarkDetails,
   get_ListBookmarks,
+  get_GetBookmark,
 } from './openapi.gen'
 import type { z } from 'zod'
 
 export const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
 export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>
 
-export type BookmarkList = Paginated_Bookmark
-export const BookmarkList = Paginated_Bookmark
+export const BookmarkGetQuery = get_GetBookmark.parameters.shape.query
+export type BookmarkGetQuery = z.infer<typeof BookmarkGetQuery>
+
+export type BookmarkDetailsList = Paginated_BookmarkDetails
+export const BookmarkDetailsList = Paginated_BookmarkDetails
 
 export interface BookmarkAPI {
-  listBookmarks(query: BookmarkListQuery): Promise<BookmarkList>
+  listBookmarks(query: BookmarkListQuery): Promise<BookmarkDetailsList>
 
-  getBookmark(id: string): Promise<Bookmark>
+  getBookmark(id: string, query: BookmarkGetQuery): Promise<BookmarkDetails>
 
   createBookmark(data: BookmarkCreate): Promise<Bookmark>
 
@@ -33,22 +38,23 @@ export interface BookmarkAPI {
 export class HTTPBookmarkAPI implements BookmarkAPI {
   constructor(private client: ApiClient) {}
 
-  listBookmarks(query: BookmarkListQuery): Promise<BookmarkList> {
+  listBookmarks(query: BookmarkListQuery): Promise<BookmarkDetailsList> {
     return this.client
       .get('/bookmarks', {
         query: BookmarkListQuery.parse(query),
       })
-      .then(BookmarkList.parse)
+      .then(BookmarkDetailsList.parse)
   }
 
-  getBookmark(id: string): Promise<Bookmark> {
+  getBookmark(id: string, query: BookmarkGetQuery): Promise<BookmarkDetails> {
     return this.client
       .get('/bookmarks/{id}', {
         path: {
           id,
         },
+        query: BookmarkGetQuery.parse(query),
       })
-      .then(Bookmark.parse)
+      .then(BookmarkDetails.parse)
   }
 
   createBookmark(data: BookmarkCreate): Promise<Bookmark> {

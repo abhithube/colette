@@ -1,6 +1,6 @@
 import {
   type ApiClient,
-  Paginated_SubscriptionEntry,
+  Paginated_SubscriptionEntryDetails,
   get_ListSubscriptionEntries,
 } from './openapi.gen'
 import type { z } from 'zod'
@@ -11,13 +11,13 @@ export type SubscriptionEntryListQuery = z.infer<
   typeof SubscriptionEntryListQuery
 >
 
-export type SubscriptionEntryList = Paginated_SubscriptionEntry
-export const SubscriptionEntryList = Paginated_SubscriptionEntry
+export type SubscriptionEntryDetailsList = Paginated_SubscriptionEntryDetails
+export const SubscriptionEntryDetailsList = Paginated_SubscriptionEntryDetails
 
 export interface SubscriptionEntryAPI {
   listSubscriptionEntries(
     query: SubscriptionEntryListQuery,
-  ): Promise<SubscriptionEntryList>
+  ): Promise<SubscriptionEntryDetailsList>
 }
 
 export class HTTPSubscriptionEntryAPI implements SubscriptionEntryAPI {
@@ -25,11 +25,11 @@ export class HTTPSubscriptionEntryAPI implements SubscriptionEntryAPI {
 
   listSubscriptionEntries(
     query: SubscriptionEntryListQuery,
-  ): Promise<SubscriptionEntryList> {
+  ): Promise<SubscriptionEntryDetailsList> {
     return this.client
       .get('/subscriptionEntries', {
         query: SubscriptionEntryListQuery.parse(query),
       })
-      .then(SubscriptionEntryList.parse)
+      .then(SubscriptionEntryDetailsList.parse)
   }
 }

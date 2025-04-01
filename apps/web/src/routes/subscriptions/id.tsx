@@ -21,7 +21,7 @@ export const SubscriptionPage: FC = () => {
 
   const subscriptionQuery = useQuery(getSubscriptionOptions(api, id))
   const entriesQuery = useInfiniteQuery(
-    listSubscriptionEntriesOptions(api, { feedId: id }),
+    listSubscriptionEntriesOptions(api, { subscriptionId: id }),
   )
 
   useEffect(() => {
@@ -40,12 +40,12 @@ export const SubscriptionPage: FC = () => {
     <>
       <div className="bg-background sticky top-0 z-10 flex justify-between p-8">
         <h1 className="line-clamp-1 text-3xl font-medium">
-          {subscriptionQuery.data.title}
+          {subscriptionQuery.data.subscription.title}
         </h1>
         <div className="flex gap-2">
           <Button asChild variant="secondary">
             <a
-              href={subscriptionQuery.data.feed.link}
+              href={subscriptionQuery.data.feed!.link}
               target="_blank"
               rel="noreferrer"
             >
@@ -63,7 +63,7 @@ export const SubscriptionPage: FC = () => {
                   </Button>
                 </DialogTrigger>
                 <EditSubscriptionModal
-                  subscription={subscriptionQuery.data}
+                  details={subscriptionQuery.data}
                   close={close}
                 />
               </>
@@ -83,7 +83,7 @@ export const SubscriptionPage: FC = () => {
                   </Button>
                 </AlertDialogTrigger>
                 <UnsubscribeAlert
-                  subscription={subscriptionQuery.data}
+                  subscription={subscriptionQuery.data.subscription}
                   close={close}
                 />
               </>

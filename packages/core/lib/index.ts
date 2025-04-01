@@ -1,6 +1,5 @@
 export * from './api'
 export * from './auth'
-export * from './backup'
 export * from './bookmark'
 export * from './collection'
 export * from './error'
@@ -10,6 +9,7 @@ export {
   BaseError,
   Bookmark,
   BookmarkCreate,
+  BookmarkDetails,
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
@@ -28,10 +28,13 @@ export {
   StreamUpdate,
   Subscription,
   SubscriptionCreate,
+  SubscriptionDetails,
   SubscriptionEntry,
+  SubscriptionEntryDetails,
   SubscriptionUpdate,
   Tag,
   TagCreate,
+  TagDetails,
   TagUpdate,
   User,
 } from './openapi.gen'

@@ -32,16 +32,6 @@ export const BaseError = z.object({
   message: z.string(),
 });
 
-export type Tag = z.infer<typeof Tag>;
-export const Tag = z.object({
-  id: z.string(),
-  title: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
-  feedCount: z.union([z.number(), z.undefined()]).optional(),
-});
-
 export type Bookmark = z.infer<typeof Bookmark>;
 export const Bookmark = z.object({
   id: z.string(),
@@ -53,7 +43,6 @@ export const Bookmark = z.object({
   archivedUrl: z.union([z.string(), z.null()]),
   createdAt: z.string(),
   updatedAt: z.string(),
-  tags: z.union([z.array(Tag), z.undefined()]).optional(),
 });
 
 export type BookmarkCreate = z.infer<typeof BookmarkCreate>;
@@ -68,6 +57,20 @@ export const BookmarkCreate = z.object({
 
 export type BookmarkDateField = z.infer<typeof BookmarkDateField>;
 export const BookmarkDateField = z.union([z.literal("publishedAt"), z.literal("createdAt"), z.literal("updatedAt")]);
+
+export type Tag = z.infer<typeof Tag>;
+export const Tag = z.object({
+  id: z.string(),
+  title: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type BookmarkDetails = z.infer<typeof BookmarkDetails>;
+export const BookmarkDetails = z.object({
+  bookmark: Bookmark,
+  tags: z.union([z.array(Tag), z.undefined()]).optional(),
+});
 
 export type BookmarkTextField = z.infer<typeof BookmarkTextField>;
 export const BookmarkTextField = z.union([
@@ -291,19 +294,11 @@ export const Paginated_ApiKey = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_Bookmark = z.infer<typeof Paginated_Bookmark>;
-export const Paginated_Bookmark = z.object({
+export type Paginated_BookmarkDetails = z.infer<typeof Paginated_BookmarkDetails>;
+export const Paginated_BookmarkDetails = z.object({
   data: z.array(
     z.object({
-      id: z.string(),
-      link: z.string(),
-      title: z.string(),
-      thumbnailUrl: z.union([z.string(), z.null()]),
-      publishedAt: z.union([z.string(), z.null()]),
-      author: z.union([z.string(), z.null()]),
-      archivedUrl: z.union([z.string(), z.null()]),
-      createdAt: z.string(),
-      updatedAt: z.string(),
+      bookmark: Bookmark,
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
     }),
   ),
@@ -458,15 +453,21 @@ export const Paginated_Stream = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_Subscription = z.infer<typeof Paginated_Subscription>;
-export const Paginated_Subscription = z.object({
+export type Subscription = z.infer<typeof Subscription>;
+export const Subscription = z.object({
+  id: z.string(),
+  title: z.string(),
+  feedId: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export type Paginated_SubscriptionDetails = z.infer<typeof Paginated_SubscriptionDetails>;
+export const Paginated_SubscriptionDetails = z.object({
   data: z.array(
     z.object({
-      id: z.string(),
-      title: z.string(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
-      feed: Feed,
+      subscription: Subscription,
+      feed: z.union([Feed, z.undefined()]).optional(),
       tags: z.union([z.array(Tag), z.undefined()]).optional(),
       unreadCount: z.union([z.number(), z.undefined()]).optional(),
     }),
@@ -474,28 +475,32 @@ export const Paginated_Subscription = z.object({
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_SubscriptionEntry = z.infer<typeof Paginated_SubscriptionEntry>;
-export const Paginated_SubscriptionEntry = z.object({
+export type SubscriptionEntry = z.infer<typeof SubscriptionEntry>;
+export const SubscriptionEntry = z.object({
+  subscriptionId: z.string(),
+  feedEntryId: z.string(),
+  hasRead: z.boolean(),
+  readAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+});
+
+export type Paginated_SubscriptionEntryDetails = z.infer<typeof Paginated_SubscriptionEntryDetails>;
+export const Paginated_SubscriptionEntryDetails = z.object({
   data: z.array(
     z.object({
-      entry: FeedEntry,
-      hasRead: z.boolean(),
-      subscriptionId: z.string(),
+      subscriptionEntry: SubscriptionEntry,
+      feedEntry: z.union([FeedEntry, z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
 });
 
-export type Paginated_Tag = z.infer<typeof Paginated_Tag>;
-export const Paginated_Tag = z.object({
+export type Paginated_TagDetails = z.infer<typeof Paginated_TagDetails>;
+export const Paginated_TagDetails = z.object({
   data: z.array(
     z.object({
-      id: z.string(),
-      title: z.string(),
-      createdAt: z.string(),
-      updatedAt: z.string(),
-      bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
+      tag: Tag,
       feedCount: z.union([z.number(), z.undefined()]).optional(),
+      bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
     }),
   ),
   cursor: z.union([z.string(), z.undefined()]).optional(),
@@ -528,17 +533,6 @@ export const StreamUpdate = z.object({
   filter: z.union([z.null(), SubscriptionEntryFilter]).optional(),
 });
 
-export type Subscription = z.infer<typeof Subscription>;
-export const Subscription = z.object({
-  id: z.string(),
-  title: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-  feed: Feed,
-  tags: z.union([z.array(Tag), z.undefined()]).optional(),
-  unreadCount: z.union([z.number(), z.undefined()]).optional(),
-});
-
 export type SubscriptionCreate = z.infer<typeof SubscriptionCreate>;
 export const SubscriptionCreate = z.object({
   title: z.string(),
@@ -546,11 +540,18 @@ export const SubscriptionCreate = z.object({
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
-export type SubscriptionEntry = z.infer<typeof SubscriptionEntry>;
-export const SubscriptionEntry = z.object({
-  entry: FeedEntry,
-  hasRead: z.boolean(),
-  subscriptionId: z.string(),
+export type SubscriptionDetails = z.infer<typeof SubscriptionDetails>;
+export const SubscriptionDetails = z.object({
+  subscription: Subscription,
+  feed: z.union([Feed, z.undefined()]).optional(),
+  tags: z.union([z.array(Tag), z.undefined()]).optional(),
+  unreadCount: z.union([z.number(), z.undefined()]).optional(),
+});
+
+export type SubscriptionEntryDetails = z.infer<typeof SubscriptionEntryDetails>;
+export const SubscriptionEntryDetails = z.object({
+  subscriptionEntry: SubscriptionEntry,
+  feedEntry: z.union([FeedEntry, z.undefined()]).optional(),
 });
 
 export type SubscriptionUpdate = z.infer<typeof SubscriptionUpdate>;
@@ -564,6 +565,13 @@ export const TagCreate = z.object({
   title: z.string(),
 });
 
+export type TagDetails = z.infer<typeof TagDetails>;
+export const TagDetails = z.object({
+  tag: Tag,
+  feedCount: z.union([z.number(), z.undefined()]).optional(),
+  bookmarkCount: z.union([z.number(), z.undefined()]).optional(),
+});
+
 export type TagUpdate = z.infer<typeof TagUpdate>;
 export const TagUpdate = z.object({
   title: z.string().optional(),
@@ -573,6 +581,8 @@ export type User = z.infer<typeof User>;
 export const User = z.object({
   id: z.string(),
   email: z.string(),
+  verifiedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
+  name: z.union([z.string(), z.null(), z.undefined()]).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -637,8 +647,8 @@ export const patch_UpdateApiKey = {
   response: ApiKey,
 };
 
-export type post_Register = typeof post_Register;
-export const post_Register = {
+export type post_RegisterUser = typeof post_RegisterUser;
+export const post_RegisterUser = {
   method: z.literal("POST"),
   path: z.literal("/auth/register"),
   requestFormat: z.literal("json"),
@@ -648,8 +658,8 @@ export const post_Register = {
   response: User,
 };
 
-export type post_Login = typeof post_Login;
-export const post_Login = {
+export type post_LoginUser = typeof post_LoginUser;
+export const post_LoginUser = {
   method: z.literal("POST"),
   path: z.literal("/auth/login"),
   requestFormat: z.literal("json"),
@@ -668,50 +678,10 @@ export const get_GetActiveUser = {
   response: User,
 };
 
-export type post_Logout = typeof post_Logout;
-export const post_Logout = {
+export type post_LogoutUser = typeof post_LogoutUser;
+export const post_LogoutUser = {
   method: z.literal("POST"),
   path: z.literal("/auth/logout"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: z.unknown(),
-};
-
-export type post_ImportOpml = typeof post_ImportOpml;
-export const post_ImportOpml = {
-  method: z.literal("POST"),
-  path: z.literal("/backups/opml/import"),
-  requestFormat: z.literal("binary"),
-  parameters: z.object({
-    body: z.array(z.number()),
-  }),
-  response: z.unknown(),
-};
-
-export type post_ExportOpml = typeof post_ExportOpml;
-export const post_ExportOpml = {
-  method: z.literal("POST"),
-  path: z.literal("/backups/opml/export"),
-  requestFormat: z.literal("json"),
-  parameters: z.never(),
-  response: z.unknown(),
-};
-
-export type post_ImportNetscape = typeof post_ImportNetscape;
-export const post_ImportNetscape = {
-  method: z.literal("POST"),
-  path: z.literal("/backups/netscape/import"),
-  requestFormat: z.literal("binary"),
-  parameters: z.object({
-    body: z.array(z.number()),
-  }),
-  response: z.unknown(),
-};
-
-export type post_ExportNetscape = typeof post_ExportNetscape;
-export const post_ExportNetscape = {
-  method: z.literal("POST"),
-  path: z.literal("/backups/netscape/export"),
   requestFormat: z.literal("json"),
   parameters: z.never(),
   response: z.unknown(),
@@ -728,9 +698,10 @@ export const get_ListBookmarks = {
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
+      withTags: z.boolean().optional(),
     }),
   }),
-  response: Paginated_Bookmark,
+  response: Paginated_BookmarkDetails,
 };
 
 export type post_CreateBookmark = typeof post_CreateBookmark;
@@ -750,11 +721,14 @@ export const get_GetBookmark = {
   path: z.literal("/bookmarks/{id}"),
   requestFormat: z.literal("json"),
   parameters: z.object({
+    query: z.object({
+      withTags: z.boolean().optional(),
+    }),
     path: z.object({
       id: z.string(),
     }),
   }),
-  response: Bookmark,
+  response: BookmarkDetails,
 };
 
 export type delete_DeleteBookmark = typeof delete_DeleteBookmark;
@@ -793,6 +767,26 @@ export const post_ScrapeBookmark = {
     body: BookmarkScrape,
   }),
   response: BookmarkScraped,
+};
+
+export type post_ImportBookmarks = typeof post_ImportBookmarks;
+export const post_ImportBookmarks = {
+  method: z.literal("POST"),
+  path: z.literal("/bookmarks/import"),
+  requestFormat: z.literal("binary"),
+  parameters: z.object({
+    body: z.array(z.number()),
+  }),
+  response: z.unknown(),
+};
+
+export type post_ExportBookmarks = typeof post_ExportBookmarks;
+export const post_ExportBookmarks = {
+  method: z.literal("POST"),
+  path: z.literal("/bookmarks/export"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: z.unknown(),
 };
 
 export type get_ListCollections = typeof get_ListCollections;
@@ -964,13 +958,13 @@ export const get_ListSubscriptionEntries = {
   parameters: z.object({
     query: z.object({
       streamId: z.string().optional(),
-      feedId: z.string().optional(),
+      subscriptionId: z.string().optional(),
       hasRead: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
       cursor: z.string().optional(),
     }),
   }),
-  response: Paginated_SubscriptionEntry,
+  response: Paginated_SubscriptionEntryDetails,
 };
 
 export type get_ListSubscriptions = typeof get_ListSubscriptions;
@@ -982,9 +976,12 @@ export const get_ListSubscriptions = {
     query: z.object({
       filterByTags: z.boolean().optional(),
       "tag[]": z.array(z.string()).optional(),
+      withFeed: z.boolean().optional(),
+      withUnreadCount: z.boolean().optional(),
+      withTags: z.boolean().optional(),
     }),
   }),
-  response: Paginated_Subscription,
+  response: Paginated_SubscriptionDetails,
 };
 
 export type post_CreateSubscription = typeof post_CreateSubscription;
@@ -1004,11 +1001,16 @@ export const get_GetSubscription = {
   path: z.literal("/subscriptions/{id}"),
   requestFormat: z.literal("json"),
   parameters: z.object({
+    query: z.object({
+      withFeed: z.boolean().optional(),
+      withUnreadCount: z.boolean().optional(),
+      withTags: z.boolean().optional(),
+    }),
     path: z.object({
       id: z.string(),
     }),
   }),
-  response: Subscription,
+  response: SubscriptionDetails,
 };
 
 export type delete_DeleteSubscription = typeof delete_DeleteSubscription;
@@ -1066,6 +1068,26 @@ export const post_MarkSubscriptionEntryAsUnread = {
   response: SubscriptionEntry,
 };
 
+export type post_ImportSubscriptions = typeof post_ImportSubscriptions;
+export const post_ImportSubscriptions = {
+  method: z.literal("POST"),
+  path: z.literal("/subscriptions/import"),
+  requestFormat: z.literal("binary"),
+  parameters: z.object({
+    body: z.array(z.number()),
+  }),
+  response: z.unknown(),
+};
+
+export type post_ExportSubscriptions = typeof post_ExportSubscriptions;
+export const post_ExportSubscriptions = {
+  method: z.literal("POST"),
+  path: z.literal("/subscriptions/export"),
+  requestFormat: z.literal("json"),
+  parameters: z.never(),
+  response: z.unknown(),
+};
+
 export type get_ListTags = typeof get_ListTags;
 export const get_ListTags = {
   method: z.literal("GET"),
@@ -1073,10 +1095,12 @@ export const get_ListTags = {
   requestFormat: z.literal("json"),
   parameters: z.object({
     query: z.object({
-      tagType: z.union([z.literal("all"), z.literal("bookmarks"), z.literal("feeds")]).optional(),
+      tagType: z.union([z.literal("bookmarks"), z.literal("feeds")]).optional(),
+      withFeedCount: z.boolean().optional(),
+      withBookmarkCount: z.boolean().optional(),
     }),
   }),
-  response: Paginated_Tag,
+  response: Paginated_TagDetails,
 };
 
 export type post_CreateTag = typeof post_CreateTag;
@@ -1096,11 +1120,15 @@ export const get_GetTag = {
   path: z.literal("/tags/{id}"),
   requestFormat: z.literal("json"),
   parameters: z.object({
+    query: z.object({
+      withFeedCount: z.boolean().optional(),
+      withBookmarkCount: z.boolean().optional(),
+    }),
     path: z.object({
       id: z.string(),
     }),
   }),
-  response: Tag,
+  response: TagDetails,
 };
 
 export type delete_DeleteTag = typeof delete_DeleteTag;
@@ -1152,21 +1180,21 @@ export const EndpointByMethod = {
   },
   post: {
     "/apiKeys": post_CreateApiKey,
-    "/auth/register": post_Register,
-    "/auth/login": post_Login,
-    "/auth/logout": post_Logout,
-    "/backups/opml/import": post_ImportOpml,
-    "/backups/opml/export": post_ExportOpml,
-    "/backups/netscape/import": post_ImportNetscape,
-    "/backups/netscape/export": post_ExportNetscape,
+    "/auth/register": post_RegisterUser,
+    "/auth/login": post_LoginUser,
+    "/auth/logout": post_LogoutUser,
     "/bookmarks": post_CreateBookmark,
     "/bookmarks/scrape": post_ScrapeBookmark,
+    "/bookmarks/import": post_ImportBookmarks,
+    "/bookmarks/export": post_ExportBookmarks,
     "/collections": post_CreateCollection,
     "/feeds/detect": post_DetectFeeds,
     "/streams": post_CreateStream,
     "/subscriptions": post_CreateSubscription,
     "/subscriptions/{sid}/entries/{eid}/markAsRead": post_MarkSubscriptionEntryAsRead,
     "/subscriptions/{sid}/entries/{eid}/markAsUnread": post_MarkSubscriptionEntryAsUnread,
+    "/subscriptions/import": post_ImportSubscriptions,
+    "/subscriptions/export": post_ExportSubscriptions,
     "/tags": post_CreateTag,
   },
   delete: {

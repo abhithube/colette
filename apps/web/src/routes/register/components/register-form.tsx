@@ -1,4 +1,4 @@
-import { useRegisterMutation } from '@colette/query'
+import { useRegisterUserMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import type { FC } from 'react'
 import { Link } from 'wouter'
@@ -44,7 +44,7 @@ export const RegisterForm: FC = () => {
       ),
   })
 
-  const register = useRegisterMutation()
+  const register = useRegisterUserMutation()
 
   return (
     <form

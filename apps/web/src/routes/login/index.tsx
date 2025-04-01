@@ -1,5 +1,5 @@
 import { LoginForm } from './components/login-form'
-import { getActiveOptions } from '@colette/query'
+import { getActiveUserOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
 import type { FC } from 'react'
@@ -9,7 +9,7 @@ export const LoginPage: FC = () => {
   const api = useAPI()
 
   const query = useQuery({
-    ...getActiveOptions(api),
+    ...getActiveUserOptions(api),
     retry: false,
   })
 

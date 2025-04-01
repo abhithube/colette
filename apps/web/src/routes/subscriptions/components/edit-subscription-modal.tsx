@@ -1,4 +1,4 @@
-import type { Subscription } from '@colette/core'
+import type { SubscriptionDetails } from '@colette/core'
 import { useUpdateSubscriptionMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { type FC, useEffect } from 'react'
@@ -17,18 +17,18 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 
 export const EditSubscriptionModal: FC<{
-  subscription: Subscription
+  details: SubscriptionDetails
   close: () => void
 }> = (props) => {
   const form = useForm({
     defaultValues: {
-      title: props.subscription.title,
-      tags: props.subscription.tags?.map((tag) => tag.id) ?? [],
+      title: props.details.subscription.title,
+      tags: props.details.tags?.map((tag) => tag.id) ?? [],
     },
     onSubmit: ({ value }) => {
       let tags: string[] | undefined = value.tags
-      if (props.subscription.tags) {
-        const current = props.subscription.tags
+      if (props.details.tags) {
+        const current = props.details.tags
         if (
           tags?.length === current.length &&
           tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
@@ -39,7 +39,10 @@ export const EditSubscriptionModal: FC<{
         tags = undefined
       }
 
-      if (value.title === props.subscription.title && tags === undefined) {
+      if (
+        value.title === props.details.subscription.title &&
+        tags === undefined
+      ) {
         return props.close()
       }
 
@@ -59,12 +62,12 @@ export const EditSubscriptionModal: FC<{
   })
 
   const updateSubscription = useUpdateSubscriptionMutation(
-    props.subscription.id,
+    props.details.subscription.id,
   )
 
   useEffect(() => {
     form.reset()
-  }, [form, props.subscription.id])
+  }, [form, props.details.subscription.id])
 
   return (
     <DialogContent className="max-w-md p-6">
@@ -77,7 +80,9 @@ export const EditSubscriptionModal: FC<{
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
             Edit{' '}
-            <span className="text-primary">{props.subscription.title}</span>
+            <span className="text-primary">
+              {props.details.subscription.title}
+            </span>
           </DialogTitle>
           <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>

@@ -1,4 +1,4 @@
-import type { Bookmark } from '@colette/core'
+import type { BookmarkDetails } from '@colette/core'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { useForm } from '@tanstack/react-form'
 import { type FC, useEffect } from 'react'
@@ -14,17 +14,17 @@ import {
 import { Label } from '~/components/ui/label'
 
 export const EditBookmarkModal: FC<{
-  bookmark: Bookmark
+  details: BookmarkDetails
   close: () => void
 }> = (props) => {
   const form = useForm({
     defaultValues: {
-      tags: props.bookmark.tags?.map((tag) => tag.id) ?? [],
+      tags: props.details.tags?.map((tag) => tag.id) ?? [],
     },
     onSubmit: ({ value }) => {
       let tags: string[] | undefined = value.tags
-      if (props.bookmark.tags) {
-        const current = props.bookmark.tags
+      if (props.details.tags) {
+        const current = props.details.tags
         if (
           tags?.length === current.length &&
           tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
@@ -53,11 +53,11 @@ export const EditBookmarkModal: FC<{
     },
   })
 
-  const updateBookmark = useUpdateBookmarkMutation(props.bookmark.id)
+  const updateBookmark = useUpdateBookmarkMutation(props.details.bookmark.id)
 
   useEffect(() => {
     form.reset()
-  }, [form, props.bookmark.id])
+  }, [form, props.details.bookmark.id])
 
   return (
     <DialogContent className="max-w-md p-6">
@@ -69,7 +69,8 @@ export const EditBookmarkModal: FC<{
       >
         <DialogHeader>
           <DialogTitle className="line-clamp-1">
-            Edit <span className="text-primary">{props.bookmark.title}</span>
+            Edit{' '}
+            <span className="text-primary">{props.details.bookmark.title}</span>
           </DialogTitle>
           <DialogDescription>{"Edit a feed's data."}</DialogDescription>
         </DialogHeader>

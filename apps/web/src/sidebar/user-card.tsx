@@ -1,5 +1,5 @@
 import type { User as AppUser } from '@colette/core'
-import { useLogoutMutation } from '@colette/query'
+import { useLogoutUserMutation } from '@colette/query'
 import { ChevronsUpDown, User } from 'lucide-react'
 import type { FC } from 'react'
 import { navigate } from 'wouter/use-browser-location'
@@ -16,10 +16,10 @@ import {
 } from '~/components/ui/sidebar'
 
 export const UserCard: FC<{ user: AppUser }> = (props) => {
-  const logout = useLogoutMutation()
+  const logoutUser = useLogoutUserMutation()
 
   function onLogout() {
-    logout.mutate(undefined, {
+    logoutUser.mutate(undefined, {
       onSuccess: () =>
         navigate('/login', {
           replace: true,

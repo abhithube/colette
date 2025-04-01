@@ -13,8 +13,8 @@ export const SubscriptionList: FC = () => {
 
   return (
     <div className="flex flex-col gap-4 px-8">
-      {query.data.data.map((feed) => (
-        <SubscriptionItem key={feed.id} subscription={feed} />
+      {query.data.data.map((details) => (
+        <SubscriptionItem key={details.subscription.id} details={details} />
       ))}
     </div>
   )

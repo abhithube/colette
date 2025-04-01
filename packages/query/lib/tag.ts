@@ -1,4 +1,10 @@
-import type { API, TagCreate, TagListQuery, TagUpdate } from '@colette/core'
+import type {
+  API,
+  TagCreate,
+  TagGetQuery,
+  TagListQuery,
+  TagUpdate,
+} from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
   queryOptions,
@@ -14,10 +20,10 @@ export const listTagsOptions = (api: API, query: TagListQuery = {}) =>
     queryFn: () => api.tags.listTags(query),
   })
 
-export const getTagOptions = (api: API, id: string) =>
+export const getTagOptions = (api: API, id: string, query: TagGetQuery = {}) =>
   queryOptions({
     queryKey: [TAGS_PREFIX, id],
-    queryFn: () => api.tags.getTag(id),
+    queryFn: () => api.tags.getTag(id, query),
   })
 
 export const useCreateTagMutation = () => {

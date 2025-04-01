@@ -1,5 +1,5 @@
 import { AppSidebar } from './sidebar'
-import { getActiveOptions } from '@colette/query'
+import { getActiveUserOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
 import { type FC, type PropsWithChildren } from 'react'
@@ -11,7 +11,7 @@ export const AuthLayout: FC<PropsWithChildren> = (props) => {
   const [location] = useLocation()
 
   const query = useQuery({
-    ...getActiveOptions(api),
+    ...getActiveUserOptions(api),
     retry: false,
   })
 

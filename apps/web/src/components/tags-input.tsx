@@ -101,7 +101,9 @@ export const TagsInner: FC<{
             'hidden',
             search !== '' &&
               !props.state.value.find((tag) => tag === search) &&
-              !query.data?.data.find((tag) => tag.title === search) &&
+              !query.data?.data.find(
+                (details) => details.tag.title === search,
+              ) &&
               'block',
           )}
         >
@@ -116,11 +118,11 @@ export const TagsInner: FC<{
           </CommandItem>
         </CommandGroup>
         <CommandGroup heading="Results">
-          {query.data?.data.map((tag) => (
+          {query.data?.data.map((details) => (
             <CommandItem
-              key={tag.id}
+              key={details.tag.id}
               className="justify-between"
-              value={tag.id}
+              value={details.tag.id}
               onSelect={(value) =>
                 props.handleChange((curr) =>
                   curr.includes(value)
@@ -129,8 +131,8 @@ export const TagsInner: FC<{
                 )
               }
             >
-              {tag.title}
-              {props.state.value.includes(tag.id) && <Check />}
+              {details.tag.title}
+              {props.state.value.includes(details.tag.id) && <Check />}
             </CommandItem>
           ))}
         </CommandGroup>

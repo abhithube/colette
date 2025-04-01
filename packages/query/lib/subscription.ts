@@ -2,6 +2,7 @@ import { SUBSCRIPTION_ENTRIES_PREFIX } from './subscription-entry'
 import type {
   API,
   SubscriptionCreate,
+  SubscriptionGetQuery,
   SubscriptionListQuery,
   SubscriptionUpdate,
 } from '@colette/core'
@@ -12,7 +13,7 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
-export const SUBSCRIPTIONS_PREFIX = 'subscriptions'
+const SUBSCRIPTIONS_PREFIX = 'subscriptions'
 
 export const listSubscriptionsOptions = (
   api: API,
@@ -23,10 +24,14 @@ export const listSubscriptionsOptions = (
     queryFn: () => api.subscriptions.listSubscriptions(query),
   })
 
-export const getSubscriptionOptions = (api: API, id: string) =>
+export const getSubscriptionOptions = (
+  api: API,
+  id: string,
+  query: SubscriptionGetQuery = {},
+) =>
   queryOptions({
     queryKey: [SUBSCRIPTIONS_PREFIX, id],
-    queryFn: () => api.subscriptions.getSubscription(id),
+    queryFn: () => api.subscriptions.getSubscription(id, query),
   })
 
 export const useCreateSubscriptionMutation = () => {
@@ -102,6 +107,20 @@ export const useMarkSubscriptionEntryAsUnreadMutation = (
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTION_ENTRIES_PREFIX],
+      })
+    },
+  })
+}
+
+export const useImportSubscriptionsMutation = () => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: File) => api.subscriptions.importSubscriptions(data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [SUBSCRIPTIONS_PREFIX],
       })
     },
   })

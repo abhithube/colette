@@ -3,9 +3,11 @@ import {
   Subscription,
   SubscriptionCreate,
   SubscriptionUpdate,
-  Paginated_Subscription,
+  Paginated_SubscriptionDetails,
   get_ListSubscriptions,
   SubscriptionEntry,
+  SubscriptionDetails,
+  get_GetSubscription,
 } from './openapi.gen'
 import type { z } from 'zod'
 
@@ -13,13 +15,21 @@ export const SubscriptionListQuery =
   get_ListSubscriptions.parameters.shape.query
 export type SubscriptionListQuery = z.infer<typeof SubscriptionListQuery>
 
-export type SubscriptionList = Paginated_Subscription
-export const SubscriptionList = Paginated_Subscription
+export const SubscriptionGetQuery = get_GetSubscription.parameters.shape.query
+export type SubscriptionGetQuery = z.infer<typeof SubscriptionGetQuery>
+
+export type SubscriptionDetailsList = Paginated_SubscriptionDetails
+export const SubscriptionDetailsList = Paginated_SubscriptionDetails
 
 export interface SubscriptionAPI {
-  listSubscriptions(query: SubscriptionListQuery): Promise<SubscriptionList>
+  listSubscriptions(
+    query: SubscriptionListQuery,
+  ): Promise<SubscriptionDetailsList>
 
-  getSubscription(id: string): Promise<Subscription>
+  getSubscription(
+    id: string,
+    query: SubscriptionGetQuery,
+  ): Promise<SubscriptionDetails>
 
   createSubscription(data: SubscriptionCreate): Promise<Subscription>
 
@@ -39,27 +49,35 @@ export interface SubscriptionAPI {
     sid: string,
     eid: string,
   ): Promise<SubscriptionEntry>
+
+  importSubscriptions(data: File): Promise<void>
 }
 
 export class HTTPSubscriptionAPI implements SubscriptionAPI {
   constructor(private client: ApiClient) {}
 
-  listSubscriptions(query: SubscriptionListQuery): Promise<SubscriptionList> {
+  listSubscriptions(
+    query: SubscriptionListQuery,
+  ): Promise<SubscriptionDetailsList> {
     return this.client
       .get('/subscriptions', {
         query: SubscriptionListQuery.parse(query),
       })
-      .then(SubscriptionList.parse)
+      .then(SubscriptionDetailsList.parse)
   }
 
-  getSubscription(id: string): Promise<Subscription> {
+  getSubscription(
+    id: string,
+    query: SubscriptionGetQuery,
+  ): Promise<SubscriptionDetails> {
     return this.client
       .get('/subscriptions/{id}', {
         path: {
           id,
         },
+        query: SubscriptionGetQuery.parse(query),
       })
-      .then(Subscription.parse)
+      .then(SubscriptionDetails.parse)
   }
 
   createSubscription(data: SubscriptionCreate): Promise<Subscription> {
@@ -120,5 +138,16 @@ export class HTTPSubscriptionAPI implements SubscriptionAPI {
         },
       })
       .then(SubscriptionEntry.parse)
+  }
+
+  async importSubscriptions(data: File): Promise<void> {
+    return this.client
+      .post('/subscriptions/import', {
+        body: new Uint8Array(await data.arrayBuffer()),
+        header: {
+          'Content-Type': 'application/octet-stream',
+        },
+      } as any)
+      .then()
   }
 }

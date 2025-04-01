@@ -1,10 +1,10 @@
 import { BookmarkCard } from './bookmark-card'
-import type { Bookmark } from '@colette/core'
+import type { Bookmark, BookmarkDetails } from '@colette/core'
 import { useIntersectionObserver } from '@colette/util'
 import type { FC } from 'react'
 
 export const BookmarkGrid: FC<{
-  bookmarks: Bookmark[]
+  bookmarks: BookmarkDetails[]
   hasMore: boolean
   fetchMore: () => void
   created?: Bookmark
@@ -18,18 +18,18 @@ export const BookmarkGrid: FC<{
   })
 
   const filtered = props.created
-    ? props.bookmarks.filter((v) => v.id !== props.created?.id)
+    ? props.bookmarks.filter((v) => v.bookmark.id !== props.created?.id)
     : props.bookmarks
 
   return (
     <div className="grid grid-cols-1 gap-4 px-8 pb-8 md:grid-cols-2 lg:grid-cols-3">
       {props.created && (
         <div className="rounded-lg border-2">
-          <BookmarkCard bookmark={props.created} />
+          <BookmarkCard details={{ bookmark: props.created }} />
         </div>
       )}
-      {filtered.map((bookmark) => (
-        <BookmarkCard key={bookmark.id} bookmark={bookmark} />
+      {filtered.map((details) => (
+        <BookmarkCard key={details.bookmark.id} details={details} />
       ))}
       <div ref={target} />
     </div>

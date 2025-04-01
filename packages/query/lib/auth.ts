@@ -8,7 +8,7 @@ import {
 
 const AUTH_PREFIX = 'auth'
 
-export const useRegisterMutation = () => {
+export const useRegisterUserMutation = () => {
   const api = useAPI()
 
   return useMutation({
@@ -16,7 +16,7 @@ export const useRegisterMutation = () => {
   })
 }
 
-export const useLoginMutation = () => {
+export const useLoginUserMutation = () => {
   const api = useAPI()
   const queryClient = useQueryClient()
 
@@ -28,13 +28,13 @@ export const useLoginMutation = () => {
   })
 }
 
-export const getActiveOptions = (api: API) =>
+export const getActiveUserOptions = (api: API) =>
   queryOptions({
     queryKey: [AUTH_PREFIX],
     queryFn: () => api.auth.getActiveUser(),
   })
 
-export const useLogoutMutation = () => {
+export const useLogoutUserMutation = () => {
   const api = useAPI()
   const queryClient = useQueryClient()
 
