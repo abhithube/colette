@@ -1,12 +1,12 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use colette_core::bookmark;
 
-use super::{BOOKMARKS_TAG, Bookmark};
+use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id},
@@ -15,7 +15,7 @@ use crate::{
 #[utoipa::path(
   get,
   path = "/{id}",
-  params(Id),
+  params(Id, BookmarkGetQuery),
   responses(GetResponse),
   operation_id = "getBookmark",
   description = "Get a bookmark by ID",
@@ -25,9 +25,20 @@ use crate::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
+    Query(query): Query<BookmarkGetQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match state.bookmark_service.get_bookmark(id, user_id).await {
+    match state
+        .bookmark_service
+        .get_bookmark(
+            bookmark::BookmarkGetQuery {
+                id,
+                with_tags: query.with_tags,
+            },
+            user_id,
+        )
+        .await
+    {
         Ok(data) => Ok(GetResponse::Ok((data, state.image_base_url.clone()).into())),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
@@ -41,11 +52,23 @@ pub async fn handler(
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct BookmarkGetQuery {
+    #[serde(default = "with_tags")]
+    pub with_tags: bool,
+}
+
+fn with_tags() -> bool {
+    false
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Bookmark by ID")]
-    Ok(Bookmark),
+    Ok(BookmarkDetails),
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),

@@ -16,14 +16,12 @@ pub struct Tag {
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]
     pub updated_at: DateTime<Utc>,
-    pub bookmark_count: Option<i64>,
     pub feed_count: Option<i64>,
+    pub bookmark_count: Option<i64>,
 }
 
-#[derive(Debug, Clone, PartialEq, Default)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TagType {
-    #[default]
-    All,
     Bookmarks,
     Feeds,
 }

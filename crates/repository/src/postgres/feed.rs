@@ -112,7 +112,7 @@ impl FeedRepository for PostgresFeedRepository {
     }
 }
 
-pub(crate) struct FeedRow<'a>(pub(crate) &'a Row);
+struct FeedRow<'a>(&'a Row);
 
 impl From<FeedRow<'_>> for Feed {
     fn from(FeedRow(value): FeedRow<'_>) -> Self {

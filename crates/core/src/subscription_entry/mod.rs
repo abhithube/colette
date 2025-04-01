@@ -15,11 +15,12 @@ mod subscription_entry_service;
 
 #[derive(Debug, Clone)]
 pub struct SubscriptionEntry {
-    pub entry_id: Uuid,
     pub subscription_id: Uuid,
+    pub feed_entry_id: Uuid,
     pub user_id: String,
-    pub entry: Option<FeedEntry>,
+    pub feed_entry: Option<FeedEntry>,
     pub has_read: Option<bool>,
+    pub read_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

@@ -11,7 +11,6 @@ use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::Row;
-use uuid::Uuid;
 
 use super::feed_entry::FeedEntryRow;
 
@@ -54,10 +53,10 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
 
         if has_read {
             let (sql, values) = ReadEntryInsert {
-                feed_entry_id: data.entry_id,
                 subscription_id: data.subscription_id,
+                feed_entry_id: data.feed_entry_id,
                 user_id: &data.user_id,
-                created_at: Utc::now(),
+                created_at: data.read_at.unwrap_or_else(Utc::now),
             }
             .into_insert()
             .build_postgres(PostgresQueryBuilder);
@@ -66,8 +65,8 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             client.execute(&stmt, &values.as_params()).await?;
         } else {
             let (sql, values) = ReadEntryDelete {
-                feed_entry_id: data.entry_id,
                 subscription_id: data.subscription_id,
+                feed_entry_id: data.feed_entry_id,
             }
             .into_delete()
             .build_postgres(PostgresQueryBuilder);
@@ -87,30 +86,12 @@ impl From<SubscriptionEntryWithFeedEntryRow<'_>> for SubscriptionEntry {
         SubscriptionEntryWithFeedEntryRow(value): SubscriptionEntryWithFeedEntryRow<'_>,
     ) -> Self {
         Self {
-            entry_id: value.get("id"),
             subscription_id: value.get("subscription_id"),
+            feed_entry_id: value.get("id"),
             user_id: value.get("user_id"),
-            entry: Some(FeedEntryRow(value).into()),
-            has_read: value.get("has_read"),
-        }
-    }
-}
-
-#[derive(serde::Deserialize)]
-struct SubscriptionEntryRow {
-    id: Uuid,
-    subscription_id: Uuid,
-    user_id: String,
-}
-
-impl From<SubscriptionEntryRow> for SubscriptionEntry {
-    fn from(value: SubscriptionEntryRow) -> Self {
-        Self {
-            entry_id: value.id,
-            subscription_id: value.subscription_id,
-            user_id: value.user_id,
-            entry: None,
-            has_read: None,
+            feed_entry: Some(FeedEntryRow(value).into()),
+            has_read: value.try_get("has_read").ok(),
+            read_at: value.try_get("created_at").ok(),
         }
     }
 }

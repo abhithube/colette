@@ -20,7 +20,8 @@ pub const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
 #[derive(OpenApi)]
 #[openapi(components(schemas(
     Subscription,
-    Paginated<Subscription>,
+    SubscriptionDetails,
+    Paginated<SubscriptionDetails>,
     create_subscription::SubscriptionCreate,
     update_subscription::SubscriptionUpdate,
 )))]
@@ -50,8 +51,15 @@ impl SubscriptionApi {
 pub struct Subscription {
     pub id: Uuid,
     pub title: String,
+    pub feed_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionDetails {
+    pub subscription: Subscription,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub feed: Option<Feed>,
@@ -59,6 +67,7 @@ pub struct Subscription {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
     #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub unread_count: Option<i64>,
 }
 
@@ -67,11 +76,27 @@ impl From<colette_core::Subscription> for Subscription {
         Self {
             id: value.id,
             title: value.title,
+            feed_id: value.feed_id,
             created_at: value.created_at,
             updated_at: value.updated_at,
-            feed: value.feed.map(Into::into),
-            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
-            unread_count: value.unread_count,
+        }
+    }
+}
+
+impl From<colette_core::Subscription> for SubscriptionDetails {
+    fn from(value: colette_core::Subscription) -> Self {
+        let feed = value.feed.clone().map(Into::into);
+        let tags = value
+            .tags
+            .clone()
+            .map(|e| e.into_iter().map(Into::into).collect());
+        let unread_count = value.unread_count;
+
+        Self {
+            subscription: value.into(),
+            feed,
+            tags,
+            unread_count,
         }
     }
 }

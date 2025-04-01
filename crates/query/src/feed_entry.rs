@@ -237,8 +237,9 @@ impl IntoSelect for SubscriptionEntryParams {
                 });
         }
 
-        if self.with_read_entries {
+        if self.with_read_entry {
             query
+                .column((ReadEntry::Table, ReadEntry::CreatedAt))
                 .expr_as(
                     Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId)).is_not_null(),
                     Alias::new("has_read"),

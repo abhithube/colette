@@ -24,7 +24,7 @@ mod update_bookmark;
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Bookmark, Paginated<Bookmark>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
+#[openapi(components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
 pub struct BookmarkApi;
 
 impl BookmarkApi {
@@ -58,6 +58,11 @@ pub struct Bookmark {
     pub archived_url: Option<Url>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct BookmarkDetails {
+    bookmark: Bookmark,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tags: Option<Vec<Tag>>,
@@ -75,7 +80,20 @@ impl From<(colette_core::Bookmark, Url)> for Bookmark {
             archived_url: value.archived_path.map(|e| bucket_url.join(&e).unwrap()),
             created_at: value.created_at,
             updated_at: value.updated_at,
-            tags: value.tags.map(|e| e.into_iter().map(Tag::from).collect()),
+        }
+    }
+}
+
+impl From<(colette_core::Bookmark, Url)> for BookmarkDetails {
+    fn from((value, bucket_url): (colette_core::Bookmark, Url)) -> Self {
+        let tags = value
+            .tags
+            .clone()
+            .map(|e| e.into_iter().map(Tag::from).collect());
+
+        Self {
+            bookmark: (value, bucket_url).into(),
+            tags,
         }
     }
 }

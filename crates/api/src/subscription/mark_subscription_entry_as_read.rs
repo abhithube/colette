@@ -34,7 +34,7 @@ pub async fn handler(
 ) -> Result<UpdateResponse, Error> {
     match state
         .subscription_service
-        .mark_subscription_entry_as_read(feed_entry_id, subscription_id, user_id)
+        .mark_subscription_entry_as_read(subscription_id, feed_entry_id, user_id)
         .await
     {
         Ok(data) => Ok(UpdateResponse::Ok(data.into())),

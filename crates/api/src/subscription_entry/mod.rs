@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use colette_core::subscription_entry;
 use utoipa::OpenApi;
 use utoipa_axum::{router::OpenApiRouter, routes};
@@ -14,7 +15,7 @@ mod list_subscription_entries;
 pub const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(SubscriptionEntry, Paginated<SubscriptionEntry>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)))]
+#[openapi(components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)))]
 pub struct SubscriptionEntryApi;
 
 impl SubscriptionEntryApi {
@@ -27,19 +28,39 @@ impl SubscriptionEntryApi {
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SubscriptionEntry {
-    pub entry_id: Uuid,
     pub subscription_id: Uuid,
-    pub entry: Option<FeedEntry>,
-    pub has_read: Option<bool>,
+    pub feed_entry_id: Uuid,
+    pub has_read: bool,
+    pub read_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SubscriptionEntryDetails {
+    pub subscription_entry: SubscriptionEntry,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feed_entry: Option<FeedEntry>,
 }
 
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
     fn from(value: colette_core::SubscriptionEntry) -> Self {
         Self {
-            entry_id: value.entry_id,
-            entry: value.entry.map(Into::into),
-            has_read: value.has_read,
             subscription_id: value.subscription_id,
+            feed_entry_id: value.feed_entry_id,
+            has_read: value.has_read.unwrap_or_default(),
+            read_at: value.read_at,
+        }
+    }
+}
+
+impl From<colette_core::SubscriptionEntry> for SubscriptionEntryDetails {
+    fn from(value: colette_core::SubscriptionEntry) -> Self {
+        let feed_entry = value.feed_entry.clone().map(Into::into);
+
+        Self {
+            subscription_entry: value.into(),
+            feed_entry,
         }
     }
 }

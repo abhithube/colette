@@ -7,7 +7,7 @@ use axum_extra::extract::Query;
 use colette_core::subscription_entry;
 use uuid::Uuid;
 
-use super::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntry};
+use super::{SUBSCRIPTION_ENTRIES_TAG, SubscriptionEntryDetails};
 use crate::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -45,7 +45,7 @@ pub struct SubscriptionEntryListQuery {
     #[param(nullable = false)]
     pub stream_id: Option<Uuid>,
     #[param(nullable = false)]
-    pub feed_id: Option<Uuid>,
+    pub subscription_id: Option<Uuid>,
     #[param(nullable = false)]
     pub has_read: Option<bool>,
     #[param(nullable = false)]
@@ -59,7 +59,7 @@ impl From<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryL
     fn from(value: SubscriptionEntryListQuery) -> Self {
         Self {
             stream_id: value.stream_id,
-            feed_id: value.feed_id,
+            subscription_id: value.subscription_id,
             has_read: value.has_read,
             tags: value.tags,
             cursor: value.cursor,
@@ -70,7 +70,7 @@ impl From<SubscriptionEntryListQuery> for subscription_entry::SubscriptionEntryL
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of subscription entries")]
-    Ok(Paginated<SubscriptionEntry>),
+    Ok(Paginated<SubscriptionEntryDetails>),
 }
 
 impl IntoResponse for ListResponse {

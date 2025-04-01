@@ -18,7 +18,6 @@ sea-query-postgres = { version = "0.5.0", default-features = false, features = [
   "with-json",
   "with-uuid",
 ] }
-serde.workspace = true
 serde_json.workspace = true
 tokio-postgres.workspace = true
 url.workspace = true

@@ -98,6 +98,7 @@ impl BookmarkService {
                 user_id: Some(user_id),
                 cursor,
                 limit: Some(PAGINATION_LIMIT + 1),
+                with_tags: query.with_tags,
                 ..Default::default()
             })
             .await?;
@@ -123,16 +124,21 @@ impl BookmarkService {
         })
     }
 
-    pub async fn get_bookmark(&self, id: Uuid, user_id: String) -> Result<Bookmark, Error> {
+    pub async fn get_bookmark(
+        &self,
+        query: BookmarkGetQuery,
+        user_id: String,
+    ) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .bookmark_repository
             .query(BookmarkParams {
-                id: Some(id),
+                id: Some(query.id),
+                with_tags: query.with_tags,
                 ..Default::default()
             })
             .await?;
         if bookmarks.is_empty() {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(query.id));
         }
 
         let bookmark = bookmarks.swap_remove(0);
@@ -472,6 +478,13 @@ pub struct BookmarkListQuery {
     pub collection_id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,
+    pub with_tags: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct BookmarkGetQuery {
+    pub id: Uuid,
+    pub with_tags: bool,
 }
 
 #[derive(Debug, Clone)]

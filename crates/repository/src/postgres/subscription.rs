@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use colette_core::{
-    Subscription, Tag,
+    Feed, Subscription, Tag,
     subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
     tag::TagParams,
 };
@@ -20,8 +20,6 @@ use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{Row, error::SqlState};
 use uuid::Uuid;
 
-use super::feed::FeedRow;
-
 #[derive(Debug, Clone)]
 pub struct PostgresSubscriptionRepository {
     pool: Pool,
@@ -38,6 +36,9 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
         let client = self.pool.get().await?;
 
+        let with_tags = params.with_tags;
+        let with_unread_count = params.with_unread_count;
+
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
@@ -48,53 +49,68 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
 
         let mut subscriptions = rows
             .iter()
-            .map(|e| Subscription::from(SubscriptionWithFeedRow(e)))
+            .map(|e| Subscription::from(SubscriptionRow(e)))
             .collect::<Vec<_>>();
 
         let subscription_ids = subscriptions.iter().map(|e| e.id);
 
-        let (sql, values) = SubscriptionTagSelect {
-            subscription_ids: subscription_ids.clone(),
-        }
-        .into_select()
-        .build_postgres(PostgresQueryBuilder);
-
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
         let mut tag_row_map = HashMap::<Uuid, Vec<SubscriptionTagRow>>::new();
-
-        let tag_rows = rows
-            .iter()
-            .map(SubscriptionTagRow::from)
-            .collect::<Vec<_>>();
-        for row in tag_rows {
-            tag_row_map
-                .entry(row.subscription_id)
-                .or_default()
-                .push(row);
-        }
-
-        let (sql, values) = UnreadCountSelectMany { subscription_ids }
+        if with_tags {
+            let (sql, values) = SubscriptionTagSelect {
+                subscription_ids: subscription_ids.clone(),
+            }
             .into_select()
             .build_postgres(PostgresQueryBuilder);
 
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
+            let stmt = client.prepare_cached(&sql).await?;
+            let rows = client.query(&stmt, &values.as_params()).await?;
+
+            let tag_rows = rows
+                .iter()
+                .map(SubscriptionTagRow::from)
+                .collect::<Vec<_>>();
+            for row in tag_rows {
+                tag_row_map
+                    .entry(row.subscription_id)
+                    .or_default()
+                    .push(row);
+            }
+        }
 
         let mut unread_count_map = HashMap::<Uuid, i64>::new();
+        if with_unread_count {
+            let (sql, values) = UnreadCountSelectMany { subscription_ids }
+                .into_select()
+                .build_postgres(PostgresQueryBuilder);
 
-        for row in rows {
-            unread_count_map
-                .entry(row.get("id"))
-                .insert_entry(row.get("unread_count"));
+            let stmt = client.prepare_cached(&sql).await?;
+            let rows = client.query(&stmt, &values.as_params()).await?;
+
+            for row in rows {
+                unread_count_map
+                    .entry(row.get("id"))
+                    .insert_entry(row.get("unread_count"));
+            }
         }
 
         for subscription in subscriptions.iter_mut() {
-            subscription.tags = tag_row_map
-                .remove(&subscription.id)
-                .map(|e| e.into_iter().map(Into::into).collect());
-            subscription.unread_count = unread_count_map.remove(&subscription.id);
+            if with_tags {
+                let tags = tag_row_map
+                    .remove(&subscription.id)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+                subscription.tags = Some(tags);
+            }
+
+            if with_unread_count {
+                let unread_count = unread_count_map
+                    .remove(&subscription.id)
+                    .unwrap_or_default();
+
+                subscription.unread_count = Some(unread_count);
+            }
         }
 
         Ok(subscriptions)
@@ -313,10 +329,10 @@ impl From<SubscriptionTagRow> for Tag {
     }
 }
 
-struct SubscriptionWithFeedRow<'a>(&'a Row);
+struct SubscriptionRow<'a>(&'a Row);
 
-impl From<SubscriptionWithFeedRow<'_>> for Subscription {
-    fn from(SubscriptionWithFeedRow(value): SubscriptionWithFeedRow<'_>) -> Self {
+impl From<SubscriptionRow<'_>> for Subscription {
+    fn from(SubscriptionRow(value): SubscriptionRow<'_>) -> Self {
         Self {
             id: value.get("id"),
             title: value.get("title"),
@@ -324,11 +340,17 @@ impl From<SubscriptionWithFeedRow<'_>> for Subscription {
             user_id: value.get("user_id"),
             created_at: value.get("created_at"),
             updated_at: value.get("updated_at"),
-            feed: if value.len() > 6 {
-                Some(FeedRow(value).into())
-            } else {
-                None
-            },
+            feed: value.try_get::<_, String>("link").ok().map(|link| Feed {
+                id: value.get("feed_id"),
+                link: link.parse().unwrap(),
+                xml_url: value
+                    .get::<_, Option<String>>("xml_url")
+                    .and_then(|e| e.parse().ok()),
+                title: value.get("feed_title"),
+                description: value.get("description"),
+                refreshed_at: value.get("refreshed_at"),
+                entries: None,
+            }),
             tags: None,
             unread_count: None,
         }

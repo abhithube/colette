@@ -3,7 +3,7 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use colette_core::tag::{TagParams, TagType};
 use sea_query::{
-    Alias, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
+    Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query,
     SelectStatement,
 };
 use uuid::Uuid;
@@ -12,6 +12,9 @@ use crate::{
     IntoDelete, IntoInsert, IntoSelect, bookmark_tag::BookmarkTag,
     subscription_tag::SubscriptionTag,
 };
+
+const FEED_COUNT: &str = "feed_count";
+const BOOKMARK_COUNT: &str = "bookmark_count";
 
 pub enum Tag {
     Table,
@@ -43,13 +46,7 @@ impl Iden for Tag {
 impl IntoSelect for TagParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
-            .columns([
-                (Tag::Table, Tag::Id),
-                (Tag::Table, Tag::Title),
-                (Tag::Table, Tag::UserId),
-                (Tag::Table, Tag::CreatedAt),
-                (Tag::Table, Tag::UpdatedAt),
-            ])
+            .column((Tag::Table, Asterisk))
             .from(Tag::Table)
             .apply_if(self.ids, |query, ids| {
                 query.and_where(Expr::col((Tag::Table, Tag::Id)).is_in(ids));
@@ -66,42 +63,47 @@ impl IntoSelect for TagParams {
             .order_by((Tag::Table, Tag::CreatedAt), Order::Asc)
             .to_owned();
 
-        if self.with_counts {
-            let feed_count = Alias::new("feed_count");
-            let bookmark_count = Alias::new("bookmark_count");
-
+        if self.with_feed_count || self.tag_type == Some(TagType::Feeds) {
             query
                 .expr_as(
                     Func::count(Expr::col((
                         SubscriptionTag::Table,
                         SubscriptionTag::SubscriptionId,
                     ))),
-                    feed_count.clone(),
-                )
-                .expr_as(
-                    Func::count(Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))),
-                    bookmark_count.clone(),
+                    Alias::new(FEED_COUNT),
                 )
                 .left_join(
                     SubscriptionTag::Table,
                     Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))
                         .eq(Expr::col((Tag::Table, Tag::Id))),
+                );
+        }
+
+        if self.with_bookmark_count || self.tag_type == Some(TagType::Bookmarks) {
+            query
+                .expr_as(
+                    Func::count(Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId))),
+                    Alias::new(BOOKMARK_COUNT),
                 )
                 .left_join(
                     BookmarkTag::Table,
                     Expr::col((BookmarkTag::Table, BookmarkTag::TagId))
                         .eq(Expr::col((Tag::Table, Tag::Id))),
-                )
-                .group_by_col((Tag::Table, Tag::Id));
+                );
+        }
 
-            match self.tag_type {
+        if self.with_feed_count || self.with_bookmark_count || self.tag_type.is_some() {
+            query.group_by_col((Tag::Table, Tag::Id));
+        }
+
+        if let Some(tag_type) = self.tag_type {
+            match tag_type {
                 TagType::Feeds => {
-                    query.and_having(Expr::col(feed_count).gt(Expr::val(0)));
+                    query.and_having(Expr::col(Alias::new(FEED_COUNT)).gt(Expr::val(0)));
                 }
                 TagType::Bookmarks => {
-                    query.and_having(Expr::col(bookmark_count).gt(Expr::val(0)));
+                    query.and_having(Expr::col(Alias::new(BOOKMARK_COUNT)).gt(Expr::val(0)));
                 }
-                _ => {}
             }
         }
 

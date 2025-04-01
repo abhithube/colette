@@ -3,7 +3,8 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use colette_core::subscription::SubscriptionParams;
 use sea_query::{
-    Alias, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    Alias, Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
 use uuid::Uuid;
 
@@ -41,14 +42,7 @@ impl Iden for Subscription {
 impl IntoSelect for SubscriptionParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
-            .columns([
-                (Subscription::Table, Subscription::Id),
-                (Subscription::Table, Subscription::Title),
-                (Subscription::Table, Subscription::UserId),
-                (Subscription::Table, Subscription::FeedId),
-                (Subscription::Table, Subscription::CreatedAt),
-                (Subscription::Table, Subscription::UpdatedAt),
-            ])
+            .column((Subscription::Table, Asterisk))
             .from(Subscription::Table)
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Subscription::Table, Subscription::Id)).eq(id));
@@ -84,7 +78,7 @@ impl IntoSelect for SubscriptionParams {
             .order_by((Subscription::Table, Subscription::Id), Order::Asc)
             .to_owned();
 
-        if self.with_feeds {
+        if self.with_feed {
             query
                 .columns([
                     (Feed::Table, Feed::Link),

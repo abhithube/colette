@@ -7,7 +7,7 @@ use axum_extra::extract::Query;
 use colette_core::bookmark;
 use uuid::Uuid;
 
-use super::{BOOKMARKS_TAG, Bookmark};
+use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -58,6 +58,12 @@ pub struct BookmarkListQuery {
     pub tags: Option<Vec<Uuid>>,
     #[param(nullable = false)]
     pub cursor: Option<String>,
+    #[serde(default = "with_tags")]
+    pub with_tags: bool,
+}
+
+fn with_tags() -> bool {
+    false
 }
 
 impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
@@ -70,6 +76,7 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
                 None
             },
             cursor: value.cursor,
+            with_tags: value.with_tags,
         }
     }
 }
@@ -77,7 +84,7 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of bookmarks")]
-    Ok(Paginated<Bookmark>),
+    Ok(Paginated<BookmarkDetails>),
 }
 
 impl IntoResponse for ListResponse {

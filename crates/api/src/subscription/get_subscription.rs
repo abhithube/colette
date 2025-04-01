@@ -1,12 +1,12 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
 use colette_core::subscription;
 
-use super::{SUBSCRIPTIONS_TAG, Subscription};
+use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id},
@@ -15,7 +15,7 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/{id}",
-    params(Id),
+    params(Id, SubscriptionGetQuery),
     responses(GetResponse),
     operation_id = "getSubscription",
     description = "Get a subscription by ID",
@@ -25,11 +25,20 @@ use crate::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
+    Query(query): Query<SubscriptionGetQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
     match state
         .subscription_service
-        .get_subscription(id, user_id)
+        .get_subscription(
+            subscription::SubscriptionGetQuery {
+                id,
+                with_feed: query.with_feed,
+                with_unread_count: query.with_unread_count,
+                with_tags: query.with_tags,
+            },
+            user_id,
+        )
         .await
     {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
@@ -45,11 +54,35 @@ pub async fn handler(
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct SubscriptionGetQuery {
+    #[serde(default = "with_feed")]
+    pub with_feed: bool,
+    #[serde(default = "with_unread_count")]
+    pub with_unread_count: bool,
+    #[serde(default = "with_tags")]
+    pub with_tags: bool,
+}
+
+fn with_feed() -> bool {
+    false
+}
+
+fn with_unread_count() -> bool {
+    false
+}
+
+fn with_tags() -> bool {
+    false
+}
+
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Subscription by ID")]
-    Ok(Subscription),
+    Ok(SubscriptionDetails),
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),

@@ -15,7 +15,7 @@ mod update_tag;
 pub const TAGS_TAG: &str = "Tags";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Tag, Paginated<Tag>, create_tag::TagCreate, update_tag::TagUpdate)))]
+#[openapi(components(schemas(Tag, TagDetails, Paginated<TagDetails>, create_tag::TagCreate, update_tag::TagUpdate)))]
 pub struct TagApi;
 
 impl TagApi {
@@ -37,12 +37,18 @@ pub struct Tag {
     pub title: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    #[schema(nullable = false)]
-    #[serde(skip_serializing_if = "Option::is_none")]
-    bookmark_count: Option<i64>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct TagDetails {
+    pub tag: Tag,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     feed_count: Option<i64>,
+    #[schema(nullable = false)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    bookmark_count: Option<i64>,
 }
 
 impl From<colette_core::Tag> for Tag {
@@ -52,8 +58,19 @@ impl From<colette_core::Tag> for Tag {
             title: value.title,
             created_at: value.created_at,
             updated_at: value.updated_at,
-            bookmark_count: value.bookmark_count,
-            feed_count: value.feed_count,
+        }
+    }
+}
+
+impl From<colette_core::Tag> for TagDetails {
+    fn from(value: colette_core::Tag) -> Self {
+        let feed_count = value.feed_count;
+        let bookmark_count = value.bookmark_count;
+
+        Self {
+            tag: value.into(),
+            feed_count,
+            bookmark_count,
         }
     }
 }

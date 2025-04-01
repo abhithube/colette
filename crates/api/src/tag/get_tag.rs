@@ -1,12 +1,12 @@
 use axum::{
     Json,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use colette_core::tag;
+use colette_core::tag::{self};
 
-use super::{TAGS_TAG, Tag};
+use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
     common::{AuthUser, BaseError, Error, Id},
@@ -15,7 +15,7 @@ use crate::{
 #[utoipa::path(
     get,
     path = "/{id}",
-    params(Id),
+    params(Id, TagGetQuery),
     responses(GetResponse),
     operation_id = "getTag",
     description = "Get a tag by ID",
@@ -25,9 +25,21 @@ use crate::{
 pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
+    Query(query): Query<TagGetQuery>,
     AuthUser(user_id): AuthUser,
 ) -> Result<GetResponse, Error> {
-    match state.tag_service.get_tag(id, user_id).await {
+    match state
+        .tag_service
+        .get_tag(
+            tag::TagGetQuery {
+                id,
+                with_feed_count: query.with_feed_count,
+                with_bookmark_count: query.with_bookmark_count,
+            },
+            user_id,
+        )
+        .await
+    {
         Ok(data) => Ok(GetResponse::Ok(data.into())),
         Err(e) => match e {
             tag::Error::Forbidden(_) => Ok(GetResponse::Forbidden(BaseError {
@@ -41,10 +53,28 @@ pub async fn handler(
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
+#[serde(rename_all = "camelCase")]
+#[into_params(parameter_in = Query)]
+pub struct TagGetQuery {
+    #[serde(default = "with_feed_count")]
+    pub with_feed_count: bool,
+    #[serde(default = "with_bookmark_count")]
+    pub with_bookmark_count: bool,
+}
+
+fn with_feed_count() -> bool {
+    false
+}
+
+fn with_bookmark_count() -> bool {
+    false
+}
+
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum GetResponse {
     #[response(status = 200, description = "Tag by ID")]
-    Ok(Tag),
+    Ok(TagDetails),
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),

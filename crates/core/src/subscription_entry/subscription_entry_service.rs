@@ -57,13 +57,13 @@ impl SubscriptionEntryService {
             .subscription_entry_repository
             .query(SubscriptionEntryParams {
                 filter,
-                subscription_id: query.feed_id,
+                subscription_id: query.subscription_id,
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id: Some(user_id),
                 cursor,
                 limit: Some(PAGINATION_LIMIT + 1),
-                with_read_entries: true,
+                with_read_entry: true,
                 ..Default::default()
             })
             .await?;
@@ -74,7 +74,7 @@ impl SubscriptionEntryService {
             subscription_entries = subscription_entries.into_iter().take(limit).collect();
 
             if let Some(last) = subscription_entries.last() {
-                if let Some(ref entry) = last.entry {
+                if let Some(ref entry) = last.feed_entry {
                     let c = Cursor {
                         published_at: entry.published_at,
                         id: entry.id,
@@ -96,7 +96,7 @@ impl SubscriptionEntryService {
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionEntryListQuery {
     pub stream_id: Option<Uuid>,
-    pub feed_id: Option<Uuid>,
+    pub subscription_id: Option<Uuid>,
     pub has_read: Option<bool>,
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<String>,

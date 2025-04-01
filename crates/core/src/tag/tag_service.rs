@@ -25,7 +25,7 @@ impl TagService {
             .query(TagParams {
                 tag_type: query.tag_type,
                 user_id: Some(user_id),
-                with_counts: true,
+                with_feed_count: true,
                 ..Default::default()
             })
             .await?;
@@ -36,21 +36,23 @@ impl TagService {
         })
     }
 
-    pub async fn get_tag(&self, id: Uuid, user_id: String) -> Result<Tag, Error> {
+    pub async fn get_tag(&self, query: TagGetQuery, user_id: String) -> Result<Tag, Error> {
         let mut tags = self
             .repository
             .query(TagParams {
-                ids: Some(vec![id]),
+                ids: Some(vec![query.id]),
+                with_feed_count: query.with_feed_count,
+                with_bookmark_count: query.with_bookmark_count,
                 ..Default::default()
             })
             .await?;
         if tags.is_empty() {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(query.id));
         }
 
         let tag = tags.swap_remove(0);
         if tag.user_id != user_id {
-            return Err(Error::Forbidden(tag.id));
+            return Err(Error::Forbidden(query.id));
         }
 
         Ok(tag)
@@ -103,7 +105,16 @@ impl TagService {
 
 #[derive(Debug, Clone, Default)]
 pub struct TagListQuery {
-    pub tag_type: TagType,
+    pub tag_type: Option<TagType>,
+    pub with_feed_count: bool,
+    pub with_bookmark_count: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct TagGetQuery {
+    pub id: Uuid,
+    pub with_feed_count: bool,
+    pub with_bookmark_count: bool,
 }
 
 #[derive(Debug, Clone)]

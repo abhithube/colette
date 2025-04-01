@@ -5,7 +5,7 @@ use axum::{
 };
 use colette_core::tag;
 
-use super::{TAGS_TAG, Tag};
+use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
     common::{AuthUser, Error, Paginated},
@@ -37,23 +37,34 @@ pub async fn handler(
 #[into_params(parameter_in = Query)]
 pub struct TagListQuery {
     #[param(inline)]
-    #[serde(default = "TagType::default")]
-    pub tag_type: TagType,
+    pub tag_type: Option<TagType>,
+    #[serde(default = "with_feed_count")]
+    pub with_feed_count: bool,
+    #[serde(default = "with_bookmark_count")]
+    pub with_bookmark_count: bool,
+}
+
+fn with_feed_count() -> bool {
+    false
+}
+
+fn with_bookmark_count() -> bool {
+    false
 }
 
 impl From<TagListQuery> for tag::TagListQuery {
     fn from(value: TagListQuery) -> Self {
         Self {
-            tag_type: value.tag_type.into(),
+            tag_type: value.tag_type.map(Into::into),
+            with_feed_count: value.with_feed_count,
+            with_bookmark_count: value.with_bookmark_count,
         }
     }
 }
 
-#[derive(Debug, Clone, Default, serde::Deserialize, utoipa::ToSchema)]
+#[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub enum TagType {
-    #[default]
-    All,
     Bookmarks,
     Feeds,
 }
@@ -61,7 +72,6 @@ pub enum TagType {
 impl From<TagType> for tag::TagType {
     fn from(value: TagType) -> Self {
         match value {
-            TagType::All => Self::All,
             TagType::Bookmarks => Self::Bookmarks,
             TagType::Feeds => Self::Feeds,
         }
@@ -71,7 +81,7 @@ impl From<TagType> for tag::TagType {
 #[derive(Debug, utoipa::IntoResponses)]
 pub enum ListResponse {
     #[response(status = 200, description = "Paginated list of tags")]
-    Ok(Paginated<Tag>),
+    Ok(Paginated<TagDetails>),
 }
 
 impl IntoResponse for ListResponse {

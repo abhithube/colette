@@ -34,6 +34,8 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
         let client = self.pool.get().await?;
 
+        let with_tags = params.with_tags;
+
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
@@ -42,37 +44,40 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             return Ok(Vec::new());
         }
 
-        let bookmark_rows = rows
+        let mut bookmarks = rows
             .iter()
             .map(|e| Bookmark::from(BookmarkRow(e)))
             .collect::<Vec<_>>();
 
-        let (sql, values) = BookmarkTagSelect {
-            bookmark_ids: bookmark_rows.iter().map(|e| e.id),
-        }
-        .into_select()
-        .build_postgres(PostgresQueryBuilder);
-
-        let stmt = client.prepare_cached(&sql).await?;
-        let rows = client.query(&stmt, &values.as_params()).await?;
-
         let mut tag_row_map = HashMap::<Uuid, Vec<BookmarkTagRow>>::new();
+        if with_tags {
+            let (sql, values) = BookmarkTagSelect {
+                bookmark_ids: bookmarks.iter().map(|e| e.id),
+            }
+            .into_select()
+            .build_postgres(PostgresQueryBuilder);
 
-        let tag_rows = rows.iter().map(BookmarkTagRow::from).collect::<Vec<_>>();
-        for row in tag_rows {
-            tag_row_map.entry(row.bookmark_id).or_default().push(row);
+            let stmt = client.prepare_cached(&sql).await?;
+            let rows = client.query(&stmt, &values.as_params()).await?;
+
+            let tag_rows = rows.iter().map(BookmarkTagRow::from).collect::<Vec<_>>();
+            for row in tag_rows {
+                tag_row_map.entry(row.bookmark_id).or_default().push(row);
+            }
         }
 
-        let bookmarks = bookmark_rows
-            .into_iter()
-            .map(|bookmark| {
-                BookmarkRowWithTagRows {
-                    tags: tag_row_map.remove(&bookmark.id),
-                    bookmark,
-                }
-                .into()
-            })
-            .collect();
+        for bookmark in bookmarks.iter_mut() {
+            if with_tags {
+                let tags = tag_row_map
+                    .remove(&bookmark.id)
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(Into::into)
+                    .collect();
+
+                bookmark.tags = Some(tags)
+            }
+        }
 
         Ok(bookmarks)
     }

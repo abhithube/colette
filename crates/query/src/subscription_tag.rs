@@ -1,7 +1,8 @@
 use std::fmt::Write;
 
 use sea_query::{
-    DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
+    SelectStatement,
 };
 use uuid::Uuid;
 
@@ -38,13 +39,7 @@ impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionTagSelect<I> {
     fn into_select(self) -> SelectStatement {
         Query::select()
             .column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
-            .columns([
-                (Tag::Table, Tag::Id),
-                (Tag::Table, Tag::Title),
-                (Tag::Table, Tag::CreatedAt),
-                (Tag::Table, Tag::UpdatedAt),
-                (Tag::Table, Tag::UserId),
-            ])
+            .column((Tag::Table, Asterisk))
             .from(SubscriptionTag::Table)
             .inner_join(
                 Tag::Table,

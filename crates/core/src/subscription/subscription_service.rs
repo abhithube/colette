@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bytes::{Buf, Bytes};
+use chrono::Utc;
 use colette_opml::{Body, Opml, Outline, OutlineType};
 use colette_queue::JobProducer;
 use tokio::sync::Mutex;
@@ -52,7 +53,9 @@ impl SubscriptionService {
             .query(SubscriptionParams {
                 tags: query.tags,
                 user_id: Some(user_id),
-                with_feeds: true,
+                with_feed: query.with_feed,
+                with_unread_count: query.with_unread_count,
+                with_tags: query.with_tags,
                 ..Default::default()
             })
             .await?;
@@ -63,21 +66,28 @@ impl SubscriptionService {
         })
     }
 
-    pub async fn get_subscription(&self, id: Uuid, user_id: String) -> Result<Subscription, Error> {
+    pub async fn get_subscription(
+        &self,
+        query: SubscriptionGetQuery,
+        user_id: String,
+    ) -> Result<Subscription, Error> {
         let mut subscriptions = self
             .subscription_repository
             .query(SubscriptionParams {
-                id: Some(id),
+                id: Some(query.id),
+                with_feed: query.with_feed,
+                with_unread_count: query.with_unread_count,
+                with_tags: query.with_tags,
                 ..Default::default()
             })
             .await?;
         if subscriptions.is_empty() {
-            return Err(Error::NotFound(id));
+            return Err(Error::NotFound(query.id));
         }
 
         let subscription = subscriptions.swap_remove(0);
         if subscription.user_id != user_id {
-            return Err(Error::Forbidden(subscription.id));
+            return Err(Error::Forbidden(query.id));
         }
 
         Ok(subscription)
@@ -185,13 +195,13 @@ impl SubscriptionService {
 
     pub async fn mark_subscription_entry_as_read(
         &self,
-        feed_entry_id: Uuid,
         subscription_id: Uuid,
+        feed_entry_id: Uuid,
         user_id: String,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository
-            .find_by_id(feed_entry_id, subscription_id)
+            .find_by_id(subscription_id, feed_entry_id)
             .await?
         else {
             return Err(Error::NotFound(feed_entry_id));
@@ -200,7 +210,8 @@ impl SubscriptionService {
             return Err(Error::Forbidden(feed_entry_id));
         }
 
-        subscription_entry.has_read = Some(false);
+        subscription_entry.has_read = Some(true);
+        subscription_entry.read_at = Some(Utc::now());
 
         self.subscription_entry_repository
             .save(&subscription_entry)
@@ -211,13 +222,13 @@ impl SubscriptionService {
 
     pub async fn mark_subscription_entry_as_unread(
         &self,
-        feed_entry_id: Uuid,
         subscription_id: Uuid,
+        feed_entry_id: Uuid,
         user_id: String,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository
-            .find_by_id(feed_entry_id, subscription_id)
+            .find_by_id(subscription_id, feed_entry_id)
             .await?
         else {
             return Err(Error::NotFound(feed_entry_id));
@@ -318,6 +329,17 @@ impl SubscriptionService {
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionListQuery {
     pub tags: Option<Vec<Uuid>>,
+    pub with_feed: bool,
+    pub with_unread_count: bool,
+    pub with_tags: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct SubscriptionGetQuery {
+    pub id: Uuid,
+    pub with_feed: bool,
+    pub with_unread_count: bool,
+    pub with_tags: bool,
 }
 
 #[derive(Debug, Clone)]

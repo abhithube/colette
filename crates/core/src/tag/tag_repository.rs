@@ -27,11 +27,12 @@ pub trait TagRepository: Send + Sync + 'static {
 pub struct TagParams {
     pub ids: Option<Vec<Uuid>>,
     pub title: Option<String>,
-    pub tag_type: TagType,
+    pub tag_type: Option<TagType>,
     pub feed_id: Option<Uuid>,
     pub bookmark_id: Option<Uuid>,
     pub user_id: Option<String>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,
-    pub with_counts: bool,
+    pub with_feed_count: bool,
+    pub with_bookmark_count: bool,
 }

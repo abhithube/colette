@@ -32,8 +32,8 @@ impl Iden for ReadEntry {
 }
 
 pub struct ReadEntryInsert<'a> {
-    pub feed_entry_id: Uuid,
     pub subscription_id: Uuid,
+    pub feed_entry_id: Uuid,
     pub user_id: &'a str,
     pub created_at: DateTime<Utc>,
 }
@@ -64,8 +64,8 @@ impl IntoInsert for ReadEntryInsert<'_> {
 }
 
 pub struct ReadEntryDelete {
-    pub feed_entry_id: Uuid,
     pub subscription_id: Uuid,
+    pub feed_entry_id: Uuid,
 }
 
 impl IntoDelete for ReadEntryDelete {

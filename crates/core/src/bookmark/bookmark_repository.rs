@@ -43,6 +43,7 @@ pub struct BookmarkParams {
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
+    pub with_tags: bool,
 }
 
 pub enum BookmarkUpsertType {

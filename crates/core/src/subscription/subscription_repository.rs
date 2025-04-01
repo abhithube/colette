@@ -32,7 +32,9 @@ pub struct SubscriptionParams {
     pub user_id: Option<String>,
     pub cursor: Option<(String, Uuid)>,
     pub limit: Option<u64>,
-    pub with_feeds: bool,
+    pub with_feed: bool,
+    pub with_unread_count: bool,
+    pub with_tags: bool,
 }
 
 pub struct ImportSubscriptionsData {
