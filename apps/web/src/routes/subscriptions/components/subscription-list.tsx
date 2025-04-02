@@ -7,7 +7,7 @@ import { FC } from 'react'
 export const SubscriptionList: FC = () => {
   const api = useAPI()
 
-  const query = useQuery(listSubscriptionsOptions(api))
+  const query = useQuery(listSubscriptionsOptions(api, { withFeed: true }))
 
   if (query.isLoading || !query.data) return
 

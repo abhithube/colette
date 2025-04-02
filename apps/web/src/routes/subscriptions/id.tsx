@@ -19,7 +19,9 @@ export const SubscriptionPage: FC = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
-  const subscriptionQuery = useQuery(getSubscriptionOptions(api, id))
+  const subscriptionQuery = useQuery(
+    getSubscriptionOptions(api, id, { withFeed: true }),
+  )
   const entriesQuery = useInfiniteQuery(
     listSubscriptionEntriesOptions(api, { subscriptionId: id }),
   )
