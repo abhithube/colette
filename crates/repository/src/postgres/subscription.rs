@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use colette_core::{
     Feed, Subscription, Tag,
     subscription::{Error, ImportSubscriptionsData, SubscriptionParams, SubscriptionRepository},
@@ -9,15 +7,14 @@ use colette_core::{
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect,
     feed::FeedInsert,
-    feed_entry::UnreadCountSelectMany,
     subscription::{SubscriptionDelete, SubscriptionInsert},
-    subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert, SubscriptionTagSelect},
+    subscription_tag::{SubscriptionTagDelete, SubscriptionTagInsert},
     tag::TagInsert,
 };
 use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{Row, error::SqlState};
+use tokio_postgres::{Row, error::SqlState, types::Json};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -36,84 +33,12 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     async fn query(&self, params: SubscriptionParams) -> Result<Vec<Subscription>, Error> {
         let client = self.pool.get().await?;
 
-        let with_tags = params.with_tags;
-        let with_unread_count = params.with_unread_count;
-
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
         let rows = client.query(&stmt, &values.as_params()).await?;
-        if rows.is_empty() {
-            return Ok(Vec::new());
-        }
 
-        let mut subscriptions = rows
-            .iter()
-            .map(|e| Subscription::from(SubscriptionRow(e)))
-            .collect::<Vec<_>>();
-
-        let subscription_ids = subscriptions.iter().map(|e| e.id);
-
-        let mut tag_row_map = HashMap::<Uuid, Vec<SubscriptionTagRow>>::new();
-        if with_tags {
-            let (sql, values) = SubscriptionTagSelect {
-                subscription_ids: subscription_ids.clone(),
-            }
-            .into_select()
-            .build_postgres(PostgresQueryBuilder);
-
-            let stmt = client.prepare_cached(&sql).await?;
-            let rows = client.query(&stmt, &values.as_params()).await?;
-
-            let tag_rows = rows
-                .iter()
-                .map(SubscriptionTagRow::from)
-                .collect::<Vec<_>>();
-            for row in tag_rows {
-                tag_row_map
-                    .entry(row.subscription_id)
-                    .or_default()
-                    .push(row);
-            }
-        }
-
-        let mut unread_count_map = HashMap::<Uuid, i64>::new();
-        if with_unread_count {
-            let (sql, values) = UnreadCountSelectMany { subscription_ids }
-                .into_select()
-                .build_postgres(PostgresQueryBuilder);
-
-            let stmt = client.prepare_cached(&sql).await?;
-            let rows = client.query(&stmt, &values.as_params()).await?;
-
-            for row in rows {
-                unread_count_map
-                    .entry(row.get("id"))
-                    .insert_entry(row.get("unread_count"));
-            }
-        }
-
-        for subscription in subscriptions.iter_mut() {
-            if with_tags {
-                let tags = tag_row_map
-                    .remove(&subscription.id)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(Into::into)
-                    .collect();
-                subscription.tags = Some(tags);
-            }
-
-            if with_unread_count {
-                let unread_count = unread_count_map
-                    .remove(&subscription.id)
-                    .unwrap_or_default();
-
-                subscription.unread_count = Some(unread_count);
-            }
-        }
-
-        Ok(subscriptions)
+        Ok(rows.iter().map(|e| SubscriptionRow(e).into()).collect())
     }
 
     async fn save(&self, data: &Subscription) -> Result<(), Error> {
@@ -293,42 +218,6 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
     }
 }
 
-struct SubscriptionTagRow {
-    subscription_id: Uuid,
-    id: Uuid,
-    title: String,
-    user_id: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-}
-
-impl From<&Row> for SubscriptionTagRow {
-    fn from(value: &Row) -> Self {
-        Self {
-            subscription_id: value.get("subscription_id"),
-            id: value.get("id"),
-            title: value.get("title"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
-        }
-    }
-}
-
-impl From<SubscriptionTagRow> for Tag {
-    fn from(value: SubscriptionTagRow) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            bookmark_count: None,
-            feed_count: None,
-        }
-    }
-}
-
 struct SubscriptionRow<'a>(&'a Row);
 
 impl From<SubscriptionRow<'_>> for Subscription {
@@ -351,8 +240,8 @@ impl From<SubscriptionRow<'_>> for Subscription {
                 refreshed_at: value.get("refreshed_at"),
                 entries: None,
             }),
-            tags: None,
-            unread_count: None,
+            tags: value.try_get::<_, Json<Vec<Tag>>>("tags").map(|e| e.0).ok(),
+            unread_count: value.try_get("unread_count").ok(),
         }
     }
 }

@@ -1,12 +1,9 @@
 use std::fmt::Write;
 
-use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement,
-};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, tag::Tag};
+use crate::{IntoDelete, IntoInsert};
 
 pub enum BookmarkTag {
     Table,
@@ -28,29 +25,6 @@ impl Iden for BookmarkTag {
             }
         )
         .unwrap();
-    }
-}
-
-pub struct BookmarkTagSelect<T> {
-    pub bookmark_ids: T,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for BookmarkTagSelect<I> {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column((BookmarkTag::Table, BookmarkTag::BookmarkId))
-            .column((Tag::Table, Asterisk))
-            .from(BookmarkTag::Table)
-            .inner_join(
-                Tag::Table,
-                Expr::col((Tag::Table, Tag::Id))
-                    .eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId))),
-            )
-            .and_where(
-                Expr::col((BookmarkTag::Table, BookmarkTag::BookmarkId)).is_in(self.bookmark_ids),
-            )
-            .order_by((Tag::Table, Tag::Title), Order::Asc)
-            .to_owned()
     }
 }
 

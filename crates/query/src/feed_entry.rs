@@ -9,7 +9,7 @@ use colette_core::{
     },
 };
 use sea_query::{
-    Alias, Asterisk, Expr, Func, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
+    Alias, Asterisk, Expr, Iden, InsertStatement, OnConflict, Order, Query, SelectStatement,
     SimpleExpr,
 };
 use uuid::Uuid;
@@ -260,49 +260,6 @@ impl IntoSelect for SubscriptionEntryParams {
         }
 
         query
-    }
-}
-
-pub struct UnreadCountSelectMany<T> {
-    pub subscription_ids: T,
-}
-
-impl<V: Into<SimpleExpr>, I: IntoIterator<Item = V>> IntoSelect for UnreadCountSelectMany<I> {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column((Subscription::Table, Subscription::Id))
-            .expr_as(
-                Func::count(Expr::col((FeedEntry::Table, FeedEntry::Id))),
-                Alias::new("unread_count"),
-            )
-            .from(FeedEntry::Table)
-            .inner_join(
-                Subscription::Table,
-                Expr::col((Subscription::Table, Subscription::FeedId))
-                    .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
-            )
-            .and_where(
-                Expr::col((Subscription::Table, Subscription::Id)).is_in(self.subscription_ids),
-            )
-            .and_where(
-                Expr::exists(
-                    Query::select()
-                        .expr(Expr::val("1"))
-                        .from(ReadEntry::Table)
-                        .and_where(
-                            Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
-                                .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
-                        )
-                        .and_where(
-                            Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
-                                .eq(Expr::col((Subscription::Table, Subscription::Id))),
-                        )
-                        .to_owned(),
-                )
-                .not(),
-            )
-            .group_by_col((Subscription::Table, Subscription::Id))
-            .to_owned()
     }
 }
 

@@ -6,7 +6,7 @@ use uuid::Uuid;
 mod tag_repository;
 mod tag_service;
 
-#[derive(Debug, Clone, bon::Builder)]
+#[derive(Debug, Clone, serde::Deserialize, bon::Builder)]
 pub struct Tag {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,

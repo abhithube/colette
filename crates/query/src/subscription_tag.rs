@@ -1,12 +1,9 @@
 use std::fmt::Write;
 
-use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement,
-};
+use sea_query::{DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Query};
 use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, tag::Tag};
+use crate::{IntoDelete, IntoInsert};
 
 pub enum SubscriptionTag {
     Table,
@@ -28,30 +25,6 @@ impl Iden for SubscriptionTag {
             }
         )
         .unwrap();
-    }
-}
-
-pub struct SubscriptionTagSelect<T> {
-    pub subscription_ids: T,
-}
-
-impl<I: IntoIterator<Item = Uuid>> IntoSelect for SubscriptionTagSelect<I> {
-    fn into_select(self) -> SelectStatement {
-        Query::select()
-            .column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
-            .column((Tag::Table, Asterisk))
-            .from(SubscriptionTag::Table)
-            .inner_join(
-                Tag::Table,
-                Expr::col((Tag::Table, Tag::Id))
-                    .eq(Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId))),
-            )
-            .and_where(
-                Expr::col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId))
-                    .is_in(self.subscription_ids),
-            )
-            .order_by((Tag::Table, Tag::Title), Order::Asc)
-            .to_owned()
     }
 }
 

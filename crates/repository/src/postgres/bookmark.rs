@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use colette_core::{
     Bookmark, Tag,
     bookmark::{BookmarkParams, BookmarkRepository, Error, ImportBookmarksData},
@@ -9,13 +7,13 @@ use colette_core::{
 use colette_query::{
     IntoDelete, IntoInsert, IntoSelect, IntoUpdate,
     bookmark::{BookmarkDelete, BookmarkInsert, BookmarkUpdate},
-    bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert, BookmarkTagSelect},
+    bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert},
     tag::TagInsert,
 };
 use deadpool_postgres::{Pool, Transaction};
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
-use tokio_postgres::{Row, error::SqlState};
+use tokio_postgres::{Row, error::SqlState, types::Json};
 use uuid::Uuid;
 
 #[derive(Debug, Clone)]
@@ -34,52 +32,12 @@ impl BookmarkRepository for PostgresBookmarkRepository {
     async fn query(&self, params: BookmarkParams) -> Result<Vec<Bookmark>, Error> {
         let client = self.pool.get().await?;
 
-        let with_tags = params.with_tags;
-
         let (sql, values) = params.into_select().build_postgres(PostgresQueryBuilder);
 
         let stmt = client.prepare_cached(&sql).await?;
         let rows = client.query(&stmt, &values.as_params()).await?;
-        if rows.is_empty() {
-            return Ok(Vec::new());
-        }
 
-        let mut bookmarks = rows
-            .iter()
-            .map(|e| Bookmark::from(BookmarkRow(e)))
-            .collect::<Vec<_>>();
-
-        let mut tag_row_map = HashMap::<Uuid, Vec<BookmarkTagRow>>::new();
-        if with_tags {
-            let (sql, values) = BookmarkTagSelect {
-                bookmark_ids: bookmarks.iter().map(|e| e.id),
-            }
-            .into_select()
-            .build_postgres(PostgresQueryBuilder);
-
-            let stmt = client.prepare_cached(&sql).await?;
-            let rows = client.query(&stmt, &values.as_params()).await?;
-
-            let tag_rows = rows.iter().map(BookmarkTagRow::from).collect::<Vec<_>>();
-            for row in tag_rows {
-                tag_row_map.entry(row.bookmark_id).or_default().push(row);
-            }
-        }
-
-        for bookmark in bookmarks.iter_mut() {
-            if with_tags {
-                let tags = tag_row_map
-                    .remove(&bookmark.id)
-                    .unwrap_or_default()
-                    .into_iter()
-                    .map(Into::into)
-                    .collect();
-
-                bookmark.tags = Some(tags)
-            }
-        }
-
-        Ok(bookmarks)
+        Ok(rows.iter().map(|e| BookmarkRow(e).into()).collect())
     }
 
     async fn save(&self, data: &Bookmark) -> Result<(), Error> {
@@ -325,66 +283,7 @@ impl From<BookmarkRow<'_>> for Bookmark {
             user_id: value.get("user_id"),
             created_at: value.get("created_at"),
             updated_at: value.get("updated_at"),
-            tags: None,
-        }
-    }
-}
-
-struct BookmarkTagRow {
-    bookmark_id: Uuid,
-    id: Uuid,
-    title: String,
-    user_id: String,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
-}
-
-impl From<&Row> for BookmarkTagRow {
-    fn from(value: &Row) -> Self {
-        Self {
-            bookmark_id: value.get("bookmark_id"),
-            id: value.get("id"),
-            title: value.get("title"),
-            user_id: value.get("user_id"),
-            created_at: value.get("created_at"),
-            updated_at: value.get("updated_at"),
-        }
-    }
-}
-
-impl From<BookmarkTagRow> for Tag {
-    fn from(value: BookmarkTagRow) -> Self {
-        Self {
-            id: value.id,
-            title: value.title,
-            user_id: value.user_id,
-            created_at: value.created_at,
-            updated_at: value.updated_at,
-            bookmark_count: None,
-            feed_count: None,
-        }
-    }
-}
-
-struct BookmarkRowWithTagRows {
-    bookmark: Bookmark,
-    tags: Option<Vec<BookmarkTagRow>>,
-}
-
-impl From<BookmarkRowWithTagRows> for Bookmark {
-    fn from(value: BookmarkRowWithTagRows) -> Self {
-        Self {
-            id: value.bookmark.id,
-            link: value.bookmark.link,
-            title: value.bookmark.title,
-            thumbnail_url: value.bookmark.thumbnail_url,
-            published_at: value.bookmark.published_at,
-            author: value.bookmark.author,
-            archived_path: value.bookmark.archived_path,
-            user_id: value.bookmark.user_id,
-            created_at: value.bookmark.created_at,
-            updated_at: value.bookmark.updated_at,
-            tags: value.tags.map(|e| e.into_iter().map(Into::into).collect()),
+            tags: value.try_get::<_, Json<Vec<Tag>>>("tags").map(|e| e.0).ok(),
         }
     }
 }

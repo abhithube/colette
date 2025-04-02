@@ -5,8 +5,8 @@ use colette_core::bookmark::{
     BookmarkDateField, BookmarkFilter, BookmarkParams, BookmarkTextField,
 };
 use sea_query::{
-    Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement, SimpleExpr, UpdateStatement,
+    Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType, OnConflict,
+    Order, Query, SelectStatement, SimpleExpr, UpdateStatement,
 };
 use uuid::Uuid;
 
@@ -57,7 +57,7 @@ impl Iden for Bookmark {
 impl IntoSelect for BookmarkParams {
     fn into_select(self) -> SelectStatement {
         let mut query = Query::select()
-            .column(Asterisk)
+            .column((Bookmark::Table, Asterisk))
             .from(Bookmark::Table)
             .apply_if(self.user_id, |query, user_id| {
                 query.and_where(Expr::col((Bookmark::Table, Bookmark::UserId)).eq(user_id));
@@ -92,6 +92,20 @@ impl IntoSelect for BookmarkParams {
                             .to_owned(),
                     ));
                 });
+        }
+
+        if self.with_tags {
+            let tags_agg = Alias::new("tags_agg");
+            let tags = Alias::new("tags");
+            let t = Alias::new("t");
+
+            query.expr_as(Func::coalesce([Expr::col((tags_agg.clone(), tags.clone())).into(), Expr::cust("'[]'")]), tags.clone()).join_subquery(
+                JoinType::LeftJoin,
+                Query::select().column((BookmarkTag::Table, BookmarkTag::BookmarkId)).expr_as(Expr::cust("jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)"), tags).from(BookmarkTag::Table).join_as(JoinType::InnerJoin, Tag::Table, t.clone(), Expr::col((t, Tag::Id)).eq(Expr::col((BookmarkTag::Table, BookmarkTag::TagId)))).group_by_col((BookmarkTag::Table, BookmarkTag::BookmarkId)).to_owned(),
+                tags_agg.clone(),
+                Expr::col((tags_agg, BookmarkTag::BookmarkId))
+                    .eq(Expr::col((Bookmark::Table, Bookmark::Id))),
+            );
         }
 
         if let Some(limit) = self.limit {

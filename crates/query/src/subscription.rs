@@ -3,12 +3,15 @@ use std::fmt::Write;
 use chrono::{DateTime, Utc};
 use colette_core::subscription::SubscriptionParams;
 use sea_query::{
-    Alias, Asterisk, DeleteStatement, Expr, Iden, InsertStatement, OnConflict, Order, Query,
-    SelectStatement,
+    Alias, Asterisk, DeleteStatement, Expr, Func, Iden, InsertStatement, JoinType, OnConflict,
+    Order, Query, SelectStatement,
 };
 use uuid::Uuid;
 
-use crate::{IntoDelete, IntoInsert, IntoSelect, feed::Feed, subscription_tag::SubscriptionTag};
+use crate::{
+    IntoDelete, IntoInsert, IntoSelect, feed::Feed, feed_entry::FeedEntry, read_entry::ReadEntry,
+    subscription_tag::SubscriptionTag, tag::Tag,
+};
 
 pub enum Subscription {
     Table,
@@ -95,6 +98,71 @@ impl IntoSelect for SubscriptionParams {
                     Expr::col((Feed::Table, Feed::Id))
                         .eq(Expr::col((Subscription::Table, Subscription::FeedId))),
                 );
+        }
+
+        if self.with_unread_count {
+            let uc_agg = Alias::new("uc_agg");
+            let unread_count = Alias::new("unread_count");
+
+            query
+                .expr_as(
+                    Func::coalesce([
+                        Expr::col((uc_agg.clone(), unread_count.clone())).into(),
+                        Expr::cust("0"),
+                    ]),
+                    unread_count.clone(),
+                )
+                .join_subquery(
+                    JoinType::LeftJoin,
+                    Query::select()
+                        .column((Subscription::Table, Subscription::Id))
+                        .expr_as(
+                            Func::count(Expr::col((FeedEntry::Table, FeedEntry::Id))),
+                            unread_count,
+                        )
+                        .from(FeedEntry::Table)
+                        .inner_join(
+                            Subscription::Table,
+                            Expr::col((Subscription::Table, Subscription::FeedId))
+                                .eq(Expr::col((FeedEntry::Table, FeedEntry::FeedId))),
+                        )
+                        .and_where(
+                            Expr::exists(
+                                Query::select()
+                                    .expr(Expr::val("1"))
+                                    .from(ReadEntry::Table)
+                                    .and_where(
+                                        Expr::col((ReadEntry::Table, ReadEntry::FeedEntryId))
+                                            .eq(Expr::col((FeedEntry::Table, FeedEntry::Id))),
+                                    )
+                                    .and_where(
+                                        Expr::col((ReadEntry::Table, ReadEntry::SubscriptionId))
+                                            .eq(Expr::col((Subscription::Table, Subscription::Id))),
+                                    )
+                                    .to_owned(),
+                            )
+                            .not(),
+                        )
+                        .group_by_col((Subscription::Table, Subscription::Id))
+                        .to_owned(),
+                    uc_agg.clone(),
+                    Expr::col((uc_agg, Subscription::Id))
+                        .eq(Expr::col((Subscription::Table, Subscription::Id))),
+                );
+        }
+
+        if self.with_tags {
+            let tags_agg = Alias::new("tags_agg");
+            let tags = Alias::new("tags");
+            let t = Alias::new("t");
+
+            query.expr_as(Func::coalesce([Expr::col((tags_agg.clone(), tags.clone())).into(), Expr::cust("'[]'")]), tags.clone()).join_subquery(
+                JoinType::LeftJoin,
+                Query::select().column((SubscriptionTag::Table, SubscriptionTag::SubscriptionId)).expr_as(Expr::cust("jsonb_agg (jsonb_build_object ('id', t.id, 'title', t.title, 'user_id', t.user_id, 'created_at', t.created_at, 'updated_at', t.updated_at) ORDER BY t.title)"), tags).from(SubscriptionTag::Table).join_as(JoinType::InnerJoin, Tag::Table, t.clone(), Expr::col((t, Tag::Id)).eq(Expr::col((SubscriptionTag::Table, SubscriptionTag::TagId)))).group_by_col((SubscriptionTag::Table, SubscriptionTag::SubscriptionId)).to_owned(),
+                tags_agg.clone(),
+                Expr::col((tags_agg, SubscriptionTag::SubscriptionId))
+                    .eq(Expr::col((Subscription::Table, Subscription::Id))),
+            );
         }
 
         if let Some(limit) = self.limit {

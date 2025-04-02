@@ -582,6 +582,7 @@ dependencies = [
  "futures",
  "sea-query",
  "sea-query-postgres",
+ "serde",
  "serde_json",
  "tokio-postgres",
  "url",
