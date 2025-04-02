@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use colette_core::job::{self, Job, JobService, JobStatus, JobUpdate};
+use colette_core::job::{self, Job, JobCreate, JobService, JobStatus, JobUpdate};
 use colette_job::Error;
 use colette_queue::JobConsumer;
+use cron::Schedule;
+use serde_json::Value;
 use tower::{Service, ServiceExt, util::BoxService};
 
 pub struct JobWorker {
@@ -45,9 +47,7 @@ impl JobWorker {
                 Err(e) => return Err(Error::Job(e)),
             };
 
-            self.handler.ready().await?;
-
-            match self.handler.call(job).await {
+            match self.handler.ready().await?.call(job).await {
                 Ok(_) => {
                     self.service
                         .update_job(
@@ -76,5 +76,88 @@ impl JobWorker {
         }
 
         Ok(())
+    }
+}
+
+pub struct CronWorker {
+    schedule: Schedule,
+    service: Arc<JobService>,
+    handler: BoxService<Job, (), Error>,
+}
+
+impl CronWorker {
+    pub fn new(
+        schedule: Schedule,
+        service: Arc<JobService>,
+        handler: BoxService<Job, (), Error>,
+    ) -> Self {
+        Self {
+            schedule,
+            service,
+            handler,
+        }
+    }
+
+    pub async fn start(&mut self) {
+        loop {
+            let upcoming = self.schedule.upcoming(Utc).take(1).next().unwrap();
+
+            let duration = (upcoming - Utc::now()).to_std().unwrap();
+
+            tokio::time::sleep(duration).await;
+
+            let job = match self
+                .service
+                .create_job(JobCreate {
+                    job_type: "refresh_feeds".into(),
+                    data: Value::Null,
+                    group_identifier: None,
+                })
+                .await
+            {
+                Ok(job) => job,
+                Err(e) => {
+                    tracing::error!("{}", e);
+                    continue;
+                }
+            };
+
+            let job_id = job.id;
+
+            match self.handler.ready().await.unwrap().call(job).await {
+                Ok(_) => {
+                    if let Err(e) = self
+                        .service
+                        .update_job(
+                            job_id,
+                            JobUpdate {
+                                status: Some(JobStatus::Completed),
+                                completed_at: Some(Some(Utc::now())),
+                                ..Default::default()
+                            },
+                        )
+                        .await
+                    {
+                        tracing::error!("{}", e);
+                    };
+                }
+                Err(e) => {
+                    if let Err(e) = self
+                        .service
+                        .update_job(
+                            job_id,
+                            JobUpdate {
+                                status: Some(JobStatus::Failed),
+                                message: Some(Some(e.to_string())),
+                                ..Default::default()
+                            },
+                        )
+                        .await
+                    {
+                        tracing::error!("{}", e);
+                    };
+                }
+            };
+        }
     }
 }

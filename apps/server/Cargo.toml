@@ -17,6 +17,7 @@ colette-plugins.workspace = true
 colette-queue = { workspace = true, features = ["local"] }
 colette-repository.workspace = true
 colette-storage = { workspace = true, features = ["fs", "s3"] }
+cron = { version = "0.15.0", default-features = false }
 deadpool-postgres = { workspace = true, features = ["rt_tokio_1"] }
 dirs = { version = "6.0.0", default-features = false }
 envy = { version = "0.4.2", default-features = false }

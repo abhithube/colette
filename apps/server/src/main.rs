@@ -35,7 +35,7 @@ use torii::Torii;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use worker::JobWorker;
+use worker::{CronWorker, JobWorker};
 
 mod config;
 mod worker;
@@ -214,19 +214,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         import_subscriptions_producer.clone(),
     ));
 
-    if let Some(config) = app_config.cron {
-        // let schedule = config.schedule.parse()?;
-
-        ServiceBuilder::new()
-            .concurrency_limit(5)
-            .service(RefreshFeedsHandler::new(
-                feed_service.clone(),
-                job_service.clone(),
-                Arc::new(Mutex::new(scrape_feed_producer.clone())),
-            ))
-            .boxed();
-    }
-
     let api_state = ApiState {
         auth: Arc::new(
             Torii::new(Arc::new(AuthAdapter::Postgres(
@@ -277,7 +264,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         scrape_feed_consumer,
         ServiceBuilder::new()
             .concurrency_limit(5)
-            .service(ScrapeFeedHandler::new(feed_service))
+            .service(ScrapeFeedHandler::new(feed_service.clone()))
             .boxed(),
     );
     let mut scrape_bookmark_worker = JobWorker::new(
@@ -303,7 +290,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .service(ImportSubscriptionsHandler::new(
                 subscription_service,
                 job_service.clone(),
-                Arc::new(Mutex::new(scrape_feed_producer)),
+                Arc::new(Mutex::new(scrape_feed_producer.clone())),
             ))
             .boxed(),
     );
@@ -313,11 +300,32 @@ async fn main() -> Result<(), Box<dyn Error>> {
         ServiceBuilder::new()
             .service(ImportBookmarksHandler::new(
                 bookmark_service,
-                job_service,
+                job_service.clone(),
                 Arc::new(Mutex::new(scrape_bookmark_producer)),
             ))
             .boxed(),
     );
+
+    let start_refresh_feeds_worker = async {
+        if let Some(config) = app_config.cron {
+            let schedule = config.schedule.parse().unwrap();
+
+            let mut worker = CronWorker::new(
+                schedule,
+                job_service.clone(),
+                ServiceBuilder::new()
+                    .concurrency_limit(5)
+                    .service(RefreshFeedsHandler::new(
+                        feed_service,
+                        job_service,
+                        Arc::new(Mutex::new(scrape_feed_producer)),
+                    ))
+                    .boxed(),
+            );
+
+            worker.start().await;
+        }
+    };
 
     let _ = tokio::join!(
         server,
@@ -325,7 +333,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         scrape_bookmark_worker.start(),
         archive_thumbnail_worker.start(),
         import_subscriptions_worker.start(),
-        import_bookmarks_worker.start()
+        import_bookmarks_worker.start(),
+        start_refresh_feeds_worker
     );
 
     Ok(())
