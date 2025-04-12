@@ -1,23 +1,11 @@
 import { useRegisterUserMutation } from '@colette/query'
+import { Button, Card, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import type { FC } from 'react'
 import { Link } from 'wouter'
 import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
-import { FormMessage } from '~/components/form'
-import { Button } from '~/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const RegisterForm: FC = () => {
+export const RegisterForm = () => {
   const form = useForm({
     defaultValues: {
       email: '',
@@ -47,21 +35,25 @@ export const RegisterForm: FC = () => {
   const register = useRegisterUserMutation()
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
-      }}
-    >
-      <Card>
-        <CardHeader>
-          <CardTitle>Register</CardTitle>
-          <CardDescription>Register a new account</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {register.error && (
-            <FormMessage>{register.error.message}</FormMessage>
-          )}
+    <Card.Root>
+      <Card.Header>
+        <Card.Title>Register</Card.Title>
+        <Card.Description>Register a new account</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        {register.error && (
+          <Field.ErrorText className="mb-2">
+            {register.error.message}
+          </Field.ErrorText>
+        )}
+        <form
+          id="register"
+          className="space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault()
+            form.handleSubmit()
+          }}
+        >
           <form.Field
             name="email"
             validators={{
@@ -69,19 +61,19 @@ export const RegisterForm: FC = () => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input
+              <Field.Root className="space-y-2">
+                <Field.Label>Email</Field.Label>
+                <Field.Input
                   type="email"
                   value={field.state.value}
                   placeholder="user@example.com"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormMessage>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
           <form.Field
@@ -93,19 +85,19 @@ export const RegisterForm: FC = () => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>Password</Label>
-                <Input
+              <Field.Root className="space-y-2">
+                <Field.Label>Password</Field.Label>
+                <Field.Input
                   type="password"
                   value={field.state.value}
                   placeholder="********"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormMessage>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
           <form.Field
@@ -118,32 +110,34 @@ export const RegisterForm: FC = () => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>Confirm Password</Label>
-                <Input
+              <Field.Root className="space-y-2">
+                <Field.Label>Confirm Password</Field.Label>
+                <Field.Input
                   type="password"
                   value={field.state.value}
                   placeholder="********"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormMessage>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
-        </CardContent>
-        <CardFooter className="flex-col items-stretch gap-4">
-          <Button disabled={register.isPending}>Register</Button>
-          <div className="self-center text-sm">
-            Already have an account?{' '}
-            <Link className="underline underline-offset-4" to="/login">
-              Sign in
-            </Link>
-          </div>
-        </CardFooter>
-      </Card>
-    </form>
+        </form>
+      </Card.Content>
+      <Card.Footer className="flex-col items-stretch gap-4">
+        <Button form="register" disabled={register.isPending}>
+          Register
+        </Button>
+        <div className="self-center text-sm">
+          Already have an account?{' '}
+          <Link className="underline underline-offset-4" to="/login">
+            Sign in
+          </Link>
+        </div>
+      </Card.Footer>
+    </Card.Root>
   )
 }

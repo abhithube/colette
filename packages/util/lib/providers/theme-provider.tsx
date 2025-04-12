@@ -1,6 +1,5 @@
 import {
-  type FC,
-  type PropsWithChildren,
+  PropsWithChildren,
   createContext,
   useContext,
   useEffect,
@@ -21,17 +20,15 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
-export const ThemeProvider: FC<
-  PropsWithChildren<{
-    defaultTheme?: Theme
-    storageKey?: string
-  }>
-> = ({
+export const ThemeProvider = ({
   defaultTheme = 'system',
   storageKey = 'vite-ui-theme',
   children,
   ...props
-}) => {
+}: PropsWithChildren<{
+  defaultTheme?: Theme
+  storageKey?: string
+}>) => {
   const [theme, setTheme] = useState<Theme>(
     () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
   )

@@ -1,7 +1,7 @@
 import { SubscriptionList } from './components/subscription-list'
-import { type FC, useEffect } from 'react'
+import { useEffect } from 'react'
 
-export const SubscriptionsPage: FC = () => {
+export const SubscriptionsPage = () => {
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [])

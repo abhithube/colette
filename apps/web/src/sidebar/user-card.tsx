@@ -1,21 +1,10 @@
 import type { User as AppUser } from '@colette/core'
 import { useLogoutUserMutation } from '@colette/query'
+import { Menu, Sidebar } from '@colette/ui'
 import { ChevronsUpDown, User } from 'lucide-react'
-import type { FC } from 'react'
 import { navigate } from 'wouter/use-browser-location'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '~/components/ui/dropdown-menu'
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from '~/components/ui/sidebar'
 
-export const UserCard: FC<{ user: AppUser }> = (props) => {
+export const UserCard = (props: { user: AppUser }) => {
   const logoutUser = useLogoutUserMutation()
 
   function onLogout() {
@@ -28,11 +17,11 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
   }
 
   return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton
+    <Sidebar.Menu>
+      <Sidebar.MenuItem>
+        <Menu.Root positioning={{ sameWidth: true }}>
+          <Menu.Trigger asChild>
+            <Sidebar.MenuButton
               className="data-[expanded]:bg-sidebar-accent"
               size="lg"
             >
@@ -43,13 +32,15 @@ export const UserCard: FC<{ user: AppUser }> = (props) => {
                 {props.user.email.split('@')[0]}
               </span>
               <ChevronsUpDown className="ml-auto" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
-            <DropdownMenuItem onSelect={onLogout}>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </SidebarMenuItem>
-    </SidebarMenu>
+            </Sidebar.MenuButton>
+          </Menu.Trigger>
+          <Menu.Content>
+            <Menu.Item value="logout" onSelect={onLogout}>
+              Logout
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Root>
+      </Sidebar.MenuItem>
+    </Sidebar.Menu>
   )
 }

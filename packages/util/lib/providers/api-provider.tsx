@@ -1,14 +1,9 @@
 import type { API } from '@colette/core'
-import {
-  type FC,
-  type PropsWithChildren,
-  createContext,
-  useContext,
-} from 'react'
+import { PropsWithChildren, createContext, useContext } from 'react'
 
 const APIContext = createContext<API | undefined>(undefined)
 
-export const APIProvider: FC<PropsWithChildren<{ api: API }>> = (props) => {
+export const APIProvider = (props: PropsWithChildren<{ api: API }>) => {
   return (
     <APIContext.Provider value={props.api}>
       {props.children}

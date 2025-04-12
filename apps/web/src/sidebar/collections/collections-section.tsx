@@ -1,23 +1,17 @@
 import { CollectionList } from './collection-list'
+import { Sidebar } from '@colette/ui'
 import { Plus } from 'lucide-react'
-import { FC } from 'react'
-import {
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-} from '~/components/ui/sidebar'
 
-export const CollectionsSection: FC = () => {
+export const CollectionsSection = () => {
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Collections</SidebarGroupLabel>
-      <SidebarGroupAction>
+    <Sidebar.Group>
+      <Sidebar.GroupLabel>Collections</Sidebar.GroupLabel>
+      <Sidebar.GroupAction>
         <Plus />
-      </SidebarGroupAction>
-      <SidebarGroupContent>
+      </Sidebar.GroupAction>
+      <Sidebar.GroupContent>
         <CollectionList />
-      </SidebarGroupContent>
-    </SidebarGroup>
+      </Sidebar.GroupContent>
+    </Sidebar.Group>
   )
 }

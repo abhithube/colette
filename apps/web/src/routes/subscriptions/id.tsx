@@ -5,17 +5,14 @@ import {
   getSubscriptionOptions,
   listSubscriptionEntriesOptions,
 } from '@colette/query'
+import { Button, Dialog } from '@colette/ui'
 import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { ExternalLink, ListChecks, Pencil, Trash2 } from 'lucide-react'
-import { type FC, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'wouter'
-import { AlertDialog, Dialog } from '~/components/dialog'
-import { AlertDialogTrigger } from '~/components/ui/alert-dialog'
-import { Button } from '~/components/ui/button'
-import { DialogTrigger } from '~/components/ui/dialog'
 
-export const SubscriptionPage: FC = () => {
+export const SubscriptionPage = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
@@ -55,42 +52,42 @@ export const SubscriptionPage: FC = () => {
               Open Link
             </a>
           </Button>
-          <Dialog>
-            {(close) => (
-              <>
-                <DialogTrigger asChild>
-                  <Button variant="secondary">
-                    <Pencil />
-                    Edit
-                  </Button>
-                </DialogTrigger>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="secondary">
+                <Pencil />
+                Edit
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Context>
+              {(dialogProps) => (
                 <EditSubscriptionModal
                   details={subscriptionQuery.data}
-                  close={close}
+                  close={() => dialogProps.setOpen(false)}
                 />
-              </>
-            )}
-          </Dialog>
+              )}
+            </Dialog.Context>
+          </Dialog.Root>
           <Button variant="secondary">
             <ListChecks />
             Mark as Read
           </Button>
-          <AlertDialog>
-            {(close) => (
-              <>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 />
-                    Unsubscribe
-                  </Button>
-                </AlertDialogTrigger>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="destructive">
+                <Trash2 />
+                Unsubscribe
+              </Button>
+            </Dialog.Trigger>
+            <Dialog.Context>
+              {(dialogProps) => (
                 <UnsubscribeAlert
                   subscription={subscriptionQuery.data.subscription}
-                  close={close}
+                  close={() => dialogProps.setOpen(false)}
                 />
-              </>
-            )}
-          </AlertDialog>
+              )}
+            </Dialog.Context>
+          </Dialog.Root>
         </div>
       </div>
       <main>

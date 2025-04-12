@@ -1,14 +1,13 @@
 import { BookmarkCard } from './bookmark-card'
 import type { Bookmark, BookmarkDetails } from '@colette/core'
 import { useIntersectionObserver } from '@colette/util'
-import type { FC } from 'react'
 
-export const BookmarkGrid: FC<{
+export const BookmarkGrid = (props: {
   bookmarks: BookmarkDetails[]
   hasMore: boolean
   fetchMore: () => void
   created?: Bookmark
-}> = (props) => {
+}) => {
   const target = useIntersectionObserver({
     options: {
       rootMargin: '200px',

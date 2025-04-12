@@ -7,10 +7,9 @@ import { RegisterPage } from './routes/register'
 import { StreamPage } from './routes/streams/id'
 import { SubscriptionsPage } from './routes/subscriptions'
 import { SubscriptionPage } from './routes/subscriptions/id'
-import type { FC } from 'react'
 import { Route, Switch } from 'wouter'
 
-export const App: FC = () => {
+export const App = () => {
   return (
     <Switch>
       <Route path="/register" component={RegisterPage} />

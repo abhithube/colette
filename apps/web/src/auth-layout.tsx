@@ -1,12 +1,12 @@
 import { AppSidebar } from './sidebar'
 import { getActiveUserOptions } from '@colette/query'
+import { Sidebar } from '@colette/ui'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
-import { type FC, type PropsWithChildren } from 'react'
+import { PropsWithChildren } from 'react'
 import { Redirect, useLocation } from 'wouter'
-import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 
-export const AuthLayout: FC<PropsWithChildren> = (props) => {
+export const AuthLayout = (props: PropsWithChildren) => {
   const api = useAPI()
   const [location] = useLocation()
 
@@ -27,14 +27,14 @@ export const AuthLayout: FC<PropsWithChildren> = (props) => {
   }
 
   return (
-    <SidebarProvider>
+    <Sidebar.Provider>
       <>
         <AppSidebar user={query.data} />
         <div className="w-full">
-          <SidebarTrigger />
+          <Sidebar.Trigger />
           {props.children}
         </div>
       </>
-    </SidebarProvider>
+    </Sidebar.Provider>
   )
 }

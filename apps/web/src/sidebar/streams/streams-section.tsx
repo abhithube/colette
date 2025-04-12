@@ -1,23 +1,17 @@
 import { StreamList } from './stream-list'
+import { Sidebar } from '@colette/ui'
 import { Plus } from 'lucide-react'
-import { FC } from 'react'
-import {
-  SidebarGroup,
-  SidebarGroupAction,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-} from '~/components/ui/sidebar'
 
-export const StreamsSection: FC = () => {
+export const StreamsSection = () => {
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Streams</SidebarGroupLabel>
-      <SidebarGroupAction>
+    <Sidebar.Group>
+      <Sidebar.GroupLabel>Streams</Sidebar.GroupLabel>
+      <Sidebar.GroupAction>
         <Plus />
-      </SidebarGroupAction>
-      <SidebarGroupContent>
+      </Sidebar.GroupAction>
+      <Sidebar.GroupContent>
         <StreamList />
-      </SidebarGroupContent>
-    </SidebarGroup>
+      </Sidebar.GroupContent>
+    </Sidebar.Group>
   )
 }

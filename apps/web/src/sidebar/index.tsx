@@ -2,66 +2,54 @@ import { CollectionsSection } from './collections/collections-section'
 import { StreamsSection } from './streams/streams-section'
 import { UserCard } from './user-card'
 import type { User } from '@colette/core'
+import { Sidebar } from '@colette/ui'
 import { Archive, Home, Rss } from 'lucide-react'
-import type { FC } from 'react'
 import { Link } from 'wouter'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarRail,
-} from '~/components/ui/sidebar'
 
-export const AppSidebar: FC<{ user: User }> = (props) => {
+export const AppSidebar = (props: { user: User }) => {
   return (
-    <Sidebar>
-      <SidebarHeader>
+    <Sidebar.Root>
+      <Sidebar.Header>
         <span>Colette</span>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+      </Sidebar.Header>
+      <Sidebar.Content>
+        <Sidebar.Group>
+          <Sidebar.GroupContent>
+            <Sidebar.Menu>
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton asChild>
                   <Link to="/">
                     <Home />
                     Home
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton asChild>
                   <Link to="/subscriptions">
                     <Rss />
                     Subscriptions
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+              <Sidebar.MenuItem>
+                <Sidebar.MenuButton asChild>
                   <Link to="/stash">
                     <Archive />
                     Stash
                   </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+                </Sidebar.MenuButton>
+              </Sidebar.MenuItem>
+            </Sidebar.Menu>
+          </Sidebar.GroupContent>
+        </Sidebar.Group>
         <StreamsSection />
         <CollectionsSection />
-      </SidebarContent>
-      <SidebarRail />
-      <SidebarFooter>
+      </Sidebar.Content>
+      <Sidebar.Rail />
+      <Sidebar.Footer>
         <UserCard user={props.user} />
-      </SidebarFooter>
-    </Sidebar>
+      </Sidebar.Footer>
+    </Sidebar.Root>
   )
 }

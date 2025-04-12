@@ -1,22 +1,14 @@
 import type { BookmarkDetails } from '@colette/core'
 import { useUpdateBookmarkMutation } from '@colette/query'
+import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { type FC, useEffect } from 'react'
+import { useEffect } from 'react'
 import { TagsInput } from '~/components/tags-input'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Label } from '~/components/ui/label'
 
-export const EditBookmarkModal: FC<{
+export const EditBookmarkModal = (props: {
   details: BookmarkDetails
   close: () => void
-}> = (props) => {
+}) => {
   const form = useForm({
     defaultValues: {
       tags: props.details.tags?.map((tag) => tag.id) ?? [],
@@ -60,37 +52,40 @@ export const EditBookmarkModal: FC<{
   }, [form, props.details.bookmark.id])
 
   return (
-    <DialogContent className="max-w-md p-6">
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title className="line-clamp-1">
+          Edit{' '}
+          <span className="text-primary">{props.details.bookmark.title}</span>
+        </Dialog.Title>
+        <Dialog.Description>{"Edit a bookmark's metadata."}</Dialog.Description>
+      </Dialog.Header>
       <form
+        id="edit-bookmark"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <DialogHeader>
-          <DialogTitle className="line-clamp-1">
-            Edit{' '}
-            <span className="text-primary">{props.details.bookmark.title}</span>
-          </DialogTitle>
-          <DialogDescription>{"Edit a feed's data."}</DialogDescription>
-        </DialogHeader>
-        <div className="mt-4 flex flex-col items-stretch space-y-4">
+        <div className="flex flex-col items-stretch gap-4">
           <form.Field name="tags">
             {(field) => (
-              <div className="space-y-1">
-                <Label>Tags</Label>
+              <Field.Root className="space-y-2">
+                <Field.Label>Tags</Field.Label>
                 <TagsInput
                   state={field.state}
                   handleChange={field.handleChange}
                 />
-              </div>
+              </Field.Root>
             )}
           </form.Field>
-          <DialogFooter>
-            <Button disabled={updateBookmark.isPending}>Submit</Button>
-          </DialogFooter>
         </div>
       </form>
-    </DialogContent>
+      <Dialog.Footer>
+        <Button form="edit-bookmark" disabled={updateBookmark.isPending}>
+          Submit
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

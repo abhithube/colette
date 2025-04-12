@@ -3,17 +3,14 @@ import {
   getStreamOptions,
   listSubscriptionEntriesOptions,
 } from '@colette/query'
+import { Button, Dialog } from '@colette/ui'
 import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
 import { Pencil, Trash2 } from 'lucide-react'
-import { FC, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useParams } from 'wouter'
-import { AlertDialog, Dialog } from '~/components/dialog'
-import { AlertDialogTrigger } from '~/components/ui/alert-dialog'
-import { Button } from '~/components/ui/button'
-import { DialogTrigger } from '~/components/ui/dialog'
 
-export const StreamPage: FC = () => {
+export const StreamPage = () => {
   const api = useAPI()
   const { id } = useParams<{ id: string }>()
 
@@ -43,30 +40,22 @@ export const StreamPage: FC = () => {
           {streamQuery.data.title}
         </h1>
         <div className="flex gap-2">
-          <Dialog>
-            {() => (
-              <>
-                <DialogTrigger asChild>
-                  <Button variant="secondary">
-                    <Pencil />
-                    Edit
-                  </Button>
-                </DialogTrigger>
-              </>
-            )}
-          </Dialog>
-          <AlertDialog>
-            {() => (
-              <>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-              </>
-            )}
-          </AlertDialog>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="secondary">
+                <Pencil />
+                Edit
+              </Button>
+            </Dialog.Trigger>
+          </Dialog.Root>
+          <Dialog.Root>
+            <Dialog.Trigger asChild>
+              <Button variant="destructive">
+                <Trash2 />
+                Delete
+              </Button>
+            </Dialog.Trigger>
+          </Dialog.Root>
         </div>
       </div>
       <main>

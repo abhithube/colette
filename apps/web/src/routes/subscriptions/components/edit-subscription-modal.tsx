@@ -1,25 +1,15 @@
 import type { SubscriptionDetails } from '@colette/core'
 import { useUpdateSubscriptionMutation } from '@colette/query'
+import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { type FC, useEffect } from 'react'
+import { useEffect } from 'react'
 import { z } from 'zod'
-import { FormDescription, FormMessage } from '~/components/form'
 import { TagsInput } from '~/components/tags-input'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const EditSubscriptionModal: FC<{
+export const EditSubscriptionModal = (props: {
   details: SubscriptionDetails
   close: () => void
-}> = (props) => {
+}) => {
   const form = useForm({
     defaultValues: {
       title: props.details.subscription.title,
@@ -70,22 +60,25 @@ export const EditSubscriptionModal: FC<{
   }, [form, props.details.subscription.id])
 
   return (
-    <DialogContent className="max-w-md p-6">
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title className="line-clamp-1">
+          Edit{' '}
+          <span className="text-primary">
+            {props.details.subscription.title}
+          </span>
+        </Dialog.Title>
+        <Dialog.Description>
+          {"Edit a subscription's metadata."}
+        </Dialog.Description>
+      </Dialog.Header>
       <form
+        id="edit-subscription"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <DialogHeader>
-          <DialogTitle className="line-clamp-1">
-            Edit{' '}
-            <span className="text-primary">
-              {props.details.subscription.title}
-            </span>
-          </DialogTitle>
-          <DialogDescription>{"Edit a feed's data."}</DialogDescription>
-        </DialogHeader>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field
             name="title"
@@ -94,36 +87,40 @@ export const EditSubscriptionModal: FC<{
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>Title</Label>
-                <Input
+              <Field.Root className="space-y-2">
+                <Field.Label>Title</Field.Label>
+                <Field.Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormDescription>Title</FormDescription>
-                <FormMessage>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
           <form.Field name="tags">
             {(field) => (
-              <div className="space-y-1">
-                <Label>Tags</Label>
+              <Field.Root className="space-y-2">
+                <Field.Label>Tags</Field.Label>
                 <TagsInput
                   state={field.state}
                   handleChange={field.handleChange}
                 />
-              </div>
+              </Field.Root>
             )}
           </form.Field>
-          <DialogFooter>
-            <Button disabled={updateSubscription.isPending}>Submit</Button>
-          </DialogFooter>
         </div>
       </form>
-    </DialogContent>
+      <Dialog.Footer>
+        <Button
+          form="edit-subscription"
+          disabled={updateSubscription.isPending}
+        >
+          Submit
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

@@ -1,24 +1,13 @@
 import type { Feed, FeedDetected } from '@colette/core'
 import { useDetectFeedsMutation } from '@colette/query'
+import { Button, Dialog, Field, RadioGroup, Favicon } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import type { FC } from 'react'
-import { Favicon } from '~/components/favicon'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Label } from '~/components/ui/label'
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 
-export const SelectStep: FC<{
+export const SelectStep = (props: {
   feeds: FeedDetected[]
   onNext: (feed: Feed) => void
   onBack: () => void
-}> = (props) => {
+}) => {
   const form = useForm({
     defaultValues: {
       url: '',
@@ -38,58 +27,69 @@ export const SelectStep: FC<{
   const detectFeeds = useDetectFeedsMutation()
 
   return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Select Feed</DialogTitle>
-        <DialogDescription>Select a feed</DialogDescription>
-      </DialogHeader>
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Select Feed</Dialog.Title>
+        <Dialog.Description>Select a feed</Dialog.Description>
+      </Dialog.Header>
       <form
+        id="select-step"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field name="url">
-          {(field) => (
-            <RadioGroup
-              value={field.state.value}
-              onValueChange={field.handleChange}
-            >
-              {props.feeds.map((feed) => (
-                <div key={feed.url} className="flex gap-4">
-                  <RadioGroupItem
-                    id={feed.url}
-                    className="peer sr-only"
-                    value={feed.url}
-                  />
-                  <Label
-                    className="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
-                    onClick={() => {
-                      field.setValue(feed.url)
-                    }}
-                  >
-                    <Favicon className="size-6" url={feed.url} />
-                    <div className="flex flex-col gap-1">
-                      <span className="font-semibold">{feed.title}</span>
-                      <span className="text-muted-foreground text-sm">
-                        {feed.url}
-                      </span>
-                    </div>
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          )}
-        </form.Field>
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={props.onBack}>
-            Back
-          </Button>
-          <Button type="submit" disabled={detectFeeds.isPending}>
-            Select
-          </Button>
-        </DialogFooter>
+        <div className="flex flex-col items-stretch gap-4">
+          <form.Field name="url">
+            {(field) => (
+              <RadioGroup.Root
+                value={field.state.value}
+                onValueChange={(details) => {
+                  if (details.value) {
+                    field.handleChange(details.value)
+                  }
+                }}
+              >
+                {props.feeds.map((feed) => (
+                  <Field.Root key={feed.url} className="flex gap-4">
+                    <RadioGroup.Item
+                      id={feed.url}
+                      className="peer sr-only"
+                      value={feed.url}
+                    />
+                    <Field.Label
+                      className="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
+                      onClick={() => {
+                        field.setValue(feed.url)
+                      }}
+                    >
+                      <Favicon className="size-6" src={feed.url} />
+                      <div className="flex flex-col gap-1">
+                        <span className="font-semibold">{feed.title}</span>
+                        <span className="text-muted-foreground text-sm">
+                          {feed.url}
+                        </span>
+                      </div>
+                    </Field.Label>
+                  </Field.Root>
+                ))}
+              </RadioGroup.Root>
+            )}
+          </form.Field>
+        </div>
       </form>
-    </DialogContent>
+      <Dialog.Footer>
+        <Button variant="outline" onClick={props.onBack}>
+          Back
+        </Button>
+        <Button
+          form="select-step"
+          type="submit"
+          disabled={detectFeeds.isPending}
+        >
+          Select
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

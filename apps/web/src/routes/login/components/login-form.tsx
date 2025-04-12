@@ -1,25 +1,12 @@
 import { useLoginUserMutation } from '@colette/query'
+import { Alert, Card, Button, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { UserCheck } from 'lucide-react'
-import type { FC } from 'react'
 import { Link, useSearchParams } from 'wouter'
 import { navigate, useHistoryState } from 'wouter/use-browser-location'
 import { z } from 'zod'
-import { FormMessage } from '~/components/form'
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
-import { Button } from '~/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '~/components/ui/card'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const LoginForm: FC = () => {
+export const LoginForm = () => {
   const [searchParams] = useSearchParams()
   const history = useHistoryState<{ registered?: boolean }>()
 
@@ -46,82 +33,88 @@ export const LoginForm: FC = () => {
   const login = useLoginUserMutation()
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
-      }}
-    >
+    <>
       {history?.registered && (
-        <Alert>
+        <Alert.Root className="mb-4">
           <UserCheck />
-          <AlertTitle>Registered!</AlertTitle>
-          <AlertDescription>Your account has been created.</AlertDescription>
-        </Alert>
+          <Alert.Title>Registered!</Alert.Title>
+          <Alert.Description>Your account has been created.</Alert.Description>
+        </Alert.Root>
       )}
-      <Card className="mt-4">
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>Login to your account</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <form.Field
-            name="email"
-            validators={{
-              onBlur: z.string().email('Please enter a valid email'),
+      <Card.Root>
+        <Card.Header>
+          <Card.Title>Login</Card.Title>
+          <Card.Description>Login to your account</Card.Description>
+        </Card.Header>
+        <Card.Content>
+          <form
+            id="login"
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              form.handleSubmit()
             }}
           >
-            {(field) => (
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={field.state.value}
-                  placeholder="user@example.com"
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FormMessage>
-                  {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
-            )}
-          </form.Field>
-          <form.Field
-            name="password"
-            validators={{
-              onBlur: z
-                .string()
-                .min(8, 'Password must be at least 8 characters'),
-            }}
-          >
-            {(field) => (
-              <div className="space-y-1">
-                <Label>Password</Label>
-                <Input
-                  type="password"
-                  value={field.state.value}
-                  placeholder="********"
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FormMessage>
-                  {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
-            )}
-          </form.Field>
-        </CardContent>
-        <CardFooter className="flex-col items-stretch gap-4">
-          <Button disabled={login.isPending}>Login</Button>
+            <form.Field
+              name="email"
+              validators={{
+                onBlur: z.string().email('Please enter a valid email'),
+              }}
+            >
+              {(field) => (
+                <Field.Root className="space-y-2">
+                  <Field.Label>Email</Field.Label>
+                  <Field.Input
+                    type="email"
+                    value={field.state.value}
+                    placeholder="user@example.com"
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <Field.ErrorText>
+                    {field.state.meta.errors[0]?.toString()}
+                  </Field.ErrorText>
+                </Field.Root>
+              )}
+            </form.Field>
+            <form.Field
+              name="password"
+              validators={{
+                onBlur: z
+                  .string()
+                  .min(8, 'Password must be at least 8 characters'),
+              }}
+            >
+              {(field) => (
+                <Field.Root className="space-y-2">
+                  <Field.Label>Password</Field.Label>
+                  <Field.Input
+                    type="password"
+                    value={field.state.value}
+                    placeholder="********"
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <Field.ErrorText>
+                    {field.state.meta.errors[0]?.toString()}
+                  </Field.ErrorText>
+                </Field.Root>
+              )}
+            </form.Field>
+          </form>
+        </Card.Content>
+        <Card.Footer className="flex-col items-stretch gap-4">
+          <Button form="login" disabled={login.isPending}>
+            Login
+          </Button>
           <div className="self-center text-sm">
             {"Don't have an account? "}
             <Link className="underline underline-offset-4" to="/register">
               Sign up
             </Link>
           </div>
-        </CardFooter>
-      </Card>
-    </form>
+        </Card.Footer>
+      </Card.Root>
+    </>
   )
 }

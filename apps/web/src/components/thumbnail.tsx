@@ -1,10 +1,8 @@
-import { Skeleton } from './ui/skeleton'
-import { FC, useState } from 'react'
-import { cn } from '~/lib/utils'
+import { Skeleton } from '@colette/ui'
+import { cn } from '@colette/ui/utils'
+import { useState } from 'react'
 
-export const Thumbnail: FC<React.ImgHTMLAttributes<HTMLImageElement>> = (
-  props,
-) => {
+export const Thumbnail = (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
   const [isLoading, setLoading] = useState(true)
 
   return (

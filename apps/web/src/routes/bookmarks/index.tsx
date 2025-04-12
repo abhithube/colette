@@ -2,9 +2,9 @@ import { BookmarkGrid } from './components/bookmark-grid'
 import { listBookmarksOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { type FC, useEffect } from 'react'
+import { useEffect } from 'react'
 
-export const StashPage: FC = () => {
+export const StashPage = () => {
   const api = useAPI()
 
   const query = useInfiniteQuery(listBookmarksOptions(api))

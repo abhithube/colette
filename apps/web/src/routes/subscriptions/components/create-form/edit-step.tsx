@@ -1,26 +1,15 @@
-import type { Feed } from '@colette/core'
+import { Feed } from '@colette/core'
 import { useCreateSubscriptionMutation } from '@colette/query'
+import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import type { FC } from 'react'
 import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
-import { FormMessage } from '~/components/form'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const EditStep: FC<{
+export const EditStep = (props: {
   feed: Feed
   onClose: () => void
   onBack: () => void
-}> = (props) => {
+}) => {
   const form = useForm({
     defaultValues: {
       title: props.feed.title,
@@ -46,49 +35,50 @@ export const EditStep: FC<{
   const createdFeed = useCreateSubscriptionMutation()
 
   return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Edit Feed</DialogTitle>
-        <DialogDescription>
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Edit Feed</Dialog.Title>
+        <Dialog.Description>
           {"Modify a feed's metadata before subscribing to it"}
-        </DialogDescription>
-      </DialogHeader>
+        </Dialog.Description>
+      </Dialog.Header>
       <form
+        id="edit-step"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field
-          name="title"
-          validators={{
-            onSubmit: z.string().min(1, 'Title cannot be empty'),
-          }}
-        >
-          {(field) => (
-            <div className="space-y-1">
-              <Label>Title</Label>
-              <div className="flex gap-2">
-                <Input
+        <div className="flex flex-col items-stretch gap-4">
+          <form.Field
+            name="title"
+            validators={{
+              onSubmit: z.string().min(1, 'Title cannot be empty'),
+            }}
+          >
+            {(field) => (
+              <Field.Root className="space-y-2">
+                <Field.Label>Title</Field.Label>
+                <Field.Input
                   value={field.state.value}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-              </div>
-              <FormMessage>
-                {field.state.meta.errors[0]?.toString()}
-              </FormMessage>
-            </div>
-          )}
-        </form.Field>
-        <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={props.onBack}>
-            Back
-          </Button>
-          <Button type="submit" disabled={createdFeed.isPending}>
-            Submit
-          </Button>
-        </DialogFooter>
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.toString()}
+                </Field.ErrorText>
+              </Field.Root>
+            )}
+          </form.Field>
+        </div>
       </form>
-    </DialogContent>
+      <Dialog.Footer>
+        <Button variant="outline" onClick={props.onBack}>
+          Back
+        </Button>
+        <Button form="edit-step" type="submit" disabled={createdFeed.isPending}>
+          Submit
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

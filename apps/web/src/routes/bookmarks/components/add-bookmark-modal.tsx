@@ -2,23 +2,12 @@ import {
   useCreateBookmarkMutation,
   useScrapeBookmarkMutation,
 } from '@colette/query'
+import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import type { FC } from 'react'
 import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
-import { FormDescription, FormMessage } from '~/components/form'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
+export const AddBookmarkModal = (props: { close: () => void }) => {
   const form = useForm({
     defaultValues: {
       url: '',
@@ -59,17 +48,18 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
   const scrapeBookmark = useScrapeBookmarkMutation()
 
   return (
-    <DialogContent className="p-6">
+    <Dialog.Content>
+      <Dialog.Header>
+        <Dialog.Title>Add Bookmark</Dialog.Title>
+        <Dialog.Description>Add a bookmark to the stash.</Dialog.Description>
+      </Dialog.Header>
       <form
+        id="add-bookmark"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <DialogHeader>
-          <DialogTitle>Add Bookmark</DialogTitle>
-          <DialogDescription>Add a bookmark to the stash.</DialogDescription>
-        </DialogHeader>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field
             name="url"
@@ -78,19 +68,19 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>URL</Label>
-                <Input
+              <Field.Root className="space-y-2">
+                <Field.Label>URL</Field.Label>
+                <Field.Input
                   value={field.state.value}
                   placeholder="https://www.website.com"
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <FormDescription>URL of the bookmark</FormDescription>
-                <FormMessage>
+                <Field.HelperText>URL of the bookmark</Field.HelperText>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
           <form.Field
@@ -100,29 +90,29 @@ export const AddBookmarkModal: FC<{ close: () => void }> = (props) => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>Title</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={field.state.value}
-                    onChange={(ev) => field.handleChange(ev.target.value)}
-                  />
-                </div>
-                <FormMessage>
+              <Field.Root className="space-y-2">
+                <Field.Label>Title</Field.Label>
+                <Field.Input
+                  value={field.state.value}
+                  onChange={(ev) => field.handleChange(ev.target.value)}
+                />
+                <Field.HelperText>Title of the bookmark</Field.HelperText>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
-          <DialogFooter>
-            <Button
-              disabled={scrapeBookmark.isPending || createBookmark.isPending}
-            >
-              Submit
-            </Button>
-          </DialogFooter>
         </div>
       </form>
-    </DialogContent>
+      <Dialog.Footer>
+        <Button
+          form="add-bookmark"
+          disabled={scrapeBookmark.isPending || createBookmark.isPending}
+        >
+          Submit
+        </Button>
+      </Dialog.Footer>
+    </Dialog.Content>
   )
 }

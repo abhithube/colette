@@ -2,10 +2,9 @@ import { RegisterForm } from './components/register-form'
 import { getActiveUserOptions } from '@colette/query'
 import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
-import type { FC } from 'react'
 import { Redirect } from 'wouter'
 
-export const RegisterPage: FC = () => {
+export const RegisterPage = () => {
   const api = useAPI()
 
   const query = useQuery({

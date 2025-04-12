@@ -1,17 +1,8 @@
 import { useImportSubscriptionsMutation } from '@colette/query'
+import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import type { FC } from 'react'
-import { FormMessage } from '~/components/form'
-import { Button } from '~/components/ui/button'
-import {
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import { Label } from '~/components/ui/label'
 
-export const SettingsModal: FC<{ close: () => void }> = (props) => {
+export const SettingsModal = (props: { close: () => void }) => {
   const form = useForm({
     defaultValues: {
       file: undefined as unknown as File,
@@ -28,17 +19,17 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
   const importSubscriptions = useImportSubscriptionsMutation()
 
   return (
-    <DialogContent className="p-6">
+    <Dialog.Content className="p-6">
       <form
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <DialogTitle>Import Feeds</DialogTitle>
-        <DialogDescription>
+        <Dialog.Title>Import Feeds</Dialog.Title>
+        <Dialog.Description>
           Upload an OPML file to import feeds.
-        </DialogDescription>
+        </Dialog.Description>
         <div className="mt-4 flex flex-col items-stretch space-y-4">
           <form.Field
             name="file"
@@ -51,18 +42,18 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
             }}
           >
             {(field) => (
-              <div className="space-y-1">
-                <Label>OPML file</Label>
-                <Input
+              <Field.Root className="space-y-1">
+                <Field.Label>OPML file</Field.Label>
+                <Field.Input
                   type="file"
                   value={field.state.value.name}
                   accept=".opml,text/xml,application/xml"
                   onChange={(e) => field.handleChange(e.target.files![0])}
                 />
-                <FormMessage>
+                <Field.ErrorText>
                   {field.state.meta.errors[0]?.toString()}
-                </FormMessage>
-              </div>
+                </Field.ErrorText>
+              </Field.Root>
             )}
           </form.Field>
         </div>
@@ -70,6 +61,6 @@ export const SettingsModal: FC<{ close: () => void }> = (props) => {
           <Button disabled={importSubscriptions.isPending}>Submit</Button>
         </div>
       </form>
-    </DialogContent>
+    </Dialog.Content>
   )
 }

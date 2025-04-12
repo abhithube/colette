@@ -1,25 +1,11 @@
 import { listTagsOptions } from '@colette/query'
+import { Badge, Button, Combobox, Popover } from '@colette/ui'
+import { cn, createListCollection } from '@colette/ui/utils'
 import { useAPI } from '@colette/util'
 import { type FieldState, type Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
-import { type FC, useState } from 'react'
-import { Badge } from '~/components/ui/badge'
-import { Button } from '~/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '~/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-import { cn } from '~/lib/utils'
+import { useMemo, useState } from 'react'
 
 type TagsState = FieldState<
   any,
@@ -41,15 +27,19 @@ type TagsState = FieldState<
   any
 >
 
-export const TagsInput: FC<{
+export const TagsInput = (props: {
   state: TagsState
   handleChange: (updater: Updater<string[]>) => void
-}> = (props) => {
+}) => {
   const [isOpen, setOpen] = useState(false)
 
   return (
-    <Popover open={isOpen} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
+    <Popover.Root
+      open={isOpen}
+      onOpenChange={(details) => setOpen(details.open)}
+      positioning={{ sameWidth: true }}
+    >
+      <Popover.Trigger asChild>
         <Button
           className="flex h-full w-full justify-between"
           variant="outline"
@@ -69,34 +59,43 @@ export const TagsInput: FC<{
           )}
           <ChevronsUpDown className="text-muted-foreground" />
         </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+      </Popover.Trigger>
+      <Popover.Content>
         <TagsInner {...props} />
-      </PopoverContent>
-    </Popover>
+      </Popover.Content>
+    </Popover.Root>
   )
 }
 
-export const TagsInner: FC<{
+export const TagsInner = (props: {
   state: TagsState
   handleChange: (updater: Updater<string[]>) => void
-}> = (props) => {
+}) => {
   const api = useAPI()
 
   const query = useQuery(listTagsOptions(api))
 
+  const collection = useMemo(
+    () => createListCollection({ items: props.state.value }),
+    [props.state.value],
+  )
+
   const [search, setSearch] = useState('')
 
   return (
-    <Command>
-      <CommandInput
-        value={search}
-        placeholder="Search tags..."
-        onValueChange={setSearch}
-      />
-      <CommandList>
-        <CommandEmpty>No tags found.</CommandEmpty>
-        <CommandGroup
+    <Combobox.Root
+      collection={collection}
+      onInputValueChange={(details) => setSearch(details.inputValue)}
+      onValueChange={(details) => {
+        console.log(details)
+
+        props.handleChange(details.value.toSorted())
+      }}
+    >
+      <Combobox.Input value={search} placeholder="Search tags..." />
+      <Combobox.List>
+        {/* <Combobox.Empty>No tags found.</Combobox.Empty> */}
+        <Combobox.ItemGroup
           className={cn(
             'hidden',
             search !== '' &&
@@ -107,36 +106,25 @@ export const TagsInner: FC<{
               'block',
           )}
         >
-          <CommandItem
-            value={search}
-            onSelect={(value) =>
-              props.handleChange((curr) => [...curr, value].sort())
-            }
-          >
+          <Combobox.Item item={search}>
             <Plus />
             {`Create new tag "${search}"`}
-          </CommandItem>
-        </CommandGroup>
-        <CommandGroup heading="Results">
+          </Combobox.Item>
+        </Combobox.ItemGroup>
+        <Combobox.ItemGroup>
+          <Combobox.ItemGroupLabel>Results</Combobox.ItemGroupLabel>
           {query.data?.data.map((details) => (
-            <CommandItem
+            <Combobox.Item
               key={details.tag.id}
               className="justify-between"
-              value={details.tag.id}
-              onSelect={(value) =>
-                props.handleChange((curr) =>
-                  curr.includes(value)
-                    ? curr.filter((tag) => tag !== value)
-                    : [...curr, value].sort(),
-                )
-              }
+              item={details.tag.id}
             >
               {details.tag.title}
               {props.state.value.includes(details.tag.id) && <Check />}
-            </CommandItem>
+            </Combobox.Item>
           ))}
-        </CommandGroup>
-      </CommandList>
-    </Command>
+        </Combobox.ItemGroup>
+      </Combobox.List>
+    </Combobox.Root>
   )
 }

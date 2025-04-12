@@ -1,18 +1,17 @@
 import { Stream } from '@colette/core'
+import { Sidebar } from '@colette/ui'
 import { Podcast } from 'lucide-react'
-import { FC } from 'react'
 import { Link } from 'wouter'
-import { SidebarMenuButton, SidebarMenuItem } from '~/components/ui/sidebar'
 
-export const StreamItem: FC<{ stream: Stream }> = (props) => {
+export const StreamItem = (props: { stream: Stream }) => {
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild>
+    <Sidebar.MenuItem>
+      <Sidebar.MenuButton asChild>
         <Link to={`/streams/${props.stream.id}`}>
           <Podcast />
           {props.stream.title}
         </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+      </Sidebar.MenuButton>
+    </Sidebar.MenuItem>
   )
 }

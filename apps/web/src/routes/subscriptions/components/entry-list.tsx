@@ -1,14 +1,13 @@
 import { EntryCard } from './entry-card'
 import type { SubscriptionEntryDetails } from '@colette/core'
+import { Separator } from '@colette/ui'
 import { useIntersectionObserver } from '@colette/util'
-import { type FC } from 'react'
-import { Separator } from '~/components/ui/separator'
 
-export const EntryList: FC<{
+export const EntryList = (props: {
   entries: SubscriptionEntryDetails[]
   hasMore: boolean
   fetchMore: () => void
-}> = (props) => {
+}) => {
   const target = useIntersectionObserver({
     options: {
       rootMargin: '200px',
@@ -48,7 +47,7 @@ export const EntryList: FC<{
             <span className="text-sm font-medium">{title}</span>
             <Separator className="flex-1" />
           </div>
-          <div className="container space-y-4">
+          <div className="grid grid-cols-3 gap-4">
             {entries.map((details) => (
               <EntryCard
                 key={details.subscriptionEntry.feedEntryId}

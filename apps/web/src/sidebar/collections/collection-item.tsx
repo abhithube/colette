@@ -1,18 +1,17 @@
 import { Collection } from '@colette/core'
+import { Sidebar } from '@colette/ui'
 import { Library } from 'lucide-react'
-import { FC } from 'react'
 import { Link } from 'wouter'
-import { SidebarMenuButton, SidebarMenuItem } from '~/components/ui/sidebar'
 
-export const CollectionItem: FC<{ collection: Collection }> = (props) => {
+export const CollectionItem = (props: { collection: Collection }) => {
   return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild>
+    <Sidebar.MenuItem>
+      <Sidebar.MenuButton asChild>
         <Link to={`/collections/${props.collection.id}`}>
           <Library />
           {props.collection.title}
         </Link>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
+      </Sidebar.MenuButton>
+    </Sidebar.MenuItem>
   )
 }
