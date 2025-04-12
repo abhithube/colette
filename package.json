@@ -5,20 +5,24 @@
     "apps/web",
     "packages/core",
     "packages/query",
-    "packages/util"
+    "packages/util",
+    "packages/ui"
   ],
   "dependencies": {
     "@tanstack/react-query": "^5.66.3",
     "react": "^19.0.0",
+    "react-dom": "^19.1.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@eslint/compat": "^1.2.5",
     "@eslint/js": "^9.18.0",
+    "@tailwindcss/vite": "^4.1.1",
     "@trivago/prettier-plugin-sort-imports": "^5.2.1",
     "@tsconfig/vite-react": "^3.4.0",
     "@types/node": "^22.13.4",
     "@types/react": "^19.0.7",
+    "@types/react-dom": "^19.1.1",
     "@vitejs/plugin-react": "^4.3.4",
     "babel-plugin-react-compiler": "^19.0.0-beta-21e868a-20250216",
     "eslint": "^9.18.0",
