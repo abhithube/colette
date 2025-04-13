@@ -3,7 +3,11 @@ import { Field } from '@ark-ui/react'
 
 export type RootProps = Field.RootProps
 
-export const Root = Field.Root
+export const Root = ({ className, ...props }: RootProps) => {
+  return (
+    <Field.Root className={cn('flex flex-col gap-2', className)} {...props} />
+  )
+}
 
 export type InputProps = Field.InputProps
 
@@ -42,8 +46,6 @@ export const ErrorText = ({
   children,
   ...props
 }: ErrorTextProps) => {
-  if (!children) return null
-
   return (
     <Field.ErrorText
       className={cn('text-destructive text-sm', className)}

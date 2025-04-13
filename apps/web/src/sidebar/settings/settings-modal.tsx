@@ -19,30 +19,32 @@ export const SettingsModal = (props: { close: () => void }) => {
   const importSubscriptions = useImportSubscriptionsMutation()
 
   return (
-    <Dialog.Content className="p-6">
+    <Dialog.Content>
+      <Dialog.Title>Import Feeds</Dialog.Title>
+      <Dialog.Description>
+        Upload an OPML file to import feeds.
+      </Dialog.Description>
       <form
+        id="import-subscriptions"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <Dialog.Title>Import Feeds</Dialog.Title>
-        <Dialog.Description>
-          Upload an OPML file to import feeds.
-        </Dialog.Description>
-        <div className="mt-4 flex flex-col items-stretch space-y-4">
-          <form.Field
-            name="file"
-            validators={{
-              onSubmit: ({ value }) => {
-                if (!value) {
-                  return 'Please select a valid OPML file'
-                }
-              },
-            }}
-          >
-            {(field) => (
-              <Field.Root className="space-y-1">
+        <form.Field
+          name="file"
+          validators={{
+            onSubmit: ({ value }) => {
+              if (!value) {
+                return 'Please select a valid OPML file'
+              }
+            },
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>OPML file</Field.Label>
                 <Field.Input
                   type="file"
@@ -50,17 +52,20 @@ export const SettingsModal = (props: { close: () => void }) => {
                   accept=".opml,text/xml,application/xml"
                   onChange={(e) => field.handleChange(e.target.files![0])}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.toString()}
-                </Field.ErrorText>
+                <Field.ErrorText>{field.state.meta.errors[0]}</Field.ErrorText>
               </Field.Root>
-            )}
-          </form.Field>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <Button disabled={importSubscriptions.isPending}>Submit</Button>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
+      <Dialog.Footer>
+        <Button
+          form="import-subscriptions"
+          disabled={importSubscriptions.isPending}
+        >
+          Submit
+        </Button>
+      </Dialog.Footer>
     </Dialog.Content>
   )
 }

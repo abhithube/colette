@@ -30,20 +30,21 @@ export const SearchStep = (props: {
       </Dialog.Header>
       <form
         id="search-step"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="flex flex-col items-stretch gap-4">
-          <form.Field
-            name="url"
-            validators={{
-              onSubmit: z.string().url('URL is not valid'),
-            }}
-          >
-            {(field) => (
-              <Field.Root className="space-y-2">
+        <form.Field
+          name="url"
+          validators={{
+            onSubmit: z.string().url('URL is not valid'),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>URL</Field.Label>
                 <Field.Input
                   value={field.state.value}
@@ -51,12 +52,12 @@ export const SearchStep = (props: {
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
                 <Field.ErrorText>
-                  {field.state.meta.errors[0]?.toString()}
+                  {field.state.meta.errors[0]?.message}
                 </Field.ErrorText>
               </Field.Root>
-            )}
-          </form.Field>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
       <Dialog.Footer>
         <Button

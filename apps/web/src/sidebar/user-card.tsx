@@ -11,6 +11,9 @@ export const UserCard = (props: { user: AppUser }) => {
     logoutUser.mutate(undefined, {
       onSuccess: () =>
         navigate('/login', {
+          state: {
+            loggedOut: true,
+          },
           replace: true,
         }),
     })

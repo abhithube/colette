@@ -62,24 +62,25 @@ export const EditBookmarkModal = (props: {
       </Dialog.Header>
       <form
         id="edit-bookmark"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="flex flex-col items-stretch gap-4">
-          <form.Field name="tags">
-            {(field) => (
-              <Field.Root className="space-y-2">
+        <form.Field name="tags">
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
                   state={field.state}
                   handleChange={field.handleChange}
                 />
               </Field.Root>
-            )}
-          </form.Field>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
       <Dialog.Footer>
         <Button form="edit-bookmark" disabled={updateBookmark.isPending}>

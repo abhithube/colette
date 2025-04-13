@@ -74,20 +74,21 @@ export const EditSubscriptionModal = (props: {
       </Dialog.Header>
       <form
         id="edit-subscription"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="mt-4 flex flex-col items-stretch space-y-4">
-          <form.Field
-            name="title"
-            validators={{
-              onBlur: z.string().min(1, "Title can't be empty"),
-            }}
-          >
-            {(field) => (
-              <Field.Root className="space-y-2">
+        <form.Field
+          name="title"
+          validators={{
+            onBlur: z.string().min(1, "Title can't be empty"),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>Title</Field.Label>
                 <Field.Input
                   value={field.state.value}
@@ -95,23 +96,25 @@ export const EditSubscriptionModal = (props: {
                   onBlur={field.handleBlur}
                 />
                 <Field.ErrorText>
-                  {field.state.meta.errors[0]?.toString()}
+                  {field.state.meta.errors[0]?.message}
                 </Field.ErrorText>
               </Field.Root>
-            )}
-          </form.Field>
-          <form.Field name="tags">
-            {(field) => (
-              <Field.Root className="space-y-2">
+            )
+          }}
+        </form.Field>
+        <form.Field name="tags">
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
                   state={field.state}
                   handleChange={field.handleChange}
                 />
               </Field.Root>
-            )}
-          </form.Field>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
       <Dialog.Footer>
         <Button

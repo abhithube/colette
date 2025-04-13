@@ -34,14 +34,15 @@ export const SelectStep = (props: {
       </Dialog.Header>
       <form
         id="select-step"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="flex flex-col items-stretch gap-4">
-          <form.Field name="url">
-            {(field) => (
+        <form.Field name="url">
+          {(field) => {
+            return (
               <RadioGroup.Root
                 value={field.state.value}
                 onValueChange={(details) => {
@@ -50,33 +51,35 @@ export const SelectStep = (props: {
                   }
                 }}
               >
-                {props.feeds.map((feed) => (
-                  <Field.Root key={feed.url} className="flex gap-4">
-                    <RadioGroup.Item
-                      id={feed.url}
-                      className="peer sr-only"
-                      value={feed.url}
-                    />
-                    <Field.Label
-                      className="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
-                      onClick={() => {
-                        field.setValue(feed.url)
-                      }}
-                    >
-                      <Favicon className="size-6" src={feed.url} />
-                      <div className="flex flex-col gap-1">
-                        <span className="font-semibold">{feed.title}</span>
-                        <span className="text-muted-foreground text-sm">
-                          {feed.url}
-                        </span>
-                      </div>
-                    </Field.Label>
-                  </Field.Root>
-                ))}
+                {props.feeds.map((feed) => {
+                  return (
+                    <Field.Root key={feed.url} className="flex gap-4">
+                      <RadioGroup.Item
+                        id={feed.url}
+                        className="peer sr-only"
+                        value={feed.url}
+                      />
+                      <Field.Label
+                        className="hover:bg-accent peer-data-[checked]:border-primary flex grow items-center gap-2 rounded-md border-2 p-4"
+                        onClick={() => {
+                          field.setValue(feed.url)
+                        }}
+                      >
+                        <Favicon className="size-6" src={feed.url} />
+                        <div className="flex flex-col gap-1">
+                          <span className="font-semibold">{feed.title}</span>
+                          <span className="text-muted-foreground text-sm">
+                            {feed.url}
+                          </span>
+                        </div>
+                      </Field.Label>
+                    </Field.Root>
+                  )
+                })}
               </RadioGroup.Root>
-            )}
-          </form.Field>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
       <Dialog.Footer>
         <Button variant="outline" onClick={props.onBack}>

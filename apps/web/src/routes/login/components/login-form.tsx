@@ -1,22 +1,30 @@
 import { useLoginUserMutation } from '@colette/query'
 import { Alert, Card, Button, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { UserCheck } from 'lucide-react'
+import { UserCheck, UserX } from 'lucide-react'
 import { Link, useSearchParams } from 'wouter'
 import { navigate, useHistoryState } from 'wouter/use-browser-location'
 import { z } from 'zod'
 
 export const LoginForm = () => {
   const [searchParams] = useSearchParams()
-  const history = useHistoryState<{ registered?: boolean }>()
+  const history = useHistoryState<{
+    registered?: boolean
+    loggedOut?: boolean
+  }>()
 
   const form = useForm({
     defaultValues: {
       email: '',
       password: '',
     },
-    onSubmit: ({ value }) =>
-      login.mutate(value, {
+    onSubmit: ({ value }) => {
+      navigate('', {
+        replace: true,
+        state: {},
+      })
+
+      loginUser.mutate(value, {
         onSuccess: () => {
           form.reset()
 
@@ -27,10 +35,11 @@ export const LoginForm = () => {
             })
           }
         },
-      }),
+      })
+    },
   })
 
-  const login = useLoginUserMutation()
+  const loginUser = useLoginUserMutation()
 
   return (
     <>
@@ -39,6 +48,22 @@ export const LoginForm = () => {
           <UserCheck />
           <Alert.Title>Registered!</Alert.Title>
           <Alert.Description>Your account has been created.</Alert.Description>
+        </Alert.Root>
+      )}
+      {history?.loggedOut && (
+        <Alert.Root className="mb-4">
+          <UserCheck />
+          <Alert.Title>Logged out</Alert.Title>
+          <Alert.Description>
+            You have been logged out of your account.
+          </Alert.Description>
+        </Alert.Root>
+      )}
+      {loginUser.error && (
+        <Alert.Root className="mb-4" variant="destructive">
+          <UserX />
+          <Alert.Title>Failed to log in</Alert.Title>
+          <Alert.Description>{loginUser.error.message}</Alert.Description>
         </Alert.Root>
       )}
       <Card.Root>
@@ -61,21 +86,23 @@ export const LoginForm = () => {
                 onBlur: z.string().email('Please enter a valid email'),
               }}
             >
-              {(field) => (
-                <Field.Root className="space-y-2">
-                  <Field.Label>Email</Field.Label>
-                  <Field.Input
-                    type="email"
-                    value={field.state.value}
-                    placeholder="user@example.com"
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <Field.ErrorText>
-                    {field.state.meta.errors[0]?.toString()}
-                  </Field.ErrorText>
-                </Field.Root>
-              )}
+              {(field) => {
+                return (
+                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                    <Field.Label>Email</Field.Label>
+                    <Field.Input
+                      type="email"
+                      value={field.state.value}
+                      placeholder="user@example.com"
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    <Field.ErrorText>
+                      {field.state.meta.errors[0]?.message}
+                    </Field.ErrorText>
+                  </Field.Root>
+                )
+              }}
             </form.Field>
             <form.Field
               name="password"
@@ -85,26 +112,28 @@ export const LoginForm = () => {
                   .min(8, 'Password must be at least 8 characters'),
               }}
             >
-              {(field) => (
-                <Field.Root className="space-y-2">
-                  <Field.Label>Password</Field.Label>
-                  <Field.Input
-                    type="password"
-                    value={field.state.value}
-                    placeholder="********"
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <Field.ErrorText>
-                    {field.state.meta.errors[0]?.toString()}
-                  </Field.ErrorText>
-                </Field.Root>
-              )}
+              {(field) => {
+                return (
+                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                    <Field.Label>Password</Field.Label>
+                    <Field.Input
+                      type="password"
+                      value={field.state.value}
+                      placeholder="********"
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    <Field.ErrorText>
+                      {field.state.meta.errors[0]?.message}
+                    </Field.ErrorText>
+                  </Field.Root>
+                )
+              }}
             </form.Field>
           </form>
         </Card.Content>
         <Card.Footer className="flex-col items-stretch gap-4">
-          <Button form="login" disabled={login.isPending}>
+          <Button form="login" disabled={loginUser.isPending}>
             Login
           </Button>
           <div className="self-center text-sm">

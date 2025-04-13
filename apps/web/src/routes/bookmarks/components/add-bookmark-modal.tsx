@@ -55,20 +55,21 @@ export const AddBookmarkModal = (props: { close: () => void }) => {
       </Dialog.Header>
       <form
         id="add-bookmark"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <div className="mt-4 flex flex-col items-stretch space-y-4">
-          <form.Field
-            name="url"
-            validators={{
-              onBlur: z.string().url('Please enter a valid URL'),
-            }}
-          >
-            {(field) => (
-              <Field.Root className="space-y-2">
+        <form.Field
+          name="url"
+          validators={{
+            onBlur: z.string().url('Please enter a valid URL'),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>URL</Field.Label>
                 <Field.Input
                   value={field.state.value}
@@ -78,19 +79,21 @@ export const AddBookmarkModal = (props: { close: () => void }) => {
                 />
                 <Field.HelperText>URL of the bookmark</Field.HelperText>
                 <Field.ErrorText>
-                  {field.state.meta.errors[0]?.toString()}
+                  {field.state.meta.errors[0]?.message}
                 </Field.ErrorText>
               </Field.Root>
-            )}
-          </form.Field>
-          <form.Field
-            name="title"
-            validators={{
-              onSubmit: z.string().min(1, 'Title cannot be empty'),
-            }}
-          >
-            {(field) => (
-              <Field.Root className="space-y-2">
+            )
+          }}
+        </form.Field>
+        <form.Field
+          name="title"
+          validators={{
+            onSubmit: z.string().min(1, 'Title cannot be empty'),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>Title</Field.Label>
                 <Field.Input
                   value={field.state.value}
@@ -98,12 +101,12 @@ export const AddBookmarkModal = (props: { close: () => void }) => {
                 />
                 <Field.HelperText>Title of the bookmark</Field.HelperText>
                 <Field.ErrorText>
-                  {field.state.meta.errors[0]?.toString()}
+                  {field.state.meta.errors[0]?.message}
                 </Field.ErrorText>
               </Field.Root>
-            )}
-          </form.Field>
-        </div>
+            )
+          }}
+        </form.Field>
       </form>
       <Dialog.Footer>
         <Button
