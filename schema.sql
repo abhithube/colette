@@ -65,6 +65,7 @@ CREATE TABLE feed_entries (
 CREATE TABLE subscriptions (
   id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
+  description TEXT,
   user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

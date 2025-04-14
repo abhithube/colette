@@ -536,6 +536,7 @@ export const StreamUpdate = z.object({
 export type SubscriptionCreate = z.infer<typeof SubscriptionCreate>;
 export const SubscriptionCreate = z.object({
   title: z.string(),
+  description: z.union([z.string(), z.null(), z.undefined()]).optional(),
   feedId: z.string(),
   tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
@@ -557,6 +558,7 @@ export const SubscriptionEntryDetails = z.object({
 export type SubscriptionUpdate = z.infer<typeof SubscriptionUpdate>;
 export const SubscriptionUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
+  description: z.union([z.string(), z.null()]).optional(),
   tags: z.array(z.string()).optional(),
 });
 

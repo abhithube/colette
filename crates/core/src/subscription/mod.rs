@@ -13,6 +13,7 @@ pub struct Subscription {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
     pub title: String,
+    pub description: Option<String>,
     pub feed_id: Uuid,
     pub user_id: String,
     #[builder(default = Utc::now())]

@@ -48,6 +48,8 @@ pub async fn handler(
 pub struct SubscriptionCreate {
     #[schema(value_type = String, min_length = 1)]
     pub title: NonEmptyString,
+    #[schema(value_type = Option<String>, min_length = 1)]
+    pub description: Option<NonEmptyString>,
     pub feed_id: Uuid,
     #[schema(nullable = false)]
     pub tags: Option<Vec<Uuid>>,
@@ -57,6 +59,7 @@ impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
     fn from(value: SubscriptionCreate) -> Self {
         Self {
             title: value.title.into(),
+            description: value.description.map(Into::into),
             feed_id: value.feed_id,
             tags: value.tags,
         }

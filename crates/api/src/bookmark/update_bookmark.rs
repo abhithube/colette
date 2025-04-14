@@ -57,25 +57,13 @@ pub async fn handler(
 pub struct BookmarkUpdate {
     #[schema(value_type = Option<String>, min_length = 1, nullable = false)]
     pub title: Option<NonEmptyString>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
+    #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Url>)]
     pub thumbnail_url: Option<Option<Url>>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
+    #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<DateTime<Utc>>)]
     pub published_at: Option<Option<DateTime<Utc>>>,
-    #[serde(
-        default,
-        skip_serializing_if = "Option::is_none",
-        with = "serde_with::rust::double_option"
-    )]
+    #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Option<String>>, min_length = 1)]
     pub author: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]

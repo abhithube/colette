@@ -100,6 +100,7 @@ impl SubscriptionService {
     ) -> Result<Subscription, Error> {
         let builder = Subscription::builder()
             .title(data.title)
+            .maybe_description(data.description)
             .feed_id(data.feed_id)
             .user_id(user_id.clone());
 
@@ -137,6 +138,9 @@ impl SubscriptionService {
 
         if let Some(title) = data.title {
             subscription.title = title;
+        }
+        if let Some(description) = data.description {
+            subscription.description = description;
         }
 
         if let Some(ids) = data.tags {
@@ -345,6 +349,7 @@ pub struct SubscriptionGetQuery {
 #[derive(Debug, Clone)]
 pub struct SubscriptionCreate {
     pub title: String,
+    pub description: Option<String>,
     pub feed_id: Uuid,
     pub tags: Option<Vec<Uuid>>,
 }
@@ -352,6 +357,7 @@ pub struct SubscriptionCreate {
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionUpdate {
     pub title: Option<String>,
+    pub description: Option<Option<String>>,
     pub tags: Option<Vec<Uuid>>,
 }
 

@@ -50,6 +50,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             let (sql, values) = SubscriptionInsert {
                 id: data.id,
                 title: &data.title,
+                description: data.description.as_deref(),
                 feed_id: data.feed_id,
                 user_id: &data.user_id,
                 created_at: data.created_at,
@@ -180,6 +181,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                     let (sql, values) = SubscriptionInsert {
                         id: Uuid::new_v4(),
                         title: &title,
+                        description: None,
                         feed_id: row.get("id"),
                         user_id: &data.user_id,
                         created_at: Utc::now(),
@@ -225,6 +227,7 @@ impl From<SubscriptionRow<'_>> for Subscription {
         Self {
             id: value.get("id"),
             title: value.get("title"),
+            description: value.get("description"),
             feed_id: value.get("feed_id"),
             user_id: value.get("user_id"),
             created_at: value.get("created_at"),

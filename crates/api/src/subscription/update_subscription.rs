@@ -53,6 +53,9 @@ pub async fn handler(
 pub struct SubscriptionUpdate {
     #[schema(value_type = Option<String>, min_length = 1)]
     pub title: Option<NonEmptyString>,
+    #[serde(default, with = "serde_with::rust::double_option")]
+    #[schema(value_type = Option<Option<String>>, min_length = 1)]
+    pub description: Option<Option<NonEmptyString>>,
     #[schema(nullable = false)]
     pub tags: Option<Vec<Uuid>>,
 }
@@ -61,6 +64,7 @@ impl From<SubscriptionUpdate> for subscription::SubscriptionUpdate {
     fn from(value: SubscriptionUpdate) -> Self {
         Self {
             title: value.title.map(Into::into),
+            description: value.description.map(|e| e.map(Into::into)),
             tags: value.tags,
         }
     }

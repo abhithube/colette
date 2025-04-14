@@ -17,6 +17,7 @@ pub enum Subscription {
     Table,
     Id,
     Title,
+    Description,
     UserId,
     FeedId,
     CreatedAt,
@@ -32,6 +33,7 @@ impl Iden for Subscription {
                 Self::Table => "subscriptions",
                 Self::Id => "id",
                 Self::Title => "title",
+                Self::Description => "description",
                 Self::FeedId => "feed_id",
                 Self::UserId => "user_id",
                 Self::CreatedAt => "created_at",
@@ -176,6 +178,7 @@ impl IntoSelect for SubscriptionParams {
 pub struct SubscriptionInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
+    pub description: Option<&'a str>,
     pub feed_id: Uuid,
     pub user_id: &'a str,
     pub created_at: DateTime<Utc>,
@@ -190,6 +193,7 @@ impl IntoInsert for SubscriptionInsert<'_> {
             .columns([
                 Subscription::Id,
                 Subscription::Title,
+                Subscription::Description,
                 Subscription::FeedId,
                 Subscription::UserId,
                 Subscription::CreatedAt,
@@ -198,6 +202,7 @@ impl IntoInsert for SubscriptionInsert<'_> {
             .values_panic([
                 self.id.into(),
                 self.title.into(),
+                self.description.into(),
                 self.feed_id.into(),
                 self.user_id.into(),
                 self.created_at.into(),
