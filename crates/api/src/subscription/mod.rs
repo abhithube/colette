@@ -10,6 +10,7 @@ mod delete_subscription;
 mod export_subscriptions;
 mod get_subscription;
 mod import_subscriptions;
+mod link_subscription_tags;
 mod list_subscriptions;
 mod mark_subscription_entry_as_read;
 mod mark_subscription_entry_as_unread;
@@ -24,6 +25,7 @@ pub const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
     Paginated<SubscriptionDetails>,
     create_subscription::SubscriptionCreate,
     update_subscription::SubscriptionUpdate,
+    link_subscription_tags::LinkSubscriptionTags
 )))]
 pub struct SubscriptionApi;
 
@@ -39,6 +41,7 @@ impl SubscriptionApi {
                 update_subscription::handler,
                 delete_subscription::handler
             ))
+            .routes(routes!(link_subscription_tags::handler))
             .routes(routes!(mark_subscription_entry_as_read::handler))
             .routes(routes!(mark_subscription_entry_as_unread::handler))
             .routes(routes!(import_subscriptions::handler))

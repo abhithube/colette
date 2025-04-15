@@ -52,7 +52,6 @@ export const BookmarkCreate = z.object({
   thumbnailUrl: z.union([z.string(), z.null(), z.undefined()]).optional(),
   publishedAt: z.union([z.string(), z.null(), z.undefined()]).optional(),
   author: z.union([z.string(), z.null(), z.undefined()]).optional(),
-  tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
 export type BookmarkDateField = z.infer<typeof BookmarkDateField>;
@@ -209,7 +208,6 @@ export const BookmarkUpdate = z.object({
   thumbnailUrl: z.union([z.string(), z.null()]).optional(),
   publishedAt: z.union([z.string(), z.null()]).optional(),
   author: z.union([z.string(), z.null()]).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 export type BooleanOp = z.infer<typeof BooleanOp>;
@@ -272,6 +270,16 @@ export const FeedEntry = z.object({
   author: z.union([z.string(), z.null()]),
   thumbnailUrl: z.union([z.string(), z.null()]),
   feedId: z.string(),
+});
+
+export type LinkBookmarkTags = z.infer<typeof LinkBookmarkTags>;
+export const LinkBookmarkTags = z.object({
+  tagIds: z.array(z.string()),
+});
+
+export type LinkSubscriptionTags = z.infer<typeof LinkSubscriptionTags>;
+export const LinkSubscriptionTags = z.object({
+  tagIds: z.array(z.string()),
 });
 
 export type Login = z.infer<typeof Login>;
@@ -538,7 +546,6 @@ export const SubscriptionCreate = z.object({
   title: z.string(),
   description: z.union([z.string(), z.null(), z.undefined()]).optional(),
   feedId: z.string(),
-  tags: z.union([z.array(z.string()), z.undefined()]).optional(),
 });
 
 export type SubscriptionDetails = z.infer<typeof SubscriptionDetails>;
@@ -559,7 +566,6 @@ export type SubscriptionUpdate = z.infer<typeof SubscriptionUpdate>;
 export const SubscriptionUpdate = z.object({
   title: z.union([z.string(), z.null()]).optional(),
   description: z.union([z.string(), z.null()]).optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 export type TagCreate = z.infer<typeof TagCreate>;
@@ -758,6 +764,20 @@ export const patch_UpdateBookmark = {
     body: BookmarkUpdate,
   }),
   response: Bookmark,
+};
+
+export type patch_LinkBookmarkTags = typeof patch_LinkBookmarkTags;
+export const patch_LinkBookmarkTags = {
+  method: z.literal("PATCH"),
+  path: z.literal("/bookmarks/{id}/linkTags"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: LinkBookmarkTags,
+  }),
+  response: z.unknown(),
 };
 
 export type post_ScrapeBookmark = typeof post_ScrapeBookmark;
@@ -1042,6 +1062,20 @@ export const patch_UpdateSubscription = {
   response: Subscription,
 };
 
+export type patch_LinkSubscriptionTags = typeof patch_LinkSubscriptionTags;
+export const patch_LinkSubscriptionTags = {
+  method: z.literal("PATCH"),
+  path: z.literal("/subscriptions/{id}/linkTags"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    path: z.object({
+      id: z.string(),
+    }),
+    body: LinkSubscriptionTags,
+  }),
+  response: z.unknown(),
+};
+
 export type post_MarkSubscriptionEntryAsRead = typeof post_MarkSubscriptionEntryAsRead;
 export const post_MarkSubscriptionEntryAsRead = {
   method: z.literal("POST"),
@@ -1210,9 +1244,11 @@ export const EndpointByMethod = {
   patch: {
     "/apiKeys/{id}": patch_UpdateApiKey,
     "/bookmarks/{id}": patch_UpdateBookmark,
+    "/bookmarks/{id}/linkTags": patch_LinkBookmarkTags,
     "/collections/{id}": patch_UpdateCollection,
     "/streams/{id}": patch_UpdateStream,
     "/subscriptions/{id}": patch_UpdateSubscription,
+    "/subscriptions/{id}/linkTags": patch_LinkSubscriptionTags,
     "/tags/{id}": patch_UpdateTag,
   },
 };

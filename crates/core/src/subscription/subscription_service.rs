@@ -98,25 +98,12 @@ impl SubscriptionService {
         data: SubscriptionCreate,
         user_id: String,
     ) -> Result<Subscription, Error> {
-        let builder = Subscription::builder()
+        let subscription = Subscription::builder()
             .title(data.title)
             .maybe_description(data.description)
             .feed_id(data.feed_id)
-            .user_id(user_id.clone());
-
-        let subscription = if let Some(ids) = data.tags {
-            let tags = self
-                .tag_repository
-                .find_by_ids(ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect::<Vec<_>>();
-
-            builder.tags(tags).build()
-        } else {
-            builder.build()
-        };
+            .user_id(user_id.clone())
+            .build();
 
         self.subscription_repository.save(&subscription).await?;
 
@@ -143,18 +130,6 @@ impl SubscriptionService {
             subscription.description = description;
         }
 
-        if let Some(ids) = data.tags {
-            let tags = self
-                .tag_repository
-                .find_by_ids(ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect();
-
-            subscription.tags = Some(tags);
-        }
-
         self.subscription_repository.save(&subscription).await?;
 
         Ok(subscription)
@@ -169,6 +144,37 @@ impl SubscriptionService {
         }
 
         self.subscription_repository.delete_by_id(id).await?;
+
+        Ok(())
+    }
+
+    pub async fn link_subscription_tags(
+        &self,
+        id: Uuid,
+        data: LinkSubscriptionTags,
+        user_id: String,
+    ) -> Result<(), Error> {
+        let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
+        if subscription.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
+        let tags = if data.tag_ids.is_empty() {
+            Vec::new()
+        } else {
+            self.tag_repository
+                .find_by_ids(data.tag_ids)
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect()
+        };
+
+        subscription.tags = Some(tags);
+
+        self.subscription_repository.save(&subscription).await?;
 
         Ok(())
     }
@@ -351,14 +357,17 @@ pub struct SubscriptionCreate {
     pub title: String,
     pub description: Option<String>,
     pub feed_id: Uuid,
-    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct SubscriptionUpdate {
     pub title: Option<String>,
     pub description: Option<Option<String>>,
-    pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LinkSubscriptionTags {
+    pub tag_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]

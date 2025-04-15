@@ -69,10 +69,16 @@ pub struct SubscriptionTagDelete<I> {
 
 impl<I: IntoIterator<Item = Uuid>> IntoDelete for SubscriptionTagDelete<I> {
     fn into_delete(self) -> DeleteStatement {
-        Query::delete()
+        let mut query = Query::delete()
             .from_table(SubscriptionTag::Table)
             .and_where(Expr::col(SubscriptionTag::SubscriptionId).eq(self.subscription_id))
-            .and_where(Expr::col(SubscriptionTag::TagId).is_not_in(self.tag_ids))
-            .to_owned()
+            .to_owned();
+
+        let it = self.tag_ids.into_iter().collect::<Vec<_>>();
+        if !it.is_empty() {
+            query.and_where(Expr::col(SubscriptionTag::TagId).is_not_in(it));
+        }
+
+        query
     }
 }

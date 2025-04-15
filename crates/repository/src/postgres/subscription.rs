@@ -80,16 +80,18 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             let stmt = tx.prepare_cached(&sql).await?;
             tx.execute(&stmt, &values.as_params()).await?;
 
-            let (sql, values) = SubscriptionTagInsert {
-                subscription_id: data.id,
-                user_id: &data.user_id,
-                tag_ids: tags.iter().map(|e| e.id),
-            }
-            .into_insert()
-            .build_postgres(PostgresQueryBuilder);
+            if !tags.is_empty() {
+                let (sql, values) = SubscriptionTagInsert {
+                    subscription_id: data.id,
+                    user_id: &data.user_id,
+                    tag_ids: tags.iter().map(|e| e.id),
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
 
-            let stmt = tx.prepare_cached(&sql).await?;
-            tx.execute(&stmt, &values.as_params()).await?;
+                let stmt = tx.prepare_cached(&sql).await?;
+                tx.execute(&stmt, &values.as_params()).await?;
+            }
         }
 
         tx.commit().await?;

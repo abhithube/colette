@@ -21,6 +21,8 @@ export {
   FeedDetect,
   FeedDetected,
   FeedEntry,
+  LinkBookmarkTags,
+  LinkSubscriptionTags,
   Login,
   Register,
   Stream,

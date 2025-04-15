@@ -1,13 +1,14 @@
 import {
   type ApiClient,
+  get_GetSubscription,
+  get_ListSubscriptions,
+  LinkSubscriptionTags,
+  Paginated_SubscriptionDetails,
   Subscription,
   SubscriptionCreate,
-  SubscriptionUpdate,
-  Paginated_SubscriptionDetails,
-  get_ListSubscriptions,
-  SubscriptionEntry,
   SubscriptionDetails,
-  get_GetSubscription,
+  SubscriptionEntry,
+  SubscriptionUpdate,
 } from './openapi.gen'
 import type { z } from 'zod'
 
@@ -39,6 +40,8 @@ export interface SubscriptionAPI {
   ): Promise<Subscription>
 
   deleteSubscription(id: string): Promise<void>
+
+  linkSubscriptionTags(id: string, data: LinkSubscriptionTags): Promise<void>
 
   markSubscriptionEntryAsRead(
     sid: string,
@@ -108,6 +111,17 @@ export class HTTPSubscriptionAPI implements SubscriptionAPI {
         path: {
           id,
         },
+      })
+      .then()
+  }
+
+  linkSubscriptionTags(id: string, data: LinkSubscriptionTags): Promise<void> {
+    return this.client
+      .patch('/subscriptions/{id}/linkTags', {
+        path: {
+          id,
+        },
+        body: LinkSubscriptionTags.parse(data),
       })
       .then()
   }

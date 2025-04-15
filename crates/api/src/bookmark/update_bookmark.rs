@@ -7,7 +7,6 @@ use axum::{
 use chrono::{DateTime, Utc};
 use colette_core::bookmark;
 use url::Url;
-use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, Bookmark};
 use crate::{
@@ -66,8 +65,6 @@ pub struct BookmarkUpdate {
     #[serde(default, with = "serde_with::rust::double_option")]
     #[schema(value_type = Option<Option<String>>, min_length = 1)]
     pub author: Option<Option<NonEmptyString>>,
-    #[schema(nullable = false)]
-    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
@@ -77,7 +74,6 @@ impl From<BookmarkUpdate> for bookmark::BookmarkUpdate {
             thumbnail_url: value.thumbnail_url,
             published_at: value.published_at,
             author: value.author.map(|e| e.map(Into::into)),
-            tags: value.tags,
         }
     }
 }

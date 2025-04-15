@@ -51,8 +51,6 @@ pub struct SubscriptionCreate {
     #[schema(value_type = Option<String>, min_length = 1)]
     pub description: Option<NonEmptyString>,
     pub feed_id: Uuid,
-    #[schema(nullable = false)]
-    pub tags: Option<Vec<Uuid>>,
 }
 
 impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
@@ -61,7 +59,6 @@ impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
             title: value.title.into(),
             description: value.description.map(Into::into),
             feed_id: value.feed_id,
-            tags: value.tags,
         }
     }
 }

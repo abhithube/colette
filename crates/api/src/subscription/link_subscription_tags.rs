@@ -5,21 +5,22 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use colette_core::subscription;
+use uuid::Uuid;
 
-use super::{SUBSCRIPTIONS_TAG, Subscription};
+use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, Id, NonEmptyString},
+    common::{AuthUser, BaseError, Error, Id},
 };
 
 #[utoipa::path(
     patch,
-    path = "/{id}",
+    path = "/{id}/linkTags",
     params(Id),
-    request_body = SubscriptionUpdate,
-    responses(UpdateResponse),
-    operation_id = "updateSubscription",
-    description = "Update a subscription by ID",
+    request_body = LinkSubscriptionTags,
+    responses(LinkTagsResponse),
+    operation_id = "linkSubscriptionTags",
+    description = "Link a list of tags to a subscription",
     tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
@@ -27,19 +28,19 @@ pub async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
-    Json(body): Json<SubscriptionUpdate>,
-) -> Result<UpdateResponse, Error> {
+    Json(body): Json<LinkSubscriptionTags>,
+) -> Result<LinkTagsResponse, Error> {
     match state
         .subscription_service
-        .update_subscription(id, body.into(), user_id)
+        .link_subscription_tags(id, body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(UpdateResponse::Ok(data.into())),
+        Ok(_) => Ok(LinkTagsResponse::NoContent),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Ok(UpdateResponse::Forbidden(BaseError {
+            subscription::Error::Forbidden(_) => Ok(LinkTagsResponse::Forbidden(BaseError {
                 message: e.to_string(),
             })),
-            subscription::Error::NotFound(_) => Ok(UpdateResponse::NotFound(BaseError {
+            subscription::Error::NotFound(_) => Ok(LinkTagsResponse::NotFound(BaseError {
                 message: e.to_string(),
             })),
             e => Err(Error::Unknown(e.into())),
@@ -49,28 +50,23 @@ pub async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionUpdate {
-    #[schema(value_type = Option<String>, min_length = 1)]
-    pub title: Option<NonEmptyString>,
-    #[serde(default, with = "serde_with::rust::double_option")]
-    #[schema(value_type = Option<Option<String>>, min_length = 1)]
-    pub description: Option<Option<NonEmptyString>>,
+pub struct LinkSubscriptionTags {
+    pub tag_ids: Vec<Uuid>,
 }
 
-impl From<SubscriptionUpdate> for subscription::SubscriptionUpdate {
-    fn from(value: SubscriptionUpdate) -> Self {
+impl From<LinkSubscriptionTags> for subscription::LinkSubscriptionTags {
+    fn from(value: LinkSubscriptionTags) -> Self {
         Self {
-            title: value.title.map(Into::into),
-            description: value.description.map(|e| e.map(Into::into)),
+            tag_ids: value.tag_ids,
         }
     }
 }
 
 #[allow(dead_code, clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
-pub enum UpdateResponse {
-    #[response(status = 200, description = "Updated subscription")]
-    Ok(Subscription),
+pub enum LinkTagsResponse {
+    #[response(status = 200, description = "Successfully linked tags")]
+    NoContent,
 
     #[response(status = 403, description = "User not authorized")]
     Forbidden(BaseError),
@@ -82,10 +78,10 @@ pub enum UpdateResponse {
     UnprocessableEntity(BaseError),
 }
 
-impl IntoResponse for UpdateResponse {
+impl IntoResponse for LinkTagsResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
             Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),

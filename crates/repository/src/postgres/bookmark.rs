@@ -10,7 +10,7 @@ use colette_query::{
     bookmark_tag::{BookmarkTagDelete, BookmarkTagInsert},
     tag::TagInsert,
 };
-use deadpool_postgres::{Pool, Transaction};
+use deadpool_postgres::Pool;
 use sea_query::PostgresQueryBuilder;
 use sea_query_postgres::PostgresBinder;
 use tokio_postgres::{Row, error::SqlState, types::Json};
@@ -71,8 +71,28 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         }
 
         if let Some(ref tags) = data.tags {
-            self.link_tags(&tx, data.id, &data.user_id, tags.iter().map(|e| e.id))
-                .await?;
+            let (sql, values) = BookmarkTagDelete {
+                bookmark_id: data.id,
+                tag_ids: tags.iter().map(|e| e.id),
+            }
+            .into_delete()
+            .build_postgres(PostgresQueryBuilder);
+
+            let stmt = tx.prepare_cached(&sql).await?;
+            tx.execute(&stmt, &values.as_params()).await?;
+
+            if !tags.is_empty() {
+                let (sql, values) = BookmarkTagInsert {
+                    bookmark_id: data.id,
+                    user_id: &data.user_id,
+                    tag_ids: tags.iter().map(|e| e.id),
+                }
+                .into_insert()
+                .build_postgres(PostgresQueryBuilder);
+
+                let stmt = tx.prepare_cached(&sql).await?;
+                tx.execute(&stmt, &values.as_params()).await?;
+            }
         }
 
         tx.commit().await?;
@@ -228,39 +248,6 @@ impl BookmarkRepository for PostgresBookmarkRepository {
         }
 
         tx.commit().await?;
-
-        Ok(())
-    }
-}
-
-impl PostgresBookmarkRepository {
-    async fn link_tags(
-        &self,
-        tx: &Transaction<'_>,
-        bookmark_id: Uuid,
-        user_id: &str,
-        tag_ids: impl IntoIterator<Item = Uuid> + Clone,
-    ) -> Result<(), Error> {
-        let (sql, values) = BookmarkTagDelete {
-            bookmark_id,
-            tag_ids: tag_ids.clone(),
-        }
-        .into_delete()
-        .build_postgres(PostgresQueryBuilder);
-
-        let stmt = tx.prepare_cached(&sql).await?;
-        tx.execute(&stmt, &values.as_params()).await?;
-
-        let (sql, values) = BookmarkTagInsert {
-            bookmark_id,
-            user_id,
-            tag_ids,
-        }
-        .into_insert()
-        .build_postgres(PostgresQueryBuilder);
-
-        let stmt = tx.prepare_cached(&sql).await?;
-        tx.execute(&stmt, &values.as_params()).await?;
 
         Ok(())
     }

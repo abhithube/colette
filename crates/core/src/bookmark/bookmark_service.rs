@@ -154,27 +154,14 @@ impl BookmarkService {
         data: BookmarkCreate,
         user_id: String,
     ) -> Result<Bookmark, Error> {
-        let builder = Bookmark::builder()
+        let bookmark = Bookmark::builder()
             .link(data.url)
             .title(data.title)
             .maybe_thumbnail_url(data.thumbnail_url)
             .maybe_published_at(data.published_at)
             .maybe_author(data.author)
-            .user_id(user_id.clone());
-
-        let bookmark = if let Some(ids) = data.tags {
-            let tags = self
-                .tag_repository
-                .find_by_ids(ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect::<Vec<_>>();
-
-            builder.tags(tags).build()
-        } else {
-            builder.build()
-        };
+            .user_id(user_id.clone())
+            .build();
 
         self.bookmark_repository.save(&bookmark).await?;
 
@@ -226,18 +213,6 @@ impl BookmarkService {
         }
         if let Some(author) = data.author {
             bookmark.author = author;
-        }
-
-        if let Some(ids) = data.tags {
-            let tags = self
-                .tag_repository
-                .find_by_ids(ids)
-                .await?
-                .into_iter()
-                .filter(|e| e.user_id == user_id)
-                .collect();
-
-            bookmark.tags = Some(tags);
         }
 
         bookmark.updated_at = Utc::now();
@@ -297,6 +272,37 @@ impl BookmarkService {
         let mut producer = self.archive_thumbnail_producer.lock().await;
 
         producer.push(job.id).await?;
+
+        Ok(())
+    }
+
+    pub async fn link_bookmark_tags(
+        &self,
+        id: Uuid,
+        data: LinkSubscriptionTags,
+        user_id: String,
+    ) -> Result<(), Error> {
+        let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
+            return Err(Error::NotFound(id));
+        };
+        if bookmark.user_id != user_id {
+            return Err(Error::Forbidden(id));
+        }
+
+        let tags = if data.tag_ids.is_empty() {
+            Vec::new()
+        } else {
+            self.tag_repository
+                .find_by_ids(data.tag_ids)
+                .await?
+                .into_iter()
+                .filter(|e| e.user_id == user_id)
+                .collect()
+        };
+
+        bookmark.tags = Some(tags);
+
+        self.bookmark_repository.save(&bookmark).await?;
 
         Ok(())
     }
@@ -494,7 +500,6 @@ pub struct BookmarkCreate {
     pub thumbnail_url: Option<Url>,
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<String>,
-    pub tags: Option<Vec<Uuid>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -503,7 +508,11 @@ pub struct BookmarkUpdate {
     pub thumbnail_url: Option<Option<Url>>,
     pub published_at: Option<Option<DateTime<Utc>>>,
     pub author: Option<Option<String>>,
-    pub tags: Option<Vec<Uuid>>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct LinkSubscriptionTags {
+    pub tag_ids: Vec<Uuid>,
 }
 
 #[derive(Debug, Clone)]

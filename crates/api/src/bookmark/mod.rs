@@ -17,6 +17,7 @@ mod delete_bookmark;
 mod export_bookmarks;
 mod get_bookmark;
 mod import_bookmarks;
+mod link_bookmark_tags;
 mod list_bookmarks;
 mod scrape_bookmark;
 mod update_bookmark;
@@ -24,7 +25,7 @@ mod update_bookmark;
 pub const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
+#[openapi(components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
 pub struct BookmarkApi;
 
 impl BookmarkApi {
@@ -36,6 +37,7 @@ impl BookmarkApi {
                 update_bookmark::handler,
                 delete_bookmark::handler
             ))
+            .routes(routes!(link_bookmark_tags::handler))
             .routes(routes!(scrape_bookmark::handler))
             .routes(routes!(import_bookmarks::handler))
             .routes(routes!(export_bookmarks::handler))

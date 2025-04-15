@@ -1,14 +1,15 @@
 import {
   type ApiClient,
   Bookmark,
-  BookmarkDetails,
   BookmarkCreate,
+  BookmarkDetails,
   BookmarkScrape,
   BookmarkScraped,
   BookmarkUpdate,
-  Paginated_BookmarkDetails,
-  get_ListBookmarks,
   get_GetBookmark,
+  get_ListBookmarks,
+  LinkBookmarkTags,
+  Paginated_BookmarkDetails,
 } from './openapi.gen'
 import type { z } from 'zod'
 
@@ -31,6 +32,8 @@ export interface BookmarkAPI {
   updateBookmark(id: string, data: BookmarkUpdate): Promise<Bookmark>
 
   deleteBookmark(id: string): Promise<void>
+
+  linkBookmarkTags(id: string, data: LinkBookmarkTags): Promise<void>
 
   scrapeBookmark(data: BookmarkScrape): Promise<BookmarkScraped>
 }
@@ -82,6 +85,17 @@ export class HTTPBookmarkAPI implements BookmarkAPI {
         path: {
           id,
         },
+      })
+      .then()
+  }
+
+  linkBookmarkTags(id: string, data: LinkBookmarkTags): Promise<void> {
+    return this.client
+      .patch('/bookmarks/{id}/linkTags', {
+        path: {
+          id,
+        },
+        body: LinkBookmarkTags.parse(data),
       })
       .then()
   }
