@@ -54,6 +54,8 @@ impl SubscriptionApi {
 pub struct Subscription {
     pub id: Uuid,
     pub title: String,
+    #[schema(required)]
+    pub description: Option<String>,
     pub feed_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -79,6 +81,7 @@ impl From<colette_core::Subscription> for Subscription {
         Self {
             id: value.id,
             title: value.title,
+            description: value.description,
             feed_id: value.feed_id,
             created_at: value.created_at,
             updated_at: value.updated_at,

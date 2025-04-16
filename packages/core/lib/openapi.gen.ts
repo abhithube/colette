@@ -466,6 +466,7 @@ export type Subscription = z.infer<typeof Subscription>;
 export const Subscription = z.object({
   id: z.string(),
   title: z.string(),
+  description: z.union([z.string(), z.null()]),
   feedId: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
