@@ -48,11 +48,12 @@ impl FeedRepository for PostgresFeedRepository {
         let feed_id = {
             let feed = FeedInsert {
                 id: data.id,
+                source_url: data.source_url.as_str(),
                 link: data.link.as_str(),
-                xml_url: data.xml_url.as_ref().map(|e| e.as_str()),
                 title: &data.title,
                 description: data.description.as_deref(),
                 refreshed_at: data.refreshed_at,
+                is_custom: data.is_custom,
             };
 
             let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
@@ -100,12 +101,7 @@ impl FeedRepository for PostgresFeedRepository {
 
         let urls = rows
             .iter()
-            .map(|e| {
-                Ok(e.try_get::<_, String>("xml_url")
-                    .unwrap_or(e.get::<_, String>("link"))
-                    .parse()
-                    .unwrap())
-            })
+            .map(|e| Ok(e.get::<_, String>("source_url").parse().unwrap()))
             .collect::<Vec<_>>();
 
         Ok(stream::iter(urls).boxed())
@@ -118,13 +114,12 @@ impl From<FeedRow<'_>> for Feed {
     fn from(FeedRow(value): FeedRow<'_>) -> Self {
         Self {
             id: value.get("id"),
+            source_url: value.get::<_, String>("source_url").parse().unwrap(),
             link: value.get::<_, String>("link").parse().unwrap(),
-            xml_url: value
-                .get::<_, Option<String>>("xml_url")
-                .and_then(|e| e.parse().ok()),
             title: value.get("title"),
             description: value.get("description"),
             refreshed_at: value.get("refreshed_at"),
+            is_custom: value.get("is_custom"),
             entries: None,
         }
     }

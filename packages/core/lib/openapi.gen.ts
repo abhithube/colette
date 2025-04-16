@@ -245,11 +245,12 @@ export const FeedDetected = z.object({
 export type Feed = z.infer<typeof Feed>;
 export const Feed = z.object({
   id: z.string(),
+  sourceUrl: z.string(),
   link: z.string(),
-  xmlUrl: z.union([z.string(), z.null()]),
   title: z.string(),
   description: z.union([z.string(), z.null()]),
   refreshedAt: z.union([z.string(), z.null()]),
+  isCustom: z.boolean(),
 });
 
 export type DetectedResponse = z.infer<typeof DetectedResponse>;

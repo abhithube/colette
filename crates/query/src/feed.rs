@@ -10,11 +10,12 @@ use crate::{IntoInsert, IntoSelect};
 pub enum Feed {
     Table,
     Id,
+    SourceUrl,
     Link,
-    XmlUrl,
     Title,
     Description,
     RefreshedAt,
+    IsCustom,
 }
 
 impl Iden for Feed {
@@ -25,11 +26,12 @@ impl Iden for Feed {
             match self {
                 Self::Table => "feeds",
                 Self::Id => "id",
+                Self::SourceUrl => "source_url",
                 Self::Link => "link",
-                Self::XmlUrl => "xml_url",
                 Self::Title => "title",
                 Self::Description => "description",
                 Self::RefreshedAt => "refreshed_at",
+                Self::IsCustom => "is_custom",
             }
         )
         .unwrap();
@@ -43,6 +45,9 @@ impl IntoSelect for FeedParams {
             .from(Feed::Table)
             .apply_if(self.id, |query, id| {
                 query.and_where(Expr::col((Feed::Table, Feed::Id)).eq(id));
+            })
+            .apply_if(self.source_url, |query, source_url| {
+                query.and_where(Expr::col((Feed::Table, Feed::SourceUrl)).eq(source_url.as_str()));
             })
             .apply_if(self.cursor, |query, link| {
                 query.and_where(Expr::col((Feed::Table, Feed::Link)).gt(Expr::val(link)));
@@ -60,11 +65,12 @@ impl IntoSelect for FeedParams {
 
 pub struct FeedInsert<'a> {
     pub id: Uuid,
+    pub source_url: &'a str,
     pub link: &'a str,
-    pub xml_url: Option<&'a str>,
     pub title: &'a str,
     pub description: Option<&'a str>,
     pub refreshed_at: Option<DateTime<Utc>>,
+    pub is_custom: bool,
 }
 
 impl IntoInsert for FeedInsert<'_> {
@@ -73,27 +79,30 @@ impl IntoInsert for FeedInsert<'_> {
             .into_table(Feed::Table)
             .columns([
                 Feed::Id,
+                Feed::SourceUrl,
                 Feed::Link,
-                Feed::XmlUrl,
                 Feed::Title,
                 Feed::Description,
                 Feed::RefreshedAt,
+                Feed::IsCustom,
             ])
             .values_panic([
                 self.id.into(),
+                self.source_url.into(),
                 self.link.into(),
-                self.xml_url.into(),
                 self.title.into(),
                 self.description.into(),
                 self.refreshed_at.into(),
+                self.is_custom.into(),
             ])
             .on_conflict(
-                OnConflict::column(Feed::Link)
+                OnConflict::column(Feed::SourceUrl)
                     .update_columns([
-                        Feed::XmlUrl,
+                        Feed::Link,
                         Feed::Title,
                         Feed::Description,
                         Feed::RefreshedAt,
+                        Feed::IsCustom,
                     ])
                     .to_owned(),
             )

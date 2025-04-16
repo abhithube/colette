@@ -162,16 +162,17 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 for child in outline.outline {
                     stack.push((Some(tag_id), child));
                 }
-            } else if let Some(link) = outline.html_url {
+            } else if let (Some(link), Some(xml_url)) = (outline.html_url, outline.xml_url) {
                 let title = outline.title.unwrap_or(outline.text);
 
                 let feed = FeedInsert {
                     id: Uuid::new_v4(),
+                    source_url: &xml_url,
                     link: &link,
-                    xml_url: outline.xml_url.as_deref(),
                     title: &title,
                     description: None,
                     refreshed_at: None,
+                    is_custom: false,
                 };
 
                 let (sql, values) = feed.into_insert().build_postgres(PostgresQueryBuilder);
@@ -236,13 +237,12 @@ impl From<SubscriptionRow<'_>> for Subscription {
             updated_at: value.get("updated_at"),
             feed: value.try_get::<_, String>("link").ok().map(|link| Feed {
                 id: value.get("feed_id"),
+                source_url: value.get::<_, String>("source_url").parse().unwrap(),
                 link: link.parse().unwrap(),
-                xml_url: value
-                    .get::<_, Option<String>>("xml_url")
-                    .and_then(|e| e.parse().ok()),
                 title: value.get("feed_title"),
                 description: value.get("description"),
                 refreshed_at: value.get("refreshed_at"),
+                is_custom: value.get("is_custom"),
                 entries: None,
             }),
             tags: value.try_get::<_, Json<Vec<Tag>>>("tags").map(|e| e.0).ok(),

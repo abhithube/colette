@@ -86,10 +86,11 @@ impl IntoSelect for SubscriptionParams {
         if self.with_feed {
             query
                 .columns([
+                    (Feed::Table, Feed::SourceUrl),
                     (Feed::Table, Feed::Link),
-                    (Feed::Table, Feed::XmlUrl),
                     (Feed::Table, Feed::Description),
                     (Feed::Table, Feed::RefreshedAt),
+                    (Feed::Table, Feed::IsCustom),
                 ])
                 .expr_as(
                     Expr::col((Feed::Table, Feed::Title)),

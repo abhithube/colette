@@ -17,16 +17,18 @@ mod feed_service;
 pub struct Feed {
     #[builder(default = Uuid::new_v4())]
     pub id: Uuid,
+    pub source_url: Url,
     pub link: Url,
-    pub xml_url: Option<Url>,
     pub title: String,
     pub description: Option<String>,
     pub refreshed_at: Option<DateTime<Utc>>,
+    #[builder(default = false)]
+    pub is_custom: bool,
     pub entries: Option<Vec<FeedEntry>>,
 }
 
-impl From<ProcessedFeed> for Feed {
-    fn from(value: ProcessedFeed) -> Self {
+impl From<(Url, ProcessedFeed)> for Feed {
+    fn from((source_url, value): (Url, ProcessedFeed)) -> Self {
         let feed_id = Uuid::new_v4();
 
         let entries = value
@@ -47,6 +49,7 @@ impl From<ProcessedFeed> for Feed {
 
         Feed::builder()
             .id(feed_id)
+            .source_url(source_url)
             .link(value.link)
             .title(value.title)
             .maybe_description(value.description)

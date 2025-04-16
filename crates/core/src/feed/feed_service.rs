@@ -28,14 +28,18 @@ impl FeedService {
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<DetectedResponse, Error> {
+        if let Some(feed) = self.repository.find_by_source_url(data.url.clone()).await? {
+            return Ok(DetectedResponse::Processed(feed));
+        }
+
         let host = data.url.host_str().unwrap();
 
         match self.plugins.get(host) {
             Some(plugin) => {
                 let processed = plugin.scrape(&mut data.url).await?;
 
-                let mut feed: Feed = processed.into();
-                feed.xml_url = Some(data.url);
+                let mut feed: Feed = (data.url, processed).into();
+                feed.is_custom = true;
 
                 self.repository.save(&feed).await?;
 
@@ -68,8 +72,7 @@ impl FeedService {
                         let processed =
                             ProcessedFeed::try_from(feed).map_err(|e| Error::Scraper(e.into()))?;
 
-                        let mut feed: Feed = processed.into();
-                        feed.xml_url = Some(data.url);
+                        let feed: Feed = (data.url, processed).into();
 
                         self.repository.save(&feed).await?;
 
@@ -84,20 +87,26 @@ impl FeedService {
     pub async fn scrape_feed(&self, mut data: FeedScrape) -> Result<(), Error> {
         let host = data.url.host_str().unwrap();
 
-        let processed = match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(&mut data.url).await,
+        let feed = match self.plugins.get(host) {
+            Some(plugin) => {
+                let processed = plugin.scrape(&mut data.url).await?;
+
+                let mut feed: Feed = (data.url, processed).into();
+                feed.is_custom = true;
+
+                feed
+            }
             None => {
                 let body = self.client.get(&data.url).await?;
-                let feed = colette_feed::from_reader(BufReader::new(body.reader()))
+                let extracted = colette_feed::from_reader(BufReader::new(body.reader()))
                     .map(ExtractedFeed::from)
                     .map_err(|e| ScraperError::Parse(e.into()))?;
 
-                Ok(feed.try_into().map_err(ScraperError::Postprocess)?)
-            }
-        }?;
+                let processed = extracted.try_into().map_err(ScraperError::Postprocess)?;
 
-        let mut feed: Feed = processed.into();
-        feed.xml_url = Some(data.url);
+                (data.url, processed).into()
+            }
+        };
 
         self.repository.save(&feed).await?;
 

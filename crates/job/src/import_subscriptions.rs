@@ -67,7 +67,7 @@ impl Service<Job> for ImportSubscriptionsHandler {
 
             for feed in feeds {
                 let data = serde_json::to_value(ScrapeFeedJobData {
-                    url: feed.xml_url.unwrap_or(feed.link),
+                    url: feed.source_url,
                 })?;
 
                 let job = job_service

@@ -43,11 +43,12 @@ CREATE TABLE jobs (
 
 CREATE TABLE feeds (
   id uuid NOT NULL PRIMARY KEY,
-  link TEXT NOT NULL UNIQUE,
-  xml_url TEXT,
+  source_url TEXT NOT NULL UNIQUE,
+  link TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  refreshed_at TIMESTAMPTZ
+  refreshed_at TIMESTAMPTZ,
+  is_custom BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE feed_entries (

@@ -301,7 +301,7 @@ impl SubscriptionService {
             let outline = Outline {
                 r#type: Some(OutlineType::default()),
                 text: subscription.title.clone(),
-                xml_url: feed.xml_url.map(Into::into),
+                xml_url: Some(feed.source_url.into()),
                 title: Some(subscription.title),
                 html_url: Some(feed.link.into()),
                 ..Default::default()
