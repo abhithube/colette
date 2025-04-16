@@ -19,7 +19,7 @@ pub trait FeedRepository: Send + Sync + 'static {
             .next())
     }
 
-    async fn save(&self, data: &Feed) -> Result<(), Error>;
+    async fn save(&self, data: &mut Feed) -> Result<(), Error>;
 
     async fn stream(&self) -> Result<BoxStream<Result<Url, Error>>, Error>;
 }

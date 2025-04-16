@@ -1,5 +1,4 @@
 use core::str;
-use std::io::BufReader;
 
 use bytes::Buf;
 use colette_http::HttpClient;
@@ -29,43 +28,30 @@ impl FeedService {
     }
 
     pub async fn detect_feeds(&self, mut data: FeedDetect) -> Result<Vec<FeedDetected>, Error> {
-        let body = self.client.get(&data.url).await?;
+        match self.scraper.scrape(&mut data.url).await {
+            Ok(processed) => {
+                let detected = vec![FeedDetected {
+                    url: data.url,
+                    title: processed.title,
+                }];
 
-        let mut reader = BufReader::new(body.reader());
+                Ok(detected)
+            }
+            Err(colette_scraper::feed::FeedError::Unsupported) => {
+                let body = self.client.get(&data.url).await?;
 
-        let raw = str::from_utf8(reader.peek(14)?)?;
-        match raw {
-            raw if raw.contains("<!DOCTYPE html") => {
-                let metadata = colette_meta::parse_metadata(reader)
+                let metadata = colette_meta::parse_metadata(body.reader())
                     .map_err(|_| colette_scraper::feed::FeedError::Unsupported)?;
 
-                let mut detected = metadata
+                let detected = metadata
                     .feeds
                     .into_iter()
                     .map(FeedDetected::from)
                     .collect::<Vec<_>>();
-                if detected.is_empty() {
-                    let processed = self.scraper.scrape(&mut data.url).await?;
-
-                    detected.push(FeedDetected {
-                        url: data.url,
-                        title: processed.title,
-                    });
-                }
 
                 Ok(detected)
             }
-            raw if raw.contains("<?xml") => {
-                let processed = self.scraper.scrape(&mut data.url).await?;
-
-                Ok(vec![FeedDetected {
-                    url: data.url,
-                    title: processed.title,
-                }])
-            }
-            _ => Err(Error::Scraper(
-                colette_scraper::feed::FeedError::Unsupported,
-            )),
+            Err(e) => Err(Error::Scraper(e)),
         }
     }
 
@@ -77,7 +63,7 @@ impl FeedService {
         let mut feed: Feed = (data.url, processed).into();
         feed.is_custom = is_custom;
 
-        self.repository.save(&feed).await?;
+        self.repository.save(&mut feed).await?;
 
         Ok(feed)
     }

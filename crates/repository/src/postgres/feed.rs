@@ -41,11 +41,11 @@ impl FeedRepository for PostgresFeedRepository {
         Ok(rows.iter().map(|e| FeedRow(e).into()).collect())
     }
 
-    async fn save(&self, data: &Feed) -> Result<(), Error> {
+    async fn save(&self, data: &mut Feed) -> Result<(), Error> {
         let mut client = self.pool.get().await?;
         let tx = client.transaction().await?;
 
-        let feed_id = {
+        data.id = {
             let feed = FeedInsert {
                 id: data.id,
                 source_url: data.source_url.as_str(),
@@ -73,7 +73,7 @@ impl FeedRepository for PostgresFeedRepository {
                 description: e.description.as_deref(),
                 author: e.author.as_deref(),
                 thumbnail_url: e.thumbnail_url.as_ref().map(|e| e.as_str()),
-                feed_id,
+                feed_id: data.id,
             });
 
             let (sql, values) = FeedEntryInsertBatch(entries)
