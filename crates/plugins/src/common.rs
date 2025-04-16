@@ -1,9 +1,9 @@
 use core::str;
 
 use bytes::Bytes;
-use colette_core::{
-    bookmark::{self, ExtractedBookmark},
-    feed::{self, ExtractedFeed, ExtractedFeedEntry},
+use colette_scraper::{
+    bookmark::{BookmarkError, ExtractedBookmark},
+    feed::{ExtractedFeed, ExtractedFeedEntry, FeedError},
 };
 use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::{Html, Selector};
@@ -33,7 +33,7 @@ impl FeedExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, feed::ScraperError> {
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedFeed, FeedError> {
         let html = Html::parse_document(str::from_utf8(&body)?);
 
         let entries = self
@@ -92,7 +92,7 @@ impl BookmarkExtractor {
         Self { options }
     }
 
-    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, bookmark::ScraperError> {
+    pub fn extract(&self, body: Bytes) -> Result<ExtractedBookmark, BookmarkError> {
         let html = Html::parse_document(str::from_utf8(&body)?);
 
         let bookmark = ExtractedBookmark {

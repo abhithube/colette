@@ -436,19 +436,17 @@ dependencies = [
  "bon",
  "bytes",
  "chrono",
- "colette-feed",
  "colette-http",
  "colette-meta",
  "colette-netscape",
  "colette-opml",
  "colette-queue",
+ "colette-scraper",
  "colette-storage",
  "colette-util",
  "deadpool-postgres",
  "futures",
  "image",
- "reqwest",
- "scraper",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -540,6 +538,7 @@ dependencies = [
  "colette-core",
  "colette-feed",
  "colette-meta",
+ "colette-scraper",
  "colette-util",
  "lazy-regex",
  "reqwest",
@@ -590,6 +589,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "colette-scraper"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "bytes",
+ "chrono",
+ "colette-feed",
+ "colette-http",
+ "colette-meta",
+ "colette-util",
+ "reqwest",
+ "scraper",
+ "thiserror 2.0.12",
+ "url",
+]
+
+[[package]]
 name = "colette-server"
 version = "0.1.0"
 dependencies = [
@@ -605,6 +621,7 @@ dependencies = [
  "colette-plugins",
  "colette-queue",
  "colette-repository",
+ "colette-scraper",
  "colette-storage",
  "cron",
  "deadpool-postgres",

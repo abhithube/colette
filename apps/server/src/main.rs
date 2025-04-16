@@ -24,6 +24,7 @@ use colette_repository::postgres::{
     PostgresStreamRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
     PostgresTagRepository,
 };
+use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
@@ -195,15 +196,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         collection_repository.clone(),
         job_repository.clone(),
         http_client.clone(),
+        BookmarkScraper::new(
+            http_client.clone(),
+            register_bookmark_plugins(reqwest_client.clone()),
+        ),
         storage_adapter,
         archive_thumbnail_producer.clone(),
         import_bookmarks_producer.clone(),
-        register_bookmark_plugins(reqwest_client.clone()),
     ));
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
         http_client.clone(),
-        register_feed_plugins(reqwest_client),
+        FeedScraper::new(http_client, register_feed_plugins(reqwest_client)),
     ));
     let job_service = Arc::new(JobService::new(job_repository.clone()));
     let subscription_service = Arc::new(SubscriptionService::new(

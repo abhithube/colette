@@ -1,19 +1,61 @@
 use core::str;
-use std::str::Utf8Error;
+use std::{collections::HashMap, io::BufReader, str::Utf8Error};
 
+use bytes::Buf;
 use chrono::{DateTime, Utc};
 use colette_feed::{
     Feed,
     atom::{AtomEntry, AtomFeed, AtomLink, AtomRel},
     rss::{RssFeed, RssItem},
 };
+use colette_http::HttpClient;
 use url::Url;
 
 const RFC2822_WITHOUT_COMMA: &str = "%a %d %b %Y %H:%M:%S %z";
 
 #[async_trait::async_trait]
-pub trait FeedScraper: Send + Sync + 'static {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, ScraperError>;
+pub trait FeedPlugin: Send + Sync + 'static {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError>;
+}
+
+pub struct FeedScraper {
+    client: Box<dyn HttpClient>,
+    plugins: HashMap<&'static str, Box<dyn FeedPlugin>>,
+}
+
+impl FeedScraper {
+    pub fn new(
+        client: impl HttpClient,
+        plugins: HashMap<&'static str, Box<dyn FeedPlugin>>,
+    ) -> Self {
+        Self {
+            client: Box::new(client),
+            plugins,
+        }
+    }
+
+    pub async fn scrape(&self, url: &mut Url) -> Result<ProcessedFeed, FeedError> {
+        let host = url.host_str().unwrap();
+
+        match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(url).await,
+            None => {
+                let body = self.client.get(url).await?;
+                let mut reader = BufReader::new(body.reader());
+
+                let raw = str::from_utf8(reader.peek(14)?)?;
+                if !raw.contains("<?xml") {
+                    return Err(FeedError::Unsupported);
+                }
+
+                let extracted = colette_feed::from_reader(reader)
+                    .map(ExtractedFeed::from)
+                    .map_err(FeedError::Parse)?;
+
+                extracted.try_into().map_err(FeedError::Postprocess)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -235,33 +277,27 @@ impl From<RssItem> for ExtractedFeedEntry {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ScraperError {
+pub enum FeedError {
     #[error("document type not supported")]
     Unsupported,
 
     #[error(transparent)]
-    Parse(#[from] ParseError),
+    Parse(#[from] colette_feed::Error),
 
     #[error(transparent)]
     Postprocess(#[from] PostprocessorError),
 
     #[error(transparent)]
-    Http(#[from] reqwest::Error),
+    Http(#[from] colette_http::Error),
+
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
     Utf(#[from] Utf8Error),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum ParseError {
-    #[error(transparent)]
-    Feed(#[from] colette_feed::Error),
-
-    #[error(transparent)]
-    Meta(#[from] colette_meta::Error),
 }
 
 #[derive(Debug, thiserror::Error)]

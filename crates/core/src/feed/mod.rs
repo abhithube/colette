@@ -1,8 +1,8 @@
 use std::str::Utf8Error;
 
 use chrono::{DateTime, Utc};
+use colette_scraper::feed::ProcessedFeed;
 pub use feed_repository::*;
-pub use feed_scraper::*;
 pub use feed_service::*;
 use url::Url;
 use uuid::Uuid;
@@ -10,7 +10,6 @@ use uuid::Uuid;
 use crate::FeedEntry;
 
 mod feed_repository;
-mod feed_scraper;
 mod feed_service;
 
 #[derive(Debug, Clone, bon::Builder)]
@@ -79,7 +78,7 @@ pub enum Error {
     Utf(#[from] Utf8Error),
 
     #[error(transparent)]
-    Scraper(#[from] ScraperError),
+    Scraper(#[from] colette_scraper::feed::FeedError),
 
     #[error(transparent)]
     Database(#[from] tokio_postgres::Error),

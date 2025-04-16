@@ -7,20 +7,19 @@ use uuid::Uuid;
 use super::ApiState;
 
 mod detect_feeds;
+mod scrape_feed;
 
 pub const FEEDS_TAG: &str = "Feeds";
 
 #[derive(OpenApi)]
-#[openapi(components(schemas(
-    detect_feeds::FeedDetect,
-    detect_feeds::FeedDetected,
-    detect_feeds::DetectedResponse
-)))]
+#[openapi(components(schemas(Feed, detect_feeds::FeedDetect, detect_feeds::FeedDetected)))]
 pub struct FeedApi;
 
 impl FeedApi {
     pub fn router() -> OpenApiRouter<ApiState> {
-        OpenApiRouter::with_openapi(FeedApi::openapi()).routes(routes!(detect_feeds::handler))
+        OpenApiRouter::with_openapi(FeedApi::openapi())
+            .routes(routes!(detect_feeds::handler))
+            .routes(routes!(scrape_feed::handler))
     }
 }
 

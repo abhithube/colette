@@ -15,6 +15,7 @@ members = [
   "crates/query",
   "crates/queue",
   "crates/repository",
+  "crates/scraper",
   "crates/storage",
   "crates/util",
 ]
@@ -51,6 +52,7 @@ colette-plugins.path = "crates/plugins"
 colette-query.path = "crates/query"
 colette-queue = { path = "crates/queue", default-features = false }
 colette-repository.path = "crates/repository"
+colette-scraper.path = "crates/scraper"
 colette-storage = { path = "crates/storage", default-features = false }
 colette-util.path = "crates/util"
 deadpool-postgres = { version = "0.14.1", default-features = false, features = [

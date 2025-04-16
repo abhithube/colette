@@ -236,12 +236,6 @@ export const CollectionUpdate = z.object({
   filter: z.union([z.null(), BookmarkFilter]).optional(),
 });
 
-export type FeedDetected = z.infer<typeof FeedDetected>;
-export const FeedDetected = z.object({
-  url: z.string(),
-  title: z.string(),
-});
-
 export type Feed = z.infer<typeof Feed>;
 export const Feed = z.object({
   id: z.string(),
@@ -253,12 +247,15 @@ export const Feed = z.object({
   isCustom: z.boolean(),
 });
 
-export type DetectedResponse = z.infer<typeof DetectedResponse>;
-export const DetectedResponse = z.union([z.array(FeedDetected), Feed]);
-
 export type FeedDetect = z.infer<typeof FeedDetect>;
 export const FeedDetect = z.object({
   url: z.string(),
+});
+
+export type FeedDetected = z.infer<typeof FeedDetected>;
+export const FeedDetected = z.object({
+  url: z.string(),
+  title: z.string(),
 });
 
 export type FeedEntry = z.infer<typeof FeedEntry>;
@@ -271,6 +268,11 @@ export const FeedEntry = z.object({
   author: z.union([z.string(), z.null()]),
   thumbnailUrl: z.union([z.string(), z.null()]),
   feedId: z.string(),
+});
+
+export type FeedScrape = z.infer<typeof FeedScrape>;
+export const FeedScrape = z.object({
+  url: z.string(),
 });
 
 export type LinkBookmarkTags = z.infer<typeof LinkBookmarkTags>;
@@ -911,7 +913,18 @@ export const post_DetectFeeds = {
   parameters: z.object({
     body: FeedDetect,
   }),
-  response: DetectedResponse,
+  response: z.array(FeedDetected),
+};
+
+export type post_ScrapeFeed = typeof post_ScrapeFeed;
+export const post_ScrapeFeed = {
+  method: z.literal("POST"),
+  path: z.literal("/feeds/scrape"),
+  requestFormat: z.literal("json"),
+  parameters: z.object({
+    body: FeedScrape,
+  }),
+  response: Feed,
 };
 
 export type get_ListStreams = typeof get_ListStreams;
@@ -1227,6 +1240,7 @@ export const EndpointByMethod = {
     "/bookmarks/export": post_ExportBookmarks,
     "/collections": post_CreateCollection,
     "/feeds/detect": post_DetectFeeds,
+    "/feeds/scrape": post_ScrapeFeed,
     "/streams": post_CreateStream,
     "/subscriptions": post_CreateSubscription,
     "/subscriptions/{sid}/entries/{eid}/markAsRead": post_MarkSubscriptionEntryAsRead,

@@ -1,4 +1,4 @@
-use colette_core::bookmark::{BookmarkScraper, ProcessedBookmark, ScraperError};
+use colette_scraper::bookmark::{BookmarkError, BookmarkPlugin, ProcessedBookmark};
 use colette_util::html::{ExtractorQuery, Node};
 use reqwest::{
     Client, Method, Request, RequestBuilder,
@@ -46,8 +46,8 @@ impl RedditBookmarkPlugin {
 }
 
 #[async_trait::async_trait]
-impl BookmarkScraper for RedditBookmarkPlugin {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError> {
+impl BookmarkPlugin for RedditBookmarkPlugin {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError> {
         if !url.path().contains(".rss") {
             url.path_segments_mut().unwrap().pop_if_empty().push(".rss");
         }
@@ -61,8 +61,8 @@ impl BookmarkScraper for RedditBookmarkPlugin {
         .await?;
         let body = resp.bytes().await?;
 
-        let bookmark = self.extractor.extract(body)?;
+        let extracted = self.extractor.extract(body)?;
 
-        Ok(bookmark.try_into()?)
+        Ok(extracted.try_into()?)
     }
 }

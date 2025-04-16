@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use colette_http::HttpClient;
 use colette_netscape::{Item, Netscape};
 use colette_queue::JobProducer;
+use colette_scraper::bookmark::BookmarkScraper;
 use colette_storage::StorageClient;
 use colette_util::{base64, thumbnail};
 use tokio::sync::Mutex;
@@ -12,8 +13,7 @@ use url::Url;
 use uuid::Uuid;
 
 use super::{
-    Bookmark, BookmarkFilter, BookmarkScraper, Cursor, Error, ExtractedBookmark,
-    ImportBookmarksData, ScraperError,
+    Bookmark, BookmarkFilter, Cursor, Error, ImportBookmarksData,
     bookmark_repository::{BookmarkParams, BookmarkRepository},
 };
 use crate::{
@@ -31,10 +31,10 @@ pub struct BookmarkService {
     collection_repository: Box<dyn CollectionRepository>,
     job_repository: Box<dyn JobRepository>,
     http_client: Box<dyn HttpClient>,
+    scraper: BookmarkScraper,
     storage_client: Box<dyn StorageClient>,
     archive_thumbnail_producer: Box<Mutex<dyn JobProducer>>,
     import_bookmarks_producer: Box<Mutex<dyn JobProducer>>,
-    plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
 }
 
 impl BookmarkService {
@@ -45,10 +45,10 @@ impl BookmarkService {
         collection_repository: impl CollectionRepository,
         job_repository: impl JobRepository,
         http_client: impl HttpClient,
+        scraper: BookmarkScraper,
         storage_client: impl StorageClient,
         archive_thumbnail_producer: impl JobProducer,
         import_bookmarks_producer: impl JobProducer,
-        plugins: HashMap<&'static str, Box<dyn BookmarkScraper>>,
     ) -> Self {
         Self {
             bookmark_repository: Box::new(bookmark_repository),
@@ -56,10 +56,10 @@ impl BookmarkService {
             collection_repository: Box::new(collection_repository),
             job_repository: Box::new(job_repository),
             http_client: Box::new(http_client),
+            scraper,
             storage_client: Box::new(storage_client),
             archive_thumbnail_producer: Box::new(Mutex::new(archive_thumbnail_producer)),
             import_bookmarks_producer: Box::new(Mutex::new(import_bookmarks_producer)),
-            plugins,
         }
     }
 
@@ -311,50 +311,21 @@ impl BookmarkService {
         &self,
         mut data: BookmarkScrape,
     ) -> Result<BookmarkScraped, Error> {
-        let host = data.url.host_str().unwrap();
-
-        let bookmark = match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(&mut data.url).await,
-            None => {
-                let body = self.http_client.get(&data.url).await?;
-                let metadata =
-                    colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
-
-                let bookmark = ExtractedBookmark::from(metadata);
-
-                bookmark.try_into().map_err(ScraperError::Postprocess)
-            }
-        }?;
+        let processed = self.scraper.scrape(&mut data.url).await?;
 
         let scraped = BookmarkScraped {
             link: data.url,
-            title: bookmark.title,
-            thumbnail_url: bookmark.thumbnail,
-            published_at: bookmark.published,
-            author: bookmark.author,
+            title: processed.title,
+            thumbnail_url: processed.thumbnail,
+            published_at: processed.published,
+            author: processed.author,
         };
 
         Ok(scraped)
     }
 
-    pub async fn scrape_and_persist_bookmark(
-        &self,
-        mut data: BookmarkPersist,
-    ) -> Result<(), Error> {
-        let host = data.url.host_str().unwrap();
-
-        let processed = match self.plugins.get(host) {
-            Some(plugin) => plugin.scrape(&mut data.url).await,
-            None => {
-                let body = self.http_client.get(&data.url).await?;
-                let metadata =
-                    colette_meta::parse_metadata(body.reader()).map_err(ScraperError::Parse)?;
-
-                let bookmark = ExtractedBookmark::from(metadata);
-
-                bookmark.try_into().map_err(ScraperError::Postprocess)
-            }
-        }?;
+    pub async fn refresh_bookmark(&self, mut data: BookmarkRefresh) -> Result<(), Error> {
+        let processed = self.scraper.scrape(&mut data.url).await?;
 
         let bookmark = Bookmark::builder()
             .link(data.url)
@@ -530,7 +501,7 @@ pub struct BookmarkScraped {
 }
 
 #[derive(Debug, Clone)]
-pub struct BookmarkPersist {
+pub struct BookmarkRefresh {
     pub url: Url,
     pub user_id: String,
 }

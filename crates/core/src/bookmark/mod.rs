@@ -1,5 +1,4 @@
 pub use bookmark_repository::*;
-pub use bookmark_scraper::*;
 pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
 use colette_util::base64;
@@ -14,7 +13,6 @@ use crate::{
 };
 
 mod bookmark_repository;
-mod bookmark_scraper;
 mod bookmark_service;
 
 #[derive(Debug, Clone, bon::Builder)]
@@ -126,7 +124,7 @@ pub enum Error {
     Io(#[from] std::io::Error),
 
     #[error(transparent)]
-    Scraper(#[from] ScraperError),
+    Scraper(#[from] colette_scraper::bookmark::BookmarkError),
 
     #[error(transparent)]
     Base64(#[from] base64::Error),

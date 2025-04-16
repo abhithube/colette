@@ -1,6 +1,8 @@
-use std::str::Utf8Error;
+use std::{collections::HashMap, io::BufReader, str::Utf8Error};
 
+use bytes::Buf;
 use chrono::{DateTime, Utc};
+use colette_http::HttpClient;
 use colette_meta::{
     Metadata,
     basic::Basic,
@@ -16,8 +18,48 @@ const RFC3339_WITH_MILLI: &str = "%Y-%m-%dT%H:%M:%S%.3f%z";
 const RFC3339_WITH_MICRO: &str = "%Y-%m-%dT%H:%M:%S%.6f%z";
 
 #[async_trait::async_trait]
-pub trait BookmarkScraper: Send + Sync + 'static {
-    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, ScraperError>;
+pub trait BookmarkPlugin: Send + Sync + 'static {
+    async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError>;
+}
+
+pub struct BookmarkScraper {
+    client: Box<dyn HttpClient>,
+    plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>,
+}
+
+impl BookmarkScraper {
+    pub fn new(
+        client: impl HttpClient,
+        plugins: HashMap<&'static str, Box<dyn BookmarkPlugin>>,
+    ) -> Self {
+        Self {
+            client: Box::new(client),
+            plugins,
+        }
+    }
+
+    pub async fn scrape(&self, url: &mut Url) -> Result<ProcessedBookmark, BookmarkError> {
+        let host = url.host_str().unwrap();
+
+        match self.plugins.get(host) {
+            Some(plugin) => plugin.scrape(url).await,
+            None => {
+                let body = self.client.get(url).await?;
+                let mut reader = BufReader::new(body.reader());
+
+                let raw = str::from_utf8(reader.peek(14)?)?;
+                if !raw.contains("<!DOCTYPE html") {
+                    return Err(BookmarkError::Unsupported);
+                }
+
+                let extracted = colette_meta::parse_metadata(reader)
+                    .map(ExtractedBookmark::from)
+                    .map_err(BookmarkError::Parse)?;
+
+                extracted.try_into().map_err(BookmarkError::Postprocess)
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -204,7 +246,7 @@ impl From<SchemaObject> for ExtractedBookmark {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ScraperError {
+pub enum BookmarkError {
     #[error("document type not supported")]
     Unsupported,
 
@@ -215,7 +257,10 @@ pub enum ScraperError {
     Postprocess(#[from] PostprocessorError),
 
     #[error(transparent)]
-    Http(#[from] reqwest::Error),
+    Http(#[from] colette_http::Error),
+
+    #[error(transparent)]
+    Reqwest(#[from] reqwest::Error),
 
     #[error(transparent)]
     Io(#[from] std::io::Error),

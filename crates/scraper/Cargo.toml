@@ -1,5 +1,5 @@
 [package]
-name = "colette-plugins"
+name = "colette-scraper"
 version = "0.1.0"
 edition = "2024"
 
@@ -7,14 +7,11 @@ edition = "2024"
 async-trait.workspace = true
 bytes.workspace = true
 chrono.workspace = true
-colette-core.workspace = true
 colette-feed.workspace = true
+colette-http.workspace = true
 colette-meta.workspace = true
-colette-scraper.workspace = true
 colette-util.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
+thiserror.workspace = true
 url.workspace = true
-lazy-regex = { version = "3.4.1", default-features = false, features = [
-  "lite",
-] }

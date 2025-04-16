@@ -7,7 +7,7 @@ use axum::{
 use colette_core::feed;
 use url::Url;
 
-use super::FEEDS_TAG;
+use super::{FEEDS_TAG, Feed};
 use crate::{
     ApiState,
     common::{BaseError, Error},
@@ -15,23 +15,21 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/detect",
-    request_body = FeedDetect,
-    responses(DetectResponse),
-    operation_id = "detectFeeds",
-    description = "Detects web feeds on a page",
+    path = "/scrape",
+    request_body = FeedScrape,
+    responses(ScrapeResponse),
+    operation_id = "scrapeFeed",
+    description = "Scrape web feed",
     tag = FEEDS_TAG
   )]
 #[axum::debug_handler]
 pub async fn handler(
     State(state): State<ApiState>,
-    Json(body): Json<FeedDetect>,
-) -> Result<DetectResponse, Error> {
-    match state.feed_service.detect_feeds(body.into()).await {
-        Ok(data) => Ok(DetectResponse::Ok(
-            data.into_iter().map(Into::into).collect(),
-        )),
-        Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
+    Json(body): Json<FeedScrape>,
+) -> Result<ScrapeResponse, Error> {
+    match state.feed_service.refresh_feed(body.into()).await {
+        Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
+        Err(feed::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
             message: e.to_string(),
         })),
         Err(e) => Err(Error::Unknown(e.into())),
@@ -40,38 +38,22 @@ pub async fn handler(
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedDetect {
+pub struct FeedScrape {
     pub url: Url,
 }
 
-impl From<FeedDetect> for feed::FeedDetect {
-    fn from(value: FeedDetect) -> Self {
+impl From<FeedScrape> for feed::FeedRefresh {
+    fn from(value: FeedScrape) -> Self {
         Self { url: value.url }
-    }
-}
-
-#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-#[serde(rename_all = "camelCase")]
-pub struct FeedDetected {
-    pub url: Url,
-    pub title: String,
-}
-
-impl From<feed::FeedDetected> for FeedDetected {
-    fn from(value: feed::FeedDetected) -> Self {
-        Self {
-            url: value.url,
-            title: value.title,
-        }
     }
 }
 
 #[allow(dead_code)]
 #[allow(clippy::large_enum_variant)]
 #[derive(Debug, utoipa::IntoResponses)]
-pub enum DetectResponse {
-    #[response(status = 200, description = "List of detected feeds")]
-    Ok(Vec<FeedDetected>),
+pub enum ScrapeResponse {
+    #[response(status = 200, description = "Scraped feed")]
+    Ok(Feed),
 
     #[response(status = 422, description = "Invalid input")]
     UnprocessableEntity(BaseError),
@@ -80,7 +62,7 @@ pub enum DetectResponse {
     BadGateway(BaseError),
 }
 
-impl IntoResponse for DetectResponse {
+impl IntoResponse for ScrapeResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Ok(data) => Json(data).into_response(),

@@ -5,7 +5,7 @@ use std::{
 };
 
 use colette_core::{
-    feed::{FeedScrape, FeedService, ScrapeFeedJobData},
+    feed::{FeedRefresh, FeedService, ScrapeFeedJobData},
     job::Job,
 };
 use futures::FutureExt;
@@ -41,7 +41,7 @@ impl Service<Job> for ScrapeFeedHandler {
             tracing::debug!("Scraping feed at URL: {}", data.url.as_str());
 
             feed_service
-                .scrape_feed(FeedScrape { url: data.url })
+                .refresh_feed(FeedRefresh { url: data.url })
                 .await
                 .map_err(|e| Error::Service(e.to_string()))?;
 

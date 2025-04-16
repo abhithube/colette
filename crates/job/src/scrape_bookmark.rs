@@ -5,7 +5,7 @@ use std::{
 };
 
 use colette_core::{
-    bookmark::{BookmarkPersist, BookmarkService, ScrapeBookmarkJobData},
+    bookmark::{BookmarkRefresh, BookmarkService, ScrapeBookmarkJobData},
     job::Job,
 };
 use futures::FutureExt;
@@ -41,7 +41,7 @@ impl Service<Job> for ScrapeBookmarkHandler {
             tracing::debug!("Scraping bookmark at URL: {}", data.url.as_str());
 
             bookmark_service
-                .scrape_and_persist_bookmark(BookmarkPersist {
+                .refresh_bookmark(BookmarkRefresh {
                     url: data.url,
                     user_id: data.user_id,
                 })
