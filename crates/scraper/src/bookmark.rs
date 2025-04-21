@@ -8,8 +8,8 @@ use colette_meta::{
     basic::Basic,
     open_graph::{self, OpenGraph},
     schema_org::{
-        Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, VideoObject, WebPage,
-        WebSite,
+        Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, SocialMediaPosting,
+        TypeOrString, VideoObject, WebPage, WebSite,
     },
 };
 use url::Url;
@@ -48,7 +48,7 @@ impl BookmarkScraper {
                 let mut reader = BufReader::new(body.reader());
 
                 let raw = str::from_utf8(reader.peek(14)?)?;
-                if !raw.contains("<!DOCTYPE html") {
+                if !raw.to_lowercase().contains("<!doctype html") {
                     return Err(BookmarkError::Unsupported);
                 }
 
@@ -172,22 +172,81 @@ impl From<OpenGraph> for ExtractedBookmark {
 
 impl From<Article> for ExtractedBookmark {
     fn from(value: Article) -> Self {
+        let mut video: Option<ExtractedBookmark> = value.video.map(Into::into);
+
         Self {
-            title: value.name,
-            thumbnail: value.thumbnail_url.or(value.thumbnail.and_then(|e| e.url)),
-            published: value.date_published,
-            author: value.author.and_then(|e| e.name),
+            title: value
+                .headline
+                .or(value.name)
+                .or(video.as_mut().and_then(|e| e.title.take())),
+            thumbnail: value
+                .thumbnail_url
+                .or(value.thumbnail.and_then(|e| e.url))
+                .or(video.as_mut().and_then(|e| e.thumbnail.take())),
+            published: value
+                .date_published
+                .or(video.as_mut().and_then(|e| e.published.take())),
+            author: value
+                .author
+                .and_then(|e| match e {
+                    TypeOrString::Type(person) => person.name,
+                    TypeOrString::String(raw) => Some(raw),
+                })
+                .or(video.as_mut().and_then(|e| e.author.take())),
+        }
+    }
+}
+
+impl From<SocialMediaPosting> for ExtractedBookmark {
+    fn from(value: SocialMediaPosting) -> Self {
+        let mut video = value.video.map(ExtractedBookmark::from);
+
+        Self {
+            title: value
+                .headline
+                .or(value.name)
+                .or(video.as_mut().and_then(|e| e.title.take())),
+            thumbnail: value
+                .thumbnail_url
+                .or(value.thumbnail.and_then(|e| e.url))
+                .or(video.as_mut().and_then(|e| e.thumbnail.take())),
+            published: value
+                .date_published
+                .or(video.as_mut().and_then(|e| e.published.take())),
+            author: value
+                .author
+                .and_then(|e| match e {
+                    TypeOrString::Type(person) => person.name,
+                    TypeOrString::String(raw) => Some(raw),
+                })
+                .or(video.as_mut().and_then(|e| e.author.take())),
         }
     }
 }
 
 impl From<WebPage> for ExtractedBookmark {
     fn from(value: WebPage) -> Self {
+        let mut video = value.video.map(ExtractedBookmark::from);
+
         Self {
-            title: value.name,
-            thumbnail: value.thumbnail_url.or(value.thumbnail.and_then(|e| e.url)),
-            published: value.date_published,
-            author: value.author.and_then(|e| e.name),
+            title: value
+                .headline
+                .or(value.name)
+                .or(video.as_mut().and_then(|e| e.title.take())),
+            thumbnail: value
+                .thumbnail_url
+                .or(value.thumbnail.and_then(|e| e.url))
+                .or(video.as_mut().and_then(|e| e.thumbnail.take())),
+            published: value
+                .date_published
+                .or(video.as_mut().and_then(|e| e.published.take())),
+            author: value
+                .author
+                .and_then(|e| match e {
+                    TypeOrString::Type(person) => person.name,
+                    TypeOrString::String(raw) => Some(raw),
+                })
+                .or(video.as_mut().and_then(|e| e.author.take())),
         }
     }
 }
@@ -195,10 +254,13 @@ impl From<WebPage> for ExtractedBookmark {
 impl From<VideoObject> for ExtractedBookmark {
     fn from(value: VideoObject) -> Self {
         Self {
-            title: value.name,
+            title: value.headline.or(value.name),
             thumbnail: value.thumbnail_url.or(value.thumbnail.and_then(|e| e.url)),
             published: value.date_published,
-            author: value.author.and_then(|e| e.name),
+            author: value.author.and_then(|e| match e {
+                TypeOrString::Type(person) => person.name,
+                TypeOrString::String(raw) => Some(raw),
+            }),
         }
     }
 }
@@ -206,7 +268,7 @@ impl From<VideoObject> for ExtractedBookmark {
 impl From<WebSite> for ExtractedBookmark {
     fn from(value: WebSite) -> Self {
         Self {
-            title: value.name,
+            title: value.headline.or(value.name),
             thumbnail: value.thumbnail_url.or(value.thumbnail.and_then(|e| e.url)),
             published: value.date_published,
             author: value.author.and_then(|e| e.name),
@@ -236,6 +298,7 @@ impl From<SchemaObject> for ExtractedBookmark {
     fn from(value: SchemaObject) -> Self {
         match value {
             SchemaObject::Article(article) => article.into(),
+            SchemaObject::SocialMediaPosting(smp) => smp.into(),
             SchemaObject::WebPage(webpage) => webpage.into(),
             SchemaObject::VideoObject(video) => video.into(),
             SchemaObject::WebSite(website) => website.into(),

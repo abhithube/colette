@@ -5,8 +5,8 @@ use html5gum::{IoReader, Token, Tokenizer};
 use open_graph::handle_open_graph;
 use rss::{Feed, handle_rss};
 use schema_org::{
-    Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, VideoObject, WebPage, WebSite,
-    handle_json_ld, handle_microdata,
+    Article, ImageObject, Person, SchemaObject, SchemaObjectOrValue, SocialMediaPosting,
+    TypeOrString, VideoObject, WebPage, WebSite, handle_json_ld, handle_microdata,
 };
 
 use crate::{basic::Basic, open_graph::OpenGraph, util::Value};
@@ -84,6 +84,9 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                         Some("Article") => SchemaObjectOrValue::SchemaObject(
                             SchemaObject::Article(Article::default()),
                         ),
+                        Some("SocialMediaPosting") => SchemaObjectOrValue::SchemaObject(
+                            SchemaObject::SocialMediaPosting(SocialMediaPosting::default()),
+                        ),
                         Some("WebPage") => SchemaObjectOrValue::SchemaObject(
                             SchemaObject::WebPage(WebPage::default()),
                         ),
@@ -145,6 +148,7 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                 let mut author: Option<Person> = None;
                 let mut image: Option<ImageObject> = None;
                 let mut thumbnail: Option<ImageObject> = None;
+                let mut video: Option<VideoObject> = None;
                 let mut value: Option<Value> = None;
 
                 match completed_schema {
@@ -159,6 +163,9 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                         SchemaObject::Person(person) => {
                             author = Some(person);
                         }
+                        SchemaObject::VideoObject(video_object) => {
+                            video = Some(video_object);
+                        }
                         _ => {}
                     },
                     SchemaObjectOrValue::Other(other) => {
@@ -170,7 +177,7 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                     SchemaObjectOrValue::SchemaObject(schema) => match schema {
                         SchemaObject::Article(article) => {
                             if author.is_some() {
-                                article.author = author;
+                                article.author = author.map(TypeOrString::Type);
                             }
                             if image.is_some() {
                                 article.image = image;
@@ -178,10 +185,27 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                             if thumbnail.is_some() {
                                 article.thumbnail = thumbnail;
                             }
+                            if video.is_some() {
+                                article.video = video;
+                            }
+                        }
+                        SchemaObject::SocialMediaPosting(smp) => {
+                            if author.is_some() {
+                                smp.author = author.map(TypeOrString::Type);
+                            }
+                            if image.is_some() {
+                                smp.image = image;
+                            }
+                            if thumbnail.is_some() {
+                                smp.thumbnail = thumbnail;
+                            }
+                            if video.is_some() {
+                                smp.video = video;
+                            }
                         }
                         SchemaObject::WebPage(webpage) => {
                             if author.is_some() {
-                                webpage.author = author;
+                                webpage.author = author.map(TypeOrString::Type);
                             }
                             if image.is_some() {
                                 webpage.image = image;
@@ -189,10 +213,13 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                             if thumbnail.is_some() {
                                 webpage.thumbnail = thumbnail;
                             }
+                            if video.is_some() {
+                                webpage.video = video;
+                            }
                         }
                         SchemaObject::VideoObject(video_object) => {
                             if author.is_some() {
-                                video_object.author = author;
+                                video_object.author = author.map(TypeOrString::Type);
                             }
                             if image.is_some() {
                                 video_object.image = image;
@@ -214,7 +241,8 @@ pub fn parse_metadata<R: Read>(reader: R) -> Result<Metadata, Error> {
                         }
                         SchemaObject::ImageObject(image_object) => {
                             if author.is_some() {
-                                image_object.author = author.map(Box::new);
+                                image_object.author =
+                                    author.map(|e| Box::new(TypeOrString::Type(e)));
                             }
                             if image.is_some() {
                                 image_object.image = image.map(Box::new);
