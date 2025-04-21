@@ -19,13 +19,13 @@ impl FeedEntryService {
         &self,
         query: FeedEntryListQuery,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
 
         let mut feed_entries = self
             .feed_entry_repository
             .query(FeedEntryParams {
                 feed_id: query.feed_id,
-                cursor,
+                cursor: cursor.map(|e| (e.published_at, e.id)),
                 limit: Some(PAGINATION_LIMIT + 1),
                 ..Default::default()
             })

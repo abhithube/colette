@@ -68,7 +68,7 @@ impl BookmarkService {
         query: BookmarkListQuery,
         user_id: String,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
 
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
@@ -96,7 +96,7 @@ impl BookmarkService {
                 filter,
                 tags: query.tags,
                 user_id: Some(user_id),
-                cursor,
+                cursor: cursor.map(|e| e.created_at),
                 limit: Some(PAGINATION_LIMIT + 1),
                 with_tags: query.with_tags,
                 ..Default::default()

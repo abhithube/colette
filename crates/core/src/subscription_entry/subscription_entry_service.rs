@@ -31,7 +31,7 @@ impl SubscriptionEntryService {
         query: SubscriptionEntryListQuery,
         user_id: String,
     ) -> Result<Paginated<SubscriptionEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode(&e).ok());
+        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
 
         let mut filter = Option::<SubscriptionEntryFilter>::None;
         if let Some(stream_id) = query.stream_id {
@@ -61,7 +61,7 @@ impl SubscriptionEntryService {
                 has_read: query.has_read,
                 tags: query.tags,
                 user_id: Some(user_id),
-                cursor,
+                cursor: cursor.map(|e| (e.published_at, e.id)),
                 limit: Some(PAGINATION_LIMIT + 1),
                 with_read_entry: true,
                 ..Default::default()
