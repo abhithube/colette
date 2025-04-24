@@ -1,27 +1,27 @@
-import type { FeedDetected } from '@colette/core'
-import { useDetectFeedsMutation } from '@colette/query'
+import type { BookmarkScraped } from '@colette/core'
+import { useScrapeBookmarkMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { z } from 'zod'
 
 export const SearchStep = (props: {
   formId: string
-  onNext: (detected: FeedDetected[]) => void
+  onNext: (scraped: BookmarkScraped) => void
 }) => {
   const form = useForm({
     defaultValues: {
       url: '',
     },
     onSubmit: ({ value }) =>
-      detectFeeds.mutate(value, {
-        onSuccess: (detected) => {
+      scrapeBookmark.mutate(value, {
+        onSuccess: (scraped) => {
           form.reset()
-          props.onNext(detected)
+          props.onNext(scraped)
         },
       }),
   })
 
-  const detectFeeds = useDetectFeedsMutation()
+  const scrapeBookmark = useScrapeBookmarkMutation()
 
   return (
     <form

@@ -1,39 +1,41 @@
-import type { BookmarkDetails } from '@colette/core'
+import { Bookmark } from '@colette/core'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useEffect } from 'react'
-import { TagsInput } from '~/components/tags-input'
+import { z } from 'zod'
 
 export const EditBookmarkModal = (props: {
-  details: BookmarkDetails
+  bookmark: Bookmark
   close: () => void
 }) => {
   const form = useForm({
     defaultValues: {
-      tags: props.details.tags?.map((tag) => tag.id) ?? [],
+      title: props.bookmark.title,
+      thumbnailUrl: props.bookmark.thumbnailUrl,
+      publishedAt: props.bookmark.publishedAt,
+      author: props.bookmark.author,
     },
     onSubmit: ({ value }) => {
-      let tags: string[] | undefined = value.tags
-      if (props.details.tags) {
-        const current = props.details.tags
-        if (
-          tags?.length === current.length &&
-          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
-        ) {
-          tags = undefined
-        }
-      } else if (tags.length === 0) {
-        tags = undefined
-      }
-
-      if (tags === undefined) {
+      if (
+        value.title === props.bookmark.title &&
+        value.thumbnailUrl === props.bookmark.thumbnailUrl &&
+        value.publishedAt === props.bookmark.publishedAt &&
+        value.author === props.bookmark.author
+      ) {
         return props.close()
       }
 
       updateBookmark.mutate(
         {
-          tags,
+          title: value.title,
+          thumbnailUrl: value.thumbnailUrl,
+          publishedAt: value.publishedAt,
+          author: value.author
+            ? value.author.length > 0
+              ? value.author
+              : undefined
+            : undefined,
         },
         {
           onSuccess: () => {
@@ -45,21 +47,21 @@ export const EditBookmarkModal = (props: {
     },
   })
 
-  const updateBookmark = useUpdateBookmarkMutation(props.details.bookmark.id)
+  const updateBookmark = useUpdateBookmarkMutation(props.bookmark.id)
 
   useEffect(() => {
     form.reset()
-  }, [form, props.details.bookmark.id])
+  }, [form, props.bookmark.id])
 
   return (
     <Dialog.Content>
       <Dialog.Header>
         <Dialog.Title className="line-clamp-1">
-          Edit{' '}
-          <span className="text-primary">{props.details.bookmark.title}</span>
+          Edit <span className="text-primary">{props.bookmark.title}</span>
         </Dialog.Title>
         <Dialog.Description>{"Edit a bookmark's metadata."}</Dialog.Description>
       </Dialog.Header>
+
       <form
         id="edit-bookmark"
         className="space-y-4"
@@ -68,20 +70,96 @@ export const EditBookmarkModal = (props: {
           form.handleSubmit()
         }}
       >
-        <form.Field name="tags">
+        <form.Field
+          name="title"
+          validators={{
+            onBlur: z.string().min(1, "Title can't be empty"),
+          }}
+        >
           {(field) => {
             return (
               <Field.Root invalid={field.state.meta.errors.length !== 0}>
-                <Field.Label>Tags</Field.Label>
-                <TagsInput
-                  state={field.state}
-                  handleChange={field.handleChange}
+                <Field.Label>Title</Field.Label>
+                <Field.Input
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
                 />
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.message}
+                </Field.ErrorText>
+              </Field.Root>
+            )
+          }}
+        </form.Field>
+
+        <form.Field
+          name="thumbnailUrl"
+          validators={{
+            onSubmit: z.string().url('URL is not valid').nullable(),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                <Field.Label>Thumbnail</Field.Label>
+                <Field.Input
+                  value={field.state.value ?? undefined}
+                  onChange={(ev) => field.handleChange(ev.target.value)}
+                />
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.message}
+                </Field.ErrorText>
+              </Field.Root>
+            )
+          }}
+        </form.Field>
+
+        <form.Field
+          name="publishedAt"
+          validators={{
+            onSubmit: z.string().datetime('Date is not valid').nullable(),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                <Field.Label>Published At</Field.Label>
+                <Field.Input
+                  value={field.state.value ?? undefined}
+                  onChange={(ev) => field.handleChange(ev.target.value)}
+                />
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.message}
+                </Field.ErrorText>
+              </Field.Root>
+            )
+          }}
+        </form.Field>
+
+        <form.Field
+          name="author"
+          validators={{
+            onSubmit: z.string().min(1, 'Author cannot be empty').nullable(),
+          }}
+        >
+          {(field) => {
+            return (
+              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                <Field.Label>Author</Field.Label>
+                <Field.Input
+                  value={field.state.value ?? undefined}
+                  onChange={(ev) => field.handleChange(ev.target.value)}
+                />
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.message}
+                </Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
       </form>
+
       <Dialog.Footer>
         <Button form="edit-bookmark" disabled={updateBookmark.isPending}>
           Submit

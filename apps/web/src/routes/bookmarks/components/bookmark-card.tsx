@@ -1,14 +1,16 @@
 import { EditBookmarkModal } from './edit-bookmark-modal'
+import { EditBookmarkTagsModal } from './edit-bookmark-tags-modal'
 import type { BookmarkDetails } from '@colette/core'
 import { Button, Card, Dialog, Favicon, Menu } from '@colette/ui'
 import { Separator } from '@colette/ui'
 import { formatRelativeDate } from '@colette/util'
-import { ExternalLink, MoreHorizontal, Pencil } from 'lucide-react'
+import { ExternalLink, MoreHorizontal, Pencil, Tag } from 'lucide-react'
 import { useState } from 'react'
 import { Thumbnail } from '~/components/thumbnail'
 
 export const BookmarkCard = (props: { details: BookmarkDetails }) => {
-  const [isEditDialogOpen, setEditDialogOpen] = useState(false)
+  const [isMetadataDialogOpen, setMetadataDialogOpen] = useState(false)
+  const [isTagsDialogOpen, setTagsDialogOpen] = useState(false)
 
   return (
     <Card.Root className="overflow-hidden pt-0">
@@ -50,14 +52,19 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
         <Menu.Root
           lazyMount
           onSelect={(details) => {
-            if (details.value === 'edit-metadata') {
-              setEditDialogOpen(true)
+            switch (details.value) {
+              case 'edit-metadata':
+                setMetadataDialogOpen(true)
+                break
+              case 'edit-tags':
+                setTagsDialogOpen(true)
+                break
             }
           }}
         >
           <Menu.Trigger asChild>
-            <Button className="size-7" variant="ghost" size="icon">
-              <MoreHorizontal className="size-4" />
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal />
               <span className="sr-only">Entry actions</span>
             </Button>
           </Menu.Trigger>
@@ -74,18 +81,36 @@ export const BookmarkCard = (props: { details: BookmarkDetails }) => {
             </Menu.Item>
             <Menu.Item value="edit-metadata">
               <Pencil />
-              Edit metadata
+              Edit Metadata
+            </Menu.Item>
+            <Menu.Item value="edit-tags">
+              <Tag />
+              Edit Tags
             </Menu.Item>
           </Menu.Content>
         </Menu.Root>
         <Dialog.Root
           lazyMount
-          open={isEditDialogOpen}
-          onOpenChange={(details) => setEditDialogOpen(details.open)}
+          open={isMetadataDialogOpen}
+          onOpenChange={(details) => setMetadataDialogOpen(details.open)}
         >
           <Dialog.Context>
             {(dialogProps) => (
               <EditBookmarkModal
+                bookmark={props.details.bookmark}
+                close={() => dialogProps.setOpen(false)}
+              />
+            )}
+          </Dialog.Context>
+        </Dialog.Root>
+        <Dialog.Root
+          lazyMount
+          open={isTagsDialogOpen}
+          onOpenChange={(details) => setTagsDialogOpen(details.open)}
+        >
+          <Dialog.Context>
+            {(dialogProps) => (
+              <EditBookmarkTagsModal
                 details={props.details}
                 close={() => dialogProps.setOpen(false)}
               />

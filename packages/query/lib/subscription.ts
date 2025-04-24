@@ -1,6 +1,7 @@
 import { SUBSCRIPTION_ENTRIES_PREFIX } from './subscription-entry'
 import type {
   API,
+  LinkSubscriptionTags,
   SubscriptionCreate,
   SubscriptionGetQuery,
   SubscriptionListQuery,
@@ -70,6 +71,21 @@ export const useDeleteSubscriptionMutation = (id: string) => {
 
   return useMutation({
     mutationFn: () => api.subscriptions.deleteSubscription(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [SUBSCRIPTIONS_PREFIX],
+      })
+    },
+  })
+}
+
+export const useLinkSubscriptionTagsMutation = (id: string) => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: LinkSubscriptionTags) =>
+      api.subscriptions.linkSubscriptionTags(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [SUBSCRIPTIONS_PREFIX],

@@ -86,15 +86,10 @@ export const TagsInner = (props: {
     <Combobox.Root
       collection={collection}
       onInputValueChange={(details) => setSearch(details.inputValue)}
-      onValueChange={(details) => {
-        console.log(details)
-
-        props.handleChange(details.value.toSorted())
-      }}
+      onValueChange={(details) => props.handleChange(details.value.toSorted())}
     >
-      <Combobox.Input value={search} placeholder="Search tags..." />
+      <Combobox.Input placeholder="Search tags..." />
       <Combobox.List>
-        {/* <Combobox.Empty>No tags found.</Combobox.Empty> */}
         <Combobox.ItemGroup
           className={cn(
             'hidden',

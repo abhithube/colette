@@ -1,29 +1,23 @@
 import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
-import { SelectStep } from './select-step'
-import type { Feed, FeedDetected } from '@colette/core'
+import type { BookmarkScraped } from '@colette/core'
 import { Button, Dialog, Steps } from '@colette/ui'
 import { useState } from 'react'
 
 const items = [
   {
-    id: 'search-feeds',
-    description: 'Search for a feed by URL',
+    id: 'search-bookmark',
+    description: 'Search for a bookmark by URL',
     value: 'Search',
   },
   {
-    id: 'select-feed',
-    description: 'Select a feed to subscribe to',
-    value: 'Select',
-  },
-  {
-    id: 'confirm-subscription',
-    description: 'Set subscription metadata',
+    id: 'confirm-bookmark',
+    description: 'Set bookmark metadata',
     value: 'Submit',
   },
 ]
 
-export const CreateSubscriptionModal = (props: { close: () => void }) => {
+export const CreateBookmarkModal = (props: { close: () => void }) => {
   const steps = Steps.useSteps({
     count: items.length,
     linear: true,
@@ -31,20 +25,17 @@ export const CreateSubscriptionModal = (props: { close: () => void }) => {
 
   const item = items[steps.value]
 
-  const [detectedFeeds, setDetectedFeeds] = useState<FeedDetected[] | null>(
-    null,
-  )
-  const [selectedFeed, setSelectedFeed] = useState<Feed | null>(null)
+  const [scraped, setScraped] = useState<BookmarkScraped | null>(null)
 
   return (
     <Dialog.Content>
       <Dialog.Header>
-        <Dialog.Title>Subscribe to Feed</Dialog.Title>
+        <Dialog.Title>Add Bookmark</Dialog.Title>
         <Dialog.Description>{item.description}</Dialog.Description>
       </Dialog.Header>
 
       <Steps.Provider className="grid gap-4" value={steps}>
-        <Steps.List>
+        <Steps.List className="px-16">
           {items.map((item, index) => {
             return (
               <Steps.Item key={index} index={index}>
@@ -62,8 +53,8 @@ export const CreateSubscriptionModal = (props: { close: () => void }) => {
           <Steps.Content index={steps.value}>
             <SearchStep
               formId={item.id}
-              onNext={(detected) => {
-                setDetectedFeeds(detected)
+              onNext={(scraped) => {
+                setScraped(scraped)
 
                 steps.goToNextStep()
               }}
@@ -71,32 +62,17 @@ export const CreateSubscriptionModal = (props: { close: () => void }) => {
           </Steps.Content>
         )}
 
-        {steps.value === 1 && detectedFeeds && (
-          <Steps.Content index={steps.value}>
-            <SelectStep
-              formId={item.id}
-              feeds={detectedFeeds}
-              onNext={(feed) => {
-                setSelectedFeed(feed)
-
-                steps.goToNextStep()
-              }}
-            />
-          </Steps.Content>
-        )}
-
-        {steps.value === 2 && selectedFeed && (
+        {steps.value === 1 && scraped && (
           <Steps.Content index={steps.value}>
             <EditStep
               formId={item.id}
-              feed={selectedFeed}
+              bookmark={scraped}
               onClose={() => {
                 props.close()
 
                 steps.resetStep()
 
-                setDetectedFeeds(null)
-                setSelectedFeed(null)
+                setScraped(null)
               }}
             />
           </Steps.Content>

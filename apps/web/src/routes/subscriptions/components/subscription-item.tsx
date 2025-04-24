@@ -1,7 +1,8 @@
 import { EditSubscriptionModal } from './edit-subscription-modal'
+import { EditSubscriptionTagsModal } from './edit-subscription-tags-modal'
 import { SubscriptionDetails } from '@colette/core'
 import { Button, Card, Dialog, Favicon } from '@colette/ui'
-import { ExternalLink, Pencil, Trash2 } from 'lucide-react'
+import { ExternalLink, Pencil, Tag, Trash2 } from 'lucide-react'
 import { UnsubscribeAlert } from '~/routes/subscriptions/components/unsubscribe-alert'
 
 export const SubscriptionItem = (props: { details: SubscriptionDetails }) => {
@@ -20,28 +21,46 @@ export const SubscriptionItem = (props: { details: SubscriptionDetails }) => {
       <Card.Footer className="p-3">
         <Button asChild variant="ghost">
           <a href={props.details.feed!.link} target="_blank" rel="noreferrer">
-            <ExternalLink className="size-4" />
+            <ExternalLink />
           </a>
         </Button>
-        <Dialog.Root>
+
+        <Dialog.Root lazyMount>
           <Dialog.Trigger asChild>
             <Button variant="ghost">
-              <Pencil className="size-4" />
+              <Pencil />
             </Button>
           </Dialog.Trigger>
           <Dialog.Context>
             {(dialogProps) => (
               <EditSubscriptionModal
+                subscription={props.details.subscription}
+                close={() => dialogProps.setOpen(false)}
+              />
+            )}
+          </Dialog.Context>
+        </Dialog.Root>
+
+        <Dialog.Root lazyMount>
+          <Dialog.Trigger asChild>
+            <Button variant="ghost">
+              <Tag />
+            </Button>
+          </Dialog.Trigger>
+          <Dialog.Context>
+            {(dialogProps) => (
+              <EditSubscriptionTagsModal
                 details={props.details}
                 close={() => dialogProps.setOpen(false)}
               />
             )}
           </Dialog.Context>
         </Dialog.Root>
-        <Dialog.Root>
+
+        <Dialog.Root lazyMount>
           <Dialog.Trigger asChild>
             <Button variant="ghost">
-              <Trash2 className="size-4" />
+              <Trash2 />
             </Button>
           </Dialog.Trigger>
           <Dialog.Context>

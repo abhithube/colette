@@ -4,6 +4,7 @@ import type {
   BookmarkListQuery,
   BookmarkScrape,
   BookmarkUpdate,
+  LinkBookmarkTags,
 } from '@colette/core'
 import { useAPI } from '@colette/util'
 import {
@@ -64,6 +65,21 @@ export const useDeleteBookmarkMutation = (id: string) => {
 
   return useMutation({
     mutationFn: () => api.bookmarks.deleteBookmark(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: [BOOKMARKS_PREFIX],
+      })
+    },
+  })
+}
+
+export const useLinkBookmarkTagsMutation = (id: string) => {
+  const api = useAPI()
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: LinkBookmarkTags) =>
+      api.bookmarks.linkBookmarkTags(id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({
         queryKey: [BOOKMARKS_PREFIX],

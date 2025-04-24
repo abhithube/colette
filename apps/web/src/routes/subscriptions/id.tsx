@@ -62,7 +62,7 @@ export const SubscriptionPage = () => {
             <Dialog.Context>
               {(dialogProps) => (
                 <EditSubscriptionModal
-                  details={subscriptionQuery.data}
+                  subscription={subscriptionQuery.data.subscription}
                   close={() => dialogProps.setOpen(false)}
                 />
               )}

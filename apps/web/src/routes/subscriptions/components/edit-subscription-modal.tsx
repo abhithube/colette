@@ -1,37 +1,23 @@
-import type { SubscriptionDetails } from '@colette/core'
+import type { Subscription } from '@colette/core'
 import { useUpdateSubscriptionMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { useEffect } from 'react'
 import { z } from 'zod'
-import { TagsInput } from '~/components/tags-input'
 
 export const EditSubscriptionModal = (props: {
-  details: SubscriptionDetails
+  subscription: Subscription
   close: () => void
 }) => {
   const form = useForm({
     defaultValues: {
-      title: props.details.subscription.title,
-      tags: props.details.tags?.map((tag) => tag.id) ?? [],
+      title: props.subscription.title,
+      description: props.subscription.description,
     },
     onSubmit: ({ value }) => {
-      let tags: string[] | undefined = value.tags
-      if (props.details.tags) {
-        const current = props.details.tags
-        if (
-          tags?.length === current.length &&
-          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
-        ) {
-          tags = undefined
-        }
-      } else if (tags.length === 0) {
-        tags = undefined
-      }
-
       if (
-        value.title === props.details.subscription.title &&
-        tags === undefined
+        value.title === props.subscription.title &&
+        value.description === props.subscription.description
       ) {
         return props.close()
       }
@@ -39,7 +25,11 @@ export const EditSubscriptionModal = (props: {
       updateSubscription.mutate(
         {
           title: value.title,
-          tags,
+          description: value.description
+            ? value.description.length > 0
+              ? value.description
+              : undefined
+            : undefined,
         },
         {
           onSuccess: () => {
@@ -52,26 +42,24 @@ export const EditSubscriptionModal = (props: {
   })
 
   const updateSubscription = useUpdateSubscriptionMutation(
-    props.details.subscription.id,
+    props.subscription.id,
   )
 
   useEffect(() => {
     form.reset()
-  }, [form, props.details.subscription.id])
+  }, [form, props.subscription.id])
 
   return (
     <Dialog.Content>
       <Dialog.Header>
         <Dialog.Title className="line-clamp-1">
-          Edit{' '}
-          <span className="text-primary">
-            {props.details.subscription.title}
-          </span>
+          Edit <span className="text-primary">{props.subscription.title}</span>
         </Dialog.Title>
         <Dialog.Description>
           {"Edit a subscription's metadata."}
         </Dialog.Description>
       </Dialog.Header>
+
       <form
         id="edit-subscription"
         className="space-y-4"
@@ -102,20 +90,30 @@ export const EditSubscriptionModal = (props: {
             )
           }}
         </form.Field>
-        <form.Field name="tags">
+
+        <form.Field
+          name="description"
+          validators={{
+            onSubmit: z.string().nullable(),
+          }}
+        >
           {(field) => {
             return (
               <Field.Root invalid={field.state.meta.errors.length !== 0}>
-                <Field.Label>Tags</Field.Label>
-                <TagsInput
-                  state={field.state}
-                  handleChange={field.handleChange}
+                <Field.Label>Description</Field.Label>
+                <Field.Input
+                  value={field.state.value ?? undefined}
+                  onChange={(ev) => field.handleChange(ev.target.value)}
                 />
+                <Field.ErrorText>
+                  {field.state.meta.errors[0]?.message}
+                </Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
       </form>
+
       <Dialog.Footer>
         <Button
           form="edit-subscription"

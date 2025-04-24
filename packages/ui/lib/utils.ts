@@ -24,4 +24,4 @@ export function useIsMobile() {
   return !!isMobile
 }
 
-export { createListCollection } from '@ark-ui/react/collection'
+export { createListCollection } from '@ark-ui/react'
