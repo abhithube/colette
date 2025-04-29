@@ -12,14 +12,14 @@ mod get_stream;
 mod list_streams;
 mod update_stream;
 
-pub const STREAMS_TAG: &str = "Streams";
+const STREAMS_TAG: &str = "Streams";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Stream, Paginated<Stream>, create_stream::StreamCreate, update_stream::StreamUpdate)))]
-pub struct StreamApi;
+pub(crate) struct StreamApi;
 
 impl StreamApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(StreamApi::openapi())
             .routes(routes!(list_streams::handler, create_stream::handler))
             .routes(routes!(
@@ -32,12 +32,12 @@ impl StreamApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Stream {
-    pub id: Uuid,
-    pub title: String,
-    pub filter: SubscriptionEntryFilter,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+struct Stream {
+    id: Uuid,
+    title: String,
+    filter: SubscriptionEntryFilter,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::Stream> for Stream {

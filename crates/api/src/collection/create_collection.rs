@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -10,45 +9,43 @@ use super::{COLLECTIONS_TAG, Collection};
 use crate::{
     ApiState,
     bookmark::BookmarkFilter,
-    common::{AuthUser, BaseError, Error, NonEmptyString},
+    common::{ApiError, AuthUser, Json, NonEmptyString},
 };
 
 #[utoipa::path(
   post,
   path = "",
   request_body = CollectionCreate,
-  responses(CreateResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "createCollection",
   description = "Create a collection",
   tag = COLLECTIONS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<CollectionCreate>,
-) -> Result<CreateResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .collection_service
         .create_collection(body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            collection::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
+            collection::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct CollectionCreate {
+pub(super) struct CollectionCreate {
     #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
-    pub filter: BookmarkFilter,
+    title: NonEmptyString,
+    filter: BookmarkFilter,
 }
 
 impl From<CollectionCreate> for collection::CollectionCreate {
@@ -60,25 +57,40 @@ impl From<CollectionCreate> for collection::CollectionCreate {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created collection")]
-    Created(Collection),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Created collection")]
+pub(super) struct OkResponse(Collection);
 
-    #[response(status = 409, description = "Collection already exists")]
-    Conflict(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for CreateResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::CONFLICT, description = "Collection already exists")]
+    Conflict(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

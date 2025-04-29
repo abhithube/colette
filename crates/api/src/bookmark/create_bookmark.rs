@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -11,51 +10,47 @@ use url::Url;
 use super::{BOOKMARKS_TAG, Bookmark};
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, NonEmptyString},
+    common::{ApiError, AuthUser, Json, NonEmptyString},
 };
 
 #[utoipa::path(
   post,
   path = "",
   request_body = BookmarkCreate,
-  responses(CreateResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "createBookmark",
   description = "Add a bookmark",
   tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<BookmarkCreate>,
-) -> Result<CreateResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
         .create_bookmark(body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(CreateResponse::Created(
-            (data, state.image_base_url.clone()).into(),
-        )),
+        Ok(data) => Ok(OkResponse((data, state.image_base_url.clone()).into())),
         Err(e) => match e {
-            bookmark::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown(e.into())),
+            bookmark::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct BookmarkCreate {
-    pub url: Url,
+pub(super) struct BookmarkCreate {
+    url: Url,
     #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
-    pub thumbnail_url: Option<Url>,
-    pub published_at: Option<DateTime<Utc>>,
+    title: NonEmptyString,
+    thumbnail_url: Option<Url>,
+    published_at: Option<DateTime<Utc>>,
     #[schema(value_type = Option<String>, min_length = 1)]
-    pub author: Option<NonEmptyString>,
+    author: Option<NonEmptyString>,
 }
 
 impl From<BookmarkCreate> for bookmark::BookmarkCreate {
@@ -70,25 +65,40 @@ impl From<BookmarkCreate> for bookmark::BookmarkCreate {
     }
 }
 
-#[allow(dead_code, clippy::large_enum_variant)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created bookmark")]
-    Created(Bookmark),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Created bookmark")]
+pub(super) struct OkResponse(Bookmark);
 
-    #[response(status = 409, description = "Bookmark already exists")]
-    Conflict(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for CreateResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::CONFLICT, description = "Bookmark already exists")]
+    Conflict(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(data) => (StatusCode::CONFLICT, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

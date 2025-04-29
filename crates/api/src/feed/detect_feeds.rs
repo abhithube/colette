@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -10,38 +9,34 @@ use url::Url;
 use super::FEEDS_TAG;
 use crate::{
     ApiState,
-    common::{BaseError, Error},
+    common::{ApiError, Json},
 };
 
 #[utoipa::path(
     post,
     path = "/detect",
     request_body = FeedDetect,
-    responses(DetectResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "detectFeeds",
     description = "Detects web feeds on a page",
     tag = FEEDS_TAG
   )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<FeedDetect>,
-) -> Result<DetectResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.feed_service.detect_feeds(body.into()).await {
-        Ok(data) => Ok(DetectResponse::Ok(
-            data.into_iter().map(Into::into).collect(),
-        )),
-        Err(feed::Error::Scraper(e)) => Ok(DetectResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into_iter().map(Into::into).collect())),
+        Err(feed::Error::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedDetect {
-    pub url: Url,
+pub(super) struct FeedDetect {
+    url: Url,
 }
 
 impl From<FeedDetect> for feed::FeedDetect {
@@ -52,9 +47,9 @@ impl From<FeedDetect> for feed::FeedDetect {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedDetected {
-    pub url: Url,
-    pub title: String,
+pub(super) struct FeedDetected {
+    url: Url,
+    title: String,
 }
 
 impl From<feed::FeedDetected> for FeedDetected {
@@ -66,26 +61,40 @@ impl From<feed::FeedDetected> for FeedDetected {
     }
 }
 
-#[allow(dead_code)]
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum DetectResponse {
-    #[response(status = 200, description = "List of detected feeds")]
-    Ok(Vec<FeedDetected>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "List of detected feeds")]
+pub(super) struct OkResponse(Vec<FeedDetected>);
 
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for DetectResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = StatusCode::BAD_GATEWAY, description = "Failed to fetch data")]
+    BadGateway(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

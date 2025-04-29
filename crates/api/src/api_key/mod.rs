@@ -11,14 +11,14 @@ mod get_api_key;
 mod list_api_keys;
 mod update_api_key;
 
-pub const API_KEYS_TAG: &str = "API Keys";
+const API_KEYS_TAG: &str = "API Keys";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(ApiKey, Paginated<ApiKey>, create_api_key::ApiKeyCreate, create_api_key::ApiKeyCreated, update_api_key::ApiKeyUpdate)))]
-pub struct ApiKeyApi;
+pub(crate) struct ApiKeyApi;
 
 impl ApiKeyApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(ApiKeyApi::openapi())
             .routes(routes!(list_api_keys::handler, create_api_key::handler))
             .routes(routes!(
@@ -31,12 +31,12 @@ impl ApiKeyApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiKey {
-    pub id: Uuid,
-    pub title: String,
-    pub preview: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+struct ApiKey {
+    id: Uuid,
+    title: String,
+    preview: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::ApiKey> for ApiKey {

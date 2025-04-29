@@ -12,14 +12,14 @@ mod get_collection;
 mod list_collections;
 mod update_collection;
 
-pub const COLLECTIONS_TAG: &str = "Collections";
+const COLLECTIONS_TAG: &str = "Collections";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Collection, Paginated<Collection>, create_collection::CollectionCreate, update_collection::CollectionUpdate)))]
-pub struct CollectionApi;
+pub(crate) struct CollectionApi;
 
 impl CollectionApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(CollectionApi::openapi())
             .routes(routes!(
                 list_collections::handler,
@@ -35,12 +35,12 @@ impl CollectionApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Collection {
-    pub id: Uuid,
-    pub title: String,
-    pub filter: BookmarkFilter,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+struct Collection {
+    id: Uuid,
+    title: String,
+    filter: BookmarkFilter,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<colette_core::Collection> for Collection {

@@ -12,14 +12,14 @@ mod get_tag;
 mod list_tags;
 mod update_tag;
 
-pub const TAGS_TAG: &str = "Tags";
+const TAGS_TAG: &str = "Tags";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Tag, TagDetails, Paginated<TagDetails>, create_tag::TagCreate, update_tag::TagUpdate)))]
-pub struct TagApi;
+pub(crate) struct TagApi;
 
 impl TagApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(TagApi::openapi())
             .routes(routes!(list_tags::handler, create_tag::handler))
             .routes(routes!(
@@ -32,17 +32,17 @@ impl TagApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Tag {
-    pub id: Uuid,
-    pub title: String,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+pub(crate) struct Tag {
+    id: Uuid,
+    title: String,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct TagDetails {
-    pub tag: Tag,
+struct TagDetails {
+    tag: Tag,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
     feed_count: Option<i64>,

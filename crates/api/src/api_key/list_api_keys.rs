@@ -1,44 +1,62 @@
 use axum::{
     Json,
     extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 
 use super::{API_KEYS_TAG, ApiKey};
 use crate::{
     ApiState,
-    common::{AuthUser, Error, Paginated},
+    common::{ApiError, AuthUser, Paginated},
 };
 
 #[utoipa::path(
     get,
     path = "",
-    responses(ListResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "listApiKeys",
     description = "List user API keys",
     tag = API_KEYS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.api_key_service.list_api_keys(user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of API keys")]
-    Ok(Paginated<ApiKey>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::OK, description = "Paginated list of API keys")]
+pub(super) struct OkResponse(Paginated<ApiKey>);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ListResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

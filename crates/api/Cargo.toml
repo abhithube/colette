@@ -26,8 +26,15 @@ torii.workspace = true
 tower-http.workspace = true
 tracing.workspace = true
 url.workspace = true
-utoipa.workspace = true
-utoipa-axum.workspace = true
+utoipa = { version = "5.3.1", default-features = false, features = [
+  "chrono",
+  "macros",
+  "preserve_order",
+  "preserve_path_order",
+  "url",
+  "uuid",
+] }
+utoipa-axum = { version = "0.2.0", default-features = false }
 utoipa-scalar = { version = "0.3.0", default-features = false, features = [
   "axum",
 ] }

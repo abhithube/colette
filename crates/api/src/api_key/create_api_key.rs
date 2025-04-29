@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -11,39 +10,41 @@ use uuid::Uuid;
 use super::API_KEYS_TAG;
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, NonEmptyString},
+    common::{ApiError, AuthUser, Json, NonEmptyString},
 };
 
 #[utoipa::path(
   post,
   path = "",
   request_body = ApiKeyCreate,
-  responses(CreateResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "createApiKey",
   description = "Create a API key",
   tag = API_KEYS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<ApiKeyCreate>,
-) -> Result<impl IntoResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
+    println!("{:?}", body);
+
     match state
         .api_key_service
         .create_api_key(body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiKeyCreate {
+pub(super) struct ApiKeyCreate {
     #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    title: NonEmptyString,
 }
 
 impl From<ApiKeyCreate> for api_key::ApiKeyCreate {
@@ -56,11 +57,11 @@ impl From<ApiKeyCreate> for api_key::ApiKeyCreate {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct ApiKeyCreated {
-    pub id: Uuid,
-    pub value: String,
-    pub title: String,
-    pub created_at: DateTime<Utc>,
+pub(super) struct ApiKeyCreated {
+    id: Uuid,
+    value: String,
+    title: String,
+    created_at: DateTime<Utc>,
 }
 
 impl From<api_key::ApiKeyCreated> for ApiKeyCreated {
@@ -74,21 +75,36 @@ impl From<api_key::ApiKeyCreated> for ApiKeyCreated {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created API key")]
-    Created(ApiKeyCreated),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Created API key")]
+pub(super) struct OkResponse(ApiKeyCreated);
 
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for CreateResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

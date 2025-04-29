@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -9,40 +8,38 @@ use colette_core::tag;
 use super::{TAGS_TAG, Tag};
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, NonEmptyString},
+    common::{ApiError, AuthUser, Json, NonEmptyString},
 };
 
 #[utoipa::path(
   post,
   path = "",
   request_body = TagCreate,
-  responses(CreateResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "createTag",
   description = "Create a tag",
   tag = TAGS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<TagCreate>,
-) -> Result<CreateResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.tag_service.create_tag(body.into(), user_id).await {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            tag::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
+            tag::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct TagCreate {
+pub(super) struct TagCreate {
     #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    title: NonEmptyString,
 }
 
 impl From<TagCreate> for tag::TagCreate {
@@ -53,25 +50,40 @@ impl From<TagCreate> for tag::TagCreate {
     }
 }
 
-#[allow(dead_code)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created tag")]
-    Created(Tag),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Created tag")]
+pub(super) struct OkResponse(Tag);
 
-    #[response(status = 409, description = "Tag already exists")]
-    Conflict(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for CreateResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::CONFLICT, description = "Tag already exists")]
+    Conflict(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
             Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

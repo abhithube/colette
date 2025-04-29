@@ -22,14 +22,14 @@ mod list_bookmarks;
 mod scrape_bookmark;
 mod update_bookmark;
 
-pub const BOOKMARKS_TAG: &str = "Bookmarks";
+const BOOKMARKS_TAG: &str = "Bookmarks";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Bookmark, BookmarkDetails, Paginated<BookmarkDetails>, create_bookmark::BookmarkCreate, update_bookmark::BookmarkUpdate, link_bookmark_tags::LinkBookmarkTags, scrape_bookmark::BookmarkScrape, scrape_bookmark::BookmarkScraped, BookmarkFilter, BookmarkTextField, BookmarkDateField)))]
-pub struct BookmarkApi;
+pub(crate) struct BookmarkApi;
 
 impl BookmarkApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(BookmarkApi::openapi())
             .routes(routes!(list_bookmarks::handler, create_bookmark::handler))
             .routes(routes!(
@@ -46,28 +46,28 @@ impl BookmarkApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Bookmark {
-    pub id: Uuid,
-    pub link: Url,
-    pub title: String,
+struct Bookmark {
+    id: Uuid,
+    link: Url,
+    title: String,
     #[schema(required)]
-    pub thumbnail_url: Option<Url>,
+    thumbnail_url: Option<Url>,
     #[schema(required)]
-    pub published_at: Option<DateTime<Utc>>,
+    published_at: Option<DateTime<Utc>>,
     #[schema(required)]
-    pub author: Option<String>,
+    author: Option<String>,
     #[schema(required)]
-    pub archived_url: Option<Url>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    archived_url: Option<Url>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
-pub struct BookmarkDetails {
+struct BookmarkDetails {
     bookmark: Bookmark,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<Tag>>,
+    tags: Option<Vec<Tag>>,
 }
 
 impl From<(colette_core::Bookmark, Url)> for Bookmark {
@@ -103,7 +103,7 @@ impl From<(colette_core::Bookmark, Url)> for BookmarkDetails {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[schema(no_recursion)]
-pub enum BookmarkFilter {
+pub(crate) enum BookmarkFilter {
     Text {
         field: BookmarkTextField,
         op: TextOp,
@@ -162,7 +162,7 @@ impl From<bookmark::BookmarkFilter> for BookmarkFilter {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum BookmarkTextField {
+pub(crate) enum BookmarkTextField {
     Link,
     Title,
     Author,
@@ -194,7 +194,7 @@ impl From<bookmark::BookmarkTextField> for BookmarkTextField {
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum BookmarkDateField {
+pub(crate) enum BookmarkDateField {
     PublishedAt,
     CreatedAt,
     UpdatedAt,

@@ -2,16 +2,17 @@ import { type AuthAPI, HTTPAuthAPI } from './auth'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
 import { CollectionAPI, HTTPCollectionAPI } from './collection'
 import {
-  APIError,
+  ServerError,
   BadGatewayError,
   ConflictError,
+  ForbiddenError,
   NotFoundError,
   UnauthorizedError,
   UnprocessableContentError,
 } from './error'
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
-import { BaseError, createApiClient } from './openapi.gen'
+import { ApiError, createApiClient } from './openapi.gen'
 import { HTTPStreamAPI, StreamAPI } from './stream'
 import { HTTPSubscriptionAPI, SubscriptionAPI } from './subscription'
 import {
@@ -86,12 +87,13 @@ export class HttpAPI implements API {
         headers,
         ...rest,
       }).then(async (res) => {
-        if (res.status !== 204) {
-          const data = await res.json()
-          if (!res.ok) await handleError(data, res.status)
+        const data = await res.json()
 
+        if (res.ok) {
           return data
         }
+
+        handleError(data, res.status)
       })
     }, baseUrl)
 
@@ -107,8 +109,8 @@ export class HttpAPI implements API {
   }
 }
 
-async function handleError(data: unknown, status: number) {
-  const parsed = BaseError.safeParse(data)
+function handleError(data: unknown, status: number) {
+  const parsed = ApiError.safeParse(data)
   if (parsed.error) {
     throw new UnprocessableContentError(parsed.error.message)
   }
@@ -117,6 +119,8 @@ async function handleError(data: unknown, status: number) {
   switch (status) {
     case 401:
       throw new UnauthorizedError(message)
+    case 403:
+      throw new ForbiddenError(message)
     case 404:
       throw new NotFoundError(message)
     case 409:
@@ -126,6 +130,6 @@ async function handleError(data: unknown, status: number) {
     case 502:
       throw new BadGatewayError(message)
     default:
-      throw new APIError(message)
+      throw new ServerError(message)
   }
 }

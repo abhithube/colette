@@ -1,44 +1,62 @@
 use axum::{
     Json,
     extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 
 use super::{STREAMS_TAG, Stream};
 use crate::{
     ApiState,
-    common::{AuthUser, Error, Paginated},
+    common::{ApiError, AuthUser, Paginated},
 };
 
 #[utoipa::path(
     get,
     path = "",
-    responses(ListResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "listStreams",
     description = "List user streams",
     tag = STREAMS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
-) -> Result<ListResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.stream_service.list_streams(user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of streams")]
-    Ok(Paginated<Stream>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::OK, description = "Paginated list of streams")]
+pub(super) struct OkResponse(Paginated<Stream>);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ListResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

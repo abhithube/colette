@@ -1,12 +1,8 @@
 use std::{net::SocketAddr, ops::Range, sync::Arc};
 
 use axum::{
-    Json,
-    extract::{
-        ConnectInfo, FromRequestParts, Request, State,
-        rejection::{JsonRejection, QueryRejection},
-    },
-    http::{StatusCode, request::Parts},
+    extract::{ConnectInfo, FromRequestParts, Request, State},
+    http::request::Parts,
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -19,11 +15,11 @@ use colette_core::{
     stream::StreamService, subscription::SubscriptionService,
     subscription_entry::SubscriptionEntryService, tag::TagService,
 };
-use torii::{SessionToken, Torii, ToriiError, User, UserId};
+use torii::{SessionToken, Torii, User, UserId};
 use url::Url;
 use uuid::Uuid;
 
-pub const SESSION_COOKIE: &str = "session_id";
+pub(crate) const SESSION_COOKIE: &str = "session_id";
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
@@ -41,13 +37,25 @@ pub struct ApiState {
     pub image_base_url: Url,
 }
 
+#[derive(axum::extract::FromRequestParts)]
+#[from_request(via(axum::extract::Path), rejection(ApiError))]
+pub(crate) struct Path<T>(pub(crate) T);
+
+#[derive(axum::extract::FromRequestParts)]
+#[from_request(via(axum_extra::extract::Query), rejection(ApiError))]
+pub(crate) struct Query<T>(pub(crate) T);
+
+#[derive(axum::extract::FromRequest)]
+#[from_request(via(axum::Json), rejection(ApiError))]
+pub(crate) struct Json<T>(pub(crate) T);
+
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[into_params(names("id"))]
-pub struct Id(pub Uuid);
+pub(crate) struct Id(pub(crate) Uuid);
 
 #[derive(Clone, Debug, Default, serde::Serialize, serde::Deserialize)]
 #[serde(try_from = "String", into = "String")]
-pub struct NonEmptyString(String);
+pub(crate) struct NonEmptyString(String);
 
 impl TryFrom<String> for NonEmptyString {
     type Error = ValidationError;
@@ -68,18 +76,18 @@ impl From<NonEmptyString> for String {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum ValidationError {
+pub(crate) enum ValidationError {
     #[error("cannot be empty")]
     Empty,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Paginated<T: utoipa::ToSchema> {
-    pub data: Vec<T>,
+pub(crate) struct Paginated<T: utoipa::ToSchema> {
+    pub(crate) data: Vec<T>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub cursor: Option<String>,
+    pub(crate) cursor: Option<String>,
 }
 
 impl<T, U> From<common::Paginated<U>> for Paginated<T>
@@ -95,12 +103,12 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct ConnectionInfo {
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
+pub(crate) struct ConnectionInfo {
+    pub(crate) ip_address: Option<String>,
+    pub(crate) user_agent: Option<String>,
 }
 
-pub async fn add_connection_info_extension(
+pub(crate) async fn add_connection_info_extension(
     user_agent: Option<TypedHeader<UserAgent>>,
     addr: ConnectInfo<SocketAddr>,
     mut request: Request,
@@ -114,12 +122,12 @@ pub async fn add_connection_info_extension(
     next.run(request).await
 }
 
-pub async fn add_user_extension(
+pub(crate) async fn add_user_extension(
     State(state): State<ApiState>,
     jar: CookieJar,
     mut req: Request,
     next: Next,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, ApiError> {
     req.extensions_mut().insert(None::<User>);
 
     let session_id = jar
@@ -132,11 +140,15 @@ pub async fn add_user_extension(
             .get_session(&SessionToken::new(&session_id))
             .await
         else {
-            return Err(StatusCode::UNAUTHORIZED);
+            tracing::debug!("session not found");
+
+            return Err(ApiError::unauthenticated());
         };
 
         let Ok(user) = state.auth.get_user(&session.user_id).await else {
-            return Err(StatusCode::UNAUTHORIZED);
+            tracing::debug!("user not found");
+
+            return Err(ApiError::unauthenticated());
         };
 
         req.extensions_mut().insert(user.clone());
@@ -148,15 +160,21 @@ pub async fn add_user_extension(
 
         if let Some(header) = header {
             let Ok(header) = header.to_str() else {
-                return Err(StatusCode::UNPROCESSABLE_ENTITY);
+                tracing::debug!("invalid header");
+
+                return Err(ApiError::unauthenticated());
             };
 
             let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
-                return Err(StatusCode::UNAUTHORIZED);
+                tracing::debug!("invalid API key");
+
+                return Err(ApiError::unauthenticated());
             };
 
             let Ok(user) = state.auth.get_user(&UserId::new(&api_key.user_id)).await else {
-                return Err(StatusCode::UNAUTHORIZED);
+                tracing::debug!("user not found");
+
+                return Err(ApiError::unauthenticated());
             };
 
             req.extensions_mut().insert(user.clone());
@@ -170,10 +188,10 @@ pub async fn add_user_extension(
 }
 
 #[derive(Debug, Clone)]
-pub struct AuthUser(pub String);
+pub(crate) struct AuthUser(pub(crate) String);
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
-    type Rejection = StatusCode;
+    type Rejection = ApiError;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
         parts
@@ -181,13 +199,17 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
             .get::<User>()
             .cloned()
             .map(|e| AuthUser(e.id.into_inner()))
-            .ok_or(StatusCode::UNAUTHORIZED)
+            .ok_or_else(|| {
+                tracing::debug!("failed to extract authenticated user");
+
+                ApiError::unauthenticated()
+            })
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum TextOp {
+pub(crate) enum TextOp {
     Equals(String),
     Contains(String),
     StartsWith(String),
@@ -218,7 +240,7 @@ impl From<filter::TextOp> for TextOp {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum NumberOp {
+pub(crate) enum NumberOp {
     Equals(f64),
     GreaterThan(f64),
     LessThan(f64),
@@ -252,7 +274,7 @@ impl From<filter::NumberOp> for NumberOp {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum BooleanOp {
+pub(crate) enum BooleanOp {
     Equals(bool),
 }
 
@@ -274,7 +296,7 @@ impl From<filter::BooleanOp> for BooleanOp {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum DateOp {
+pub(crate) enum DateOp {
     Before(DateTime<Utc>),
     After(DateTime<Utc>),
     Between {
@@ -311,76 +333,40 @@ impl From<filter::DateOp> for DateOp {
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[schema(title = "Error")]
-pub struct BaseError {
-    pub message: String,
+pub(crate) struct ApiError {
+    pub(crate) message: String,
 }
 
-impl IntoResponse for BaseError {
-    fn into_response(self) -> Response {
-        Json(self).into_response()
+impl<E: std::error::Error> From<E> for ApiError {
+    fn from(value: E) -> Self {
+        Self {
+            message: value.to_string(),
+        }
     }
 }
 
-#[derive(Debug, thiserror::Error)]
-pub enum Error {
-    #[error(transparent)]
-    QueryRejection(#[from] QueryRejection),
-
-    #[error(transparent)]
-    JsonRejection(#[from] JsonRejection),
-
-    #[error(transparent)]
-    Auth(#[from] ToriiError),
-
-    #[error(transparent)]
-    Unknown(#[from] CoreError),
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum CoreError {
-    #[error(transparent)]
-    ApiKey(#[from] colette_core::api_key::Error),
-
-    #[error(transparent)]
-    Bookmark(#[from] colette_core::bookmark::Error),
-
-    #[error(transparent)]
-    Collection(#[from] colette_core::collection::Error),
-
-    #[error(transparent)]
-    Feed(#[from] colette_core::feed::Error),
-
-    #[error(transparent)]
-    FeedEntry(#[from] colette_core::feed_entry::Error),
-
-    #[error(transparent)]
-    Stream(#[from] colette_core::stream::Error),
-
-    #[error(transparent)]
-    Subscription(#[from] colette_core::subscription::Error),
-
-    #[error(transparent)]
-    SubscriptionEntry(#[from] colette_core::subscription_entry::Error),
-
-    #[error(transparent)]
-    Tag(#[from] colette_core::tag::Error),
-}
-
-impl IntoResponse for Error {
-    fn into_response(self) -> Response {
-        let e = BaseError {
-            message: self.to_string(),
-        };
-
-        match self {
-            Error::QueryRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
-            Error::JsonRejection(_) => (StatusCode::BAD_REQUEST, e).into_response(),
-            Error::Auth(e) => (StatusCode::UNAUTHORIZED, e.to_string()).into_response(),
-            _ => {
-                tracing::error!("{:?}", self);
-
-                (StatusCode::INTERNAL_SERVER_ERROR, e).into_response()
-            }
+impl ApiError {
+    pub(crate) fn bad_credentials() -> Self {
+        Self {
+            message: "Bad credentials".into(),
         }
+    }
+
+    pub(crate) fn unauthenticated() -> Self {
+        Self {
+            message: "user not authenticated".into(),
+        }
+    }
+
+    pub(crate) fn unknown() -> Self {
+        Self {
+            message: "unknown error".into(),
+        }
+    }
+}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        axum::Json(self).into_response()
     }
 }

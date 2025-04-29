@@ -1,6 +1,5 @@
 use axum::{
-    Json,
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -10,7 +9,7 @@ use uuid::Uuid;
 use super::SUBSCRIPTIONS_TAG;
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, Id},
+    common::{ApiError, AuthUser, Id, Json, Path},
 };
 
 #[utoipa::path(
@@ -18,40 +17,36 @@ use crate::{
     path = "/{id}/linkTags",
     params(Id),
     request_body = LinkSubscriptionTags,
-    responses(LinkTagsResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "linkSubscriptionTags",
     description = "Link a list of tags to a subscription",
     tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<LinkSubscriptionTags>,
-) -> Result<LinkTagsResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
         .link_subscription_tags(id, body.into(), user_id)
         .await
     {
-        Ok(_) => Ok(LinkTagsResponse::NoContent),
+        Ok(_) => Ok(OkResponse),
         Err(e) => match e {
-            subscription::Error::Forbidden(_) => Ok(LinkTagsResponse::Forbidden(BaseError {
-                message: e.to_string(),
-            })),
-            subscription::Error::NotFound(_) => Ok(LinkTagsResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
+            subscription::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            subscription::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct LinkSubscriptionTags {
-    pub tag_ids: Vec<Uuid>,
+pub(super) struct LinkSubscriptionTags {
+    tag_ids: Vec<Uuid>,
 }
 
 impl From<LinkSubscriptionTags> for subscription::LinkSubscriptionTags {
@@ -62,29 +57,44 @@ impl From<LinkSubscriptionTags> for subscription::LinkSubscriptionTags {
     }
 }
 
-#[allow(dead_code, clippy::large_enum_variant)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum LinkTagsResponse {
-    #[response(status = 200, description = "Successfully linked tags")]
-    NoContent,
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully linked tags")]
+pub(super) struct OkResponse;
 
-    #[response(status = 403, description = "User not authorized")]
-    Forbidden(BaseError),
-
-    #[response(status = 404, description = "Subscription not found")]
-    NotFound(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        StatusCode::NO_CONTENT.into_response()
+    }
 }
 
-impl IntoResponse for LinkTagsResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
+    Forbidden(ApiError),
+
+    #[response(status = StatusCode::NOT_FOUND, description = "Subscription not found")]
+    NotFound(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

@@ -16,7 +16,7 @@ mod mark_subscription_entry_as_read;
 mod mark_subscription_entry_as_unread;
 mod update_subscription;
 
-pub const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
+const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(
@@ -27,10 +27,10 @@ pub const SUBSCRIPTIONS_TAG: &str = "Subscriptions";
     update_subscription::SubscriptionUpdate,
     link_subscription_tags::LinkSubscriptionTags
 )))]
-pub struct SubscriptionApi;
+pub(crate) struct SubscriptionApi;
 
 impl SubscriptionApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(SubscriptionApi::openapi())
             .routes(routes!(
                 list_subscriptions::handler,
@@ -51,29 +51,29 @@ impl SubscriptionApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Subscription {
-    pub id: Uuid,
-    pub title: String,
+struct Subscription {
+    id: Uuid,
+    title: String,
     #[schema(required)]
-    pub description: Option<String>,
-    pub feed_id: Uuid,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    description: Option<String>,
+    feed_id: Uuid,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionDetails {
-    pub subscription: Subscription,
+struct SubscriptionDetails {
+    subscription: Subscription,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub feed: Option<Feed>,
+    feed: Option<Feed>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tags: Option<Vec<Tag>>,
+    tags: Option<Vec<Tag>>,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub unread_count: Option<i64>,
+    unread_count: Option<i64>,
 }
 
 impl From<colette_core::Subscription> for Subscription {

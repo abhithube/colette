@@ -1,39 +1,39 @@
 use axum::{
     Json,
     extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axum_extra::extract::Query;
 use colette_core::bookmark;
 use uuid::Uuid;
 
 use super::{BOOKMARKS_TAG, BookmarkDetails};
 use crate::{
     ApiState,
-    common::{AuthUser, Error, Paginated},
+    common::{ApiError, AuthUser, Paginated, Query},
 };
 
 #[utoipa::path(
   get,
   path = "",
   params(BookmarkListQuery),
-  responses(ListResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "listBookmarks",
   description = "List user bookmarks",
   tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<BookmarkListQuery>,
     AuthUser(user_id): AuthUser,
-) -> Result<ListResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
         .list_bookmarks(query.into(), user_id)
         .await
     {
-        Ok(data) => Ok(ListResponse::Ok(Paginated {
+        Ok(data) => Ok(OkResponse(Paginated {
             data: data
                 .data
                 .into_iter()
@@ -41,25 +41,25 @@ pub async fn handler(
                 .collect(),
             cursor: data.cursor,
         })),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct BookmarkListQuery {
+pub(super) struct BookmarkListQuery {
     #[param(nullable = false)]
-    pub collection_id: Option<Uuid>,
+    collection_id: Option<Uuid>,
     #[param(nullable = false)]
-    pub filter_by_tags: Option<bool>,
+    filter_by_tags: Option<bool>,
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<Uuid>>,
+    tags: Option<Vec<Uuid>>,
     #[param(nullable = false)]
-    pub cursor: Option<String>,
+    cursor: Option<String>,
     #[serde(default = "with_tags")]
-    pub with_tags: bool,
+    with_tags: bool,
 }
 
 fn with_tags() -> bool {
@@ -81,16 +81,33 @@ impl From<BookmarkListQuery> for bookmark::BookmarkListQuery {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of bookmarks")]
-    Ok(Paginated<BookmarkDetails>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::OK, description = "Paginated list of bookmarks")]
+pub(super) struct OkResponse(Paginated<BookmarkDetails>);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ListResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

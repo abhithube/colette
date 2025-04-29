@@ -9,14 +9,14 @@ mod login_user;
 mod logout_user;
 mod register_user;
 
-pub const AUTH_TAG: &str = "Auth";
+const AUTH_TAG: &str = "Auth";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(register_user::Register, login_user::Login, User)))]
-pub struct AuthApi;
+pub(crate) struct AuthApi;
 
 impl AuthApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(AuthApi::openapi())
             .routes(routes!(register_user::handler))
             .routes(routes!(login_user::handler))
@@ -27,14 +27,14 @@ impl AuthApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct User {
-    pub id: String,
+struct User {
+    id: String,
     #[schema(format = "email")]
-    pub email: String,
-    pub verified_at: Option<DateTime<Utc>>,
-    pub name: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    email: String,
+    verified_at: Option<DateTime<Utc>>,
+    name: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl From<torii::User> for User {

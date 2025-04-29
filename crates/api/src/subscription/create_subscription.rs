@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -10,47 +9,45 @@ use uuid::Uuid;
 use super::{SUBSCRIPTIONS_TAG, Subscription};
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, NonEmptyString},
+    common::{ApiError, AuthUser, Json, NonEmptyString},
 };
 
 #[utoipa::path(
     post,
     path = "",
     request_body = SubscriptionCreate,
-    responses(CreateResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "createSubscription",
     description = "Subscribe to a web feed",
     tag = SUBSCRIPTIONS_TAG
   )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     AuthUser(user_id): AuthUser,
     Json(body): Json<SubscriptionCreate>,
-) -> Result<CreateResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
         .create_subscription(body.into(), user_id)
         .await
     {
-        Ok(data) => Ok(CreateResponse::Created(data.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
-            subscription::Error::Conflict(_) => Ok(CreateResponse::Conflict(BaseError {
-                message: e.to_string(),
-            })),
-            _ => Err(Error::Unknown(e.into())),
+            subscription::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionCreate {
+pub(super) struct SubscriptionCreate {
     #[schema(value_type = String, min_length = 1)]
-    pub title: NonEmptyString,
+    title: NonEmptyString,
     #[schema(value_type = Option<String>, min_length = 1)]
-    pub description: Option<NonEmptyString>,
-    pub feed_id: Uuid,
+    description: Option<NonEmptyString>,
+    feed_id: Uuid,
 }
 
 impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
@@ -63,25 +60,40 @@ impl From<SubscriptionCreate> for subscription::SubscriptionCreate {
     }
 }
 
-#[allow(dead_code, clippy::large_enum_variant)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum CreateResponse {
-    #[response(status = 201, description = "Created subscription")]
-    Created(Subscription),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Created subscription")]
+pub(super) struct OkResponse(Subscription);
 
-    #[response(status = 409, description = "Feed not cached")]
-    Conflict(BaseError),
-
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for CreateResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::CONFLICT, description = "Subscription already exists")]
+    Conflict(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Created(data) => (StatusCode::CREATED, Json(data)).into_response(),
-            Self::Conflict(data) => (StatusCode::CONFLICT, Json(data)).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
+            Self::Conflict(e) => (StatusCode::CONFLICT, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

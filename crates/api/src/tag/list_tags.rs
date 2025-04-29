@@ -1,6 +1,7 @@
 use axum::{
     Json,
-    extract::{Query, State},
+    extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
 use colette_core::tag;
@@ -8,40 +9,40 @@ use colette_core::tag;
 use super::{TAGS_TAG, TagDetails};
 use crate::{
     ApiState,
-    common::{AuthUser, Error, Paginated},
+    common::{ApiError, AuthUser, Paginated, Query},
 };
 
 #[utoipa::path(
     get,
     path = "",
     params(TagListQuery),
-    responses(ListResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "listTags",
     description = "List user tags",
     tag = TAGS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<TagListQuery>,
     AuthUser(user_id): AuthUser,
-) -> Result<ListResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.tag_service.list_tags(query.into(), user_id).await {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct TagListQuery {
+pub(super) struct TagListQuery {
     #[param(inline)]
-    pub tag_type: Option<TagType>,
+    tag_type: Option<TagType>,
     #[serde(default = "with_feed_count")]
-    pub with_feed_count: bool,
+    with_feed_count: bool,
     #[serde(default = "with_bookmark_count")]
-    pub with_bookmark_count: bool,
+    with_bookmark_count: bool,
 }
 
 fn with_feed_count() -> bool {
@@ -64,7 +65,7 @@ impl From<TagListQuery> for tag::TagListQuery {
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum TagType {
+pub(super) enum TagType {
     Bookmarks,
     Feeds,
 }
@@ -78,16 +79,33 @@ impl From<TagType> for tag::TagType {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of tags")]
-    Ok(Paginated<TagDetails>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::OK, description = "Paginated list of tags")]
+pub(super) struct OkResponse(Paginated<TagDetails>);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ListResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

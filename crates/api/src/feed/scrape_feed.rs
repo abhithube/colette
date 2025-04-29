@@ -1,5 +1,4 @@
 use axum::{
-    Json,
     extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -10,36 +9,34 @@ use url::Url;
 use super::{FEEDS_TAG, Feed};
 use crate::{
     ApiState,
-    common::{BaseError, Error},
+    common::{ApiError, Json},
 };
 
 #[utoipa::path(
     post,
     path = "/scrape",
     request_body = FeedScrape,
-    responses(ScrapeResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "scrapeFeed",
     description = "Scrape web feed",
     tag = FEEDS_TAG
   )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Json(body): Json<FeedScrape>,
-) -> Result<ScrapeResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.feed_service.refresh_feed(body.into()).await {
-        Ok(data) => Ok(ScrapeResponse::Ok(data.into())),
-        Err(feed::Error::Scraper(e)) => Ok(ScrapeResponse::BadGateway(BaseError {
-            message: e.to_string(),
-        })),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(feed::Error::Scraper(e)) => Err(ErrResponse::BadGateway(e.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct FeedScrape {
-    pub url: Url,
+pub(super) struct FeedScrape {
+    url: Url,
 }
 
 impl From<FeedScrape> for feed::FeedRefresh {
@@ -48,26 +45,40 @@ impl From<FeedScrape> for feed::FeedRefresh {
     }
 }
 
-#[allow(dead_code)]
-#[allow(clippy::large_enum_variant)]
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ScrapeResponse {
-    #[response(status = 200, description = "Scraped feed")]
-    Ok(Feed),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::CREATED, description = "Scraped feed")]
+pub(super) struct OkResponse(Feed);
 
-    #[response(status = 422, description = "Invalid input")]
-    UnprocessableEntity(BaseError),
-
-    #[response(status = 502, description = "Failed to fetch or parse feed")]
-    BadGateway(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::CREATED, axum::Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ScrapeResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::UNPROCESSABLE_ENTITY, description = "Invalid input")]
+    UnprocessableEntity(ApiError),
+
+    #[response(status = StatusCode::BAD_GATEWAY, description = "Failed to fetch data")]
+    BadGateway(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
-            Self::UnprocessableEntity(e) => (StatusCode::UNPROCESSABLE_ENTITY, e).into_response(),
             Self::BadGateway(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

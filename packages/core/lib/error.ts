@@ -1,11 +1,13 @@
-export class APIError extends Error {}
+export class ServerError extends Error {}
 
-export class UnauthorizedError extends APIError {}
+export class UnauthorizedError extends ServerError {}
 
-export class NotFoundError extends APIError {}
+export class ForbiddenError extends ServerError {}
 
-export class ConflictError extends APIError {}
+export class NotFoundError extends ServerError {}
 
-export class UnprocessableContentError extends APIError {}
+export class ConflictError extends ServerError {}
 
-export class BadGatewayError extends APIError {}
+export class UnprocessableContentError extends ServerError {}
+
+export class BadGatewayError extends ServerError {}

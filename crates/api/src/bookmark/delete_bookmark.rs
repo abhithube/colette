@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -8,56 +8,69 @@ use colette_core::bookmark;
 use super::BOOKMARKS_TAG;
 use crate::{
     ApiState,
-    common::{AuthUser, BaseError, Error, Id},
+    common::{ApiError, AuthUser, Id, Path},
 };
 
 #[utoipa::path(
   delete,
   path = "/{id}",
   params(Id),
-  responses(DeleteResponse),
+  responses(OkResponse, ErrResponse),
   operation_id = "deleteBookmark",
   description = "Delete a bookmark by ID",
   tag = BOOKMARKS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     AuthUser(user_id): AuthUser,
-) -> Result<DeleteResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state.bookmark_service.delete_bookmark(id, user_id).await {
-        Ok(()) => Ok(DeleteResponse::NoContent),
+        Ok(()) => Ok(OkResponse),
         Err(e) => match e {
-            bookmark::Error::Forbidden(_) => Ok(DeleteResponse::Forbidden(BaseError {
-                message: e.to_string(),
-            })),
-            bookmark::Error::NotFound(_) => Ok(DeleteResponse::NotFound(BaseError {
-                message: e.to_string(),
-            })),
-            e => Err(Error::Unknown(e.into())),
+            bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
+            bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),
+            _ => Err(ErrResponse::InternalServerError(e.into())),
         },
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum DeleteResponse {
-    #[response(status = 204, description = "Successfully deleted bookmark")]
-    NoContent,
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::NO_CONTENT, description = "Successfully deleted bookmark")]
+pub(super) struct OkResponse;
 
-    #[response(status = 403, description = "User not authorized")]
-    Forbidden(BaseError),
-
-    #[response(status = 404, description = "Bookmark not found")]
-    NotFound(BaseError),
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        StatusCode::NO_CONTENT.into_response()
+    }
 }
 
-impl IntoResponse for DeleteResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = StatusCode::FORBIDDEN, description = "User not authorized")]
+    Forbidden(ApiError),
+
+    #[response(status = StatusCode::NOT_FOUND, description = "Bookmark not found")]
+    NotFound(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::NoContent => StatusCode::NO_CONTENT.into_response(),
             Self::Forbidden(e) => (StatusCode::FORBIDDEN, e).into_response(),
             Self::NotFound(e) => (StatusCode::NOT_FOUND, e).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }

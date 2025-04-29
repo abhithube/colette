@@ -11,7 +11,7 @@ use bookmark::BookmarkApi;
 use collection::CollectionApi;
 pub use common::ApiState;
 use common::{
-    BaseError, BooleanOp, DateOp, TextOp, add_connection_info_extension, add_user_extension,
+    ApiError, BooleanOp, DateOp, TextOp, add_connection_info_extension, add_user_extension,
 };
 use feed::FeedApi;
 use feed_entry::FeedEntryApi;
@@ -37,7 +37,7 @@ mod subscription_entry;
 mod tag;
 
 #[derive(utoipa::OpenApi)]
-#[openapi(components(schemas(BaseError, TextOp, BooleanOp, DateOp)))]
+#[openapi(components(schemas(ApiError, TextOp, BooleanOp, DateOp)))]
 struct ApiDoc;
 
 pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {

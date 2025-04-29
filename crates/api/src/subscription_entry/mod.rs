@@ -12,14 +12,14 @@ use super::{
 
 mod list_subscription_entries;
 
-pub const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
+const SUBSCRIPTION_ENTRIES_TAG: &str = "Subscription Entries";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(SubscriptionEntry, SubscriptionEntryDetails, Paginated<SubscriptionEntryDetails>, SubscriptionEntryFilter, SubscriptionEntryTextField, SubscriptionEntryBooleanField, SubscriptionEntryDateField)))]
-pub struct SubscriptionEntryApi;
+pub(crate) struct SubscriptionEntryApi;
 
 impl SubscriptionEntryApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(SubscriptionEntryApi::openapi())
             .routes(routes!(list_subscription_entries::handler))
     }
@@ -27,20 +27,20 @@ impl SubscriptionEntryApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionEntry {
-    pub subscription_id: Uuid,
-    pub feed_entry_id: Uuid,
-    pub has_read: bool,
-    pub read_at: Option<DateTime<Utc>>,
+pub(crate) struct SubscriptionEntry {
+    subscription_id: Uuid,
+    feed_entry_id: Uuid,
+    has_read: bool,
+    read_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionEntryDetails {
-    pub subscription_entry: SubscriptionEntry,
+struct SubscriptionEntryDetails {
+    subscription_entry: SubscriptionEntry,
     #[schema(nullable = false)]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub feed_entry: Option<FeedEntry>,
+    feed_entry: Option<FeedEntry>,
 }
 
 impl From<colette_core::SubscriptionEntry> for SubscriptionEntry {
@@ -68,7 +68,7 @@ impl From<colette_core::SubscriptionEntry> for SubscriptionEntryDetails {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 #[schema(no_recursion)]
-pub enum SubscriptionEntryFilter {
+pub(crate) enum SubscriptionEntryFilter {
     Text {
         field: SubscriptionEntryTextField,
         op: TextOp,
@@ -143,7 +143,7 @@ impl From<subscription_entry::SubscriptionEntryFilter> for SubscriptionEntryFilt
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum SubscriptionEntryTextField {
+pub(crate) enum SubscriptionEntryTextField {
     Link,
     Title,
     Description,
@@ -177,7 +177,7 @@ impl From<subscription_entry::SubscriptionEntryTextField> for SubscriptionEntryT
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum SubscriptionEntryBooleanField {
+pub(crate) enum SubscriptionEntryBooleanField {
     HasRead,
 }
 
@@ -200,7 +200,7 @@ impl From<subscription_entry::SubscriptionEntryBooleanField> for SubscriptionEnt
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub enum SubscriptionEntryDateField {
+pub(crate) enum SubscriptionEntryDateField {
     PublishedAt,
 }
 

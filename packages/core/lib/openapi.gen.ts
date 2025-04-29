@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export type ApiError = z.infer<typeof ApiError>;
+export const ApiError = z.object({
+  message: z.string(),
+});
+
 export type ApiKey = z.infer<typeof ApiKey>;
 export const ApiKey = z.object({
   id: z.string(),
@@ -25,11 +30,6 @@ export const ApiKeyCreated = z.object({
 export type ApiKeyUpdate = z.infer<typeof ApiKeyUpdate>;
 export const ApiKeyUpdate = z.object({
   title: z.string().optional(),
-});
-
-export type BaseError = z.infer<typeof BaseError>;
-export const BaseError = z.object({
-  message: z.string(),
 });
 
 export type Bookmark = z.infer<typeof Bookmark>;

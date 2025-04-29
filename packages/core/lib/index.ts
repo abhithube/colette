@@ -6,7 +6,7 @@ export * from './error'
 export * from './feed'
 export * from './feed-entry'
 export {
-  BaseError,
+  ApiError,
   Bookmark,
   BookmarkCreate,
   BookmarkDetails,

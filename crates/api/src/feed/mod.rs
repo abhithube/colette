@@ -9,14 +9,14 @@ use super::ApiState;
 mod detect_feeds;
 mod scrape_feed;
 
-pub const FEEDS_TAG: &str = "Feeds";
+const FEEDS_TAG: &str = "Feeds";
 
 #[derive(OpenApi)]
 #[openapi(components(schemas(Feed, detect_feeds::FeedDetect, detect_feeds::FeedDetected)))]
-pub struct FeedApi;
+pub(crate) struct FeedApi;
 
 impl FeedApi {
-    pub fn router() -> OpenApiRouter<ApiState> {
+    pub(crate) fn router() -> OpenApiRouter<ApiState> {
         OpenApiRouter::with_openapi(FeedApi::openapi())
             .routes(routes!(detect_feeds::handler))
             .routes(routes!(scrape_feed::handler))
@@ -25,16 +25,16 @@ impl FeedApi {
 
 #[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
-pub struct Feed {
-    pub id: Uuid,
-    pub source_url: Url,
-    pub link: Url,
-    pub title: String,
+pub(crate) struct Feed {
+    id: Uuid,
+    source_url: Url,
+    link: Url,
+    title: String,
     #[schema(required)]
-    pub description: Option<String>,
+    description: Option<String>,
     #[schema(required)]
-    pub refreshed_at: Option<DateTime<Utc>>,
-    pub is_custom: bool,
+    refreshed_at: Option<DateTime<Utc>>,
+    is_custom: bool,
 }
 
 impl From<colette_core::Feed> for Feed {

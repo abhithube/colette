@@ -1,58 +1,58 @@
 use axum::{
     Json,
     extract::State,
+    http::StatusCode,
     response::{IntoResponse, Response},
 };
-use axum_extra::extract::Query;
 use colette_core::subscription;
 use uuid::Uuid;
 
 use super::{SUBSCRIPTIONS_TAG, SubscriptionDetails};
 use crate::{
     ApiState,
-    common::{AuthUser, Error, Paginated},
+    common::{ApiError, AuthUser, Paginated, Query},
 };
 
 #[utoipa::path(
     get,
     path = "",
     params(SubscriptionListQuery),
-    responses(ListResponse),
+    responses(OkResponse, ErrResponse),
     operation_id = "listSubscriptions",
     description = "List user subscriptions",
     tag = SUBSCRIPTIONS_TAG
 )]
 #[axum::debug_handler]
-pub async fn handler(
+pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<SubscriptionListQuery>,
     AuthUser(user_id): AuthUser,
-) -> Result<ListResponse, Error> {
+) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
         .list_subscriptions(query.into(), user_id)
         .await
     {
-        Ok(data) => Ok(ListResponse::Ok(data.into())),
-        Err(e) => Err(Error::Unknown(e.into())),
+        Ok(data) => Ok(OkResponse(data.into())),
+        Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, utoipa::IntoParams)]
 #[serde(rename_all = "camelCase")]
 #[into_params(parameter_in = Query)]
-pub struct SubscriptionListQuery {
+pub(super) struct SubscriptionListQuery {
     #[param(nullable = false)]
-    pub filter_by_tags: Option<bool>,
+    filter_by_tags: Option<bool>,
     #[param(nullable = false)]
     #[serde(rename = "tag[]")]
-    pub tags: Option<Vec<Uuid>>,
+    tags: Option<Vec<Uuid>>,
     #[serde(default = "with_feed")]
-    pub with_feed: bool,
+    with_feed: bool,
     #[serde(default = "with_unread_count")]
-    pub with_unread_count: bool,
+    with_unread_count: bool,
     #[serde(default = "with_tags")]
-    pub with_tags: bool,
+    with_tags: bool,
 }
 
 fn with_feed() -> bool {
@@ -82,16 +82,33 @@ impl From<SubscriptionListQuery> for subscription::SubscriptionListQuery {
     }
 }
 
-#[derive(Debug, utoipa::IntoResponses)]
-pub enum ListResponse {
-    #[response(status = 200, description = "Paginated list of subscriptions")]
-    Ok(Paginated<SubscriptionDetails>),
+#[derive(utoipa::IntoResponses)]
+#[response(status = StatusCode::OK, description = "Paginated list of subscriptions")]
+pub(super) struct OkResponse(Paginated<SubscriptionDetails>);
+
+impl IntoResponse for OkResponse {
+    fn into_response(self) -> Response {
+        (StatusCode::OK, Json(self.0)).into_response()
+    }
 }
 
-impl IntoResponse for ListResponse {
+#[allow(dead_code)]
+#[derive(utoipa::IntoResponses)]
+pub(super) enum ErrResponse {
+    #[response(status = StatusCode::UNAUTHORIZED, description = "User not authenticated")]
+    Unauthorized(ApiError),
+
+    #[response(status = "default", description = "Unknown error")]
+    InternalServerError(ApiError),
+}
+
+impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
-            Self::Ok(data) => Json(data).into_response(),
+            Self::InternalServerError(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()
+            }
+            _ => unreachable!(),
         }
     }
 }
