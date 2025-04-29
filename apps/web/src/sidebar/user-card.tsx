@@ -1,21 +1,27 @@
-import type { User as AppUser } from '@colette/core'
 import { useLogoutUserMutation } from '@colette/query'
 import { Menu, Sidebar } from '@colette/ui'
+import { getRouteApi } from '@tanstack/react-router'
 import { ChevronsUpDown, User } from 'lucide-react'
-import { navigate } from 'wouter/use-browser-location'
 
-export const UserCard = (props: { user: AppUser }) => {
-  const logoutUser = useLogoutUserMutation()
+const routeApi = getRouteApi('/layout')
+
+export const UserCard = () => {
+  const context = routeApi.useRouteContext()
+  const navigate = routeApi.useNavigate()
+
+  const logoutUser = useLogoutUserMutation(context.api)
 
   function onLogout() {
     logoutUser.mutate(undefined, {
-      onSuccess: () =>
-        navigate('/login', {
+      onSuccess: () => {
+        navigate({
+          to: '/login',
           state: {
             loggedOut: true,
           },
           replace: true,
-        }),
+        })
+      },
     })
   }
 
@@ -32,7 +38,7 @@ export const UserCard = (props: { user: AppUser }) => {
                 <User className="size-4" />
               </div>
               <span className="font-semibold">
-                {props.user.email.split('@')[0]}
+                {context.user.email.split('@')[0]}
               </span>
               <ChevronsUpDown className="ml-auto" />
             </Sidebar.MenuButton>

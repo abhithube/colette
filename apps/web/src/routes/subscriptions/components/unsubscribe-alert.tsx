@@ -1,16 +1,23 @@
 import type { Subscription } from '@colette/core'
 import { useDeleteSubscriptionMutation } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useParams } from 'wouter'
-import { navigate } from 'wouter/use-browser-location'
+import { getRouteApi, useParams } from '@tanstack/react-router'
+
+const routeApi = getRouteApi('/layout')
 
 export const UnsubscribeAlert = (props: {
   subscription: Subscription
   close: () => void
 }) => {
-  const params = useParams<{ id?: string }>()
+  const context = routeApi.useRouteContext()
+  const navigate = routeApi.useNavigate()
+
+  const params = useParams({
+    strict: false,
+  })
 
   const deleteSubscription = useDeleteSubscriptionMutation(
+    context.api,
     props.subscription.id,
   )
 
@@ -19,8 +26,10 @@ export const UnsubscribeAlert = (props: {
       onSuccess: () => {
         props.close()
 
-        if (params.id === props.subscription.id) {
-          navigate('/feeds')
+        if (params.subscriptionId === props.subscription.id) {
+          navigate({
+            to: '/subscriptions',
+          })
         }
       },
     })

@@ -1,13 +1,15 @@
 import { CollectionItem } from './collection-item'
 import { listCollectionsOptions } from '@colette/query'
 import { Sidebar } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
+
+const routeApi = getRouteApi('/layout')
 
 export const CollectionList = () => {
-  const api = useAPI()
+  const context = routeApi.useRouteContext()
 
-  const query = useQuery(listCollectionsOptions(api))
+  const query = useQuery(listCollectionsOptions(context.api))
 
   if (query.isLoading || !query.data) return
 

@@ -2,13 +2,18 @@ import { Bookmark } from '@colette/core'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { z } from 'zod'
+
+const routeApi = getRouteApi('/layout/stash')
 
 export const EditBookmarkModal = (props: {
   bookmark: Bookmark
   close: () => void
 }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       title: props.bookmark.title,
@@ -47,7 +52,10 @@ export const EditBookmarkModal = (props: {
     },
   })
 
-  const updateBookmark = useUpdateBookmarkMutation(props.bookmark.id)
+  const updateBookmark = useUpdateBookmarkMutation(
+    context.api,
+    props.bookmark.id,
+  )
 
   useEffect(() => {
     form.reset()

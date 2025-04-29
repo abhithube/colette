@@ -1,26 +1,29 @@
 import { BookmarkGrid } from '../bookmarks/components/bookmark-grid'
 import { getCollectionOptions, listBookmarksOptions } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useEffect } from 'react'
-import { useParams } from 'wouter'
+
+const routeApi = getRouteApi('/layout/collections/$collectionId')
 
 export const CollectionPage = () => {
-  const api = useAPI()
-  const { id } = useParams<{ id: string }>()
+  const context = routeApi.useRouteContext()
+  const params = routeApi.useParams()
 
-  const collectionQuery = useQuery(getCollectionOptions(api, id))
+  const collectionQuery = useQuery(
+    getCollectionOptions(context.api, params.collectionId),
+  )
   const bookmarksQuery = useInfiniteQuery(
-    listBookmarksOptions(api, {
-      collectionId: id,
+    listBookmarksOptions(context.api, {
+      collectionId: params.collectionId,
     }),
   )
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [id])
+  }, [params.collectionId])
 
   if (!collectionQuery.data) return
 

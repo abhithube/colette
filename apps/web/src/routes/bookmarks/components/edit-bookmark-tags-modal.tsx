@@ -2,13 +2,18 @@ import type { BookmarkDetails } from '@colette/core'
 import { useLinkBookmarkTagsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { TagsInput } from '~/components/tags-input'
+
+const routeApi = getRouteApi('/layout/stash')
 
 export const EditBookmarkTagsModal = (props: {
   details: BookmarkDetails
   close: () => void
 }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       tags: props.details.tags?.map((tag) => tag.id) ?? [],
@@ -46,6 +51,7 @@ export const EditBookmarkTagsModal = (props: {
   })
 
   const linkBookmarkTags = useLinkBookmarkTagsMutation(
+    context.api,
     props.details.bookmark.id,
   )
 
@@ -77,6 +83,7 @@ export const EditBookmarkTagsModal = (props: {
               <Field.Root invalid={field.state.meta.errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
+                  api={context.api}
                   state={field.state}
                   handleChange={field.handleChange}
                 />

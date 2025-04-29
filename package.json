@@ -5,11 +5,13 @@
     "apps/web",
     "packages/core",
     "packages/query",
+    "packages/router",
     "packages/util",
     "packages/ui"
   ],
   "dependencies": {
     "@tanstack/react-query": "^5.66.3",
+    "@tanstack/react-router": "^1.117.1",
     "react": "^19.0.0",
     "react-dom": "^19.1.0",
     "zod": "^3.24.1"

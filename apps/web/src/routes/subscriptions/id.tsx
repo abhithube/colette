@@ -6,26 +6,31 @@ import {
   listSubscriptionEntriesOptions,
 } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { ExternalLink, ListChecks, Pencil, Trash2 } from 'lucide-react'
 import { useEffect } from 'react'
-import { useParams } from 'wouter'
+
+const routeApi = getRouteApi('/layout/subscriptions/$subscriptionId')
 
 export const SubscriptionPage = () => {
-  const api = useAPI()
-  const { id } = useParams<{ id: string }>()
+  const context = routeApi.useRouteContext()
+  const params = routeApi.useParams()
 
   const subscriptionQuery = useQuery(
-    getSubscriptionOptions(api, id, { withFeed: true }),
+    getSubscriptionOptions(context.api, params.subscriptionId, {
+      withFeed: true,
+    }),
   )
   const entriesQuery = useInfiniteQuery(
-    listSubscriptionEntriesOptions(api, { subscriptionId: id }),
+    listSubscriptionEntriesOptions(context.api, {
+      subscriptionId: params.subscriptionId,
+    }),
   )
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [id])
+  }, [params.subscriptionId])
 
   if (
     subscriptionQuery.isLoading ||

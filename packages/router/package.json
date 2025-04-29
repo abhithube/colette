@@ -1,0 +1,23 @@
+{
+  "name": "@colette/router",
+  "type": "module",
+  "module": "./lib/index.ts",
+  "exports": [
+    "./lib/index.ts"
+  ],
+  "dependencies": {
+    "@colette/core": "*",
+    "@colette/query": "*",
+    "@tanstack/react-query": "*",
+    "@tanstack/react-router": "*",
+    "@tanstack/zod-adapter": "^1.117.1",
+    "react": "*",
+    "react-dom": "*",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "typescript": "*"
+  }
+}

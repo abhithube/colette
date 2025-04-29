@@ -1,17 +1,18 @@
 import { useLoginUserMutation } from '@colette/query'
 import { Alert, Card, Button, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi, Link, useRouter } from '@tanstack/react-router'
 import { UserCheck, UserX } from 'lucide-react'
-import { Link, useSearchParams } from 'wouter'
-import { navigate, useHistoryState } from 'wouter/use-browser-location'
 import { z } from 'zod'
 
+const routeApi = getRouteApi('/login')
+
 export const LoginForm = () => {
-  const [searchParams] = useSearchParams()
-  const history = useHistoryState<{
-    registered?: boolean
-    loggedOut?: boolean
-  }>()
+  const router = useRouter()
+
+  const context = routeApi.useRouteContext()
+  const search = routeApi.useSearch()
+  const navigate = routeApi.useNavigate()
 
   const form = useForm({
     defaultValues: {
@@ -19,7 +20,7 @@ export const LoginForm = () => {
       password: '',
     },
     onSubmit: ({ value }) => {
-      navigate('', {
+      navigate({
         replace: true,
         state: {},
       })
@@ -28,9 +29,11 @@ export const LoginForm = () => {
         onSuccess: () => {
           form.reset()
 
-          const redirect = searchParams.get('redirect')
-          if (redirect) {
-            navigate(redirect, {
+          if (search.from) {
+            router.history.replace(search.from)
+          } else {
+            navigate({
+              to: '/',
               replace: true,
             })
           }
@@ -39,18 +42,18 @@ export const LoginForm = () => {
     },
   })
 
-  const loginUser = useLoginUserMutation()
+  const loginUser = useLoginUserMutation(context.api)
 
   return (
     <>
-      {history?.registered && (
+      {router.state.location.state.registered && (
         <Alert.Root className="mb-4">
           <UserCheck />
           <Alert.Title>Registered!</Alert.Title>
           <Alert.Description>Your account has been created.</Alert.Description>
         </Alert.Root>
       )}
-      {history?.loggedOut && (
+      {router.state.location.state.loggedOut && (
         <Alert.Root className="mb-4">
           <UserCheck />
           <Alert.Title>Logged out</Alert.Title>
@@ -138,7 +141,11 @@ export const LoginForm = () => {
           </Button>
           <div className="self-center text-sm">
             {"Don't have an account? "}
-            <Link className="underline underline-offset-4" to="/register">
+            <Link
+              className="underline underline-offset-4"
+              from="/login"
+              to="/register"
+            >
               Sign up
             </Link>
           </div>

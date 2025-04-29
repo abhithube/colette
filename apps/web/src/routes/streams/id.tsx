@@ -4,26 +4,27 @@ import {
   listSubscriptionEntriesOptions,
 } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { Pencil, Trash2 } from 'lucide-react'
 import { useEffect } from 'react'
-import { useParams } from 'wouter'
+
+const routeApi = getRouteApi('/layout/streams/$streamId')
 
 export const StreamPage = () => {
-  const api = useAPI()
-  const { id } = useParams<{ id: string }>()
+  const context = routeApi.useRouteContext()
+  const params = routeApi.useParams()
 
-  const streamQuery = useQuery(getStreamOptions(api, id))
+  const streamQuery = useQuery(getStreamOptions(context.api, params.streamId))
   const entriesQuery = useInfiniteQuery(
-    listSubscriptionEntriesOptions(api, {
-      streamId: id,
+    listSubscriptionEntriesOptions(context.api, {
+      streamId: params.streamId,
     }),
   )
 
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [id])
+  }, [params.streamId])
 
   if (
     streamQuery.isLoading ||

@@ -2,13 +2,18 @@ import type { Subscription } from '@colette/core'
 import { useUpdateSubscriptionMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { z } from 'zod'
+
+const routeApi = getRouteApi('/layout/subscriptions/')
 
 export const EditSubscriptionModal = (props: {
   subscription: Subscription
   close: () => void
 }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       title: props.subscription.title,
@@ -42,6 +47,7 @@ export const EditSubscriptionModal = (props: {
   })
 
   const updateSubscription = useUpdateSubscriptionMutation(
+    context.api,
     props.subscription.id,
   )
 

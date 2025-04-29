@@ -2,12 +2,17 @@ import type { Feed, FeedDetected } from '@colette/core'
 import { useScrapeFeedMutation } from '@colette/query'
 import { Field, RadioGroup, Favicon } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
+
+const routeApi = getRouteApi('/layout/subscriptions/')
 
 export const SelectStep = (props: {
   formId: string
   feeds: FeedDetected[]
   onNext: (feed: Feed) => void
 }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       url: props.feeds[0].url,
@@ -21,7 +26,7 @@ export const SelectStep = (props: {
       }),
   })
 
-  const scrape = useScrapeFeedMutation()
+  const scrape = useScrapeFeedMutation(context.api)
 
   return (
     <form

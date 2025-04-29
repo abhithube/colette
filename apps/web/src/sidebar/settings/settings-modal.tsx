@@ -1,8 +1,13 @@
 import { useImportSubscriptionsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
+
+const routeApi = getRouteApi('/layout/')
 
 export const SettingsModal = (props: { close: () => void }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       file: undefined as unknown as File,
@@ -16,7 +21,7 @@ export const SettingsModal = (props: { close: () => void }) => {
       }),
   })
 
-  const importSubscriptions = useImportSubscriptionsMutation()
+  const importSubscriptions = useImportSubscriptionsMutation(context.api)
 
   return (
     <Dialog.Content>

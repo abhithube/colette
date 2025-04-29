@@ -1,12 +1,16 @@
 import { useRegisterUserMutation } from '@colette/query'
 import { Alert, Button, Card, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi, Link } from '@tanstack/react-router'
 import { UserX } from 'lucide-react'
-import { Link } from 'wouter'
-import { navigate } from 'wouter/use-browser-location'
 import { z } from 'zod'
 
+const routeApi = getRouteApi('/register')
+
 export const RegisterForm = () => {
+  const context = routeApi.useRouteContext()
+  const navigate = routeApi.useNavigate()
+
   const form = useForm({
     defaultValues: {
       email: '',
@@ -23,7 +27,8 @@ export const RegisterForm = () => {
           onSuccess: () => {
             form.reset()
 
-            navigate('/login', {
+            navigate({
+              to: '/login',
               state: {
                 registered: true,
               },
@@ -33,7 +38,7 @@ export const RegisterForm = () => {
       ),
   })
 
-  const registerUser = useRegisterUserMutation()
+  const registerUser = useRegisterUserMutation(context.api)
 
   return (
     <>
@@ -144,7 +149,11 @@ export const RegisterForm = () => {
           </Button>
           <div className="self-center text-sm">
             Already have an account?{' '}
-            <Link className="underline underline-offset-4" to="/login">
+            <Link
+              className="underline underline-offset-4"
+              from="/register"
+              to="/login"
+            >
               Sign in
             </Link>
           </div>

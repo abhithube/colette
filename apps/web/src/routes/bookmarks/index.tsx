@@ -2,15 +2,17 @@ import { BookmarkGrid } from './components/bookmark-grid'
 import { CreateBookmarkModal } from './components/create-form/create-bookmark-modal'
 import { listBookmarksOptions } from '@colette/query'
 import { Button, Dialog } from '@colette/ui'
-import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useEffect } from 'react'
 
-export const StashPage = () => {
-  const api = useAPI()
+const routeApi = getRouteApi('/layout/stash')
 
-  const query = useInfiniteQuery(listBookmarksOptions(api))
+export const StashPage = () => {
+  const context = routeApi.useRouteContext()
+
+  const query = useInfiniteQuery(listBookmarksOptions(context.api))
 
   useEffect(() => {
     window.scrollTo(0, 0)

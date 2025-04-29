@@ -1,12 +1,11 @@
 import { CollectionsSection } from './collections/collections-section'
 import { StreamsSection } from './streams/streams-section'
 import { UserCard } from './user-card'
-import type { User } from '@colette/core'
 import { Sidebar } from '@colette/ui'
+import { Link } from '@tanstack/react-router'
 import { Archive, Home, Rss } from 'lucide-react'
-import { Link } from 'wouter'
 
-export const AppSidebar = (props: { user: User }) => {
+export const AppSidebar = () => {
   return (
     <Sidebar.Root>
       <Sidebar.Header>
@@ -48,7 +47,7 @@ export const AppSidebar = (props: { user: User }) => {
       </Sidebar.Content>
       <Sidebar.Rail />
       <Sidebar.Footer>
-        <UserCard user={props.user} />
+        <UserCard />
       </Sidebar.Footer>
     </Sidebar.Root>
   )

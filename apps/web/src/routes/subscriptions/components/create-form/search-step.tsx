@@ -2,12 +2,17 @@ import type { FeedDetected } from '@colette/core'
 import { useDetectFeedsMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
+import { getRouteApi } from '@tanstack/react-router'
 import { z } from 'zod'
+
+const routeApi = getRouteApi('/layout/subscriptions/')
 
 export const SearchStep = (props: {
   formId: string
   onNext: (detected: FeedDetected[]) => void
 }) => {
+  const context = routeApi.useRouteContext()
+
   const form = useForm({
     defaultValues: {
       url: '',
@@ -21,7 +26,7 @@ export const SearchStep = (props: {
       }),
   })
 
-  const detectFeeds = useDetectFeedsMutation()
+  const detectFeeds = useDetectFeedsMutation(context.api)
 
   return (
     <form

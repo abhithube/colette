@@ -5,7 +5,6 @@ import type {
   TagListQuery,
   TagUpdate,
 } from '@colette/core'
-import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -26,8 +25,7 @@ export const getTagOptions = (api: API, id: string, query: TagGetQuery = {}) =>
     queryFn: () => api.tags.getTag(id, query),
   })
 
-export const useCreateTagMutation = () => {
-  const api = useAPI()
+export const useCreateTagMutation = (api: API) => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -40,8 +38,7 @@ export const useCreateTagMutation = () => {
   })
 }
 
-export const useUpdateTagMutation = (id: string) => {
-  const api = useAPI()
+export const useUpdateTagMutation = (api: API, id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -54,8 +51,7 @@ export const useUpdateTagMutation = (id: string) => {
   })
 }
 
-export const useDeleteTagMutation = (id: string) => {
-  const api = useAPI()
+export const useDeleteTagMutation = (api: API, id: string) => {
   const queryClient = useQueryClient()
 
   return useMutation({
