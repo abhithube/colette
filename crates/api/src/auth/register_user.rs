@@ -9,7 +9,7 @@ use torii::ToriiError;
 use super::{AUTH_TAG, User};
 use crate::{
     ApiState,
-    common::{ApiError, Json, NonEmptyString},
+    common::{ApiError, ApiErrorCode, Json, NonEmptyString},
 };
 
 #[utoipa::path(
@@ -32,7 +32,10 @@ pub(super) async fn handler(
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),
-        Err(ToriiError::AuthError(message)) => Err(ErrResponse::Conflict(ApiError { message })),
+        Err(ToriiError::AuthError(message)) => Err(ErrResponse::Conflict(ApiError {
+            code: ApiErrorCode::NotAuthenticated,
+            message,
+        })),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }

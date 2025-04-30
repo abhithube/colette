@@ -2,7 +2,7 @@ use std::{net::SocketAddr, ops::Range, sync::Arc};
 
 use axum::{
     extract::{ConnectInfo, FromRequestParts, Request, State},
-    http::request::Parts,
+    http::{StatusCode, request::Parts},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -142,13 +142,13 @@ pub(crate) async fn add_user_extension(
         else {
             tracing::debug!("session not found");
 
-            return Err(ApiError::unauthenticated());
+            return Err(ApiError::not_authenticated());
         };
 
         let Ok(user) = state.auth.get_user(&session.user_id).await else {
             tracing::debug!("user not found");
 
-            return Err(ApiError::unauthenticated());
+            return Err(ApiError::not_authenticated());
         };
 
         req.extensions_mut().insert(user.clone());
@@ -162,19 +162,19 @@ pub(crate) async fn add_user_extension(
             let Ok(header) = header.to_str() else {
                 tracing::debug!("invalid header");
 
-                return Err(ApiError::unauthenticated());
+                return Err(ApiError::not_authenticated());
             };
 
             let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
                 tracing::debug!("invalid API key");
 
-                return Err(ApiError::unauthenticated());
+                return Err(ApiError::not_authenticated());
             };
 
             let Ok(user) = state.auth.get_user(&UserId::new(&api_key.user_id)).await else {
                 tracing::debug!("user not found");
 
-                return Err(ApiError::unauthenticated());
+                return Err(ApiError::not_authenticated());
             };
 
             req.extensions_mut().insert(user.clone());
@@ -202,7 +202,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
             .ok_or_else(|| {
                 tracing::debug!("failed to extract authenticated user");
 
-                ApiError::unauthenticated()
+                ApiError::not_authenticated()
             })
     }
 }
@@ -332,14 +332,28 @@ impl From<filter::DateOp> for DateOp {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub(crate) enum ApiErrorCode {
+    NotAuthenticated,
+    NotAuthorized,
+    NotFound,
+    AlreadyExists,
+    Validation,
+    BadGateway,
+    Unknown,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
 #[schema(title = "Error")]
 pub(crate) struct ApiError {
+    pub(crate) code: ApiErrorCode,
     pub(crate) message: String,
 }
 
 impl<E: std::error::Error> From<E> for ApiError {
     fn from(value: E) -> Self {
         Self {
+            code: ApiErrorCode::Unknown,
             message: value.to_string(),
         }
     }
@@ -348,18 +362,21 @@ impl<E: std::error::Error> From<E> for ApiError {
 impl ApiError {
     pub(crate) fn bad_credentials() -> Self {
         Self {
+            code: ApiErrorCode::NotAuthenticated,
             message: "Bad credentials".into(),
         }
     }
 
-    pub(crate) fn unauthenticated() -> Self {
+    pub(crate) fn not_authenticated() -> Self {
         Self {
+            code: ApiErrorCode::NotAuthenticated,
             message: "user not authenticated".into(),
         }
     }
 
     pub(crate) fn unknown() -> Self {
         Self {
+            code: ApiErrorCode::Unknown,
             message: "unknown error".into(),
         }
     }
@@ -367,6 +384,22 @@ impl ApiError {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        axum::Json(self).into_response()
+        match self.code {
+            ApiErrorCode::NotAuthenticated => {
+                (StatusCode::UNAUTHORIZED, axum::Json(self)).into_response()
+            }
+            ApiErrorCode::NotAuthorized => {
+                (StatusCode::FORBIDDEN, axum::Json(self)).into_response()
+            }
+            ApiErrorCode::NotFound => (StatusCode::NOT_FOUND, axum::Json(self)).into_response(),
+            ApiErrorCode::AlreadyExists => (StatusCode::CONFLICT, axum::Json(self)).into_response(),
+            ApiErrorCode::Validation => {
+                (StatusCode::UNPROCESSABLE_ENTITY, axum::Json(self)).into_response()
+            }
+            ApiErrorCode::BadGateway => (StatusCode::BAD_GATEWAY, axum::Json(self)).into_response(),
+            ApiErrorCode::Unknown => {
+                (StatusCode::INTERNAL_SERVER_ERROR, axum::Json(self)).into_response()
+            }
+        }
     }
 }

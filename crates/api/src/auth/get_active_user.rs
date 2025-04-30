@@ -9,7 +9,7 @@ use torii::UserId;
 use super::{AUTH_TAG, User};
 use crate::{
     ApiState,
-    common::{ApiError, AuthUser},
+    common::{ApiError, ApiErrorCode, AuthUser},
 };
 
 #[utoipa::path(
@@ -28,6 +28,7 @@ pub(super) async fn handler(
     match state.auth.get_user(&UserId::new(&user_id)).await {
         Ok(Some(data)) => Ok(OkResponse(data.into())),
         Ok(None) => Err(ErrResponse::Unauthorized(ApiError {
+            code: ApiErrorCode::NotAuthenticated,
             message: "user not found".into(),
         })),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
@@ -58,7 +59,7 @@ impl IntoResponse for ErrResponse {
     fn into_response(self) -> Response {
         match self {
             Self::Unauthorized(_) => {
-                (StatusCode::UNAUTHORIZED, ApiError::unauthenticated()).into_response()
+                (StatusCode::UNAUTHORIZED, ApiError::not_authenticated()).into_response()
             }
             Self::InternalServerError(_) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, ApiError::unknown()).into_response()

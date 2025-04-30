@@ -13,7 +13,7 @@ use torii::ToriiError;
 use super::{AUTH_TAG, User};
 use crate::{
     ApiState,
-    common::{ApiError, ConnectionInfo, Json, NonEmptyString, SESSION_COOKIE},
+    common::{ApiError, ApiErrorCode, ConnectionInfo, Json, NonEmptyString, SESSION_COOKIE},
 };
 
 #[utoipa::path(
@@ -57,7 +57,10 @@ pub(super) async fn handler(
             )
                 .into_response())
         }
-        Err(ToriiError::AuthError(message)) => Err(ErrResponse::Unauthorized(ApiError { message })),
+        Err(ToriiError::AuthError(message)) => Err(ErrResponse::Unauthorized(ApiError {
+            code: ApiErrorCode::NotAuthenticated,
+            message,
+        })),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }
 }

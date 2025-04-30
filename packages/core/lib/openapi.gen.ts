@@ -1,7 +1,19 @@
 import { z } from "zod";
 
+export type ApiErrorCode = z.infer<typeof ApiErrorCode>;
+export const ApiErrorCode = z.union([
+  z.literal("NOT_AUTHENTICATED"),
+  z.literal("NOT_AUTHORIZED"),
+  z.literal("NOT_FOUND"),
+  z.literal("ALREADY_EXISTS"),
+  z.literal("VALIDATION"),
+  z.literal("BAD_GATEWAY"),
+  z.literal("UNKNOWN"),
+]);
+
 export type ApiError = z.infer<typeof ApiError>;
 export const ApiError = z.object({
+  code: ApiErrorCode,
   message: z.string(),
 });
 
