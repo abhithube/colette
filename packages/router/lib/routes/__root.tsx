@@ -1,18 +1,14 @@
 import { API, User } from '@colette/core'
 import { getActiveUserOptions } from '@colette/query'
 import type { QueryClient } from '@tanstack/react-query'
-import {
-  Link,
-  createRootRouteWithContext,
-  redirect,
-} from '@tanstack/react-router'
+import { Link, createRootRouteWithContext } from '@tanstack/react-router'
 
 export const rootRoute = createRootRouteWithContext<{
   api: API
   queryClient: QueryClient
   user?: User
 }>()({
-  beforeLoad: async ({ context, location }) => {
+  beforeLoad: async ({ context }) => {
     try {
       const user = await context.queryClient.ensureQueryData(
         getActiveUserOptions(context.api),
@@ -23,13 +19,6 @@ export const rootRoute = createRootRouteWithContext<{
       }
     } catch (error) {
       console.error(error)
-
-      throw redirect({
-        to: '/login',
-        search: {
-          from: location.href,
-        },
-      })
     }
   },
   notFoundComponent: () => {

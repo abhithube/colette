@@ -22,6 +22,7 @@ export const loginRoute = createRoute({
 
       throw redirect({
         to: '/',
+        replace: true,
       })
     }
   },

@@ -8,6 +8,7 @@ export const registerRoute = createRoute({
     if (context.user) {
       throw redirect({
         to: '/',
+        replace: true,
       })
     }
   },
