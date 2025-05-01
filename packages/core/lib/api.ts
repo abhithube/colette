@@ -2,17 +2,17 @@ import { type AuthAPI, HTTPAuthAPI } from './auth'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
 import { CollectionAPI, HTTPCollectionAPI } from './collection'
 import {
-  ServerError,
   BadGatewayError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
+  ServerError,
   UnauthorizedError,
   UnprocessableContentError,
 } from './error'
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
-import { ApiError, createApiClient } from './openapi.gen'
+import { paths, components } from './openapi'
 import { HTTPStreamAPI, StreamAPI } from './stream'
 import { HTTPSubscriptionAPI, SubscriptionAPI } from './subscription'
 import {
@@ -20,6 +20,10 @@ import {
   SubscriptionEntryAPI,
 } from './subscription-entry'
 import { HTTPTagAPI, type TagAPI } from './tag'
+import createClient, { Middleware } from 'openapi-fetch'
+
+export type ApiError = components['schemas']['ApiError']
+export type ApiErrorCode = components['schemas']['ApiErrorCode']
 
 export interface API {
   auth: AuthAPI
@@ -33,7 +37,35 @@ export interface API {
   tags: TagAPI
 }
 
-export type HttpAPIOptions = Omit<RequestInit, 'method' | 'body'> & {
+const errorMiddleware: Middleware = {
+  async onResponse({ response }) {
+    if (!response.ok) {
+      const err = (await response.json()) as ApiError
+
+      switch (response.status) {
+        case 401:
+          throw new UnauthorizedError(err.message)
+        case 403:
+          throw new ForbiddenError(err.message)
+        case 404:
+          throw new NotFoundError(err.message)
+        case 409:
+          throw new ConflictError(err.message)
+        case 422:
+          throw new UnprocessableContentError(err.message)
+        case 502:
+          throw new BadGatewayError(err.message)
+        default:
+          throw new ServerError(err.message)
+      }
+    }
+  },
+}
+
+export type HttpAPIOptions = Omit<
+  RequestInit,
+  'method' | 'body' | 'headers'
+> & {
   baseUrl?: string
 }
 
@@ -49,53 +81,8 @@ export class HttpAPI implements API {
   tags: TagAPI
 
   constructor({ baseUrl, ...rest }: HttpAPIOptions) {
-    const client = createApiClient((method, url, params) => {
-      let finalUrl = url
-
-      if (params?.path) {
-        for (const [key, value] of Object.entries(params.path)) {
-          finalUrl = finalUrl.replace(
-            `{${key}}`,
-            encodeURIComponent(value as any),
-          )
-        }
-      }
-      if (params?.query) {
-        const search = new URLSearchParams()
-        for (const [key, value] of Object.entries(params.query)) {
-          if (value !== undefined) {
-            search.append(key, encodeURIComponent(value as any))
-          }
-        }
-        finalUrl = `${finalUrl}?${search.toString()}`
-      }
-
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        ...rest.headers,
-        ...params?.header,
-      }
-      const body: any = params?.body
-        ? (headers as any)['Content-Type'] === 'application/json'
-          ? JSON.stringify(params.body)
-          : params.body
-        : undefined
-
-      return fetch(finalUrl, {
-        method: method.toUpperCase(),
-        body,
-        headers,
-        ...rest,
-      }).then(async (res) => {
-        const data = await res.json()
-
-        if (res.ok) {
-          return data
-        }
-
-        handleError(data, res.status)
-      })
-    }, baseUrl)
+    const client = createClient<paths>({ baseUrl, ...rest })
+    client.use(errorMiddleware)
 
     this.auth = new HTTPAuthAPI(client)
     this.bookmarks = new HTTPBookmarkAPI(client)
@@ -106,30 +93,5 @@ export class HttpAPI implements API {
     this.subscriptionEntries = new HTTPSubscriptionEntryAPI(client)
     this.subscriptions = new HTTPSubscriptionAPI(client)
     this.tags = new HTTPTagAPI(client)
-  }
-}
-
-function handleError(data: unknown, status: number) {
-  const parsed = ApiError.safeParse(data)
-  if (parsed.error) {
-    throw new UnprocessableContentError(parsed.error.message)
-  }
-
-  const message = parsed.data.message
-  switch (status) {
-    case 401:
-      throw new UnauthorizedError(message)
-    case 403:
-      throw new ForbiddenError(message)
-    case 404:
-      throw new NotFoundError(message)
-    case 409:
-      throw new ConflictError(message)
-    case 422:
-      throw new UnprocessableContentError(message)
-    case 502:
-      throw new BadGatewayError(message)
-    default:
-      throw new ServerError(message)
   }
 }

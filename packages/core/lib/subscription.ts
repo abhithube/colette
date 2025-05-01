@@ -1,26 +1,21 @@
-import {
-  type ApiClient,
-  get_GetSubscription,
-  get_ListSubscriptions,
-  LinkSubscriptionTags,
-  Paginated_SubscriptionDetails,
-  Subscription,
-  SubscriptionCreate,
-  SubscriptionDetails,
-  SubscriptionEntry,
-  SubscriptionUpdate,
-} from './openapi.gen'
-import type { z } from 'zod'
+import { components, operations, paths } from './openapi'
+import { SubscriptionEntry } from './subscription-entry'
+import { Client } from 'openapi-fetch'
 
-export const SubscriptionListQuery =
-  get_ListSubscriptions.parameters.shape.query
-export type SubscriptionListQuery = z.infer<typeof SubscriptionListQuery>
+export type Subscription = components['schemas']['Subscription']
+export type SubscriptionDetails = components['schemas']['SubscriptionDetails']
+export type SubscriptionDetailsList =
+  components['schemas']['Paginated_SubscriptionDetails']
+export type SubscriptionCreate = components['schemas']['SubscriptionCreate']
+export type SubscriptionUpdate = components['schemas']['SubscriptionUpdate']
+export type LinkSubscriptionTags = components['schemas']['LinkSubscriptionTags']
 
-export const SubscriptionGetQuery = get_GetSubscription.parameters.shape.query
-export type SubscriptionGetQuery = z.infer<typeof SubscriptionGetQuery>
-
-export type SubscriptionDetailsList = Paginated_SubscriptionDetails
-export const SubscriptionDetailsList = Paginated_SubscriptionDetails
+export type SubscriptionListQuery = NonNullable<
+  operations['listSubscriptions']['parameters']['query']
+>
+export type SubscriptionGetQuery = NonNullable<
+  operations['getSubscription']['parameters']['query']
+>
 
 export interface SubscriptionAPI {
   listSubscriptions(
@@ -57,111 +52,128 @@ export interface SubscriptionAPI {
 }
 
 export class HTTPSubscriptionAPI implements SubscriptionAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listSubscriptions(
+  async listSubscriptions(
     query: SubscriptionListQuery,
   ): Promise<SubscriptionDetailsList> {
-    return this.client
-      .get('/subscriptions', {
-        query: SubscriptionListQuery.parse(query),
-      })
-      .then(SubscriptionDetailsList.parse)
+    const res = await this.client.GET('/subscriptions', {
+      params: {
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  getSubscription(
+  async getSubscription(
     id: string,
     query: SubscriptionGetQuery,
   ): Promise<SubscriptionDetails> {
-    return this.client
-      .get('/subscriptions/{id}', {
+    const res = await this.client.GET('/subscriptions/{id}', {
+      params: {
         path: {
           id,
         },
-        query: SubscriptionGetQuery.parse(query),
-      })
-      .then(SubscriptionDetails.parse)
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  createSubscription(data: SubscriptionCreate): Promise<Subscription> {
-    return this.client
-      .post('/subscriptions', {
-        body: SubscriptionCreate.parse(data),
-      })
-      .then(Subscription.parse)
+  async createSubscription(data: SubscriptionCreate): Promise<Subscription> {
+    const res = await this.client.POST('/subscriptions', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  updateSubscription(
+  async updateSubscription(
     id: string,
     data: SubscriptionUpdate,
   ): Promise<Subscription> {
-    return this.client
-      .patch('/subscriptions/{id}', {
+    const res = await this.client.PATCH('/subscriptions/{id}', {
+      params: {
         path: {
           id,
         },
-        body: SubscriptionUpdate.parse(data),
-      })
-      .then(Subscription.parse)
+      },
+      body: data,
+    })
+
+    return res.data!
   }
 
-  deleteSubscription(id: string): Promise<void> {
-    return this.client
-      .delete('/subscriptions/{id}', {
+  async deleteSubscription(id: string): Promise<void> {
+    await this.client.DELETE('/subscriptions/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then()
+      },
+    })
   }
 
-  linkSubscriptionTags(id: string, data: LinkSubscriptionTags): Promise<void> {
-    return this.client
-      .patch('/subscriptions/{id}/linkTags', {
+  async linkSubscriptionTags(
+    id: string,
+    data: LinkSubscriptionTags,
+  ): Promise<void> {
+    await this.client.PATCH('/subscriptions/{id}/linkTags', {
+      params: {
         path: {
           id,
         },
-        body: LinkSubscriptionTags.parse(data),
-      })
-      .then()
+      },
+      body: data,
+    })
   }
 
-  markSubscriptionEntryAsRead(
+  async markSubscriptionEntryAsRead(
     sid: string,
     eid: string,
   ): Promise<SubscriptionEntry> {
-    return this.client
-      .post('/subscriptions/{sid}/entries/{eid}/markAsRead', {
-        path: {
-          sid,
-          eid,
+    const res = await this.client.POST(
+      '/subscriptions/{sid}/entries/{eid}/markAsRead',
+      {
+        params: {
+          path: {
+            sid,
+            eid,
+          },
         },
-      })
-      .then(SubscriptionEntry.parse)
+      },
+    )
+
+    return res.data!
   }
 
-  markSubscriptionEntryAsUnread(
+  async markSubscriptionEntryAsUnread(
     sid: string,
     eid: string,
   ): Promise<SubscriptionEntry> {
-    return this.client
-      .post('/subscriptions/{sid}/entries/{eid}/markAsUnread', {
-        path: {
-          sid,
-          eid,
+    const res = await this.client.POST(
+      '/subscriptions/{sid}/entries/{eid}/markAsUnread',
+      {
+        params: {
+          path: {
+            sid,
+            eid,
+          },
         },
-      })
-      .then(SubscriptionEntry.parse)
+      },
+    )
+
+    return res.data!
   }
 
   async importSubscriptions(data: File): Promise<void> {
-    return this.client
-      .post('/subscriptions/import', {
-        body: new Uint8Array(await data.arrayBuffer()),
-        header: {
-          'Content-Type': 'application/octet-stream',
-        },
-      } as any)
-      .then()
+    await this.client.POST('/subscriptions/import', {
+      body: new Uint8Array(await data.arrayBuffer()) as any,
+      header: {
+        'Content-Type': 'application/octet-stream',
+      },
+    })
   }
 }

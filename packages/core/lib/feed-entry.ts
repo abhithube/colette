@@ -1,16 +1,12 @@
-import {
-  type ApiClient,
-  FeedEntry,
-  Paginated_FeedEntry,
-  get_ListFeedEntries,
-} from './openapi.gen'
-import type { z } from 'zod'
+import { components, operations, paths } from './openapi'
+import { Client } from 'openapi-fetch'
 
-export const FeedEntryListQuery = get_ListFeedEntries.parameters.shape.query
-export type FeedEntryListQuery = z.infer<typeof FeedEntryListQuery>
+export type FeedEntry = components['schemas']['FeedEntry']
+export type FeedEntryList = components['schemas']['Paginated_FeedEntry']
 
-export type FeedEntryList = Paginated_FeedEntry
-export const FeedEntryList = Paginated_FeedEntry
+export type FeedEntryListQuery = NonNullable<
+  operations['listFeedEntries']['parameters']['query']
+>
 
 export interface FeedEntryAPI {
   listFeedEntries(query: FeedEntryListQuery): Promise<FeedEntryList>
@@ -19,23 +15,25 @@ export interface FeedEntryAPI {
 }
 
 export class HTTPFeedEntryAPI implements FeedEntryAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listFeedEntries(query: FeedEntryListQuery): Promise<FeedEntryList> {
-    return this.client
-      .get('/feedEntries', {
-        query: FeedEntryListQuery.parse(query),
-      })
-      .then(FeedEntryList.parse)
+  async listFeedEntries(query: FeedEntryListQuery): Promise<FeedEntryList> {
+    const res = await this.client.GET('/feedEntries', {
+      query,
+    })
+
+    return res.data!
   }
 
-  getFeedEntry(id: string): Promise<FeedEntry> {
-    return this.client
-      .get('/feedEntries/{id}', {
+  async getFeedEntry(id: string): Promise<FeedEntry> {
+    const res = await this.client.GET('/feedEntries/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then(FeedEntry.parse)
+      },
+    })
+
+    return res.data!
   }
 }

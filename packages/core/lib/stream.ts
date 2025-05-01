@@ -1,13 +1,10 @@
-import {
-  type ApiClient,
-  Stream,
-  StreamCreate,
-  StreamUpdate,
-  Paginated_Stream,
-} from './openapi.gen'
+import { components, paths } from './openapi'
+import { Client } from 'openapi-fetch'
 
-export type StreamList = Paginated_Stream
-export const StreamList = Paginated_Stream
+export type Stream = components['schemas']['Stream']
+export type StreamCreate = components['schemas']['StreamCreate']
+export type StreamUpdate = components['schemas']['StreamUpdate']
+export type StreamList = components['schemas']['Paginated_Stream']
 
 export interface StreamAPI {
   listStreams(): Promise<StreamList>
@@ -22,48 +19,54 @@ export interface StreamAPI {
 }
 
 export class HTTPStreamAPI implements StreamAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listStreams(): Promise<StreamList> {
-    return this.client.get('/streams').then(StreamList.parse)
+  async listStreams(): Promise<StreamList> {
+    const res = await this.client.GET('/streams')
+
+    return res.data!
   }
 
-  getStream(id: string): Promise<Stream> {
-    return this.client
-      .get('/streams/{id}', {
+  async getStream(id: string): Promise<Stream> {
+    const res = await this.client.GET('/streams/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then(Stream.parse)
+      },
+    })
+
+    return res.data!
   }
 
-  createStream(data: StreamCreate): Promise<Stream> {
-    return this.client
-      .post('/streams', {
-        body: StreamCreate.parse(data),
-      })
-      .then(Stream.parse)
+  async createStream(data: StreamCreate): Promise<Stream> {
+    const res = await this.client.POST('/streams', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  updateStream(id: string, data: StreamUpdate): Promise<Stream> {
-    return this.client
-      .patch('/streams/{id}', {
+  async updateStream(id: string, data: StreamUpdate): Promise<Stream> {
+    const res = await this.client.PATCH('/streams/{id}', {
+      params: {
         path: {
           id,
         },
-        body: StreamUpdate.parse(data),
-      })
-      .then(Stream.parse)
+      },
+      body: data,
+    })
+
+    return res.data!
   }
 
-  deleteStream(id: string): Promise<void> {
-    return this.client
-      .delete('/streams/{id}', {
+  async deleteStream(id: string): Promise<void> {
+    await this.client.DELETE('/streams/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then()
+      },
+    })
   }
 }

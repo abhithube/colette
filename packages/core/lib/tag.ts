@@ -1,23 +1,18 @@
-import {
-  type ApiClient,
-  Paginated_TagDetails,
-  Tag,
-  TagCreate,
-  TagDetails,
-  TagUpdate,
-  get_GetTag,
-  get_ListTags,
-} from './openapi.gen'
-import type { z } from 'zod'
+import { components, operations, paths } from './openapi'
+import { Client } from 'openapi-fetch'
 
-export const TagListQuery = get_ListTags.parameters.shape.query
-export type TagListQuery = z.infer<typeof TagListQuery>
+export type Tag = components['schemas']['Tag']
+export type TagDetails = components['schemas']['TagDetails']
+export type TagCreate = components['schemas']['TagCreate']
+export type TagUpdate = components['schemas']['TagUpdate']
+export type TagDetailsList = components['schemas']['Paginated_TagDetails']
 
-export const TagGetQuery = get_GetTag.parameters.shape.query
-export type TagGetQuery = z.infer<typeof TagGetQuery>
-
-export type TagDetailsList = Paginated_TagDetails
-export const TagDetailsList = Paginated_TagDetails
+export type TagListQuery = NonNullable<
+  operations['listTags']['parameters']['query']
+>
+export type TagGetQuery = NonNullable<
+  operations['getTag']['parameters']['query']
+>
 
 export interface TagAPI {
   listTags(query: TagListQuery): Promise<TagDetailsList>
@@ -32,53 +27,59 @@ export interface TagAPI {
 }
 
 export class HTTPTagAPI implements TagAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listTags(query: TagListQuery): Promise<TagDetailsList> {
-    return this.client
-      .get('/tags', {
-        query: TagListQuery.parse(query),
-      })
-      .then(TagDetailsList.parse)
+  async listTags(query: TagListQuery): Promise<TagDetailsList> {
+    const res = await this.client.GET('/tags', {
+      params: {
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  getTag(id: string, query: TagGetQuery): Promise<TagDetails> {
-    return this.client
-      .get('/tags/{id}', {
+  async getTag(id: string, query: TagGetQuery): Promise<TagDetails> {
+    const res = await this.client.GET('/tags/{id}', {
+      params: {
         path: {
           id,
         },
-        query: TagGetQuery.parse(query),
-      })
-      .then(TagDetails.parse)
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  createTag(data: TagCreate): Promise<Tag> {
-    return this.client
-      .post('/tags', {
-        body: TagCreate.parse(data),
-      })
-      .then(Tag.parse)
+  async createTag(data: TagCreate): Promise<Tag> {
+    const res = await this.client.POST('/tags', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  updateTag(id: string, data: TagUpdate): Promise<Tag> {
-    return this.client
-      .patch('/tags/{id}', {
+  async updateTag(id: string, data: TagUpdate): Promise<Tag> {
+    const res = await this.client.PATCH('/tags/{id}', {
+      params: {
         path: {
           id,
         },
-        body: TagUpdate.parse(data),
-      })
-      .then(Tag.parse)
+      },
+      body: data,
+    })
+
+    return res.data!
   }
 
-  deleteTag(id: string): Promise<void> {
-    return this.client
-      .delete('/tags/{id}', {
+  async deleteTag(id: string): Promise<void> {
+    await this.client.DELETE('/tags/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then()
+      },
+    })
   }
 }

@@ -5,13 +5,13 @@
     "./lib/index.ts"
   ],
   "scripts": {
-    "generate": "typed-openapi 'http://localhost:8000/api/openapi.json' -o ./lib/openapi.gen.ts -r zod"
+    "generate": "openapi-typescript http://localhost:8000/api/openapi.json -o ./lib/openapi.d.ts"
   },
   "dependencies": {
-    "zod": "*"
+    "openapi-fetch": "^0.13.5"
   },
   "devDependencies": {
-    "typed-openapi": "^0.10.1",
+    "openapi-typescript": "^7.6.1",
     "typescript": "*"
   }
 }

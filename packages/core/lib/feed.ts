@@ -1,11 +1,10 @@
-import {
-  type ApiClient,
-  Feed,
-  FeedDetect,
-  FeedDetected,
-  FeedScrape,
-} from './openapi.gen'
-import { z } from 'zod'
+import { components, paths } from './openapi'
+import { Client } from 'openapi-fetch'
+
+export type Feed = components['schemas']['Feed']
+export type FeedDetect = components['schemas']['FeedDetect']
+export type FeedDetected = components['schemas']['FeedDetected']
+export type FeedScrape = components['schemas']['FeedScrape']
 
 export interface FeedAPI {
   detectFeeds(data: FeedDetect): Promise<FeedDetected[]>
@@ -14,21 +13,21 @@ export interface FeedAPI {
 }
 
 export class HTTPFeedAPI implements FeedAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  detectFeeds(data: FeedDetect): Promise<FeedDetected[]> {
-    return this.client
-      .post('/feeds/detect', {
-        body: FeedDetect.parse(data),
-      })
-      .then(z.array(FeedDetected).parse)
+  async detectFeeds(data: FeedDetect): Promise<FeedDetected[]> {
+    const res = await this.client.POST('/feeds/detect', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  scrapeFeed(data: FeedScrape): Promise<Feed> {
-    return this.client
-      .post('/feeds/scrape', {
-        body: FeedScrape.parse(data),
-      })
-      .then(Feed.parse)
+  async scrapeFeed(data: FeedScrape): Promise<Feed> {
+    const res = await this.client.POST('/feeds/scrape', {
+      body: data,
+    })
+
+    return res.data!
   }
 }

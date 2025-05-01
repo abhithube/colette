@@ -1,4 +1,9 @@
-import { type ApiClient, Login, Register, User } from './openapi.gen'
+import { components, paths } from './openapi'
+import { Client } from 'openapi-fetch'
+
+export type User = components['schemas']['User']
+export type Register = components['schemas']['Register']
+export type Login = components['schemas']['Login']
 
 export interface AuthAPI {
   registerUser(data: Register): Promise<User>
@@ -11,29 +16,31 @@ export interface AuthAPI {
 }
 
 export class HTTPAuthAPI implements AuthAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  registerUser(data: Register): Promise<User> {
-    return this.client
-      .post('/auth/register', {
-        body: Register.parse(data),
-      })
-      .then(User.parse)
+  async registerUser(data: Register): Promise<User> {
+    const res = await this.client.POST('/auth/register', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  loginUser(data: Login): Promise<User> {
-    return this.client
-      .post('/auth/login', {
-        body: Login.parse(data),
-      })
-      .then(User.parse)
+  async loginUser(data: Login): Promise<User> {
+    const res = await this.client.POST('/auth/login', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  getActiveUser(): Promise<User> {
-    return this.client.get('/auth/@me').then(User.parse)
+  async getActiveUser(): Promise<User> {
+    const res = await this.client.GET('/auth/@me')
+
+    return res.data!
   }
 
-  logoutUser(): Promise<void> {
-    return this.client.post('/auth/logout').then()
+  async logoutUser(): Promise<void> {
+    await this.client.POST('/auth/logout')
   }
 }

@@ -1,26 +1,22 @@
-import {
-  type ApiClient,
-  Bookmark,
-  BookmarkCreate,
-  BookmarkDetails,
-  BookmarkScrape,
-  BookmarkScraped,
-  BookmarkUpdate,
-  get_GetBookmark,
-  get_ListBookmarks,
-  LinkBookmarkTags,
-  Paginated_BookmarkDetails,
-} from './openapi.gen'
-import type { z } from 'zod'
+import { components, paths, operations } from './openapi'
+import { Client } from 'openapi-fetch'
 
-export const BookmarkListQuery = get_ListBookmarks.parameters.shape.query
-export type BookmarkListQuery = z.infer<typeof BookmarkListQuery>
+export type Bookmark = components['schemas']['Bookmark']
+export type BookmarkDetails = components['schemas']['BookmarkDetails']
+export type BookmarkDetailsList =
+  components['schemas']['Paginated_BookmarkDetails']
+export type BookmarkCreate = components['schemas']['BookmarkCreate']
+export type BookmarkScrape = components['schemas']['BookmarkScrape']
+export type BookmarkScraped = components['schemas']['BookmarkScraped']
+export type BookmarkUpdate = components['schemas']['BookmarkUpdate']
+export type LinkBookmarkTags = components['schemas']['LinkBookmarkTags']
 
-export const BookmarkGetQuery = get_GetBookmark.parameters.shape.query
-export type BookmarkGetQuery = z.infer<typeof BookmarkGetQuery>
-
-export type BookmarkDetailsList = Paginated_BookmarkDetails
-export const BookmarkDetailsList = Paginated_BookmarkDetails
+export type BookmarkListQuery = NonNullable<
+  operations['listBookmarks']['parameters']['query']
+>
+export type BookmarkGetQuery = NonNullable<
+  operations['getBookmark']['parameters']['query']
+>
 
 export interface BookmarkAPI {
   listBookmarks(query: BookmarkListQuery): Promise<BookmarkDetailsList>
@@ -39,72 +35,81 @@ export interface BookmarkAPI {
 }
 
 export class HTTPBookmarkAPI implements BookmarkAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listBookmarks(query: BookmarkListQuery): Promise<BookmarkDetailsList> {
-    return this.client
-      .get('/bookmarks', {
-        query: BookmarkListQuery.parse(query),
-      })
-      .then(BookmarkDetailsList.parse)
+  async listBookmarks(query: BookmarkListQuery): Promise<BookmarkDetailsList> {
+    const res = await this.client.GET('/bookmarks', {
+      params: {
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  getBookmark(id: string, query: BookmarkGetQuery): Promise<BookmarkDetails> {
-    return this.client
-      .get('/bookmarks/{id}', {
+  async getBookmark(
+    id: string,
+    query: BookmarkGetQuery,
+  ): Promise<BookmarkDetails> {
+    const res = await this.client.GET('/bookmarks/{id}', {
+      params: {
         path: {
           id,
         },
-        query: BookmarkGetQuery.parse(query),
-      })
-      .then(BookmarkDetails.parse)
+        query,
+      },
+    })
+
+    return res.data!
   }
 
-  createBookmark(data: BookmarkCreate): Promise<Bookmark> {
-    return this.client
-      .post('/bookmarks', {
-        body: BookmarkCreate.parse(data),
-      })
-      .then(Bookmark.parse)
+  async createBookmark(data: BookmarkCreate): Promise<Bookmark> {
+    const res = await this.client.POST('/bookmarks', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  updateBookmark(id: string, data: BookmarkUpdate): Promise<Bookmark> {
-    return this.client
-      .patch('/bookmarks/{id}', {
+  async updateBookmark(id: string, data: BookmarkUpdate): Promise<Bookmark> {
+    const res = await this.client.PATCH('/bookmarks/{id}', {
+      params: {
         path: {
           id,
         },
-        body: BookmarkUpdate.parse(data),
-      })
-      .then(Bookmark.parse)
+      },
+      body: data,
+    })
+
+    return res.data!
   }
 
-  deleteBookmark(id: string): Promise<void> {
-    return this.client
-      .delete('/bookmarks/{id}', {
+  async deleteBookmark(id: string): Promise<void> {
+    await this.client.DELETE('/bookmarks/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then()
+      },
+    })
   }
 
-  linkBookmarkTags(id: string, data: LinkBookmarkTags): Promise<void> {
-    return this.client
-      .patch('/bookmarks/{id}/linkTags', {
+  async linkBookmarkTags(id: string, data: LinkBookmarkTags): Promise<void> {
+    await this.client.PATCH('/bookmarks/{id}/linkTags', {
+      params: {
         path: {
           id,
         },
-        body: LinkBookmarkTags.parse(data),
-      })
-      .then()
+      },
+      body: data,
+    })
   }
 
-  scrapeBookmark(data: BookmarkScrape): Promise<BookmarkScraped> {
-    return this.client
-      .post('/bookmarks/scrape', {
-        body: BookmarkScrape.parse(data),
-      })
-      .then(BookmarkScraped.parse)
+  async scrapeBookmark(data: BookmarkScrape): Promise<BookmarkScraped> {
+    const res = await this.client.POST('/bookmarks/scrape', {
+      body: data,
+    })
+
+    return res.data!
   }
 }

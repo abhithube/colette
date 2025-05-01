@@ -1,13 +1,10 @@
-import {
-  type ApiClient,
-  Collection,
-  CollectionCreate,
-  CollectionUpdate,
-  Paginated_Collection,
-} from './openapi.gen'
+import { components, paths } from './openapi'
+import { Client } from 'openapi-fetch'
 
-export type CollectionList = Paginated_Collection
-export const CollectionList = Paginated_Collection
+export type Collection = components['schemas']['Collection']
+export type CollectionCreate = components['schemas']['CollectionCreate']
+export type CollectionUpdate = components['schemas']['CollectionUpdate']
+export type CollectionList = components['schemas']['Paginated_Collection']
 
 export interface CollectionAPI {
   listCollections(): Promise<CollectionList>
@@ -22,48 +19,57 @@ export interface CollectionAPI {
 }
 
 export class HTTPCollectionAPI implements CollectionAPI {
-  constructor(private client: ApiClient) {}
+  constructor(private client: Client<paths>) {}
 
-  listCollections(): Promise<CollectionList> {
-    return this.client.get('/collections').then(CollectionList.parse)
+  async listCollections(): Promise<CollectionList> {
+    const res = await this.client.GET('/collections')
+
+    return res.data!
   }
 
-  getCollection(id: string): Promise<Collection> {
-    return this.client
-      .get('/collections/{id}', {
+  async getCollection(id: string): Promise<Collection> {
+    const res = await this.client.GET('/collections/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then(Collection.parse)
+      },
+    })
+
+    return res.data!
   }
 
-  createCollection(data: CollectionCreate): Promise<Collection> {
-    return this.client
-      .post('/collections', {
-        body: CollectionCreate.parse(data),
-      })
-      .then(Collection.parse)
+  async createCollection(data: CollectionCreate): Promise<Collection> {
+    const res = await this.client.POST('/collections', {
+      body: data,
+    })
+
+    return res.data!
   }
 
-  updateCollection(id: string, data: CollectionUpdate): Promise<Collection> {
-    return this.client
-      .patch('/collections/{id}', {
+  async updateCollection(
+    id: string,
+    data: CollectionUpdate,
+  ): Promise<Collection> {
+    const res = await this.client.PATCH('/collections/{id}', {
+      params: {
         path: {
           id,
         },
-        body: CollectionUpdate.parse(data),
-      })
-      .then(Collection.parse)
+      },
+      body: data,
+    })
+
+    return res.data!
   }
 
-  deleteCollection(id: string): Promise<void> {
-    return this.client
-      .delete('/collections/{id}', {
+  async deleteCollection(id: string): Promise<void> {
+    await this.client.DELETE('/collections/{id}', {
+      params: {
         path: {
           id,
         },
-      })
-      .then()
+      },
+    })
   }
 }
