@@ -1,10 +1,10 @@
 import { Bookmark } from '@colette/core'
+import { UPDATE_BOOKMARK_FORM, updateBookmarkFormOptions } from '@colette/form'
 import { useUpdateBookmarkMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/layout/stash')
 
@@ -15,13 +15,8 @@ export const EditBookmarkModal = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      title: props.bookmark.title,
-      thumbnailUrl: props.bookmark.thumbnailUrl,
-      publishedAt: props.bookmark.publishedAt,
-      author: props.bookmark.author,
-    },
-    onSubmit: ({ value }) => {
+    ...updateBookmarkFormOptions(props.bookmark),
+    onSubmit: ({ value, formApi }) => {
       if (
         value.title === props.bookmark.title &&
         value.thumbnailUrl === props.bookmark.thumbnailUrl &&
@@ -44,7 +39,8 @@ export const EditBookmarkModal = (props: {
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
+
             props.close()
           },
         },
@@ -71,97 +67,77 @@ export const EditBookmarkModal = (props: {
       </Dialog.Header>
 
       <form
-        id="edit-bookmark"
+        id={UPDATE_BOOKMARK_FORM}
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field
-          name="title"
-          validators={{
-            onBlur: z.string().min(1, "Title can't be empty"),
-          }}
-        >
+        <form.Field name="title">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Title</Field.Label>
                 <Field.Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
 
-        <form.Field
-          name="thumbnailUrl"
-          validators={{
-            onSubmit: z.string().url('URL is not valid').nullable(),
-          }}
-        >
+        <form.Field name="thumbnailUrl">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Thumbnail</Field.Label>
                 <Field.Input
                   value={field.state.value ?? undefined}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
 
-        <form.Field
-          name="publishedAt"
-          validators={{
-            onSubmit: z.string().datetime('Date is not valid').nullable(),
-          }}
-        >
+        <form.Field name="publishedAt">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Published At</Field.Label>
                 <Field.Input
                   value={field.state.value ?? undefined}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
 
-        <form.Field
-          name="author"
-          validators={{
-            onSubmit: z.string().min(1, 'Author cannot be empty').nullable(),
-          }}
-        >
+        <form.Field name="author">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Author</Field.Label>
                 <Field.Input
                   value={field.state.value ?? undefined}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
@@ -169,7 +145,7 @@ export const EditBookmarkModal = (props: {
       </form>
 
       <Dialog.Footer>
-        <Button form="edit-bookmark" disabled={updateBookmark.isPending}>
+        <Button form={UPDATE_BOOKMARK_FORM} disabled={updateBookmark.isPending}>
           Submit
         </Button>
       </Dialog.Footer>

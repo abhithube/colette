@@ -1,10 +1,13 @@
 import type { Subscription } from '@colette/core'
+import {
+  UPDATE_SUBSCRIPTION_FORM,
+  updateSubscriptionFormOptions,
+} from '@colette/form'
 import { useUpdateSubscriptionMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/layout/subscriptions/')
 
@@ -15,11 +18,8 @@ export const EditSubscriptionModal = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      title: props.subscription.title,
-      description: props.subscription.description,
-    },
-    onSubmit: ({ value }) => {
+    ...updateSubscriptionFormOptions(props.subscription),
+    onSubmit: ({ value, formApi }) => {
       if (
         value.title === props.subscription.title &&
         value.description === props.subscription.description
@@ -38,7 +38,8 @@ export const EditSubscriptionModal = (props: {
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
+
             props.close()
           },
         },
@@ -67,53 +68,43 @@ export const EditSubscriptionModal = (props: {
       </Dialog.Header>
 
       <form
-        id="edit-subscription"
+        id={UPDATE_SUBSCRIPTION_FORM}
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field
-          name="title"
-          validators={{
-            onBlur: z.string().min(1, "Title can't be empty"),
-          }}
-        >
+        <form.Field name="title">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Title</Field.Label>
                 <Field.Input
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
         </form.Field>
 
-        <form.Field
-          name="description"
-          validators={{
-            onSubmit: z.string().nullable(),
-          }}
-        >
+        <form.Field name="description">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Description</Field.Label>
                 <Field.Input
                   value={field.state.value ?? undefined}
                   onChange={(ev) => field.handleChange(ev.target.value)}
                 />
-                <Field.ErrorText>
-                  {field.state.meta.errors[0]?.message}
-                </Field.ErrorText>
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
@@ -122,7 +113,7 @@ export const EditSubscriptionModal = (props: {
 
       <Dialog.Footer>
         <Button
-          form="edit-subscription"
+          form={UPDATE_SUBSCRIPTION_FORM}
           disabled={updateSubscription.isPending}
         >
           Submit

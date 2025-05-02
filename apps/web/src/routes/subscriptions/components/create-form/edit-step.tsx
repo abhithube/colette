@@ -1,9 +1,9 @@
 import { Feed } from '@colette/core'
+import { createSubscriptionFormOptions } from '@colette/form'
 import { useCreateSubscriptionMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi } from '@tanstack/react-router'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/layout/subscriptions/')
 
@@ -15,11 +15,8 @@ export const EditStep = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      title: props.feed.title,
-      description: props.feed.description,
-    },
-    onSubmit: ({ value }) => {
+    ...createSubscriptionFormOptions(props.feed),
+    onSubmit: ({ value, formApi }) => {
       createSubscription.mutate(
         {
           title: value.title,
@@ -32,7 +29,8 @@ export const EditStep = (props: {
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
+
             props.onClose()
           },
         },
@@ -51,45 +49,35 @@ export const EditStep = (props: {
         form.handleSubmit()
       }}
     >
-      <form.Field
-        name="title"
-        validators={{
-          onSubmit: z.string().min(1, 'Title cannot be empty'),
-        }}
-      >
+      <form.Field name="title">
         {(field) => {
+          const errors = field.state.meta.errors
+
           return (
-            <Field.Root invalid={field.state.meta.errors.length !== 0}>
+            <Field.Root invalid={errors.length !== 0}>
               <Field.Label>Title</Field.Label>
               <Field.Input
                 value={field.state.value}
                 onChange={(ev) => field.handleChange(ev.target.value)}
               />
-              <Field.ErrorText>
-                {field.state.meta.errors[0]?.message}
-              </Field.ErrorText>
+              <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
             </Field.Root>
           )
         }}
       </form.Field>
 
-      <form.Field
-        name="description"
-        validators={{
-          onSubmit: z.string().nullable(),
-        }}
-      >
+      <form.Field name="description">
         {(field) => {
+          const errors = field.state.meta.errors
+
           return (
-            <Field.Root invalid={field.state.meta.errors.length !== 0}>
+            <Field.Root invalid={errors.length !== 0}>
               <Field.Label>Description</Field.Label>
               <Field.Input
                 value={field.state.value ?? undefined}
                 onChange={(ev) => field.handleChange(ev.target.value)}
               />
-              <Field.ErrorText>
-                {field.state.meta.errors[0]?.message}
-              </Field.ErrorText>
+              <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
             </Field.Root>
           )
         }}

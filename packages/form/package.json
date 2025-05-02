@@ -1,0 +1,15 @@
+{
+  "name": "@colette/form",
+  "module": "./lib/index.ts",
+  "exports": [
+    "./lib/index.ts"
+  ],
+  "dependencies": {
+    "@colette/core": "*",
+    "@tanstack/react-form": "*",
+    "zod": "*"
+  },
+  "devDependencies": {
+    "typescript": "*"
+  }
+}

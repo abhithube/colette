@@ -2,22 +2,27 @@ import { EditStep } from './edit-step'
 import { SearchStep } from './search-step'
 import { SelectStep } from './select-step'
 import type { Feed, FeedDetected } from '@colette/core'
+import {
+  CREATE_SUBSCRIPTION_FORM,
+  DETECT_FEEDS_FORM,
+  SCRAPE_FEED_FORM,
+} from '@colette/form'
 import { Button, Dialog, Steps } from '@colette/ui'
 import { useState } from 'react'
 
 const items = [
   {
-    id: 'search-feeds',
+    id: DETECT_FEEDS_FORM,
     description: 'Search for a feed by URL',
     value: 'Search',
   },
   {
-    id: 'select-feed',
+    id: SCRAPE_FEED_FORM,
     description: 'Select a feed to subscribe to',
     value: 'Select',
   },
   {
-    id: 'confirm-subscription',
+    id: CREATE_SUBSCRIPTION_FORM,
     description: 'Set subscription metadata',
     value: 'Submit',
   },

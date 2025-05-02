@@ -1,4 +1,5 @@
 import type { Feed, FeedDetected } from '@colette/core'
+import { scrapeFeedFormOptions } from '@colette/form'
 import { useScrapeFeedMutation } from '@colette/query'
 import { Field, RadioGroup, Favicon } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
@@ -14,13 +15,12 @@ export const SelectStep = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      url: props.feeds[0].url,
-    },
-    onSubmit: ({ value }) =>
+    ...scrapeFeedFormOptions(props.feeds),
+    onSubmit: ({ value, formApi }) =>
       scrape.mutate(value, {
         onSuccess: (feed) => {
-          form.reset()
+          formApi.reset()
+
           props.onNext(feed)
         },
       }),
@@ -58,9 +58,7 @@ export const SelectStep = (props: {
                     />
                     <Field.Label
                       className="hover:bg-accent peer-data-[checked]:border-primary flex-1 rounded-md border-2 p-4"
-                      onClick={() => {
-                        field.setValue(feed.url)
-                      }}
+                      onClick={() => field.setValue(feed.url)}
                     >
                       <Favicon className="size-6" src={feed.url} />
                       <div className="flex flex-col gap-1">

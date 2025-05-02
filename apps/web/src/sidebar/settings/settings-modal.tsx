@@ -1,3 +1,4 @@
+import { importSubscriptionsFormOptions } from '@colette/form'
 import { useImportSubscriptionsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
@@ -9,13 +10,12 @@ export const SettingsModal = (props: { close: () => void }) => {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      file: undefined as unknown as File,
-    },
-    onSubmit: ({ value }) =>
+    ...importSubscriptionsFormOptions(),
+    onSubmit: ({ value, formApi }) =>
       importSubscriptions.mutate(value.file, {
         onSuccess: () => {
-          form.reset()
+          formApi.reset()
+
           props.close()
         },
       }),
@@ -40,7 +40,7 @@ export const SettingsModal = (props: { close: () => void }) => {
         <form.Field
           name="file"
           validators={{
-            onSubmit: ({ value }) => {
+            onBlur: ({ value }) => {
               if (!value) {
                 return 'Please select a valid OPML file'
               }
@@ -48,8 +48,10 @@ export const SettingsModal = (props: { close: () => void }) => {
           }}
         >
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>OPML file</Field.Label>
                 <Field.Input
                   type="file"
@@ -57,7 +59,7 @@ export const SettingsModal = (props: { close: () => void }) => {
                   accept=".opml,text/xml,application/xml"
                   onChange={(e) => field.handleChange(e.target.files![0])}
                 />
-                <Field.ErrorText>{field.state.meta.errors[0]}</Field.ErrorText>
+                <Field.ErrorText>{errors[0]}</Field.ErrorText>
               </Field.Root>
             )
           }}

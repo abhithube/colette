@@ -1,4 +1,8 @@
 import type { SubscriptionDetails } from '@colette/core'
+import {
+  LINK_SUBSCRIPTION_TAGS_FORM,
+  linkSubscriptionTagsFormOptions,
+} from '@colette/form'
 import { useLinkSubscriptionTagsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
@@ -15,34 +19,35 @@ export const EditSubscriptionTagsModal = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      tags: props.details.tags?.map((tag) => tag.id) ?? [],
-    },
-    onSubmit: ({ value }) => {
-      let tags: string[] | undefined = value.tags
+    ...linkSubscriptionTagsFormOptions(),
+    onSubmit: ({ value, formApi }) => {
+      let tagIds: string[] | undefined = value.tagIds
       if (props.details.tags) {
         const current = props.details.tags
         if (
-          tags?.length === current.length &&
-          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
+          tagIds?.length === current.length &&
+          tagIds.every(
+            (id) => current.find((tag) => tag.id === id) !== undefined,
+          )
         ) {
-          tags = undefined
+          tagIds = undefined
         }
-      } else if (tags.length === 0) {
-        tags = undefined
+      } else if (tagIds.length === 0) {
+        tagIds = undefined
       }
 
-      if (tags === undefined) {
+      if (tagIds === undefined) {
         return props.close()
       }
 
       linkSubscriptionTags.mutate(
         {
-          tagIds: tags,
+          tagIds: tagIds,
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
+
             props.close()
           },
         },
@@ -72,23 +77,26 @@ export const EditSubscriptionTagsModal = (props: {
       </Dialog.Header>
 
       <form
-        id="link-subscription-tags"
+        id={LINK_SUBSCRIPTION_TAGS_FORM}
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field name="tags">
+        <form.Field name="tagIds">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
                   api={context.api}
                   state={field.state}
                   handleChange={field.handleChange}
                 />
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
@@ -97,7 +105,7 @@ export const EditSubscriptionTagsModal = (props: {
 
       <Dialog.Footer>
         <Button
-          form="link-subscription-tags"
+          form={LINK_SUBSCRIPTION_TAGS_FORM}
           disabled={linkSubscriptionTags.isPending}
         >
           Submit

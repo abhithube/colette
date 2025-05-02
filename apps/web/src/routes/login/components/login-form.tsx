@@ -1,9 +1,9 @@
+import { loginFormOptions, LOGIN_FORM } from '@colette/form'
 import { useLoginUserMutation } from '@colette/query'
 import { Alert, Card, Button, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi, Link, useRouter } from '@tanstack/react-router'
 import { UserCheck, UserX } from 'lucide-react'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/login')
 
@@ -15,11 +15,8 @@ export const LoginForm = () => {
   const navigate = routeApi.useNavigate()
 
   const form = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    onSubmit: ({ value }) => {
+    ...loginFormOptions(),
+    onSubmit: ({ value, formApi }) => {
       navigate({
         replace: true,
         state: {},
@@ -27,7 +24,7 @@ export const LoginForm = () => {
 
       loginUser.mutate(value, {
         onSuccess: () => {
-          form.reset()
+          formApi.reset()
 
           if (search.from) {
             router.history.replace(search.from)
@@ -76,22 +73,19 @@ export const LoginForm = () => {
         </Card.Header>
         <Card.Content>
           <form
-            id="login"
+            id={LOGIN_FORM}
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
               form.handleSubmit()
             }}
           >
-            <form.Field
-              name="email"
-              validators={{
-                onBlur: z.string().email('Please enter a valid email'),
-              }}
-            >
+            <form.Field name="email">
               {(field) => {
+                const errors = field.state.meta.errors
+
                 return (
-                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                  <Field.Root invalid={errors.length !== 0}>
                     <Field.Label>Email</Field.Label>
                     <Field.Input
                       type="email"
@@ -100,24 +94,17 @@ export const LoginForm = () => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
-                    <Field.ErrorText>
-                      {field.state.meta.errors[0]?.message}
-                    </Field.ErrorText>
+                    <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
                   </Field.Root>
                 )
               }}
             </form.Field>
-            <form.Field
-              name="password"
-              validators={{
-                onBlur: z
-                  .string()
-                  .min(8, 'Password must be at least 8 characters'),
-              }}
-            >
+            <form.Field name="password">
               {(field) => {
+                const errors = field.state.meta.errors
+
                 return (
-                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                  <Field.Root invalid={errors.length !== 0}>
                     <Field.Label>Password</Field.Label>
                     <Field.Input
                       type="password"
@@ -126,9 +113,7 @@ export const LoginForm = () => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
-                    <Field.ErrorText>
-                      {field.state.meta.errors[0]?.message}
-                    </Field.ErrorText>
+                    <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
                   </Field.Root>
                 )
               }}
@@ -136,7 +121,7 @@ export const LoginForm = () => {
           </form>
         </Card.Content>
         <Card.Footer className="flex-col items-stretch gap-4">
-          <Button form="login" disabled={loginUser.isPending}>
+          <Button form={LOGIN_FORM} disabled={loginUser.isPending}>
             Login
           </Button>
           <div className="self-center text-sm">

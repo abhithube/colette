@@ -1,4 +1,8 @@
 import type { BookmarkDetails } from '@colette/core'
+import {
+  LINK_BOOKMARK_TAGS_FORM,
+  linkBookmarkTagsFormOptions,
+} from '@colette/form'
 import { useLinkBookmarkTagsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
@@ -15,34 +19,35 @@ export const EditBookmarkTagsModal = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      tags: props.details.tags?.map((tag) => tag.id) ?? [],
-    },
-    onSubmit: ({ value }) => {
-      let tags: string[] | undefined = value.tags
+    ...linkBookmarkTagsFormOptions(props.details.tags),
+    onSubmit: ({ value, formApi }) => {
+      let tagIds: string[] | undefined = value.tagIds
       if (props.details.tags) {
         const current = props.details.tags
         if (
-          tags?.length === current.length &&
-          tags.every((id) => current.find((tag) => tag.id === id) !== undefined)
+          tagIds?.length === current.length &&
+          tagIds.every(
+            (id) => current.find((tag) => tag.id === id) !== undefined,
+          )
         ) {
-          tags = undefined
+          tagIds = undefined
         }
-      } else if (tags.length === 0) {
-        tags = undefined
+      } else if (tagIds.length === 0) {
+        tagIds = undefined
       }
 
-      if (tags === undefined) {
+      if (tagIds === undefined) {
         return props.close()
       }
 
       linkBookmarkTags.mutate(
         {
-          tagIds: tags,
+          tagIds,
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
+
             props.close()
           },
         },
@@ -70,23 +75,26 @@ export const EditBookmarkTagsModal = (props: {
       </Dialog.Header>
 
       <form
-        id="link-bookmark-tags"
+        id={LINK_BOOKMARK_TAGS_FORM}
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault()
           form.handleSubmit()
         }}
       >
-        <form.Field name="tags">
+        <form.Field name="tagIds">
           {(field) => {
+            const errors = field.state.meta.errors
+
             return (
-              <Field.Root invalid={field.state.meta.errors.length !== 0}>
+              <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
                   api={context.api}
                   state={field.state}
                   handleChange={field.handleChange}
                 />
+                <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
               </Field.Root>
             )
           }}
@@ -94,7 +102,10 @@ export const EditBookmarkTagsModal = (props: {
       </form>
 
       <Dialog.Footer>
-        <Button form="link-bookmark-tags" disabled={linkBookmarkTags.isPending}>
+        <Button
+          form={LINK_BOOKMARK_TAGS_FORM}
+          disabled={linkBookmarkTags.isPending}
+        >
           Submit
         </Button>
       </Dialog.Footer>

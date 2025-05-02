@@ -8,11 +8,12 @@
   },
   "dependencies": {
     "@colette/core": "*",
+    "@colette/form": "*",
     "@colette/query": "*",
     "@colette/router": "*",
     "@colette/ui": "*",
     "@colette/util": "*",
-    "@tanstack/react-form": "^1.2.3",
+    "@tanstack/react-form": "*",
     "@tanstack/react-query": "*",
     "@tanstack/react-query-devtools": "^5.63.0",
     "@tanstack/react-router": "*",

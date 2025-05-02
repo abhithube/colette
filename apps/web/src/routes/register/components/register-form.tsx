@@ -1,9 +1,9 @@
+import { REGISTER_FORM, registerFormOptions } from '@colette/form'
 import { useRegisterUserMutation } from '@colette/query'
 import { Alert, Button, Card, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi, Link } from '@tanstack/react-router'
 import { UserX } from 'lucide-react'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/register')
 
@@ -12,12 +12,8 @@ export const RegisterForm = () => {
   const navigate = routeApi.useNavigate()
 
   const form = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-      passwordConfirm: '',
-    },
-    onSubmit: ({ value }) =>
+    ...registerFormOptions(),
+    onSubmit: ({ value, formApi }) =>
       registerUser.mutate(
         {
           email: value.email,
@@ -25,7 +21,7 @@ export const RegisterForm = () => {
         },
         {
           onSuccess: () => {
-            form.reset()
+            formApi.reset()
 
             navigate({
               to: '/login',
@@ -56,22 +52,19 @@ export const RegisterForm = () => {
         </Card.Header>
         <Card.Content>
           <form
-            id="register"
+            id={REGISTER_FORM}
             className="space-y-4"
             onSubmit={(e) => {
               e.preventDefault()
               form.handleSubmit()
             }}
           >
-            <form.Field
-              name="email"
-              validators={{
-                onBlur: z.string().email('Please enter a valid email'),
-              }}
-            >
+            <form.Field name="email">
               {(field) => {
+                const errors = field.state.meta.errors
+
                 return (
-                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                  <Field.Root invalid={errors.length !== 0}>
                     <Field.Label>Email</Field.Label>
                     <Field.Input
                       type="email"
@@ -80,24 +73,17 @@ export const RegisterForm = () => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
-                    <Field.ErrorText>
-                      {field.state.meta.errors[0]?.message}
-                    </Field.ErrorText>
+                    <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
                   </Field.Root>
                 )
               }}
             </form.Field>
-            <form.Field
-              name="password"
-              validators={{
-                onBlur: z
-                  .string()
-                  .min(8, 'Password must be at least 8 characters'),
-              }}
-            >
+            <form.Field name="password">
               {(field) => {
+                const errors = field.state.meta.errors
+
                 return (
-                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                  <Field.Root invalid={errors.length !== 0}>
                     <Field.Label>Password</Field.Label>
                     <Field.Input
                       type="password"
@@ -106,9 +92,7 @@ export const RegisterForm = () => {
                       onChange={(e) => field.handleChange(e.target.value)}
                       onBlur={field.handleBlur}
                     />
-                    <Field.ErrorText>
-                      {field.state.meta.errors[0]?.message}
-                    </Field.ErrorText>
+                    <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
                   </Field.Root>
                 )
               }}
@@ -116,16 +100,19 @@ export const RegisterForm = () => {
             <form.Field
               name="passwordConfirm"
               validators={{
-                onBlur: () =>
-                  form.getFieldValue('password') !==
-                  form.getFieldValue('passwordConfirm')
-                    ? 'Passwords do not match'
-                    : undefined,
+                onBlurListenTo: ['password'],
+                onBlur: ({ value, fieldApi }) => {
+                  if (value !== fieldApi.form.getFieldValue('password')) {
+                    return 'Passwords do not match'
+                  }
+                },
               }}
             >
               {(field) => {
+                const errors = field.state.meta.errors
+
                 return (
-                  <Field.Root invalid={field.state.meta.errors.length !== 0}>
+                  <Field.Root invalid={errors.length !== 0}>
                     <Field.Label>Confirm Password</Field.Label>
                     <Field.Input
                       type="password"
@@ -135,7 +122,9 @@ export const RegisterForm = () => {
                       onBlur={field.handleBlur}
                     />
                     <Field.ErrorText>
-                      {field.state.meta.errors[0]}
+                      {typeof errors[0] === 'string'
+                        ? errors[0]
+                        : errors[0]?.message}
                     </Field.ErrorText>
                   </Field.Root>
                 )
@@ -144,7 +133,7 @@ export const RegisterForm = () => {
           </form>
         </Card.Content>
         <Card.Footer className="flex-col items-stretch gap-4">
-          <Button form="register" disabled={registerUser.isPending}>
+          <Button form={REGISTER_FORM} disabled={registerUser.isPending}>
             Register
           </Button>
           <div className="self-center text-sm">

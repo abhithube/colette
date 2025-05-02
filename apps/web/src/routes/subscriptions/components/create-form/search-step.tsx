@@ -1,9 +1,9 @@
 import type { FeedDetected } from '@colette/core'
+import { detectFeedsFormOptions } from '@colette/form'
 import { useDetectFeedsMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
 import { getRouteApi } from '@tanstack/react-router'
-import { z } from 'zod'
 
 const routeApi = getRouteApi('/layout/subscriptions/')
 
@@ -14,13 +14,12 @@ export const SearchStep = (props: {
   const context = routeApi.useRouteContext()
 
   const form = useForm({
-    defaultValues: {
-      url: '',
-    },
-    onSubmit: ({ value }) =>
+    ...detectFeedsFormOptions(),
+    onSubmit: ({ value, formApi }) =>
       detectFeeds.mutate(value, {
         onSuccess: (detected) => {
-          form.reset()
+          formApi.reset()
+
           props.onNext(detected)
         },
       }),
@@ -37,24 +36,19 @@ export const SearchStep = (props: {
         form.handleSubmit()
       }}
     >
-      <form.Field
-        name="url"
-        validators={{
-          onSubmit: z.string().url('URL is not valid'),
-        }}
-      >
+      <form.Field name="url">
         {(field) => {
+          const errors = field.state.meta.errors
+
           return (
-            <Field.Root invalid={field.state.meta.errors.length !== 0}>
+            <Field.Root invalid={errors.length !== 0}>
               <Field.Label>URL</Field.Label>
               <Field.Input
                 value={field.state.value}
                 placeholder="https://example.com"
                 onChange={(ev) => field.handleChange(ev.target.value)}
               />
-              <Field.ErrorText>
-                {field.state.meta.errors[0]?.message}
-              </Field.ErrorText>
+              <Field.ErrorText>{errors[0]?.message}</Field.ErrorText>
             </Field.Root>
           )
         }}
