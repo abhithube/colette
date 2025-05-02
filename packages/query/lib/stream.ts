@@ -1,4 +1,5 @@
 import type { API, StreamCreate, StreamUpdate } from '@colette/core'
+import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -19,7 +20,8 @@ export const getStreamOptions = (api: API, id: string) =>
     queryFn: () => api.streams.getStream(id),
   })
 
-export const useCreateStreamMutation = (api: API) => {
+export const useCreateStreamMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -32,7 +34,8 @@ export const useCreateStreamMutation = (api: API) => {
   })
 }
 
-export const useUpdateStreamMutation = (api: API, id: string) => {
+export const useUpdateStreamMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -45,7 +48,8 @@ export const useUpdateStreamMutation = (api: API, id: string) => {
   })
 }
 
-export const useDeleteStreamMutation = (api: API, id: string) => {
+export const useDeleteStreamMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({

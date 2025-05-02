@@ -3,17 +3,12 @@ import { createSubscriptionFormOptions } from '@colette/form'
 import { useCreateSubscriptionMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout/subscriptions/')
 
 export const EditStep = (props: {
   formId: string
   feed: Feed
   onClose: () => void
 }) => {
-  const context = routeApi.useRouteContext()
-
   const form = useForm({
     ...createSubscriptionFormOptions(props.feed),
     onSubmit: ({ value, formApi }) => {
@@ -38,7 +33,7 @@ export const EditStep = (props: {
     },
   })
 
-  const createSubscription = useCreateSubscriptionMutation(context.api)
+  const createSubscription = useCreateSubscriptionMutation()
 
   return (
     <form

@@ -1,4 +1,5 @@
 import type { API, CollectionCreate, CollectionUpdate } from '@colette/core'
+import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -19,7 +20,8 @@ export const getCollectionOptions = (api: API, id: string) =>
     queryFn: () => api.collections.getCollection(id),
   })
 
-export const useCreateCollectionMutation = (api: API) => {
+export const useCreateCollectionMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -33,7 +35,8 @@ export const useCreateCollectionMutation = (api: API) => {
   })
 }
 
-export const useUpdateCollectionMutation = (api: API, id: string) => {
+export const useUpdateCollectionMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -47,7 +50,8 @@ export const useUpdateCollectionMutation = (api: API, id: string) => {
   })
 }
 
-export const useDeleteCollectionMutation = (api: API, id: string) => {
+export const useDeleteCollectionMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({

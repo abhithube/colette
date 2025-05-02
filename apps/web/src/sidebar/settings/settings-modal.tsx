@@ -2,13 +2,8 @@ import { importSubscriptionsFormOptions } from '@colette/form'
 import { useImportSubscriptionsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout/')
 
 export const SettingsModal = (props: { close: () => void }) => {
-  const context = routeApi.useRouteContext()
-
   const form = useForm({
     ...importSubscriptionsFormOptions(),
     onSubmit: ({ value, formApi }) =>
@@ -21,7 +16,7 @@ export const SettingsModal = (props: { close: () => void }) => {
       }),
   })
 
-  const importSubscriptions = useImportSubscriptionsMutation(context.api)
+  const importSubscriptions = useImportSubscriptionsMutation()
 
   return (
     <Dialog.Content>

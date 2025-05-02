@@ -9,7 +9,6 @@ export const UnsubscribeAlert = (props: {
   subscription: Subscription
   close: () => void
 }) => {
-  const context = routeApi.useRouteContext()
   const navigate = routeApi.useNavigate()
 
   const params = useParams({
@@ -17,7 +16,6 @@ export const UnsubscribeAlert = (props: {
   })
 
   const deleteSubscription = useDeleteSubscriptionMutation(
-    context.api,
     props.subscription.id,
   )
 

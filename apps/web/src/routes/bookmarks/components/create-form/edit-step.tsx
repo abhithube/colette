@@ -3,17 +3,12 @@ import { createBookmarkFormOptions } from '@colette/form'
 import { useCreateBookmarkMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout/stash')
 
 export const EditStep = (props: {
   formId: string
   bookmark: BookmarkScraped
   onClose: () => void
 }) => {
-  const context = routeApi.useRouteContext()
-
   const form = useForm({
     ...createBookmarkFormOptions(props.bookmark),
     onSubmit: ({ value, formApi }) => {
@@ -33,7 +28,7 @@ export const EditStep = (props: {
     },
   })
 
-  const createBookmark = useCreateBookmarkMutation(context.api)
+  const createBookmark = useCreateBookmarkMutation()
 
   return (
     <form

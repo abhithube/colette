@@ -3,16 +3,11 @@ import { scrapeBookmarkFormOptions } from '@colette/form'
 import { useScrapeBookmarkMutation } from '@colette/query'
 import { Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout/stash')
 
 export const SearchStep = (props: {
   formId: string
   onNext: (scraped: BookmarkScraped) => void
 }) => {
-  const context = routeApi.useRouteContext()
-
   const form = useForm({
     ...scrapeBookmarkFormOptions(),
     onSubmit: ({ value, formApi }) =>
@@ -25,7 +20,7 @@ export const SearchStep = (props: {
       }),
   })
 
-  const scrapeBookmark = useScrapeBookmarkMutation(context.api)
+  const scrapeBookmark = useScrapeBookmarkMutation()
 
   return (
     <form

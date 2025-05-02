@@ -1,16 +1,14 @@
 import { EntryList } from '../subscriptions/components/entry-list'
 import { listSubscriptionEntriesOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
-const routeApi = getRouteApi('/layout/')
-
 export const HomePage = () => {
-  const context = routeApi.useRouteContext()
+  const api = useAPI()
 
   const query = useInfiniteQuery(
-    listSubscriptionEntriesOptions(context.api, { hasRead: false }),
+    listSubscriptionEntriesOptions(api, { hasRead: false }),
   )
 
   useEffect(() => {

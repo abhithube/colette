@@ -6,9 +6,12 @@
   ],
   "dependencies": {
     "@colette/core": "*",
-    "@tanstack/react-query": "*"
+    "@colette/util": "*",
+    "@tanstack/react-query": "*",
+    "react": "*"
   },
   "devDependencies": {
+    "@types/react": "*",
     "typescript": "*"
   }
 }

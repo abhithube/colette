@@ -8,7 +8,6 @@ import { UserX } from 'lucide-react'
 const routeApi = getRouteApi('/register')
 
 export const RegisterForm = () => {
-  const context = routeApi.useRouteContext()
   const navigate = routeApi.useNavigate()
 
   const form = useForm({
@@ -34,7 +33,7 @@ export const RegisterForm = () => {
       ),
   })
 
-  const registerUser = useRegisterUserMutation(context.api)
+  const registerUser = useRegisterUserMutation()
 
   return (
     <>

@@ -6,18 +6,13 @@ import {
 import { useLinkSubscriptionTagsMutation } from '@colette/query'
 import { Button, Dialog, Field } from '@colette/ui'
 import { useForm } from '@tanstack/react-form'
-import { getRouteApi } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { TagsInput } from '~/components/tags-input'
-
-const routeApi = getRouteApi('/layout/subscriptions/')
 
 export const EditSubscriptionTagsModal = (props: {
   details: SubscriptionDetails
   close: () => void
 }) => {
-  const context = routeApi.useRouteContext()
-
   const form = useForm({
     ...linkSubscriptionTagsFormOptions(),
     onSubmit: ({ value, formApi }) => {
@@ -56,7 +51,6 @@ export const EditSubscriptionTagsModal = (props: {
   })
 
   const linkSubscriptionTags = useLinkSubscriptionTagsMutation(
-    context.api,
     props.details.subscription.id,
   )
 
@@ -92,7 +86,6 @@ export const EditSubscriptionTagsModal = (props: {
               <Field.Root invalid={errors.length !== 0}>
                 <Field.Label>Tags</Field.Label>
                 <TagsInput
-                  api={context.api}
                   state={field.state}
                   handleChange={field.handleChange}
                 />

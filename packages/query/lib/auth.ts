@@ -1,4 +1,5 @@
 import type { API, Login, Register } from '@colette/core'
+import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -7,13 +8,16 @@ import {
 
 const AUTH_PREFIX = 'auth'
 
-export const useRegisterUserMutation = (api: API) => {
+export const useRegisterUserMutation = () => {
+  const api = useAPI()
+
   return useMutation({
     mutationFn: (data: Register) => api.auth.registerUser(data),
   })
 }
 
-export const useLoginUserMutation = (api: API) => {
+export const useLoginUserMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -30,7 +34,8 @@ export const getActiveUserOptions = (api: API) =>
     queryFn: () => api.auth.getActiveUser(),
   })
 
-export const useLogoutUserMutation = (api: API) => {
+export const useLogoutUserMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({

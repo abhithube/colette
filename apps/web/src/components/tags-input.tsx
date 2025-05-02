@@ -1,7 +1,7 @@
-import { API } from '@colette/core'
 import { listTagsOptions } from '@colette/query'
 import { Badge, Button, Combobox, Popover } from '@colette/ui'
 import { cn, createListCollection } from '@colette/ui/utils'
+import { useAPI } from '@colette/util'
 import { type FieldState, type Updater } from '@tanstack/react-form'
 import { useQuery } from '@tanstack/react-query'
 import { Check, ChevronsUpDown, Plus } from 'lucide-react'
@@ -28,7 +28,6 @@ type TagsState = FieldState<
 >
 
 export const TagsInput = (props: {
-  api: API
   state: TagsState
   handleChange: (updater: Updater<string[]>) => void
 }) => {
@@ -69,11 +68,12 @@ export const TagsInput = (props: {
 }
 
 export const TagsInner = (props: {
-  api: API
   state: TagsState
   handleChange: (updater: Updater<string[]>) => void
 }) => {
-  const query = useQuery(listTagsOptions(props.api))
+  const api = useAPI()
+
+  const query = useQuery(listTagsOptions(api))
 
   const collection = useMemo(
     () => createListCollection({ items: props.state.value }),

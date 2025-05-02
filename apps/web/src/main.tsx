@@ -10,7 +10,7 @@ import { SubscriptionsPage } from './routes/subscriptions'
 import { SubscriptionPage } from './routes/subscriptions/id'
 import { HttpAPI } from '@colette/core'
 import { buildRouter } from '@colette/router'
-import { ThemeProvider } from '@colette/util'
+import { APIProvider, ThemeProvider } from '@colette/util'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Outlet, RouteIds, RouterProvider } from '@tanstack/react-router'
@@ -61,10 +61,12 @@ Object.entries(routerMap).forEach(([path, component]) => {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
-      </QueryClientProvider>
-    </ThemeProvider>
+    <APIProvider api={api}>
+      <ThemeProvider>
+        <QueryClientProvider client={queryClient}>
+          <RouterProvider router={router} />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </APIProvider>
   </React.StrictMode>,
 )

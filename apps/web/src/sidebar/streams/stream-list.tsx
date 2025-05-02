@@ -1,15 +1,13 @@
 import { StreamItem } from './stream-item'
 import { listStreamsOptions } from '@colette/query'
 import { Sidebar } from '@colette/ui'
+import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout')
 
 export const StreamList = () => {
-  const context = routeApi.useRouteContext()
+  const api = useAPI()
 
-  const query = useQuery(listStreamsOptions(context.api))
+  const query = useQuery(listStreamsOptions(api))
 
   if (query.isLoading || !query.data) return
 

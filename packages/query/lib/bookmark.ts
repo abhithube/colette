@@ -6,6 +6,7 @@ import type {
   BookmarkUpdate,
   LinkBookmarkTags,
 } from '@colette/core'
+import { useAPI } from '@colette/util'
 import {
   infiniteQueryOptions,
   useMutation,
@@ -29,7 +30,8 @@ export const listBookmarksOptions = (
     getNextPageParam: (lastPage) => lastPage.cursor,
   })
 
-export const useCreateBookmarkMutation = (api: API) => {
+export const useCreateBookmarkMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -42,7 +44,8 @@ export const useCreateBookmarkMutation = (api: API) => {
   })
 }
 
-export const useUpdateBookmarkMutation = (api: API, id: string) => {
+export const useUpdateBookmarkMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -56,7 +59,8 @@ export const useUpdateBookmarkMutation = (api: API, id: string) => {
   })
 }
 
-export const useDeleteBookmarkMutation = (api: API, id: string) => {
+export const useDeleteBookmarkMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -69,7 +73,8 @@ export const useDeleteBookmarkMutation = (api: API, id: string) => {
   })
 }
 
-export const useLinkBookmarkTagsMutation = (api: API, id: string) => {
+export const useLinkBookmarkTagsMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -83,7 +88,9 @@ export const useLinkBookmarkTagsMutation = (api: API, id: string) => {
   })
 }
 
-export const useScrapeBookmarkMutation = (api: API) => {
+export const useScrapeBookmarkMutation = () => {
+  const api = useAPI()
+
   return useMutation({
     mutationFn: (data: BookmarkScrape) => api.bookmarks.scrapeBookmark(data),
   })

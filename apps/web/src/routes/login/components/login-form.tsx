@@ -9,8 +9,6 @@ const routeApi = getRouteApi('/login')
 
 export const LoginForm = () => {
   const router = useRouter()
-
-  const context = routeApi.useRouteContext()
   const search = routeApi.useSearch()
   const navigate = routeApi.useNavigate()
 
@@ -39,7 +37,7 @@ export const LoginForm = () => {
     },
   })
 
-  const loginUser = useLoginUserMutation(context.api)
+  const loginUser = useLoginUserMutation()
 
   return (
     <>

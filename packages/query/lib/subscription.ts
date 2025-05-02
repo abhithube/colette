@@ -7,6 +7,7 @@ import type {
   SubscriptionListQuery,
   SubscriptionUpdate,
 } from '@colette/core'
+import { useAPI } from '@colette/util'
 import {
   queryOptions,
   useMutation,
@@ -34,7 +35,8 @@ export const getSubscriptionOptions = (
     queryFn: () => api.subscriptions.getSubscription(id, query),
   })
 
-export const useCreateSubscriptionMutation = (api: API) => {
+export const useCreateSubscriptionMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -48,7 +50,8 @@ export const useCreateSubscriptionMutation = (api: API) => {
   })
 }
 
-export const useUpdateSubscriptionMutation = (api: API, id: string) => {
+export const useUpdateSubscriptionMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -62,7 +65,8 @@ export const useUpdateSubscriptionMutation = (api: API, id: string) => {
   })
 }
 
-export const useDeleteSubscriptionMutation = (api: API, id: string) => {
+export const useDeleteSubscriptionMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -75,7 +79,8 @@ export const useDeleteSubscriptionMutation = (api: API, id: string) => {
   })
 }
 
-export const useLinkSubscriptionTagsMutation = (api: API, id: string) => {
+export const useLinkSubscriptionTagsMutation = (id: string) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -90,10 +95,10 @@ export const useLinkSubscriptionTagsMutation = (api: API, id: string) => {
 }
 
 export const useMarkSubscriptionEntryAsReadMutation = (
-  api: API,
   sid: string,
   eid: string,
 ) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -107,10 +112,10 @@ export const useMarkSubscriptionEntryAsReadMutation = (
 }
 
 export const useMarkSubscriptionEntryAsUnreadMutation = (
-  api: API,
   sid: string,
   eid: string,
 ) => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -123,7 +128,8 @@ export const useMarkSubscriptionEntryAsUnreadMutation = (
   })
 }
 
-export const useImportSubscriptionsMutation = (api: API) => {
+export const useImportSubscriptionsMutation = () => {
+  const api = useAPI()
   const queryClient = useQueryClient()
 
   return useMutation({

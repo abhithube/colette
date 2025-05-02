@@ -1,16 +1,12 @@
 import { SubscriptionItem } from './subscription-item'
 import { listSubscriptionsOptions } from '@colette/query'
+import { useAPI } from '@colette/util'
 import { useQuery } from '@tanstack/react-query'
-import { getRouteApi } from '@tanstack/react-router'
-
-const routeApi = getRouteApi('/layout/subscriptions')
 
 export const SubscriptionList = () => {
-  const context = routeApi.useRouteContext()
+  const api = useAPI()
 
-  const query = useQuery(
-    listSubscriptionsOptions(context.api, { withFeed: true }),
-  )
+  const query = useQuery(listSubscriptionsOptions(api, { withFeed: true }))
 
   if (query.isLoading || !query.data) return
 

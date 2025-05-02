@@ -9,7 +9,7 @@ export const UserCard = () => {
   const context = routeApi.useRouteContext()
   const navigate = routeApi.useNavigate()
 
-  const logoutUser = useLogoutUserMutation(context.api)
+  const logoutUser = useLogoutUserMutation()
 
   function onLogout() {
     logoutUser.mutate(undefined, {
