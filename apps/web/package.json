@@ -7,24 +7,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@colette/app": "*",
     "@colette/core": "*",
-    "@colette/form": "*",
-    "@colette/query": "*",
     "@colette/router": "*",
-    "@colette/ui": "*",
     "@colette/util": "*",
-    "@tanstack/react-form": "*",
-    "@tanstack/react-query": "*",
     "@tanstack/react-query-devtools": "^5.63.0",
-    "@tanstack/react-router": "*",
     "@tanstack/react-router-devtools": "^1.117.1",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "lucide-react": "^0.486.0",
     "react": "*",
     "react-dom": "*",
-    "tw-animate-css": "^1.2.5",
-    "zod": "*"
+    "tw-animate-css": "^1.2.5"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.4",

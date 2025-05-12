@@ -1,5 +1,5 @@
 {
-  "name": "@colette/router",
+  "name": "@colette/app",
   "type": "module",
   "module": "./lib/index.ts",
   "exports": [
@@ -7,10 +7,14 @@
   ],
   "dependencies": {
     "@colette/core": "*",
+    "@colette/form": "*",
     "@colette/query": "*",
+    "@colette/router": "*",
+    "@colette/ui": "*",
+    "@colette/util": "*",
+    "@tanstack/react-form": "*",
     "@tanstack/react-query": "*",
-    "@tanstack/react-router": "^1.117.1",
-    "@tanstack/zod-adapter": "^1.117.1",
+    "lucide-react": "^0.486.0",
     "react": "*",
     "react-dom": "*",
     "zod": "*"

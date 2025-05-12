@@ -1,19 +1,20 @@
 import './index.css'
-import { Layout } from './layout'
-import { StashPage } from './routes/bookmarks'
-import { CollectionPage } from './routes/collections/id'
-import { HomePage } from './routes/home'
-import { LoginPage } from './routes/login'
-import { RegisterPage } from './routes/register'
-import { StreamPage } from './routes/streams/id'
-import { SubscriptionsPage } from './routes/subscriptions'
-import { SubscriptionPage } from './routes/subscriptions/id'
+import {
+  CollectionPage,
+  HomePage,
+  Layout,
+  LoginPage,
+  RegisterPage,
+  StashPage,
+  StreamPage,
+  SubscriptionPage,
+  SubscriptionsPage,
+} from '@colette/app'
 import { HttpAPI } from '@colette/core'
-import { buildRouter } from '@colette/router'
+import { buildRouter, Outlet, RouteIds, RouterProvider } from '@colette/router'
 import { APIProvider, ThemeProvider } from '@colette/util'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { Outlet, RouteIds, RouterProvider } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
 import React, { JSX } from 'react'
 import ReactDOM from 'react-dom/client'

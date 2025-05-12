@@ -53,3 +53,14 @@ declare module '@tanstack/react-router' {
     loggedOut?: boolean
   }
 }
+
+export {
+  getRouteApi,
+  Link,
+  Outlet,
+  RouterProvider,
+  useParams,
+  useRouteContext,
+  useRouter,
+  type RouteIds,
+} from '@tanstack/react-router'
