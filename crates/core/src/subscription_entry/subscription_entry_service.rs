@@ -1,4 +1,3 @@
-use colette_util::base64;
 use uuid::Uuid;
 
 use super::{
@@ -31,7 +30,9 @@ impl SubscriptionEntryService {
         query: SubscriptionEntryListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<SubscriptionEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
+        let cursor = query
+            .cursor
+            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
 
         let mut filter = Option::<SubscriptionEntryFilter>::None;
         if let Some(stream_id) = query.stream_id {
@@ -79,7 +80,7 @@ impl SubscriptionEntryService {
                         published_at: entry.published_at,
                         id: entry.id,
                     };
-                    let encoded = base64::encode(&c)?;
+                    let encoded = colette_util::base64_encode(&c)?;
 
                     cursor = Some(encoded);
                 }

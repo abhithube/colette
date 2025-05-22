@@ -1,7 +1,6 @@
 pub use api_key_repository::*;
 pub use api_key_service::*;
 use chrono::{DateTime, Utc};
-use colette_util::password;
 use uuid::Uuid;
 
 mod api_key_repository;
@@ -39,7 +38,7 @@ pub enum Error {
     Auth,
 
     #[error(transparent)]
-    Hash(#[from] password::Error),
+    Hash(#[from] colette_util::Argon2Error),
 
     #[error(transparent)]
     Database(#[from] tokio_postgres::Error),

@@ -1,7 +1,6 @@
 pub use bookmark_repository::*;
 pub use bookmark_service::*;
 use chrono::{DateTime, Utc};
-use colette_util::base64;
 use image::ImageError;
 use url::Url;
 use uuid::Uuid;
@@ -127,7 +126,7 @@ pub enum Error {
     Scraper(#[from] colette_scraper::bookmark::BookmarkError),
 
     #[error(transparent)]
-    Base64(#[from] base64::Error),
+    Base64(#[from] colette_util::Base64Error),
 
     #[error(transparent)]
     SerdeJson(#[from] serde_json::Error),

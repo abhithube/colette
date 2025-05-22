@@ -1,4 +1,3 @@
-use colette_util::base64;
 use uuid::Uuid;
 
 use super::{Cursor, Error, FeedEntry, FeedEntryParams, FeedEntryRepository};
@@ -19,7 +18,9 @@ impl FeedEntryService {
         &self,
         query: FeedEntryListQuery,
     ) -> Result<Paginated<FeedEntry>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
+        let cursor = query
+            .cursor
+            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
 
         let mut feed_entries = self
             .feed_entry_repository
@@ -41,7 +42,7 @@ impl FeedEntryService {
                     published_at: last.published_at,
                     id: last.id,
                 };
-                let encoded = base64::encode(&c)?;
+                let encoded = colette_util::base64_encode(&c)?;
 
                 cursor = Some(encoded);
             }

@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use colette_util::base64;
 pub use subscription_entry_repository::*;
 pub use subscription_entry_service::*;
 use uuid::Uuid;
@@ -89,7 +88,7 @@ pub enum Error {
     Forbidden(Uuid),
 
     #[error(transparent)]
-    Base64(#[from] base64::Error),
+    Base64(#[from] colette_util::Base64Error),
 
     #[error(transparent)]
     Stream(#[from] stream::Error),

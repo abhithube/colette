@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use colette_util::{api_key, password};
 use uuid::Uuid;
 
 use super::{ApiKey, ApiKeyParams, ApiKeyRepository, Error};
@@ -32,13 +31,13 @@ impl ApiKeyService {
     }
 
     pub async fn validate_api_key(&self, value: String) -> Result<ApiKey, Error> {
-        let lookup_hash = api_key::hash(&value);
+        let lookup_hash = colette_util::sha256_hash(&value);
 
         let Some(api_key) = self.repository.find_by_lookup_hash(lookup_hash).await? else {
             return Err(Error::Auth);
         };
 
-        let valid = password::verify(&value, &api_key.verification_hash)?;
+        let valid = colette_util::argon2_verify(&value, &api_key.verification_hash)?;
         if !valid {
             return Err(Error::Auth);
         }
@@ -71,11 +70,11 @@ impl ApiKeyService {
         data: ApiKeyCreate,
         user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
-        let value = api_key::generate();
+        let value = colette_util::random_generate(32);
 
         let api_key = ApiKey::builder()
-            .lookup_hash(api_key::hash(&value))
-            .verification_hash(password::hash(&value)?)
+            .lookup_hash(colette_util::sha256_hash(&value))
+            .verification_hash(colette_util::argon2_hash(&value)?)
             .title(data.title)
             .preview(format!(
                 "{}...{}",

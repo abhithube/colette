@@ -10,7 +10,6 @@ chrono.workspace = true
 colette-feed.workspace = true
 colette-http.workspace = true
 colette-meta.workspace = true
-colette-util.workspace = true
 reqwest.workspace = true
 scraper.workspace = true
 thiserror.workspace = true

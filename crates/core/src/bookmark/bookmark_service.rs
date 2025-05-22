@@ -7,7 +7,6 @@ use colette_netscape::{Item, Netscape};
 use colette_queue::JobProducer;
 use colette_scraper::bookmark::BookmarkScraper;
 use colette_storage::StorageClient;
-use colette_util::{base64, thumbnail};
 use tokio::sync::Mutex;
 use url::Url;
 use uuid::Uuid;
@@ -68,7 +67,9 @@ impl BookmarkService {
         query: BookmarkListQuery,
         user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
-        let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
+        let cursor = query
+            .cursor
+            .and_then(|e| colette_util::base64_decode::<Cursor>(&e).ok());
 
         let mut filter = Option::<BookmarkFilter>::None;
         if let Some(collection_id) = query.collection_id {
@@ -112,7 +113,7 @@ impl BookmarkService {
                 let c = Cursor {
                     created_at: last.created_at,
                 };
-                let encoded = base64::encode(&c)?;
+                let encoded = colette_util::base64_encode(&c)?;
 
                 cursor = Some(encoded);
             }
@@ -346,7 +347,11 @@ impl BookmarkService {
     ) -> Result<(), Error> {
         match data.operation {
             ThumbnailOperation::Upload(thumbnail_url) => {
-                let file_name = thumbnail::generate_filename(&thumbnail_url);
+                let file_name = format!(
+                    "{}-{}",
+                    Utc::now().timestamp(),
+                    &colette_util::sha256_hash(thumbnail_url.as_str())[..8]
+                );
 
                 let body = self.http_client.get(&thumbnail_url).await?;
 

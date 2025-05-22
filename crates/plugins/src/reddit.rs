@@ -1,5 +1,7 @@
-use colette_scraper::bookmark::{BookmarkError, BookmarkPlugin, ProcessedBookmark};
-use colette_util::html::{ExtractorQuery, Node};
+use colette_scraper::{
+    ExtractorQuery, Node,
+    bookmark::{BookmarkError, BookmarkPlugin, ProcessedBookmark},
+};
 use reqwest::{
     Client, Method, Request, RequestBuilder,
     header::{self, HeaderValue},

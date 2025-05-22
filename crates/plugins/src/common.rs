@@ -2,10 +2,10 @@ use core::str;
 
 use bytes::Bytes;
 use colette_scraper::{
+    ExtractorQuery, TextSelector,
     bookmark::{BookmarkError, ExtractedBookmark},
     feed::{ExtractedFeed, ExtractedFeedEntry, FeedError},
 };
-use colette_util::html::{ExtractorQuery, TextSelector};
 use scraper::{Html, Selector};
 
 #[derive(Debug, Clone, Default)]
