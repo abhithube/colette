@@ -7,7 +7,7 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
     volumes:
-      - ./data/postgres:/data
+      - ./data/postgres:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=postgres
   pgadmin:
@@ -23,6 +23,16 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=admin@postgres.com
       - PGADMIN_DEFAULT_PASSWORD=postgres
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    ports:
+      - 8083:8080
+    restart: unless-stopped
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=admin
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=admin
+    command:
+      - start-dev
   minio:
     image: minio/minio
     ports:
