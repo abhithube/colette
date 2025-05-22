@@ -25,7 +25,7 @@ pub trait CollectionRepository: Send + Sync + 'static {
 #[derive(Debug, Clone, Default)]
 pub struct CollectionParams {
     pub id: Option<Uuid>,
-    pub user_id: Option<String>,
+    pub user_id: Option<Uuid>,
     pub cursor: Option<String>,
     pub limit: Option<u64>,
 }

@@ -38,7 +38,7 @@ pub trait ApiKeyRepository: Send + Sync + 'static {
 pub struct ApiKeyParams {
     pub id: Option<Uuid>,
     pub lookup_hash: Option<String>,
-    pub user_id: Option<String>,
+    pub user_id: Option<Uuid>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
 }

@@ -25,9 +25,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<TagListQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.list_tags(query.into(), user_id).await {
+    match state.tag_service.list_tags(query.into(), user.id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

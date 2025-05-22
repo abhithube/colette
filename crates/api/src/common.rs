@@ -1,29 +1,52 @@
-use std::{net::SocketAddr, ops::Range, sync::Arc};
+use std::{ops::Range, sync::Arc};
 
 use axum::{
-    extract::{ConnectInfo, FromRequestParts, Request, State},
+    extract::{FromRequestParts, Request, State},
     http::{StatusCode, request::Parts},
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use axum_extra::{TypedHeader, extract::CookieJar, headers::UserAgent};
+use axum_extra::headers::{Authorization, HeaderMapExt, authorization::Bearer};
 use chrono::{DateTime, Utc};
-use colette_auth::AuthAdapter;
 use colette_core::{
-    api_key::ApiKeyService, bookmark::BookmarkService, collection::CollectionService, common,
-    feed::FeedService, feed_entry::FeedEntryService, filter, job::JobService,
-    stream::StreamService, subscription::SubscriptionService,
-    subscription_entry::SubscriptionEntryService, tag::TagService,
+    User,
+    api_key::ApiKeyService,
+    auth::{AuthService, UserGetQuery},
+    bookmark::BookmarkService,
+    collection::CollectionService,
+    common,
+    feed::FeedService,
+    feed_entry::FeedEntryService,
+    filter,
+    job::JobService,
+    stream::StreamService,
+    subscription::SubscriptionService,
+    subscription_entry::SubscriptionEntryService,
+    tag::TagService,
 };
-use torii::{SessionToken, Torii, User, UserId};
 use url::Url;
 use uuid::Uuid;
 
-pub(crate) const SESSION_COOKIE: &str = "session_id";
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct Config {
+    pub oidc: OidcConfig,
+    pub storage: StorageConfig,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct OidcConfig {
+    pub client_id: String,
+    pub redirect_url: Url,
+    pub issuer_url: Url,
+}
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct StorageConfig {
+    pub base_url: Url,
+}
 
 #[derive(Clone, axum::extract::FromRef)]
 pub struct ApiState {
-    pub auth: Arc<Torii<AuthAdapter>>,
     pub api_key_service: Arc<ApiKeyService>,
     pub bookmark_service: Arc<BookmarkService>,
     pub collection_service: Arc<CollectionService>,
@@ -34,7 +57,8 @@ pub struct ApiState {
     pub subscription_service: Arc<SubscriptionService>,
     pub subscription_entry_service: Arc<SubscriptionEntryService>,
     pub tag_service: Arc<TagService>,
-    pub image_base_url: Url,
+    pub auth_service: Arc<AuthService>,
+    pub config: Config,
 }
 
 #[derive(axum::extract::FromRequestParts)]
@@ -102,93 +126,48 @@ where
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct ConnectionInfo {
-    pub(crate) ip_address: Option<String>,
-    pub(crate) user_agent: Option<String>,
-}
-
-pub(crate) async fn add_connection_info_extension(
-    user_agent: Option<TypedHeader<UserAgent>>,
-    addr: ConnectInfo<SocketAddr>,
-    mut request: Request,
-    next: Next,
-) -> Response {
-    request.extensions_mut().insert(ConnectionInfo {
-        ip_address: Some(addr.ip().to_string()),
-        user_agent: user_agent.map(|e| e.to_string()),
-    });
-
-    next.run(request).await
-}
-
 pub(crate) async fn add_user_extension(
     State(state): State<ApiState>,
-    jar: CookieJar,
     mut req: Request,
     next: Next,
 ) -> Result<Response, ApiError> {
     req.extensions_mut().insert(None::<User>);
 
-    let session_id = jar
-        .get(SESSION_COOKIE)
-        .and_then(|cookie| cookie.value().parse::<String>().ok());
-
-    if let Some(session_id) = session_id {
-        let Ok(session) = state
-            .auth
-            .get_session(&SessionToken::new(&session_id))
+    if let Some(Authorization(bearer)) = req.headers().typed_get::<Authorization<Bearer>>() {
+        let user = state
+            .auth_service
+            .validate_access_token(bearer.token())
             .await
-        else {
-            tracing::debug!("session not found");
+            .map_err(|_| ApiError::not_authenticated())?;
+
+        req.extensions_mut().insert(user.clone());
+        req.extensions_mut().insert(Some(user));
+    } else if let Some(header) = req.headers().get("X-Api-Key").and_then(|e| e.to_str().ok()) {
+        let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
+            tracing::debug!("invalid API key");
 
             return Err(ApiError::not_authenticated());
         };
 
-        let Ok(user) = state.auth.get_user(&session.user_id).await else {
+        let Ok(user) = state
+            .auth_service
+            .get_user(UserGetQuery::Id(api_key.user_id))
+            .await
+        else {
             tracing::debug!("user not found");
 
             return Err(ApiError::not_authenticated());
         };
 
         req.extensions_mut().insert(user.clone());
-        if let Some(valid_user) = user {
-            req.extensions_mut().insert(valid_user);
-        }
-    } else {
-        let header = req.headers().get("X-Api-Key");
-
-        if let Some(header) = header {
-            let Ok(header) = header.to_str() else {
-                tracing::debug!("invalid header");
-
-                return Err(ApiError::not_authenticated());
-            };
-
-            let Ok(api_key) = state.api_key_service.validate_api_key(header.into()).await else {
-                tracing::debug!("invalid API key");
-
-                return Err(ApiError::not_authenticated());
-            };
-
-            let Ok(user) = state.auth.get_user(&UserId::new(&api_key.user_id)).await else {
-                tracing::debug!("user not found");
-
-                return Err(ApiError::not_authenticated());
-            };
-
-            req.extensions_mut().insert(user.clone());
-            if let Some(valid_user) = user {
-                req.extensions_mut().insert(valid_user);
-            }
-        }
+        req.extensions_mut().insert(Some(user));
     }
 
     Ok(next.run(req).await)
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct AuthUser(pub(crate) String);
+pub(crate) struct AuthUser(pub(crate) User);
 
 impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
     type Rejection = ApiError;
@@ -198,7 +177,7 @@ impl<S: Send + Sync> FromRequestParts<S> for AuthUser {
             .extensions
             .get::<User>()
             .cloned()
-            .map(|e| AuthUser(e.id.into_inner()))
+            .map(AuthUser)
             .ok_or_else(|| {
                 tracing::debug!("failed to extract authenticated user");
 
@@ -344,7 +323,6 @@ pub(crate) enum ApiErrorCode {
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, utoipa::ToSchema)]
-#[schema(title = "Error")]
 pub(crate) struct ApiError {
     pub(crate) code: ApiErrorCode,
     pub(crate) message: String,
@@ -360,13 +338,6 @@ impl<E: std::error::Error> From<E> for ApiError {
 }
 
 impl ApiError {
-    pub(crate) fn bad_credentials() -> Self {
-        Self {
-            code: ApiErrorCode::NotAuthenticated,
-            message: "Bad credentials".into(),
-        }
-    }
-
     pub(crate) fn not_authenticated() -> Self {
         Self {
             code: ApiErrorCode::NotAuthenticated,

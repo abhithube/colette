@@ -42,7 +42,7 @@ impl TagRepository for PostgresTagRepository {
         let (sql, values) = TagInsert {
             id: data.id,
             title: &data.title,
-            user_id: &data.user_id,
+            user_id: data.user_id,
             created_at: data.created_at,
             updated_at: data.updated_at,
             upsert: false,

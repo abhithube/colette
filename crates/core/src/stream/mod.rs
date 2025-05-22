@@ -15,7 +15,7 @@ pub struct Stream {
     pub id: Uuid,
     pub title: String,
     pub filter: SubscriptionEntryFilter,
-    pub user_id: String,
+    pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]

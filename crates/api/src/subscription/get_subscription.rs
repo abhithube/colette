@@ -26,7 +26,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Query(query): Query<SubscriptionGetQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
@@ -37,7 +37,7 @@ pub(super) async fn handler(
                 with_unread_count: query.with_unread_count,
                 with_tags: query.with_tags,
             },
-            user_id,
+            user.id,
         )
         .await
     {

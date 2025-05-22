@@ -26,7 +26,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Query(query): Query<BookmarkGetQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
@@ -35,11 +35,13 @@ pub(super) async fn handler(
                 id,
                 with_tags: query.with_tags,
             },
-            user_id,
+            user.id,
         )
         .await
     {
-        Ok(data) => Ok(OkResponse((data, state.image_base_url.clone()).into())),
+        Ok(data) => Ok(OkResponse(
+            (data, state.config.storage.base_url.clone()).into(),
+        )),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
             bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),

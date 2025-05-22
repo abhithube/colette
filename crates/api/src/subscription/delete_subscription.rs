@@ -24,11 +24,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .delete_subscription(id, user_id)
+        .delete_subscription(id, user.id)
         .await
     {
         Ok(()) => Ok(OkResponse),

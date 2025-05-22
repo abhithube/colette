@@ -29,7 +29,7 @@ impl SubscriptionEntryService {
     pub async fn list_subscription_entries(
         &self,
         query: SubscriptionEntryListQuery,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Paginated<SubscriptionEntry>, Error> {
         let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
 
@@ -39,7 +39,7 @@ impl SubscriptionEntryService {
                 .stream_repository
                 .query(StreamParams {
                     id: Some(stream_id),
-                    user_id: Some(user_id.clone()),
+                    user_id: Some(user_id),
                     ..Default::default()
                 })
                 .await?;

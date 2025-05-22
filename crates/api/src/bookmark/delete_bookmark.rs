@@ -24,9 +24,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.bookmark_service.delete_bookmark(id, user_id).await {
+    match state.bookmark_service.delete_bookmark(id, user.id).await {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

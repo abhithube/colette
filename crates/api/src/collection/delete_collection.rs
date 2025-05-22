@@ -24,11 +24,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .collection_service
-        .delete_collection(id, user_id)
+        .delete_collection(id, user.id)
         .await
     {
         Ok(()) => Ok(OkResponse),

@@ -39,7 +39,7 @@ pub trait BookmarkRepository: Send + Sync + 'static {
 pub struct BookmarkParams {
     pub id: Option<Uuid>,
     pub filter: Option<BookmarkFilter>,
-    pub user_id: Option<String>,
+    pub user_id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
     pub cursor: Option<DateTime<Utc>>,
     pub limit: Option<u64>,
@@ -53,5 +53,5 @@ pub enum BookmarkUpsertType {
 
 pub struct ImportBookmarksData {
     pub items: Vec<Item>,
-    pub user_id: String,
+    pub user_id: Uuid,
 }

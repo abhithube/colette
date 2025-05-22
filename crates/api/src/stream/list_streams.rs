@@ -22,9 +22,9 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.stream_service.list_streams(user_id).await {
+    match state.stream_service.list_streams(user.id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => Err(ErrResponse::InternalServerError(e.into())),
     }

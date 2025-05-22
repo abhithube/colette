@@ -8,7 +8,6 @@ axum = { workspace = true, features = ["tokio"] }
 axum-embed = { version = "0.1.0", default-features = false }
 chrono.workspace = true
 colette-api.workspace = true
-colette-auth.workspace = true
 colette-core.workspace = true
 colette-http.workspace = true
 colette-job.workspace = true
@@ -23,6 +22,7 @@ deadpool-postgres = { workspace = true, features = ["rt_tokio_1"] }
 dirs = { version = "6.0.0", default-features = false }
 envy = { version = "0.4.2", default-features = false }
 futures.workspace = true
+jsonwebtoken.workspace = true
 refinery = { version = "0.8.16", default-features = false }
 reqwest = { workspace = true, features = ["rustls-tls-webpki-roots"] }
 rust-embed = { version = "8.5.0", default-features = false, features = [
@@ -34,7 +34,6 @@ serde_json.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 tokio-postgres = { workspace = true, features = ["runtime"] }
-torii.workspace = true
 tower = { workspace = true, features = ["buffer", "limit", "tracing"] }
 tower-http = { workspace = true, features = ["fs"] }
 tracing.workspace = true

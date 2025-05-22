@@ -26,18 +26,18 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<BookmarkListQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .list_bookmarks(query.into(), user_id)
+        .list_bookmarks(query.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(Paginated {
             data: data
                 .data
                 .into_iter()
-                .map(|e| (e, state.image_base_url.clone()).into())
+                .map(|e| (e, state.config.storage.base_url.clone()).into())
                 .collect(),
             cursor: data.cursor,
         })),

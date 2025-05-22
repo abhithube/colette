@@ -1,20 +1,9 @@
 CREATE TABLE users (
-  id TEXT NOT NULL PRIMARY KEY,
-  name TEXT,
-  email TEXT NOT NULL UNIQUE,
-  verified_at TIMESTAMPTZ,
-  password_hash TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-CREATE TABLE sessions (
-  id INTEGER GENERATED ALWAYS AS IDENTITY,
-  token TEXT NOT NULL,
-  user_agent TEXT,
-  ip_address TEXT,
-  expires_at TIMESTAMPTZ NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  id uuid NOT NULL PRIMARY KEY,
+  external_id TEXT NOT NULL UNIQUE,
+  email TEXT,
+  display_name TEXT,
+  picture_url TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -25,7 +14,7 @@ CREATE TABLE api_keys (
   verification_hash TEXT NOT NULL,
   title TEXT NOT NULL,
   preview TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -67,7 +56,7 @@ CREATE TABLE subscriptions (
   id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   feed_id uuid NOT NULL REFERENCES feeds (id) ON DELETE RESTRICT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -77,7 +66,7 @@ CREATE TABLE subscriptions (
 CREATE TABLE read_entries (
   subscription_id uuid NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   feed_entry_id uuid NOT NULL REFERENCES feed_entries (id) ON DELETE RESTRICT,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (subscription_id, feed_entry_id)
 );
@@ -90,7 +79,7 @@ CREATE TABLE bookmarks (
   published_at TIMESTAMPTZ,
   author TEXT,
   archived_path TEXT,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, link)
@@ -99,7 +88,7 @@ CREATE TABLE bookmarks (
 CREATE TABLE tags (
   id uuid NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
@@ -108,14 +97,14 @@ CREATE TABLE tags (
 CREATE TABLE subscription_tags (
   subscription_id uuid NOT NULL REFERENCES subscriptions (id) ON DELETE CASCADE,
   tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   PRIMARY KEY (subscription_id, tag_id)
 );
 
 CREATE TABLE bookmark_tags (
   bookmark_id uuid NOT NULL REFERENCES bookmarks (id) ON DELETE CASCADE,
   tag_id uuid NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   PRIMARY KEY (bookmark_id, tag_id)
 );
 
@@ -124,7 +113,7 @@ CREATE TABLE streams (
   title TEXT NOT NULL,
   description TEXT,
   filter_json JSONB NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)
@@ -135,7 +124,7 @@ CREATE TABLE collections (
   title TEXT NOT NULL,
   description TEXT,
   filter_json JSONB NOT NULL,
-  user_id TEXT NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, title)

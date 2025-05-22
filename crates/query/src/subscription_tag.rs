@@ -28,13 +28,13 @@ impl Iden for SubscriptionTag {
     }
 }
 
-pub struct SubscriptionTagInsert<'a, I> {
+pub struct SubscriptionTagInsert<I> {
     pub subscription_id: Uuid,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub tag_ids: I,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoInsert for SubscriptionTagInsert<'_, I> {
+impl<I: IntoIterator<Item = Uuid>> IntoInsert for SubscriptionTagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(SubscriptionTag::Table)

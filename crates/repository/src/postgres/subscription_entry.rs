@@ -55,7 +55,7 @@ impl SubscriptionEntryRepository for PostgresSubscriptionEntryRepository {
             let (sql, values) = ReadEntryInsert {
                 subscription_id: data.subscription_id,
                 feed_entry_id: data.feed_entry_id,
-                user_id: &data.user_id,
+                user_id: data.user_id,
                 created_at: data.read_at.unwrap_or_else(Utc::now),
             }
             .into_insert()

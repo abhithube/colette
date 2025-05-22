@@ -79,7 +79,7 @@ pub struct ApiKeyInsert<'a> {
     pub verification_hash: &'a str,
     pub title: &'a str,
     pub preview: &'a str,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

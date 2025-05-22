@@ -31,14 +31,14 @@ impl Iden for ReadEntry {
     }
 }
 
-pub struct ReadEntryInsert<'a> {
+pub struct ReadEntryInsert {
     pub subscription_id: Uuid,
     pub feed_entry_id: Uuid,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
 }
 
-impl IntoInsert for ReadEntryInsert<'_> {
+impl IntoInsert for ReadEntryInsert {
     fn into_insert(self) -> InsertStatement {
         Query::insert()
             .into_table(ReadEntry::Table)

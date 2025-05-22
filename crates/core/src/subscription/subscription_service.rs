@@ -46,7 +46,7 @@ impl SubscriptionService {
     pub async fn list_subscriptions(
         &self,
         query: SubscriptionListQuery,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Paginated<Subscription>, Error> {
         let subscriptions = self
             .subscription_repository
@@ -69,7 +69,7 @@ impl SubscriptionService {
     pub async fn get_subscription(
         &self,
         query: SubscriptionGetQuery,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Subscription, Error> {
         let mut subscriptions = self
             .subscription_repository
@@ -96,13 +96,13 @@ impl SubscriptionService {
     pub async fn create_subscription(
         &self,
         data: SubscriptionCreate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Subscription, Error> {
         let subscription = Subscription::builder()
             .title(data.title)
             .maybe_description(data.description)
             .feed_id(data.feed_id)
-            .user_id(user_id.clone())
+            .user_id(user_id)
             .build();
 
         self.subscription_repository.save(&subscription).await?;
@@ -114,7 +114,7 @@ impl SubscriptionService {
         &self,
         id: Uuid,
         data: SubscriptionUpdate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Subscription, Error> {
         let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -135,7 +135,7 @@ impl SubscriptionService {
         Ok(subscription)
     }
 
-    pub async fn delete_subscription(&self, id: Uuid, user_id: String) -> Result<(), Error> {
+    pub async fn delete_subscription(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let Some(subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
@@ -152,7 +152,7 @@ impl SubscriptionService {
         &self,
         id: Uuid,
         data: LinkSubscriptionTags,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<(), Error> {
         let Some(mut subscription) = self.subscription_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -182,7 +182,7 @@ impl SubscriptionService {
     pub async fn get_subscription_entry(
         &self,
         id: Uuid,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<SubscriptionEntry, Error> {
         let mut subscription_entries = self
             .subscription_entry_repository
@@ -207,7 +207,7 @@ impl SubscriptionService {
         &self,
         subscription_id: Uuid,
         feed_entry_id: Uuid,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository
@@ -234,7 +234,7 @@ impl SubscriptionService {
         &self,
         subscription_id: Uuid,
         feed_entry_id: Uuid,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<SubscriptionEntry, Error> {
         let Some(mut subscription_entry) = self
             .subscription_entry_repository
@@ -256,13 +256,13 @@ impl SubscriptionService {
         Ok(subscription_entry)
     }
 
-    pub async fn import_subscriptions(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
+    pub async fn import_subscriptions(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let opml = colette_opml::from_reader(raw.reader())?;
 
         self.subscription_repository
             .import(ImportSubscriptionsData {
                 outlines: opml.body.outlines,
-                user_id: user_id.clone(),
+                user_id,
             })
             .await?;
 
@@ -282,7 +282,7 @@ impl SubscriptionService {
         Ok(())
     }
 
-    pub async fn export_subscriptions(&self, user_id: String) -> Result<Bytes, Error> {
+    pub async fn export_subscriptions(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let mut outline_map = HashMap::<Uuid, Outline>::new();
 
         let subscriptions = self
@@ -372,5 +372,5 @@ pub struct LinkSubscriptionTags {
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ImportSubscriptionsJobData {
-    pub user_id: String,
+    pub user_id: Uuid,
 }

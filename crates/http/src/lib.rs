@@ -9,7 +9,7 @@ pub trait HttpClient: Send + Sync + 'static {
 
     async fn get(&self, url: &Url) -> Result<Bytes, Error> {
         let resp = self
-            .send(Request::get(url.as_str()).body(Default::default()).unwrap())
+            .send(Request::get(url.as_str()).body(Default::default())?)
             .await?;
 
         let body = resp.into_body().collect().await?.to_bytes();
@@ -42,4 +42,7 @@ impl HttpClient for ReqwestClient {
 pub enum Error {
     #[error(transparent)]
     Client(#[from] reqwest::Error),
+
+    #[error(transparent)]
+    Http(#[from] http::Error),
 }

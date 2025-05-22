@@ -66,7 +66,7 @@ impl BookmarkService {
     pub async fn list_bookmarks(
         &self,
         query: BookmarkListQuery,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Paginated<Bookmark>, Error> {
         let cursor = query.cursor.and_then(|e| base64::decode::<Cursor>(&e).ok());
 
@@ -76,7 +76,7 @@ impl BookmarkService {
                 .collection_repository
                 .query(CollectionParams {
                     id: Some(collection_id),
-                    user_id: Some(user_id.clone()),
+                    user_id: Some(user_id),
                     ..Default::default()
                 })
                 .await?;
@@ -127,7 +127,7 @@ impl BookmarkService {
     pub async fn get_bookmark(
         &self,
         query: BookmarkGetQuery,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         let mut bookmarks = self
             .bookmark_repository
@@ -152,7 +152,7 @@ impl BookmarkService {
     pub async fn create_bookmark(
         &self,
         data: BookmarkCreate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         let bookmark = Bookmark::builder()
             .link(data.url)
@@ -160,7 +160,7 @@ impl BookmarkService {
             .maybe_thumbnail_url(data.thumbnail_url)
             .maybe_published_at(data.published_at)
             .maybe_author(data.author)
-            .user_id(user_id.clone())
+            .user_id(user_id)
             .build();
 
         self.bookmark_repository.save(&bookmark).await?;
@@ -191,7 +191,7 @@ impl BookmarkService {
         &self,
         id: Uuid,
         data: BookmarkUpdate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Bookmark, Error> {
         let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -246,7 +246,7 @@ impl BookmarkService {
         Ok(bookmark)
     }
 
-    pub async fn delete_bookmark(&self, id: Uuid, user_id: String) -> Result<(), Error> {
+    pub async fn delete_bookmark(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let Some(bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };
@@ -280,7 +280,7 @@ impl BookmarkService {
         &self,
         id: Uuid,
         data: LinkSubscriptionTags,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<(), Error> {
         let Some(mut bookmark) = self.bookmark_repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -377,13 +377,13 @@ impl BookmarkService {
         Ok(())
     }
 
-    pub async fn import_bookmarks(&self, raw: Bytes, user_id: String) -> Result<(), Error> {
+    pub async fn import_bookmarks(&self, raw: Bytes, user_id: Uuid) -> Result<(), Error> {
         let netscape = colette_netscape::from_reader(raw.reader())?;
 
         self.bookmark_repository
             .import(ImportBookmarksData {
                 items: netscape.items,
-                user_id: user_id.clone(),
+                user_id,
             })
             .await?;
 
@@ -403,7 +403,7 @@ impl BookmarkService {
         Ok(())
     }
 
-    pub async fn export_bookmarks(&self, user_id: String) -> Result<Bytes, Error> {
+    pub async fn export_bookmarks(&self, user_id: Uuid) -> Result<Bytes, Error> {
         let mut item_map = HashMap::<Uuid, Item>::new();
 
         let bookmarks = self
@@ -503,7 +503,7 @@ pub struct BookmarkScraped {
 #[derive(Debug, Clone)]
 pub struct BookmarkRefresh {
     pub url: Url,
-    pub user_id: String,
+    pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone)]
@@ -521,7 +521,7 @@ pub enum ThumbnailOperation {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ScrapeBookmarkJobData {
     pub url: Url,
-    pub user_id: String,
+    pub user_id: Uuid,
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -533,5 +533,5 @@ pub struct ArchiveThumbnailJobData {
 
 #[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
 pub struct ImportBookmarksJobData {
-    pub user_id: String,
+    pub user_id: Uuid,
 }

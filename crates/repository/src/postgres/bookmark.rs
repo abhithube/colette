@@ -53,7 +53,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 published_at: data.published_at,
                 author: data.author.as_deref(),
                 archived_path: data.archived_path.as_deref(),
-                user_id: &data.user_id,
+                user_id: data.user_id,
                 created_at: data.created_at,
                 updated_at: data.updated_at,
                 upsert: false,
@@ -84,7 +84,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             if !tags.is_empty() {
                 let (sql, values) = BookmarkTagInsert {
                     bookmark_id: data.id,
-                    user_id: &data.user_id,
+                    user_id: data.user_id,
                     tag_ids: tags.iter().map(|e| e.id),
                 }
                 .into_insert()
@@ -111,7 +111,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
             published_at: data.published_at,
             author: data.author.as_deref(),
             archived_path: data.archived_path.as_deref(),
-            user_id: &data.user_id,
+            user_id: data.user_id,
             created_at: data.created_at,
             updated_at: data.updated_at,
             upsert: true,
@@ -172,7 +172,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 let tag_id = {
                     let (sql, values) = TagParams {
                         title: Some(item.title.clone()),
-                        user_id: Some(data.user_id.clone()),
+                        user_id: Some(data.user_id),
                         ..Default::default()
                     }
                     .into_select()
@@ -187,7 +187,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                             let (sql, values) = TagInsert {
                                 id: Uuid::new_v4(),
                                 title: &item.title,
-                                user_id: &data.user_id,
+                                user_id: data.user_id,
                                 created_at: Utc::now(),
                                 updated_at: Utc::now(),
                                 upsert: true,
@@ -216,7 +216,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                         published_at: None,
                         author: None,
                         archived_path: None,
-                        user_id: &data.user_id,
+                        user_id: data.user_id,
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
                         upsert: true,
@@ -233,7 +233,7 @@ impl BookmarkRepository for PostgresBookmarkRepository {
                 if let Some(tag_id) = parent_id {
                     let bookmark_tag = BookmarkTagInsert {
                         bookmark_id,
-                        user_id: &data.user_id,
+                        user_id: data.user_id,
                         tag_ids: vec![tag_id],
                     };
 

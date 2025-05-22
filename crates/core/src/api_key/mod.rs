@@ -15,7 +15,7 @@ pub struct ApiKey {
     pub verification_hash: String,
     pub title: String,
     pub preview: String,
-    pub user_id: String,
+    pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]

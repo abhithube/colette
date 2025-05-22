@@ -29,7 +29,7 @@ pub trait SubscriptionRepository: Send + Sync + 'static {
 pub struct SubscriptionParams {
     pub id: Option<Uuid>,
     pub tags: Option<Vec<Uuid>>,
-    pub user_id: Option<String>,
+    pub user_id: Option<Uuid>,
     pub cursor: Option<(String, Uuid)>,
     pub limit: Option<u64>,
     pub with_feed: bool,
@@ -39,5 +39,5 @@ pub struct SubscriptionParams {
 
 pub struct ImportSubscriptionsData {
     pub outlines: Vec<Outline>,
-    pub user_id: String,
+    pub user_id: Uuid,
 }

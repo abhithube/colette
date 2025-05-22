@@ -25,15 +25,17 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<BookmarkCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .create_bookmark(body.into(), user_id)
+        .create_bookmark(body.into(), user.id)
         .await
     {
-        Ok(data) => Ok(OkResponse((data, state.image_base_url.clone()).into())),
+        Ok(data) => Ok(OkResponse(
+            (data, state.config.storage.base_url.clone()).into(),
+        )),
         Err(e) => match e {
             bookmark::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),
             _ => Err(ErrResponse::InternalServerError(e.into())),

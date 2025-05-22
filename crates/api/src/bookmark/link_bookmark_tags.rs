@@ -26,12 +26,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<LinkBookmarkTags>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .link_bookmark_tags(id, body.into(), user_id)
+        .link_bookmark_tags(id, body.into(), user.id)
         .await
     {
         Ok(_) => Ok(OkResponse),

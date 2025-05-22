@@ -25,9 +25,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.stream_service.get_stream(id, user_id).await {
+    match state.stream_service.get_stream(id, user.id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             stream::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

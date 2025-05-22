@@ -27,15 +27,17 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<BookmarkUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .update_bookmark(id, body.into(), user_id)
+        .update_bookmark(id, body.into(), user.id)
         .await
     {
-        Ok(data) => Ok(OkResponse((data, state.image_base_url.clone()).into())),
+        Ok(data) => Ok(OkResponse(
+            (data, state.config.storage.base_url.clone()).into(),
+        )),
         Err(e) => match e {
             bookmark::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),
             bookmark::Error::NotFound(_) => Err(ErrResponse::NotFound(e.into())),

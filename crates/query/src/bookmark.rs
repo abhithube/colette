@@ -124,7 +124,7 @@ pub struct BookmarkInsert<'a> {
     pub published_at: Option<DateTime<Utc>>,
     pub author: Option<&'a str>,
     pub archived_path: Option<&'a str>,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub upsert: bool,

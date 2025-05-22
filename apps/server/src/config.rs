@@ -15,6 +15,7 @@ pub fn from_env() -> Result<Config, envy::Error> {
 pub struct Config {
     pub server: ServerConfig,
     pub database_url: String,
+    pub oidc: OidcConfig,
     pub queue: QueueConfig,
     pub storage: StorageConfig,
     pub cron: Option<CronConfig>,
@@ -30,6 +31,13 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self { port: 8000 }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct OidcConfig {
+    pub client_id: String,
+    pub redirect_url: Url,
+    pub issuer_url: Url,
 }
 
 #[derive(Debug, Clone)]
@@ -83,11 +91,14 @@ pub struct CorsConfig {
     pub origin_urls: Vec<String>,
 }
 
-#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Deserialize)]
 struct RawConfig {
     data_dir: Option<PathBuf>,
     server_port: Option<u32>,
     database_url: String,
+    oidc_client_id: String,
+    oidc_redirect_url: Url,
+    oidc_issuer_url: Url,
     #[serde(default = "QueueBackend::default")]
     queue_backend: QueueBackend,
     #[serde(default = "StorageBackend::default")]
@@ -186,6 +197,11 @@ impl TryFrom<RawConfig> for Config {
         Ok(Self {
             server,
             database_url: value.database_url,
+            oidc: OidcConfig {
+                client_id: value.oidc_client_id,
+                redirect_url: value.oidc_redirect_url,
+                issuer_url: value.oidc_issuer_url,
+            },
             queue,
             storage,
             cron,

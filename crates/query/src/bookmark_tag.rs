@@ -28,13 +28,13 @@ impl Iden for BookmarkTag {
     }
 }
 
-pub struct BookmarkTagInsert<'a, I> {
+pub struct BookmarkTagInsert<I> {
     pub bookmark_id: Uuid,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub tag_ids: I,
 }
 
-impl<I: IntoIterator<Item = Uuid>> IntoInsert for BookmarkTagInsert<'_, I> {
+impl<I: IntoIterator<Item = Uuid>> IntoInsert for BookmarkTagInsert<I> {
     fn into_insert(self) -> InsertStatement {
         let mut query = Query::insert()
             .into_table(BookmarkTag::Table)

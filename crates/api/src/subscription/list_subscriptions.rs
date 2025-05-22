@@ -26,11 +26,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Query(query): Query<SubscriptionListQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .list_subscriptions(query.into(), user_id)
+        .list_subscriptions(query.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

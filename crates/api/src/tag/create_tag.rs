@@ -23,10 +23,10 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<TagCreate>,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.create_tag(body.into(), user_id).await {
+    match state.tag_service.create_tag(body.into(), user.id).await {
         Ok(data) => Ok(OkResponse(data.into())),
         Err(e) => match e {
             tag::Error::Conflict(_) => Err(ErrResponse::Conflict(e.into())),

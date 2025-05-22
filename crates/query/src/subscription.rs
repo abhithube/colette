@@ -181,7 +181,7 @@ pub struct SubscriptionInsert<'a> {
     pub title: &'a str,
     pub description: Option<&'a str>,
     pub feed_id: Uuid,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub upsert: bool,

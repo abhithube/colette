@@ -26,12 +26,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<CollectionUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .collection_service
-        .update_collection(id, body.into(), user_id)
+        .update_collection(id, body.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

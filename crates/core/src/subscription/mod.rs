@@ -15,7 +15,7 @@ pub struct Subscription {
     pub title: String,
     pub description: Option<String>,
     pub feed_id: Uuid,
-    pub user_id: String,
+    pub user_id: Uuid,
     #[builder(default = Utc::now())]
     pub created_at: DateTime<Utc>,
     #[builder(default = Utc::now())]

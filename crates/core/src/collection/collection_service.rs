@@ -15,7 +15,7 @@ impl CollectionService {
         }
     }
 
-    pub async fn list_collections(&self, user_id: String) -> Result<Paginated<Collection>, Error> {
+    pub async fn list_collections(&self, user_id: Uuid) -> Result<Paginated<Collection>, Error> {
         let collections = self
             .repository
             .query(CollectionParams {
@@ -30,7 +30,7 @@ impl CollectionService {
         })
     }
 
-    pub async fn get_collection(&self, id: Uuid, user_id: String) -> Result<Collection, Error> {
+    pub async fn get_collection(&self, id: Uuid, user_id: Uuid) -> Result<Collection, Error> {
         let mut collections = self
             .repository
             .query(CollectionParams {
@@ -53,7 +53,7 @@ impl CollectionService {
     pub async fn create_collection(
         &self,
         data: CollectionCreate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Collection, Error> {
         let collection = Collection::builder()
             .title(data.title)
@@ -70,7 +70,7 @@ impl CollectionService {
         &self,
         id: Uuid,
         data: CollectionUpdate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Collection, Error> {
         let Some(mut collection) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -92,7 +92,7 @@ impl CollectionService {
         Ok(collection)
     }
 
-    pub async fn delete_collection(&self, id: Uuid, user_id: String) -> Result<(), Error> {
+    pub async fn delete_collection(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let Some(collection) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };

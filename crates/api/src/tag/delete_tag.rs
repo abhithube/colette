@@ -24,9 +24,9 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
-    match state.tag_service.delete_tag(id, user_id).await {
+    match state.tag_service.delete_tag(id, user.id).await {
         Ok(()) => Ok(OkResponse),
         Err(e) => match e {
             tag::Error::Forbidden(_) => Err(ErrResponse::Forbidden(e.into())),

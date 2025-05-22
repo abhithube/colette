@@ -16,7 +16,7 @@ impl ApiKeyService {
         }
     }
 
-    pub async fn list_api_keys(&self, user_id: String) -> Result<Paginated<ApiKey>, Error> {
+    pub async fn list_api_keys(&self, user_id: Uuid) -> Result<Paginated<ApiKey>, Error> {
         let api_keys = self
             .repository
             .query(ApiKeyParams {
@@ -46,7 +46,7 @@ impl ApiKeyService {
         Ok(api_key)
     }
 
-    pub async fn get_api_key(&self, id: Uuid, user_id: String) -> Result<ApiKey, Error> {
+    pub async fn get_api_key(&self, id: Uuid, user_id: Uuid) -> Result<ApiKey, Error> {
         let mut api_keys = self
             .repository
             .query(ApiKeyParams {
@@ -69,7 +69,7 @@ impl ApiKeyService {
     pub async fn create_api_key(
         &self,
         data: ApiKeyCreate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<ApiKeyCreated, Error> {
         let value = api_key::generate();
 
@@ -99,7 +99,7 @@ impl ApiKeyService {
         &self,
         id: Uuid,
         data: ApiKeyUpdate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<ApiKey, Error> {
         let Some(mut api_key) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -118,7 +118,7 @@ impl ApiKeyService {
         Ok(api_key)
     }
 
-    pub async fn delete_api_key(&self, id: Uuid, user_id: String) -> Result<(), Error> {
+    pub async fn delete_api_key(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let Some(api_key) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };

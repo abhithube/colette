@@ -30,11 +30,11 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path((subscription_id, feed_entry_id)): Path<(Uuid, Uuid)>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .mark_subscription_entry_as_unread(subscription_id, feed_entry_id, user_id)
+        .mark_subscription_entry_as_unread(subscription_id, feed_entry_id, user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

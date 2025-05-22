@@ -26,7 +26,7 @@ pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
     Query(query): Query<TagGetQuery>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .tag_service
@@ -36,7 +36,7 @@ pub(super) async fn handler(
                 with_feed_count: query.with_feed_count,
                 with_bookmark_count: query.with_bookmark_count,
             },
-            user_id,
+            user.id,
         )
         .await
     {

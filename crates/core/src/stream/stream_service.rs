@@ -15,7 +15,7 @@ impl StreamService {
         }
     }
 
-    pub async fn list_streams(&self, user_id: String) -> Result<Paginated<Stream>, Error> {
+    pub async fn list_streams(&self, user_id: Uuid) -> Result<Paginated<Stream>, Error> {
         let streams = self
             .repository
             .query(StreamParams {
@@ -30,7 +30,7 @@ impl StreamService {
         })
     }
 
-    pub async fn get_stream(&self, id: Uuid, user_id: String) -> Result<Stream, Error> {
+    pub async fn get_stream(&self, id: Uuid, user_id: Uuid) -> Result<Stream, Error> {
         let mut streams = self
             .repository
             .query(StreamParams {
@@ -50,11 +50,7 @@ impl StreamService {
         Ok(stream)
     }
 
-    pub async fn create_stream(
-        &self,
-        data: StreamCreate,
-        user_id: String,
-    ) -> Result<Stream, Error> {
+    pub async fn create_stream(&self, data: StreamCreate, user_id: Uuid) -> Result<Stream, Error> {
         let stream = Stream::builder()
             .title(data.title)
             .filter(data.filter)
@@ -70,7 +66,7 @@ impl StreamService {
         &self,
         id: Uuid,
         data: StreamUpdate,
-        user_id: String,
+        user_id: Uuid,
     ) -> Result<Stream, Error> {
         let Some(mut stream) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
@@ -92,7 +88,7 @@ impl StreamService {
         Ok(stream)
     }
 
-    pub async fn delete_stream(&self, id: Uuid, user_id: String) -> Result<(), Error> {
+    pub async fn delete_stream(&self, id: Uuid, user_id: Uuid) -> Result<(), Error> {
         let Some(stream) = self.repository.find_by_id(id).await? else {
             return Err(Error::NotFound(id));
         };

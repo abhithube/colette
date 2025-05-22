@@ -24,12 +24,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<SubscriptionCreate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .subscription_service
-        .create_subscription(body.into(), user_id)
+        .create_subscription(body.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

@@ -52,7 +52,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 title: &data.title,
                 description: data.description.as_deref(),
                 feed_id: data.feed_id,
-                user_id: &data.user_id,
+                user_id: data.user_id,
                 created_at: data.created_at,
                 updated_at: data.updated_at,
                 upsert: false,
@@ -83,7 +83,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
             if !tags.is_empty() {
                 let (sql, values) = SubscriptionTagInsert {
                     subscription_id: data.id,
-                    user_id: &data.user_id,
+                    user_id: data.user_id,
                     tag_ids: tags.iter().map(|e| e.id),
                 }
                 .into_insert()
@@ -128,7 +128,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 let tag_id = {
                     let (sql, values) = TagParams {
                         title: Some(outline.text.clone()),
-                        user_id: Some(data.user_id.clone()),
+                        user_id: Some(data.user_id),
                         ..Default::default()
                     }
                     .into_select()
@@ -143,7 +143,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                             let (sql, values) = TagInsert {
                                 id: Uuid::new_v4(),
                                 title: &outline.text,
-                                user_id: &data.user_id,
+                                user_id: data.user_id,
                                 created_at: Utc::now(),
                                 updated_at: Utc::now(),
                                 upsert: true,
@@ -186,7 +186,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                         title: &title,
                         description: None,
                         feed_id: row.get("id"),
-                        user_id: &data.user_id,
+                        user_id: data.user_id,
                         created_at: Utc::now(),
                         updated_at: Utc::now(),
                         upsert: true,
@@ -203,7 +203,7 @@ impl SubscriptionRepository for PostgresSubscriptionRepository {
                 if let Some(tag_id) = parent_id {
                     let subscription_tag = SubscriptionTagInsert {
                         subscription_id,
-                        user_id: &data.user_id,
+                        user_id: data.user_id,
                         tag_ids: vec![tag_id],
                     };
 

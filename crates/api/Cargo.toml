@@ -6,14 +6,12 @@ edition = "2024"
 [dependencies]
 axum.workspace = true
 axum-extra = { version = "0.10.0", default-features = false, features = [
-  "cookie",
   "query",
   "tracing",
   "typed-header",
 ] }
 bytes.workspace = true
 chrono.workspace = true
-colette-auth.workspace = true
 colette-core.workspace = true
 email_address = { version = "0.2.9", default-features = false, features = [
   "serde_support",
@@ -22,7 +20,6 @@ serde.workspace = true
 serde_with = { version = "3.12.0", default-features = false }
 thiserror.workspace = true
 time.workspace = true
-torii.workspace = true
 tower-http.workspace = true
 tracing.workspace = true
 url.workspace = true

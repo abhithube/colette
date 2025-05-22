@@ -1,15 +1,21 @@
 use std::{error::Error, net::SocketAddr, sync::Arc};
 
 use axum_embed::{FallbackBehavior, ServeEmbed};
-use colette_api::ApiState;
-use colette_auth::AuthAdapter;
+use colette_api::{ApiConfig, ApiOidcConfig, ApiState, ApiStorageConfig};
 use colette_core::{
-    api_key::ApiKeyService, bookmark::BookmarkService, collection::CollectionService,
-    feed::FeedService, feed_entry::FeedEntryService, job::JobService, stream::StreamService,
-    subscription::SubscriptionService, subscription_entry::SubscriptionEntryService,
+    api_key::ApiKeyService,
+    auth::{AuthService, OidcConfig},
+    bookmark::BookmarkService,
+    collection::CollectionService,
+    feed::FeedService,
+    feed_entry::FeedEntryService,
+    job::JobService,
+    stream::StreamService,
+    subscription::SubscriptionService,
+    subscription_entry::SubscriptionEntryService,
     tag::TagService,
 };
-use colette_http::ReqwestClient;
+use colette_http::{HttpClient, ReqwestClient};
 use colette_job::{
     archive_thumbnail::ArchiveThumbnailHandler, import_bookmarks::ImportBookmarksHandler,
     import_subscriptions::ImportSubscriptionsHandler, refresh_feeds::RefreshFeedsHandler,
@@ -22,20 +28,21 @@ use colette_repository::postgres::{
     PostgresApiKeyRepository, PostgresBookmarkRepository, PostgresCollectionRepository,
     PostgresFeedEntryRepository, PostgresFeedRepository, PostgresJobRepository,
     PostgresStreamRepository, PostgresSubscriptionEntryRepository, PostgresSubscriptionRepository,
-    PostgresTagRepository,
+    PostgresTagRepository, PostgresUserRepository,
 };
 use colette_scraper::{bookmark::BookmarkScraper, feed::FeedScraper};
 use colette_storage::{FsStorageClient, S3StorageClient, StorageAdapter};
 use config::{QueueConfig, S3RequestStyle, StorageConfig};
 use deadpool_postgres::{Manager, ManagerConfig, Pool};
+use jsonwebtoken::jwk::JwkSet;
 use refinery::embed_migrations;
 use s3::{Bucket, Region, creds::Credentials};
 use tokio::{net::TcpListener, sync::Mutex};
 use tokio_postgres::NoTls;
-use torii::Torii;
 use tower::{ServiceBuilder, ServiceExt};
 use tower_http::services::ServeDir;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use url::Url;
 use worker::{CronWorker, JobWorker};
 
 mod config;
@@ -46,6 +53,12 @@ mod worker;
 struct Asset;
 
 embed_migrations!("../../migrations");
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct OidcProviderMetadata {
+    userinfo_endpoint: Url,
+    jwks_uri: Url,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -127,8 +140,26 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     };
 
-    let reqwest_client = reqwest::Client::builder().https_only(true).build()?;
+    let reqwest_client = reqwest::Client::builder().build()?;
     let http_client = ReqwestClient::new(reqwest_client.clone());
+
+    let oidc_config = {
+        let discovery_url = format!(
+            "{}/.well-known/openid-configuration",
+            app_config.oidc.issuer_url.as_str()
+        )
+        .parse::<Url>()?;
+        let data = http_client.get(&discovery_url).await?;
+        let metadata = serde_json::from_slice::<OidcProviderMetadata>(&data)?;
+
+        let data = http_client.get(&metadata.jwks_uri).await?;
+        let jwk_set = serde_json::from_slice::<JwkSet>(&data)?;
+
+        OidcConfig {
+            jwk_set,
+            userinfo_endpoint: metadata.userinfo_endpoint,
+        }
+    };
 
     let (scrape_feed_producer, scrape_feed_consumer) = match &app_config.queue {
         QueueConfig::Local => {
@@ -207,7 +238,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let feed_service = Arc::new(FeedService::new(
         feed_repository.clone(),
         http_client.clone(),
-        FeedScraper::new(http_client, register_feed_plugins(reqwest_client)),
+        FeedScraper::new(
+            http_client.clone(),
+            register_feed_plugins(reqwest_client.clone()),
+        ),
     ));
     let job_service = Arc::new(JobService::new(job_repository.clone()));
     let subscription_service = Arc::new(SubscriptionService::new(
@@ -219,12 +253,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
     ));
 
     let api_state = ApiState {
-        auth: Arc::new(
-            Torii::new(Arc::new(AuthAdapter::Postgres(
-                colette_auth::PostgresBackend::new(pool.clone()),
-            )))
-            .with_password_plugin(),
-        ),
         api_key_service: Arc::new(ApiKeyService::new(PostgresApiKeyRepository::new(
             pool.clone(),
         ))),
@@ -232,7 +260,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         collection_service: Arc::new(CollectionService::new(collection_repository)),
         feed_service: feed_service.clone(),
         feed_entry_service: Arc::new(FeedEntryService::new(PostgresFeedEntryRepository::new(
-            pool,
+            pool.clone(),
         ))),
         job_service: job_service.clone(),
         stream_service: Arc::new(StreamService::new(stream_repository.clone())),
@@ -242,7 +270,21 @@ async fn main() -> Result<(), Box<dyn Error>> {
             stream_repository,
         )),
         tag_service: Arc::new(TagService::new(tag_repository)),
-        image_base_url,
+        auth_service: Arc::new(AuthService::new(
+            PostgresUserRepository::new(pool.clone()),
+            http_client,
+            oidc_config,
+        )),
+        config: ApiConfig {
+            oidc: ApiOidcConfig {
+                client_id: app_config.oidc.client_id,
+                redirect_url: app_config.oidc.redirect_url,
+                issuer_url: app_config.oidc.issuer_url,
+            },
+            storage: ApiStorageConfig {
+                base_url: image_base_url,
+            },
+        },
     };
 
     let mut api = colette_api::create_router(api_state, app_config.cors.map(|e| e.origin_urls));

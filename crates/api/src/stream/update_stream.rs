@@ -26,12 +26,12 @@ use crate::{
 pub(super) async fn handler(
     State(state): State<ApiState>,
     Path(Id(id)): Path<Id>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<StreamUpdate>,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .stream_service
-        .update_stream(id, body.into(), user_id)
+        .update_stream(id, body.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

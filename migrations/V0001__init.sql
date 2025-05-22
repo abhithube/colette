@@ -13,15 +13,15 @@ CREATE TABLE "public"."jobs" (
 
 -- Create "users" table
 CREATE TABLE "public"."users" (
-  "id" TEXT NOT NULL,
-  "name" TEXT NULL,
-  "email" TEXT NOT NULL,
-  "verified_at" TIMESTAMPTZ NULL,
-  "password_hash" TEXT NULL,
+  "id" uuid NOT NULL,
+  "external_id" TEXT NOT NULL,
+  "email" TEXT NULL,
+  "display_name" TEXT NULL,
+  "picture_url" TEXT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
-  CONSTRAINT "users_email_key" UNIQUE ("email")
+  CONSTRAINT "users_external_id_key" UNIQUE ("external_id")
 );
 
 -- Create "api_keys" table
@@ -31,7 +31,7 @@ CREATE TABLE "public"."api_keys" (
   "verification_hash" TEXT NOT NULL,
   "title" TEXT NOT NULL,
   "preview" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
@@ -48,7 +48,7 @@ CREATE TABLE "public"."bookmarks" (
   "published_at" TIMESTAMPTZ NULL,
   "author" TEXT NULL,
   "archived_path" TEXT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
@@ -60,7 +60,7 @@ CREATE TABLE "public"."bookmarks" (
 CREATE TABLE "public"."tags" (
   "id" uuid NOT NULL,
   "title" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
@@ -72,7 +72,7 @@ CREATE TABLE "public"."tags" (
 CREATE TABLE "public"."bookmark_tags" (
   "bookmark_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   PRIMARY KEY ("bookmark_id", "tag_id"),
   CONSTRAINT "bookmark_tags_bookmark_id_fkey" FOREIGN KEY ("bookmark_id") REFERENCES "public"."bookmarks" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT "bookmark_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "public"."tags" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
@@ -85,7 +85,7 @@ CREATE TABLE "public"."collections" (
   "title" TEXT NOT NULL,
   "description" TEXT NULL,
   "filter_json" JSONB NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
@@ -96,13 +96,14 @@ CREATE TABLE "public"."collections" (
 -- Create "feeds" table
 CREATE TABLE "public"."feeds" (
   "id" uuid NOT NULL,
+  "source_url" TEXT NOT NULL,
   "link" TEXT NOT NULL,
-  "xml_url" TEXT NULL,
   "title" TEXT NOT NULL,
   "description" TEXT NULL,
   "refreshed_at" TIMESTAMPTZ NULL,
+  "is_custom" BOOLEAN NOT NULL DEFAULT FALSE,
   PRIMARY KEY ("id"),
-  CONSTRAINT "feeds_link_key" UNIQUE ("link")
+  CONSTRAINT "feeds_source_url_key" UNIQUE ("source_url")
 );
 
 -- Create "feed_entries" table
@@ -124,7 +125,8 @@ CREATE TABLE "public"."feed_entries" (
 CREATE TABLE "public"."subscriptions" (
   "id" uuid NOT NULL,
   "title" TEXT NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "description" TEXT NULL,
+  "user_id" uuid NOT NULL,
   "feed_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -138,25 +140,12 @@ CREATE TABLE "public"."subscriptions" (
 CREATE TABLE "public"."read_entries" (
   "subscription_id" uuid NOT NULL,
   "feed_entry_id" uuid NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("subscription_id", "feed_entry_id"),
   CONSTRAINT "read_entries_feed_entry_id_fkey" FOREIGN KEY ("feed_entry_id") REFERENCES "public"."feed_entries" ("id") ON UPDATE NO ACTION ON DELETE RESTRICT,
   CONSTRAINT "read_entries_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT "read_entries_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
-);
-
--- Create "sessions" table
-CREATE TABLE "public"."sessions" (
-  "id" INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY,
-  "token" TEXT NOT NULL,
-  "user_agent" TEXT NULL,
-  "ip_address" TEXT NULL,
-  "expires_at" TIMESTAMPTZ NOT NULL,
-  "user_id" TEXT NOT NULL,
-  "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
-  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT "sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users" ("id") ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
 -- Create "streams" table
@@ -165,7 +154,7 @@ CREATE TABLE "public"."streams" (
   "title" TEXT NOT NULL,
   "description" TEXT NULL,
   "filter_json" JSONB NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY ("id"),
@@ -177,7 +166,7 @@ CREATE TABLE "public"."streams" (
 CREATE TABLE "public"."subscription_tags" (
   "subscription_id" uuid NOT NULL,
   "tag_id" uuid NOT NULL,
-  "user_id" TEXT NOT NULL,
+  "user_id" uuid NOT NULL,
   PRIMARY KEY ("subscription_id", "tag_id"),
   CONSTRAINT "subscription_tags_subscription_id_fkey" FOREIGN KEY ("subscription_id") REFERENCES "public"."subscriptions" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT "subscription_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "public"."tags" ("id") ON UPDATE NO ACTION ON DELETE CASCADE,

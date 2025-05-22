@@ -23,12 +23,12 @@ use crate::{
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     bytes: Bytes,
 ) -> Result<OkResponse, ErrResponse> {
     match state
         .bookmark_service
-        .import_bookmarks(bytes, user_id)
+        .import_bookmarks(bytes, user.id)
         .await
     {
         Ok(_) => Ok(OkResponse),

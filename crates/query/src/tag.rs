@@ -118,7 +118,7 @@ impl IntoSelect for TagParams {
 pub struct TagInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub upsert: bool,

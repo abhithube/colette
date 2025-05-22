@@ -71,7 +71,7 @@ pub struct CollectionInsert<'a> {
     pub id: Uuid,
     pub title: &'a str,
     pub filter: Value,
-    pub user_id: &'a str,
+    pub user_id: Uuid,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

@@ -9,10 +9,11 @@ use axum::{
 };
 use bookmark::BookmarkApi;
 use collection::CollectionApi;
-pub use common::ApiState;
-use common::{
-    ApiError, BooleanOp, DateOp, TextOp, add_connection_info_extension, add_user_extension,
+use common::{ApiError, BooleanOp, DateOp, TextOp, add_user_extension};
+pub use common::{
+    ApiState, Config as ApiConfig, OidcConfig as ApiOidcConfig, StorageConfig as ApiStorageConfig,
 };
+use config::ConfigApi;
 use feed::FeedApi;
 use feed_entry::FeedEntryApi;
 use stream::StreamApi;
@@ -20,7 +21,13 @@ use subscription::SubscriptionApi;
 use subscription_entry::SubscriptionEntryApi;
 use tag::TagApi;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use utoipa::{OpenApi, openapi::Server};
+use utoipa::{
+    Modify, OpenApi,
+    openapi::{
+        Server,
+        security::{HttpAuthScheme, HttpBuilder, SecurityScheme},
+    },
+};
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_scalar::{Scalar, Servable};
 
@@ -29,6 +36,7 @@ mod auth;
 mod bookmark;
 mod collection;
 mod common;
+mod config;
 mod feed;
 mod feed_entry;
 mod stream;
@@ -37,8 +45,30 @@ mod subscription_entry;
 mod tag;
 
 #[derive(utoipa::OpenApi)]
-#[openapi(components(schemas(ApiError, TextOp, BooleanOp, DateOp)))]
+#[openapi(
+    components(schemas(ApiError, TextOp, BooleanOp, DateOp)),
+    security(("bearerAuth" = [])),
+    modifiers(&Security)
+)]
 struct ApiDoc;
+
+struct Security;
+
+impl Modify for Security {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        if let Some(components) = openapi.components.as_mut() {
+            components.add_security_scheme(
+                "bearerAuth",
+                SecurityScheme::Http(
+                    HttpBuilder::new()
+                        .scheme(HttpAuthScheme::Bearer)
+                        .bearer_format("JWT")
+                        .build(),
+                ),
+            )
+        }
+    }
+}
 
 pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> Router {
     let api_prefix = "/api";
@@ -51,6 +81,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
                 .nest("/auth", AuthApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
                 .nest("/collections", CollectionApi::router())
+                .nest("/config", ConfigApi::router())
                 .nest("/feedEntries", FeedEntryApi::router())
                 .nest("/feeds", FeedApi::router())
                 .nest("/streams", StreamApi::router())
@@ -83,7 +114,6 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
             api_state.clone(),
             add_user_extension,
         ))
-        .layer(middleware::from_fn(add_connection_info_extension))
         .layer(TraceLayer::new_for_http())
         .with_state(api_state);
 
@@ -97,8 +127,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
             CorsLayer::new()
                 .allow_methods([Method::GET, Method::POST, Method::PATCH, Method::DELETE])
                 .allow_origin(origins)
-                .allow_headers([header::CONTENT_TYPE])
-                .allow_credentials(true),
+                .allow_headers([header::CONTENT_TYPE, header::AUTHORIZATION]),
         )
     }
 

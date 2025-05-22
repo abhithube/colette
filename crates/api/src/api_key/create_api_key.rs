@@ -19,20 +19,18 @@ use crate::{
   request_body = ApiKeyCreate,
   responses(OkResponse, ErrResponse),
   operation_id = "createApiKey",
-  description = "Create a API key",
+  description = "Create an API key",
   tag = API_KEYS_TAG
 )]
 #[axum::debug_handler]
 pub(super) async fn handler(
     State(state): State<ApiState>,
-    AuthUser(user_id): AuthUser,
+    AuthUser(user): AuthUser,
     Json(body): Json<ApiKeyCreate>,
 ) -> Result<OkResponse, ErrResponse> {
-    println!("{:?}", body);
-
     match state
         .api_key_service
-        .create_api_key(body.into(), user_id)
+        .create_api_key(body.into(), user.id)
         .await
     {
         Ok(data) => Ok(OkResponse(data.into())),

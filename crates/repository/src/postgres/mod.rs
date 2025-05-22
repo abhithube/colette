@@ -8,6 +8,7 @@ pub use stream::PostgresStreamRepository;
 pub use subscription::PostgresSubscriptionRepository;
 pub use subscription_entry::PostgresSubscriptionEntryRepository;
 pub use tag::PostgresTagRepository;
+pub use user::PostgresUserRepository;
 
 mod api_key;
 mod bookmark;
@@ -19,3 +20,4 @@ mod stream;
 mod subscription;
 mod subscription_entry;
 mod tag;
+mod user;
