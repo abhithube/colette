@@ -81,13 +81,19 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
                 .nest("/auth", AuthApi::router())
                 .nest("/bookmarks", BookmarkApi::router())
                 .nest("/collections", CollectionApi::router())
-                .nest("/config", ConfigApi::router())
                 .nest("/feedEntries", FeedEntryApi::router())
                 .nest("/feeds", FeedApi::router())
                 .nest("/streams", StreamApi::router())
                 .nest("/subscriptionEntries", SubscriptionEntryApi::router())
                 .nest("/subscriptions", SubscriptionApi::router())
-                .nest("/tags", TagApi::router()),
+                .nest("/tags", TagApi::router())
+                .layer(middleware::from_fn_with_state(
+                    api_state.clone(),
+                    add_user_extension,
+                ))
+                .nest("/config", ConfigApi::router())
+                .layer(TraceLayer::new_for_http())
+                .with_state(api_state),
         )
         .split_for_parts();
 
@@ -109,13 +115,7 @@ pub fn create_router(api_state: ApiState, origin_urls: Option<Vec<String>>) -> R
         .route(
             &format!("{}/openapi.json", api_prefix),
             routing::get(|| async move { openapi.to_pretty_json().unwrap() }),
-        )
-        .layer(middleware::from_fn_with_state(
-            api_state.clone(),
-            add_user_extension,
-        ))
-        .layer(TraceLayer::new_for_http())
-        .with_state(api_state);
+        );
 
     if let Some(origin_urls) = origin_urls {
         let origins = origin_urls
