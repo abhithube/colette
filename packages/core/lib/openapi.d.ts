@@ -14,7 +14,7 @@ export interface paths {
         /** @description List user API keys */
         get: operations["listApiKeys"];
         put?: never;
-        /** @description Create a API key */
+        /** @description Create an API key */
         post: operations["createApiKey"];
         delete?: never;
         options?: never;
@@ -41,40 +41,6 @@ export interface paths {
         patch: operations["updateApiKey"];
         trace?: never;
     };
-    "/auth/register": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Register a user account */
-        post: operations["registerUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Login to a user account */
-        post: operations["loginUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/@me": {
         parameters: {
             query?: never;
@@ -86,23 +52,6 @@ export interface paths {
         get: operations["getActiveUser"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description Log out of user account */
-        post: operations["logoutUser"];
         delete?: never;
         options?: never;
         head?: never;
@@ -249,6 +198,23 @@ export interface paths {
         head?: never;
         /** @description Update a collection by ID */
         patch: operations["updateCollection"];
+        trace?: never;
+    };
+    "/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get the API config */
+        get: operations["getConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/feedEntries": {
@@ -536,7 +502,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** Error */
         ApiError: {
             code: components["schemas"]["ApiErrorCode"];
             message: string;
@@ -663,6 +628,10 @@ export interface components {
             title?: string;
             filter?: null | components["schemas"]["BookmarkFilter"];
         };
+        Config: {
+            oidc: components["schemas"]["OidcConfig"];
+            storage: components["schemas"]["StorageConfig"];
+        };
         DateOp: {
             /** Format: date-time */
             before: string;
@@ -727,10 +696,12 @@ export interface components {
         LinkSubscriptionTags: {
             tagIds: string[];
         };
-        Login: {
-            /** Format: email */
-            email: string;
-            password: string;
+        OidcConfig: {
+            client_id: string;
+            /** Format: uri */
+            redirect_url: string;
+            /** Format: uri */
+            issuer_url: string;
         };
         Paginated_ApiKey: {
             data: {
@@ -823,10 +794,9 @@ export interface components {
             }[];
             cursor?: string;
         };
-        Register: {
-            /** Format: email */
-            email: string;
-            password: string;
+        StorageConfig: {
+            /** Format: uri */
+            base_url: string;
         };
         Stream: {
             /** Format: uuid */
@@ -948,12 +918,14 @@ export interface components {
             endsWith: string;
         };
         User: {
+            /** Format: uuid */
             id: string;
+            externalId: string;
             /** Format: email */
-            email: string;
-            /** Format: date-time */
-            verifiedAt?: string | null;
-            name?: string | null;
+            email: string | null;
+            displayName: string | null;
+            /** Format: uri */
+            pictureUrl: string | null;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
@@ -1242,108 +1214,6 @@ export interface operations {
             };
         };
     };
-    registerUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Register"];
-            };
-        };
-        responses: {
-            /** @description Registered user */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            /** @description Email already registered */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Invalid input */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unknown error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    loginUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Login"];
-            };
-        };
-        responses: {
-            /** @description Logged in user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["User"];
-                };
-            };
-            /** @description Bad credentials */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Invalid input */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unknown error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
     getActiveUser: {
         parameters: {
             query?: never;
@@ -1361,42 +1231,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
-            };
-            /** @description User not authenticated */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-            /** @description Unknown error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApiError"];
-                };
-            };
-        };
-    };
-    logoutUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successfully logged out */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description User not authenticated */
             401: {
@@ -2195,6 +2029,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description API config */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Config"];
                 };
             };
         };

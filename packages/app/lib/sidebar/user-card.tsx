@@ -1,28 +1,24 @@
-import { useLogoutUserMutation } from '@colette/query'
-import { getRouteApi } from '@colette/router'
 import { Menu, Sidebar } from '@colette/ui'
+import { useOIDCConfig, useUser } from '@colette/util'
 import { ChevronsUpDown, User } from 'lucide-react'
-
-const routeApi = getRouteApi('/layout')
+import * as client from 'openid-client'
 
 export const UserCard = () => {
-  const context = routeApi.useRouteContext()
-  const navigate = routeApi.useNavigate()
+  const oidcConfig = useOIDCConfig()
+  const user = useUser()
 
-  const logoutUser = useLogoutUserMutation()
+  async function onLogout() {
+    const refreshToken = localStorage.getItem('colette-refresh-token')
+    if (refreshToken) {
+      await client.tokenRevocation(oidcConfig.clientConfig, refreshToken, {
+        token_type_hint: 'refresh_token',
+      })
+    }
 
-  function onLogout() {
-    logoutUser.mutate(undefined, {
-      onSuccess: () => {
-        navigate({
-          to: '/login',
-          state: {
-            loggedOut: true,
-          },
-          replace: true,
-        })
-      },
-    })
+    localStorage.removeItem('colette-access-token')
+    localStorage.removeItem('colette-refresh-token')
+
+    window.location.href = '/login?loggedOut=true'
   }
 
   return (
@@ -38,7 +34,9 @@ export const UserCard = () => {
                 <User className="size-4" />
               </div>
               <span className="font-semibold">
-                {context.user.email.split('@')[0]}
+                {user.displayName ??
+                  user.email?.split('@')[0] ??
+                  user.externalId}
               </span>
               <ChevronsUpDown className="ml-auto" />
             </Sidebar.MenuButton>

@@ -11,6 +11,7 @@
     "@tanstack/react-query": "*",
     "@tanstack/react-router": "^1.117.1",
     "@tanstack/zod-adapter": "^1.117.1",
+    "openid-client": "*",
     "react": "*",
     "react-dom": "*",
     "zod": "*"

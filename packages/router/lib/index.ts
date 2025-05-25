@@ -10,16 +10,16 @@ import { streamsIndexRoute } from './routes/(app)/streams/index'
 import { subscriptionsRoute } from './routes/(app)/subscriptions'
 import { subscriptionsIdRoute } from './routes/(app)/subscriptions/$id'
 import { subscriptionsIndexRoute } from './routes/(app)/subscriptions/index'
+import { authCallbackRoute } from './routes/(auth)/auth-callback'
 import { loginRoute } from './routes/(auth)/login'
-import { registerRoute } from './routes/(auth)/register'
 import { rootRoute } from './routes/__root'
 import { API } from '@colette/core'
 import { QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
 
 const routeTree = rootRoute.addChildren([
-  registerRoute,
   loginRoute,
+  authCallbackRoute,
   layoutRoute.addChildren([
     indexRoute,
     subscriptionsRoute.addChildren([
@@ -46,11 +46,6 @@ export const buildRouter = (api: API, queryClient: QueryClient) =>
 declare module '@tanstack/react-router' {
   interface Register {
     router: ReturnType<typeof buildRouter>
-  }
-
-  interface HistoryState {
-    registered?: boolean
-    loggedOut?: boolean
   }
 }
 

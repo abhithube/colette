@@ -1,6 +1,7 @@
 import { type AuthAPI, HTTPAuthAPI } from './auth'
 import { type BookmarkAPI, HTTPBookmarkAPI } from './bookmark'
-import { CollectionAPI, HTTPCollectionAPI } from './collection'
+import { type CollectionAPI, HTTPCollectionAPI } from './collection'
+import { type ConfigAPI, HTTPConfigAPI } from './config'
 import {
   BadGatewayError,
   ConflictError,
@@ -12,12 +13,12 @@ import {
 } from './error'
 import { type FeedAPI, HTTPFeedAPI } from './feed'
 import { type FeedEntryAPI, HTTPFeedEntryAPI } from './feed-entry'
-import { paths, components } from './openapi'
-import { HTTPStreamAPI, StreamAPI } from './stream'
-import { HTTPSubscriptionAPI, SubscriptionAPI } from './subscription'
+import { components, paths } from './openapi'
+import { HTTPStreamAPI, type StreamAPI } from './stream'
+import { HTTPSubscriptionAPI, type SubscriptionAPI } from './subscription'
 import {
   HTTPSubscriptionEntryAPI,
-  SubscriptionEntryAPI,
+  type SubscriptionEntryAPI,
 } from './subscription-entry'
 import { HTTPTagAPI, type TagAPI } from './tag'
 import createClient, { Middleware } from 'openapi-fetch'
@@ -29,12 +30,24 @@ export interface API {
   auth: AuthAPI
   bookmarks: BookmarkAPI
   collections: CollectionAPI
+  config: ConfigAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   streams: StreamAPI
   subscriptionEntries: SubscriptionEntryAPI
   subscriptions: SubscriptionAPI
   tags: TagAPI
+}
+
+const authMiddleware: Middleware = {
+  onRequest: async ({ request }) => {
+    const accessToken = localStorage.getItem('colette-access-token')
+    if (accessToken) {
+      request.headers.set('Authorization', `Bearer ${accessToken}`)
+    }
+
+    return request
+  },
 }
 
 const errorMiddleware: Middleware = {
@@ -62,10 +75,7 @@ const errorMiddleware: Middleware = {
   },
 }
 
-export type HttpAPIOptions = Omit<
-  RequestInit,
-  'method' | 'body' | 'headers'
-> & {
+export type HttpAPIOptions = Omit<RequestInit, 'method' | 'body'> & {
   baseUrl?: string
 }
 
@@ -73,6 +83,7 @@ export class HttpAPI implements API {
   auth: AuthAPI
   bookmarks: BookmarkAPI
   collections: CollectionAPI
+  config: ConfigAPI
   feedEntries: FeedEntryAPI
   feeds: FeedAPI
   streams: StreamAPI
@@ -82,11 +93,12 @@ export class HttpAPI implements API {
 
   constructor({ baseUrl, ...rest }: HttpAPIOptions) {
     const client = createClient<paths>({ baseUrl, ...rest })
-    client.use(errorMiddleware)
+    client.use(authMiddleware, errorMiddleware)
 
     this.auth = new HTTPAuthAPI(client)
     this.bookmarks = new HTTPBookmarkAPI(client)
     this.collections = new HTTPCollectionAPI(client)
+    this.config = new HTTPConfigAPI(client)
     this.feedEntries = new HTTPFeedEntryAPI(client)
     this.feeds = new HTTPFeedAPI(client)
     this.streams = new HTTPStreamAPI(client)

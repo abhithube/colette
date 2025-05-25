@@ -8,18 +8,11 @@ export const loginRoute = createRoute({
   path: 'login',
   validateSearch: zodValidator(
     z.object({
-      from: z.string().optional(),
+      loggedOut: z.boolean().optional(),
     }),
   ),
-  beforeLoad: ({ context, search }) => {
+  beforeLoad: ({ context }) => {
     if (context.user) {
-      if (search.from) {
-        throw redirect({
-          to: search.from,
-          replace: true,
-        })
-      }
-
       throw redirect({
         to: '/',
         replace: true,

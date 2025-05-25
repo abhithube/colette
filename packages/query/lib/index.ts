@@ -1,6 +1,7 @@
 export * from './auth'
 export * from './bookmark'
 export * from './collection'
+export * from './config'
 export * from './feed'
 export * from './stream'
 export * from './subscription'
