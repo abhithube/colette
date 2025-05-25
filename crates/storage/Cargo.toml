@@ -10,5 +10,6 @@ rust-s3 = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 
 [features]
-fs = ['dep:tokio']
+default = ["fs"]
+fs = ["dep:tokio", "tokio/fs"]
 s3 = ["dep:rust-s3"]

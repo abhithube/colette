@@ -1,5 +1,5 @@
-#[cfg(not(any(feature = "fs")))]
-panic!("at least one of 'fs' or 's3' must be enabled");
+#[cfg(not(any(feature = "fs", feature = "s3")))]
+compile_error!("at least one of 'fs' or 's3' must be enabled");
 
 #[cfg(feature = "fs")]
 pub use fs::FsStorageClient;

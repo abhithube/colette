@@ -13,10 +13,10 @@ colette-http.workspace = true
 colette-job.workspace = true
 colette-migration.workspace = true
 colette-plugins.workspace = true
-colette-queue = { workspace = true, features = ["local"] }
+colette-queue.workspace = true
 colette-repository.workspace = true
 colette-scraper.workspace = true
-colette-storage = { workspace = true, features = ["fs", "s3"] }
+colette-storage = { workspace = true, features = ["s3"] }
 cron = { version = "0.15.0", default-features = false }
 deadpool-postgres = { workspace = true, features = ["rt_tokio_1"] }
 dirs = { version = "6.0.0", default-features = false }

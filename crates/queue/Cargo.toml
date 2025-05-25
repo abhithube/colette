@@ -10,4 +10,5 @@ tokio = { workspace = true, optional = true }
 uuid.workspace = true
 
 [features]
-local = ['dep:tokio']
+default = ["local"]
+local = ["dep:tokio"]

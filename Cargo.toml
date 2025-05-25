@@ -45,10 +45,10 @@ colette-netscape.path = "crates/netscape"
 colette-opml.path = "crates/opml"
 colette-plugins.path = "crates/plugins"
 colette-query.path = "crates/query"
-colette-queue = { path = "crates/queue", default-features = false }
+colette-queue.path = "crates/queue"
 colette-repository.path = "crates/repository"
 colette-scraper.path = "crates/scraper"
-colette-storage = { path = "crates/storage", default-features = false }
+colette-storage.path = "crates/storage"
 colette-util.path = "crates/util"
 deadpool-postgres = { version = "0.14.1", default-features = false, features = [
   "serde",

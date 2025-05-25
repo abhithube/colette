@@ -1,5 +1,5 @@
 #[cfg(not(any(feature = "local")))]
-panic!("at least one of 'local' must be enabled");
+compile_error!("at least one of 'local' must be enabled");
 
 #[cfg(feature = "local")]
 pub use local::LocalQueue;
